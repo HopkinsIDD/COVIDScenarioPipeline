@@ -146,11 +146,11 @@ class Results():
                               self.comp_data[nd][comp].quantile(.95, axis = 1), alpha =.3, 
                               facecolor = self.colors[i%4])
             
-        axes.legend([self.s.spatset.data['name'][i] for i in range(self.s.nnodes)])
+        axes.legend([self.s.spatset.data['geoid'][i] for i in range(self.s.nnodes)])
         fig.autofmt_xdate()
         
         if not self.s.interactive:
-            plt.savefig(f'{self.s.setup_name}_{comp}_selected{self.timestamp}.pdf')
+            plt.savefig(f'{self.figdir}{self.s.setup_name}_{comp}_selected{self.timestamp}.pdf')
         
         return fig, axes
 
