@@ -21,7 +21,7 @@ load_scenario_sims <- function(scenario_dir) {
     tmp <- data.table::fread(file) %>% as.data.frame()
     colnames(tmp) <- tmp[1,]
     tmp <- tmp[-1,] %>%
-      pivot_longer(cols=`6001`:`6115`, names_to = "county", values_to="N") %>% 
+      pivot_longer(cols=c(-time, -comp), names_to = "county", values_to="N") %>% 
       mutate(sim_num = i) 
     
     rc[[i]] <- tmp
@@ -58,7 +58,7 @@ load_scenario_sims <- function(scenario_dir) {
 ##'
 ##'@return a long data frame with GEOID + cental coordinates of each county
 ##'
-load_county_dat <- function(ca, metrop_labels){
+load_county_dat_CA <- function(ca, metrop_labels){
   county_dat <- read.csv("data/geodata.csv")
   county_dat$GEOID <- sprintf("0%s", county_dat$geoid)
   county_dat$long <- as.numeric(as.character(ca$INTPTLON[match(county_dat$GEOID, ca$GEOID)]))
