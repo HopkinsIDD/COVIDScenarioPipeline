@@ -3,7 +3,7 @@ import pandas as pd
 import geopandas as gpd
 import datetime
 from shapely.geometry import Point, Polygon
-import seir
+from COVIDScenarioPipeline.SEIR import seir
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
@@ -90,16 +90,5 @@ class CaliforniaSpatialSetup():
         self.counties_shp = gpd.read_file(f'data/{folder}california-counties-shp/california-counties.shp')
         self.counties_shp.sort_values('GEOID', inplace=True)
 
-class WestCoastSpatialSetup():
-    """
-        Setup for california at the county scale.
-    """
-    def __init__(self):
-        folder = 'west-coast/'
-        self.data = pd.read_csv(f'data/{folder}geodata.csv')
-        self.mobility = np.loadtxt(f'data/{folder}mobility.txt')
-        self.popnodes = self.data['pop2010'].to_numpy()
-        self.nnodes = len(self.data)
-        #self.counties_shp = gpd.read_file(f'data/{folder}california-counties-shp/california-counties.shp')
-        #self.counties_shp.sort_values('GEOID', inplace=True)
+
 
