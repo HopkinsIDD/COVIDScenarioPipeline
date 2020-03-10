@@ -11,8 +11,8 @@ library(tidyverse)
 
 # RUN THE CALCULATION -----------------------------------------------------
 
-# *** will have to adjust to model output and time ****
-# *** add detection and confirmation later
+# will have to adjust to model output and time
+# add detection and confirmation later
 # 
 # test_data <- data.frame(t = 0:8, S = c(1000, 999, 999, 990, 980, 960, 800, 700, 500), incidI = c(1, 1, 0, 10, 10, 20, 160, 100, 200))
 # 
@@ -21,6 +21,7 @@ library(tidyverse)
 # res_data <- build_hospdeath(data, p_hosp=p_hosp[3], p_death=p_death[3], time_hosp_pars, time_death_pars, time_disch_pars)
 
 
+##' Function 
 ##' 
 ##' Build a set of sampled hospitalizations, deaths, and recoveries 
 ##'  from the incident infection data from the simulation model.
@@ -77,7 +78,7 @@ build_hospdeath <- function(data, p_hosp, p_death,
     # incidR_[R_time_times + d] <- R_time_count
     # 
     # Current Hospitalized
-    # --> NEED TO ADD THIS <---
+    # NEED TO ADD THIS 
     
     return(res_data)
 }
@@ -86,7 +87,7 @@ build_hospdeath <- function(data, p_hosp, p_death,
 
 
 
-##' 
+##' Function 
 ##' Build a set of sampled hospitalizations, deaths, and recoveries 
 ##'  from the incident infection data from the simulation model.
 ##'  
@@ -158,7 +159,6 @@ build_hospdeath_fullsim <- function(data, p_hosp, p_death,
 
 
 
-##' 
 ##' Build a set of sampled hospitalizations, deaths, and recoveries 
 ##'  from the incident infection data from the simulation model.
 ##'  
@@ -214,7 +214,7 @@ build_hospdeath_SLOW <- function(data, p_hosp, p_death,
         # incidR_[R_time_times + d] <- R_time_count
         # 
         # Current Hospitalized
-        # --> NEED TO ADD THIS <---
+        # --> NEED TO ADD THIS
         
         # Add all back to the full data
         res_data$incidH <- res_data$incidH + incidH_
@@ -237,7 +237,7 @@ build_hospdeath_SLOW <- function(data, p_hosp, p_death,
 # GET SAMPLED SUMMARY STATS -----------------------------------------------
 
 
-##' 
+
 ##' Build a set of sampled hospitalizations, deaths, and recoveries 
 ##'  from the incident infection data from the simulation model.
 ##' 
@@ -292,7 +292,7 @@ get_hospdeath_ests <- function(iters=100, data, p_hosp, p_death,
 
 
 
-##' 
+
 ##' Build a set of sampled hospitalizations, deaths, and recoveries 
 ##'  from the incident infection data from the simulation model.
 ##' 
@@ -336,7 +336,7 @@ get_hospdeath_sims <- function(incid_data, p_hosp, p_death,
 
 
 
-# 
+
 # # TEST
 # source("R/DataUtils.R")
 # sims_data <- load_scenario_sims(scenario_dir="SanFrancisco/low")
