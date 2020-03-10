@@ -58,13 +58,13 @@ load_scenario_sims <- function(scenario_dir) {
 ##'
 ##'@return a long data frame with GEOID + cental coordinates of each county
 ##'
-load_county_dat <- function(ca){
-  county_dat <- read.csv("california-data-county/california_data.csv")
-  county_dat$GEOID <- sprintf("0%s", county_dat$name)
+load_county_dat <- function(ca, metrop_labels){
+  county_dat <- read.csv("data/geodata.csv")
+  county_dat$GEOID <- sprintf("0%s", county_dat$geoid)
   county_dat$long <- as.numeric(as.character(ca$INTPTLON[match(county_dat$GEOID, ca$GEOID)]))
   county_dat$lat <- as.numeric(as.character(ca$INTPTLAT[match(county_dat$GEOID, ca$GEOID)]))
   county_dat$metrop_labels <- county_dat$new_metrop
-  levels(county_dat$metrop_labels) <- c(NA, "Fresno", "Los Angeles", "Redding", "Sacramento", "San Diego", "San Francisco")
+  levels(county_dat$metrop_labels) <- metrop_labels
   return(county_dat)
 }
 
@@ -257,6 +257,87 @@ make_final_hosp_metrop_dat <- function(hd_dat, cdat=county_dat){
                    ndeath_lo = quantile(ndeath, 0.2),
                    ndeath_hi = quantile(ndeath, 0.8))
   return(tmp)
+}
+
+
+
+summ_hosp_death_table <- function(df = sanfran_hosp_low, end_date="2020-04-01"){
+  # Hospitalization - by location
+  df_summ_H <- df %>% filter(time <= as.Date(end_date)) %>%
+    group_by(sim_num, p_death, metrop_labels) %>% 
+    summarize(hosp = sum(incidH)) %>% 
+    group_by(p_death, metrop_labels) %>% 
+    summarize(mean=mean(hosp), 
+              pi_low=quantile(hosp, probs=0.2), 
+              pi_high=quantile(hosp, probs=0.8))
+  
+  dat <- df_summ_H %>% mutate(estH = paste0(round(mean,1), " (", round(pi_low,1),"-",round(pi_high,1),")")) %>% 
+    mutate(metrop_labels = factor(metrop_labels, levels=c( "San Francisco",
+                                                           "Sacremento",
+                                                           "Fresno",
+                                                           "Los Angeles",
+                                                           "San Diego",
+                                                           "Redding"), ordered = TRUE)) %>% arrange(p_death, metrop_labels)
+  locs_ <- dat %>% select(-(mean:pi_high)) %>% spread(key=p_death, value=estH)
+  
+  
+  # Hospitalization - All locations
+  df_summ_H <- df %>% filter(time <= as.Date(end_date)) %>%
+    group_by(sim_num, p_death) %>% 
+    summarize(hosp = sum(incidH)) %>% 
+    group_by(p_death) %>% 
+    summarize(mean=mean(hosp), pi_low=quantile(hosp, probs=0.2), pi_high=quantile(hosp, probs=0.8))
+  all_ <- df_summ_H %>% mutate(estH = paste0(round(mean,1), " (", round(pi_low,1),"-",round(pi_high,1),")")) %>% 
+    mutate(metrop_labels = "All Locations") %>% select(-(mean:pi_high)) %>% spread(key=p_death, value=estH)
+  
+  # Final table
+  tab_H <- bind_rows(all_, locs_)
+  
+  labs <- c(" ",rep("Hospitalizations", 3))
+  names(labs) <- c("metrop_labels", "0.001", "0.0025", "0.01")
+  tab_H <- bind_rows(labs, tab_H)
+  
+  
+  # ~ Deaths - Low ----------------------------------------------------------
+  
+  # Deaths - by location
+  df_summ_D <- df %>% filter(time <= as.Date(end_date)) %>%
+    group_by(sim_num, p_death, metrop_labels) %>% 
+    summarize(death = sum(incidD)) %>% 
+    group_by(p_death, metrop_labels) %>% 
+    summarize(mean=mean(death), pi_low=quantile(death, probs=0.2), pi_high=quantile(death, probs=0.8))
+  
+  dat <- df_summ_D %>% mutate(estD = paste0(round(mean,1), " (", round(pi_low,1),"-",round(pi_high,1),")")) %>% 
+    mutate(metrop_labels = factor(metrop_labels, levels=c( "San Francisco",
+                                                           "Sacremento",
+                                                           "Fresno",
+                                                           "Los Angeles",
+                                                           "San Diego",
+                                                           "Redding"), ordered = TRUE)) %>% arrange(p_death, metrop_labels)
+  locs_ <- dat %>% select(-(mean:pi_high)) %>% spread(key=p_death, value=estD)
+  
+  
+  # Deaths - by location
+  df_summ_D <- df %>% filter(time <= as.Date(end_date)) %>%
+    group_by(sim_num, p_death) %>% 
+    summarize(death = sum(incidD)) %>% 
+    group_by(p_death) %>% 
+    summarize(mean=mean(death), pi_low=quantile(death, probs=0.2), pi_high=quantile(death, probs=0.8))
+  all_ <- df_summ_D %>% mutate(estD = paste0(round(mean,1), " (", round(pi_low,1),"-",round(pi_high,1),")")) %>% 
+    mutate(metrop_labels = "All Locations") %>% select(-(mean:pi_high)) %>% spread(key=p_death, value=estD)
+  
+  # Final table
+  tab_D <- bind_rows(all_, locs_)
+  
+  labs <- c(" ",rep("Deaths", 3))
+  names(labs) <- c("metrop_labels", "0.001", "0.0025", "0.01")
+  tab_D <- bind_rows(labs, tab_D)
+  
+  # combine for final table
+  tab_res <- bind_cols(tab_H, tab_D[,-1])
+  tab_res <- tab_res[, c(1,2,5,3,6,4,7)]
+  
+  return(tab_res)
 }
 
 
