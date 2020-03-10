@@ -162,12 +162,12 @@ class Results():
             ax = axes.flat[c]
             ax.set_title(comp)
             for i, nd in enumerate(nodes):
-                ax.plot(self.comp_data[nd][comp].quantile(.5, axis = 1), c = self.colors[i%4])
+                ax.plot(self.comp_data[nd][comp].quantile(.5, axis = 1), c = self.colors[i%4], label = self.s.spatset.data['geoid'][i])
                 ax.fill_between(self.comp_data[nd][comp].index, self.comp_data[nd][comp].quantile(.05, axis = 1), 
                                   self.comp_data[nd][comp].quantile(.95, axis = 1), alpha =.3, 
                                   facecolor = self.colors[i%4])
             
-        ax.legend([self.s.spatset.data['geoid'][i] for i in nodes])
+        ax.legend()
         fig.autofmt_xdate()
         if not self.s.interactive:
             plt.savefig(f'{self.figdir}{self.s.setup_name}_allcomp_selected{self.timestamp}.pdf')
