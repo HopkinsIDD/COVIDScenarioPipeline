@@ -154,6 +154,98 @@ build_hospdeath_fullsim <- function(data, p_hosp, p_death,
 
 
 
+##' Function 
+##'  Build a set of sampled hospitalizations, deaths, and recoveries 
+##'  from the incident infection data from the simulation model.
+##'  But instantly summarize to save memory
+##'  
+##' @param data data.frame of t (time in days) and incidI (incident infections)
+##' @param p_hosp probability of hospitalization, among infections
+##' @param p_death probability of death, among infections (hospitalization is required for death)
+##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
+##' @param time_death_pars parameters for time from hospitalization to death distribution
+##' @param time_disch_pars parameters for time from hospitalization to discharge parameters
+##' 
+
+build_hospdeath_summary <- function(data, p_hosp, p_death,
+                                    time_hosp_pars = c(1.23, 0.79), 
+                                    time_death_pars = c(log(11.25), log(1.15)), 
+                                    time_disch_pars = c(log(11.5), log(1.22)),
+                                    end_date = "2020-04-01",
+                                    length_geoid = 5) {
+    
+    # Set up results data
+    #res_data <- data.frame(t=1:(nrow(data)+125), incidI=0, incidH=0, incidD=0, incidR=0) 
+    res_data <- data.frame(date=NA, t=1:(nrow(data)+125), incidI=0, incidH=0, incidD=0) 
+    res_data$incidI[1:nrow(data)] <- data$incidI
+    
+    t_ <- 1:nrow(data)
+    dates_ <- as.Date(data$time)
+    sim_num <- data$sim_num
+    geoid <- data$geoid
+    uid <- paste0(geoid, "-",sim_num)
+    date_tmp <- seq(min(dates_), (max(dates_)+125), by="days")
+    
+    # Add hosp    
+    I_ <- data$incidI
+    H_ <- rbinom(I_, I_, rep(p_hosp, length(I_)))
+    names(H_) <- uid
+    # Add Death
+    D_ <- rbinom(H_, H_, rep(p_death, length(H_)))
+    # R_ <- H_ - D_  # hospitalized recoveries
+    names(D_) <- uid
+    
+    
+    # Time to hospitalization
+    H_time_ <- floor(rlnorm(sum(H_), meanlog=time_hosp_pars[1], sdlog=time_hosp_pars[2]))
+    H_time_ <- rep(dates_,H_) + H_time_
+    
+    # Time to death
+    D_time_ <- floor(rlnorm(sum(D_), meanlog=time_death_pars[1], sdlog=time_death_pars[2]))
+    D_time_ <- rep(dates_,D_) + D_time_
+    
+    names(H_time_) <- rep(uid, H_)
+    names(D_time_) <- rep(uid, D_)
+    
+    data_H <- data.frame(county_sim = names(H_time_), date=H_time_, incidH=1)
+    data_D <- data.frame(county_sim = names(D_time_), date=D_time_, incidD=1)
+    
+    res <- full_join(data.frame(time=date_tmp), data_H, by=c("time"="date"))
+    res <- full_join(res, data_D, by=c("time"="date", "county_sim"="county_sim"))
+    res <- res %>% mutate(incidH = ifelse(is.na(incidH), 0, incidH),
+                          incidD = ifelse(is.na(incidD), 0, incidD),
+                          geoid = substr(county_sim,1,length_geoid),
+                          sim_num= substr(county_sim,length_geoid+1,length_geoid+4))
+    
+    res_county <- res %>% 
+                  filter(!is.na(county_sim)) %>% 
+                  select(-county_sim) %>%
+                  filter(time <= as.Date(end_date)) %>%
+                  group_by(geoid, sim_num) %>% 
+                  summarize(nhosp = sum(incidH), ndeath = sum(incidD)) %>%
+                  ungroup() %>% 
+                  group_by(geoid) %>% 
+                  summarize(nhosp_final = mean(nhosp),
+                            nhosp_lo = quantile(nhosp, 0.2),
+                            nhosp_hi = quantile(nhosp, 0.8),
+                            ndeath_final = mean(ndeath),
+                            ndeath_lo = quantile(ndeath, 0.2),
+                            ndeath_hi = quantile(ndeath, 0.8))
+    res_total <- res %>% 
+                 filter(!is.na(county_sim)) %>% 
+                 select(-county_sim) %>%
+                 filter(time <= as.Date(end_date)) %>%
+                 group_by(sim_num) %>% 
+                 summarize(nhosp = sum(incidH), ndeath = sum(incidD)) %>%
+                 ungroup() %>% 
+                 summarize(nhosp_final = mean(nhosp),
+                          nhosp_lo = quantile(nhosp, 0.2),
+                          nhosp_hi = quantile(nhosp, 0.8),
+                          ndeath_final = mean(ndeath),
+                          ndeath_lo = quantile(ndeath, 0.2),
+                          ndeath_hi = quantile(ndeath, 0.8))
+    return(list(res_county, res_total))
+}
 
 
 
