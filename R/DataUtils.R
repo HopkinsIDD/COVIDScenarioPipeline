@@ -21,7 +21,7 @@ load_scenario_sims <- function(scenario_dir) {
     tmp <- data.table::fread(file) %>% as.data.frame()
     colnames(tmp) <- tmp[1,]
     tmp <- tmp[-1,] %>%
-      pivot_longer(cols=c(-time, -comp), names_to = "county", values_to="N") %>% 
+      pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>% 
       mutate(sim_num = i) 
     
     rc[[i]] <- tmp
@@ -52,17 +52,14 @@ load_scenario_sims <- function(scenario_dir) {
 
 
 
-##'Function to load county data within California
-##'
+##' Function to load county data within California
+##' NO LONGER USED
 ##'@param ca shapefile of CA counties
 ##'
 ##'@return a long data frame with GEOID + cental coordinates of each county
 ##'
 load_county_dat_CA <- function(ca, metrop_labels){
   county_dat <- read.csv("data/geodata.csv")
-  county_dat$GEOID <- sprintf("0%s", county_dat$geoid)
-  county_dat$long <- as.numeric(as.character(ca$INTPTLON[match(county_dat$GEOID, ca$GEOID)]))
-  county_dat$lat <- as.numeric(as.character(ca$INTPTLAT[match(county_dat$GEOID, ca$GEOID)]))
   county_dat$metrop_labels <- county_dat$new_metrop
   levels(county_dat$metrop_labels) <- metrop_labels
   return(county_dat)
@@ -108,15 +105,14 @@ make_CI <- function(lo, hi){
 ##'
 ##'@return final size and 60% PI for each county
 ##'
-make_final_dat <- function(scenario_dat, cdat=county_dat){
+make_final_dat <- function(scenario_dat, cdat=county_dat, final_date = "2020-04-01"){
   final_dat <- scenario_dat %>% 
-    filter(time=="2020-04-01", comp=="cumI") %>% 
-    mutate(county = sprintf("0%s",county)) %>% 
-    group_by(county, time) %>% 
+    filter(time==final_date, comp=="cumI") %>% 
+    group_by(geoid, time) %>% 
     summarize(mean=mean(N), 
               pi_high=quantile(N,probs=.8),
               pi_low=quantile(N,probs=.2)) %>% 
-    left_join(cdat %>% select(county=GEOID, new_pop, metrop_labels), by="county") %>%
+    left_join(cdat %>% select(geoid, new_pop, metrop_labels), by="geoid") %>%
     mutate(ar = mean / new_pop * 100000)
   return(final_dat)
 }
@@ -132,16 +128,15 @@ make_final_dat <- function(scenario_dat, cdat=county_dat){
 ##'
 make_arrival_dat <- function(scenario_dat, cdat=county_dat){
   arrival_dat <- scenario_dat %>% 
-    mutate(county = sprintf("0%s",county)) %>% 
     filter(comp=="cumI") %>% 
     filter(N>0) %>% 
-    group_by(county, sim_num) %>% 
+    group_by(geoid, sim_num) %>% 
     summarize(time=min(time)) %>% 
-    group_by(county) %>% 
+    group_by(geoid) %>% 
     summarize(mean=mean.Date(time), 
               pi_low = as.Date(quantile(unclass(time), probs=.2), origin = "1970-01-01"),
               pi_high=as.Date(quantile(unclass(time), .8), origin = "1970-01-01")) %>% 
-    left_join(cdat %>% select(county=GEOID, new_pop, metrop_labels), by="county") 
+    left_join(cdat %>% select(geoid, new_pop, metrop_labels), by="geoid") 
   return(arrival_dat)
 }
 
@@ -173,8 +168,7 @@ make_inc_state_dat <- function(scenario_dat){
 ##'
 make_inc_metro_dat <- function(scenario_dat, cdat=county_dat){
   metro_dat <- scenario_dat %>%
-    inner_join(cdat %>% select(geoid, metrop_labels) %>% 
-                 mutate(geoid = as.character(geoid)), by=c("county"="geoid")) %>% 
+    inner_join(cdat %>% select(geoid, metrop_labels), by=c("geoid"="geoid")) %>% 
     filter(comp=="diffI") %>% 
     drop_na(metrop_labels) %>% 
     group_by(time, metrop_labels, sim_num) %>% 
@@ -195,7 +189,7 @@ make_inc_metro_dat <- function(scenario_dat, cdat=county_dat){
 ##'
 make_ar_table <- function(final_dat, arrival_dat){
   tmp <-  final_dat %>% 
-    left_join(arrival_dat %>% select(county, arvl=mean, arvl_lo=pi_low, arvl_hi=pi_high), by="county") %>%
+    left_join(arrival_dat %>% select(geoid, arvl=mean, arvl_lo=pi_low, arvl_hi=pi_high), by="geoid") %>%
     filter(!is.na(metrop_labels)) %>%
     group_by(metrop_labels) %>% 
     summarise(nfinal = sum(mean),
@@ -222,16 +216,17 @@ make_ar_table <- function(final_dat, arrival_dat){
 make_final_hosp_county_dat <- function(hd_dat, cdat=county_dat, end_date="2020-04-01"){
   tmp <- hd_dat %>%
     filter(time <= as.Date(end_date)) %>%
-    group_by(county, sim_num) %>% 
+    group_by(geoid, sim_num) %>% 
     summarize(nhosp = sum(incidH), ndeath = sum(incidD)) %>%
-    ungroup() %>% group_by(county) %>% 
+    ungroup() %>% 
+    group_by(geoid) %>% 
     summarize(nhosp_final = mean(nhosp),
               nhosp_lo = quantile(nhosp, 0.2),
               nhosp_hi = quantile(nhosp, 0.8),
               ndeath_final = mean(ndeath),
               ndeath_lo = quantile(ndeath, 0.2),
               ndeath_hi = quantile(ndeath, 0.8)) %>%
-    left_join(cdat %>% select(geoid, metrop_labels, new_pop) %>% mutate(geoid=as.character(geoid)), by=c("county"="geoid"))
+    left_join(cdat %>% select(geoid, metrop_labels, new_pop) %>% mutate(geoid=as.character(geoid)), by=c("geoid"="geoid"))
   return(tmp)
 }
 
@@ -245,7 +240,7 @@ make_final_hosp_county_dat <- function(hd_dat, cdat=county_dat, end_date="2020-0
 make_final_hosp_metrop_dat <- function(hd_dat, cdat=county_dat, end_date="2020-04-01"){
   tmp <- hd_dat %>%
          filter(time <= as.Date(end_date)) %>%
-         left_join(cdat %>% select(geoid, metrop_labels, new_pop) %>% mutate(geoid=as.character(geoid)), by=c("county"="geoid")) %>%
+         left_join(cdat %>% select(geoid, metrop_labels, new_pop), by=c("geoid"="geoid")) %>%
          group_by(metrop_labels, sim_num, p_death) %>% 
          summarize(nhosp = sum(incidH), 
                    ndeath = sum(incidD),
@@ -325,7 +320,7 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
 ##'
 make_final_plot <- function(ca_final_dat){
   p <- ggplot(ca_final_dat,
-              aes(x=reorder(NAME,-mean), y=mean,ymin=pi_low, ymax=pi_high )) +
+              aes(x=reorder(county.name,-mean), y=mean,ymin=pi_low, ymax=pi_high )) +
     geom_pointrange() + 
     ylab("Infections") +
     xlab("County") +
@@ -358,7 +353,7 @@ make_final_map <- function(ca_final_dat){
 ##'
 make_arrvl_plot <- function(ca_arrival_dat){
   p <- ggplot(ca_arrival_dat,
-              aes(x=reorder(NAME,-as.numeric(mean)), y=mean,ymin=pi_low, ymax=pi_high )) +
+              aes(x=reorder(county.name,-as.numeric(mean)), y=mean,ymin=pi_low, ymax=pi_high )) +
     geom_pointrange() + 
     ylab("Arrival Date") +
     xlab("County") +
@@ -375,13 +370,15 @@ make_arrvl_plot <- function(ca_arrival_dat){
 ##'
 ##'@return ggplot object, CA map with fill prop to arrival time
 ##'
-make_arrvl_map <- function(ca_arrival_dat){
-  p <- ggplot(ca_arrival_mid) +
+make_arrvl_map <- function(ca_arrival_dat, 
+                           breaks = as.numeric(as.Date(c("2020-02-01", "2020-02-14", "2020-03-01", "2020-03-15","2020-04-01"))),
+                           labels = c("Feb 1", "Feb 15", "Mar 1", "Mar 15", "April 1")){
+  p <- ggplot(ca_arrival_dat) +
     geom_sf(aes(fill=as.numeric(mean))) +
     theme_minimal() +
     scale_fill_viridis(direction=-1, 
-                       breaks=as.numeric(as.Date(c("2020-02-01", "2020-02-14", "2020-03-01", "2020-03-15","2020-04-01"))),
-                       labels=c("Feb 1", "Feb 15", "Mar 1", "Mar 15", "April 1"))
+                       breaks=breaks,
+                       labels=labels)
   return(p)
 }
 
