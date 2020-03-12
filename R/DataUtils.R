@@ -161,14 +161,12 @@ make_inc_state_dat <- function(scenario_dat){
 
 ##'Function to create data frame for metro epi curve
 ##'
-##'@param scenario_dat long data frame of results from all simulations
-##'@param cdat data frame of county geo IDs and population
+##'@param scenario_dat long data frame of results from all simulations with metro labels
 ##'
 ##'@return incident infections per county and 60% PI at each time in simulation
 ##'
-make_inc_metro_dat <- function(scenario_dat, cdat=county_dat){
+make_inc_metro_dat <- function(scenario_dat){
   metro_dat <- scenario_dat %>%
-    inner_join(cdat %>% select(geoid, metrop_labels), by=c("geoid"="geoid")) %>% 
     filter(comp=="diffI") %>% 
     drop_na(metrop_labels) %>% 
     group_by(time, metrop_labels, sim_num) %>% 
@@ -179,6 +177,7 @@ make_inc_metro_dat <- function(scenario_dat, cdat=county_dat){
               pi_high=quantile(incidence, probs=.8))
   return(metro_dat)
 } 
+
 
 ##'Function to create table of attack rates and arrival times for each metro
 ##'
@@ -206,8 +205,10 @@ make_ar_table <- function(final_dat, arrival_dat){
   return(tmp)
 }
 
-##'Function to create data frame of total hospitalizations and deaths in each county
-##'
+
+##' Function to create data frame of total hospitalizations and deaths in each county
+##' NO LONGER USED - see build_hospdeath_summary
+##' 
 ##'@param hd_dat date frame of incident hospitalizations and deaths
 ##'@param cdat data frame of county geo IDs and population
 ##'
@@ -230,8 +231,10 @@ make_final_hosp_county_dat <- function(hd_dat, cdat=county_dat, end_date="2020-0
   return(tmp)
 }
 
-##'Function to create data frame of total hospitalizations and deaths in each metro area
-##'
+
+##' Function to create data frame of total hospitalizations and deaths in each metro area
+##' NO LONGER USED - see build_hospdeath_summary
+##' 
 ##'@param hd_dat date frame of incident hospitalizations and deaths
 ##'@param cdat data frame of county geo IDs and population
 ##'
@@ -256,8 +259,9 @@ make_final_hosp_metrop_dat <- function(hd_dat, cdat=county_dat, end_date="2020-0
   return(tmp)
 }
 
-##'Function to create data frame of total hospitalizations and deaths
-##'
+##' Function to create data frame of total hospitalizations and deaths
+##' NO LONGER USED - see build_hospdeath_summary
+##' 
 ##'@param hd_dat date frame of incident hospitalizations and deaths
 ##'@param cdat data frame of county geo IDs and population
 ##'
@@ -280,7 +284,8 @@ make_final_hosp_dat <- function(hd_dat, end_date="2020-04-01"){
   return(tmp)
 }
 
-##'Function to format the hospitalization table
+
+##' Function to format the hospitalization table
 ##'
 ##'@param final_hosp_dat total hospitalizations and deaths for geo area of interest
 ##'@param final_hosp_metrop_dat total hosps and deaths per metro 
