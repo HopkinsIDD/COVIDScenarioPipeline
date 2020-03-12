@@ -165,14 +165,18 @@ build_hospdeath_fullsim <- function(data, p_hosp, p_death,
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_death_pars parameters for time from hospitalization to death distribution
 ##' @param time_disch_pars parameters for time from hospitalization to discharge parameters
+##' @param length_geoid length of the geoid identifier to split
+##' @param incl_county logical, whether to produce a table grouped by geoid in addition to metrop_labels + state
 ##' 
+
 
 build_hospdeath_summary <- function(data, p_hosp, p_death,
                                     time_hosp_pars = c(1.23, 0.79), 
                                     time_death_pars = c(log(11.25), log(1.15)), 
                                     time_disch_pars = c(log(11.5), log(1.22)),
                                     end_date = "2020-04-01",
-                                    length_geoid = 5) {
+                                    length_geoid = 5,
+                                    incl.county=FALSE) {
     
     # Set up results data
     #res_data <- data.frame(t=1:(nrow(data)+125), incidI=0, incidH=0, incidD=0, incidR=0) 
@@ -215,22 +219,24 @@ build_hospdeath_summary <- function(data, p_hosp, p_death,
     res <- res %>% mutate(incidH = ifelse(is.na(incidH), 0, incidH),
                           incidD = ifelse(is.na(incidD), 0, incidD),
                           geoid = substr(county_sim,1,length_geoid),
-                          sim_num= substr(county_sim,length_geoid+1,length_geoid+4))
+                          sim_num= substr(county_sim,length_geoid+1,length_geoid+4)) %>%
+                    left_join(data %>% select(geoid, metrop_labels) %>% distinct(), by='geoid')
     
-    res_county <- res %>% 
-                  filter(!is.na(county_sim)) %>% 
-                  select(-county_sim) %>%
-                  filter(time <= as.Date(end_date)) %>%
-                  group_by(geoid, sim_num) %>% 
-                  summarize(nhosp = sum(incidH), ndeath = sum(incidD)) %>%
-                  ungroup() %>% 
-                  group_by(geoid) %>% 
-                  summarize(nhosp_final = mean(nhosp),
-                            nhosp_lo = quantile(nhosp, 0.2),
-                            nhosp_hi = quantile(nhosp, 0.8),
-                            ndeath_final = mean(ndeath),
-                            ndeath_lo = quantile(ndeath, 0.2),
-                            ndeath_hi = quantile(ndeath, 0.8))
+    res_metro <- res %>%
+                filter(!is.na(county_sim)) %>% 
+                select(-county_sim) %>%
+                filter(time <= as.Date(end_date)) %>%
+                group_by(metrop_labels, sim_num) %>% 
+                summarize(nhosp = sum(incidH), ndeath = sum(incidD)) %>%
+                ungroup() %>% 
+                group_by(metrop_labels) %>% 
+                summarize(nhosp_final = mean(nhosp),
+                          nhosp_lo = quantile(nhosp, 0.2),
+                          nhosp_hi = quantile(nhosp, 0.8),
+                          ndeath_final = mean(ndeath),
+                          ndeath_lo = quantile(ndeath, 0.2),
+                          ndeath_hi = quantile(ndeath, 0.8))
+    
     res_total <- res %>% 
                  filter(!is.na(county_sim)) %>% 
                  select(-county_sim) %>%
@@ -244,11 +250,95 @@ build_hospdeath_summary <- function(data, p_hosp, p_death,
                           ndeath_final = mean(ndeath),
                           ndeath_lo = quantile(ndeath, 0.2),
                           ndeath_hi = quantile(ndeath, 0.8))
-    return(list(res_county, res_total))
+    
+    out <- list(res_total = res_total, res_metro = res_metro)
+                
+    if(incl.county){
+        res_geoid <- res %>% 
+            filter(!is.na(county_sim)) %>% 
+            select(-county_sim) %>%
+            filter(time <= as.Date(end_date)) %>%
+            group_by(geoid, sim_num) %>% 
+            summarize(nhosp = sum(incidH), ndeath = sum(incidD)) %>%
+            ungroup() %>% 
+            group_by(geoid) %>% 
+            summarize(nhosp_final = mean(nhosp),
+                      nhosp_lo = quantile(nhosp, 0.2),
+                      nhosp_hi = quantile(nhosp, 0.8),
+                      ndeath_final = mean(ndeath),
+                      ndeath_lo = quantile(ndeath, 0.2),
+                      ndeath_hi = quantile(ndeath, 0.8))
+        
+        out <- list(res_total = res_total, res_metro = res_metro, res_geoid = res_geoid)
+    }
+    
+    return(out)
 }
 
 
+##' Function 
+##' Build a set of sampled hospitalizations, deaths, and recoveries 
+##' from the incident infection data from the simulation model.
+##' 
+##' Instantly summarize to save memory + run for multiple p_death
+##'  
+##' @param data data.frame of t (time in days) and incidI (incident infections)
+##' @param p_hosp_vec vector of probability of hospitalization, among infections
+##' @param p_death_vec vector probability of death, among infections (hospitalization is required for death)
+##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
+##' @param time_death_pars parameters for time from hospitalization to death distribution
+##' @param time_disch_pars parameters for time from hospitalization to discharge parameters
+##' @param length_geoid length of the geoid identifier to split
+##' @param incl_county logical, whether to produce a table grouped by geoid in addition to state + metrop
+##' 
 
+build_hospdeath_summary_multiplePDeath <- function(data, 
+                                                   p_hosp_vec, 
+                                                   p_death_vec,
+                                                   time_hosp_pars = c(1.23, 0.79), 
+                                                   time_death_pars = c(log(11.25), log(1.15)), 
+                                                   time_disch_pars = c(log(11.5), log(1.22)),
+                                                   end_date = "2020-04-01",
+                                                   length_geoid = 5,
+                                                   incl.county=FALSE){
+    
+    tmp_out <- build_hospdeath_summary(data, 
+                                       p_hosp=p_hosp_vec[1], 
+                                       p_death=p_death_vec[1],
+                                       time_hosp_pars = time_hosp_pars, 
+                                       time_death_pars = time_death_pars, 
+                                       time_disch_pars = time_disch_pars,
+                                       end_date = end_date,
+                                       length_geoid = length_geoid,
+                                       incl.county = incl.county) 
+    
+    tmp_metro <- tmp_out[['res_metro']] %>% mutate(p_death = p_death[1])
+    tmp_total <- tmp_out[['res_total']] %>% mutate(p_death = p_death[1])
+    if(incl.county){ tmp_geoid <- tmp_out[['res_geoid']] %>% mutate(p_death = p_death[1]) }
+    
+    for(i in 2:length(p_death)){
+        tmp_out <- build_hospdeath_summary(data, 
+                                           p_hosp=p_hosp_vec[i], 
+                                           p_death=p_death_vec[i],
+                                           time_hosp_pars = time_hosp_pars, 
+                                           time_death_pars = time_death_pars, 
+                                           time_disch_pars = time_disch_pars,
+                                           end_date = end_date,
+                                           length_geoid = length_geoid,
+                                           incl.county = incl.county) 
+        tmp_metro <- bind_rows(tmp_metro, tmp_out[['res_metro']] %>% mutate(p_death = p_death[i]))
+        tmp_total <- bind_rows(tmp_total, tmp_out[['res_total']] %>% mutate(p_death = p_death[i]))
+        if(incl.county){tmp_geoid <- bind_rows(tmp_geoid, tmp_out[['res_geoid']] %>% mutate(p_death = p_death[i]))}
+    }
+    
+    out <- list(res_total = tmp_total, res_metro = tmp_metro)
+    
+    if(incl.county){
+    out <- list(res_total = tmp_total, res_metro = tmp_metro, res_geoid = tmp_geoid)
+    }
+    
+   return(out)
+}
 
 
 ##' Build a set of sampled hospitalizations, deaths, and recoveries 
