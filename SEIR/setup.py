@@ -57,7 +57,8 @@ class COVID19Parameters():
     """ Class to hold parameters for COVID19 transmission.
         When temporal rates, unit is [d^-1]
     """
-    def __init__(self, scn, nbetas):
+    def __init__(self, s):
+        self.s = s
         # https://github.com/midas-network/COVID-19/tree/master/parameter_estimates/2019_novel_coronavirus
         # incubation period 5.2 days based on an estimate from Lauer et al. 2020
         self.sigma = 1/5.2
@@ -67,14 +68,22 @@ class COVID19Parameters():
         # time from symptom onset to recovery per compartiment
         self.gamma = 1/6 * n_Icomp
         
-        if 'low' in scn: self.R0s = np.linspace(1.5, 2, nbetas)   # np.random.uniform(1.5, 2, nbetas)
-        if 'mid' in scn: self.R0s = np.linspace(2, 3, nbetas)
+        if 'low' in s.setup_name: self.R0s = np.linspace(1.5, 2, s.nbetas)   # np.random.uniform(1.5, 2, nbetas)
+        if 'mid' in s.setup_name: self.R0s = np.linspace(2, 3, s.nbetas)
 
         self.betas = self.R0s * self.gamma / n_Icomp
 
+        self.betas = np.vstack([self.betas]*len(s.t_inter))
+        self.gamma = np.hstack([self.gamma]*len(s.t_inter))
+        self.sigma = np.hstack([self.sigma]*len(s.t_inter))
+
     def to_vector(self, beta_id):
         """ for speed, to use with numba JIT compilation"""
-        return(np.array([self.betas[beta_id%len(self.betas)], self.sigma, self.gamma]))
+        return(np.array([self.betas[:,beta_id%self.s.nbetas], self.sigma, self.gamma]))
+
+    def addNPI(self, t_startNPI, effectiveness):
+        idt = int((t_startNPI - self.s.ti).days*1/self.s.dt)
+        self.betas[idt:,:] = self.betas[idt:,:]*(1-effectiveness)
 
 
 class CaliforniaSpatialSetup():
