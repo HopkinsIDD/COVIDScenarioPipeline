@@ -53,9 +53,11 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes,
     incident2Cases = np.empty(nnodes)
     incident3Cases = np.empty(nnodes)
     recoveredCases = np.empty(nnodes)
+
+
     
-    p_infect =    1 - np.exp(-dt*p_vec[1][0]) 
-    p_recover =   1 - np.exp(-dt*p_vec[2][0])
+    p_infect =    1 - np.exp(-dt*p_vec[1][0][0]) 
+    p_recover =   1 - np.exp(-dt*p_vec[2][0][0])
     
     for it, t in enumerate(t_inter):
         for ori in range(nnodes):
@@ -65,8 +67,8 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes,
                 y[:-1,dest] += mv
                 y[:-1,ori] -= mv
 
-        p_expose =    1 - np.exp(-dt*p_vec[0][it]*(y[I1]+y[I2]+y[I3])/popnodes)  # vector
 
+        p_expose =   1 - np.exp(-dt*p_vec[0][it]*(y[I1]+y[I2]+y[I3])/popnodes)  # vector
 
         for i in range(nnodes):
             exposeCases[i] =    np.random.binomial(y[S][i],  p_expose[i])

@@ -62,6 +62,7 @@ class COVID19Parameters():
         # https://github.com/midas-network/COVID-19/tree/master/parameter_estimates/2019_novel_coronavirus
         # incubation period 5.2 days based on an estimate from Lauer et al. 2020
         self.sigma = 1/5.2
+
         # Number of infected compartiments
         n_Icomp = 3
 
@@ -76,14 +77,26 @@ class COVID19Parameters():
         self.betas = np.vstack([self.betas]*len(s.t_inter))
         self.gamma = np.hstack([self.gamma]*len(s.t_inter))
         self.sigma = np.hstack([self.sigma]*len(s.t_inter))
+        self.betas = np.dstack([self.betas]*s.nnodes)
+        self.gamma = np.vstack([self.gamma]*s.nnodes)
+        self.sigma = np.vstack([self.sigma]*s.nnodes)
+
+        print (f' >>> Added Parameters with values: gamma = 1/6, sigma = 1/5.2, r0 between ')
 
     def to_vector(self, beta_id):
         """ for speed, to use with numba JIT compilation"""
-        return(np.array([self.betas[:,beta_id%self.s.nbetas], self.sigma, self.gamma]))
+        return(np.array([self.betas[:,beta_id%self.s.nbetas], self.sigma.T, self.gamma.T]))
 
-    def addNPI(self, t_startNPI, effectiveness):
-        idt = int((t_startNPI - self.s.ti).days*1/self.s.dt)
-        self.betas[idt:,:] = self.betas[idt:,:]*(1-effectiveness)
+    def addNPIfromcsv(self, filename):
+        npi = pd.read_csv(filename).T
+        npi.columns = npi.iloc[0]
+        npi = npi.drop('Unnamed: 0')
+        npi.index = pd.to_datetime(npi.index)
+        npi = npi.resample(str(self.s.dt*24) + 'H').ffill()
+        for i in range(self.s.nbetas):
+            self.betas[:,i,:] =  np.multiply(self.betas[:,i,:], np.ones_like(self.betas[:,i,:]) - npi.to_numpy())
+
+        print (f'>>> Added NPI as specicied in file {filename}')
 
 
 class CaliforniaSpatialSetup():
