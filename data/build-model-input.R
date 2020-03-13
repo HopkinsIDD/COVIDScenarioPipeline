@@ -27,9 +27,12 @@ pc <- as.data.frame(matrix(0, dim(census_tracts.county)[1],length(dates)))
 colnames(pc) <- as.Date(dates)
 rownames(pc) <- census_tracts.county$county
 
-pc[row.names(pc) %in% phase1, ] <- ifelse(colnames(pc) < as.Date("2020/3/18"), 0, 0.25)
-pc[row.names(pc) %in% phase2, ] <- ifelse(colnames(pc) < as.Date("2020/3/25"), 0, 0.25)
-pc[row.names(pc) %in% phase3, ] <- ifelse(colnames(pc) < as.Date("2020/4/01"), 0, 0.25)
+phase1 <- county.status$geoid[1:8]
+phase2 <- county.status$geoid[9:16]
+phase3 <- county.status$geoid[17:24]
 
+pc[row.names(pc) %in% phase1, colnames(pc)>= as.Date("2020/03/18")] <- 0.25
+pc[row.names(pc) %in% phase2, colnames(pc)>= as.Date("2020/03/25")] <- 0.25
+pc[row.names(pc) %in% phase3, colnames(pc)>= as.Date("2020/04/01")] <- 0.25
 
 write.csv(pc, file = "../../data/maryland/Maryland_3phase_pc.csv")
