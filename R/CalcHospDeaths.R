@@ -223,7 +223,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death,
                     left_join(data %>% select(geoid, metrop_labels) %>% distinct(), by='geoid')
     
     res_metro <- res %>%
-                filter(!is.na(county_sim)) %>% 
+                filter(!is.na(county_sim) & !is.na(metrop_labels)) %>% 
                 select(-county_sim) %>%
                 filter(time <= as.Date(end_date)) %>%
                 group_by(metrop_labels, sim_num) %>% 
