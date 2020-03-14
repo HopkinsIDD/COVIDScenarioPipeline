@@ -25,7 +25,7 @@ plot = TRUE
 
 # Airport data
 airport_data <- read_csv("data/airport-codes.csv", na=c(""," "))
-airports_to_consider <- read_csv("data/ca_airports.csv")
+airports_to_consider <- read_csv("data/ca/ca_airports.csv")
 
 airport_data %<>% filter(!is.na(iata_code)) %>%
   separate(coordinates, sep = ',', c('coor_lat', 'coor_lon'), convert = TRUE) %>%
@@ -45,7 +45,6 @@ print(paste('WARNING, missing ', nrow(airport_missing),  'airports'))
 loc_map <- rgdal::readOGR(shapefile_path) # California
 adm0_loc = unionSpatialPolygons(loc_map, loc_map@data$STATEFP)
 adm1_loc = unionSpatialPolygons(loc_map, loc_map@data$GEOID)
-plot(county_loc)
 plot(loc_map)
 
 
