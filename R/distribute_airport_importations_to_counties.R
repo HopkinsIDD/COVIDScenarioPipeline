@@ -7,10 +7,10 @@ library(tidyverse)
 set_region_paths <- function(region = "around_md"){ 
   
   year <- 2010
-  airport_attribution_fname = paste0("data/", region, "/airport_attribution_", year, "_", region, ".csv")
-  county_pops_fname = paste0("data/", region, "/county_pops_", year, "_", region, ".csv")
-  county_risk_by_airport_fname = paste0("data/", region, "/county_risk_by_airport_", year, "_", region, ".csv")
-  importation_params_fname = paste0("data/", region, "/import_nb_params_", region, ".csv")
+  airport_attribution_fname = paste0("COVIDScenarioPipeline/data/", region, "/airport_attribution_", year, "_", region, ".csv")
+  county_pops_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_pops_", year, "_", region, ".csv")
+  county_risk_by_airport_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_risk_by_airport_", year, "_", region, ".csv")
+  importation_params_fname = paste0("COVIDScenarioPipeline/data/", region, "/import_nb_params_", region, ".csv")
 
   return(list(airport_attribution_fname=airport_attribution_fname, 
               county_pops_fname=county_pops_fname, 
@@ -43,15 +43,15 @@ calculate_county_risk_by_airport <- function(region){
     airport_attribution <- read_csv(airport_attribution_fn) %>%
       dplyr::mutate(fips_cty = ifelse(nchar(county)==4, paste0("0", county), county)) %>%
       dplyr::left_join(county_pops, by = c("fips_cty")) %>%
-      dplyr::mutate(pop_attribution = round(attribution*pop2018))
+      dplyr::mutate(pop_attribution = round(attribution*pop2018));
 
     airport_catchment_populations <- airport_attribution %>%
       group_by(airport_iata) %>%
-      summarise(pop_airport_catchment = sum(pop_attribution))
+      summarise(pop_airport_catchment = sum(pop_attribution));
 
     county_risk_by_airport <- left_join(airport_attribution, airport_catchment_populations, by = c("airport_iata")) %>%
       dplyr::mutate(cty_risk = pop_attribution/pop_airport_catchment) %>%
-      dplyr::select(airport_iata, fips_cty, countyname, pop_attribution, pop_airport_catchment, cty_risk)
+      dplyr::select(airport_iata, fips_cty, countyname, pop_attribution, pop_airport_catchment, cty_risk);
 
     write_csv(county_risk_by_airport, county_risk_by_airport_fn)
 

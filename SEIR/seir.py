@@ -4,6 +4,7 @@ import numpy as np
 from rpy2 import robjects
 from rpy2.robjects import pandas2ri
 pandas2ri.activate()
+import pandas as pd
 import warnings
 from rpy2.rinterface import RRuntimeWarning
 warnings.filterwarnings("ignore", category=RRuntimeWarning)
@@ -13,6 +14,9 @@ r_source = robjects.r['source']
 r_assign = robjects.r['assign']
 r_options = robjects.r['options']
 r_options(warn=-1)
+from rpy2.rinterface_lib.callbacks import logger as rpy2_logger
+import logging
+rpy2_logger.setLevel(logging.ERROR)
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
@@ -23,6 +27,18 @@ def onerun_SEIR(s, p, uid):
     npi = robjects.r['NPI'].T
     p.addNPIfromR(npi)
 
+    r_assign('region', 'around_md')
+    r_source('COVIDScenarioPipeline/R/distribute_airport_importations_to_counties.R')
+    importation = robjects.r['county_importations_total']
+    importation = importation.pivot(index='date', columns='fips_cty', values='importations')
+    importation.index = pd.to_datetime(importation.index)
+    for col in s.spatset.data['geoid']:
+        if col not in importation.columns:
+            importation[col] = 0
+    importation = importation.reindex(sorted(importation.columns), axis=1)
+    idx = pd.date_range(s.ti, s.tf)
+    importation = importation.reindex(idx, fill_value=0)
+
     states = steps_SEIR_nb(p.to_vector(uid),
                             s.y0, 
                             uid,
@@ -31,7 +47,8 @@ def onerun_SEIR(s, p, uid):
                             s.nnodes,
                             s.popnodes,
                             s.mobility,
-                            s.dynfilter)
+                            s.dynfilter,
+                            importation.to_numpy())
     return states
     
 def run_parallel(s, p, processes=multiprocessing.cpu_count()*2):   # set to 16 when running on server
@@ -51,7 +68,7 @@ def run_parallel(s, p, processes=multiprocessing.cpu_count()*2):   # set to 16 w
 #@jit(float64[:,:,:](float64[:,:], float64[:], int64), nopython=True)
 @jit(nopython=True)
 def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes, 
-                  mobility, dynfilter): 
+                  mobility, dynfilter, importation): 
     """ 
         Made to run just-in-time-compiled by numba, hence very descriptive and using loop,
         because loops are expanded by the compiler hence not a problem.
@@ -76,6 +93,8 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes,
     p_recover =   1 - np.exp(-dt*p_vec[2][0][0])
     
     for it, t in enumerate(t_inter):
+        if (it%int(1/dt)):
+            y[E] += importation[it%int(1/dt)]
         for ori in range(nnodes):
             for dest in range(nnodes):
                 for c in range(ncomp-1):
