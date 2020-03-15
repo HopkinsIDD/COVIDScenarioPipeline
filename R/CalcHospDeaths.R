@@ -209,16 +209,14 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                                     time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
                                     time_death_pars = c(log(11.25), log(1.15)), 
                                     time_disch_pars = c(log(11.5), log(1.22)),
+                                    time_ICUdur_pars = c(log(17.46), log(4.044)),
                                     end_date = "2020-04-01",
                                     length_geoid = 5,
                                     incl.county=FALSE,
-                                    run_parallel=FALSE, cores=1,
+                                    cores=1,
                                     durations=FALSE) {
     
-    
-    if (run_parallel){
-        require(doParallel)
-    }
+    require(doParallel)
     
     # Set up results data
     #res_data <- data.frame(t=1:(nrow(data)+125), incidI=0, incidH=0, incidD=0, incidR=0) 
@@ -396,57 +394,77 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                   nICU = sum(incidICU, na.rm = TRUE), 
                   nVent = sum(incidVent, na.rm = TRUE), 
                   ndeath = sum(incidD, na.rm = TRUE),
+                  maxHospAdm = max(incidH, na.rm=TRUE),
+                  maxICUAdm = max(incidICU, na.rm=TRUE),
                   maxHospCap = max(hosp_curr, na.rm = TRUE),
                   maxICUCap = max(icu_curr, na.rm=TRUE)) %>%
         ungroup() %>% 
         group_by(metrop_labels) %>% 
         summarize(nhosp_final = mean(nhosp),
-                  nhosp_lo = quantile(nhosp, 0.2),
-                  nhosp_hi = quantile(nhosp, 0.8),
+                  nhosp_lo = quantile(nhosp, 0.25),
+                  nhosp_hi = quantile(nhosp, 0.75),
+                  phosp_final = mean(maxHospAdm),
+                  phosp_lo = quantile(maxHospAdm, 0.25),
+                  phosp_hi = quantile(maxHospAdm, 0.75),
                   nICU_final = mean(nICU),
-                  nICU_lo = quantile(nICU, 0.2),
-                  nICU_hi = quantile(nICU, 0.8),
+                  nICU_lo = quantile(nICU, 0.25),
+                  nICU_hi = quantile(nICU, 0.75),
+                  pICU_final = mean(maxICUAdm),
+                  pICU_lo = quantile(maxICUAdm, 0.25),
+                  pICU_hi = quantile(maxICUAdm, 0.75),
                   nVent_final = mean(nVent),
-                  nVent_lo = quantile(nVent, 0.2),
-                  nVent_hi = quantile(nVent, 0.8),
+                  nVent_lo = quantile(nVent, 0.25),
+                  nVent_hi = quantile(nVent, 0.75),
                   ndeath_final = mean(ndeath),
-                  ndeath_lo = quantile(ndeath, 0.2),
-                  ndeath_hi = quantile(ndeath, 0.8),
-                  nhosp_curr_lo = quantile(maxHospCap, 0.2),
-                  nhosp_curr_hi = quantile(maxHospCap, 0.8),
-                  nicu_curr_lo = quantile(maxICUCap, 0.2),
-                  nicu_curr_hi = quantile(maxICUCap, 0.8)
-        )
+                  ndeath_lo = quantile(ndeath, 0.25),
+                  ndeath_hi = quantile(ndeath, 0.75),
+                  nhosp_curr_final = mean(maxHospCap),
+                  nhosp_curr_lo = quantile(maxHospCap, 0.25),
+                  nhosp_curr_hi = quantile(maxHospCap, 0.75),
+                  nicu_curr_final = mean(maxICUCap),
+                  nicu_curr_lo = quantile(maxICUCap, 0.25),
+                  nicu_curr_hi = quantile(maxICUCap, 0.75))
     
     res_total <- res %>% 
         filter(!is.na(county_sim)) %>% 
         select(-county_sim) %>%
         filter(time <= as.Date(end_date)) %>%
         group_by(sim_num) %>% 
-        summarize(nhosp = sum(incidH),nICU = sum(incidICU),
-                  nVent = sum(incidVent), 
-                  ndeath = sum(incidD),
+        summarize(nhosp = sum(incidH, na.rm = TRUE), 
+                  nICU = sum(incidICU, na.rm = TRUE), 
+                  nVent = sum(incidVent, na.rm = TRUE), 
+                  ndeath = sum(incidD, na.rm = TRUE),
+                  maxHospAdm = max(incidH, na.rm=TRUE),
+                  maxICUAdm = max(incidICU, na.rm=TRUE),
                   maxHospCap = max(hosp_curr, na.rm = TRUE),
                   maxICUCap = max(icu_curr, na.rm=TRUE)) %>%
         ungroup() %>% 
         summarize(nhosp_final = mean(nhosp),
-                  nhosp_lo = quantile(nhosp, 0.2),
-                  nhosp_hi = quantile(nhosp, 0.8),
-                  ndeath_ICU = mean(nICU),
-                  nICU_lo = quantile(nICU, 0.2),
-                  nICU_hi = quantile(nICU, 0.8),
+                  nhosp_lo = quantile(nhosp, 0.25),
+                  nhosp_hi = quantile(nhosp, 0.75),
+                  phosp_final = mean(maxHospAdm),
+                  phosp_lo = quantile(maxHospAdm, 0.25),
+                  phosp_hi = quantile(maxHospAdm, 0.75),
+                  nICU_final = mean(nICU),
+                  nICU_lo = quantile(nICU, 0.25),
+                  nICU_hi = quantile(nICU, 0.75),
+                  pICU_final = mean(maxICUAdm),
+                  pICU_lo = quantile(maxICUAdm, 0.25),
+                  pICU_hi = quantile(maxICUAdm, 0.75),
                   nVent_final = mean(nVent),
-                  nVent_lo = quantile(nVent, 0.2),
-                  nVent_hi = quantile(nVent, 0.8),
+                  nVent_lo = quantile(nVent, 0.25),
+                  nVent_hi = quantile(nVent, 0.75),
                   ndeath_final = mean(ndeath),
-                  ndeath_lo = quantile(ndeath, 0.2),
-                  ndeath_hi = quantile(ndeath, 0.8),
-                  nhosp_curr_lo = quantile(maxHospCap, 0.2),
-                  nhosp_curr_hi = quantile(maxHospCap, 0.8),
-                  nicu_curr_lo = quantile(maxICUCap, 0.2),
-                  nicu_curr_hi = quantile(maxICUCap, 0.8))
+                  ndeath_lo = quantile(ndeath, 0.25),
+                  ndeath_hi = quantile(ndeath, 0.75),
+                  nhosp_curr_final = mean(maxHospCap),
+                  nhosp_curr_lo = quantile(maxHospCap, 0.25),
+                  nhosp_curr_hi = quantile(maxHospCap, 0.75),
+                  nicu_curr_final = mean(maxICUCap),
+                  nicu_curr_lo = quantile(maxICUCap, 0.25),
+                  nicu_curr_hi = quantile(maxICUCap, 0.75))
     
-    out <- list(res_total = res_total, res_metro = res_metro)
+    out <- list(res_total = as.data.frame(res_total), res_metro = as.data.frame(res_metro))
     
     if(incl.county){
         res_geoid <- res %>% 
@@ -454,27 +472,42 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
             select(-county_sim) %>%
             filter(time <= as.Date(end_date)) %>%
             group_by(geoid, sim_num) %>% 
-            summarize(nhosp = sum(incidH), ndeath = sum(incidD)) %>%
+            summarize(nhosp = sum(incidH, na.rm = TRUE), 
+                      nICU = sum(incidICU, na.rm = TRUE), 
+                      nVent = sum(incidVent, na.rm = TRUE), 
+                      ndeath = sum(incidD, na.rm = TRUE),
+                      maxHospAdm = max(incidH, na.rm=TRUE),
+                      maxICUAdm = max(incidICU, na.rm=TRUE),
+                      maxHospCap = max(hosp_curr, na.rm = TRUE),
+                      maxICUCap = max(icu_curr, na.rm=TRUE)) %>%
             ungroup() %>% 
             group_by(geoid) %>% 
             summarize(nhosp_final = mean(nhosp),
-                      nhosp_lo = quantile(nhosp, 0.2),
-                      nhosp_hi = quantile(nhosp, 0.8),
+                      nhosp_lo = quantile(nhosp, 0.25),
+                      nhosp_hi = quantile(nhosp, 0.75),
+                      phosp_final = mean(maxHospAdm),
+                      phosp_lo = quantile(maxHospAdm, 0.25),
+                      phosp_hi = quantile(maxHospAdm, 0.75),
                       nICU_final = mean(nICU),
-                      nICU_lo = quantile(nICU, 0.2),
-                      nICU_hi = quantile(nICU, 0.8),
+                      nICU_lo = quantile(nICU, 0.25),
+                      nICU_hi = quantile(nICU, 0.75),
+                      pICU_final = mean(maxICUAdm),
+                      pICU_lo = quantile(maxICUAdm, 0.25),
+                      pICU_hi = quantile(maxICUAdm, 0.75),
                       nVent_final = mean(nVent),
-                      nVent_lo = quantile(nVent, 0.2),
-                      nVent_hi = quantile(nVent, 0.8),
+                      nVent_lo = quantile(nVent, 0.25),
+                      nVent_hi = quantile(nVent, 0.75),
                       ndeath_final = mean(ndeath),
-                      ndeath_lo = quantile(ndeath, 0.2),
-                      ndeath_hi = quantile(ndeath, 0.8),
-                      nhosp_curr_lo = quantile(maxHospCap, 0.2),
-                      nhosp_curr_hi = quantile(maxHospCap, 0.8),
-                      nicu_curr_lo = quantile(maxICUCap, 0.2),
-                      nicu_curr_hi = quantile(maxICUCap, 0.8))
+                      ndeath_lo = quantile(ndeath, 0.25),
+                      ndeath_hi = quantile(ndeath, 0.75),
+                      nhosp_curr_final = mean(maxHospCap),
+                      nhosp_curr_lo = quantile(maxHospCap, 0.25),
+                      nhosp_curr_hi = quantile(maxHospCap, 0.75),
+                      nicu_curr_final = mean(maxICUCap),
+                      nicu_curr_lo = quantile(maxICUCap, 0.25),
+                      nicu_curr_hi = quantile(maxICUCap, 0.75))
         
-        out <- list(res_total = res_total, res_metro = res_metro, res_geoid = res_geoid)
+        out <- list(res_total = as.data.frame(res_total), res_metro = as.data.frame(res_metro), res_geoid = as.data.frame(res_geoid))
     }
     
     return(out)
@@ -720,9 +753,12 @@ build_hospdeath_summary_multiplePDeath <- function(data,
                                                    time_disch_pars = c(log(11.5), log(1.22)),
                                                    time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
                                                    time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
+                                                   time_ICUdur_pars = c(log(17.46), log(4.044)),
                                                    end_date = "2020-04-01",
                                                    length_geoid = 5,
-                                                   incl.county=FALSE){
+                                                   incl.county=FALSE,
+                                                   cores=1,
+                                                   durations=FALSE){
     
     tmp_out <- build_hospdeath_summary(data, 
                                        p_hosp=p_hosp_vec[1], 
@@ -734,9 +770,12 @@ build_hospdeath_summary_multiplePDeath <- function(data,
                                        time_disch_pars = time_disch_pars,
                                        time_vent_pars = time_vent_pars,
                                        time_ICU_pars = time_ICU_pars,
+                                       time_ICUdur_pars = c(log(17.46), log(4.044)),
                                        end_date = end_date,
                                        length_geoid = length_geoid,
-                                       incl.county = incl.county) 
+                                       incl.county = incl.county,
+                                       cores=cores,
+                                       durations=durations) 
     
     tmp_metro <- tmp_out[['res_metro']] %>% mutate(p_death = p_death[1])
     tmp_total <- tmp_out[['res_total']] %>% mutate(p_death = p_death[1])
@@ -753,9 +792,12 @@ build_hospdeath_summary_multiplePDeath <- function(data,
                                            time_disch_pars = time_disch_pars,
                                            time_vent_pars = time_vent_pars,
                                            time_ICU_pars = time_ICU_pars,
+                                           time_ICUdur_pars = c(log(17.46), log(4.044)),
                                            end_date = end_date,
                                            length_geoid = length_geoid,
-                                           incl.county = incl.county) 
+                                           incl.county = incl.county,
+                                           cores=cores,
+                                           durations=durations) 
         tmp_metro <- bind_rows(tmp_metro, tmp_out[['res_metro']] %>% mutate(p_death = p_death[i]))
         tmp_total <- bind_rows(tmp_total, tmp_out[['res_total']] %>% mutate(p_death = p_death[i]))
         if(incl.county){tmp_geoid <- bind_rows(tmp_geoid, tmp_out[['res_geoid']] %>% mutate(p_death = p_death[i]))}
