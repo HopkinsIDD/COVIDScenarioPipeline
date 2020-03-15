@@ -98,8 +98,10 @@ build_hospdeath <- function(data, p_hosp, p_death,
 ##' @param time_death_pars parameters for time from hospitalization to death distribution
 ##' @param time_disch_pars parameters for time from hospitalization to discharge parameters
 ##' 
-build_hospdeath_fullsim <- function(data, p_hosp, p_death,
-                            time_hosp_pars = c(1.23, 0.79), 
+build_hospdeath_fullsim <- function(data, p_hosp, p_death, p_ICU,
+                            time_hosp_pars = c(1.23, 0.79),
+                            time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
+                            time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
                             time_death_pars = c(log(11.25), log(1.15)), 
                             time_disch_pars = c(log(11.5), log(1.22))) {
     
@@ -119,6 +121,12 @@ build_hospdeath_fullsim <- function(data, p_hosp, p_death,
     I_ <- data$incidI
     H_ <- rbinom(I_, I_, rep(p_hosp, length(I_)))
     names(H_) <- uid
+    # Add ICU
+    ICU_ <- rbinom(H_, H_, rep(p_ICU, length(H_)))
+    names(ICU_) <- uid
+    # Add Ventilator 
+    Vent_ <- rbinom(ICU_, ICU_, rep(p_vent, length(ICU_)))
+    names(Vent_) <- uid
     # Add Death
     D_ <- rbinom(H_, H_, rep(p_death, length(H_)))
     # R_ <- H_ - D_  # hospitalized recoveries
@@ -129,19 +137,35 @@ build_hospdeath_fullsim <- function(data, p_hosp, p_death,
     H_time_ <- floor(rlnorm(sum(H_), meanlog=time_hosp_pars[1], sdlog=time_hosp_pars[2]))
     H_time_ <- rep(dates_,H_) + H_time_
     
+    # Time from hospitalization to ICU
+    ICU_time_ <- floor(rlnorm(sum(ICU_), meanlog=time_ICU_pars[1], sdlog=time_ICU_pars[2]))
+    ICU_time_ <- rep(dates_,ICU_) + ICU_time_    
+    
+    # Time from onset of symptoms to mechanical ventilation
+    Vent_time_ <- floor(rlnorm(sum(Vent_), meanlog=time_vent_pars[1], sdlog=time_vent_pars[2]))
+    Vent_time_ <- rep(dates_,Vent_) + Vent_time_
+    
     # Time to death
     D_time_ <- floor(rlnorm(sum(D_), meanlog=time_death_pars[1], sdlog=time_death_pars[2]))
     D_time_ <- rep(dates_,D_) + D_time_
     
     names(H_time_) <- rep(uid, H_)
+    names(ICU_time_) <- rep(uid, ICU_)
+    names(Vent_time_) <- rep(uid, Vent_)
     names(D_time_) <- rep(uid, D_)
     
     data_H <- data.frame(county_sim = names(H_time_), date=H_time_, incidH=1)
+    data_ICU <- data.frame(county_sim = names(ICU_time_), date=ICU_time_, incidICU=1)
+    data_Vent <- data.frame(county_sim = names(Vent_time_), date=Vent_time_, incidVent=1)
     data_D <- data.frame(county_sim = names(D_time_), date=D_time_, incidD=1)
     
     res <- full_join(data.frame(time=date_tmp), data_H, by=c("time"="date"))
+    res <- full_join(res, data_ICU, by=c("time"="date", "county_sim"="county_sim"))
+    res <- full_join(res, data_Vent, by=c("time"="date", "county_sim"="county_sim"))
     res <- full_join(res, data_D, by=c("time"="date", "county_sim"="county_sim"))
     res <- res %>% mutate(incidH = ifelse(is.na(incidH), 0, incidH),
+                          incidICU = ifelse(is.na(incidICU), 0, incidICU),
+                          incidVent = ifelse(is.na(incidVent), 0, incidVent),
                           incidD = ifelse(is.na(incidD), 0, incidD),
                           county = substr(county_sim,1,4),
                           sim_num= substr(county_sim, 6,10))
