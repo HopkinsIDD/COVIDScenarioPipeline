@@ -20,7 +20,8 @@ library(sf)
 # OPTIONS -----------------------------------------------------------------
 states_of_interest <- sort(c("NJ","DE","MD","VA","DC","PA"))
 regions_of_interest <- paste("US", states_of_interest, sep = "-")
-shapefile_path <- paste0("data/around_md/shp_around_md/counties_around_md.shp")
+year <- "2010"
+shapefile_path <- paste0("data/around_md/shp_around_md/counties_", year, "_around_md.shp")
 
 plot = TRUE
 travelers_threshold <- 60000
@@ -32,21 +33,21 @@ travelers_threshold <- 60000
 airport_data <- read_csv("data/airport-codes.csv", na=c(""," "))
 
 ## filter from all airports in region based on number of travelers
-big_airports_around_md <- read_csv("data/around_md/airport_monthymeantravelers_around_md.csv") %>%
+big_airports_around_md <- read_csv("data/around_md/airport_monthlymeantravelers_around_md.csv") %>%
   dplyr::rename(iata_code = dest) %>%
   full_join(airport_data, by = c("iata_code")) %>%
   dplyr::filter(travelers > travelers_threshold) %>%
   dplyr::select(iata_code) %>% unlist
 
-if(!file.exists("data/around_md/airports_around_m.csv")){
+if(!file.exists(paste0("data/around_md/airports_", year, "_around_md.csv"))){
   airports_to_consider <- airport_data %>%
     dplyr::filter(iso_region %in% regions_of_interest) %>%
     dplyr::filter(iata_code %in% big_airports_around_md) %>%
     tidyr::separate(coordinates, sep = ',', c('coor_lat', 'coor_lon'), convert = TRUE) 
-  write_csv(airports_to_consider, "data/around_md/airports_around_md.csv")
+  write_csv(airports_to_consider, paste0("data/around_md/airports_", year, "_around_md.csv"))
 }
 
-airports_to_consider <- read_csv("data/around_md/airports_around_md.csv") 
+airports_to_consider <- read_csv(paste0("data/around_md/airports_", year, "_around_md.csv"))
 
 
 # ~ Get Shapefile ---------------------------------------------------------
@@ -121,7 +122,7 @@ if (nrow(counties_with_errors)>0){
 }
 
 # Save it
-write.csv(airport_attribution, file ='data/around_md/airport_attribution_around_md.csv', row.names=FALSE)
+write.csv(airport_attribution, file =paste0("data/around_md/airport_attribution_", year, "_around_md.csv"), row.names=FALSE)
 
 
 if (plot) {
