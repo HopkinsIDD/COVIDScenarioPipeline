@@ -502,3 +502,5 @@ make_finalsize_table1 <- function(scenario_dat, final_date = "2020-04-01"){
               ci = make_CI(quantile(N,probs=.25),quantile(N,probs=.75)))
   return(tmp)
 }
+
+
