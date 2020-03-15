@@ -292,7 +292,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                           phosp = max(incidH),
                           pICU = max(incidICU),
                           pVent = max(incidVent),
-                          pDeath = max(incidD)) %>%
+                          pkDeath = max(incidD)) %>%
                 ungroup() %>% 
                 group_by(metrop_labels) %>% 
                 summarize(nhosp_final = mean(nhosp),
@@ -316,9 +316,9 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                           ndeath_final = mean(ndeath),
                           ndeath_lo = quantile(ndeath, 0.25),
                           ndeath_hi = quantile(ndeath, 0.75),
-                          pdeath_final = mean(pdeath),
-                          pdeath_lo = quantile(pdeath, 0.25),
-                          pdeath_hi = quantile(pdeath, 0.75))
+                          pdeath_final = mean(pkDeath),
+                          pdeath_lo = quantile(pkDeath, 0.25),
+                          pdeath_hi = quantile(pkDeath, 0.75))
     
     res_total <- res %>% 
                  filter(!is.na(county_sim)) %>% 
@@ -332,7 +332,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                            phosp = max(incidH),
                            pICU = max(incidICU),
                            pVent = max(incidVent),
-                           pDeath = max(incidD)) %>%
+                           pkDeath = max(incidD)) %>%
                  ungroup() %>% 
                  summarize(nhosp_final = mean(nhosp),
                            nhosp_lo = quantile(nhosp, 0.25),
@@ -355,9 +355,9 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                            ndeath_final = mean(ndeath),
                            ndeath_lo = quantile(ndeath, 0.25),
                            ndeath_hi = quantile(ndeath, 0.75),
-                           pdeath_final = mean(pdeath),
-                           pdeath_lo = quantile(pdeath, 0.25),
-                           pdeath_hi = quantile(pdeath, 0.75))
+                           pdeath_final = mean(pkDeath),
+                           pdeath_lo = quantile(pkDeath, 0.25),
+                           pdeath_hi = quantile(pkDeath, 0.75))
     
     out <- list(res_total = res_total, res_metro = res_metro)
                 
@@ -374,7 +374,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                       phosp = max(incidH),
                       pICU = max(incidICU),
                       pVent = max(incidVent),
-                      pDeath = max(incidD)) %>%
+                      pkDeath = max(incidD)) %>%
             ungroup() %>% 
             group_by(geoid) %>% 
             summarize(nhosp_final = mean(nhosp),
@@ -398,9 +398,9 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                       ndeath_final = mean(ndeath),
                       ndeath_lo = quantile(ndeath, 0.25),
                       ndeath_hi = quantile(ndeath, 0.75),
-                      pdeath_final = mean(pdeath),
-                      pdeath_lo = quantile(pdeath, 0.25),
-                      pdeath_hi = quantile(pdeath, 0.75))
+                      pdeath_final = mean(pkDeath),
+                      pdeath_lo = quantile(pkDeath, 0.25),
+                      pdeath_hi = quantile(pkDeath, 0.75))
         
         out <- list(res_total = res_total, res_metro = res_metro, res_geoid = res_geoid)
     }
@@ -459,8 +459,8 @@ build_hospdeath_summary_multiplePDeath <- function(data,
     
     for(i in 2:length(p_death)){
         tmp_out <- build_hospdeath_summary(data, 
-                                           p_hosp=p_hosp_vec[1], 
-                                           p_death=p_death_vec[1],
+                                           p_hosp=p_hosp_vec[i], 
+                                           p_death=p_death_vec[i],
                                            p_ICU = p_ICU,
                                            p_vent = p_vent,
                                            time_hosp_pars = time_hosp_pars, 
