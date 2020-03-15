@@ -487,15 +487,18 @@ make_hospdeath_table1 <- function(sim_hospdeath_dat){
 
 ##'Function to create summary table of final sizes
 ##'
-##'@param scenario_dat summary hospitalization/death data frame
+##'@param scenario_dat scenario data output
 ##'@param final_date date at which to make table
 ##'
 ##'@return df object of estimates + CIs for final sizes
 ##'
 make_finalsize_table1 <- function(scenario_dat, final_date = "2020-04-01"){
   tmp <- scenario_dat %>% 
-    filter(time==final_date, comp=="cumI") %>% 
-    summarize(est=mean(N),
+         filter(time==final_date, comp=="cumI") %>% 
+         group_by(sim_num) %>%
+         summarize(N = sum(N)) %>%
+         ungroup() %>%
+         summarize(est=mean(N),
               ci = make_CI(quantile(N,probs=.25),quantile(N,probs=.75)))
   return(tmp)
 }
