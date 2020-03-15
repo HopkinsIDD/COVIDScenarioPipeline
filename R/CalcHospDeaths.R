@@ -35,7 +35,7 @@ library(tidyverse)
 ##' 
 build_hospdeath <- function(data, p_hosp, p_death,
                             time_hosp_pars = c(1.23, 0.79), 
-                            time_death_pars = c(log(11.25), log(1.15)), 
+                            time_death_pars = c(log(11.25), log(1.15)),
                             time_disch_pars = c(log(11.5), log(1.22))) {
     
     # Set up results data
@@ -97,6 +97,8 @@ build_hospdeath <- function(data, p_hosp, p_death,
 ##' @param p_vent probability of ventilation among ICU
 ##' @param p_death probability of death, among infections (hospitalization is required for death)
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
+##' @param time_ICU_pars parameters for time from onset to hospitalization distribution
+##' @param time_Vent_pars parameters for time from onset to hospitalization distribution
 ##' @param time_death_pars parameters for time from hospitalization to death distribution
 ##' @param time_disch_pars parameters for time from hospitalization to discharge parameters
 ##' 
@@ -191,6 +193,8 @@ build_hospdeath_fullsim <- function(data, p_hosp, p_death, p_ICU, p_vent,
 ##' @param p_vent probability of ventilation among ICU
 ##' @param p_death probability of death, among infections (hospitalization is required for death)
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
+##' @param time_ICU_pars parameters for time from onset to hospitalization distribution
+##' @param time_Vent_pars parameters for time from onset to hospitalization distribution
 ##' @param time_death_pars parameters for time from hospitalization to death distribution
 ##' @param time_disch_pars parameters for time from hospitalization to discharge parameters
 ##' @param length_geoid length of the geoid identifier to split
@@ -200,6 +204,8 @@ build_hospdeath_fullsim <- function(data, p_hosp, p_death, p_ICU, p_vent,
 
 build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                                     time_hosp_pars = c(1.23, 0.79), 
+                                    time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
+                                    time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
                                     time_death_pars = c(log(11.25), log(1.15)), 
                                     time_disch_pars = c(log(11.5), log(1.22)),
                                     end_date = "2020-04-01",
@@ -346,6 +352,8 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
 
 build_hospdeath_summary_multiplePDeath <- function(data, 
                                                    p_hosp_vec, 
+                                                   p_ICU_vec,
+                                                   p_vent_vec,
                                                    p_death_vec,
                                                    time_hosp_pars = c(1.23, 0.79), 
                                                    time_death_pars = c(log(11.25), log(1.15)), 
