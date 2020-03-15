@@ -236,21 +236,22 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     I_ <- data$incidI
     H_ <- rbinom(I_, I_, rep(p_hosp, length(I_)))
     names(H_) <- uid
-    # Add ICU
-    ICU_ <- rbinom(H_, H_, rep(p_ICU, length(H_)))
-    names(ICU_) <- uid
-    # Add Ventilator 
-    Vent_ <- rbinom(ICU_, ICU_, rep(p_vent, length(ICU_)))
-    names(Vent_) <- uid
-    # Add Death
-    D_ <- rbinom(H_, H_, rep(p_death, length(H_)))
-    R_ <- H_ - D_  # hospitalized recoveries
-    names(D_) <- uid
-    names(R_) <- uid
-    
+    # # Add ICU
+    # ICU_ <- rbinom(H_, H_, rep(p_ICU, length(H_)))
+    # names(ICU_) <- uid
+    # # Add Ventilator 
+    # Vent_ <- rbinom(ICU_, ICU_, rep(p_vent, length(ICU_)))
+    # names(Vent_) <- uid
+    # # Add Death
+    # D_ <- rbinom(H_, H_, rep(p_death, length(H_)))
+    # R_ <- H_ - D_  # hospitalized recoveries
+    # names(D_) <- uid
+    # names(R_) <- uid
+    # 
     
     # Time to hospitalization
-    H_delay_ <- floor(rlnorm(sum(H_), meanlog=time_hosp_pars[1], sdlog=time_hosp_pars[2]))
+    #H_delay_ <- floor(rlnorm(sum(H_), meanlog=time_hosp_pars[1], sdlog=time_hosp_pars[2]))
+    H_delay_ <- round(exp(time_hosp_pars[1]))
     H_time_ <- rep(dates_,H_) + H_delay_
     names(H_time_) <- rep(uid, H_)
     data_H <- as.data.frame(table(H_time_, names(H_time_)), stringsAsFactors = FALSE)
@@ -260,14 +261,16 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     ICU_ <- rbinom(data_H$incidH, data_H$incidH, rep(p_ICU, length(nrow(data_H))))
     names(ICU_) <- data_H$county_sim
     # Time from hospitalization to ICU
-    ICU_delay_ <- floor(rlnorm(sum(ICU_), meanlog=time_ICU_pars[1], sdlog=time_ICU_pars[2]))
+    #ICU_delay_ <- floor(rlnorm(sum(ICU_), meanlog=time_ICU_pars[1], sdlog=time_ICU_pars[2]))
+    ICU_delay_ <- round(exp(time_ICU_pars[2]))
     ICU_time_ <- rep(as.Date(data_H$time), ICU_) + ICU_delay_    
     names(ICU_time_) <- rep(data_H$county_sim, ICU_)
     data_ICU <- as.data.frame(table(ICU_time_, names(ICU_time_)), stringsAsFactors = FALSE)
     colnames(data_ICU) <- c("time","county_sim","incidICU")
     
     # Time from ICU admit to ICU discharge
-    ICU_dur_ <- floor(rlnorm(sum(ICU_), meanlog=time_ICUdur_pars[1], sdlog=time_ICUdur_pars[2]))
+    #ICU_dur_ <- floor(rlnorm(sum(ICU_), meanlog=time_ICUdur_pars[1], sdlog=time_ICUdur_pars[2]))
+    ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
     ICU_end_ <- ICU_time_ + ICU_dur_   
     names(ICU_end_) <- rep(data_H$county_sim, ICU_)
     data_ICUend <- as.data.frame(table(ICU_end_, names(ICU_end_)), stringsAsFactors = FALSE)
@@ -278,8 +281,12 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     Vent_ <- rbinom(data_ICU$incidICU, data_ICU$incidICU, rep(p_vent, length(nrow(data_ICU))))
     names(Vent_) <- data_ICU$county_sim
     # Time from ICU to mechanical ventilation
-    Vent_delay_ <- floor(rlnorm(sum(Vent_), meanlog=time_vent_pars[1], sdlog=time_vent_pars[2]))
+    #Vent_delay_ <- floor(rlnorm(sum(Vent_), meanlog=time_vent_pars[1], sdlog=time_vent_pars[2]))
+    Vent_delay_ <- exp(time_vent_pars[1])
     Vent_time_ <- rep(as.Date(data_ICU$time), Vent_) + Vent_delay_    
+    names(Vent_time_) <- rep(data_ICU$county_sim, Vent_)
+    data_Vent <- as.data.frame(table(Vent_time_, names(Vent_time_)), stringsAsFactors = FALSE)
+    colnames(data_Vent) <- c("time","county_sim","incidVent")
     
     
     
@@ -287,7 +294,8 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     D_ <- rbinom(data_H$incidH, data_H$incidH, rep(p_death, length(nrow(data_H))))
     names(D_) <- data_H$county_sim
     # Date of Death
-    D_delay_ <- floor(rlnorm(sum(D_), meanlog=time_death_pars[1], sdlog=time_death_pars[2]))
+    #D_delay_ <- floor(rlnorm(sum(D_), meanlog=time_death_pars[1], sdlog=time_death_pars[2]))
+    D_delay_ <- exp(time_death_pars[1])
     D_time_ <- rep(as.Date(data_H$time), D_) + D_delay_  
     D_date_hosp <- rep(as.Date(data_H$time), D_)
     names(D_time_) <- rep(data_H$county_sim, D_)
@@ -299,7 +307,8 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     # Add D
     R_ <- data_H$incidH - D_
     # Rate of Recovery
-    R_delay_ <- floor(rlnorm(sum(R_), meanlog=time_disch_pars[1], sdlog=time_disch_pars[2]))
+    #R_delay_ <- floor(rlnorm(sum(R_), meanlog=time_disch_pars[1], sdlog=time_disch_pars[2]))
+    R_delay_ <- round(exp(time_disch_pars[1]))
     R_time_ <- rep(as.Date(data_H$time), R_) + R_delay_  
     R_date_hosp <- rep(as.Date(data_H$time), R_)
     names(R_time_) <- rep(data_H$county_sim, R_)
@@ -359,6 +368,9 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     res <- full_join(res, data_currhosp, by=c("time", "county_sim"="county_sim"))
     res <- full_join(res, data_curricu, by=c("time", "county_sim"="county_sim"))
     
+    #NEW
+    rm(data_ICU, data_Vent, data_D, data_currhosp, data_curricu, date_tmp, data_H)
+    
     
     res <- res %>% 
         replace_na(
@@ -368,7 +380,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                  incidD = 0)
         ) %>%
         mutate(geoid = substr(county_sim,1,length_geoid),
-               sim_num= substr(county_sim,length_geoid+1,length_geoid+4)) %>%
+               sim_num= substr(county_sim,length_geoid+2,length_geoid+7)) %>%
         left_join(data %>% select(geoid, metrop_labels) %>% distinct(), by='geoid')
     
     
@@ -377,9 +389,15 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     res_metro <- res %>%
         filter(!is.na(county_sim) & !is.na(metrop_labels)) %>% 
         select(-county_sim) %>%
+        mutate(time = as.Date(time)) %>%
         filter(time <= as.Date(end_date)) %>%
         group_by(metrop_labels, sim_num) %>% 
-        summarize(nhosp = sum(incidH), nICU = sum(incidICU), nVent = sum(incidVent), ndeath = sum(incidD)) %>%
+        summarize(nhosp = sum(incidH, na.rm = TRUE), 
+                  nICU = sum(incidICU, na.rm = TRUE), 
+                  nVent = sum(incidVent, na.rm = TRUE), 
+                  ndeath = sum(incidD, na.rm = TRUE),
+                  maxHospCap = max(hosp_curr, na.rm = TRUE),
+                  maxICUCap = max(icu_curr, na.rm=TRUE)) %>%
         ungroup() %>% 
         group_by(metrop_labels) %>% 
         summarize(nhosp_final = mean(nhosp),
@@ -393,14 +411,23 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                   nVent_hi = quantile(nVent, 0.8),
                   ndeath_final = mean(ndeath),
                   ndeath_lo = quantile(ndeath, 0.2),
-                  ndeath_hi = quantile(ndeath, 0.8))
+                  ndeath_hi = quantile(ndeath, 0.8),
+                  nhosp_curr_lo = quantile(maxHospCap, 0.2),
+                  nhosp_curr_hi = quantile(maxHospCap, 0.8),
+                  nicu_curr_lo = quantile(maxICUCap, 0.2),
+                  nicu_curr_hi = quantile(maxICUCap, 0.8)
+        )
     
     res_total <- res %>% 
         filter(!is.na(county_sim)) %>% 
         select(-county_sim) %>%
         filter(time <= as.Date(end_date)) %>%
         group_by(sim_num) %>% 
-        summarize(nhosp = sum(incidH),nICU = sum(incidICU),nVent = sum(incidVent), ndeath = sum(incidD)) %>%
+        summarize(nhosp = sum(incidH),nICU = sum(incidICU),
+                  nVent = sum(incidVent), 
+                  ndeath = sum(incidD),
+                  maxHospCap = max(hosp_curr, na.rm = TRUE),
+                  maxICUCap = max(icu_curr, na.rm=TRUE)) %>%
         ungroup() %>% 
         summarize(nhosp_final = mean(nhosp),
                   nhosp_lo = quantile(nhosp, 0.2),
@@ -413,7 +440,11 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                   nVent_hi = quantile(nVent, 0.8),
                   ndeath_final = mean(ndeath),
                   ndeath_lo = quantile(ndeath, 0.2),
-                  ndeath_hi = quantile(ndeath, 0.8))
+                  ndeath_hi = quantile(ndeath, 0.8),
+                  nhosp_curr_lo = quantile(maxHospCap, 0.2),
+                  nhosp_curr_hi = quantile(maxHospCap, 0.8),
+                  nicu_curr_lo = quantile(maxICUCap, 0.2),
+                  nicu_curr_hi = quantile(maxICUCap, 0.8))
     
     out <- list(res_total = res_total, res_metro = res_metro)
     
@@ -437,13 +468,22 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                       nVent_hi = quantile(nVent, 0.8),
                       ndeath_final = mean(ndeath),
                       ndeath_lo = quantile(ndeath, 0.2),
-                      ndeath_hi = quantile(ndeath, 0.8))
+                      ndeath_hi = quantile(ndeath, 0.8),
+                      nhosp_curr_lo = quantile(maxHospCap, 0.2),
+                      nhosp_curr_hi = quantile(maxHospCap, 0.8),
+                      nicu_curr_lo = quantile(maxICUCap, 0.2),
+                      nicu_curr_hi = quantile(maxICUCap, 0.8))
         
         out <- list(res_total = res_total, res_metro = res_metro, res_geoid = res_geoid)
     }
     
     return(out)
 }
+
+
+
+
+
 
 
 
