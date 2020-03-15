@@ -23,12 +23,12 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
 def onerun_SEIR(s, p, uid):
-    r_source('COVIDScenarioPipeline/data/NPI_Scenario1_None.R')
+    r_source(s.script_npi)
     npi = robjects.r['NPI'].T
     p.addNPIfromR(npi)
 
     r_assign('region', 'around_md')
-    r_source('COVIDScenarioPipeline/R/distribute_airport_importations_to_counties.R')
+    r_source(s.script_import)
     importation = robjects.r['county_importations_total']
     importation = importation.pivot(index='date', columns='fips_cty', values='importations')
     importation.index = pd.to_datetime(importation.index)
