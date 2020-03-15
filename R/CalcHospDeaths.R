@@ -367,7 +367,9 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
             list(incidH = 0,
                  incidICU = 0,
                  incidVent = 0,
-                 incidD = 0)
+                 incidD = 0,
+                 hosp_curr = 0,
+                 icu_curr = 0)
         ) %>%
         mutate(geoid = substr(county_sim,1,length_geoid),
                sim_num= substr(county_sim,length_geoid+2,length_geoid+7)) %>%
