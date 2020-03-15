@@ -324,7 +324,7 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
                 names_from=p_death, 
                 values_from = c(hosp_est, peak_hosp, ICU_est, peak_ICU, vent_est, peak_vent, death_est, peak_death))
   
-  cnames <- paste0(c("hosp_est_", "death_est_"), rep(p_death, each=2))
+  cnames <- paste0(c("hosp_est_", "ICU_est_", "vent_est_", "death_est_"), rep(p_death, each=4))
   
   tab <- bind_rows(tmp_total[,c("metrop_labels", cnames)], 
                    tmp_metro[,c("metrop_labels", cnames)])
