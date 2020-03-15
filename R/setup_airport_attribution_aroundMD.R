@@ -65,6 +65,9 @@ voronoi_tess <- voronoi_polygon(airports_to_consider, x = "coor_lon", y = "coor_
 ## change projections of voronoi tesselation to match county shapefiles
 crs_shp <- crs(adm1_loc)
 tri_loc = unionSpatialPolygons(voronoi_tess, voronoi_tess@data$iata_code)
+tri_loc <- rgeos::gBuffer(tri_loc, byid=TRUE, width=0)
+#adm1_loc <- rgeos::gBuffer(adm1_loc, byid=TRUE, width=0)
+
 projection(tri_loc) <- crs_shp
 
 airport_attribution <- tribble(~county, ~airport_iata, ~attribution)
@@ -73,7 +76,11 @@ for (co in levels(loc_map@data$GEOID)) {
   cksum = 0      # to test if there is no error
   for (iata in voronoi_tess@data$iata_code) {
     if (!is.na(iata)){
-      inter <- raster::intersect(tri_loc[iata], adm1_loc[co])
+      inter <- tryCatch({ 
+        raster::intersect(tri_loc[iata], adm1_loc[co])
+      }, error =function(err){
+        NULL
+      })
       if(!is.null(inter)){
         if(length(inter@polygons)>0){
           percent_to_iata = raster::area(inter)/raster::area(adm1_loc[co])
@@ -122,6 +129,7 @@ if (nrow(counties_with_errors)>0){
 }
 
 # Save it
+
 write.csv(airport_attribution, file =paste0("data/around_md/airport_attribution_", year, "_around_md.csv"), row.names=FALSE)
 
 
