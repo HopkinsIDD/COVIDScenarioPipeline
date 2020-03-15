@@ -51,7 +51,7 @@ def onerun_SEIR(s, p, uid):
                             importation.to_numpy())
     return states
     
-def run_parallel(s, p, processes=multiprocessing.cpu_count()*2):   # set to 16 when running on server
+def run_parallel(s, p, processes=multiprocessing.cpu_count()):   # set to 16 when running on server
 
     tic = time.time()
     uids = np.arange(s.nsim)
@@ -93,8 +93,8 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes,
     p_recover =   1 - np.exp(-dt*p_vec[2][0][0])
     
     for it, t in enumerate(t_inter):
-        if (it%int(1/dt)):
-            y[E] += importation[it%int(1/dt)]
+        if (it%int(1/dt)==0):
+            y[E] =  y[E] + importation[int(t)]
         for ori in range(nnodes):
             for dest in range(nnodes):
                 for c in range(ncomp-1):
