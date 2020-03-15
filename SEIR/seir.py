@@ -23,12 +23,12 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
 def onerun_SEIR(s, p, uid):
-    r_source('COVIDScenarioPipeline/data/build-model-input.R')
+    r_source(s.script_npi)
     npi = robjects.r['NPI'].T
     p.addNPIfromR(npi)
 
     r_assign('region', 'around_md')
-    r_source('COVIDScenarioPipeline/R/distribute_airport_importations_to_counties.R')
+    r_source(s.script_import)
     importation = robjects.r['county_importations_total']
     importation = importation.pivot(index='date', columns='fips_cty', values='importations')
     importation.index = pd.to_datetime(importation.index)
@@ -86,8 +86,6 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes,
     incident2Cases = np.empty(nnodes)
     incident3Cases = np.empty(nnodes)
     recoveredCases = np.empty(nnodes)
-
-
     
     p_infect =    1 - np.exp(-dt*p_vec[1][0][0]) 
     p_recover =   1 - np.exp(-dt*p_vec[2][0][0])
@@ -120,6 +118,8 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes,
         y[R]    += recoveredCases
         y[cumI] += incidentCases
         states[:,:,it] = y
+        if (it%int(1/dt)==0):
+            y[cumI] += importation[int(t)]
         if (it%(1/dt) == 0 and (y[cumI] <= dynfilter[int(it%(1/dt))]).any()):
                 return -np.ones((ncomp, nnodes, len(t_inter)))
 
