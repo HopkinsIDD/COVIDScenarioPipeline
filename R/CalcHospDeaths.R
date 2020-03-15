@@ -285,12 +285,18 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                 select(-county_sim) %>%
                 filter(time <= as.Date(end_date)) %>%
                 group_by(metrop_labels, sim_num) %>% 
-                summarize(nhosp = sum(incidH), ndeath = sum(incidD)) %>%
+                summarize(nhosp = sum(incidH), nICU = sum(incidICU), nVent = sum(incidVent), ndeath = sum(incidD)) %>%
                 ungroup() %>% 
                 group_by(metrop_labels) %>% 
                 summarize(nhosp_final = mean(nhosp),
                           nhosp_lo = quantile(nhosp, 0.2),
                           nhosp_hi = quantile(nhosp, 0.8),
+                          nICU_final = mean(nICU),
+                          nICU_lo = quantile(nICU, 0.2),
+                          nICU_hi = quantile(nICU, 0.8),
+                          nVent_final = mean(nVent),
+                          nVent_lo = quantile(nVent, 0.2),
+                          nVent_hi = quantile(nVent, 0.8),
                           ndeath_final = mean(ndeath),
                           ndeath_lo = quantile(ndeath, 0.2),
                           ndeath_hi = quantile(ndeath, 0.8))
@@ -300,11 +306,17 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                  select(-county_sim) %>%
                  filter(time <= as.Date(end_date)) %>%
                  group_by(sim_num) %>% 
-                 summarize(nhosp = sum(incidH), ndeath = sum(incidD)) %>%
+                 summarize(nhosp = sum(incidH),nICU = sum(incidICU),nVent = sum(incidVent), ndeath = sum(incidD)) %>%
                  ungroup() %>% 
                  summarize(nhosp_final = mean(nhosp),
                           nhosp_lo = quantile(nhosp, 0.2),
                           nhosp_hi = quantile(nhosp, 0.8),
+                          ndeath_ICU = mean(nICU),
+                          nICU_lo = quantile(nICU, 0.2),
+                          nICU_hi = quantile(nICU, 0.8),
+                          nVent_final = mean(nVent),
+                          nVent_lo = quantile(nVent, 0.2),
+                          nVent_hi = quantile(nVent, 0.8),
                           ndeath_final = mean(ndeath),
                           ndeath_lo = quantile(ndeath, 0.2),
                           ndeath_hi = quantile(ndeath, 0.8))
@@ -323,6 +335,12 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
             summarize(nhosp_final = mean(nhosp),
                       nhosp_lo = quantile(nhosp, 0.2),
                       nhosp_hi = quantile(nhosp, 0.8),
+                      nICU_final = mean(nICU),
+                      nICU_lo = quantile(nICU, 0.2),
+                      nICU_hi = quantile(nICU, 0.8),
+                      nVent_final = mean(nVent),
+                      nVent_lo = quantile(nVent, 0.2),
+                      nVent_hi = quantile(nVent, 0.8),
                       ndeath_final = mean(ndeath),
                       ndeath_lo = quantile(ndeath, 0.2),
                       ndeath_hi = quantile(ndeath, 0.8))
@@ -352,8 +370,6 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
 
 build_hospdeath_summary_multiplePDeath <- function(data, 
                                                    p_hosp_vec, 
-                                                   p_ICU_vec,
-                                                   p_vent_vec,
                                                    p_death_vec,
                                                    time_hosp_pars = c(1.23, 0.79), 
                                                    time_death_pars = c(log(11.25), log(1.15)), 
