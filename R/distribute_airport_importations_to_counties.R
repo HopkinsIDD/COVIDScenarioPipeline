@@ -13,6 +13,7 @@ set_region_settings <- function(region = "around_md"){
     county_risk_by_airport_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_risk_by_airport_", year, "_", region, ".csv")
     importation_params_fname = paste0("COVIDScenarioPipeline/data/", region, "/import_nb_params_", region, ".csv")
     necessary_geoids = c("24025", "24031", "34003", "34017", "42045", "42091", "42127", "51059") ## fips codes that should have at least one importation by importation_data_upto
+    importations_to_geoids_fixed = c(1,4,4,1,1,5,1,2) ## number of importations to necessary geoids
     importation_data_upto = "2020-03-01"
     distribute_airport_importations_to_counties <- generate_fixedseeds_distribution_function()
   
@@ -23,6 +24,7 @@ set_region_settings <- function(region = "around_md"){
     county_risk_by_airport_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_risk_by_airport_", year, "_", region, ".csv")
     importation_params_fname = paste0("COVIDScenarioPipeline/data/", region, "/import_nb_params_", region, ".csv")
     necessary_geoids = c()
+    importations_to_geoids_fixed = c()
     importation_data_upto = NA
     distribute_airport_importations_to_counties <- generate_stoch_distribution_function()
   }
@@ -34,7 +36,8 @@ set_region_settings <- function(region = "around_md"){
               importation_params_fname=importation_params_fname,
               necessary_geoids = necessary_geoids,
               importation_data_upto = importation_data_upto,
-              distribution_fxn = distribute_airport_importations_to_counties))
+              distribution_fxn = distribute_airport_importations_to_counties,
+              fixed_importations_to_necessary_geoids = importations_to_geoids_fixed))
 }
 
 
@@ -148,9 +151,9 @@ generate_stoch_distribution_function <- function(){
 }
 
 
-generate_fixedseeds_distribution_function <- function(){
+generate_swappedseeds_distribution_function <- function(){
 
-  fixedseeds_distribution_function <- function(region){
+  swappedseeds_distribution_function <- function(region){
 
     settings_ls <- set_region_settings(region)
     necessary_geoids = settings_ls[[5]]
@@ -197,22 +200,145 @@ generate_fixedseeds_distribution_function <- function(){
           dplyr::filter(!(fips_cty == row$fips_cty & date == row$date))
       }
 
-      county_importations_tot <- bind_rows(county_importations_wo_swappedseeds, new_fixedseeds, new_nonseeds) %>%
+      county_importations_swap <- bind_rows(county_importations_wo_swappedseeds, new_fixedseeds, new_nonseeds) %>%
         dplyr::mutate(date = as.character(date))
 
-      if(!(dim(county_importations_tot)==dim(county_importations_stoch) & sum(county_importations_tot$importations)==sum(county_importations_stoch$importations))){
+      if(!(dim(county_importations_swap)==dim(county_importations_stoch) & sum(county_importations_swap$importations)==sum(county_importations_stoch$importations))){
         warning("An error occurred in the swapping procedure. Please check the code.")
       }
       print(paste("All necessary counties are now included in the seeding process prior to", importation_data_upto))
     
     } else{
       print("All necessary counties were included in the original random seeding process.")
-      county_importations_tot <- county_importations_stoch
+      county_importations_swap <- county_importations_stoch
     } 
 
-    return(county_importations_tot)
+    return(county_importations_swap)
     
   }
+}
+
+
+generate_fixedseeds_distribution_function <- function(){
+
+  fixedseeds_distribution_function <- function(region){
+
+    settings_ls <- set_region_settings(region)
+    airport_attribution_fn = settings_ls[[1]]
+    importation_params_fn = settings_ls[[4]]
+    necessary_geoids = settings_ls[[5]]
+    fixed_importations = settings_ls[[8]]
+    importation_data_upto = settings_ls[[6]]
+
+    importation_params <- read_csv(importation_params_fn) %>%
+      dplyr::rename(airport_iata = airport)
+
+    print("Fixed seed importation procedure engaged.")
+    
+    ## how many importations per airport per day?
+    importation_draws_airport <- purrr::map_dfr(seq_len(nrow(importation_params)), function(i){
+
+      row <- importation_params[i,]
+      num_importations_airport <- rnbinom(1, mu = row$mu, size = row$size)
+      data.frame(date = row$date, airport_iata = row$airport_iata, num_importations = num_importations_airport)
+    })
+
+    ## set fixed seeds first
+    fixed_seeds_df <- data.frame(fips_cty = necessary_geoids, fixed_imports = fixed_importations)
+    fixed_importations_draws <- map_dfr(seq_len(nrow(fixed_seeds_df)), function(i){
+      row <- fixed_seeds_df[i,]
+      potential_importation_dates <- sort(unique(importation_params$date))
+      
+      data.frame(date = sample(potential_importation_dates, 
+                              size = row$fixed_imports, 
+                              replace = TRUE)) %>%
+        group_by(date) %>%
+        count %>%
+        ungroup %>%
+        dplyr::mutate(fips_cty = row$fips_cty) %>%
+        dplyr::rename(importations = n) %>%
+        dplyr::select(date, fips_cty, importations)
+
+    }) %>%
+      group_by(date, fips_cty) %>%
+      summarise(importations = sum(importations)) %>%
+      ungroup
+
+    #### randomly set the remainder of seeds ####
+
+    if (sum(importation_draws_airport$num_importations) > sum(fixed_importations)){
+
+      ## first modify the remaining number of importations to randomly assign
+      importation_draws_airport_remaining <- importation_draws_airport
+      fixed_importations_to_remove <- sum(fixed_importations)
+      while (fixed_importations_to_remove > 0){
+          
+        ix <- sample(seq_len(nrow(importation_draws_airport_remaining)), 1)
+        while(importation_draws_airport_remaining[ix,]$num_importations == 0){
+          ix <- sample(seq_len(nrow(importation_draws_airport_remaining)), 1)
+        }      
+        
+        importation_draws_airport_remaining[ix,]$num_importations <- (importation_draws_airport_remaining[ix,]$num_importations)-1
+        fixed_importations_to_remove = fixed_importations_to_remove-1
+      }
+
+      ## calculate county risk by airport
+      county_risk_by_airport <- calculate_county_risk_by_airport(region) %>%
+          dplyr::select(airport_iata, fips_cty, cty_risk) %>%
+          dplyr::arrange(airport_iata)
+
+      county_importations_by_airport <- purrr::map_dfr(
+        seq_len(nrow(importation_draws_airport_remaining)), function(i){
+
+        row <- importation_draws_airport_remaining[i,]
+        county_risk_by_1airport <- county_risk_by_airport %>%
+          dplyr::filter(airport_iata == row$airport_iata) 
+        uq_counties_1airport <- county_risk_by_1airport %>% 
+          distinct(fips_cty)
+        
+        if(row$num_importations>0){
+          importations_draws <- data.frame(fips_cty = sample(county_risk_by_1airport$fips_cty, 
+              size = row$num_importations, 
+              replace = TRUE,
+              prob = county_risk_by_1airport$cty_risk)) %>%
+            group_by(fips_cty) %>%
+            count %>%
+            ungroup
+          county_importations <- full_join(importations_draws, uq_counties_1airport, by = c("fips_cty")) %>%
+            dplyr::mutate(date = row$date, airport_iata = row$airport_iata) %>%
+            dplyr::mutate(n = ifelse(is.na(n), 0, n)) %>% ## fill 0s for counties that had no importations
+            dplyr::rename(importations = n) 
+        } else{
+          county_importations <- uq_counties_1airport %>%
+            dplyr::mutate(importations = 0, date = row$date, airport_iata = row$airport_iata) 
+        }
+
+        return(county_importations)
+    
+      }) %>%
+        dplyr::mutate(fips_cty = as.character(fips_cty))
+
+      county_importations_fixed <- county_importations_by_airport %>%
+        group_by(fips_cty, date) %>%
+        summarise(importations = sum(importations)) %>%
+        ungroup %>%
+        bind_rows(fixed_importations_draws) %>%
+        group_by(fips_cty, date) %>%
+        summarise(importations = sum(importations)) %>%
+        ungroup %>%
+        dplyr::mutate(date = as.character(date)) %>%
+        dplyr::arrange(date, fips_cty) 
+    
+    } else{
+      warning("The number of fixed seed importations is equal to or exceeds the number of estimated importations. Including only fixed seed importations in the output. Warning: This simulation may be seeded with more importations than expected.")
+      county_importations_fixed <- fixed_importations_draws
+    }
+
+   return(county_importations_fixed)
+  
+  }
+
+  return(fixedseeds_distribution_function)
 }
 
 #########################
