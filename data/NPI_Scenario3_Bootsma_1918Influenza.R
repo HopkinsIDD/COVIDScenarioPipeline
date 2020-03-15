@@ -3,8 +3,8 @@
 library(dplyr)
 
 # East Coast
-county.status <- read.csv('eastcoast_April1_topAR.csv')
-R.reduce <- read.csv('BootsmaReductions.csv')
+county.status <- read.csv('data/east-coast/eastcoast_April1_topAR.csv')
+R.reduce <- read.csv('data/east-coast/BootsmaReductions.csv')
 
 filterUSPS = c('MD', 'DC', 'VA', 'DE', 'PA', 'NJ')
 foldername = '../../data/east-coast/'
