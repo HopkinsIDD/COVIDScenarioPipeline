@@ -1,15 +1,15 @@
-reload_source <- function(){
-  library(tidyverse)
-}
+
+library(tidyverse)
 
 #' @name set_region_paths
 #' @param region string for region
 #' @return 
 set_region_paths <- function(region = "around_md"){ 
   
+  year <- 2010
   airport_attribution_fname = paste0("data/around_md/airport_attribution_", region, ".csv")
-  county_pops_fname = paste0("data/around_md/county_pops_2018_", region, ".csv")
-  county_risk_by_airport_fname = paste0("data/around_md/county_risk_by_airport_", region, ".csv")
+  county_pops_fname = paste0("data/around_md/county_pops_", year, "_", region, ".csv")
+  county_risk_by_airport_fname = paste0("data/around_md/county_risk_by_airport_", year, "_", region, ".csv")
   importation_params_fname = paste0("data/around_md/import_nb_params_", region, ".csv")
 
   return(list(airport_attribution_fname=airport_attribution_fname, 
@@ -61,12 +61,13 @@ calculate_county_risk_by_airport <- function(region){
   
 }
 
+## This cannot be in a function
 
-#' @name distribute_airport_importations_to_counties
-#' @description 
-#' @param region
-#' @return 
-distribute_airport_importations_to_counties <- function(region){
+# #' @name distribute_airport_importations_to_counties
+# #' @description 
+# #' @param region
+# #' @return 
+# distribute_airport_importations_to_counties <- function(region){
 
   paths_ls <- set_region_paths(region)
   airport_attribution_fn = paths_ls[[1]]
@@ -120,10 +121,11 @@ distribute_airport_importations_to_counties <- function(region){
     group_by(fips_cty, date) %>%
     summarise(importations = sum(importations)) %>%
     ungroup %>%
+    dplyr::mutate(date = as.character(date)) %>%
     dplyr::arrange(date, fips_cty) 
 
-  return(county_importations_total)
+#   return(county_importations_total)
 
-}
+# }
 
 
