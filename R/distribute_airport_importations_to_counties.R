@@ -83,6 +83,9 @@ calculate_county_risk_by_airport <- function(region){
   
 }
 
+#' @name generate_stoch_distribution_function
+#' @description seed counties according to importation-to-airport parameters
+#' @return function for stochastic seeding
 generate_stoch_distribution_function <- function(){
 
   stoch_distribution_function <- function(region){
@@ -150,7 +153,9 @@ generate_stoch_distribution_function <- function(){
   return(stoch_distribution_function)
 }
 
-
+#' @name generate_swappedseeds_distribution_function
+#' @description seed counties according to importation-to-airport parameters, then swap in locations that should have at least one seed prior to a certain date
+#' @return function for seeding where fixed locations have at least 1 seed
 generate_swappedseeds_distribution_function <- function(){
 
   swappedseeds_distribution_function <- function(region){
@@ -218,7 +223,9 @@ generate_swappedseeds_distribution_function <- function(){
   }
 }
 
-
+#' @name generate_fixedseeds_distribution_function
+#' @description set a minimum number of importations in specific locations, then seed counties according to importation-to-airport parameters for the remaining number of importations 
+#' @return function for seeding where fixed locations have a minimum set number of seeds
 generate_fixedseeds_distribution_function <- function(){
 
   fixedseeds_distribution_function <- function(region){
