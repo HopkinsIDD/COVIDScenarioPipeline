@@ -1,12 +1,28 @@
 import time, itertools, multiprocessing
 from numba import jit, jitclass, int64, float64
 import numpy as np
+from rpy2 import robjects
+from rpy2.robjects import pandas2ri
+pandas2ri.activate()
+import warnings
+from rpy2.rinterface import RRuntimeWarning
+warnings.filterwarnings("ignore", category=RRuntimeWarning)
+import rpy2.robjects as ro
+from rpy2.robjects.conversion import localconverter
+r_source = robjects.r['source']
+r_assign = robjects.r['assign']
+r_options = robjects.r['options']
+r_options(warn=-1)
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
 def onerun_SEIR(s, p, uid):
+    r_source('COVIDScenarioPipeline/data/build-model-input.R')
+    npi = robjects.r['NPI'].T
+    p.addNPIfromR(npi)
+
     states = steps_SEIR_nb(p.to_vector(uid),
                             s.y0, 
                             uid,
@@ -18,7 +34,7 @@ def onerun_SEIR(s, p, uid):
                             s.dynfilter)
     return states
     
-def run_parallel(s, p, processes=multiprocessing.cpu_count()*2):
+def run_parallel(s, p, processes=multiprocessing.cpu_count()*2):   # set to 16 when running on server
 
     tic = time.time()
     uids = np.arange(s.nsim)
