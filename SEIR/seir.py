@@ -18,7 +18,7 @@ def onerun_SEIR(s, p, uid):
                             s.dynfilter)
     return states
     
-def run_parallel(s, p, processes=multiprocessing.cpu_count()*2):
+def run_parallel(s, p, processes=multiprocessing.cpu_count()*2):   # set to 16 when running on server
 
     tic = time.time()
     uids = np.arange(s.nsim)
