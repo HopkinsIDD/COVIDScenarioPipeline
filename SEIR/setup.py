@@ -97,6 +97,12 @@ class COVID19Parameters():
             self.betas[:,i,:] =  np.multiply(self.betas[:,i,:], np.ones_like(self.betas[:,i,:]) - npi.to_numpy())
 
         print (f'>>> Added NPI as specicied in file {filename}')
+    
+    def addNPIfromR(self, npi):
+        npi.index = pd.to_datetime(npi.index.astype(str))
+        npi = npi.resample(str(self.s.dt*24) + 'H').ffill()
+        for i in range(self.s.nbetas):
+            self.betas[:,i,:] =  np.multiply(self.betas[:,i,:], np.ones_like(self.betas[:,i,:]) - npi.to_numpy())
 
 
 class CaliforniaSpatialSetup():
