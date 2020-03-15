@@ -7,10 +7,10 @@ library(tidyverse)
 set_region_paths <- function(region = "around_md"){ 
   
   year <- 2010
-  airport_attribution_fname = paste0("data/around_md/airport_attribution_", region, ".csv")
-  county_pops_fname = paste0("data/around_md/county_pops_", year, "_", region, ".csv")
-  county_risk_by_airport_fname = paste0("data/around_md/county_risk_by_airport_", year, "_", region, ".csv")
-  importation_params_fname = paste0("data/around_md/import_nb_params_", region, ".csv")
+  airport_attribution_fname = paste0("data/", region, "/airport_attribution_", region, ".csv")
+  county_pops_fname = paste0("data/", region, "/county_pops_", year, "_", region, ".csv")
+  county_risk_by_airport_fname = paste0("data/", region, "/county_risk_by_airport_", year, "_", region, ".csv")
+  importation_params_fname = paste0("data/", region, "/import_nb_params_", region, ".csv")
 
   return(list(airport_attribution_fname=airport_attribution_fname, 
               county_pops_fname=county_pops_fname, 
