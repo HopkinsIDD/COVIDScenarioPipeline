@@ -29,8 +29,8 @@ NPI[ , colnames(NPI) > as.Date("2020/03/13")] <- 1
 county.status$pc <- truncnorm::rtruncnorm(n = dim(county.status)[1], a = 0.16, b = 0.30, mean = 0.18, sd = 0.05)
 NPI <- NPI * county.status$pc
 
-ggplot(county.status, aes(pc))+
-  geom_histogram(binwidth = 0.005)
+#ggplot(county.status, aes(pc))+
+#  geom_histogram(binwidth = 0.005)
 
 # write.csv(NPI, file = "../../data/east-coast/EastCoast_NPI.csv")
 
