@@ -117,12 +117,48 @@ calculate_county_risk_by_airport <- function(region){
 
   })
 
-  county_importations_total <- county_importations_by_airport %>%
+  county_importations_stoch <- county_importations_by_airport %>%
     group_by(fips_cty, date) %>%
     summarise(importations = sum(importations)) %>%
     ungroup %>%
-    dplyr::mutate(date = as.character(date)) %>%
+    # dplyr::mutate(date = as.character(date)) %>%
     dplyr::arrange(date, fips_cty) 
+
+  ## this code forces certain GEOIDs to be seeds by swapping out non-essential GEOID seeds from the randomly sampled data
+  necessary_geoids <- c("24025", "24031", "34003", "34017", "42045", "42091", "42127", "51059")
+  included_fixedseeds <- county_importations_stoch %>%
+    dplyr::filter(date < "2020-03-01" & importations > 0) %>%
+    dplyr::distinct(fips_cty) %>%
+    dplyr::filter(fips_cty %in% necessary_geoids) %>%
+    unlist %>% unname
+  excluded_fixedseeds <- necessary_geoids[!(necessary_geoids %in% included_fixedseeds)]
+  swappedseeds <- county_importations_stoch %>%
+    dplyr::mutate(ix = -1*seq_along(date)) %>%
+    dplyr::filter(date < "2020-03-01" & importations > 0) %>%
+    dplyr::filter(!(fips_cty %in% necessary_geoids)) %>%
+    sample_n(length(excluded_fixedseeds), replace = FALSE)
+
+  new_fixedseeds <- swappedseeds %>%
+    dplyr::mutate(fips_cty = sample(excluded_fixedseeds, length(excluded_fixedseeds), replace = FALSE)) %>%
+    dplyr::mutate(fips_cty = as.character(fips_cty)) %>%
+    dplyr::select(-ix)
+  new_nonseeds <- swappedseeds %>%
+    dplyr::mutate(fips_cty = as.character(fips_cty)) %>%
+    dplyr::mutate(importations = 0) %>%
+    dplyr::select(-ix)
+
+  county_importations_wo_swappedseeds <- county_importations_stoch %>%
+    dplyr::slice(swappedseeds$ix) %>%
+    dplyr::mutate(fips_cty = as.character(fips_cty))
+  for (i in 1:nrow(new_fixedseeds)){
+    row = new_fixedseeds[i,]
+    county_importations_wo_swappedseeds <- county_importations_wo_swappedseeds %>%
+      dplyr::filter(!(fips_cty == row$fips_cty & date == row$date))
+  }
+
+  county_importations_total <- bind_rows(county_importations_wo_swappedseeds, new_fixedseeds, new_nonseeds) %>%
+    dplyr::mutate(date = as.character(date))
+
 
 #   return(county_importations_total)
 
