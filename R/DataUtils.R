@@ -415,3 +415,43 @@ make_metro_inc_plot <- function(metro_inc_dat){
     geom_pointrange(aes(ymin=pi_low, ymax=pi_high), color="red", fill="white", alpha=.75, shape=21) 
   return(p)
 }
+
+##'Function to create summary table of hosp/deaths 
+##'specifically - columns for estimate + CI
+##'with rows for hosp + deaths at each p_death used
+##'
+##'@param sim_hospdeath_dat summary hospitalization/death data frame
+##'
+##'@return df object of estimates + CIs for hosp/deaths at all p_death
+##'
+make_hospdeath_table1 <- function(sim_hospdeath_dat){
+  tmp <- sim_hospdeath_dat$res_total %>% 
+         mutate(ci = make_CI(nhosp_lo, nhosp_hi),
+                est = nhosp_final,
+                lvl = paste0("hosp", p_death)) %>%
+         select(lvl, est, ci) %>%
+         bind_rows(sim_hospdeath_dat$res_total %>%
+                   mutate(ci = make_CI(ndeath_lo, ndeath_hi),
+                          est = ndeath_final,
+                          lvl = paste0("death", p_death)) %>%
+                   select(lvl, est, ci))
+  return(tmp)
+}
+
+
+##'Function to create summary table of final sizes
+##'
+##'@param scenario_dat summary hospitalization/death data frame
+##'@param final_date date at which to make table
+##'
+##'@return df object of estimates + CIs for final sizes
+##'
+make_finalsize_table1 <- function(scenario_dat, final_date = "2020-04-01"){
+  tmp <- scenario_dat %>% 
+         filter(time==final_date, comp=="cumI") %>% 
+         summarize(est=mean(N),
+                   ci = make_CI(quantile(N,probs=.2),quantile(N,probs=.8)))
+  return(tmp)
+}
+
+
