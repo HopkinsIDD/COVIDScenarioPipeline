@@ -285,41 +285,79 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                 select(-county_sim) %>%
                 filter(time <= as.Date(end_date)) %>%
                 group_by(metrop_labels, sim_num) %>% 
-                summarize(nhosp = sum(incidH), nICU = sum(incidICU), nVent = sum(incidVent), ndeath = sum(incidD)) %>%
+                summarize(nhosp = sum(incidH), 
+                          nICU = sum(incidICU), 
+                          nVent = sum(incidVent), 
+                          ndeath = sum(incidD),
+                          phosp = max(incidH),
+                          pICU = max(incidICU),
+                          pVent = max(incidVent),
+                          pDeath = max(incidD)) %>%
                 ungroup() %>% 
                 group_by(metrop_labels) %>% 
                 summarize(nhosp_final = mean(nhosp),
-                          nhosp_lo = quantile(nhosp, 0.2),
-                          nhosp_hi = quantile(nhosp, 0.8),
+                          nhosp_lo = quantile(nhosp, 0.25),
+                          nhosp_hi = quantile(nhosp, 0.75),
+                          phosp_final = mean(phosp),
+                          phosp_lo = quantile(phosp, 0.25),
+                          phosp_hi = quantile(phosp, 0.75),
                           nICU_final = mean(nICU),
-                          nICU_lo = quantile(nICU, 0.2),
-                          nICU_hi = quantile(nICU, 0.8),
+                          nICU_lo = quantile(nICU, 0.25),
+                          nICU_hi = quantile(nICU, 0.75),
+                          pICU_final = mean(pICU),
+                          pICU_lo = quantile(pICU, 0.25),
+                          pICU_hi = quantile(pICU, 0.75),
                           nVent_final = mean(nVent),
-                          nVent_lo = quantile(nVent, 0.2),
-                          nVent_hi = quantile(nVent, 0.8),
+                          nVent_lo = quantile(nVent, 0.25),
+                          nVent_hi = quantile(nVent, 0.75),
+                          pVent_final = mean(pVent),
+                          pVent_lo = quantile(pVent, 0.25),
+                          pVent_hi = quantile(pVent, 0.75),
                           ndeath_final = mean(ndeath),
-                          ndeath_lo = quantile(ndeath, 0.2),
-                          ndeath_hi = quantile(ndeath, 0.8))
+                          ndeath_lo = quantile(ndeath, 0.25),
+                          ndeath_hi = quantile(ndeath, 0.75),
+                          pdeath_final = mean(pdeath),
+                          pdeath_lo = quantile(pdeath, 0.25),
+                          pdeath_hi = quantile(pdeath, 0.75))
     
     res_total <- res %>% 
                  filter(!is.na(county_sim)) %>% 
                  select(-county_sim) %>%
                  filter(time <= as.Date(end_date)) %>%
                  group_by(sim_num) %>% 
-                 summarize(nhosp = sum(incidH),nICU = sum(incidICU),nVent = sum(incidVent), ndeath = sum(incidD)) %>%
+                 summarize(nhosp = sum(incidH),
+                           nICU = sum(incidICU),
+                           nVent = sum(incidVent), 
+                           ndeath = sum(incidD),
+                           phosp = max(incidH),
+                           pICU = max(incidICU),
+                           pVent = max(incidVent),
+                           pDeath = max(incidD)) %>%
                  ungroup() %>% 
                  summarize(nhosp_final = mean(nhosp),
-                          nhosp_lo = quantile(nhosp, 0.2),
-                          nhosp_hi = quantile(nhosp, 0.8),
-                          ndeath_ICU = mean(nICU),
-                          nICU_lo = quantile(nICU, 0.2),
-                          nICU_hi = quantile(nICU, 0.8),
-                          nVent_final = mean(nVent),
-                          nVent_lo = quantile(nVent, 0.2),
-                          nVent_hi = quantile(nVent, 0.8),
-                          ndeath_final = mean(ndeath),
-                          ndeath_lo = quantile(ndeath, 0.2),
-                          ndeath_hi = quantile(ndeath, 0.8))
+                           nhosp_lo = quantile(nhosp, 0.25),
+                           nhosp_hi = quantile(nhosp, 0.75),
+                           phosp_final = mean(phosp),
+                           phosp_lo = quantile(phosp, 0.25),
+                           phosp_hi = quantile(phosp, 0.75),
+                           nICU_final = mean(nICU),
+                           nICU_lo = quantile(nICU, 0.25),
+                           nICU_hi = quantile(nICU, 0.75),
+                           pICU_final = mean(pICU),
+                           pICU_lo = quantile(pICU, 0.25),
+                           pICU_hi = quantile(pICU, 0.75),
+                           nVent_final = mean(nVent),
+                           nVent_lo = quantile(nVent, 0.25),
+                           nVent_hi = quantile(nVent, 0.75),
+                           pVent_final = mean(pVent),
+                           pVent_lo = quantile(pVent, 0.25),
+                           pVent_hi = quantile(pVent, 0.75),
+                           ndeath_final = mean(ndeath),
+                           ndeath_lo = quantile(ndeath, 0.25),
+                           ndeath_hi = quantile(ndeath, 0.75),
+                           pdeath_final = mean(pdeath),
+                           pdeath_lo = quantile(pdeath, 0.25),
+                           pdeath_hi = quantile(pdeath, 0.75))
     
     out <- list(res_total = res_total, res_metro = res_metro)
                 
@@ -329,21 +367,40 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
             select(-county_sim) %>%
             filter(time <= as.Date(end_date)) %>%
             group_by(geoid, sim_num) %>% 
-            summarize(nhosp = sum(incidH), ndeath = sum(incidD)) %>%
+            summarize(nhosp = sum(incidH),
+                      nICU = sum(incidICU),
+                      nVent = sum(incidVent), 
+                      ndeath = sum(incidD),
+                      phosp = max(incidH),
+                      pICU = max(incidICU),
+                      pVent = max(incidVent),
+                      pDeath = max(incidD)) %>%
             ungroup() %>% 
             group_by(geoid) %>% 
             summarize(nhosp_final = mean(nhosp),
-                      nhosp_lo = quantile(nhosp, 0.2),
-                      nhosp_hi = quantile(nhosp, 0.8),
+                      nhosp_lo = quantile(nhosp, 0.25),
+                      nhosp_hi = quantile(nhosp, 0.75),
+                      phosp_final = mean(phosp),
+                      phosp_lo = quantile(phosp, 0.25),
+                      phosp_hi = quantile(phosp, 0.75),
                       nICU_final = mean(nICU),
-                      nICU_lo = quantile(nICU, 0.2),
-                      nICU_hi = quantile(nICU, 0.8),
+                      nICU_lo = quantile(nICU, 0.25),
+                      nICU_hi = quantile(nICU, 0.75),
+                      pICU_final = mean(pICU),
+                      pICU_lo = quantile(pICU, 0.25),
+                      pICU_hi = quantile(pICU, 0.75),
                       nVent_final = mean(nVent),
-                      nVent_lo = quantile(nVent, 0.2),
-                      nVent_hi = quantile(nVent, 0.8),
+                      nVent_lo = quantile(nVent, 0.25),
+                      nVent_hi = quantile(nVent, 0.75),
+                      pVent_final = mean(pVent),
+                      pVent_lo = quantile(pVent, 0.25),
+                      pVent_hi = quantile(pVent, 0.75),
                       ndeath_final = mean(ndeath),
-                      ndeath_lo = quantile(ndeath, 0.2),
-                      ndeath_hi = quantile(ndeath, 0.8))
+                      ndeath_lo = quantile(ndeath, 0.25),
+                      ndeath_hi = quantile(ndeath, 0.75),
+                      pdeath_final = mean(pdeath),
+                      pdeath_lo = quantile(pdeath, 0.25),
+                      pdeath_hi = quantile(pdeath, 0.75))
         
         out <- list(res_total = res_total, res_metro = res_metro, res_geoid = res_geoid)
     }
