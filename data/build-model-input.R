@@ -17,23 +17,31 @@ foldername = '../../data/east-coast/'
 # foldername = '../../data/maryland/'
 
 
-
 dates <- seq.Date(as.Date("2020/3/1"), as.Date("2020/7/1"), 1)
 
-pc <- as.data.frame(matrix(0, dim(county.status)[1],length(dates)))
-colnames(pc) <- as.Date(dates)
-rownames(pc) <- county.status$geoid
+NPI <- as.data.frame(matrix(0, dim(county.status)[1],length(dates)))
+colnames(NPI) <- as.Date(dates)
+rownames(NPI) <- county.status$geoid
 
-county.status <- county.status%>%
-  mutate(tertile = ntile(desc(mean), 3))
+## Introducing NPI
+NPI[ , colnames(NPI) > as.Date("2020/03/13")] <- 1
+county.status$pc <- truncnorm::rtruncnorm(n = dim(county.status)[1], a = 0.16, b = 0.30, mean = 0.18, sd = 0.05)
+NPI <- NPI * county.status$pc
 
-phase1 <- county.status$geoid[county.status$tertile == 1]
-phase2 <- county.status$geoid[county.status$tertile == 2]
-phase3 <- county.status$geoid[county.status$tertile == 3]
+# write.csv(NPI, file = "../../data/east-coast/EastCoast_NPI.csv")
 
-pc[row.names(pc) %in% phase1, colnames(pc)>= as.Date("2020/03/18")] <- 0.25
-pc[row.names(pc) %in% phase2, colnames(pc)>= as.Date("2020/03/25")] <- 0.25
-pc[row.names(pc) %in% phase3, colnames(pc)>= as.Date("2020/04/01")] <- 0.25
+
+## for introducing NPI in distinct spatial/temporal phases
+# NPI.3 <- NPI
+# county.status <- county.status%>%
+#   mutate(tertile = ntile(desc(mean), 3))
+# phase1 <- county.status$geoid[county.status$tertile == 1]
+# phase2 <- county.status$geoid[county.status$tertile == 2]
+# phase3 <- county.status$geoid[county.status$tertile == 3]
+# 
+# NPI.3[row.names(NPI) %in% phase1, colnames(NPI)>= as.Date("2020/03/18")] <- 0.25
+# NPI.3[row.names(NPI) %in% phase2, colnames(NPI)>= as.Date("2020/03/25")] <- 0.25
+# NPI.3[row.names(NPI) %in% phase3, colnames(NPI)>= as.Date("2020/04/01")] <- 0.25
 
 # write.csv(pc, file = "../../data/maryland/Maryland_3phase_pc.csv")
-write.csv(pc, file = "../../data/east-coast/EastCoast_3phase_pc.csv")
+# write.csv(NPI, file = "../../data/east-coast/EastCoast_3phase_pc.csv")
