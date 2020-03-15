@@ -16,24 +16,18 @@ foldername = '../../data/east-coast/'
 # filterUSPS = c('MD')
 # foldername = '../../data/maryland/'
 
-
-
 dates <- seq.Date(as.Date("2020/3/1"), as.Date("2020/7/1"), 1)
 
 NPI <- as.data.frame(matrix(0, dim(county.status)[1],length(dates)))
 colnames(NPI) <- as.Date(dates)
 rownames(NPI) <- county.status$geoid
 
-## Introducing NPI
+## Introducing NPI, where R reduction value is randomly selected for each county
 NPI[ , colnames(NPI) > as.Date("2020/03/13")] <- 1
 county.status$pc <- truncnorm::rtruncnorm(n = dim(county.status)[1], a = 0.16, b = 0.30, mean = 0.18, sd = 0.05)
 NPI <- NPI * county.status$pc
 
-#ggplot(county.status, aes(pc))+
-#  geom_histogram(binwidth = 0.005)
-
 # write.csv(NPI, file = "../../data/east-coast/EastCoast_NPI.csv")
-
 
 ## for introducing NPI in distinct spatial/temporal phases
 # NPI.3 <- NPI
