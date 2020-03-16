@@ -206,7 +206,8 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                                     end_date = "2020-04-01",
                                     length_geoid = 5,
                                     incl.county=FALSE,
-                                    cores=1) {
+                                    cores=1, 
+                                    run_parallel=FALSE) {
     
     require(doParallel)
     require(data.table)
