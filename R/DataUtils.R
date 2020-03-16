@@ -312,10 +312,10 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
   
   tmp_metro <- final_hosp_metrop_dat %>%
     mutate(hosp_est = paste0(round(nhosp_final, 1), " (", round(nhosp_lo, 1), "-", round(nhosp_hi, 1), ")"),
-           #peak_hosp = paste0(round(phosp_final, 1), " (", round(phosp_lo, 1), "-", round(phosp_hi, 1), ")"),
+           peak_hosp = paste0(round(phosp_final, 1), " (", round(phosp_lo, 1), "-", round(phosp_hi, 1), ")"),
            #peak_hosp_cap = paste0(round(nhosp_curr_final, 1), " (", round(nhosp_curr_lo, 1), "-", round(nhosp_curr_hi, 1), ")"),
            ICU_est = paste0(round(nICU_final, 1), " (", round(nICU_lo, 1), "-", round(nICU_hi, 1), ")"),
-           #peak_ICU = paste0(round(pICU_final, 1), " (", round(pICU_lo, 1), "-", round(pICU_hi, 1), ")"),
+           peak_ICU = paste0(round(pICU_final, 1), " (", round(pICU_lo, 1), "-", round(pICU_hi, 1), ")"),
            #peak_ICU_cap = paste0(round(nicu_curr_final, 1), " (", round(nicu_curr_lo, 1), "-", round(nicu_curr_hi, 1), ")"),
            vent_est = paste0(round(nVent_final, 1), " (", round(nVent_lo, 1), "-", round(nVent_hi, 1), ")"),
            death_est = paste0(round(ndeath_final, 1), " (", round(ndeath_lo, 1), "-", round(ndeath_hi, 1), ")")) %>%
@@ -328,10 +328,10 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
   
   tmp_total <- final_hosp_dat %>%
     mutate(hosp_est = paste0(round(nhosp_final, 1), " (", round(nhosp_lo, 1), "-", round(nhosp_hi, 1), ")"),
-           #peak_hosp = paste0(round(phosp_final, 1), " (", round(phosp_lo, 1), "-", round(phosp_hi, 1), ")"),
+           peak_hosp = paste0(round(phosp_final, 1), " (", round(phosp_lo, 1), "-", round(phosp_hi, 1), ")"),
            #peak_hosp_cap = paste0(round(nhosp_curr_final, 1), " (", round(nhosp_curr_lo, 1), "-", round(nhosp_curr_hi, 1), ")"),
            ICU_est = paste0(round(nICU_final, 1), " (", round(nICU_lo, 1), "-", round(nICU_hi, 1), ")"),
-           #peak_ICU = paste0(round(pICU_final, 1), " (", round(pICU_lo, 1), "-", round(pICU_hi, 1), ")"),
+           peak_ICU = paste0(round(pICU_final, 1), " (", round(pICU_lo, 1), "-", round(pICU_hi, 1), ")"),
            #peak_ICU_cap = paste0(round(nicu_curr_final, 1), " (", round(nicu_curr_lo, 1), "-", round(nicu_curr_hi, 1), ")"),
            vent_est = paste0(round(nVent_final, 1), " (", round(nVent_lo, 1), "-", round(nVent_hi, 1), ")"),
            death_est = paste0(round(ndeath_final, 1), " (", round(ndeath_lo, 1), "-", round(ndeath_hi, 1), ")"),
