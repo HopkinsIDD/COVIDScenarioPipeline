@@ -586,7 +586,8 @@ build_hospdeath_summary_multiplePDeath <- function(data,
                                                    end_date = "2020-04-01",
                                                    length_geoid = 5,
                                                    incl.county=FALSE,
-                                                   cores=1){
+                                                   cores=1,
+                                                   run_parallel=FALSE){
     
     tmp_out <- build_hospdeath_summary(data, 
                                        p_hosp=p_hosp_vec[1], 
@@ -602,7 +603,8 @@ build_hospdeath_summary_multiplePDeath <- function(data,
                                        end_date = end_date,
                                        length_geoid = length_geoid,
                                        incl.county = incl.county,
-                                       cores=cores) 
+                                       cores=cores,
+                                       run_parallel=run_parallel) 
     
     tmp_metro <- tmp_out[['res_metro']] %>% mutate(p_death = p_death[1])
     tmp_total <- tmp_out[['res_total']] %>% mutate(p_death = p_death[1])
@@ -623,7 +625,8 @@ build_hospdeath_summary_multiplePDeath <- function(data,
                                            end_date = end_date,
                                            length_geoid = length_geoid,
                                            incl.county = incl.county,
-                                           cores=cores) 
+                                           cores=cores,
+                                           run_parallel=run_parallel) 
         
         tmp_metro <- bind_rows(tmp_metro, tmp_out[['res_metro']] %>% mutate(p_death = p_death[i]))
         tmp_total <- bind_rows(tmp_total, tmp_out[['res_total']] %>% mutate(p_death = p_death[i]))
