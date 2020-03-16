@@ -2,53 +2,70 @@
 ##'
 ##'
 ##'@param scenario_dir the subdirectory containing this scenario
+##'@param keep_compartments the compartmetns to keep for this run.
+##'@param time_filter_low the low end of the time filter
+##'@param time_filter_high the high end of the time filter
 ##'
 ##'
-##'@return a long thin data frame with all of the simulations comined together 
+##'@return a long thin data frame with all of the simulations comined together
 ##'
-load_scenario_sims <- function(scenario_dir) {
-  
+load_scenario_sims <- function(scenario_dir,
+                               keep_compartments=NULL,
+                               time_filter_low = -Inf,
+                               time_filter_high = Inf) {
+
   require(data.table)
-  
+
   files <- dir(sprintf("model_output/%s", scenario_dir),full.names = TRUE)
-  
+
   rc <- list()
-  
-  
+
+
   for (i in 1:length(files)) {
     file <- files[i]
-    #print(i)
-    tmp <- data.table::fread(file) %>% as.data.frame()
-    colnames(tmp) <- tmp[1,]
-    tmp <- tmp[-1,] %>%
-      pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>% 
-      mutate(sim_num = i) 
-    
+                                        #print(i)
+    if (is.null(keep_compartments)) {
+        #tmp <- data.table::fread(file) %>% as.data.frame()
+        suppressMessages(tmp <- read_csv(file))
+    } else {
+        suppressMessages(
+            tmp <-  read_csv(file) %>%
+                filter(comp%in%keep_compartments)
+        )
+    }
+
+    #colnames(tmp) <- tmp[1,]
+    tmp <- #tmp[-1,] %>%
+        tmp %>%
+        filter(time <= time_filter_high & time >= time_filter_low) %>%
+        pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>%
+        mutate(sim_num = i)
+
     rc[[i]] <- tmp
   }
-  
+
   rc<- rbindlist(rc)
-  
+
   return(rc)
 }
 
 
 # library(microbenchmark)
-# 
+#
 # fn1 <- function(i){
-#   tmp <- read_csv(file) %>% 
-#     pivot_longer(cols=`6001`:`6115`, names_to = "county", values_to="N") %>% 
-#     mutate(sim_num = i) 
+#   tmp <- read_csv(file) %>%
+#     pivot_longer(cols=`6001`:`6115`, names_to = "county", values_to="N") %>%
+#     mutate(sim_num = i)
 # }
-# 
+#
 # fn2 <- function(i){
 #   tmp <- data.table::fread(file, header = TRUE) %>% as.data.frame() %>%
-#     pivot_longer(cols=`6001`:`6115`, names_to = "county", values_to="N") %>% 
-#     mutate(sim_num = i) 
+#     pivot_longer(cols=`6001`:`6115`, names_to = "county", values_to="N") %>%
+#     mutate(sim_num = i)
 # }
-# 
+#
 # microbenchmark(fn1(1), fn2(2), times=100)
-# 
+#
 
 
 
@@ -73,7 +90,7 @@ load_county_dat_CA <- function(ca, metrop_labels){
 ##'@return a long data frame with flows between ij county pairs
 ##'
 load_comm_dat <- function(county_dat){
-  comm_dat <- read.delim("california-data-county/mobility.txt", 
+  comm_dat <- read.delim("california-data-county/mobility.txt",
                          sep=" ", header=F)
   colnames(comm_dat) <- county_dat$GEOID
   comm_dat$dest <- county_dat$GEOID
@@ -92,7 +109,7 @@ load_comm_dat <- function(county_dat){
 ##'
 ## print CI from two vectors
 make_CI <- function(lo, hi){
-  if(is.numeric(lo)){ 
+  if(is.numeric(lo)){
     paste0("(", sprintf("%.1f", lo), ", ", sprintf("%.1f", hi), ")") }else{
       paste0("(", format.Date(lo, format="%d %b"), ", ", format.Date(hi, format="%d %b"), ")") }
 }
@@ -106,12 +123,12 @@ make_CI <- function(lo, hi){
 ##'@return final size and 60% PI for each county
 ##'
 make_final_dat <- function(scenario_dat, cdat=county_dat, final_date = "2020-04-01"){
-  final_dat <- scenario_dat %>% 
-    filter(time==final_date, comp=="cumI") %>% 
-    group_by(geoid, time) %>% 
-    summarize(mean=mean(N), 
+  final_dat <- scenario_dat %>%
+    filter(time==final_date, comp=="cumI") %>%
+    group_by(geoid, time) %>%
+    summarize(mean=mean(N),
               pi_high=quantile(N,probs=.75),
-              pi_low=quantile(N,probs=.25)) %>% 
+              pi_low=quantile(N,probs=.25)) %>%
     left_join(cdat %>% select(geoid, new_pop, metrop_labels), by="geoid") %>%
     mutate(ar = mean / new_pop * 100000)
   return(final_dat)
@@ -127,16 +144,16 @@ make_final_dat <- function(scenario_dat, cdat=county_dat, final_date = "2020-04-
 ##'@return earliest arrival time and 60% PI for each county
 ##'
 make_arrival_dat <- function(scenario_dat, cdat=county_dat){
-  arrival_dat <- scenario_dat %>% 
-    filter(comp=="cumI") %>% 
-    filter(N>0) %>% 
-    group_by(geoid, sim_num) %>% 
-    summarize(time=min(time)) %>% 
-    group_by(geoid) %>% 
-    summarize(mean=mean.Date(time), 
+  arrival_dat <- scenario_dat %>%
+    filter(comp=="cumI") %>%
+    filter(N>0) %>%
+    group_by(geoid, sim_num) %>%
+    summarize(time=min(time)) %>%
+    group_by(geoid) %>%
+    summarize(mean=mean.Date(time),
               pi_low = as.Date(quantile(unclass(time), probs=.25), origin = "1970-01-01"),
-              pi_high=as.Date(quantile(unclass(time), .75), origin = "1970-01-01")) %>% 
-    left_join(cdat %>% select(geoid, new_pop, metrop_labels), by="geoid") 
+              pi_high=as.Date(quantile(unclass(time), .75), origin = "1970-01-01")) %>%
+    left_join(cdat %>% select(geoid, new_pop, metrop_labels), by="geoid")
   return(arrival_dat)
 }
 
@@ -149,12 +166,12 @@ make_arrival_dat <- function(scenario_dat, cdat=county_dat){
 ##'
 make_inc_state_dat <- function(scenario_dat){
   state_dat <- scenario_dat %>%
-    filter(comp=="diffI") %>% 
-    group_by(time, sim_num) %>% 
-    summarize(incidence = sum(N)) %>% 
-    group_by(time) %>% 
-    summarize(meanInc=mean(incidence), 
-              pi_low=quantile(incidence, probs=0.25), 
+    filter(comp=="diffI") %>%
+    group_by(time, sim_num) %>%
+    summarize(incidence = sum(N)) %>%
+    group_by(time) %>%
+    summarize(meanInc=mean(incidence),
+              pi_low=quantile(incidence, probs=0.25),
               pi_high=quantile(incidence, probs=0.75))
   return(state_dat)
 }
@@ -167,16 +184,16 @@ make_inc_state_dat <- function(scenario_dat){
 ##'
 make_inc_metro_dat <- function(scenario_dat){
   metro_dat <- scenario_dat %>%
-    filter(comp=="diffI") %>% 
-    drop_na(metrop_labels) %>% 
-    group_by(time, metrop_labels, sim_num) %>% 
-    summarize(incidence=sum(N)) %>% 
-    group_by(time, metrop_labels) %>% 
-    summarize(mean=mean(incidence), 
-              pi_low=quantile(incidence, probs=.25), 
+    filter(comp=="diffI") %>%
+    drop_na(metrop_labels) %>%
+    group_by(time, metrop_labels, sim_num) %>%
+    summarize(incidence=sum(N)) %>%
+    group_by(time, metrop_labels) %>%
+    summarize(mean=mean(incidence),
+              pi_low=quantile(incidence, probs=.25),
               pi_high=quantile(incidence, probs=.75))
   return(metro_dat)
-} 
+}
 
 
 ##'Function to create table of attack rates and arrival times for each metro
@@ -187,10 +204,10 @@ make_inc_metro_dat <- function(scenario_dat){
 ##'@return data frame with metro area final size, attack rates, earliest arrival times
 ##'
 make_ar_table <- function(final_dat, arrival_dat){
-  tmp <-  final_dat %>% 
+  tmp <-  final_dat %>%
     left_join(arrival_dat %>% select(geoid, arvl=mean, arvl_lo=pi_low, arvl_hi=pi_high), by="geoid") %>%
     filter(!is.na(metrop_labels)) %>%
-    group_by(metrop_labels) %>% 
+    group_by(metrop_labels) %>%
     summarise(nfinal = sum(mean),
               nfinal_low = sum(pi_low),
               nfinal_high = sum(pi_high),
@@ -200,7 +217,7 @@ make_ar_table <- function(final_dat, arrival_dat){
               ar_high = nfinal_high / npop * 100000,
               arvl = min(arvl),
               arvl_low = min(arvl_lo),
-              arvl_high = min(arvl_hi)) %>% 
+              arvl_high = min(arvl_hi)) %>%
     arrange(desc(nfinal))
   return(tmp)
 }
@@ -208,7 +225,7 @@ make_ar_table <- function(final_dat, arrival_dat){
 
 ##' Function to create data frame of total hospitalizations and deaths in each county
 ##' NO LONGER USED - see build_hospdeath_summary
-##' 
+##'
 ##'@param hd_dat date frame of incident hospitalizations and deaths
 ##'@param cdat data frame of county geo IDs and population
 ##'
@@ -217,10 +234,10 @@ make_ar_table <- function(final_dat, arrival_dat){
 make_final_hosp_county_dat <- function(hd_dat, cdat=county_dat, end_date="2020-04-01"){
   tmp <- hd_dat %>%
     filter(time <= as.Date(end_date)) %>%
-    group_by(geoid, sim_num) %>% 
+    group_by(geoid, sim_num) %>%
     summarize(nhosp = sum(incidH), ndeath = sum(incidD)) %>%
-    ungroup() %>% 
-    group_by(geoid) %>% 
+    ungroup() %>%
+    group_by(geoid) %>%
     summarize(nhosp_final = mean(nhosp),
               nhosp_lo = quantile(nhosp, 0.25),
               nhosp_hi = quantile(nhosp, 0.75),
@@ -234,7 +251,7 @@ make_final_hosp_county_dat <- function(hd_dat, cdat=county_dat, end_date="2020-0
 
 ##' Function to create data frame of total hospitalizations and deaths in each metro area
 ##' NO LONGER USED - see build_hospdeath_summary
-##' 
+##'
 ##'@param hd_dat date frame of incident hospitalizations and deaths
 ##'@param cdat data frame of county geo IDs and population
 ##'
@@ -244,12 +261,12 @@ make_final_hosp_metrop_dat <- function(hd_dat, cdat=county_dat, end_date="2020-0
   tmp <- hd_dat %>%
     filter(time <= as.Date(end_date)) %>%
     left_join(cdat %>% select(geoid, metrop_labels, new_pop), by=c("geoid"="geoid")) %>%
-    group_by(metrop_labels, sim_num, p_death) %>% 
-    summarize(nhosp = sum(incidH), 
+    group_by(metrop_labels, sim_num, p_death) %>%
+    summarize(nhosp = sum(incidH),
               ndeath = sum(incidD),
               new_pop = new_pop[1]) %>%
-    ungroup() %>% 
-    group_by(metrop_labels, p_death) %>% 
+    ungroup() %>%
+    group_by(metrop_labels, p_death) %>%
     summarize(nhosp_final = mean(nhosp),
               nhosp_lo = quantile(nhosp, 0.25),
               nhosp_hi = quantile(nhosp, 0.75),
@@ -261,7 +278,7 @@ make_final_hosp_metrop_dat <- function(hd_dat, cdat=county_dat, end_date="2020-0
 
 ##' Function to create data frame of total hospitalizations and deaths
 ##' NO LONGER USED - see build_hospdeath_summary
-##' 
+##'
 ##'@param hd_dat date frame of incident hospitalizations and deaths
 ##'@param cdat data frame of county geo IDs and population
 ##'
@@ -270,11 +287,11 @@ make_final_hosp_metrop_dat <- function(hd_dat, cdat=county_dat, end_date="2020-0
 make_final_hosp_dat <- function(hd_dat, end_date="2020-04-01"){
   tmp <- hd_dat %>%
     filter(time <= as.Date(end_date)) %>%
-    group_by(sim_num, p_death) %>% 
-    summarize(nhosp = sum(incidH), 
+    group_by(sim_num, p_death) %>%
+    summarize(nhosp = sum(incidH),
               ndeath = sum(incidD)) %>%
-    ungroup() %>% 
-    group_by(p_death) %>% 
+    ungroup() %>%
+    group_by(p_death) %>%
     summarize(nhosp_final = mean(nhosp),
               nhosp_lo = quantile(nhosp, 0.25),
               nhosp_hi = quantile(nhosp, 0.75),
@@ -288,12 +305,12 @@ make_final_hosp_dat <- function(hd_dat, end_date="2020-04-01"){
 ##' Function to format the hospitalization table
 ##'
 ##'@param final_hosp_dat total hospitalizations and deaths for geo area of interest
-##'@param final_hosp_metrop_dat total hosps and deaths per metro 
+##'@param final_hosp_metrop_dat total hosps and deaths per metro
 ##'@param p_death IFRs used in this analysis
 ##'
 make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
-  
-  tmp_metro <- final_hosp_metrop_dat %>% 
+
+  tmp_metro <- final_hosp_metrop_dat %>%
     mutate(hosp_est = paste0(round(nhosp_final, 1), " (", round(nhosp_lo, 1), "-", round(nhosp_hi, 1), ")"),
            peak_hosp = paste0(round(phosp_final, 1), " (", round(phosp_lo, 1), "-", round(phosp_hi, 1), ")"),
            peak_hosp_cap = paste0(round(nhosp_curr_final, 1), " (", round(nhosp_curr_lo, 1), "-", round(nhosp_curr_hi, 1), ")"),
@@ -305,10 +322,10 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
     arrange(desc(nhosp_final)) %>%
     select(metrop_labels, p_death, hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est) %>%
     filter(!is.na(metrop_labels)) %>%
-    pivot_wider(id_cols=metrop_labels, 
-                names_from=p_death, 
+    pivot_wider(id_cols=metrop_labels,
+                names_from=p_death,
                 values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
-  
+
   tmp_total <- final_hosp_dat %>%
     mutate(hosp_est = paste0(round(nhosp_final, 1), " (", round(nhosp_lo, 1), "-", round(nhosp_hi, 1), ")"),
            peak_hosp = paste0(round(phosp_final, 1), " (", round(phosp_lo, 1), "-", round(phosp_hi, 1), ")"),
@@ -320,15 +337,15 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
            death_est = paste0(round(ndeath_final, 1), " (", round(ndeath_lo, 1), "-", round(ndeath_hi, 1), ")"),
            metrop_labels = "All Locations") %>%
     select(metrop_labels, p_death, hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est) %>%
-    pivot_wider(id_cols=metrop_labels, 
-                names_from=p_death, 
+    pivot_wider(id_cols=metrop_labels,
+                names_from=p_death,
                 values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
-  
+
   cnames <- paste0(c("hosp_est_", "peak_hosp_cap_", "ICU_est_", "peak_ICU_cap_", "vent_est_", "death_est_"), rep(p_death, each=6))
-  
-  tab <- bind_rows(tmp_total[,c("metrop_labels", cnames)], 
+
+  tab <- bind_rows(tmp_total[,c("metrop_labels", cnames)],
                    tmp_metro[,c("metrop_labels", cnames)])
-  
+
   return(tab)
 }
 
@@ -342,11 +359,11 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
 make_final_plot <- function(ca_final_dat){
   p <- ggplot(ca_final_dat,
               aes(x=reorder(county.name,-mean), y=mean,ymin=pi_low, ymax=pi_high )) +
-    geom_pointrange() + 
+    geom_pointrange() +
     ylab("Infections") +
     xlab("County") +
     theme_bw() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
   return(p)
 }
 
@@ -375,12 +392,12 @@ make_final_map <- function(ca_final_dat){
 make_arrvl_plot <- function(ca_arrival_dat){
   p <- ggplot(ca_arrival_dat,
               aes(x=reorder(county.name,-as.numeric(mean)), y=mean,ymin=pi_low, ymax=pi_high )) +
-    geom_pointrange() + 
+    geom_pointrange() +
     ylab("Arrival Date") +
     xlab("County") +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))  +
-    coord_flip() 
+    coord_flip()
   return(p)
 }
 
@@ -391,13 +408,13 @@ make_arrvl_plot <- function(ca_arrival_dat){
 ##'
 ##'@return ggplot object, CA map with fill prop to arrival time
 ##'
-make_arrvl_map <- function(ca_arrival_dat, 
+make_arrvl_map <- function(ca_arrival_dat,
                            breaks = as.numeric(as.Date(c("2020-02-01", "2020-02-14", "2020-03-01", "2020-03-15","2020-04-01"))),
                            labels = c("Feb 1", "Feb 15", "Mar 1", "Mar 15", "April 1")){
   p <- ggplot(ca_arrival_dat) +
     geom_sf(aes(fill=as.numeric(mean))) +
     theme_minimal() +
-    scale_fill_viridis(direction=-1, 
+    scale_fill_viridis(direction=-1,
                        breaks=breaks,
                        labels=labels)
   return(p)
@@ -413,7 +430,7 @@ make_arrvl_map <- function(ca_arrival_dat,
 make_state_inc_plot <- function(state_inc_dat){
   p <- ggplot(state_inc_dat, aes(x=time, y=meanInc)) +
     geom_bar(stat="identity", fill="red", alpha=.2) +
-    geom_pointrange(aes(ymin=pi_low, ymax=pi_high), color="red", fill="white", alpha=.75, shape=21) 
+    geom_pointrange(aes(ymin=pi_low, ymax=pi_high), color="red", fill="white", alpha=.75, shape=21)
   return(p)
 }
 
@@ -428,11 +445,11 @@ make_metro_inc_plot <- function(metro_inc_dat){
   p <- ggplot(metro_inc_dat, aes(x=time, y=mean)) +
     facet_wrap(~metrop_labels, ncol=3) +
     geom_bar(stat="identity", fill="red", alpha=.2) +
-    geom_pointrange(aes(ymin=pi_low, ymax=pi_high), color="red", fill="white", alpha=.75, shape=21) 
+    geom_pointrange(aes(ymin=pi_low, ymax=pi_high), color="red", fill="white", alpha=.75, shape=21)
   return(p)
 }
 
-##'Function to create summary table of hosp/deaths 
+##'Function to create summary table of hosp/deaths
 ##'specifically - columns for estimate + CI
 ##'with rows for hosp + deaths at each p_death used
 ##'
@@ -441,7 +458,7 @@ make_metro_inc_plot <- function(metro_inc_dat){
 ##'@return df object of estimates + CIs for hosp/deaths at all p_death
 ##'
 make_hospdeath_table1 <- function(sim_hospdeath_dat){
-  tmp <- sim_hospdeath_dat$res_total %>% 
+  tmp <- sim_hospdeath_dat$res_total %>%
     mutate(ci = make_CI(nhosp_lo, nhosp_hi),
            est = nhosp_final,
            lvl = paste0("hosp", p_death)) %>%
@@ -493,8 +510,8 @@ make_hospdeath_table1 <- function(sim_hospdeath_dat){
 ##'@return df object of estimates + CIs for final sizes
 ##'
 make_finalsize_table1 <- function(scenario_dat, final_date = "2020-04-01"){
-  tmp <- scenario_dat %>% 
-         filter(time==final_date, comp=="cumI") %>% 
+  tmp <- scenario_dat %>%
+         filter(time==final_date, comp=="cumI") %>%
          group_by(sim_num) %>%
          summarize(N = sum(N)) %>%
          ungroup() %>%
