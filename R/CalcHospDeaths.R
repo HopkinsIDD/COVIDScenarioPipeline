@@ -193,7 +193,8 @@ build_hospdeath_fullsim <- function(data, p_hosp, p_death, p_ICU, p_vent,
 ##' @param incl_county logical, whether to produce a table grouped by geoid in addition to metrop_labels + state
 ##' 
 
-
+## NOTE FOR FUTURE IMPROVEMENT: This function could be made faster by indexing off a start date and just 
+##  using integer days for everything, then applying dates at the end.
 
 build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                                     time_hosp_pars = c(1.23, 0.79), 
@@ -205,8 +206,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                                     end_date = "2020-04-01",
                                     length_geoid = 5,
                                     incl.county=FALSE,
-                                    cores=1,
-                                    durations=FALSE) {
+                                    cores=1) {
     
     require(doParallel)
     require(data.table)
@@ -310,19 +310,19 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     if (run_parallel){
         
         cl <- makeCluster(cores)
-        
+
         # Get current hospitalization days and accumulate them -- Recoveries
         clusterExport(cl=cl, varlist=c('R_', 'R_date_hosp', 'R_time_'), envir=environment())
         curr_hosp_date <- rev(as.Date(unlist(
-            parSapply(cl, 1:sum(R_), function(x) seq(as.Date(R_date_hosp[x]), as.Date(R_time_[x]), "days"))),
+            parSapply(cl, 1:sum(R_), function(x) seq(R_date_hosp[x], R_time_[x], "days"))),
             origin = "1970-01-01"))
         names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
         
-        
+
         # Get current hospitalization days and accumulate them -- Deaths
         clusterExport(cl=cl, varlist=c('D_', 'D_date_hosp', 'D_time_'), envir=environment())
         curr_hospD_date <- rev(as.Date(unlist(
-            parSapply(cl, 1:sum(D_), function(x) seq(as.Date(D_date_hosp[x]), as.Date(D_time_[x]), "days"))),
+            parSapply(cl, 1:sum(D_), function(x) seq(D_date_hosp[x], D_time_[x], "days"))),
             origin = "1970-01-01"))
         names(curr_hospD_date) <- rep(names(D_time_), (D_delay_+1))
         
@@ -330,7 +330,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
         # Get current ICU days and accumulate them -- ALL (add ICU eventually)
         clusterExport(cl=cl, varlist=c('ICU_', 'ICU_time_', 'ICU_end_'), envir=environment())
         curr_icu_date <- rev(as.Date(unlist(
-            parSapply(cl, 1:sum(ICU_), function(x) seq(as.Date(ICU_time_[x]), as.Date(ICU_end_[x]), "days"))),
+            parSapply(cl, 1:sum(ICU_), function(x) seq(ICU_time_[x], ICU_end_[x], "days"))),
             origin = "1970-01-01"))
         names(curr_icu_date) <- rep(names(ICU_time_), (ICU_dur_+1))
         
@@ -340,19 +340,19 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
         
         # Get current hospitalization days and accumulate them -- Recoveries
         curr_hosp_date <- rev(as.Date(unlist(
-            sapply(1:sum(R_), function(x) seq(as.Date(R_date_hosp[x]), as.Date(R_time_[x]), "days"))),
+            sapply(1:sum(R_), function(x) seq(R_date_hosp[x], R_time_[x], "days"))),
             origin = "1970-01-01"))
         names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
         
         # Get current hospitalization days and accumulate them -- Deaths
         curr_hospD_date <- rev(as.Date(unlist(
-            sapply(1:sum(D_), function(x) seq(as.Date(D_date_hosp[x]), as.Date(D_time_[x]), "days"))),
+            sapply(1:sum(D_), function(x) seq(D_date_hosp[x], D_time_[x], "days"))),
             origin = "1970-01-01"))
         names(curr_hospD_date) <- rep(names(D_time_), (D_delay_+1))
         
         # Get current ICU days and accumulate them -- ALL (add ICU eventually)
         curr_icu_date <- rev(as.Date(unlist(
-            sapply(1:sum(ICU_), function(x) seq(as.Date(ICU_time_[x]), as.Date(ICU_end_[x]), "days"))),
+            sapply(1:sum(ICU_), function(x) seq(ICU_time_[x], ICU_end_[x], "days"))),
             origin = "1970-01-01"))
         names(curr_icu_date) <- rep(names(ICU_time_), (ICU_dur_+1))
         
@@ -373,7 +373,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     data_curricu <- setDT(data_curricu)[, .N, by = .(time, county_sim)]
     colnames(data_curricu) <- c("time","county_sim","icu_curr")
 
-    rm(curr_hosp_date, curr_icu_date, curr_hospD_date)
+    curr_hosp_date <- curr_icu_date <- curr_hospD_date <- NULL
     
     
     # Merge them all
@@ -391,8 +391,8 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                      by=c("time", "county_sim"="county_sim"))
     
     
-    rm(data_ICU, data_ICUend, data_Vent, data_D, 
-       data_currhosp, data_curricu, date_tmp, data_H)
+    data_ICU <- data_ICUend <- data_Vent <- data_D <- 
+       data_currhosp <- data_curricu <- date_tmp <- data_H <- NULL
     
     
     res <- res %>% 
@@ -586,8 +586,7 @@ build_hospdeath_summary_multiplePDeath <- function(data,
                                                    end_date = "2020-04-01",
                                                    length_geoid = 5,
                                                    incl.county=FALSE,
-                                                   cores=1,
-                                                   durations=FALSE){
+                                                   cores=1){
     
     tmp_out <- build_hospdeath_summary(data, 
                                        p_hosp=p_hosp_vec[1], 
@@ -603,8 +602,7 @@ build_hospdeath_summary_multiplePDeath <- function(data,
                                        end_date = end_date,
                                        length_geoid = length_geoid,
                                        incl.county = incl.county,
-                                       cores=cores,
-                                       durations=durations) 
+                                       cores=cores) 
     
     tmp_metro <- tmp_out[['res_metro']] %>% mutate(p_death = p_death[1])
     tmp_total <- tmp_out[['res_total']] %>% mutate(p_death = p_death[1])
@@ -625,8 +623,8 @@ build_hospdeath_summary_multiplePDeath <- function(data,
                                            end_date = end_date,
                                            length_geoid = length_geoid,
                                            incl.county = incl.county,
-                                           cores=cores,
-                                           durations=durations) 
+                                           cores=cores) 
+        
         tmp_metro <- bind_rows(tmp_metro, tmp_out[['res_metro']] %>% mutate(p_death = p_death[i]))
         tmp_total <- bind_rows(tmp_total, tmp_out[['res_total']] %>% mutate(p_death = p_death[i]))
         if(incl.county){tmp_geoid <- bind_rows(tmp_geoid, tmp_out[['res_geoid']] %>% mutate(p_death = p_death[i]))}
