@@ -311,6 +311,10 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     
     # Get durations ....................
     
+    curr_hosp_date <- NULL
+    curr_hospD_date <- NULL
+    curr_icu_date <- NULL
+    
     if (run_parallel){
         
         cl <- makeCluster(cores)
@@ -321,14 +325,18 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
         names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
 
         # Get current hospitalization days and accumulate them -- Deaths
-        curr_hospD_date <- rev(as.Date(foreach(n=1:sum(D_), .combine = c) %dopar% {
-            seq(D_date_hosp[n], D_time_[n], "days") }, origin = "1970-01-01"))
-        names(curr_hospD_date) <- rep(names(D_time_), (D_delay_+1))
+        if (sum(D_)>0){
+            curr_hospD_date <- rev(as.Date(foreach(n=1:sum(D_), .combine = c) %dopar% {
+                seq(D_date_hosp[n], D_time_[n], "days") }, origin = "1970-01-01"))
+            names(curr_hospD_date) <- rep(names(D_time_), (D_delay_+1))
+        }
         
         # Get current ICU days and accumulate them -- ALL (add ICU eventually)
-        curr_icu_date <- rev(as.Date(foreach(n=1:sum(ICU_), .combine = c) %dopar% {
-            seq(ICU_time_[n], ICU_end_[n], "days") }, origin = "1970-01-01"))
-        names(curr_icu_date) <- rep(names(ICU_time_), (ICU_dur_+1))
+        if (sum(ICU_)>0){
+            curr_icu_date <- rev(as.Date(foreach(n=1:sum(ICU_), .combine = c) %dopar% {
+                seq(ICU_time_[n], ICU_end_[n], "days") }, origin = "1970-01-01"))
+            names(curr_icu_date) <- rep(names(ICU_time_), (ICU_dur_+1))
+        }
         
         stopCluster(cl)
         
@@ -340,18 +348,21 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
             origin = "1970-01-01"))
         names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
         
-        # Get current hospitalization days and accumulate them -- Deaths
-        curr_hospD_date <- rev(as.Date(unlist(
-            sapply(1:sum(D_), function(x) seq(D_date_hosp[x], D_time_[x], "days"))),
-            origin = "1970-01-01"))
-        names(curr_hospD_date) <- rep(names(D_time_), (D_delay_+1))
+        if (sum(D_)>0){
+            # Get current hospitalization days and accumulate them -- Deaths
+            curr_hospD_date <- rev(as.Date(unlist(
+                sapply(1:sum(D_), function(x) seq(D_date_hosp[x], D_time_[x], "days"))),
+                origin = "1970-01-01"))
+            names(curr_hospD_date) <- rep(names(D_time_), (D_delay_+1))
+        }
         
-        # Get current ICU days and accumulate them -- ALL (add ICU eventually)
-        curr_icu_date <- rev(as.Date(unlist(
-            sapply(1:sum(ICU_), function(x) seq(ICU_time_[x], ICU_end_[x], "days"))),
-            origin = "1970-01-01"))
-        names(curr_icu_date) <- rep(names(ICU_time_), (ICU_dur_+1))
-        
+        if (sum(ICU_)>0){
+            # Get current ICU days and accumulate them -- ALL (add ICU eventually)
+            curr_icu_date <- rev(as.Date(unlist(
+                sapply(1:sum(ICU_), function(x) seq(ICU_time_[x], ICU_end_[x], "days"))),
+                origin = "1970-01-01"))
+            names(curr_icu_date) <- rep(names(ICU_time_), (ICU_dur_+1))
+        }
     }
     
     
