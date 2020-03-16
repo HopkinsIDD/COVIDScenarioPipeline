@@ -127,6 +127,7 @@ make_final_dat <- function(scenario_dat, cdat=county_dat, final_date = "2020-04-
     filter(time==final_date, comp=="cumI") %>%
     group_by(geoid, time) %>%
     summarize(mean=mean(N),
+              median=median(N),
               pi_high=quantile(N,probs=.75),
               pi_low=quantile(N,probs=.25)) %>%
     left_join(cdat %>% select(geoid, new_pop, metrop_labels), by="geoid") %>%
@@ -359,7 +360,7 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
 ##'
 make_final_plot <- function(ca_final_dat){
   p <- ggplot(ca_final_dat,
-              aes(x=reorder(county.name,-mean), y=mean,ymin=pi_low, ymax=pi_high )) +
+              aes(x=reorder(county.name,-median), y=median,ymin=pi_low, ymax=pi_high )) +
     geom_pointrange() +
     ylab("Infections") +
     xlab("County") +
@@ -377,7 +378,7 @@ make_final_plot <- function(ca_final_dat){
 ##'
 make_final_map <- function(ca_final_dat){
   p <- ggplot(ca_final_dat) +
-    geom_sf(aes(fill=mean)) +
+    geom_sf(aes(fill=median)) +
     theme_minimal() +
     scale_fill_viridis(option="plasma")
   return(p)
