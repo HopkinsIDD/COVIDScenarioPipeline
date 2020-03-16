@@ -383,10 +383,13 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     res <- full_join(res, data_D, by=c("time", "county_sim"="county_sim"))
     res <- full_join(res, data_currhosp, by=c("time", "county_sim"="county_sim"))
     res <- full_join(res, data_curricu, by=c("time", "county_sim"="county_sim"))
-    res <- full_join(data.frame(time=as.Date(date_tmp)), 
-                     res, 
-                     by=c("time"))
     
+    # Add full dates if we want that -- leaving out to save memory
+    # res <- full_join(data.frame(time=as.Date(date_tmp)), 
+    #                  res, 
+    #                  by=c("time"))
+    
+    # Add incidence for checking -- leaving out to save memory
     res <- full_join(res, 
                      data %>% select(time, county_sim, incidI), 
                      by=c("time", "county_sim"="county_sim"))
@@ -419,7 +422,8 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
         mutate(time = as.Date(time)) %>%
         filter(time <= as.Date(end_date)) %>%
         group_by(metrop_labels, sim_num) %>% 
-        summarize(nInf = sum(incidI, na.rm = TRUE), 
+        summarize(
+                  # nInf = sum(incidI, na.rm = TRUE), 
                   nhosp = sum(incidH, na.rm = TRUE), 
                   nICU = sum(incidICU, na.rm = TRUE), 
                   nVent = sum(incidVent, na.rm = TRUE), 
@@ -430,9 +434,9 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                   maxICUCap = max(icu_curr, na.rm=TRUE)) %>%
         ungroup() %>% 
         group_by(metrop_labels) %>% 
-        summarize(nInf_final = mean(nInf),
-                  nInf_lo = quantile(nInf, 0.25),
-                  nInf_hi = quantile(nInf, 0.75),
+        summarize(#nInf_final = mean(nInf),
+                  #nInf_lo = quantile(nInf, 0.25),
+                  #nInf_hi = quantile(nInf, 0.75),
                   nhosp_final = mean(nhosp),
                   nhosp_lo = quantile(nhosp, 0.25),
                   nhosp_hi = quantile(nhosp, 0.75),
@@ -463,7 +467,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
         select(-county_sim) %>%
         filter(time <= as.Date(end_date)) %>%
         group_by(sim_num) %>% 
-        summarize(nInf = sum(incidI, na.rm = TRUE), 
+        summarize(#nInf = sum(incidI, na.rm = TRUE), 
                   nhosp = sum(incidH, na.rm = TRUE), 
                   nICU = sum(incidICU, na.rm = TRUE), 
                   nVent = sum(incidVent, na.rm = TRUE), 
@@ -473,9 +477,9 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                   maxHospCap = max(hosp_curr, na.rm = TRUE),
                   maxICUCap = max(icu_curr, na.rm=TRUE)) %>%
         ungroup() %>% 
-        summarize(nInf_final = mean(nInf),
-                  nInf_lo = quantile(nInf, 0.25),
-                  nInf_hi = quantile(nInf, 0.75),
+        summarize(#nInf_final = mean(nInf),
+                  #nInf_lo = quantile(nInf, 0.25),
+                  #nInf_hi = quantile(nInf, 0.75),
                   nhosp_final = mean(nhosp),
                   nhosp_lo = quantile(nhosp, 0.25),
                   nhosp_hi = quantile(nhosp, 0.75),
@@ -509,7 +513,8 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
             select(-county_sim) %>%
             filter(time <= as.Date(end_date)) %>%
             group_by(geoid, sim_num) %>% 
-            summarize(nhosp = sum(incidH, na.rm = TRUE), 
+            summarize(#nInf = sum(incidI, na.rm = TRUE), 
+                      nhosp = sum(incidH, na.rm = TRUE), 
                       nICU = sum(incidICU, na.rm = TRUE), 
                       nVent = sum(incidVent, na.rm = TRUE), 
                       ndeath = sum(incidD, na.rm = TRUE),
@@ -519,7 +524,11 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                       maxICUCap = max(icu_curr, na.rm=TRUE)) %>%
             ungroup() %>% 
             group_by(geoid) %>% 
-            summarize(nhosp_final = mean(nhosp),
+            summarize(
+                #nInf_final = mean(nInf),
+                 #     nInf_lo = quantile(nInf, 0.25),
+                  #    nInf_hi = quantile(nInf, 0.75),
+                      nhosp_final = mean(nhosp),
                       nhosp_lo = quantile(nhosp, 0.25),
                       nhosp_hi = quantile(nhosp, 0.75),
                       phosp_final = mean(maxHospAdm),
