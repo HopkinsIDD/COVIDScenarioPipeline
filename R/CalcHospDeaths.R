@@ -218,9 +218,9 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     # Set up results data
 
     # t_ <- 1:nrow(data)
-    # dates_ <- as.Date(data$time)
-    # sim_num <- data$sim_num
-    # geoid <- data$geoid
+    dates_ <- as.Date(data$time)
+    sim_num <- data$sim_num
+    geoid <- data$geoid
     uid <- paste0(geoid, "-",sim_num)
     data$county_sim <- uid
     # date_tmp <- seq(min(dates_), (max(dates_)+125), by="days")
@@ -819,13 +819,13 @@ build_hospdeath_summary_faster <- function(data, p_hosp, p_death, p_vent, p_ICU,
     require(data.table)
     
     # filter to earlier than the end_date
-    data <- data %>% filter(time<=end_date)
+    #data <- data %>% filter(time<=end_date)
     
     # Set up results data
     t_ <- 1:nrow(data)
     dates_ <- as.Date(data$time)
     sim_num <- data$sim_num
-    geoid <- data$geoid
+    #geoid <- data$geoid
     uid <- paste0(geoid, "-",sim_num)
     data$county_sim <- uid
     date_tmp <- seq(min(dates_), (max(dates_)+125), by="days")
