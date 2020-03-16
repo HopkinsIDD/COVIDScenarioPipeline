@@ -320,10 +320,12 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
         cl <- makeCluster(cores)
         
         # Get current hospitalization days and accumulate them -- Recoveries
-        curr_hosp_date <- rev(as.Date(foreach(n=1:sum(R_), .combine = c) %dopar% {
-                seq(R_date_hosp[n], R_time_[n], "days") }, origin = "1970-01-01"))
-        names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
-
+        if (sum(R_)>0){
+            curr_hosp_date <- rev(as.Date(foreach(n=1:sum(R_), .combine = c) %dopar% {
+                    seq(R_date_hosp[n], R_time_[n], "days") }, origin = "1970-01-01"))
+            names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
+        }
+        
         # Get current hospitalization days and accumulate them -- Deaths
         if (sum(D_)>0){
             curr_hospD_date <- rev(as.Date(foreach(n=1:sum(D_), .combine = c) %dopar% {
@@ -343,10 +345,12 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     } else {
         
         # Get current hospitalization days and accumulate them -- Recoveries
-        curr_hosp_date <- rev(as.Date(unlist(
-            sapply(1:sum(R_), function(x) seq(R_date_hosp[x], R_time_[x], "days"))),
-            origin = "1970-01-01"))
-        names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
+        if (sum(R_)>0){
+            curr_hosp_date <- rev(as.Date(unlist(
+                sapply(1:sum(R_), function(x) seq(R_date_hosp[x], R_time_[x], "days"))),
+                origin = "1970-01-01"))
+            names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
+        }
         
         if (sum(D_)>0){
             # Get current hospitalization days and accumulate them -- Deaths
