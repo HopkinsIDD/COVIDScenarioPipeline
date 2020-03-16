@@ -212,6 +212,9 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     require(doParallel)
     require(data.table)
     
+    # filter to earlier than the end_date
+    data <- data %>% filter(time<=end_date)
+    
     # Set up results data
     #res_data <- data.frame(t=1:(nrow(data)+125), incidI=0, incidH=0, incidD=0, incidR=0) 
     res_data <- data.frame(date=NA, t=1:(nrow(data)+125), incidI=0, incidH=0, incidD=0) 
@@ -420,7 +423,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
         filter(!is.na(county_sim) & !is.na(metrop_labels)) %>% 
         select(-county_sim) %>%
         mutate(time = as.Date(time)) %>%
-        filter(time <= as.Date(end_date)) %>%
+        #filter(time <= as.Date(end_date)) %>%
         group_by(metrop_labels, sim_num) %>% 
         summarize(
                   # nInf = sum(incidI, na.rm = TRUE), 
@@ -465,7 +468,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     res_total <- res %>% 
         filter(!is.na(county_sim)) %>% 
         select(-county_sim) %>%
-        filter(time <= as.Date(end_date)) %>%
+        #filter(time <= as.Date(end_date)) %>%
         group_by(sim_num) %>% 
         summarize(#nInf = sum(incidI, na.rm = TRUE), 
                   nhosp = sum(incidH, na.rm = TRUE), 
@@ -511,7 +514,7 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
         res_geoid <- res %>% 
             filter(!is.na(county_sim)) %>% 
             select(-county_sim) %>%
-            filter(time <= as.Date(end_date)) %>%
+            #filter(time <= as.Date(end_date)) %>%
             group_by(geoid, sim_num) %>% 
             summarize(#nInf = sum(incidI, na.rm = TRUE), 
                       nhosp = sum(incidH, na.rm = TRUE), 
