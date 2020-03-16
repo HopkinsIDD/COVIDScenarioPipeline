@@ -207,7 +207,8 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                                     length_geoid = 5,
                                     incl.county=FALSE,
                                     cores=1, 
-                                    run_parallel=FALSE) {
+                                    run_parallel=FALSE,
+                                    get_curr_hosp=FALSE) {
     
     require(doParallel)
     require(data.table)
@@ -305,111 +306,110 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     colnames(data_R) <- c("time","county_sim","incidR")
 
     
-    
-    # Get durations ....................
-    
-    curr_hosp_date <- NULL
-    curr_hospD_date <- NULL
-    curr_icu_date <- NULL
-    
-    if (run_parallel){
-        
-        cl <- makeCluster(cores)
-        
-        # Get current hospitalization days and accumulate them -- Recoveries
-        if (sum(R_)>0){
-            curr_hosp_date <- rev(foreach(n=1:sum(R_), .combine = c) %dopar% {
-                    seq(R_date_hosp[n], R_time_[n], "days") })
-            names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
-        }
-        
-        # Get current hospitalization days and accumulate them -- Deaths
-        if (sum(D_)>0){
-            curr_hospD_date <- rev(foreach(n=1:sum(D_), .combine = c) %dopar% {
-                seq(D_date_hosp[n], D_time_[n], "days") })
-            names(curr_hospD_date) <- rep(names(D_time_), (D_delay_+1))
-        }
-        
-        # Get current ICU days and accumulate them -- ALL (add ICU eventually)
-        if (sum(ICU_)>0){
-            curr_icu_date <- rev(foreach(n=1:sum(ICU_), .combine = c) %dopar% {
-                seq(ICU_time_[n], ICU_end_[n], "days") })
-            names(curr_icu_date) <- rep(names(ICU_time_), (ICU_dur_+1))
-        }
-        
-        stopCluster(cl)
-        
-    } else {
-        
-        # Get current hospitalization days and accumulate them -- Recoveries
-        if (sum(R_)>0){
-            curr_hosp_date <- rev(unlist(
-                sapply(1:sum(R_), function(x) seq(R_date_hosp[x], R_time_[x], "days"))))
-            names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
-        }
-        
-        if (sum(D_)>0){
-            # Get current hospitalization days and accumulate them -- Deaths
-            curr_hospD_date <- rev(unlist(
-                sapply(1:sum(D_), function(x) seq(D_date_hosp[x], D_time_[x], "days"))))
-            names(curr_hospD_date) <- rep(names(D_time_), (D_delay_+1))
-        }
-        
-        if (sum(ICU_)>0){
-            # Get current ICU days and accumulate them -- ALL (add ICU eventually)
-            curr_icu_date <- rev(unlist(
-                sapply(1:sum(ICU_), function(x) seq(ICU_time_[x], ICU_end_[x], "days"))))
-            names(curr_icu_date) <- rep(names(ICU_time_), (ICU_dur_+1))
-        }
-    }
-    
-    
-    
-    # ----------------------------------------------
-    
-    data_currhosp <- data_curricu <- NULL
-    if (sum(H_)>0){
-        # combine them & tabulate
-        curr_hosp_date <- c(curr_hosp_date, curr_hospD_date)
-        curr_hosp_date <- as.Date(curr_hosp_date, origin = "1970-01-01")
-        data_currhosp <- data.frame(time=curr_hosp_date, county_sim=names(curr_hosp_date))
-        data_currhosp <- setDT(data_currhosp)[, .N, by = .(time, county_sim)]
-        colnames(data_currhosp) <- c("time","county_sim","hosp_curr")
-        
-        curr_icu_date <- as.Date(curr_icu_date, origin = "1970-01-01")
-        data_curricu <- data.frame(time=curr_icu_date, county_sim=names(curr_icu_date))
-        data_curricu <- setDT(data_curricu)[, .N, by = .(time, county_sim)]
-        colnames(data_curricu) <- c("time","county_sim","icu_curr")
-    
-        curr_hosp_date <- curr_icu_date <- curr_hospD_date <- NULL
-    }
-    
-    # Merge them all
+    # Merge them 
     res <- full_join(data_H, data_ICU, by=c("time", "county_sim"="county_sim"))
     res <- full_join(res, data_Vent, by=c("time", "county_sim"="county_sim"))
     res <- full_join(res, data_D, by=c("time", "county_sim"="county_sim"))
     
-    if (sum(H_)>0){
-        res <- full_join(res, data_currhosp, by=c("time", "county_sim"="county_sim"))
-        res <- full_join(res, data_curricu, by=c("time", "county_sim"="county_sim"))
-    } else {
-        res$hosp_curr <- 0
-        res$icu_curr <- 0
+    
+    
+    
+    if (get_curr_hosp){
+
+        # Get durations ....................
+        
+        curr_hosp_date <- NULL
+        curr_hospD_date <- NULL
+        curr_icu_date <- NULL
+        
+        if (run_parallel){
+            
+            cl <- makeCluster(cores)
+            
+            # Get current hospitalization days and accumulate them -- Recoveries
+            if (sum(R_)>0){
+                curr_hosp_date <- rev(foreach(n=1:sum(R_), .combine = c) %dopar% {
+                        seq(R_date_hosp[n], R_time_[n], "days") })
+                names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
+            }
+            
+            # Get current hospitalization days and accumulate them -- Deaths
+            if (sum(D_)>0){
+                curr_hospD_date <- rev(foreach(n=1:sum(D_), .combine = c) %dopar% {
+                    seq(D_date_hosp[n], D_time_[n], "days") })
+                names(curr_hospD_date) <- rep(names(D_time_), (D_delay_+1))
+            }
+            
+            # Get current ICU days and accumulate them -- ALL (add ICU eventually)
+            if (sum(ICU_)>0){
+                curr_icu_date <- rev(foreach(n=1:sum(ICU_), .combine = c) %dopar% {
+                    seq(ICU_time_[n], ICU_end_[n], "days") })
+                names(curr_icu_date) <- rep(names(ICU_time_), (ICU_dur_+1))
+            }
+            
+            stopCluster(cl)
+            
+        } else {
+            
+            # Get current hospitalization days and accumulate them -- Recoveries
+            if (sum(R_)>0){
+                curr_hosp_date <- rev(unlist(
+                    sapply(1:sum(R_), function(x) seq(R_date_hosp[x], R_time_[x], "days"))))
+                names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
+            }
+            
+            if (sum(D_)>0){
+                # Get current hospitalization days and accumulate them -- Deaths
+                curr_hospD_date <- rev(unlist(
+                    sapply(1:sum(D_), function(x) seq(D_date_hosp[x], D_time_[x], "days"))))
+                names(curr_hospD_date) <- rep(names(D_time_), (D_delay_+1))
+            }
+            
+            if (sum(ICU_)>0){
+                # Get current ICU days and accumulate them -- ALL (add ICU eventually)
+                curr_icu_date <- rev(unlist(
+                    sapply(1:sum(ICU_), function(x) seq(ICU_time_[x], ICU_end_[x], "days"))))
+                names(curr_icu_date) <- rep(names(ICU_time_), (ICU_dur_+1))
+            }
+        }
+        
+        
+        # ----------------------------------------------
+        
+        data_currhosp <- data_curricu <- NULL
+        if (sum(H_)>0){
+            # combine them & tabulate
+            curr_hosp_date <- c(curr_hosp_date, curr_hospD_date)
+            curr_hosp_date <- as.Date(curr_hosp_date, origin = "1970-01-01")
+            data_currhosp <- data.frame(time=curr_hosp_date, county_sim=names(curr_hosp_date))
+            data_currhosp <- setDT(data_currhosp)[, .N, by = .(time, county_sim)]
+            colnames(data_currhosp) <- c("time","county_sim","hosp_curr")
+            
+            curr_icu_date <- as.Date(curr_icu_date, origin = "1970-01-01")
+            data_curricu <- data.frame(time=curr_icu_date, county_sim=names(curr_icu_date))
+            data_curricu <- setDT(data_curricu)[, .N, by = .(time, county_sim)]
+            colnames(data_curricu) <- c("time","county_sim","icu_curr")
+        
+            curr_hosp_date <- curr_icu_date <- curr_hospD_date <- NULL
+        }
+
+        if (sum(H_)>0){
+            res <- full_join(res, data_currhosp, by=c("time", "county_sim"="county_sim"))
+            res <- full_join(res, data_curricu, by=c("time", "county_sim"="county_sim"))
+        } else {
+            res$hosp_curr <- 0
+            res$icu_curr <- 0
+        }
+        
+        data_currhosp <- data_curricu <- NULL
+        
     }
-    
-    # Add full dates if we want that -- leaving out to save memory
-    # res <- full_join(data.frame(time=as.Date(date_tmp)), 
-    #                  res, 
-    #                  by=c("time"))
-    
-    # Add incidence for checking -- leaving out to save memory
-    res <- full_join(res, 
-                     data %>% select(time, county_sim, incidI), 
-                     by=c("time", "county_sim"="county_sim"))
-    
-    
-    data_ICU <- data_ICUend <- data_Vent <- data_D <- 
-       data_currhosp <- data_curricu <- date_tmp <- data_H <- NULL
+   
+    # # Add incidence for checking -- leaving out to save memory
+    # res <- full_join(res, 
+    #                  data %>% select(time, county_sim, incidI), 
+    #                  by=c("time", "county_sim"="county_sim"))
+    data_ICU <- data_ICUend <- data_Vent <- data_D <- date_tmp <- data_H <- NULL
     
     
     res <- res %>% 
@@ -418,9 +418,9 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                  incidH = 0,
                  incidICU = 0,
                  incidVent = 0,
-                 incidD = 0,
-                 hosp_curr = 0,
-                 icu_curr = 0)
+                 incidD = 0)
+                 # hosp_curr = 0,
+                 # icu_curr = 0)
         ) %>%
         mutate(geoid = substr(county_sim,1,length_geoid),
                sim_num= substr(county_sim,length_geoid+2,length_geoid+7)) %>%
@@ -442,9 +442,10 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                   nVent = sum(incidVent, na.rm = TRUE), 
                   ndeath = sum(incidD, na.rm = TRUE),
                   maxHospAdm = max(incidH, na.rm=TRUE),
-                  maxICUAdm = max(incidICU, na.rm=TRUE),
-                  maxHospCap = max(hosp_curr, na.rm = TRUE),
-                  maxICUCap = max(icu_curr, na.rm=TRUE)) %>%
+                  maxICUAdm = max(incidICU, na.rm=TRUE)#,
+                  # maxHospCap = max(hosp_curr, na.rm = TRUE),
+                  # maxICUCap = max(icu_curr, na.rm=TRUE)
+                  ) %>%
         ungroup() %>% 
         group_by(metrop_labels) %>% 
         summarize(#nInf_final = mean(nInf),
@@ -467,13 +468,14 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                   nVent_hi = quantile(nVent, 0.75),
                   ndeath_final = mean(ndeath),
                   ndeath_lo = quantile(ndeath, 0.25),
-                  ndeath_hi = quantile(ndeath, 0.75),
-                  nhosp_curr_final = mean(maxHospCap),
-                  nhosp_curr_lo = quantile(maxHospCap, 0.25),
-                  nhosp_curr_hi = quantile(maxHospCap, 0.75),
-                  nicu_curr_final = mean(maxICUCap),
-                  nicu_curr_lo = quantile(maxICUCap, 0.25),
-                  nicu_curr_hi = quantile(maxICUCap, 0.75))
+                  ndeath_hi = quantile(ndeath, 0.75)#,
+                  # nhosp_curr_final = mean(maxHospCap),
+                  # nhosp_curr_lo = quantile(maxHospCap, 0.25),
+                  # nhosp_curr_hi = quantile(maxHospCap, 0.75),
+                  # nicu_curr_final = mean(maxICUCap),
+                  # nicu_curr_lo = quantile(maxICUCap, 0.25),
+                  # nicu_curr_hi = quantile(maxICUCap, 0.75)
+                  )
     
     res_total <- res %>% 
         filter(!is.na(county_sim)) %>% 
@@ -486,9 +488,10 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                   nVent = sum(incidVent, na.rm = TRUE), 
                   ndeath = sum(incidD, na.rm = TRUE),
                   maxHospAdm = max(incidH, na.rm=TRUE),
-                  maxICUAdm = max(incidICU, na.rm=TRUE),
-                  maxHospCap = max(hosp_curr, na.rm = TRUE),
-                  maxICUCap = max(icu_curr, na.rm=TRUE)) %>%
+                  maxICUAdm = max(incidICU, na.rm=TRUE)#,
+                  # maxHospCap = max(hosp_curr, na.rm = TRUE),
+                  # maxICUCap = max(icu_curr, na.rm=TRUE)
+                  ) %>%
         ungroup() %>% 
         summarize(#nInf_final = mean(nInf),
                   #nInf_lo = quantile(nInf, 0.25),
@@ -510,13 +513,13 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                   nVent_hi = quantile(nVent, 0.75),
                   ndeath_final = mean(ndeath),
                   ndeath_lo = quantile(ndeath, 0.25),
-                  ndeath_hi = quantile(ndeath, 0.75),
-                  nhosp_curr_final = mean(maxHospCap),
-                  nhosp_curr_lo = quantile(maxHospCap, 0.25),
-                  nhosp_curr_hi = quantile(maxHospCap, 0.75),
-                  nicu_curr_final = mean(maxICUCap),
-                  nicu_curr_lo = quantile(maxICUCap, 0.25),
-                  nicu_curr_hi = quantile(maxICUCap, 0.75))
+                  ndeath_hi = quantile(ndeath, 0.75))#,
+                  # nhosp_curr_final = mean(maxHospCap),
+                  # nhosp_curr_lo = quantile(maxHospCap, 0.25),
+                  # nhosp_curr_hi = quantile(maxHospCap, 0.75),
+                  # nicu_curr_final = mean(maxICUCap),
+                  # nicu_curr_lo = quantile(maxICUCap, 0.25),
+                  # nicu_curr_hi = quantile(maxICUCap, 0.75))
     
     out <- list(res_total = as.data.frame(res_total), res_metro = as.data.frame(res_metro))
     
@@ -532,9 +535,10 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                       nVent = sum(incidVent, na.rm = TRUE), 
                       ndeath = sum(incidD, na.rm = TRUE),
                       maxHospAdm = max(incidH, na.rm=TRUE),
-                      maxICUAdm = max(incidICU, na.rm=TRUE),
-                      maxHospCap = max(hosp_curr, na.rm = TRUE),
-                      maxICUCap = max(icu_curr, na.rm=TRUE)) %>%
+                      maxICUAdm = max(incidICU, na.rm=TRUE)#,
+                      # maxHospCap = max(hosp_curr, na.rm = TRUE),
+                      # maxICUCap = max(icu_curr, na.rm=TRUE)
+                      ) %>%
             ungroup() %>% 
             group_by(geoid) %>% 
             summarize(
@@ -558,13 +562,14 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
                       nVent_hi = quantile(nVent, 0.75),
                       ndeath_final = mean(ndeath),
                       ndeath_lo = quantile(ndeath, 0.25),
-                      ndeath_hi = quantile(ndeath, 0.75),
-                      nhosp_curr_final = mean(maxHospCap),
-                      nhosp_curr_lo = quantile(maxHospCap, 0.25),
-                      nhosp_curr_hi = quantile(maxHospCap, 0.75),
-                      nicu_curr_final = mean(maxICUCap),
-                      nicu_curr_lo = quantile(maxICUCap, 0.25),
-                      nicu_curr_hi = quantile(maxICUCap, 0.75))
+                      ndeath_hi = quantile(ndeath, 0.75)#,
+                      # nhosp_curr_final = mean(maxHospCap),
+                      # nhosp_curr_lo = quantile(maxHospCap, 0.25),
+                      # nhosp_curr_hi = quantile(maxHospCap, 0.75),
+                      # nicu_curr_final = mean(maxICUCap),
+                      # nicu_curr_lo = quantile(maxICUCap, 0.25),
+                      # nicu_curr_hi = quantile(maxICUCap, 0.75)
+                      )
         
         out <- list(res_total = as.data.frame(res_total), res_metro = as.data.frame(res_metro), res_geoid = as.data.frame(res_geoid))
     }
@@ -627,7 +632,8 @@ build_hospdeath_summary_multiplePDeath <- function(data,
                                        length_geoid = length_geoid,
                                        incl.county = incl.county,
                                        cores=cores,
-                                       run_parallel=run_parallel) 
+                                       run_parallel=run_parallel,
+                                       get_curr_hosp = FALSE) 
     
     tmp_metro <- tmp_out[['res_metro']] %>% mutate(p_death = p_death[1])
     tmp_total <- tmp_out[['res_total']] %>% mutate(p_death = p_death[1])
@@ -649,7 +655,8 @@ build_hospdeath_summary_multiplePDeath <- function(data,
                                            length_geoid = length_geoid,
                                            incl.county = incl.county,
                                            cores=cores,
-                                           run_parallel=run_parallel) 
+                                           run_parallel=run_parallel,
+                                           get_curr_hosp = FALSE) 
         
         tmp_metro <- bind_rows(tmp_metro, tmp_out[['res_metro']] %>% mutate(p_death = p_death[i]))
         tmp_total <- bind_rows(tmp_total, tmp_out[['res_total']] %>% mutate(p_death = p_death[i]))
@@ -825,7 +832,7 @@ build_hospdeath_summary_faster <- function(data, p_hosp, p_death, p_vent, p_ICU,
     t_ <- 1:nrow(data)
     dates_ <- as.Date(data$time)
     sim_num <- data$sim_num
-    #geoid <- data$geoid
+    geoid <- data$geoid
     uid <- paste0(geoid, "-",sim_num)
     data$county_sim <- uid
     date_tmp <- seq(min(dates_), (max(dates_)+125), by="days")
@@ -916,6 +923,9 @@ build_hospdeath_summary_faster <- function(data, p_hosp, p_death, p_vent, p_ICU,
     curr_hosp_date <- NULL
     curr_hospD_date <- NULL
     curr_icu_date <- NULL
+    
+    
+    
     
     if (run_parallel){
         
@@ -1019,8 +1029,7 @@ build_hospdeath_summary_faster <- function(data, p_hosp, p_death, p_vent, p_ICU,
     
     res <- res %>% 
         replace_na(
-            list(incidI = 0,
-                 incidH = 0,
+            list(incidH = 0,
                  incidICU = 0,
                  incidVent = 0,
                  incidD = 0,
