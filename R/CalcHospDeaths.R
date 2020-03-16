@@ -314,28 +314,20 @@ build_hospdeath_summary <- function(data, p_hosp, p_death, p_vent, p_ICU,
     if (run_parallel){
         
         cl <- makeCluster(cores)
-
-        # Get current hospitalization days and accumulate them -- Recoveries
-        clusterExport(cl=cl, varlist=c('R_', 'R_date_hosp', 'R_time_'), envir=environment())
-        curr_hosp_date <- rev(as.Date(unlist(
-            parSapply(cl, 1:sum(R_), function(x) seq(R_date_hosp[x], R_time_[x], "days"))),
-            origin = "1970-01-01"))
-        names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
         
+        # Get current hospitalization days and accumulate them -- Recoveries
+        curr_hosp_date <- rev(as.Date(foreach(n=1:sum(R_), .combine = c) %dopar% {
+                seq(R_date_hosp[n], R_time_[n], "days") }, origin = "1970-01-01"))
+        names(curr_hosp_date) <- rep(names(R_time_), (R_delay_+1)) # add country_sim
 
         # Get current hospitalization days and accumulate them -- Deaths
-        clusterExport(cl=cl, varlist=c('D_', 'D_date_hosp', 'D_time_'), envir=environment())
-        curr_hospD_date <- rev(as.Date(unlist(
-            parSapply(cl, 1:sum(D_), function(x) seq(D_date_hosp[x], D_time_[x], "days"))),
-            origin = "1970-01-01"))
+        curr_hospD_date <- rev(as.Date(foreach(n=1:sum(D_), .combine = c) %dopar% {
+            seq(D_date_hosp[n], D_time_[n], "days") }, origin = "1970-01-01"))
         names(curr_hospD_date) <- rep(names(D_time_), (D_delay_+1))
         
-        
         # Get current ICU days and accumulate them -- ALL (add ICU eventually)
-        clusterExport(cl=cl, varlist=c('ICU_', 'ICU_time_', 'ICU_end_'), envir=environment())
-        curr_icu_date <- rev(as.Date(unlist(
-            parSapply(cl, 1:sum(ICU_), function(x) seq(ICU_time_[x], ICU_end_[x], "days"))),
-            origin = "1970-01-01"))
+        curr_icu_date <- rev(as.Date(foreach(n=1:sum(ICU_), .combine = c) %dopar% {
+            seq(ICU_time_[n], ICU_end_[n], "days") }, origin = "1970-01-01"))
         names(curr_icu_date) <- rep(names(ICU_time_), (ICU_dur_+1))
         
         stopCluster(cl)
