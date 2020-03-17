@@ -21,6 +21,7 @@ RUN apt-get update && \
     build-essential \
     git-core \
     curl \
+    pandoc \
     postgresql-client \
     libpq-dev \
     libssl-dev \
