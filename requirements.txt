@@ -1,0 +1,9 @@
+pandas
+numpy
+seaborn
+matplotlib
+geopy
+tqdm
+geopandas
+shapely
+numba
