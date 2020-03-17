@@ -13,39 +13,39 @@ load_scenario_sims <- function(scenario_dir,
                                keep_compartments=NULL,
                                time_filter_low = -Inf,
                                time_filter_high = Inf) {
-
+  
   require(data.table)
-
+  
   files <- dir(sprintf("model_output/%s", scenario_dir),full.names = TRUE)
-
+  
   rc <- list()
-
-
+  
+  
   for (i in 1:length(files)) {
     file <- files[i]
-                                        #print(i)
+    #print(i)
     if (is.null(keep_compartments)) {
-        #tmp <- data.table::fread(file) %>% as.data.frame()
-        suppressMessages(tmp <- read_csv(file))
+      #tmp <- data.table::fread(file) %>% as.data.frame()
+      suppressMessages(tmp <- read_csv(file))
     } else {
-        suppressMessages(
-            tmp <-  read_csv(file) %>%
-                filter(comp%in%keep_compartments)
-        )
+      suppressMessages(
+        tmp <-  read_csv(file) %>%
+          filter(comp%in%keep_compartments)
+      )
     }
-
+    
     #colnames(tmp) <- tmp[1,]
     tmp <- #tmp[-1,] %>%
-        tmp %>%
-        filter(time <= time_filter_high & time >= time_filter_low) %>%
-        pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>%
-        mutate(sim_num = i)
-
+      tmp %>%
+      filter(time <= time_filter_high & time >= time_filter_low) %>%
+      pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>%
+      mutate(sim_num = i)
+    
     rc[[i]] <- tmp
   }
-
+  
   rc<- rbindlist(rc)
-
+  
   return(rc)
 }
 
@@ -127,6 +127,7 @@ make_final_dat <- function(scenario_dat, cdat=county_dat, final_date = "2020-04-
     filter(time==final_date, comp=="cumI") %>%
     group_by(geoid, time) %>%
     summarize(mean=mean(N),
+              median=median(N),
               pi_high=quantile(N,probs=.75),
               pi_low=quantile(N,probs=.25)) %>%
     left_join(cdat %>% select(geoid, new_pop, metrop_labels), by="geoid") %>%
@@ -309,43 +310,44 @@ make_final_hosp_dat <- function(hd_dat, end_date="2020-04-01"){
 ##'@param p_death IFRs used in this analysis
 ##'
 make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
-
+  
   tmp_metro <- final_hosp_metrop_dat %>%
     mutate(hosp_est = paste0(round(nhosp_final, 1), " (", round(nhosp_lo, 1), "-", round(nhosp_hi, 1), ")"),
            peak_hosp = paste0(round(phosp_final, 1), " (", round(phosp_lo, 1), "-", round(phosp_hi, 1), ")"),
-           peak_hosp_cap = paste0(round(nhosp_curr_final, 1), " (", round(nhosp_curr_lo, 1), "-", round(nhosp_curr_hi, 1), ")"),
+           #peak_hosp_cap = paste0(round(nhosp_curr_final, 1), " (", round(nhosp_curr_lo, 1), "-", round(nhosp_curr_hi, 1), ")"),
            ICU_est = paste0(round(nICU_final, 1), " (", round(nICU_lo, 1), "-", round(nICU_hi, 1), ")"),
            peak_ICU = paste0(round(pICU_final, 1), " (", round(pICU_lo, 1), "-", round(pICU_hi, 1), ")"),
-           peak_ICU_cap = paste0(round(nicu_curr_final, 1), " (", round(nicu_curr_lo, 1), "-", round(nicu_curr_hi, 1), ")"),
+           #peak_ICU_cap = paste0(round(nicu_curr_final, 1), " (", round(nicu_curr_lo, 1), "-", round(nicu_curr_hi, 1), ")"),
            vent_est = paste0(round(nVent_final, 1), " (", round(nVent_lo, 1), "-", round(nVent_hi, 1), ")"),
            death_est = paste0(round(ndeath_final, 1), " (", round(ndeath_lo, 1), "-", round(ndeath_hi, 1), ")")) %>%
     arrange(desc(nhosp_final)) %>%
-    select(metrop_labels, p_death, hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est) %>%
+    select(metrop_labels, p_death, hosp_est, ICU_est, vent_est, death_est) %>%
     filter(!is.na(metrop_labels)) %>%
     pivot_wider(id_cols=metrop_labels,
                 names_from=p_death,
-                values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
-
+                values_from = c(hosp_est, ICU_est, vent_est, death_est))
+  
   tmp_total <- final_hosp_dat %>%
     mutate(hosp_est = paste0(round(nhosp_final, 1), " (", round(nhosp_lo, 1), "-", round(nhosp_hi, 1), ")"),
            peak_hosp = paste0(round(phosp_final, 1), " (", round(phosp_lo, 1), "-", round(phosp_hi, 1), ")"),
-           peak_hosp_cap = paste0(round(nhosp_curr_final, 1), " (", round(nhosp_curr_lo, 1), "-", round(nhosp_curr_hi, 1), ")"),
+           #peak_hosp_cap = paste0(round(nhosp_curr_final, 1), " (", round(nhosp_curr_lo, 1), "-", round(nhosp_curr_hi, 1), ")"),
            ICU_est = paste0(round(nICU_final, 1), " (", round(nICU_lo, 1), "-", round(nICU_hi, 1), ")"),
            peak_ICU = paste0(round(pICU_final, 1), " (", round(pICU_lo, 1), "-", round(pICU_hi, 1), ")"),
-           peak_ICU_cap = paste0(round(nicu_curr_final, 1), " (", round(nicu_curr_lo, 1), "-", round(nicu_curr_hi, 1), ")"),
+           #peak_ICU_cap = paste0(round(nicu_curr_final, 1), " (", round(nicu_curr_lo, 1), "-", round(nicu_curr_hi, 1), ")"),
            vent_est = paste0(round(nVent_final, 1), " (", round(nVent_lo, 1), "-", round(nVent_hi, 1), ")"),
            death_est = paste0(round(ndeath_final, 1), " (", round(ndeath_lo, 1), "-", round(ndeath_hi, 1), ")"),
            metrop_labels = "All Locations") %>%
-    select(metrop_labels, p_death, hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est) %>%
+    select(metrop_labels, p_death, hosp_est, ICU_est, vent_est, death_est) %>%
     pivot_wider(id_cols=metrop_labels,
                 names_from=p_death,
-                values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
-
-  cnames <- paste0(c("hosp_est_", "peak_hosp_cap_", "ICU_est_", "peak_ICU_cap_", "vent_est_", "death_est_"), rep(p_death, each=6))
-
+                values_from = c(hosp_est, ICU_est, vent_est, death_est))
+  
+  var_to_report <- c("hosp_est_", "ICU_est_", "vent_est_", "death_est_")
+  cnames <- paste0(var_to_report, rep(p_death, each=length(var_to_report)))
+  
   tab <- bind_rows(tmp_total[,c("metrop_labels", cnames)],
                    tmp_metro[,c("metrop_labels", cnames)])
-
+  
   return(tab)
 }
 
@@ -358,7 +360,7 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
 ##'
 make_final_plot <- function(ca_final_dat){
   p <- ggplot(ca_final_dat,
-              aes(x=reorder(county.name,-mean), y=mean,ymin=pi_low, ymax=pi_high )) +
+              aes(x=reorder(county.name,-median), y=median,ymin=pi_low, ymax=pi_high )) +
     geom_pointrange() +
     ylab("Infections") +
     xlab("County") +
@@ -376,7 +378,7 @@ make_final_plot <- function(ca_final_dat){
 ##'
 make_final_map <- function(ca_final_dat){
   p <- ggplot(ca_final_dat) +
-    geom_sf(aes(fill=mean)) +
+    geom_sf(aes(fill=median)) +
     theme_minimal() +
     scale_fill_viridis(option="plasma")
   return(p)
@@ -468,11 +470,11 @@ make_hospdeath_table1 <- function(sim_hospdeath_dat){
                        est = phosp_final,
                        lvl = paste0("peak hosp adm", p_death)) %>%
                 select(lvl, est, ci)) %>%
-    bind_rows(sim_hospdeath_dat$res_total %>%
-                mutate(ci = make_CI(nhosp_curr_lo, nhosp_curr_hi),
-                       est = nhosp_curr_final,
-                       lvl = paste0("peak hosp cap", p_death)) %>%
-                select(lvl, est, ci)) %>%
+    # bind_rows(sim_hospdeath_dat$res_total %>%
+    #             mutate(ci = make_CI(nhosp_curr_lo, nhosp_curr_hi),
+    #                    est = nhosp_curr_final,
+    #                    lvl = paste0("peak hosp cap", p_death)) %>%
+    #             select(lvl, est, ci)) %>%
     bind_rows(sim_hospdeath_dat$res_total %>%
                 mutate(ci = make_CI(nICU_lo, nICU_hi),
                        est = nICU_final,
@@ -483,11 +485,11 @@ make_hospdeath_table1 <- function(sim_hospdeath_dat){
                        est = pICU_final,
                        lvl = paste0("peak ICU adm", p_death)) %>%
                 select(lvl, est, ci)) %>%
-    bind_rows(sim_hospdeath_dat$res_total %>%
-                mutate(ci = make_CI(nicu_curr_lo, nicu_curr_hi),
-                       est = nicu_curr_final,
-                       lvl = paste0("peak ICU cap", p_death)) %>%
-                select(lvl, est, ci)) %>%
+    # bind_rows(sim_hospdeath_dat$res_total %>%
+    #             mutate(ci = make_CI(nicu_curr_lo, nicu_curr_hi),
+    #                    est = nicu_curr_final,
+    #                    lvl = paste0("peak ICU cap", p_death)) %>%
+    #             select(lvl, est, ci)) %>%
     bind_rows(sim_hospdeath_dat$res_total %>%
                 mutate(ci = make_CI(nVent_lo, nVent_hi),
                        est = nVent_final,
@@ -511,11 +513,11 @@ make_hospdeath_table1 <- function(sim_hospdeath_dat){
 ##'
 make_finalsize_table1 <- function(scenario_dat, final_date = "2020-04-01"){
   tmp <- scenario_dat %>%
-         filter(time==final_date, comp=="cumI") %>%
-         group_by(sim_num) %>%
-         summarize(N = sum(N)) %>%
-         ungroup() %>%
-         summarize(est=mean(N),
+    filter(time==final_date, comp=="cumI") %>%
+    group_by(sim_num) %>%
+    summarize(N = sum(N)) %>%
+    ungroup() %>%
+    summarize(est=mean(N),
               ci = make_CI(quantile(N,probs=.25),quantile(N,probs=.75)))
   return(tmp)
 }

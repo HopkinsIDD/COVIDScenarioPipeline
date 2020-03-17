@@ -32,6 +32,7 @@ def onerun_SEIR(s, p, uid):
     importation = robjects.r['county_importations_total']
     importation = importation.pivot(index='date', columns='fips_cty', values='importations')
     importation.index = pd.to_datetime(importation.index)
+    importation.columns = pd.to_numeric(importation.columns)
     for col in s.spatset.data['geoid']:
         if col not in importation.columns:
             importation[col] = 0
