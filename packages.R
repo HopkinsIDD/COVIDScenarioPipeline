@@ -1,0 +1,17 @@
+install.packages("devtools")
+require(devtools)
+
+# TODO: better than nothing, but this doesn't handle package dependencies (use packrat)
+install_version("Rcpp", version = "1.0.1")
+install_version("tidyr", version = "1.0.2")
+install_version("dplyr", version = "0.8.3")
+install_version("readr", version = "1.3.1")
+install_version("ggplot2", version = "3.2.0")
+install_version("gridExtra", version = "2.3")
+install_version("sf", version = "0.8-1")
+install_version("viridis", version = "0.5.1")
+install_version("ggfortify", version = "0.4.8")
+install_version("flextable", version = "0.5.9")
+install_version("tidyverse", version = "1.2.1")
+
+install.packages("https://cran.r-project.org/src/contrib/Archive/cowplot/cowplot_0.9.2.tar.gz", repos=NULL, type="source")
