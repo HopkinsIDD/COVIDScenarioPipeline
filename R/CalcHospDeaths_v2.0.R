@@ -27,7 +27,8 @@ build_hospdeath <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_type="g
                             length_geoid = 5,
                             incl.county=FALSE,
                             cores=1, 
-                            run_parallel=FALSE) {
+                            run_parallel=FALSE){
+    Rprof()
     
     require(data.table)
     
@@ -36,8 +37,7 @@ build_hospdeath <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_type="g
     
     # Set up results data
     dates_ <- as.Date(data$time)
-    geoid <- data$geoid
-    uid <- paste0(geoid, "-",sim_num)
+    uid <- paste0(data$geoid, "-",data$sim_num)
     data$county_sim <- uid
     
     # Add hosp    
@@ -100,40 +100,40 @@ build_hospdeath <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_type="g
     D_time_ <- rep(as.Date(data_H$time), D_) + D_delay_  
     D_date_hosp <- rep(as.Date(data_H$time), D_)
     names(D_time_) <- rep(data_H$county_sim, D_)
-    names(D_date_hosp) <- rep(data_H$county_sim, D_)
+    # names(D_date_hosp) <- rep(data_H$county_sim, D_)
     data_D <- data.frame(time=D_time_, county_sim=names(D_time_))
     data_D <- data.frame(setDT(data_D)[, .N, by = .(time, county_sim)])
     colnames(data_D) <- c("time","county_sim","incidD")
     
     
     # Add R
-    R_ <- data_H$incidH - D_
+    #R_ <- data_H$incidH - D_
     # Rate of Recovery
     #R_delay_ <- floor(rlnorm(sum(R_), meanlog=time_disch_pars[1], sdlog=time_disch_pars[2]))
     R_delay_ <- round(exp(time_disch_pars[1]))
-    R_time_ <- rep(as.Date(data_H$time), R_) + R_delay_  
-    R_date_hosp <- rep(as.Date(data_H$time), R_)
-    names(R_time_) <- rep(data_H$county_sim, R_)
-    names(R_date_hosp) <- rep(data_H$county_sim, R_)
-    data_R <- data.frame(time=R_time_, county_sim=names(R_time_))
-    data_R <- data.frame(setDT(data_R)[, .N, by = .(time, county_sim)])
-    colnames(data_R) <- c("time","county_sim","incidR")
+    #R_time_ <- rep(as.Date(data_H$time), R_) + R_delay_  
+    #R_date_hosp <- rep(as.Date(data_H$time), R_)
+    #names(R_time_) <- rep(data_H$county_sim, R_)
+    #names(R_date_hosp) <- rep(data_H$county_sim, R_)
+    # data_R <- data.frame(time=R_time_, county_sim=names(R_time_))
+    # data_R <- data.frame(setDT(data_R)[, .N, by = .(time, county_sim)])
+    # colnames(data_R) <- c("time","county_sim","incidR")
     
     
     
     # Get durations ....................
-   
+    
     
     # Merge them all
     
     #Some reason not working right
-        # res <- full_join(data_H %>% mutate(county_sim = as.character(county_sim)),
-        #                  data_ICU %>% mutate(county_sim = as.character(county_sim)), by=c("time"="time", "county_sim"="county_sim"))
-        # res <- full_join(res, data_D %>% mutate(county_sim = as.character(county_sim)), by=c("time", "county_sim"="county_sim"))
-        # #res <- full_join(res, data_R, by=c("time", "county_sim"="county_sim"))
-        # res <- full_join(data %>% mutate(county_sim = as.character(county_sim)),
-        #                  res %>% mutate(county_sim = as.character(county_sim)), by=c("time"="time", "county_sim"="county_sim"))
-        
+    # res <- full_join(data_H %>% mutate(county_sim = as.character(county_sim)),
+    #                  data_ICU %>% mutate(county_sim = as.character(county_sim)), by=c("time"="time", "county_sim"="county_sim"))
+    # res <- full_join(res, data_D %>% mutate(county_sim = as.character(county_sim)), by=c("time", "county_sim"="county_sim"))
+    # #res <- full_join(res, data_R, by=c("time", "county_sim"="county_sim"))
+    # res <- full_join(data %>% mutate(county_sim = as.character(county_sim)),
+    #                  res %>% mutate(county_sim = as.character(county_sim)), by=c("time"="time", "county_sim"="county_sim"))
+    
     # Using `merge` instead     
     res <- merge(data_H %>% mutate(county_sim = as.character(county_sim)), 
                  data_ICU %>% mutate(county_sim = as.character(county_sim)), all=TRUE)
@@ -218,6 +218,211 @@ build_hospdeath <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_type="g
     return(res)
     
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_type="gamma",
+                            time_hosp_pars = c(1.23, 0.79), 
+                            time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
+                            time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
+                            time_death_pars = c(log(11.25), log(1.15)), 
+                            time_disch_pars = c(log(11.5), log(1.22)),
+                            time_ICUdur_pars = c(log(17.46), log(4.044)),
+                            end_date = "2020-04-01",
+                            length_geoid = 5,
+                            incl.county=FALSE,
+                            cores=1, 
+                            run_parallel=FALSE){
+    
+    library(data.table)
+    library(doParallel)
+    
+    # filter to earlier than the end_date
+    data <- data %>% filter(time<=end_date, incidI>0)
+    
+    # Set up results data
+    dates_ <- as.Date(data$time)
+    uid <- paste0(data$geoid, "-",data$sim_num)
+    data$county_sim <- uid
+    
+    
+    dat_final <- list()
+    
+    
+    cl <- makeCluster(cores)
+    
+    
+    dat_final <- foreach(s=1:n_sim) %dopar% {
+        
+        dat_ <- res %>% filter(sim_num==s) %>% 
+            mutate(hosp_curr = 0, icu_curr = 0, vent_curr=0)
+        
+        
+        # Add hosp    
+        H_ <- rbinom(dat_$incidI, dat_$incidI, rep(p_hosp, nrow(dat_)))
+        names(H_) <- uid
+        
+        
+        # Time to hospitalization
+        #H_delay_ <- floor(rlnorm(sum(H_), meanlog=time_hosp_pars[1], sdlog=time_hosp_pars[2]))
+        H_delay_ <- round(exp(time_hosp_pars[1]))
+        H_time_ <- rep(dates_,H_) + H_delay_
+        names(H_time_) <- rep(uid, H_)
+        dat__H <- dat_.frame(time=H_time_, county_sim=names(H_time_))
+        dat__H <- dat_.frame(setDT(dat__H)[, .N, by = .(time, county_sim)])
+        colnames(dat__H) <- c("time","county_sim","incidH")
+        
+        
+        # Add ICU
+        ICU_ <- rbinom(dat__H$incidH, dat__H$incidH, rep(p_ICU, length(nrow(dat__H))))
+        names(ICU_) <- dat__H$county_sim
+        # Time from hospitalization to ICU
+        #ICU_delay_ <- floor(rlnorm(sum(ICU_), meanlog=time_ICU_pars[1], sdlog=time_ICU_pars[2]))
+        ICU_delay_ <- round(exp(time_ICU_pars[2]))
+        ICU_time_ <- rep(as.Date(dat__H$time), ICU_) + ICU_delay_    
+        names(ICU_time_) <- rep(dat__H$county_sim, ICU_)
+        dat__ICU <- dat_.frame(time=ICU_time_, county_sim=names(ICU_time_))
+        dat__ICU <- dat_.frame(setDT(dat__ICU)[, .N, by = .(time, county_sim)])
+        colnames(dat__ICU) <- c("time","county_sim","incidICU")
+        
+        
+        # Time from ICU admit to ICU discharge
+        #ICU_dur_ <- floor(rlnorm(sum(ICU_), meanlog=time_ICUdur_pars[1], sdlog=time_ICUdur_pars[2]))
+        ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
+        ICU_end_ <- ICU_time_ + ICU_dur_   
+        names(ICU_end_) <- rep(dat__H$county_sim, ICU_)
+        dat__ICUend <- dat_.frame(time=ICU_end_, county_sim=names(ICU_end_))
+        dat__ICUend <- dat_.frame(setDT(dat__ICUend)[, .N, by = .(time, county_sim)])
+        colnames(dat__ICUend) <- c("time","county_sim","endICU")
+        
+        
+        # Add Vent
+        Vent_ <- rbinom(dat__ICU$incidICU, dat__ICU$incidICU, rep(p_vent, length(nrow(dat__ICU))))
+        names(Vent_) <- dat__ICU$county_sim
+        # Time from ICU to mechanical ventilation
+        #Vent_delay_ <- floor(rlnorm(sum(Vent_), meanlog=time_vent_pars[1], sdlog=time_vent_pars[2]))
+        Vent_delay_ <- exp(time_vent_pars[1])
+        Vent_time_ <- rep(as.Date(dat__ICU$time), Vent_) + Vent_delay_    
+        names(Vent_time_) <- rep(dat__ICU$county_sim, Vent_)
+        dat__Vent <- dat_.frame(time=Vent_time_, county_sim=names(Vent_time_))
+        dat__Vent <- dat_.frame(setDT(dat__Vent)[, .N, by = .(time, county_sim)])
+        colnames(dat__Vent) <- c("time","county_sim","incidVent")
+        
+        
+        # Add D
+        D_ <- rbinom(dat__H$incidH, dat__H$incidH, rep(p_death, length(nrow(dat__H))))
+        names(D_) <- dat__H$county_sim
+        # Date of Death
+        #D_delay_ <- floor(rlnorm(sum(D_), meanlog=time_death_pars[1], sdlog=time_death_pars[2]))
+        D_delay_ <- exp(time_death_pars[1])
+        D_time_ <- rep(as.Date(dat__H$time), D_) + D_delay_  
+        D_date_hosp <- rep(as.Date(dat__H$time), D_)
+        names(D_time_) <- rep(dat__H$county_sim, D_)
+        # names(D_date_hosp) <- rep(dat__H$county_sim, D_)
+        dat__D <- dat_.frame(time=D_time_, county_sim=names(D_time_))
+        dat__D <- dat_.frame(setDT(dat__D)[, .N, by = .(time, county_sim)])
+        colnames(dat__D) <- c("time","county_sim","incidD")
+        
+        
+        # Add R
+        #R_ <- dat__H$incidH - D_
+        # Rate of Recovery
+        #R_delay_ <- floor(rlnorm(sum(R_), meanlog=time_disch_pars[1], sdlog=time_disch_pars[2]))
+        R_delay_ <- round(exp(time_disch_pars[1]))
+        #R_time_ <- rep(as.Date(dat__H$time), R_) + R_delay_  
+        #R_date_hosp <- rep(as.Date(dat__H$time), R_)
+        #names(R_time_) <- rep(dat__H$county_sim, R_)
+        #names(R_date_hosp) <- rep(dat__H$county_sim, R_)
+        # dat__R <- dat_.frame(time=R_time_, county_sim=names(R_time_))
+        # dat__R <- dat_.frame(setDT(dat__R)[, .N, by = .(time, county_sim)])
+        # colnames(dat__R) <- c("time","county_sim","incidR")
+        
+        
+        
+        # Get durations ....................
+        
+        
+        # Merge them all
+        
+        #Some reason not working right
+        # res <- full_join(dat__H %>% mutate(county_sim = as.character(county_sim)),
+        #                  dat__ICU %>% mutate(county_sim = as.character(county_sim)), by=c("time"="time", "county_sim"="county_sim"))
+        # res <- full_join(res, dat__D %>% mutate(county_sim = as.character(county_sim)), by=c("time", "county_sim"="county_sim"))
+        # #res <- full_join(res, dat__R, by=c("time", "county_sim"="county_sim"))
+        # res <- full_join(dat_ %>% mutate(county_sim = as.character(county_sim)),
+        #                  res %>% mutate(county_sim = as.character(county_sim)), by=c("time"="time", "county_sim"="county_sim"))
+        
+        # Using `merge` instead     
+        res <- merge(dat__H %>% mutate(county_sim = as.character(county_sim)), 
+                     dat__ICU %>% mutate(county_sim = as.character(county_sim)), all=TRUE)
+        res <- merge(res, dat__Vent %>% mutate(county_sim = as.character(county_sim)), all=TRUE)
+        res <- merge(res, dat__D %>% mutate(county_sim = as.character(county_sim)), all=TRUE)
+        res <- merge(dat_ %>% mutate(county_sim = as.character(county_sim)), 
+                     res %>% mutate(county_sim = as.character(county_sim)), all=TRUE)
+        
+        res <- res %>% 
+            replace_na(
+                list(incidI = 0,
+                     incidH = 0,
+                     incidICU = 0,
+                     incidVent = 0,
+                     incidD = 0))
+        
+        # get sim nums
+        res <- res %>% select(-geoid, -sim_num) %>%
+            separate(county_sim, c("geoid", "sim_num"), sep="-", remove=FALSE)
+        
+        res <- res %>% mutate(date_inds = as.integer(time - min(time) + 1))
+        n_sim <- length(unique(res$sim_num))
+        
+        
+        
+        
+        
+        for (x in 1:nrow(dat_)){
+            dat_$hosp_curr <- dat_$hosp_curr + dat_$date_inds %in% (dat_$date_inds[x] + 0:R_delay_)*dat_$incidH[x]
+            dat_$icu_curr <- dat_$icu_curr + dat_$date_inds %in% (dat_$date_inds[x] + 0:ICU_dur_)*dat_$incidICU[x]
+            #dat_$vent_curr <- dat_$vent_curr + dat_$date_inds %in% (dat_$date_inds[x] + 0:Vent_dur_)*dat_$incidVent[x]
+        }
+        dat_
+        
+    }
+    
+    stopCluster(cl)
+    
+    
+    
+    res <- rbindlist(dat_final)
+    
+    
+    res <- res %>% 
+        replace_na(
+            list(incidH = 0,
+                 incidICU = 0,
+                 incidVent = 0,
+                 incidD = 0,
+                 hosp_curr = 0,
+                 icu_curr = 0)
+        ) 
+    
+    return(res)
+    
+}
+
+
+
+
 
 
 
