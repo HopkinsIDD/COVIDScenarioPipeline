@@ -126,7 +126,7 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes,
         states[:,:,it] = y
         if (it%int(1/dt)==0):
             y[cumI] += importation[int(t)]
-        if (it%(1/dt) == 0 and (y[cumI] <= dynfilter[int(it%(1/dt))]).any()):
+        if (it%(1/dt) == 0 and (y[cumI] <= (dynfilter[int(it%(1/dt))/2)]).any()):
                 return -np.ones((ncomp, nnodes, len(t_inter)))
 
     return states
