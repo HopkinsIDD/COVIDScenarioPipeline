@@ -3,7 +3,7 @@
 library(dplyr)
 
 R.reduce <- read.csv('data/BootsmaReductions.csv')
-county.status <- read.csv(paste(c(foldername,'geodata.csv'))
+county.status <- read.csv(paste0(foldername,'geodata.csv'))
 dates <- seq.Date(as.Date("2020/1/1"), as.Date("2020/7/1"), 1)
 
 NPI <- as.data.frame(matrix(0, dim(county.status)[1],length(dates)))
