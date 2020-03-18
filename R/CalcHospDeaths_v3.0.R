@@ -242,141 +242,147 @@ create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
 
 
 build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_type="gamma",
-                            time_hosp_pars = c(1.23, 0.79), 
-                            time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
-                            time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
-                            time_death_pars = c(log(11.25), log(1.15)), 
-                            time_disch_pars = c(log(11.5), log(1.22)),
-                            time_ICUdur_pars = c(log(17.46), log(4.044)),
-                            end_date = "2020-04-01",
-                            length_geoid = 5,
-                            incl.county=FALSE,
-                            cores=1, 
-                            run_parallel=FALSE){
+                                time_hosp_pars = c(1.23, 0.79), 
+                                time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
+                                time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
+                                time_death_pars = c(log(11.25), log(1.15)), 
+                                time_disch_pars = c(log(11.5), log(1.22)),
+                                time_ICUdur_pars = c(log(17.46), log(4.044)),
+                                time_ventdur_pars = c(log(17.46-1), log(4.044)),
+                                end_date = "2020-04-01",
+                                length_geoid = 5,
+                                incl.county=FALSE,
+                                cores=8, 
+                                run_parallel=FALSE){
+  
+  library(data.table)
+  library(doParallel)
+  
+  # filter to earlier than the end_date
+  data <- data %>% filter(time<=end_date, incidI>0)
+  
+  # Set up results data
+  data$uid <- paste0(data$geoid, "-",data$sim_num)
+  n_sim <- length(unique(data$sim_num))
+  
+  dat_final <- list()
+  
+  
+  print(paste("Creating cluster with",cores,"cores"))
+  cl <- makeCluster(cores)
+  registerDoParallel(cl)
+  
+  
+  print(paste("Running over",n_sim,simulations))
+  dat_final <- foreach(s=1:n_sim, .package=c("dplyr","readr","data.table","tidyr")) %dopar% {
     
-    library(data.table)
-    library(doParallel)
-    
-    # filter to earlier than the end_date
-    data <- data %>% filter(time<=end_date, incidI>0)
-    
-    # Set up results data
-    data$uid <- paste0(data$geoid, "-",data$sim_num)
-    n_sim <- length(unique(data$sim_num))
-    
-    dat_final <- list()
-    
-    
-    cl <- makeCluster(cores)
-    
-    
-    dat_final <- foreach(s=1:n_sim) %dopar% {
-        
-        dat_ <- data %>% filter(sim_num==s) %>% 
-            mutate(hosp_curr = 0, icu_curr = 0, vent_curr=0)
-        dates_ <- as.Date(dat_$time)
-        
-
-        # Add hosp    
-        dat_H <- create_delay_frame('incidI',p_hosp,dat_,time_hosp_pars,"H")
-
-        
-        # Add ICU
-        data_ICU <- create_delay_frame('incidH',p_ICU,dat_H,time_ICU_pars,"ICU")
-        
-        
-        # Add Vent
-        data_Vent <- create_delay_frame('incidICU',p_vent,data_ICU,time_vent_pars,"Vent")
-        
-        # Add D
-        data_D <- create_delay_frame('incidH',p_death,dat_H,time_death_pars,"D")
-        
-        
-        # Add R
-        #R_ <- dat_H$incidH - D_
-        # Rate of Recovery
-        #R_delay_ <- floor(rlnorm(sum(R_), meanlog=time_disch_pars[1], sdlog=time_disch_pars[2]))
-        R_delay_ <- round(exp(time_disch_pars[1]))
-        #R_time_ <- rep(as.Date(dat_H$time), R_) + R_delay_  
-        #R_date_hosp <- rep(as.Date(dat_H$time), R_)
-        #names(R_time_) <- rep(dat_H$uid, R_)
-        #names(R_date_hosp) <- rep(dat_H$uid, R_)
-        # dat__R <- data.frame(time=R_time_, uid=names(R_time_))
-        # dat__R <- data.frame(setDT(dat__R)[, .N, by = .(time, uid)])
-        # colnames(dat__R) <- c("time","uid","incidR")
-        ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
-        
-        
-        # Get durations ....................
-        
-        
-        # Merge them all
-        
-        #Some reason not working right
-        # res <- full_join(dat_H %>% mutate(uid = as.character(uid)),
-        #                  data_ICU %>% mutate(uid = as.character(uid)), by=c("time"="time", "uid"="uid"))
-        # res <- full_join(res, data_D %>% mutate(uid = as.character(uid)), by=c("time", "uid"="uid"))
-        # #res <- full_join(res, dat__R, by=c("time", "uid"="uid"))
-        # res <- full_join(dat_ %>% mutate(uid = as.character(uid)),
-        #                  res %>% mutate(uid = as.character(uid)), by=c("time"="time", "uid"="uid"))
-        
-        # Using `merge` instead     
-        res <- merge(dat_H %>% mutate(uid = as.character(uid)), 
-                     data_ICU %>% mutate(uid = as.character(uid)), all=TRUE)
-        res <- merge(res, data_Vent %>% mutate(uid = as.character(uid)), all=TRUE)
-        res <- merge(res, data_D %>% mutate(uid = as.character(uid)), all=TRUE)
-        res <- merge(dat_ %>% mutate(uid = as.character(uid)), 
-                     res %>% mutate(uid = as.character(uid)), all=TRUE)
-        
-        res <- res %>% 
-            replace_na(
-                list(incidI = 0,
-                     incidH = 0,
-                     incidICU = 0,
-                     incidVent = 0,
-                     incidD = 0,
-                     vent_curr = 0,
-                     hosp_curr = 0))
-        
-        # get sim nums
-        res <- res %>% select(-geoid, -sim_num) %>%
-            separate(uid, c("geoid", "sim_num"), sep="-", remove=FALSE)
-        
-        res <- res %>% mutate(date_inds = as.integer(time - min(time) + 1))
-        n_sim <- length(unique(res$sim_num))
-        
-        
-        
-        for (x in 1:nrow(res)){
-            res$hosp_curr <- res$hosp_curr + res$date_inds %in% (res$date_inds[x] + 0:R_delay_)*res$incidH[x]
-            res$icu_curr <- res$icu_curr + res$date_inds %in% (res$date_inds[x] + 0:ICU_dur_)*res$incidICU[x]
-            #res$vent_curr <- res$vent_curr + res$date_inds %in% (res$date_inds[x] + 0:Vent_dur_)*res$incidVent[x]
-        }
-        res
-        
-    }
-    
-    stopCluster(cl)
+    dat_ <- data %>% filter(sim_num==s) %>% 
+      mutate(hosp_curr = 0, icu_curr = 0, vent_curr=0)
+    dates_ <- as.Date(dat_$time)
     
     
+    # Add hosp    
+    dat_H <- create_delay_frame('incidI',p_hosp,dat_,time_hosp_pars,"H")
     
-    res <- rbindlist(dat_final)
     
+    # Add ICU
+    data_ICU <- create_delay_frame('incidH',p_ICU,dat_H,time_ICU_pars,"ICU")
+    
+    
+    # Add Vent
+    data_Vent <- create_delay_frame('incidICU',p_vent,data_ICU,time_vent_pars,"Vent")
+    
+    # Add D
+    data_D <- create_delay_frame('incidH',p_death,dat_H,time_death_pars,"D")
+    
+    
+    # Add R
+    #R_ <- dat_H$incidH - D_
+    # Rate of Recovery
+    #R_delay_ <- floor(rlnorm(sum(R_), meanlog=time_disch_pars[1], sdlog=time_disch_pars[2]))
+    R_delay_ <- round(exp(time_disch_pars[1]))
+    #R_time_ <- rep(as.Date(dat_H$time), R_) + R_delay_  
+    #R_date_hosp <- rep(as.Date(dat_H$time), R_)
+    #names(R_time_) <- rep(dat_H$uid, R_)
+    #names(R_date_hosp) <- rep(dat_H$uid, R_)
+    # dat__R <- data.frame(time=R_time_, uid=names(R_time_))
+    # dat__R <- data.frame(setDT(dat__R)[, .N, by = .(time, uid)])
+    # colnames(dat__R) <- c("time","uid","incidR")
+    ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
+    Vent_dur_ <- round(exp(time_ventdur_pars[1]))
+    
+    
+    # Get durations ....................
+    
+    
+    # Merge them all
+    
+    #Some reason not working right
+    # res <- full_join(dat_H %>% mutate(uid = as.character(uid)),
+    #                  data_ICU %>% mutate(uid = as.character(uid)), by=c("time"="time", "uid"="uid"))
+    # res <- full_join(res, data_D %>% mutate(uid = as.character(uid)), by=c("time", "uid"="uid"))
+    # #res <- full_join(res, dat__R, by=c("time", "uid"="uid"))
+    # res <- full_join(dat_ %>% mutate(uid = as.character(uid)),
+    #                  res %>% mutate(uid = as.character(uid)), by=c("time"="time", "uid"="uid"))
+    
+    # Using `merge` instead     
+    res <- merge(dat_H %>% mutate(uid = as.character(uid)), 
+                 data_ICU %>% mutate(uid = as.character(uid)), all=TRUE)
+    res <- merge(res, data_Vent %>% mutate(uid = as.character(uid)), all=TRUE)
+    res <- merge(res, data_D %>% mutate(uid = as.character(uid)), all=TRUE)
+    res <- merge(dat_ %>% mutate(uid = as.character(uid)), 
+                 res %>% mutate(uid = as.character(uid)), all=TRUE)
     
     res <- res %>% 
-        replace_na(
-            list(incidH = 0,
-                 incidICU = 0,
-                 incidVent = 0,
-                 incidD = 0,
-                 hosp_curr = 0,
-                 icu_curr = 0)
-        ) 
+      replace_na(
+        list(incidI = 0,
+             incidH = 0,
+             incidICU = 0,
+             incidVent = 0,
+             incidD = 0,
+             vent_curr = 0,
+             hosp_curr = 0))
     
-    return(res)
+    # get sim nums
+    res <- res %>% select(-geoid, -sim_num) %>%
+      separate(uid, c("geoid", "sim_num"), sep="-", remove=FALSE)
     
+    res <- res %>% mutate(date_inds = as.integer(time - min(time) + 1))
+    n_sim <- length(unique(res$sim_num))
+    
+    
+    
+    for (x in 1:nrow(res)){
+      res$hosp_curr <- res$hosp_curr + res$date_inds %in% (res$date_inds[x] + 0:R_delay_)*res$incidH[x]
+      res$icu_curr <- res$icu_curr + res$date_inds %in% (res$date_inds[x] + 0:ICU_dur_)*res$incidICU[x]
+      res$vent_curr <- res$vent_curr + res$date_inds %in% (res$date_inds[x] + 0:Vent_dur_)*res$incidVent[x]
+    }
+    res
+    
+  }
+  print(paste("Parallel portion finished"))
+  
+  stopCluster(cl)
+  
+  
+  
+  res <- rbindlist(dat_final)
+  
+  
+  res <- res %>% 
+    replace_na(
+      list(incidH = 0,
+           incidICU = 0,
+           incidVent = 0,
+           incidD = 0,
+           hosp_curr = 0,
+           icu_curr = 0,
+           vent_curr = 0)
+    ) 
+  
+  return(res)
+  
 }
-
 
 
 
@@ -430,7 +436,8 @@ build_hospdeath_summarize <- function(res,
       maxHospAdm = max(incidH, na.rm=TRUE),
       maxICUAdm = max(incidICU, na.rm=TRUE),
       maxHospCap = max(hosp_curr, na.rm = TRUE),
-      maxICUCap = max(icu_curr, na.rm=TRUE)
+      maxICUCap = max(icu_curr, na.rm=TRUE),
+      maxVentCap = max(vent_curr, na.rm=TRUE)
     ) %>%
     ungroup() %>% 
     group_by(metrop_labels) %>% 
@@ -460,7 +467,10 @@ build_hospdeath_summarize <- function(res,
       nhosp_curr_hi = quantile(maxHospCap, 0.75),
       nicu_curr_final = mean(maxICUCap),
       nicu_curr_lo = quantile(maxICUCap, 0.25),
-      nicu_curr_hi = quantile(maxICUCap, 0.75)
+      nicu_curr_hi = quantile(maxICUCap, 0.75),
+      nvent_curr_final = mean(maxVentCap),
+      nvent_curr_lo = quantile(maxVentCap, 0.25),
+      nvent_curr_hi = quantile(naxVentCap, 0.75)
     )
   
   res_total <- res %>% 
@@ -475,7 +485,8 @@ build_hospdeath_summarize <- function(res,
       maxHospAdm = max(incidH, na.rm=TRUE),
       maxICUAdm = max(incidICU, na.rm=TRUE),
       maxHospCap = max(hosp_curr, na.rm = TRUE),
-      maxICUCap = max(icu_curr, na.rm=TRUE)
+      maxICUCap = max(icu_curr, na.rm=TRUE),
+      maxVentCap = max(vent_curr, na.rm=TRUE)
     ) %>%
     ungroup() %>% 
     summarize(#nInf_final = mean(nInf),
@@ -504,7 +515,10 @@ build_hospdeath_summarize <- function(res,
       nhosp_curr_hi = quantile(maxHospCap, 0.75),
       nicu_curr_final = mean(maxICUCap),
       nicu_curr_lo = quantile(maxICUCap, 0.25),
-      nicu_curr_hi = quantile(maxICUCap, 0.75))
+      nicu_curr_hi = quantile(maxICUCap, 0.75),
+      nvent_curr_final = mean(maxVentCap),
+      nvent_curr_lo = quantile(maxVentCap, 0.25),
+      nvent_curr_hi = quantile(naxVentCap, 0.75))
   
   out <- list(res_total = as.data.frame(res_total), res_metro = as.data.frame(res_metro))
   
@@ -521,7 +535,8 @@ build_hospdeath_summarize <- function(res,
         maxHospAdm = max(incidH, na.rm=TRUE),
         maxICUAdm = max(incidICU, na.rm=TRUE),
         maxHospCap = max(hosp_curr, na.rm = TRUE),
-        maxICUCap = max(icu_curr, na.rm=TRUE)
+        maxICUCap = max(icu_curr, na.rm=TRUE),
+        maxVentCap = max(vent_curr, na.rm=TRUE)
       ) %>%
       ungroup() %>% 
       group_by(geoid) %>% 
@@ -552,7 +567,10 @@ build_hospdeath_summarize <- function(res,
         nhosp_curr_hi = quantile(maxHospCap, 0.75),
         nicu_curr_final = mean(maxICUCap),
         nicu_curr_lo = quantile(maxICUCap, 0.25),
-        nicu_curr_hi = quantile(maxICUCap, 0.75)
+        nicu_curr_hi = quantile(maxICUCap, 0.75),
+        nvent_curr_final = mean(maxVentCap),
+        nvent_curr_lo = quantile(maxVentCap, 0.25),
+        nvent_curr_hi = quantile(naxVentCap, 0.75)
       )
     
     out <- list(res_total = as.data.frame(res_total), res_metro = as.data.frame(res_metro), res_geoid = as.data.frame(res_geoid))

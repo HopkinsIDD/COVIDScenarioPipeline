@@ -67,12 +67,12 @@ class COVID19Parameters():
         n_Icomp = 3
 
         # time from symptom onset to recovery per compartiment
-        self.gamma = np.random.uniform(1/6, 1/2.6) * n_Icomp  # range of serial from 8.2 to 6.5
+        self.gamma = np.random.uniform(1/6, 1/2.6, s.nbetas) * n_Icomp  # range of serial from 8.2 to 6.5
         
         if 'low' in s.setup_name: self.R0s = np.random.uniform(1.5, 2, s.nbetas)   # np.random.uniform(1.5, 2, nbetas)
         if 'mid' in s.setup_name: self.R0s = np.random.uniform(2, 3, s.nbetas)
 
-        self.betas = self.R0s * self.gamma / n_Icomp
+        self.betas = np.multiply(self.R0s, self.gamma) / n_Icomp
 
         self.betas = np.vstack([self.betas]*len(s.t_inter))
         self.gamma = np.vstack([self.gamma]*len(s.t_inter))
@@ -86,7 +86,7 @@ class COVID19Parameters():
 
     def to_vector(self, beta_id):
         """ for speed, to use with numba JIT compilation"""
-        return(np.array([self.betas[:,beta_id%self.s.nbetas], self.sigma.T, self.gamma.T[:,beta_id%self.s.nbetas]]))
+        return(np.array([self.betas[:,beta_id%self.s.nbetas], self.sigma.T, self.gamma[:,beta_id%self.s.nbetas]]))
 
     def addNPIfromcsv(self, filename):
         npi = pd.read_csv(filename).T
