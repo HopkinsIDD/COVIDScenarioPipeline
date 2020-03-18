@@ -23,6 +23,8 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
 def onerun_SEIR(s, p, uid):
+    r_assign('ti_str', str(s.ti))
+    r_assign('tf_str', str(s.ti))
     r_assign('foldername', s.spatset.folder)
     r_source(s.script_npi)
     npi = robjects.r['NPI'].T
@@ -40,6 +42,7 @@ def onerun_SEIR(s, p, uid):
     importation = importation.reindex(sorted(importation.columns), axis=1)
     idx = pd.date_range(s.ti, s.tf)
     importation = importation.reindex(idx, fill_value=0)
+    importation = importation.to_numpy()
 
     states = steps_SEIR_nb(p.to_vector(uid),
                             s.y0, 
@@ -50,7 +53,7 @@ def onerun_SEIR(s, p, uid):
                             s.popnodes,
                             s.mobility,
                             s.dynfilter,
-                            importation.to_numpy())
+                            importation)
     return states
     
 def run_parallel(s, p, processes=multiprocessing.cpu_count()):   # set to 16 when running on server
