@@ -17,15 +17,14 @@ nb_params_cluster <- map_dfr (1:length(cl_names_ls), function(i){
 
   nb_orig %>%
     dplyr::filter(airport %in% cl_names_ls[[i]]) %>%
-    group_by(airport, date) %>%
+    group_by(date) %>%
     dplyr::summarise(airport = paste(airport, collapse = "_"), size = sum(size), mu = sum(mu)) %>% 
     ungroup
 })
 
 
 nb_params_tot <- nb_orig %>% 
-  dplyr::filter(!(airport %in% unlist(flatten(cl_names_ls))) %>%
+  dplyr::filter(!(airport %in% unlist(flatten(cl_names_ls)))) %>%
   bind_rows(nb_params_cluster) %>%
   dplyr::mutate(date = as.character(date))
-
-write_csv(nb_params_tot, paste0(regioncode, "/data/import_nb_params.csv"))
+write_csv(nb_params_tot, paste0("/data/", regioncode, "/import_nb_params.csv"))
