@@ -28,7 +28,7 @@ def onerun_SEIR(s, p, uid):
     npi = robjects.r['NPI'].T
     p.addNPIfromR(npi)
 
-    r_assign('region', 'around_md')
+    r_assign('region', s.spatset.setup_name)
     r_source(s.script_import)
     importation = robjects.r['county_importations_total']
     importation = importation.pivot(index='date', columns='fips_cty', values='importations')
