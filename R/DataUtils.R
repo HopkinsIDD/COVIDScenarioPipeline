@@ -522,4 +522,43 @@ make_finalsize_table1 <- function(scenario_dat, final_date = "2020-04-01"){
   return(tmp)
 }
 
+##'Function to create metro labels in California
+##'
+##'@param data county_dat object of GEOIDs + STATE
+##'
+##'@return county_dat with metrop_labels added
+##'
+make_metrop_labels <- function(data=county_dat){
+  
+  LA <- c('6037', '6059', '6065', '6071', '6111')
+  SF <- c('6001', '6013', '6075', '6081', '6041', '6085', '6069', 
+          '6077', '6099', '6095', '6097', '6087', '6047', '6055')
+  SD <- c('6073')
+  FN <- c('6019','6031','6039')
+  SC <- c('6067', '6061', '6113', '6017', '6101', '6115', '6057')
+  RD <- c('6089', '6103')
+  
+  data$new_metrop <- NA
+  data$new_metrop[data$geoid %in% LA] <- "LA"
+  data$new_metrop[data$geoid %in% SF] <- "SF"
+  data$new_metrop[data$geoid %in% SD] <- "SD"
+  data$new_metrop[data$geoid %in% FN] <- "FN"
+  data$new_metrop[data$geoid %in% SC] <- "SC"
+  data$new_metrop[data$geoid %in% RD] <- "RD"
+  
+  ##Update the labels
+  data$metrop_labels <- NA
+  data$metrop_labels[data$new_metrop=="LA"] <- "Los Angeles"
+  data$metrop_labels[data$new_metrop=="SF"] <- "San Francisco"
+  data$metrop_labels[data$new_metrop=="SD"] <- "San Diego"
+  data$metrop_labels[data$new_metrop=="FN"] <- "Fresno"
+  data$metrop_labels[data$new_metrop=="SC"] <- "Sacremento"
+  data$metrop_labels[data$new_metrop=="RD"] <- "Redding"
+  data$metrop_labels <- as.factor(data$metrop_labels)
+  
+  return(data)
+}
+
+
+
 
