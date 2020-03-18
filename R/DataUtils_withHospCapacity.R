@@ -682,6 +682,7 @@ conv_round <- function(x){
 ##'
 print_num <- function(x){
     x <- as.numeric(x)
-    if(x>50){print(format(round(x, -2), scientific=FALSE, big.mark=","))}
-    if(x<50){print(format(round(x, -1), scientific=FALSE, big.mark=","))}
+    if(x>50){format(round(x, -2), scientific=FALSE, big.mark=",")}
+    if(x<50){format(round(x, -1), scientific=FALSE, big.mark=",")}
 }
+
