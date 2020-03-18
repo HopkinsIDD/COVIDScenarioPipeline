@@ -2,32 +2,32 @@
 
 # SETUP -------------------------------------------------------------------
 
-library(tidyverse)
-library(magrittr)
-library(maptools)
-library(rgdal)
-library(ggvoronoi)
-library(raster)
-library(sf)
-library(igraph)
-library(geosphere)
-library(rlist)
+# library(tidyverse)
+# library(magrittr)
+# library(maptools)
+# library(rgdal)
+# library(ggvoronoi)
+# library(raster)
+# library(sf)
+# library(igraph)
+# library(geosphere)
+# library(rlist)
 #if (!require(gpclib)) install.packages("gpclib", type="source")
 #gpclibPermit()         # Seems wacky, shouldn't require this.
 
-# The projection is not adjusted but the error is minor.
+# The map projection may not adjusted correctly but the error is minor.
 
 
-# Settings -----------------------------------------------------------------
-states_of_interest <- sort(c("CA","NV","WA","OR","AZ"))
-regions_of_interest <- paste("US", states_of_interest, sep = "-")
-year <- "2010"
-regioncode <- "west-coast"
-shapefile_path <- paste0('data/', regioncode, '/shp/','counties_2010_', regioncode, '.shp')
+# # Settings -----------------------------------------------------------------
+# states_of_interest <- sort(c("CA","NV","WA","OR","AZ"))
+# regions_of_interest <- paste("US", states_of_interest, sep = "-")
+# year <- "2010"
+# regioncode <- "west-coast"
+# shapefile_path <- paste0('data/', regioncode, '/shp/','counties_2010_', regioncode, '.shp')
 
-plot = TRUE
-travelers_threshold <- 60000
-airport_cluster_threshold <- 160 # km
+# plot = TRUE
+# travelers_threshold <- 60000
+# airport_cluster_threshold <- 160 # km
 
 
 # DATA --------------------------------------------------------------------
@@ -202,9 +202,14 @@ counties_with_errors <- airport_attribution %>%
 if (nrow(counties_with_errors)>0){
   warning(paste("county fips", counties_with_errors$county, "may have errors"))
   
-  ## For some reason the remainder of FIPS 10001 is not being appropriately assigned to the BWI catchment area, so do it manually
-  airport_attribution <- bind_rows(airport_attribution, data.frame(county = "10001", airport_iata = "BWI", attribution = 1-0.915, countyname = "Kent")) %>%
-    dplyr::arrange(county)
+  if(regioncode == "around_md"){
+    warning(paste0("Special warning for airport attribution in ", regioncode, "Manual fix for Kent County, DE was implemented."))
+
+    ## For some reason the remainder of FIPS 10001 is not being appropriately assigned to the BWI catchment area, so do it manually
+    airport_attribution <- bind_rows(airport_attribution, data.frame(county = "10001", airport_iata = "BWI", attribution = 1-0.915, countyname = "Kent")) %>%
+      dplyr::arrange(county)
+  }
+  
 
   counties_with_errors_v2 <- airport_attribution %>% 
     group_by(county) %>%
@@ -217,7 +222,7 @@ if (nrow(counties_with_errors)>0){
 }
 
 # Save it
-write.csv(airport_attribution, file =paste0("data/", regioncode, "/airport_attribution.csv", row.names=FALSE))
+write.csv(airport_attribution, file =paste0("data/", regioncode, "/airport_attribution_", yr, ".csv"), row.names=FALSE)
 
 
 if (plot) {
