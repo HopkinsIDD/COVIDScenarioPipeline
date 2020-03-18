@@ -443,7 +443,7 @@ make_hosp_table_county <- function(final_hosp_dat, final_hosp_geoid_dat, county_
   cnames <- paste0(var_to_report, rep(p_death, each=length(var_to_report)))
   
   tab <- bind_rows(tmp_total[,c("geoid_label", cnames)],
-                   tmp_metro[,c("geoid_label", cnames)])
+                   tmp_geoid[,c("geoid_label", cnames)])
   
   return(tab)
 }
