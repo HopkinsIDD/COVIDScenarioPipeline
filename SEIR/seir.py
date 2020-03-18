@@ -80,7 +80,7 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes,
         because loops are expanded by the compiler hence not a problem.
         as there is very few authorized function. Needs the nopython option to be fast.
     """
-    np.random.seed(uid)
+    #np.random.seed(uid)
     t = 0
 
     y = np.copy(y0)
