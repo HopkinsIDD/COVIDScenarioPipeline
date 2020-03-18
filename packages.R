@@ -14,5 +14,6 @@ install_version("ggfortify", version = "0.4.8")
 install_version("flextable", version = "0.5.9")
 install_version("tidyverse", version = "1.2.1")
 install_version("truncnorm", version = "1.0-8")
+install_version("doParallel", version = "1.0.14")
 
 install.packages("https://cran.r-project.org/src/contrib/Archive/cowplot/cowplot_0.9.2.tar.gz", repos=NULL, type="source")
