@@ -3,7 +3,7 @@
 library(dplyr)
 
 county.status <- read.csv(paste0(foldername,'geodata.csv'))
-dates <- seq.Date(as.Date("2020/1/1"), as.Date("2020/7/1"), 1)
+dates <- seq.Date(as.Date(ti_str), as.Date(tf_str), 1)
 
 NPI <- as.data.frame(matrix(0, dim(county.status)[1],length(dates)))
 colnames(NPI) <- as.Date(dates)
