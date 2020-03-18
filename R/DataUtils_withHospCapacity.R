@@ -673,3 +673,15 @@ conv_round <- function(x){
     return(x)
 }
 
+
+##'Function to print formatted numbers
+##'
+##'@param x single number to round
+##'
+##'@return rounded x
+##'
+print_num <- function(x){
+    x <- as.numeric(x)
+    if(x>50){print(format(round(x, -2), scientific=FALSE, big.mark=","))}
+    if(x<50){print(format(round(x, -1), scientific=FALSE, big.mark=","))}
+}
