@@ -69,8 +69,8 @@ class COVID19Parameters():
         # time from symptom onset to recovery per compartiment
         self.gamma = 1/6 * n_Icomp
         
-        if 'low' in s.setup_name: self.R0s = np.linspace(1.5, 2, s.nbetas)   # np.random.uniform(1.5, 2, nbetas)
-        if 'mid' in s.setup_name: self.R0s = np.linspace(2, 3, s.nbetas)
+        if 'low' in s.setup_name: self.R0s = np.random.uniform(1.5, 2, s.nbetas)   # np.random.uniform(1.5, 2, nbetas)
+        if 'mid' in s.setup_name: self.R0s = np.random.uniform(2, 3, s.nbetas)
 
         self.betas = self.R0s * self.gamma / n_Icomp
 
