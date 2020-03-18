@@ -50,6 +50,49 @@ load_scenario_sims <- function(scenario_dir,
 }
 
 
+##'Function to load multiple simulations into a combine data_frame in parallele
+##'
+##'@param scenario_dir the subdirectory containing this scenario
+##'@param keep_compartments the compartmetns to keep for this run.
+##'@param time_filter_low the low end of the time filter
+##'@param time_filter_high the high end of the time filter
+##'@param cores number of cores
+##'
+##'@return a long thin data frame with all of the simulations comined together
+##'
+load_scenario_sims_par <- function(scenario_dir,
+                                   keep_compartments=NULL,
+                                   time_filter_low = -Inf,
+                                   time_filter_high = Inf,
+                                   cores = 10){
+    require(data.table)
+    files <- dir(sprintf("model_output/%s", scenario_dir),full.names = TRUE)
+    rc <- list()
+    cl <- makeCluster( cores )
+    rc = foreach (i = 1:length(files)) %dopar% {
+        file <- files[i]
+        #print(i)
+        if (is.null(keep_compartments)) {
+            #tmp <- data.table::fread(file) %>% as.data.frame()
+            suppressMessages(tmp <- read_csv(file))
+        } else {
+            suppressMessages(
+                tmp <-  read_csv(file) %>%
+                    filter(comp%in%keep_compartments)
+            )
+        }
+        #colnames(tmp) <- tmp[1,]
+        tmp <- #tmp[-1,] %>%
+            tmp %>%
+            filter(time <= time_filter_high & time >= time_filter_low) %>%
+            pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>%
+            mutate(sim_num = i)
+        tmp
+    }
+    rc<- rbindlist(rc)
+    return(rc)
+}
+
 # library(microbenchmark)
 #
 # fn1 <- function(i){

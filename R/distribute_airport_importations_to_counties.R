@@ -155,7 +155,7 @@ generate_stoch_distribution_function <- function(){
       group_by(fips_cty, date) %>%
       summarise(importations = sum(importations)) %>%
       ungroup %>%
-      dplyr::mutate(date = as.character(date), importations = as.integer(importations)) %>%
+      dplyr::mutate(date = as.character(date), importations = as.numeric(importations)) %>%
       dplyr::arrange(date, fips_cty) 
 
       return(county_importations_stoch)
@@ -217,7 +217,7 @@ generate_swappedseeds_distribution_function <- function(){
       }
 
       county_importations_swap <- bind_rows(county_importations_wo_swappedseeds, new_fixedseeds, new_nonseeds) %>%
-        dplyr::mutate(date = as.character(date), importations = as.integer(importations))
+        dplyr::mutate(date = as.character(date), importations = as.numeric(importations))
 
       if(!(dim(county_importations_swap)==dim(county_importations_stoch) & sum(county_importations_swap$importations)==sum(county_importations_stoch$importations))){
         warning("An error occurred in the swapping procedure. Please check the code.")
@@ -344,7 +344,7 @@ generate_fixedseeds_distribution_function <- function(){
         group_by(fips_cty, date) %>%
         summarise(importations = sum(importations)) %>%
         ungroup %>%
-        dplyr::mutate(date = as.character(date), importations = as.integer(importations)) %>%
+        dplyr::mutate(date = as.character(date), importations = as.numeric(importations)) %>%
         dplyr::arrange(date, fips_cty) 
     
     } else{
