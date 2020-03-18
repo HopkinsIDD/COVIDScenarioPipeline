@@ -470,7 +470,7 @@ build_hospdeath_summarize <- function(res,
       nicu_curr_hi = quantile(maxICUCap, 0.75),
       nvent_curr_final = mean(maxVentCap),
       nvent_curr_lo = quantile(maxVentCap, 0.25),
-      nvent_curr_hi = quantile(naxVentCap, 0.75)
+      nvent_curr_hi = quantile(maxVentCap, 0.75)
     )
   
   res_total <- res %>% 
@@ -518,7 +518,7 @@ build_hospdeath_summarize <- function(res,
       nicu_curr_hi = quantile(maxICUCap, 0.75),
       nvent_curr_final = mean(maxVentCap),
       nvent_curr_lo = quantile(maxVentCap, 0.25),
-      nvent_curr_hi = quantile(naxVentCap, 0.75))
+      nvent_curr_hi = quantile(maxVentCap, 0.75))
   
   out <- list(res_total = as.data.frame(res_total), res_metro = as.data.frame(res_metro))
   
@@ -570,7 +570,7 @@ build_hospdeath_summarize <- function(res,
         nicu_curr_hi = quantile(maxICUCap, 0.75),
         nvent_curr_final = mean(maxVentCap),
         nvent_curr_lo = quantile(maxVentCap, 0.25),
-        nvent_curr_hi = quantile(naxVentCap, 0.75)
+        nvent_curr_hi = quantile(maxVentCap, 0.75)
       )
     
     out <- list(res_total = as.data.frame(res_total), res_metro = as.data.frame(res_metro), res_geoid = as.data.frame(res_geoid))
@@ -591,7 +591,48 @@ build_hospdeath_summarize <- function(res,
 
 
 
+##' Function 
+##' Build a set of sampled hospitalizations, deaths, and recoveries 
+##' from full hosp res objects at multiple p_deaths
+##' 
+##' Instantly summarize to save memory + run for multiple p_death
+##'  
+##' @param data list of res results for given secnario
+##' @param p_death_vec vector probability of death, among infections (hospitalization is required for death)
+##' @param end_date date at which to summarize hospitalizations or deaths
+##' @param incl_county logical, whether to produce a table grouped by geoid in addition to state + metrop
+##' 
 
+build_hospdeath_summary_multiplePDeath <- function(data, p_death_vec, end_date, incl.county){
+  
+  
+  tmp_out <- build_hospdeath_summarize(data[[1]], 
+                                       end_date = end_date,
+                                       incl.county = incl.county) 
+  
+  tmp_metro <- tmp_out[['res_metro']] %>% mutate(p_death = p_death[1])
+  tmp_total <- tmp_out[['res_total']] %>% mutate(p_death = p_death[1])
+  if(incl.county){ tmp_geoid <- tmp_out[['res_geoid']] %>% mutate(p_death = p_death[1]) }
+  
+  for(i in 2:length(p_death)){
+    tmp_out <- build_hospdeath_summarize(data[[i]], 
+                                         end_date = end_date,
+                                         incl.county = incl.county) 
+    
+    tmp_metro <- bind_rows(tmp_metro, tmp_out[['res_metro']] %>% mutate(p_death = p_death[i]))
+    tmp_total <- bind_rows(tmp_total, tmp_out[['res_total']] %>% mutate(p_death = p_death[i]))
+    if(incl.county){tmp_geoid <- bind_rows(tmp_geoid, tmp_out[['res_geoid']] %>% mutate(p_death = p_death[i]))}
+  }
+  
+  out <- list(res_total = tmp_total, res_metro = tmp_metro)
+  
+  if(incl.county){
+    out <- list(res_total = tmp_total, res_metro = tmp_metro, res_geoid = tmp_geoid)
+  }
+  
+  return(out)
+  
+}
 
 
 
@@ -613,7 +654,7 @@ build_hospdeath_summarize <- function(res,
 ##' @param incl_county logical, whether to produce a table grouped by geoid in addition to state + metrop
 ##' 
 
-build_hospdeath_summary_multiplePDeath <- function(data, 
+build_hospdeath_summary_multiplePDeath_OLD <- function(data, 
                                                    p_hosp_vec, 
                                                    p_death_vec,
                                                    p_ICU,
