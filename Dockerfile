@@ -68,6 +68,17 @@ USER app
 ENV HOME /home/app
 
 #####
+# R
+#####
+
+ENV R_VERSION 3.4.4-1ubuntu1
+
+# TODO: use packrat (or something else) for R package management
+COPY packages.R $HOME
+RUN sudo apt-get install -y --yes-install-recommends r-base-dev=$R_VERSION
+RUN Rscript packages.R
+
+#####
 # Python (managed via pyenv)
 #####
 
@@ -95,15 +106,4 @@ RUN . $PYTHON_VENV_DIR/bin/activate \
     && pip install --upgrade pip setuptools \
     && pip install -r $HOME/requirements.txt
 
-#####
-# R
-#####
-
-ENV R_VERSION 3.4.4-1ubuntu1
-
-# TODO: use packrat (or something else) for R package management
-COPY packages.R $HOME
-RUN sudo apt-get install -y --yes-install-recommends r-base-dev=$R_VERSION
-RUN Rscript packages.R
-    
 CMD ["/bin/bash"]
