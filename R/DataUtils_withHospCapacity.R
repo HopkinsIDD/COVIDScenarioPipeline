@@ -57,7 +57,7 @@ load_scenario_sims <- function(scenario_dir,
 ##'
 ##'@return a long thin data frame with all of the simulations comined together for one model + p_death
 ##'
-load_hosp_sims <- function(scenario_dir, p_death = "low") {
+load_hosp_sims <- function(scenario_dir, pdeath = "low") {
     
     require(data.table)
     
