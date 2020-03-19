@@ -13,6 +13,7 @@ If this code change, pull the lastest version of it from the `SPATIAL_SETUP_REPO
 
 ```
 git submodule foreach git pull origin master
+git submodule foreach git pull origin dataseed
 ```
 
 After pulling an updated commit of this repository as a submodule, remember to commit that update, since submodules always reference a particular commit.
