@@ -25,7 +25,7 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 def onerun_SEIR(s, p, uid):
     scipy.random.seed()
     r_assign('ti_str', str(s.ti))
-    r_assign('tf_str', str(s.ti))
+    r_assign('tf_str', str(s.tf))
     r_assign('foldername', s.spatset.folder)
     r_source(s.script_npi)
     npi = robjects.r['NPI'].T
