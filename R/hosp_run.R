@@ -243,50 +243,60 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
   print("Starting hospitalization")
 ## hospitalizations: uncontrolled ----------------------------------------
 
-#  res_npi3 <- build_hospdeath_par(NULL,
-#                                  p_hosp = p_death[3]*10,
-#                                  p_death = .1,
-#                                  p_vent = p_vent,
-#                                  p_ICU = p_ICU,
-#                                  p_hosp_type = "gamma",
-#                                  time_hosp_pars=time_hosp_pars,
-#                                  time_death_pars=time_death_pars,
-#                                  time_disch_pars=time_disch_pars,
-#                                  time_ICU_pars = time_ICU_pars,
-#                                  time_vent_pars = time_vent_pars,
-#                                  time_ICUdur_pars = time_ICUdur_pars, 
-#                                  end_date = "2020-10-01",
-#                                  length_geoid = 4,
-#                                  incl.county = TRUE,
-#                                  cores = 32,
-#                                  data_filename = "model_output/unifiedNPI/",
-#                                  scenario_name = "high_death",
- #                                 index_offset = global_index_offset
-#  )
-  
-## hospitalizations: Wuhan-like  ----------------------------------------
-  
-#  res_npi2 <- build_hospdeath_par(NULL,
-#                                  p_hosp = p_death[2]*10,
-#                                  p_death = .1,
-#                                  p_vent = p_vent,
-#                                  p_ICU = p_ICU,
-#                                  p_hosp_type = "gamma",
-#                                  time_hosp_pars=time_hosp_pars,
-#                                  time_death_pars=time_death_pars,
-#                                  time_disch_pars=time_disch_pars,
-#                                  time_ICU_pars = time_ICU_pars,
-#                                  time_vent_pars = time_vent_pars,
-#                                  time_ICUdur_pars = time_ICUdur_pars, 
-#                                  end_date = "2020-10-01",
-#                                  length_geoid = 4,
-#                                  incl.county = TRUE,
-#                                  cores = 32,
-#                                  data_filename = "model_output/unifiedNPI/",
-#                                  scenario_name = "med_death",
-#                                  index_offset = global_index_offset
-#  )
+  data_filename <- "model_output/unifiedNPI/"
+  args <- commandArgs(trailingOnly=TRUE)
+  data_filename <- args[1]
+  cmd <- args[2]
 
+  if (cmd == "high") {
+  res_npi3 <- build_hospdeath_par(NULL,
+                                  p_hosp = p_death[3]*10,
+                                  p_death = .1,
+                                  p_vent = p_vent,
+                                 p_ICU = p_ICU,
+                                  p_hosp_type = "gamma",
+                                  time_hosp_pars=time_hosp_pars,
+                                  time_death_pars=time_death_pars,
+                                  time_disch_pars=time_disch_pars,
+                                  time_ICU_pars = time_ICU_pars,
+                                  time_vent_pars = time_vent_pars,
+                                  time_ICUdur_pars = time_ICUdur_pars, 
+                                 end_date = "2020-10-01",
+                                  length_geoid = 4,
+                                  incl.county = TRUE,
+                                  cores = 32,
+                                 data_filename = data_filename,
+                                 scenario_name = "high_death",
+                                  index_offset = global_index_offset
+  )
+  }
+
+## hospitalizations: Wuhan-like  ----------------------------------------
+ 
+  if (cmd == "med") { 
+  res_npi2 <- build_hospdeath_par(NULL,
+                                  p_hosp = p_death[2]*10,
+                                  p_death = .1,
+                                  p_vent = p_vent,
+                                 p_ICU = p_ICU,
+                                  p_hosp_type = "gamma",
+                                  time_hosp_pars=time_hosp_pars,
+                                  time_death_pars=time_death_pars,
+                                  time_disch_pars=time_disch_pars,
+                                 time_ICU_pars = time_ICU_pars,
+                                  time_vent_pars = time_vent_pars,
+                                  time_ICUdur_pars = time_ICUdur_pars, 
+                                  end_date = "2020-10-01",
+                                 length_geoid = 4,
+                                  incl.county = TRUE,
+                                  cores = 32,
+                                  data_filename = data_filename,
+                                  scenario_name = "med_death",
+                                 index_offset = global_index_offset
+  )
+  }
+
+  if (cmd == "low") {
   res_npi1 <- build_hospdeath_par(NULL,
                                   p_hosp = p_death[1]*10,
                                   p_death = .1,
@@ -303,7 +313,8 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
                                   length_geoid = 4,
                                   incl.county = TRUE,
                                   cores = 32,
-                                  data_filename = "model_output/unifiedNPI/",
+                                  data_filename = data_filename,
                                   scenario_name = "low_death",
                                   index_offset = global_index_offset
   )
+  }
