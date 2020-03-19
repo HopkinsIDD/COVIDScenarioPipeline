@@ -49,6 +49,35 @@ load_scenario_sims <- function(scenario_dir,
     return(rc)
 }
 
+##'Function to load multiple simulations into a combine data_frame
+##'
+##'
+##'@param scenario_dir the subdirectory containing the hospitalization output
+##'@param p_death "low", "med", "high" prefix to file names
+##'
+##'@return a long thin data frame with all of the simulations comined together for one model + p_death
+##'
+load_hosp_sims <- function(scenario_dir, p_death = "low") {
+    
+    require(data.table)
+    
+    files <- dir(sprintf("hospitalization/model_output/%s", scenario_dir),full.names = TRUE)
+    files <- files[grepl(pdeath,files)]
+    
+    rc <- list()
+    
+    
+    for (i in 1:length(files)) {
+        file <- files[i]
+        suppressMessages(tmp <- read_csv(file))
+        
+        rc[[i]] <- tmp
+    }
+    
+    rc<- rbindlist(rc)
+    
+    return(rc)
+}
 
 ##'Function to load multiple simulations into a combine data_frame in parallele
 ##'
