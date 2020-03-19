@@ -2,12 +2,13 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import datetime
+import random
 from shapely.geometry import Point, Polygon
 from COVIDScenarioPipeline.SEIR import seir
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
-
+MAX_32BIT_UNSIGNED = 4294967295
 
 class Setup():
     """ 
@@ -23,7 +24,8 @@ class Setup():
         self.tf = tf
         self.interactive = interactive
         self.write_csv = write_csv
-        
+        self.np_seed = random.randint(0, MAX_32BIT_UNSIGNED)
+
         if nbetas is None:
             nbetas = nsim
         self.nbetas = nbetas
@@ -75,6 +77,10 @@ class COVID19Parameters():
         # Number of infected compartiments
         n_Icomp = 3
 
+        # Need to use the seed from the setup object so the next few random
+        # vectors are all created the same way.
+        np.random.seed(s.np_seed)
+
         # time from symptom onset to recovery per compartiment
         self.gamma = np.random.uniform(1/6, 1/2.6, s.nbetas) * n_Icomp  # range of serial from 8.2 to 6.5
         
@@ -91,7 +97,8 @@ class COVID19Parameters():
         self.gamma = np.dstack([self.gamma]*s.nnodes)
         self.sigma = np.vstack([self.sigma]*s.nnodes)
 
-        print (f' >>> Added Parameters with values:')
+        # Need to clear the seed that we set for anything else we're doing
+        np.random.seed()
 
     def to_vector(self, beta_id):
         """ for speed, to use with numba JIT compilation"""

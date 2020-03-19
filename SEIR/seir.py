@@ -18,11 +18,14 @@ from rpy2.rinterface_lib.callbacks import logger as rpy2_logger
 import logging, scipy
 rpy2_logger.setLevel(logging.ERROR)
 
+from .setup import COVID19Parameters
+
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
-def onerun_SEIR(s, p, uid):
+def onerun_SEIR(s, uid):
+    p = COVID19Parameters(s)
     scipy.random.seed()
     r_assign('ti_str', str(s.ti))
     r_assign('tf_str', str(s.ti))
@@ -59,14 +62,13 @@ def onerun_SEIR(s, p, uid):
                             importation)
     return states
     
-def run_parallel(s, p, processes=multiprocessing.cpu_count()):   # set to 16 when running on server
+def run_parallel(s, processes=multiprocessing.cpu_count()):   # set to 16 when running on server
 
     tic = time.time()
     uids = np.arange(s.nsim)
 
     with multiprocessing.Pool(processes=processes) as pool:
         result = pool.starmap(onerun_SEIR, zip(itertools.repeat(s),
-                                               itertools.repeat(p),
                                                uids))
     print(f">>> {s.nsim}  Simulations done in {time.time()-tic} seconds...")
     return result
