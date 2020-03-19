@@ -50,6 +50,50 @@ load_scenario_sims <- function(scenario_dir,
 }
 
 
+##'Function to load multiple simulations into a combine data_frame in parallele
+##'
+##'@param scenario_dir the subdirectory containing this scenario
+##'@param keep_compartments the compartmetns to keep for this run.
+##'@param time_filter_low the low end of the time filter
+##'@param time_filter_high the high end of the time filter
+##'@param cores number of cores
+##'
+##'@return a long thin data frame with all of the simulations comined together
+##'
+load_scenario_sims_par <- function(scenario_dir,
+                               keep_compartments=NULL,
+                               time_filter_low = -Inf,
+                               time_filter_high = Inf,
+                               cores = 10){
+  require(data.table)
+  files <- dir(sprintf("model_output/%s", scenario_dir),full.names = TRUE)
+  rc <- list()
+  cl <- makeCluster( cores )
+  rc = foreach (i = 1:length(files)) %dopar% {
+    file <- files[i]
+    #print(i)
+    if (is.null(keep_compartments)) {
+      #tmp <- data.table::fread(file) %>% as.data.frame()
+      suppressMessages(tmp <- read_csv(file))
+    } else {
+      suppressMessages(
+        tmp <-  read_csv(file) %>%
+          filter(comp%in%keep_compartments)
+      )
+    }
+    #colnames(tmp) <- tmp[1,]
+    tmp <- #tmp[-1,] %>%
+      tmp %>%
+      filter(time <= time_filter_high & time >= time_filter_low) %>%
+      pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>%
+      mutate(sim_num = i)
+    tmp
+  }
+  rc<- rbindlist(rc)
+  return(rc)
+}
+
+
 # library(microbenchmark)
 #
 # fn1 <- function(i){
@@ -521,5 +565,44 @@ make_finalsize_table1 <- function(scenario_dat, final_date = "2020-04-01"){
               ci = make_CI(quantile(N,probs=.25),quantile(N,probs=.75)))
   return(tmp)
 }
+
+##'Function to create metro labels in California
+##'
+##'@param data county_dat object of GEOIDs + STATE
+##'
+##'@return county_dat with metrop_labels added
+##'
+make_metrop_labels <- function(data=county_dat){
+  
+  LA <- c('6037', '6059', '6065', '6071', '6111')
+  SF <- c('6001', '6013', '6075', '6081', '6041', '6085', '6069', 
+          '6077', '6099', '6095', '6097', '6087', '6047', '6055')
+  SD <- c('6073')
+  FN <- c('6019','6031','6039')
+  SC <- c('6067', '6061', '6113', '6017', '6101', '6115', '6057')
+  RD <- c('6089', '6103')
+  
+  data$new_metrop <- NA
+  data$new_metrop[data$geoid %in% LA] <- "LA"
+  data$new_metrop[data$geoid %in% SF] <- "SF"
+  data$new_metrop[data$geoid %in% SD] <- "SD"
+  data$new_metrop[data$geoid %in% FN] <- "FN"
+  data$new_metrop[data$geoid %in% SC] <- "SC"
+  data$new_metrop[data$geoid %in% RD] <- "RD"
+  
+  ##Update the labels
+  data$metrop_labels <- NA
+  data$metrop_labels[data$new_metrop=="LA"] <- "Los Angeles"
+  data$metrop_labels[data$new_metrop=="SF"] <- "San Francisco"
+  data$metrop_labels[data$new_metrop=="SD"] <- "San Diego"
+  data$metrop_labels[data$new_metrop=="FN"] <- "Fresno"
+  data$metrop_labels[data$new_metrop=="SC"] <- "Sacremento"
+  data$metrop_labels[data$new_metrop=="RD"] <- "Redding"
+  data$metrop_labels <- as.factor(data$metrop_labels)
+  
+  return(data)
+}
+
+
 
 

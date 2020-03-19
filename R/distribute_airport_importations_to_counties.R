@@ -9,7 +9,7 @@ set_region_settings <- function(region = "around_md"){
   if(region == "around_md"){
     year <- 2010
     airport_attribution_fname = paste0("COVIDScenarioPipeline/data/", region, "/airport_attribution_", year, "_", region, ".csv")
-    county_pops_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_pops_", year, "_", region, ".csv")
+    county_pops_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_pops_", year, ".csv")
     county_risk_by_airport_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_risk_by_airport_", year, "_", region, ".csv")
     importation_params_fname = paste0("COVIDScenarioPipeline/data/", region, "/import_nb_params_", region, ".csv")
     necessary_geoids = c("24025", "24031", "34003", "34017", "42045", "42091", "42127", "51059") ## fips codes that should have at least one importation by importation_data_upto
@@ -17,12 +17,23 @@ set_region_settings <- function(region = "around_md"){
     importation_data_upto = "2020-03-01"
     distribute_airport_importations_to_counties <- generate_fixedseeds_distribution_function()
   
+  } else if(region == "west-coast-AZ-NV"){
+    year <- 2010
+    airport_attribution_fname = paste0("COVIDScenarioPipeline/data/", region, "/airport_attribution_", year, ".csv")
+    county_pops_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_pops_", year, ".csv")
+    county_risk_by_airport_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_risk_by_airport_", year, ".csv")
+    importation_params_fname = paste0("COVIDScenarioPipeline/data/", region, "/import_nb_params.csv")
+    necessary_geoids = c("04013", "04021", "06001", "06013", "06019", "06023", "06037", "06039", "06059", "06061", "06065", "06067", "06069", "06073", "06075", "06081", "06085", "06089", "06097", "06113", "32003", "32031", "41019", "41029", "41035", "41047", "41059", "41067", "53011", "53025", "53031", "53033", "53037", "53053", "53061") ## fips codes that should have at least one importation by importation_data_upto
+    importations_to_geoids_fixed = c(2.,  2.,  2.,  9.,  1.,  1., 14.,  1.,  4.,  7.,  1.,  2.,  2., 3.,  9.,  2., 38.,  1.,  3.,  1.,  2.,  2.,  1.,  2.,  1.,  1., 1.,  8.,  1.,  1.,  1., 82.,  1.,  4., 31.) ## number of importations to necessary geoids
+    importation_data_upto = "2020-03-07"
+    distribute_airport_importations_to_counties <- generate_stoch_distribution_function()
+
   } else{ ## settings for other regions can be modified
     year <- 2010
-    airport_attribution_fname = paste0("COVIDScenarioPipeline/data/", region, "/airport_attribution_", year, "_", region, ".csv")
-    county_pops_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_pops_", year, "_", region, ".csv")
-    county_risk_by_airport_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_risk_by_airport_", year, "_", region, ".csv")
-    importation_params_fname = paste0("COVIDScenarioPipeline/data/", region, "/import_nb_params_", region, ".csv")
+    airport_attribution_fname = paste0("COVIDScenarioPipeline/data/", region, "/airport_attribution_", year, ".csv")
+    county_pops_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_pops_", year, ".csv")
+    county_risk_by_airport_fname = paste0("COVIDScenarioPipeline/data/", region, "/county_risk_by_airport_", year, ".csv")
+    importation_params_fname = paste0("COVIDScenarioPipeline/data/", region, "/import_nb_params.csv")
     necessary_geoids = c()
     importations_to_geoids_fixed = c()
     importation_data_upto = NA
@@ -144,7 +155,7 @@ generate_stoch_distribution_function <- function(){
       group_by(fips_cty, date) %>%
       summarise(importations = sum(importations)) %>%
       ungroup %>%
-      dplyr::mutate(date = as.character(date)) %>%
+      dplyr::mutate(date = as.character(date), importations = as.numeric(importations)) %>%
       dplyr::arrange(date, fips_cty) 
 
       return(county_importations_stoch)
@@ -206,7 +217,7 @@ generate_swappedseeds_distribution_function <- function(){
       }
 
       county_importations_swap <- bind_rows(county_importations_wo_swappedseeds, new_fixedseeds, new_nonseeds) %>%
-        dplyr::mutate(date = as.character(date))
+        dplyr::mutate(date = as.character(date), importations = as.numeric(importations))
 
       if(!(dim(county_importations_swap)==dim(county_importations_stoch) & sum(county_importations_swap$importations)==sum(county_importations_stoch$importations))){
         warning("An error occurred in the swapping procedure. Please check the code.")
@@ -333,7 +344,7 @@ generate_fixedseeds_distribution_function <- function(){
         group_by(fips_cty, date) %>%
         summarise(importations = sum(importations)) %>%
         ungroup %>%
-        dplyr::mutate(date = as.character(date)) %>%
+        dplyr::mutate(date = as.character(date), importations = as.numeric(importations)) %>%
         dplyr::arrange(date, fips_cty) 
     
     } else{

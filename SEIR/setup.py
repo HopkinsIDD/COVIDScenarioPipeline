@@ -48,7 +48,16 @@ class Setup():
             self.y0[I1, pl] = seeding_amount[i]
         return self.y0
 
-    
+    def buildICfromfilter(self):
+        y0 = np.zeros((ncomp, self.nnodes))#, dtype = 'int64')
+        draw = np.random.poisson(5*self.dynfilter[31]+0.1)
+        y0[S,:] = self.popnodes - draw
+        y0[E, :] = (draw/4).astype(np.int)
+        y0[I1, :] = (draw/4).astype(np.int)
+        y0[I2, :] = (draw/4).astype(np.int)
+        y0[I3, :] = (draw/4).astype(np.int)
+        y0[cumI, :] = (3*draw/4).astype(np.int)
+        return y0
 
     def set_filter(self, dynfilter):
         self.dynfilter = dynfilter
@@ -67,25 +76,26 @@ class COVID19Parameters():
         n_Icomp = 3
 
         # time from symptom onset to recovery per compartiment
-        self.gamma = 1/6 * n_Icomp
+        self.gamma = np.random.uniform(1/6, 1/2.6, s.nbetas) * n_Icomp  # range of serial from 8.2 to 6.5
         
-        if 'low' in s.setup_name: self.R0s = np.linspace(1.5, 2, s.nbetas)   # np.random.uniform(1.5, 2, nbetas)
-        if 'mid' in s.setup_name: self.R0s = np.linspace(2, 3, s.nbetas)
+        if 'low' in s.setup_name: self.R0s = np.random.uniform(1.5, 2, s.nbetas)   # np.random.uniform(1.5, 2, nbetas)
+        if 'mid' in s.setup_name: self.R0s = np.random.uniform(2, 3, s.nbetas)
 
-        self.betas = self.R0s * self.gamma / n_Icomp
+        self.betas = np.multiply(self.R0s, self.gamma) / n_Icomp
 
         self.betas = np.vstack([self.betas]*len(s.t_inter))
-        self.gamma = np.hstack([self.gamma]*len(s.t_inter))
+        self.gamma = np.vstack([self.gamma]*len(s.t_inter))
         self.sigma = np.hstack([self.sigma]*len(s.t_inter))
+        
         self.betas = np.dstack([self.betas]*s.nnodes)
-        self.gamma = np.vstack([self.gamma]*s.nnodes)
+        self.gamma = np.dstack([self.gamma]*s.nnodes)
         self.sigma = np.vstack([self.sigma]*s.nnodes)
 
-        print (f' >>> Added Parameters with values: gamma = 1/6, sigma = 1/5.2, r0 between ')
+        print (f' >>> Added Parameters with values:')
 
     def to_vector(self, beta_id):
         """ for speed, to use with numba JIT compilation"""
-        return(np.array([self.betas[:,beta_id%self.s.nbetas], self.sigma.T, self.gamma.T]))
+        return(np.array([self.betas[:,beta_id%self.s.nbetas], self.sigma.T, self.gamma[:,beta_id%self.s.nbetas]]))
 
     def addNPIfromcsv(self, filename):
         npi = pd.read_csv(filename).T
@@ -103,6 +113,8 @@ class COVID19Parameters():
         npi = npi.resample(str(self.s.dt*24) + 'H').ffill()
         for i in range(self.s.nbetas):
             self.betas[:,i,:] =  np.multiply(self.betas[:,i,:], np.ones_like(self.betas[:,i,:]) - npi.to_numpy())
+
+
 
 
 class CaliforniaSpatialSetup():
