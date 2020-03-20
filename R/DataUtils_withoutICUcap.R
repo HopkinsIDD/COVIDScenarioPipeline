@@ -416,7 +416,7 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
                     names_from=p_death,
                     values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
     
-    var_to_report <- c("hosp_est_", "peak_hosp_cap_", "ICU_est_", "peak_ICU_cap_", "vent_est_", "death_est_")
+    var_to_report <- c("hosp_est_", "peak_hosp_cap_", "ICU_est_", "vent_est_", "death_est_")
     cnames <- paste0(var_to_report, rep(p_death, each=length(var_to_report)))
     
     tab <- bind_rows(tmp_total[,c("metrop_labels", cnames)],
@@ -469,7 +469,7 @@ make_hosp_table_county <- function(final_hosp_dat, final_hosp_geoid_dat, county_
                     names_from=p_death,
                     values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
     
-    var_to_report <- c("hosp_est_", "peak_hosp_cap_", "ICU_est_", "peak_ICU_cap_", "vent_est_", "death_est_")
+    var_to_report <- c("hosp_est_", "peak_hosp_cap_", "ICU_est_", "vent_est_", "death_est_")
     cnames <- paste0(var_to_report, rep(p_death, each=length(var_to_report)))
     
     tab <- bind_rows(tmp_total[,c("geoid_label", cnames)],
