@@ -501,16 +501,32 @@ make_final_plot <- function(ca_final_dat){
 ##'Function to map county final sizes
 ##'
 ##'@param ca_final_dat sf object with county final sizes
+##'@param title text string for plot title
+##'@param legend position ("none", "right")
 ##'
 ##'@return ggplot object, CA map with fill prop to final size
 ##'
-make_final_map <- function(ca_final_dat){
+make_final_map <- function(ca_final_dat, title="", legend){
+    ca_final_dat$fill <- ca_final_dat$ar / 100000
+    
     p <- ggplot(ca_final_dat) +
-        geom_sf(aes(fill=median)) +
+        geom_sf(aes(fill=fill)) +
         theme_minimal() +
-        scale_fill_viridis(option="plasma")
+        scale_fill_viridis(option="plasma", limits=c(0,1)) +
+        ggtitle(title) +
+        theme(axis.title.x=element_blank(),
+              axis.text.x=element_blank(),
+              axis.ticks.x=element_blank(),
+              axis.title.y=element_blank(),
+              axis.text.y=element_blank(),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_blank(),
+              axis.ticks.y=element_blank(),
+              legend.position=legend)
     return(p)
 }
+
 
 
 ##'Function to plot county arrival times
