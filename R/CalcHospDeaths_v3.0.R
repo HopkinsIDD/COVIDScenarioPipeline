@@ -419,13 +419,22 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
 build_hospdeath_summarize <- function(res,
                                       end_date = "2020-10-01",
                                       incl.county = FALSE){
-  
   # Summarization starts here
-  
   res_metro <- res %>%
     filter(!is.na(time) & !is.na(metrop_labels)) %>% 
     mutate(time = as.Date(time)) %>%
     filter(time <= as.Date(end_date)) %>%
+    group_by(time, metrop_labels, sim_num) %>%
+    summarize(nhosp = sum(incidH, na.rm = TRUE), 
+              nICU = sum(incidICU, na.rm = TRUE), 
+              nVent = sum(incidVent, na.rm = TRUE), 
+              ndeath = sum(incidD, na.rm = TRUE),
+              sumHospAdm = sum(incidH, na.rm=TRUE),
+              sumICUAdm = sum(incidICU, na.rm=TRUE),
+              sumHospCap = sum(hosp_curr, na.rm = TRUE),
+              sumICUCap = sum(icu_curr, na.rm=TRUE),
+              sumVentCap = sum(vent_curr, na.rm=TRUE)) %>%
+    ungroup() %>%
     group_by(metrop_labels, sim_num) %>% 
     summarize(
       # nInf = sum(incidI, na.rm = TRUE), 
@@ -433,11 +442,11 @@ build_hospdeath_summarize <- function(res,
       nICU = sum(incidICU, na.rm = TRUE), 
       nVent = sum(incidVent, na.rm = TRUE), 
       ndeath = sum(incidD, na.rm = TRUE),
-      maxHospAdm = max(incidH, na.rm=TRUE),
-      maxICUAdm = max(incidICU, na.rm=TRUE),
-      maxHospCap = max(hosp_curr, na.rm = TRUE),
-      maxICUCap = max(icu_curr, na.rm=TRUE),
-      maxVentCap = max(vent_curr, na.rm=TRUE)
+      maxHospAdm = max(sumHospAdm, na.rm=TRUE),
+      maxICUAdm = max(sumICUAdm, na.rm=TRUE),
+      maxHospCap = max(sumHospCap, na.rm = TRUE),
+      maxICUCap = max(sumICUCap, na.rm=TRUE),
+      maxVentCap = max(sumVentCap, na.rm=TRUE)
     ) %>%
     ungroup() %>% 
     group_by(metrop_labels) %>% 
@@ -472,22 +481,30 @@ build_hospdeath_summarize <- function(res,
       nvent_curr_lo = quantile(maxVentCap, 0.25),
       nvent_curr_hi = quantile(naxVentCap, 0.75)
     )
-  
   res_total <- res %>% 
     filter(!is.na(time)) %>% 
     filter(time <= as.Date(end_date)) %>%
+    group_by(time, sim_num) %>%
+    summarize(nhosp = sum(incidH, na.rm = TRUE), 
+              nICU = sum(incidICU, na.rm = TRUE), 
+              nVent = sum(incidVent, na.rm = TRUE), 
+              ndeath = sum(incidD, na.rm = TRUE),
+              sumHospAdm = sum(incidH, na.rm=TRUE),
+              sumICUAdm = sum(incidICU, na.rm=TRUE),
+              sumHospCap = sum(hosp_curr, na.rm = TRUE),
+              sumICUCap = sum(icu_curr, na.rm=TRUE),
+              sumVentCap = sum(vent_curr, na.rm=TRUE)) %>%
+    ungroup() %>%
     group_by(sim_num) %>% 
-    summarize(#nInf = sum(incidI, na.rm = TRUE), 
-      nhosp = sum(incidH, na.rm = TRUE), 
-      nICU = sum(incidICU, na.rm = TRUE), 
-      nVent = sum(incidVent, na.rm = TRUE), 
-      ndeath = sum(incidD, na.rm = TRUE),
-      maxHospAdm = max(incidH, na.rm=TRUE),
-      maxICUAdm = max(incidICU, na.rm=TRUE),
-      maxHospCap = max(hosp_curr, na.rm = TRUE),
-      maxICUCap = max(icu_curr, na.rm=TRUE),
-      maxVentCap = max(vent_curr, na.rm=TRUE)
-    ) %>%
+    summarize(nhosp = sum(incidH, na.rm = TRUE), 
+              nICU = sum(incidICU, na.rm = TRUE), 
+              nVent = sum(incidVent, na.rm = TRUE), 
+              ndeath = sum(incidD, na.rm = TRUE),
+              maxHospAdm = max(sumHospAdm, na.rm=TRUE),
+              maxICUAdm = max(sumICUAdm, na.rm=TRUE),
+              maxHospCap = max(sumHospCap, na.rm = TRUE),
+              maxICUCap = max(sumICUCap, na.rm=TRUE),
+              maxVentCap = max(sumVentCap, na.rm=TRUE)) %>%
     ungroup() %>% 
     summarize(#nInf_final = mean(nInf),
       #nInf_lo = quantile(nInf, 0.25),
@@ -519,9 +536,7 @@ build_hospdeath_summarize <- function(res,
       nvent_curr_final = mean(maxVentCap),
       nvent_curr_lo = quantile(maxVentCap, 0.25),
       nvent_curr_hi = quantile(naxVentCap, 0.75))
-  
   out <- list(res_total = as.data.frame(res_total), res_metro = as.data.frame(res_metro))
-  
   if(incl.county){
     res_geoid <- res %>% 
       filter(!is.na(geoid)) %>% 
@@ -572,13 +587,10 @@ build_hospdeath_summarize <- function(res,
         nvent_curr_lo = quantile(maxVentCap, 0.25),
         nvent_curr_hi = quantile(naxVentCap, 0.75)
       )
-    
     out <- list(res_total = as.data.frame(res_total), res_metro = as.data.frame(res_metro), res_geoid = as.data.frame(res_geoid))
   }
-  
   return(out)
 }
-
 
 
 
@@ -613,76 +625,35 @@ build_hospdeath_summarize <- function(res,
 ##' @param incl_county logical, whether to produce a table grouped by geoid in addition to state + metrop
 ##' 
 
-build_hospdeath_summary_multiplePDeath <- function(data, 
-                                                   p_hosp_vec, 
-                                                   p_death_vec,
-                                                   p_ICU,
-                                                   p_vent,
-                                                   time_hosp_pars = c(1.23, 0.79), 
-                                                   time_death_pars = c(log(11.25), log(1.15)), 
-                                                   time_disch_pars = c(log(11.5), log(1.22)),
-                                                   time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
-                                                   time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
-                                                   time_ICUdur_pars = c(log(17.46), log(4.044)),
-                                                   end_date = "2020-04-01",
-                                                   length_geoid = 5,
-                                                   incl.county=FALSE,
-                                                   cores=1,
-                                                   run_parallel=FALSE){
-    
-    tmp_out <- build_hospdeath_summary(data, 
-                                       p_hosp=p_hosp_vec[1], 
-                                       p_death=p_death_vec[1],
-                                       p_ICU = p_ICU,
-                                       p_vent = p_vent,
-                                       time_hosp_pars = time_hosp_pars, 
-                                       time_death_pars = time_death_pars, 
-                                       time_disch_pars = time_disch_pars,
-                                       time_vent_pars = time_vent_pars,
-                                       time_ICU_pars = time_ICU_pars,
-                                       time_ICUdur_pars = time_ICUdur_pars,
+build_hospdeath_summary_multiplePDeath <- function(data, p_death_vec, end_date, incl.county){
+  
+  
+  tmp_out <- build_hospdeath_summarize(data[[1]],
                                        end_date = end_date,
-                                       length_geoid = length_geoid,
-                                       incl.county = incl.county,
-                                       cores=cores,
-                                       run_parallel=run_parallel,
-                                       get_curr_hosp = FALSE) 
+                                       incl.county = incl.county)
+  
+  tmp_metro <- tmp_out[['res_metro']] %>% mutate(p_death = p_death[1])
+  tmp_total <- tmp_out[['res_total']] %>% mutate(p_death = p_death[1])
+  if(incl.county){ tmp_geoid <- tmp_out[['res_geoid']] %>% mutate(p_death = p_death[1]) }
+  
+  for(i in 2:length(p_death)){
+    tmp_out <- build_hospdeath_summarize(data[[i]],
+                                         end_date = end_date,
+                                         incl.county = incl.county)
     
-    tmp_metro <- tmp_out[['res_metro']] %>% mutate(p_death = p_death[1])
-    tmp_total <- tmp_out[['res_total']] %>% mutate(p_death = p_death[1])
-    if(incl.county){ tmp_geoid <- tmp_out[['res_geoid']] %>% mutate(p_death = p_death[1]) }
-    
-    for(i in 2:length(p_death)){
-        tmp_out <- build_hospdeath_summary(data, 
-                                           p_hosp=p_hosp_vec[i], 
-                                           p_death=p_death_vec[i],
-                                           p_ICU = p_ICU,
-                                           p_vent = p_vent,
-                                           time_hosp_pars = time_hosp_pars, 
-                                           time_death_pars = time_death_pars, 
-                                           time_disch_pars = time_disch_pars,
-                                           time_vent_pars = time_vent_pars,
-                                           time_ICU_pars = time_ICU_pars,
-                                           time_ICUdur_pars = time_ICUdur_pars,
-                                           end_date = end_date,
-                                           length_geoid = length_geoid,
-                                           incl.county = incl.county,
-                                           cores=cores,
-                                           run_parallel=run_parallel,
-                                           get_curr_hosp = FALSE) 
-        
-        tmp_metro <- bind_rows(tmp_metro, tmp_out[['res_metro']] %>% mutate(p_death = p_death[i]))
-        tmp_total <- bind_rows(tmp_total, tmp_out[['res_total']] %>% mutate(p_death = p_death[i]))
-        if(incl.county){tmp_geoid <- bind_rows(tmp_geoid, tmp_out[['res_geoid']] %>% mutate(p_death = p_death[i]))}
-    }
-    
-    out <- list(res_total = tmp_total, res_metro = tmp_metro)
-    
-    if(incl.county){
-        out <- list(res_total = tmp_total, res_metro = tmp_metro, res_geoid = tmp_geoid)
-    }
-    
-    return(out)
+    tmp_metro <- bind_rows(tmp_metro, tmp_out[['res_metro']] %>% mutate(p_death = p_death[i]))
+    tmp_total <- bind_rows(tmp_total, tmp_out[['res_total']] %>% mutate(p_death = p_death[i]))
+    if(incl.county){tmp_geoid <- bind_rows(tmp_geoid, tmp_out[['res_geoid']] %>% mutate(p_death = p_death[i]))}
+  }
+  
+  out <- list(res_total = tmp_total, res_metro = tmp_metro)
+  
+  if(incl.county){
+    out <- list(res_total = tmp_total, res_metro = tmp_metro, res_geoid = tmp_geoid)
+  }
+  
+  return(out)
+  
 }
 
 
