@@ -6,22 +6,16 @@ Public shared code for doing scenario forecasting and creating reports for vario
 ### Run the code
 
 ```
-git clone --recurse-submodules SPATIAL_SETUP_REPO
+git clone SPATIAL_SETUP_REPO
+git submodules init
+git submodules 
 ```
 
 If this code change, pull the lastest version of it from the `SPATIAL_SETUP_REPO` using:
 
 ```
-git submodule foreach git pull origin master
-git submodule foreach git pull origin dataseed
+git submodule update --remote --merge
 ```
-
-After pulling an updated commit of this repository as a submodule, remember to commit that update, since submodules always reference a particular commit.
-```
-git commit -m "Updated submodule version to master"
-```
-
-If making changes to this repository, please do it directly instead of through the submodule.
 
 Then create setup in a subfolder of the `data` using the notebook `data/build-model-input.ipynb`. This creates two files
 
