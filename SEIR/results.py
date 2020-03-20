@@ -17,7 +17,7 @@ class Results():
         self.tf = self.s.tf
 
         self.freq = str(s.dt*24) + 'H'
-        self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        #self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         self.figdir = f'model_output/{self.s.setup_name}/figures/'
         if not os.path.exists(self.figdir):
             os.makedirs(self.figdir)
@@ -102,9 +102,9 @@ class Results():
         """ 
         This is very ugly...
         """
-        self.datadir = f'model_output/{self.s.setup_name}/{self.s.setup_name}_{self.timestamp}/'
-        if not os.path.exists(self.datadir):
-            os.makedirs(self.datadir)
+        #self.datadir = f'model_output/{self.s.setup_name}/{self.s.setup_name}_{self.timestamp}/'
+        #if not os.path.exists(self.datadir):
+        #    os.makedirs(self.datadir)
 
         sims = []
         for s in range(self.s.nsim):
