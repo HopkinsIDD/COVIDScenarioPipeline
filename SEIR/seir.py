@@ -16,20 +16,22 @@ r_options = robjects.r['options']
 r_options(warn=-1)
 from rpy2.rinterface_lib.callbacks import logger as rpy2_logger
 import logging, scipy
+from COVIDScenarioPipeline.SEIR import setup
 rpy2_logger.setLevel(logging.ERROR)
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
-def onerun_SEIR(s, p, uid):
+def onerun_SEIR(s, uid):
     scipy.random.seed()
+    #p = setup.COVID19Parameters(s)
     r_assign('ti_str', str(s.ti))
     r_assign('tf_str', str(s.tf))
     r_assign('foldername', s.spatset.folder)
     r_source(s.script_npi)
     npi = robjects.r['NPI'].T
-    p.addNPIfromR(npi)
+    #p.addNPIfromR(npi)
 
     #r_assign('region', s.spatset.setup_name)
     #r_source(s.script_import)
@@ -47,7 +49,7 @@ def onerun_SEIR(s, p, uid):
     #importation = importation.to_numpy()
     importation = np.zeros((s.t_span+3, s.nnodes))
 
-    states = steps_SEIR_nb(p.draw(uid),
+    states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
                             s.buildICfromfilter(), 
                             uid,
                             s.dt,
@@ -83,16 +85,16 @@ def onerun_SEIR(s, p, uid):
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
         out_df.to_csv(f"{s.datadir}{s.setup_name}_sim_{uid}_scn.csv", index='time', index_label='time')
 
-    return states
+    return 1
     
-def run_parallel(s, p, processes=multiprocessing.cpu_count()):   # set to 16 when running on server
+def run_parallel(s, processes=multiprocessing.cpu_count()):   # set to 16 when running on server
 
     tic = time.time()
     uids = np.arange(s.nsim)
 
     with multiprocessing.Pool(processes=processes) as pool:
         result = pool.starmap(onerun_SEIR, zip(itertools.repeat(s),
-                                               itertools.repeat(p),
+                                               #itertools.repeat(p),
                                                uids))
     print(f">>> {s.nsim}  Simulations done in {time.time()-tic} seconds...")
     return result
