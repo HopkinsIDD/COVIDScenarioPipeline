@@ -85,7 +85,7 @@ def onerun_SEIR(s, uid):
         out_df['comp'].replace(cumI,  'cumI', inplace=True)
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
         str(uuid.uuid4())[:2]
-        out_df.to_csv(f"{s.datadir}{s.setup_name}_sim_{str(uuid.uuid4())}.csv", index='time', index_label='time')
+        out_df.to_csv(f"{s.datadir}{s.timestamp}_{s.setup_name}_{str(uuid.uuid4())}.csv", index='time', index_label='time')
 
     return 1
     
