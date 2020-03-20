@@ -35,7 +35,7 @@ class Setup():
 
         if self.write_csv:
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-            self.datadir = f'model_output/{self.setup_name}/{self.setup_name}_{self.timestamp}/'
+            self.datadir = f'model_output/{self.setup_name}/'
             if not os.path.exists(self.datadir):
                 os.makedirs(self.datadir)
 
