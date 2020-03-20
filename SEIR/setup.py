@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-import datetime, os
+import datetime
 from shapely.geometry import Point, Polygon
 from COVIDScenarioPipeline.SEIR import seir
 
@@ -32,12 +32,6 @@ class Setup():
 
         self.build_setup()
         self.dynfilter = - np.ones((self.t_span,self.nnodes))
-
-        if self.write_csv:
-            self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-            self.datadir = f'model_output/{self.setup_name}/'
-            if not os.path.exists(self.datadir):
-                os.makedirs(self.datadir)
 
     def build_setup(self):
         self.t_span = (self.tf -  self.ti).days
@@ -97,7 +91,9 @@ class COVID19Parameters():
         self.gamma = np.dstack([self.gamma]*s.nnodes)
         self.sigma = np.vstack([self.sigma]*s.nnodes)
 
-    def draw(self, beta_id):
+        print (f' >>> Added Parameters with values:')
+
+    def to_vector(self, beta_id):
         """ for speed, to use with numba JIT compilation"""
         return(np.array([self.betas[:,beta_id%self.s.nbetas], self.sigma.T, self.gamma[:,beta_id%self.s.nbetas]]))
 
@@ -118,32 +114,6 @@ class COVID19Parameters():
         for i in range(self.s.nbetas):
             self.betas[:,i,:] =  np.multiply(self.betas[:,i,:], np.ones_like(self.betas[:,i,:]) - npi.to_numpy())
 
-
-def parameters_quick_draw(s, npi):
-        sigma = 1/5.2
-        n_Icomp = 3
-        gamma = np.random.uniform(1/6, 1/2.6) * n_Icomp  # range of serial from 8.2 to 6.5
-        
-        if 'low' in s.setup_name: R0s = np.random.uniform(1.5, 2)   # np.random.uniform(1.5, 2, nbetas)
-        if 'mid' in s.setup_name: R0s = np.random.uniform(2, 3)
-
-        beta = np.multiply(R0s, gamma) / n_Icomp
-        #print(beta, gamma,  sigma)
-        
-        beta =   np.hstack([beta]*len(s.t_inter))
-        gamma = np.hstack([gamma]*len(s.t_inter))
-        sigma = np.hstack([sigma]*len(s.t_inter))
-        
-        beta =   np.vstack([beta]*s.nnodes)
-        gamma = np.vstack([gamma]*s.nnodes)
-        sigma = np.vstack([sigma]*s.nnodes)
-        #print(beta.shape, gamma.shape, sigma.shape)
-
-        npi.index = pd.to_datetime(npi.index.astype(str))
-        npi = npi.resample(str(s.dt*24) + 'H').ffill()
-        beta =  np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
-
-        return(np.array([beta.T, sigma.T, gamma.T]))
 
 
 

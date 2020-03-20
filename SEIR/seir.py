@@ -16,23 +16,20 @@ r_options = robjects.r['options']
 r_options(warn=-1)
 from rpy2.rinterface_lib.callbacks import logger as rpy2_logger
 import logging, scipy
-from COVIDScenarioPipeline.SEIR import setup
 rpy2_logger.setLevel(logging.ERROR)
-import uuid
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
-def onerun_SEIR(s, uid):
+def onerun_SEIR(s, p, uid):
     scipy.random.seed()
-    #p = setup.COVID19Parameters(s)
     r_assign('ti_str', str(s.ti))
     r_assign('tf_str', str(s.tf))
     r_assign('foldername', s.spatset.folder)
     r_source(s.script_npi)
     npi = robjects.r['NPI'].T
-    #p.addNPIfromR(npi)
+    p.addNPIfromR(npi)
 
     #r_assign('region', s.spatset.setup_name)
     #r_source(s.script_import)
@@ -50,7 +47,7 @@ def onerun_SEIR(s, uid):
     #importation = importation.to_numpy()
     importation = np.zeros((s.t_span+3, s.nnodes))
 
-    states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
+    states = steps_SEIR_nb(p.to_vector(uid),
                             s.buildICfromfilter(), 
                             uid,
                             s.dt,
@@ -60,43 +57,16 @@ def onerun_SEIR(s, uid):
                             s.mobility,
                             s.dynfilter,
                             importation)
-
-    # Tidyup data for  R, to save it:
-    if s.write_csv:
-        a = states.copy()[:,:,::int(1/s.dt)]
-        a = np.moveaxis(a, 1, 2)
-        a = np.moveaxis(a, 0, 1)
-        b = np.diff(a,axis = 0)
-        difI=np.zeros((s.t_span+1, s.nnodes))
-        difI[1:,:] = b[:,cumI,:]
-        na = np.zeros((s.t_span+1, ncomp+1, s.nnodes))
-        na[:,:-1,:] = a
-        na[:,-1,:] = difI
-        m,n,r = na.shape
-        out_arr = np.column_stack((np.tile(np.arange(n),m), na.reshape(n*m,-1)))
-        out_df = pd.DataFrame(out_arr, columns = ['comp'] + list(s.spatset.data['geoid'].astype(int)),
-                            index = pd.date_range(s.ti, s.tf, freq='D').repeat(ncomp+1))
-        out_df['comp'].replace(S,     'S', inplace=True)
-        out_df['comp'].replace(E,     'E', inplace=True)
-        out_df['comp'].replace(I1,    'I1', inplace=True)
-        out_df['comp'].replace(I2,    'I2', inplace=True)
-        out_df['comp'].replace(I3,    'I3', inplace=True)
-        out_df['comp'].replace(R,     'R', inplace=True)
-        out_df['comp'].replace(cumI,  'cumI', inplace=True)
-        out_df['comp'].replace(ncomp, 'diffI', inplace=True)
-        str(uuid.uuid4())[:2]
-        out_df.to_csv(f"{s.datadir}{s.timestamp}_{s.setup_name}_{str(uuid.uuid4())}.csv", index='time', index_label='time')
-
-    return 1
+    return states
     
-def run_parallel(s, processes=multiprocessing.cpu_count()):   # set to 16 when running on server
+def run_parallel(s, p, processes=multiprocessing.cpu_count()):   # set to 16 when running on server
 
     tic = time.time()
     uids = np.arange(s.nsim)
 
     with multiprocessing.Pool(processes=processes) as pool:
         result = pool.starmap(onerun_SEIR, zip(itertools.repeat(s),
-                                               #itertools.repeat(p),
+                                               itertools.repeat(p),
                                                uids))
     print(f">>> {s.nsim}  Simulations done in {time.time()-tic} seconds...")
     return result
