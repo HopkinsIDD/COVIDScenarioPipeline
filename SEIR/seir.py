@@ -5,7 +5,7 @@ from rpy2 import robjects
 from rpy2.robjects import pandas2ri
 pandas2ri.activate()
 import pandas as pd
-import warnings, random
+import warnings
 from rpy2.rinterface import RRuntimeWarning
 warnings.filterwarnings("ignore", category=RRuntimeWarning)
 import rpy2.robjects as ro
@@ -15,7 +15,7 @@ r_assign = robjects.r['assign']
 r_options = robjects.r['options']
 r_options(warn=-1)
 from rpy2.rinterface_lib.callbacks import logger as rpy2_logger
-import logging, scipy
+import logging
 rpy2_logger.setLevel(logging.ERROR)
 
 ncomp = 7
@@ -23,32 +23,30 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
 def onerun_SEIR(s, p, uid):
-    scipy.random.seed()
     r_assign('ti_str', str(s.ti))
-    r_assign('tf_str', str(s.tf))
+    r_assign('tf_str', str(s.ti))
     r_assign('foldername', s.spatset.folder)
     r_source(s.script_npi)
     npi = robjects.r['NPI'].T
     p.addNPIfromR(npi)
 
-    #r_assign('region', s.spatset.setup_name)
-    #r_source(s.script_import)
-    #importation = robjects.r['county_importations_total']
-    #importation = importation.pivot(index='date', columns='fips_cty', values='importations')
-    #importation = importation.fillna(value = 0)
-    #importation.index = pd.to_datetime(importation.index)
-    #importation.columns = pd.to_numeric(importation.columns)
-    #for col in s.spatset.data['geoid']:
-    #    if col not in importation.columns:
-    #        importation[col] = 0
-    #importation = importation.reindex(sorted(importation.columns), axis=1)
-    #idx = pd.date_range(s.ti, s.tf)
-    #importation = importation.reindex(idx, fill_value=0)
-    #importation = importation.to_numpy()
-    importation = np.zeros((s.t_span+3, s.nnodes))
+    r_assign('region', s.spatset.setup_name)
+    r_source(s.script_import)
+    importation = robjects.r['county_importations_total']
+    importation = importation.pivot(index='date', columns='fips_cty', values='importations')
+    importation = importation.fillna(value = 0)
+    importation.index = pd.to_datetime(importation.index)
+    importation.columns = pd.to_numeric(importation.columns)
+    for col in s.spatset.data['geoid']:
+        if col not in importation.columns:
+            importation[col] = 0
+    importation = importation.reindex(sorted(importation.columns), axis=1)
+    idx = pd.date_range(s.ti, s.tf)
+    importation = importation.reindex(idx, fill_value=0)
+    importation = importation.to_numpy()
 
     states = steps_SEIR_nb(p.to_vector(uid),
-                            s.buildICfromfilter(), 
+                            s.y0, 
                             uid,
                             s.dt,
                             s.t_inter,
@@ -128,8 +126,8 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes,
         states[:,:,it] = y
         if (it%int(1/dt)==0):
             y[cumI] += importation[int(t)]
-        #if (it%(1/dt) == 0 and (y[cumI] <= dynfilter[int(it%(1/dt))]).any()):
-        #        return -np.ones((ncomp, nnodes, len(t_inter)))
+        if (it%(1/dt) == 0 and (y[cumI] <= (dynfilter[int(it%(1/dt))/2)]).any()):
+                return -np.ones((ncomp, nnodes, len(t_inter)))
 
     return states
     
