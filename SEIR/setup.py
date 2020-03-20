@@ -2,13 +2,11 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import datetime
-import random
 from shapely.geometry import Point, Polygon
 from COVIDScenarioPipeline.SEIR import seir
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
-MAX_32BIT_UNSIGNED = 4294967295
 
 class Setup():
     """ 
@@ -24,7 +22,7 @@ class Setup():
         self.tf = tf
         self.interactive = interactive
         self.write_csv = write_csv
-        self.np_seed = random.randint(0, MAX_32BIT_UNSIGNED)
+        self.np_seed = int(datetime.datetime.now().timestamp())
 
         if nbetas is None:
             nbetas = nsim
