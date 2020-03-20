@@ -225,7 +225,7 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
   time_hosp_pars <- c(1.23, 0.79)
   time_disch_pars <- c(log(11.5), log(1.22))
   time_death_pars <- c(log(11.25), log(1.15))
-  time_ICU_pars = c(log(10.5), log((10.5-7)/1.35))
+  time_ICU_pars = c(log(8.25), log(2.2))
   time_ICUdur_pars = c(log(17.46), log(4.044))
   time_vent_pars = c(log(10.5), log((10.5-8)/1.35))
   mean_inc <- 5.2
@@ -247,6 +247,8 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
   args <- commandArgs(trailingOnly=TRUE)
   data_filename <- args[1]
   cmd <- args[2]
+  ncore = as.numeric(args[3])
+  if(is.nan(ncore)){ncore <- 32}
 
   if (cmd == "high") {
   res_npi3 <- build_hospdeath_par(NULL,
@@ -264,7 +266,7 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
                                  end_date = "2020-10-01",
                                   length_geoid = 4,
                                   incl.county = TRUE,
-                                  cores = 32,
+                                  cores = ncore,
                                  data_filename = data_filename,
                                  scenario_name = "high_death",
                                   index_offset = global_index_offset
@@ -289,7 +291,7 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
                                   end_date = "2020-10-01",
                                  length_geoid = 4,
                                   incl.county = TRUE,
-                                  cores = 32,
+                                  cores = ncore,
                                   data_filename = data_filename,
                                   scenario_name = "med_death",
                                  index_offset = global_index_offset
@@ -312,7 +314,7 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
                                   end_date = "2020-10-01",
                                   length_geoid = 4,
                                   incl.county = TRUE,
-                                  cores = 32,
+                                  cores = ncore,
                                   data_filename = data_filename,
                                   scenario_name = "low_death",
                                   index_offset = global_index_offset
