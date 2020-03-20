@@ -48,16 +48,7 @@ class Setup():
             self.y0[I1, pl] = seeding_amount[i]
         return self.y0
 
-    def buildICfromfilter(self):
-        y0 = np.zeros((ncomp, self.nnodes))#, dtype = 'int64')
-        draw = np.random.poisson(5*self.dynfilter[31]+0.1)
-        y0[S,:] = self.popnodes - draw
-        y0[E, :] = (draw/4).astype(np.int)
-        y0[I1, :] = (draw/4).astype(np.int)
-        y0[I2, :] = (draw/4).astype(np.int)
-        y0[I3, :] = (draw/4).astype(np.int)
-        y0[cumI, :] = (3*draw/4).astype(np.int)
-        return y0
+    
 
     def set_filter(self, dynfilter):
         self.dynfilter = dynfilter
@@ -113,8 +104,6 @@ class COVID19Parameters():
         npi = npi.resample(str(self.s.dt*24) + 'H').ffill()
         for i in range(self.s.nbetas):
             self.betas[:,i,:] =  np.multiply(self.betas[:,i,:], np.ones_like(self.betas[:,i,:]) - npi.to_numpy())
-
-
 
 
 class CaliforniaSpatialSetup():
