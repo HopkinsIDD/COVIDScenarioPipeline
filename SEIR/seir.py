@@ -18,6 +18,7 @@ from rpy2.rinterface_lib.callbacks import logger as rpy2_logger
 import logging, scipy
 from COVIDScenarioPipeline.SEIR import setup
 rpy2_logger.setLevel(logging.ERROR)
+import uuid
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
@@ -83,7 +84,8 @@ def onerun_SEIR(s, uid):
         out_df['comp'].replace(R,     'R', inplace=True)
         out_df['comp'].replace(cumI,  'cumI', inplace=True)
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
-        out_df.to_csv(f"{s.datadir}{s.setup_name}_sim_{uid}_scn.csv", index='time', index_label='time')
+        str(uuid.uuid4())[:2]
+        out_df.to_csv(f"{s.datadir}{s.setup_name}_sim_{str(uuid.uuid4())}.csv", index='time', index_label='time')
 
     return 1
     
