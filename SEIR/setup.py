@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-import datetime
+import datetime, os
 from shapely.geometry import Point, Polygon
 from COVIDScenarioPipeline.SEIR import seir
 
@@ -32,6 +32,12 @@ class Setup():
 
         self.build_setup()
         self.dynfilter = - np.ones((self.t_span,self.nnodes))
+
+        if self.write_csv:
+            self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            self.datadir = f'model_output/{self.setup_name}/{self.setup_name}_{self.timestamp}/'
+            if not os.path.exists(self.datadir):
+                os.makedirs(self.datadir)
 
     def build_setup(self):
         self.t_span = (self.tf -  self.ti).days
@@ -93,7 +99,7 @@ class COVID19Parameters():
 
         print (f' >>> Added Parameters with values:')
 
-    def to_vector(self, beta_id):
+    def draw(self, beta_id):
         """ for speed, to use with numba JIT compilation"""
         return(np.array([self.betas[:,beta_id%self.s.nbetas], self.sigma.T, self.gamma[:,beta_id%self.s.nbetas]]))
 
