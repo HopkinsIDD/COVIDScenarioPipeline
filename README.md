@@ -3,25 +3,13 @@ Public shared code for doing scenario forecasting and creating reports for vario
 
 # Howto
 
+### Set up the repository
+
+**Please see the [Wiki for this repository](#https://github.com/HopkinsIDD/COVIDScenarioPipeline/wiki) for updated instructions on how to clone the repository and push/pull changes.**
+
+If making changes to this repository, please do it directly instead of through the submodule of another repository.
+
 ### Run the code
-
-```
-git clone --recurse-submodules SPATIAL_SETUP_REPO
-```
-
-If this code change, pull the lastest version of it from the `SPATIAL_SETUP_REPO` using:
-
-```
-git submodule foreach git pull origin master
-git submodule foreach git pull origin dataseed
-```
-
-After pulling an updated commit of this repository as a submodule, remember to commit that update, since submodules always reference a particular commit.
-```
-git commit -m "Updated submodule version to master"
-```
-
-If making changes to this repository, please do it directly instead of through the submodule.
 
 Then create setup in a subfolder of the `data` using the notebook `data/build-model-input.ipynb`. This creates two files
 
