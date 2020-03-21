@@ -5,7 +5,7 @@ Public shared code for doing scenario forecasting and creating reports for vario
 
 ### Set up the repository
 
-**Please see the [Wiki for this repository](#https://github.com/HopkinsIDD/COVIDScenarioPipeline/wiki) for updated instructions on how to clone the repository and push/pull changes.**
+**Please see the [Wiki for this repository](https://github.com/HopkinsIDD/COVIDScenarioPipeline/wiki) for updated instructions on how to clone the repository and push/pull changes.**
 
 If making changes to this repository, please do it directly instead of through the submodule of another repository.
 
