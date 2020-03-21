@@ -15,6 +15,8 @@ Some key concepts:
 
 ## Quick links
 
+If you don't want to follow the instructions below every time, skip ahead to [Setting up custom git commands for dealing with submodules](#setting-up-custom-git-commands-for-dealing-with-submodules). After setting up these commands, `sclone`, `spull`, and `spush` will clone, pull, and push repositories while accounting for submodules.
+
 * [Cloning a repository with submodules](#cloning-the-repository-for-the-first-time)
 * [Pulling changes](#pulling-changes-to-git-repositories-with-submodules)
 * [Making changes to submodules](#making-changes-to-submodules-within-the-main-repository)
@@ -123,3 +125,22 @@ git checkout --recurse-submdoules BRANCH-NAME
 ```
 
 To avoid potential issues, make sure to commit and push all changes on a branch before switching. After switching, make sure to update this branch to point to the most recent commit on the submodule branch specified in this branch of the main repository, commit this change, and set up tracking of the submodule directory.
+
+## Setting up custom git commands for dealing with submodules
+
+Following these steps will create custom commands that you can use to clone, pull, and push repositories without worrying about submodules. However, remember that **`clone` and `pull` may create changes that need to be committed** -- don't forget to commit these changes (typically with `git commit -m update submodule version to most recent commit'`) after running!
+
+#### Linux or Mac OSX
+
+1. Copy the `git_cmds.sh` file in this repository to your machine
+2. Open your `.bash_profile` file and add the following: `source PATH-TO/git_cmds.sh`
+3. Close your terminal window
+
+After restarting your terminal, the commands `sclone`, `spull`, and `spush` should work just as you expect, but they will account for submodules in your repositories.
+
+#### Windows
+
+1. Copy the `git_cmds.bat` file in this repository to C:/Windows/System32 on your machine
+2. Close your Command Prompt
+
+After restarting your Command Prompt, the commands `sclone`, `spull`, and `spush` should work just as you expect, but they will account for submodules in your repositories.
