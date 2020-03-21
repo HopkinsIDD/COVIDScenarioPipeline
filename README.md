@@ -11,7 +11,7 @@ If making changes to this repository, please do it directly instead of through t
 
 ### Run the code
 
-After cloning the repository (see [Wiki](https://github.com/HopkinsIDD/COVIDScenarioPipeline/wiki)) for instructions on how to clone a repository with submodules) create setup in a subfolder of the `data` using the notebook `data/build-model-input.ipynb`. This creates two files:
+After cloning the repository (see [Wiki](https://github.com/HopkinsIDD/COVIDScenarioPipeline/wiki) for instructions on how to clone a repository with submodules) create setup in a subfolder of the `data` using the notebook `data/build-model-input.ipynb`. This creates two files:
 
 * `mobility.txt` : mobility matrix from us commute, as in [An Economic Geography of the United States: From Commutes to Megaregions by Garrett Dash Nelson and Alasdair Rae](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0166083) processed by [Ed King on Kaggle](https://www.kaggle.com/kinguistics/visualizing-u-s-commutes)
 * `geodata.csv` : specification of the spatial nodes, with at least column for the index, the geoid or name, the population.
