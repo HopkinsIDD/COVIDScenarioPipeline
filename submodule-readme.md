@@ -15,7 +15,7 @@ Some key concepts:
 
 ## Quick links
 
-If you don't want to follow the instructions below every time, skip ahead to [Setting up custom git commands for dealing with submodules](#setting-up-custom-git-commands-for-dealing-with-submodules). After setting up these commands, `sclone`, `spull`, and `spush` will clone, pull, and push repositories while accounting for submodules.
+If you don't want to follow the instructions below every time, skip ahead to [Setting up custom git commands for dealing with submodules](#setting-up-custom-git-commands-for-dealing-with-submodules). After setting up these commands, `git-sclone`, `git-spull`, and `git-spush` will clone, pull, and push repositories while accounting for submodules.
 
 * [Cloning a repository with submodules](#cloning-the-repository-for-the-first-time)
 * [Pulling changes](#pulling-changes-to-git-repositories-with-submodules)
@@ -136,11 +136,23 @@ Following these steps will create custom commands that you can use to clone, pul
 2. Open your `.bash_profile` file and add the following: `source PATH-TO/gitcommands.sh`
 3. Close your terminal window
 
-After restarting your terminal, the commands `sclone`, `spull`, and `spush` should work just as you expect, but they will account for submodules in your repositories.
+After restarting your terminal, the commands `git-sclone`, `git-spull`, and `git-spush` should work just as you expect, but they will account for submodules in your repositories. You run them like this:
+
+```
+git-sclone URL
+git-spull
+git-spush
+```
 
 #### Windows
 
 1. Copy the `gitcommands.bat` file in this repository to C:/Windows/System32 on your machine
 2. Close your Command Prompt
 
-After restarting your Command Prompt, the commands `sclone`, `spull`, and `spush` should work just as you expect, but they will account for submodules in your repositories.
+After restarting your Command Prompt, the commands `git-sclone`, `git-spull`, and `git-spush` should work just as you expect, but they will account for submodules in your repositories. You run them like this:
+
+```
+git-sclone URL
+git-spull
+git-spush
+```
