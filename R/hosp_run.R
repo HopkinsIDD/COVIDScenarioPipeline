@@ -6,7 +6,6 @@ library(readr)
 library(gridExtra)
 library(ggfortify)
 library(flextable)
-library(cowplot)
 library(doParallel)
 library(data.table)
 library(foreach)
@@ -25,7 +24,7 @@ load_scenario_sims <- function(scenario_dir,
   rc <- list()
   cl <- makeCluster( cores )
   registerDoParallel(cl)
-  rc = foreach (i = 1:length(files), .packages = c('dplyr','tidyr','readr','data.table')) %do% {
+  rc = foreach (i = 1:length(files), .packages = c('dplyr','tidyr','readr','data.table')) %dopar% {
     file <- files[i]
     #print(i)
     if (is.null(keep_compartments)) {
@@ -79,8 +78,9 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
 
   
   print(paste("Running over",n_sim,"simulations"))
-  dat_final <- foreach(s=seq_len(n_sim), .packages=c("dplyr","readr","data.table","tidyr")) %do% {
-    source("R/DataUtils_withHospCapacity.R")
+  dat_final <- foreach(s=seq_len(n_sim), .packages=c("dplyr","readr","data.table","tidyr")) %dopar% {
+  # for(s in seq_len(n_sim)){
+    source("COVIDScenarioPipeline/R/DataUtils_withHospCapacity.R")
     library(stringr)
     print(s)
 
@@ -261,13 +261,18 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
   print("Starting hospitalization")
 ## hospitalizations: uncontrolled ----------------------------------------
 
-  data_filename <- "model_output/unifiedNPI/"
-  #args <- commandArgs(trailingOnly=TRUE)
-  #data_filename <- args[1]
-  cmd <- "high"
-  ncore = 1 # as.numeric(args[3])
-  if(is.nan(ncore)){ncore <- 32}
 
+  args <- commandArgs(trailingOnly=TRUE)
+  data_filename <- args[1]
+  cmd <- args[2]
+  ncore = as.numeric(args[3])
+  if(length(args) == 0){
+    data_filename <- "model_output/mid-west-coast-AZ-NV_NoNPI"
+    cmd <- "high"
+    ncore <- 1
+  }
+
+  cat(paste(data_filename,"\n"))
   res_npi3 <- build_hospdeath_par(NULL,
                                   p_hosp = p_death[3]*10,
                                   p_death = .1,
@@ -285,6 +290,6 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
                                   incl.county = TRUE,
                                   cores = ncore,
                                  data_filename = data_filename,
-                                 scenario_name = "high_death",
+                                 scenario_name = paste(cmd,"death",sep="_"),
                                   index_offset = global_index_offset
   )
