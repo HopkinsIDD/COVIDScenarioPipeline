@@ -29,12 +29,14 @@ To properly clone a git repository with submodules, run the following command fo
 git clone --recurse-submodules REPOSITORY-URL
 ```
 
-If you have already cloned the repository with the standard `git clone REPOSITORY-URL`, you will see the directories that contain the submodules, but they will be empty. In that case, you need to run the following two commands afterwards to fetch all the data from these submodules. **Don't run this command if you properly cloned your repository with the --recurse-submodules flag above.**
+<sub>
+If you have already cloned the repository with the standard `git clone REPOSITORY-URL`, you will see the directories that contain the submodules, but they will be empty. In that case, you need to run the following two commands afterwards to fetch all the data from these submodules. **Don't run these commands if you properly cloned your repository with the --recurse-submodules flag above.**
 
 ```
 git submodule init
 git submodule update
 ```
+<sub>
 
 Afer cloning your repository, run the following command to ensure that you are pointing to the most recent version of each submodule *in the specified branch for this repository*. You can check the branch that this repository points to by looking inside `.gitmodules`. If no branch is specified, this repository defaults to master.
 
@@ -42,7 +44,9 @@ Afer cloning your repository, run the following command to ensure that you are p
 git submodule update --remote --recursive
 ```
 
+<sub>
 (This will update all of the submodules in your main repository. If there are many, consider adding `SUBMODULE-NAME` to the end of the command to update just one at a time.)
+<sub>
 
 Since we just updated which commit in the submodule the main repository is pointing to, we need to commit these changes:
 
@@ -66,13 +70,18 @@ Each time you want to pull new changes, including new changes to the submodules,
 3. Track
 
 ```
-git pull --recurse-submodules
+git pull
+git submodule update --remote --recursive
 
 git add SUBMODULE NAME
 git commit -m 'git commit -m 'update submodule version to most recent commit'
 
 git submodule foreach -q --recursive 'git checkout $(git config -f $toplevel/.gitmodules submodule.$name.branch || echo master)'
 ```
+
+<sub>
+Note: a previous version of this document suggested using `git pull --recurse-submodules` instead of `git pull` followed by `git submodule update --remote --recursive`. This will still work as expected if your main repository points to the master branch of the submodule. However, when this is not the case, `git pull --recurse-submodules` will not update the pointer to the correct commit. Therefore, this has been updated to the current version, which will work regardless of the designated submodule branch.
+<sub>
 
 ## Making changes to submodules within the main repository
 
