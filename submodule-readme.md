@@ -75,7 +75,21 @@ git commit -m 'git commit -m 'update submodule version to most recent commit'
 git submodule foreach -q --recursive 'git checkout $(git config -f $toplevel/.gitmodules submodule.$name.branch || echo master)'
 ```
 
-Note: a previous version of this document suggested using `git pull --recurse-submodules` instead of `git pull` followed by `git submodule update --remote --recursive`. This will still work as expected if your main repository points to the master branch of the submodule. However, when this is not the case, `git pull --recurse-submodules` will not update the pointer to the correct commit. Therefore, this has been updated to the current version, which will work regardless of the designated submodule branch.
+Note: a previous version of this document suggested using `git pull --recurse-submodules` instead of `git pull` followed by `git submodule update --remote --recursive`. This will still work as expected if your main repository points to the master branch of the submodule. However, when this is not the case, `git pull --recurse-submodules` will not update the submodule to the correct commit. Therefore, this has been updated to the current version, which will work regardless of the designated submodule branch.
+
+#### Updating your submodule to the most recent commit on another branch
+
+There is a way to update the submodule to the most recent commit on a branch other than the one specified in the `.gitmodules` file of your main repository (remember: if no branch is specified, this repository will by default update to the most recent commit of the master branch of the submodule).
+
+One way to do this is by updating the `.gitmodules` file. **However, the `.gitmodules` file is typically pushed and pulled, so updating the branch here will modify it for everyone.** If you just want to temporarily change the branch of your submodule, it is safer to update your local `.git/config` file. *Just remember to change it back when you are done*, as the content of this file will override what is in the `.gitmodules` file.
+
+Update your `.git/config` file to point to a different submodule branch like this:
+
+```
+git config -f .git/config submodule.SUBMODULE-NAME.branch SUBMODULE-BRANCH-NAME
+```
+
+After doing this, make sure to run `git submodule update --remote --recursive` to pull updates from the most recent commit on this desired branch.
 
 ## Making changes to submodules within the main repository
 
