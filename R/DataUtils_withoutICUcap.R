@@ -506,13 +506,13 @@ make_final_plot <- function(ca_final_dat){
 ##'
 ##'@return ggplot object, CA map with fill prop to final size
 ##'
-make_final_map <- function(ca_final_dat, title="", legend){
-    ca_final_dat$fill <- ca_final_dat$ar / 100000
+make_final_map <- function(ca_final_dat, title="", legend, scale){
+    ca_final_dat$fill <- ca_final_dat$ar #/ 100000
     
     p <- ggplot(ca_final_dat) +
         geom_sf(aes(fill=fill)) +
         theme_minimal() +
-        scale_fill_viridis(option="plasma", limits=c(0,1)) +
+        scale_fill_viridis(option=scale) +
         ggtitle(title) +
         theme(axis.title.x=element_blank(),
               axis.text.x=element_blank(),
@@ -522,7 +522,8 @@ make_final_map <- function(ca_final_dat, title="", legend){
               panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),
               panel.border = element_blank(),
-              axis.ticks.y=element_blank())
+              axis.ticks.y=element_blank(),
+              legend.position = legend) + labs(fill = "Cases per 100k")
     return(p)
 }
 
