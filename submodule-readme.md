@@ -128,19 +128,19 @@ To avoid potential issues, make sure to commit and push all changes on a branch 
 
 ## Setting up custom git commands for dealing with submodules
 
-Following these steps will create custom commands that you can use to clone, pull, and push repositories without worrying about submodules. However, remember that **`clone` and `pull` may create changes that need to be committed** -- don't forget to commit these changes (typically with `git commit -m update submodule version to most recent commit'`) after running!
+Following these steps will create custom commands that you can use to clone, pull, and push repositories without worrying about submodules. However, remember that **`clone` and `pull` may create changes that need to be committed** -- don't forget to commit these changes (typically with `git commit -m 'update submodule version to most recent commit'`) after running!
 
 #### Linux or Mac OSX
 
-1. Copy the `git_cmds.sh` file in this repository to your machine
-2. Open your `.bash_profile` file and add the following: `source PATH-TO/git_cmds.sh`
+1. Copy the `gitcommands.sh` file in this repository to your machine
+2. Open your `.bash_profile` file and add the following: `source PATH-TO/gitcommands.sh`
 3. Close your terminal window
 
 After restarting your terminal, the commands `sclone`, `spull`, and `spush` should work just as you expect, but they will account for submodules in your repositories.
 
 #### Windows
 
-1. Copy the `git_cmds.bat` file in this repository to C:/Windows/System32 on your machine
+1. Copy the `gitcommands.bat` file in this repository to C:/Windows/System32 on your machine
 2. Close your Command Prompt
 
 After restarting your Command Prompt, the commands `sclone`, `spull`, and `spush` should work just as you expect, but they will account for submodules in your repositories.
