@@ -93,18 +93,18 @@ After doing this, make sure to run `git submodule update --remote --recursive` t
 
 ## Making changes to submodules within the main repository
 
-Before making any changes within the submodule directory, you need to check out a specific branch of that submodule. This is very important because `git submodule update` by default leaves the sub-repository in what's called a "detached HEAD" state. This means there is no local working branch tracking changes, and you may lose local changes the next time you run `git submodule update`.
+*If you are not very familiar with submodules, you can reduce possible confusion by only updating the submodule from within the submodule repository itself, and not from within the main project repository (i.e., don't make changes to COVIDScenarioPipeline from within another project folder -- navigate to a separate directory containing only the COVIDScenarioPipeline repository.)*
 
-If you correctly followed the steps in the section above, this step should be redudant. But let's do it just to be sure. This also shows you how to track a different branch, should you ever want to work on the non-default branch of your submodule.
+Before making any changes within the submodule directory, you need to check out a specific branch of that submodule. As described above, this is very important so that you don't accidently lose local changes.
+
+If you correctly followed the steps to pull changes and update your submodule in the section above, this step should be redudant. But let's do it just to be sure. This also shows you how to track a different branch, should you ever want to work on the non-default branch of your submodule.
 
 ```
 cd SUBMODULE-NAME
 git checkout SUBMODULE-BRANCH-NAME
 ```
 
-Now you can make local changes and commit them as usual.
-
-If you are not very familiar with submodules, you can reduce possible confusion by only updating the submodule from within the submodule repository itself, and not from within the main project repository (i.e., don't make changes to COVIDScenarioPipeline from within another project folder -- navigate to a separate directory containing only the COVIDScenarioPipeline repository.)
+Now you can make local changes and commit them as usual. Make sure to read the section below on how to properly push changes when you have been editing the submodule.
 
 ## Pushing changes to git repositories with submodules
 
