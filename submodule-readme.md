@@ -29,7 +29,7 @@ To properly clone a git repository with submodules, run the following command fo
 git clone --recurse-submodules REPOSITORY-URL
 ```
 
-If you have already cloned the repository with the standard `git clone REPOSITORY-URL`, you will see the directories that contain the submodules, but they will be empty. In that case, you need to run the following two commands afterwards to fetch all the data from these submodules:
+If you have already cloned the repository with the standard `git clone REPOSITORY-URL`, you will see the directories that contain the submodules, but they will be empty. In that case, you need to run the following two commands afterwards to fetch all the data from these submodules. **Don't run this command if you properly cloned your repository with the --recurse-submodules flag above.**
 
 ```
 git submodule init
@@ -47,8 +47,8 @@ git submodule update --remote --recursive
 Since we just updated which commit in the submodule the main repository is pointing to, we need to commit these changes:
 
 ```
-git add SUBMODULE NAME
-git commit -m 'git commit -m 'update submodule version to most recent commit'
+git add SUBMODULE-NAME
+git commit -m 'update submodule version to most recent commit'
 ```
 
 We also need to ensure we are tracking the desired branch so that any local changes don't get lost. This step isn't strictly necessary if you do not plan to update the submodule, but it's good practice to get in the habit of. The command below will ensure each submodule tracks the branch specified in the `.gitmodules` file.
