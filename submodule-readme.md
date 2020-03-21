@@ -146,6 +146,8 @@ git-spush
 
 #### Windows
 
+**I don't have a windows computer so this part has not been tested yet.**
+
 1. Copy the `gitcommands.bat` file in this repository to C:/Windows/System32 on your machine
 2. Close your Command Prompt
 
