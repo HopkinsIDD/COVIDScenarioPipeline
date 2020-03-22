@@ -14,10 +14,10 @@ Imports:
     data.table,
     foreach
 Authors@R: 
-    person(given = "Josh",
-           family = "Wills",
+    person(given = "Joshua",
+           family = "Kaminsky",
            role = c("cre", "aut"),
-           email = "josh.wills@gmail.com")
+           email = "jkaminsky@jhu.edu")
 Description: Generate hospitalization scenarios corresponding to the infection scenarios from a run of the SEIR code.
 License: What license it uses
 Encoding: UTF-8
