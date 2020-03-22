@@ -1,0 +1,24 @@
+Package: hospitalization
+Title: Generate hospitalization scenarios corresponding to the infection scenarios from a run of the SEIR code.
+Version: 0.0.1
+Imports:
+    magrittr,
+    knitr,
+    tidyr,
+    dplyr,
+    readr,
+    gridExtra,
+    ggfortify,
+    flextable,
+    doParallel,
+    data.table,
+    foreach
+Authors@R: 
+    person(given = "Josh",
+           family = "Wills",
+           role = c("cre", "aut"),
+           email = "josh.wills@gmail.com")
+Description: Generate hospitalization scenarios corresponding to the infection scenarios from a run of the SEIR code.
+License: What license it uses
+Encoding: UTF-8
+LazyData: true
