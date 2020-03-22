@@ -1,0 +1,25 @@
+Package: importation.estimation
+Title: Maps airport-based importations to county-based seedings.
+Version: 0.0.1
+Imports:
+    geosphere,
+    ggvoronoi,
+    gpclib,
+    igraph,
+    magrittr,
+    maptools,
+    raster,
+    rgdal,
+    rlist,
+    sf,
+    tidycensus,
+    tidyverse
+Authors@R: 
+    person(given = "Joshua",
+           family = "Kaminsky",
+           role = c("aut", "cre"),
+           email = "jkaminsky@jhu.edu")
+Description: Maps airport-based importations to county-based seedings.
+License: What license it uses
+Encoding: UTF-8
+LazyData: true
