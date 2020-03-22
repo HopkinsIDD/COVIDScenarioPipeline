@@ -7,16 +7,27 @@ ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
+class SpatialSetup:
+    def __init__(self, *, setup_name, folder, geodata_file, mobility_file, popnodes_key):
+        self.setup_name = setup_name
+        self.folder = folder
+        self.data = pd.read_csv(geodata_file)
+        self.mobility = np.loadtxt(mobility_file)
+        self.popnodes = self.data[popnodes_key].to_numpy()
+        self.nnodes = len(self.data)
+
+
 class Setup():
     """
         This class hold a setup model setup.
     """
-    def __init__(self,
+    def __init__(self, *,
                  setup_name,
                  spatial_setup,
                  nsim,
                  ti,
                  tf,
+                 script_npi=None,
                  interactive=True,
                  write_csv=False,
                  dt=1 / 6,
@@ -26,6 +37,7 @@ class Setup():
         self.dt = dt
         self.ti = ti
         self.tf = tf
+        self.script_npi = script_npi
         self.interactive = interactive
         self.write_csv = write_csv
 
@@ -72,6 +84,9 @@ class Setup():
 
     def set_filter(self, dynfilter):
         self.dynfilter = dynfilter
+
+    def load_filter(self, dynfilter_path):
+        self.set_filter(np.loadtxt(dynfilter_path))
 
 
 class COVID19Parameters():
