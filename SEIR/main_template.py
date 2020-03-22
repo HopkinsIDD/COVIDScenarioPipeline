@@ -1,8 +1,13 @@
+import datetime
+import time
+import sys
+
 import numpy as np
 import pandas as pd
-import datetime, time, multiprocessing, itertools, sys
 import matplotlib.pyplot as plt
+
 from COVIDScenarioPipeline.SEIR import seir, setup, results
+
 
 class SomeStateSpatialSetup():
     """
@@ -17,22 +22,25 @@ class SomeStateSpatialSetup():
         #self.counties_shp = gpd.read_file(f'data/{folder}somestate-counties-shp/somestate.shp')
         #self.counties_shp.sort_values('GEOID', inplace=True)
 
-if __name__ == '__main__':          # For windows thread
 
-    s = setup.Setup(setup_name = 'mid-SomeState',
-                    spatial_setup = SomeStateSpatialSetup(),
-                    nsim =  int( sys.argv[1]),
-                    ti = datetime.date(2020, 3, 1),
-                    tf = datetime.date(2020, 7, 1),
-                    interactive = False,
-                    write_csv = True)
+if __name__ == '__main__':  # For windows thread
+
+    s = setup.Setup(setup_name='mid-SomeState',
+                    spatial_setup=SomeStateSpatialSetup(),
+                    nsim=int(sys.argv[1]),
+                    ti=datetime.date(2020, 3, 1),
+                    tf=datetime.date(2020, 7, 1),
+                    interactive=False,
+                    write_csv=True)
 
     p = setup.COVID19Parameters(s.setup_name, s.nbetas)
 
     seeding_place = SomeGEOID
     seeding_amount = [3]
-    s.buildIC(seeding_places = [int(s.spatset.data[s.spatset.data['geoid'] == seeding_place].id)], 
-            seeding_amount = seeding_amount)
+    s.buildIC(seeding_places=[
+        int(s.spatset.data[s.spatset.data['geoid'] == seeding_place].id)
+    ],
+              seeding_amount=seeding_amount)
 
     #s.set_filter(np.loadtxt('data/california/filter_github.txt')/100)
 
@@ -50,10 +58,10 @@ if __name__ == '__main__':          # For windows thread
 
     results.build_comp_data()  # Long !!
 
-    nodes_to_plot = [int(s.spatset.data[s.spatset.data['geoid']== SomeGEOID].id),
-                    int(s.spatset.data[s.spatset.data['geoid']== SomeGEOID1].id)]
-
-
+    nodes_to_plot = [
+        int(s.spatset.data[s.spatset.data['geoid'] == SomeGEOID].id),
+        int(s.spatset.data[s.spatset.data['geoid'] == SomeGEOID1].id)
+    ]
 
     fig, axes = results.plot_all_comp(nodes_to_plot)
     fig.autofmt_xdate()
