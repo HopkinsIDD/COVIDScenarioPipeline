@@ -32,7 +32,7 @@ def simulate(config_file, scenario, nsim, jobs, interactive):
     if not script_npi.exists():
         raise click.BadParameter(f"NPI scenario file [{script_npi}] not found")
 
-    s = setup.Setup(setup_name=config["name"].get() + "_" + str(nsim),
+    s = setup.Setup(setup_name=config["name"].get() + "_" + str(scenario),
                     spatial_setup=setup.SpatialSetup(
                         setup_name=spatial_config["setup_name"].get(),
                         folder=spatial_base_path.as_posix(),
