@@ -13,10 +13,15 @@ spatial_setup:
   popnodes: pop2010
 
 interventions:
-  base_path: COVIDScenarioPipeline/data
+  scripts_path: COVIDScenarioPipeline/NPI
 
-  NoNPI: NPI_Scenario1_None.R
-  SC: NPI_Scenario2_School_Closure.R
-  BI1918: NPI_Scenario3_Bootsma_1918Influenza.R
-  KansasCity: NPI_Scenario4_KansasCity.R
-  Wuhan: NPI_Scenario5_Wuhan.R
+parameters:
+  sigma: 1 / 5.2
+  gamma:
+    distribution: uniform
+    low: 1 / 6
+    high: 1 / 2.6
+  R0s:
+    distribution: uniform
+    low: 2
+    high: 3
