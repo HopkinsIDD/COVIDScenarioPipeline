@@ -35,7 +35,6 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 def onerun_SEIR(s, uid):
     scipy.random.seed()
-    #p = setup.COVID19Parameters(s)
     r_assign('ti_str', str(s.ti))
     r_assign('tf_str', str(s.tf))
     r_assign('foldername', os.path.join(s.spatset.folder, ""))
