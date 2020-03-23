@@ -15,13 +15,27 @@ spatial_setup:
 interventions:
   scripts_path: COVIDScenarioPipeline/NPI
 
-parameters_seir:
-  sigma: 1 / 5.2
-  gamma:
-    distribution: uniform
-    low: 1 / 6
-    high: 1 / 2.6
-  R0s:
-    distribution: uniform
-    low: 2
-    high: 3
+seir:
+  parameters:
+    sigma: 1 / 5.2
+    gamma:
+      distribution: uniform
+      low: 1 / 6
+      high: 1 / 2.6
+    R0s:
+      distribution: uniform
+      low: 2
+      high: 3
+
+# TODO: these aren't used anywhere in the code yet
+hospitalization:
+  paths:
+    output_path: hospitalization
+  parameters:
+    time_hosp: [1.23, 0.79]
+    time_ICU: [log(10.5), log((10.5-7)/1.35)]
+    time_vent: [log(10.5), log((10.5-8)/1.35)]
+    time_death: [log(11.25), log(1.15)]
+    time_disch: [log(11.5), log(1.22)]
+    time_ICUdur: [log(17.46), log(4.044)]
+    end_hosp_date: 2020-04-01
