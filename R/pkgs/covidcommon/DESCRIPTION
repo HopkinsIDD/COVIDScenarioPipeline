@@ -1,0 +1,14 @@
+Package: covidcommon
+Title: Common R code shared across packages
+Version: 0.0.1
+Imports:
+    yaml,
+    purrr
+Authors@R:
+    person(given = "Joshua",
+           family = "Kaminsky",
+           role = c("cre", "aut"),
+           email = "jkaminsky@jhu.edu")
+Description: Common R code shared across all local packages
+License: What license it uses
+Encoding: UTF-8
