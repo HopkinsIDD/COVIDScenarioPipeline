@@ -22,11 +22,12 @@ install_version("igraph", version = "1.2.4.2")
 install_version("maptools", version = "0.9-8")
 install_version("raster", version = "3.0-7")
 install_version("rlist", version = "0.4.6")
-install_version("tidycensus", version = "0.9.5")
-
 install.packages("https://cran.r-project.org/src/contrib/Archive/rgdal/rgdal_1.4-4.tar.gz", repos=NULL, type="source")
 install.packages("https://cran.r-project.org/src/contrib/Archive/cowplot/cowplot_0.9.2.tar.gz", repos=NULL, type="source")
+install_version("tidycensus", version = "0.9.5")
+install_version("yaml", version = "2.2.1")
 
 # Install the packages we developed ourselves
-install_local("R/pkgs/hospitalization", force=TRUE, update=FALSE)
-install_local("R/pkgs/importation_estimation", force=TRUE, update=FALSE)
+install_local("R/pkgs/covidcommon", force=TRUE)
+install_local("R/pkgs/hospitalization", force=TRUE)
+install_local("R/pkgs/importation_estimation", force=TRUE)
