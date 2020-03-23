@@ -523,7 +523,7 @@ make_final_map <- function(ca_final_dat, title="", legend, scale){
               panel.grid.minor = element_blank(),
               panel.border = element_blank(),
               axis.ticks.y=element_blank(),
-              legend.position = legend) + labs(fill = "Cases per 100k")
+              legend.position = legend) + labs(fill = "Infections per 100k")
     return(p)
 }
 
