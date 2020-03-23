@@ -15,7 +15,7 @@ spatial_setup:
 interventions:
   scripts_path: COVIDScenarioPipeline/NPI
 
-parameters:
+parameters_seir:
   sigma: 1 / 5.2
   gamma:
     distribution: uniform
