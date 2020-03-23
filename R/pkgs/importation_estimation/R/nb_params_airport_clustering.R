@@ -12,17 +12,17 @@ update_nb_parameters <- function(nb_params_nocluster, airport_attribution, regio
   })
 
   ## assumes perhaps incorrectly that mu1/size1 == mu2/size2
-  nb_params_cluster <- map_dfr (1:length(cl_names_ls), function(i){
+  nb_params_cluster <- purrr::map_dfr(1:length(cl_names_ls), function(i){
     nb_orig %>%
       dplyr::filter(airport %in% cl_names_ls[[i]]) %>%
-      group_by(date) %>%
+      dplyr::group_by(date) %>%
       dplyr::summarise(airport = paste(airport, collapse = "_"), size = sum(size), mu = sum(mu)) %>% 
-      ungroup
+      dplyr::ungroup()
   })
 
   nb_params_tot <- nb_orig %>% 
-      dplyr::filter(!(airport %in% unlist(flatten(cl_names_ls)))) %>%
-      bind_rows(nb_params_cluster) %>%
+      dplyr::filter(!(airport %in% unlist(purrr::flatten(cl_names_ls)))) %>%
+      dplyr::bind_rows(nb_params_cluster) %>%
       dplyr::mutate(date = as.character(date))
 
   write_csv(nb_params_tot, paste0(local_dir, "/", regioncode, "/import_nb_params.csv"))
