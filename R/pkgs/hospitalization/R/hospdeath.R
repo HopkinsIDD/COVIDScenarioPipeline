@@ -1,19 +1,18 @@
 
 hosp_create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
     X_ <- rbinom(length(data_[[X]]),data_[[X]],p_X)
-    # nonzero_mask <- X_ > 0
-    nonzero_mask <- rep(TRUE,length(X_))
-    nonzero_time <- data_$time[nonzero_mask]
-    nonzero_uid <- data_$uid[nonzero_mask]
     rc <- data.table(
-      time = data_$time[nonzero_mask] + round(exp(X_pars[1] + X_pars[2]^2 / 2)),
-      uid = data_$uid[nonzero_mask],
-      count = X_[nonzero_mask]
+      time = data_$time + round(exp(X_pars[1] + X_pars[2]^2 / 2)),
+      uid = data_$uid,
+      count = X_
     )
     names(rc)[3] <- paste0("incid",varname)
     return(rc)
 }
 
+##'
+##' Data loading utility function for this package.
+##'
 hosp_load_scenario_sim <- function(scenario_dir,
                                    sim_id,
                                    keep_compartments=NULL,
