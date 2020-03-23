@@ -1,14 +1,14 @@
-import time
 import itertools
-import multiprocessing
-import warnings
 import logging
+import multiprocessing
+import os
+import time
 import uuid
+import warnings
 
-
-import pandas as pd
 from numba import jit
 import numpy as np
+import pandas as pd
 import scipy
 
 from rpy2 import robjects
@@ -26,7 +26,7 @@ from rpy2.rinterface_lib.callbacks import logger as rpy2_logger
 rpy2_logger.setLevel(logging.ERROR)
 
 
-from COVIDScenarioPipeline.SEIR import setup
+from . import setup
 
 
 ncomp = 7
@@ -38,7 +38,7 @@ def onerun_SEIR(s, uid):
     #p = setup.COVID19Parameters(s)
     r_assign('ti_str', str(s.ti))
     r_assign('tf_str', str(s.tf))
-    r_assign('foldername', s.spatset.folder)
+    r_assign('foldername', os.path.join(s.spatset.folder, ""))
     r_source(s.script_npi)
     npi = robjects.r['NPI'].T
     #p.addNPIfromR(npi)
@@ -99,7 +99,7 @@ def onerun_SEIR(s, uid):
     return 1
 
 
-def run_parallel(s, processes=multiprocessing.cpu_count()):  # set to 16 when running on server
+def run_parallel(s, processes):
 
     tic = time.time()
     uids = np.arange(s.nsim)
