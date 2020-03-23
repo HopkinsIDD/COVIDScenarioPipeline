@@ -95,9 +95,9 @@ class Setup():
 def parameters_quick_draw(s, npi):
     n_Icomp = 3
 
-    sigma = config["parameters_seir"]["sigma"].as_evaled_expression()
-    gamma = config["parameters_seir"]["gamma"].as_random_distribution()() * n_Icomp
-    R0s = config["parameters_seir"]["R0s"].as_random_distribution()()
+    sigma = config["seir"]["parameters"]["sigma"].as_evaled_expression()
+    gamma = config["seir"]["parameters"]["gamma"].as_random_distribution()() * n_Icomp
+    R0s = config["seir"]["parameters"]["R0s"].as_random_distribution()()
 
     beta = np.multiply(R0s, gamma) / n_Icomp
 
