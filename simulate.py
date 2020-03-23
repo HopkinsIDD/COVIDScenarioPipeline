@@ -3,9 +3,9 @@ import pathlib
 import time
 
 import click
-import confuse
 
 from SEIR import seir, setup
+from SEIR.utils import config
 
 
 @click.command()
@@ -22,13 +22,17 @@ from SEIR import seir, setup
 @click.option("--interactive/--batch", default=False,
               help="run in interactive or batch mode")
 def simulate(config_file, scenario, nsim, jobs, interactive):
-    config = confuse.Configuration("")
     config.set_file(config_file)
 
     spatial_config = config["spatial_setup"]
     spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 
-    s = setup.Setup(setup_name=config["name"].get() + "_" + str(nsim),
+    interventions_base_path = pathlib.Path(config["interventions"]["scripts_path"].get())
+    script_npi = interventions_base_path / (scenario + ".R")
+    if not script_npi.exists():
+        raise click.BadParameter(f"NPI scenario file [{script_npi}] not found")
+
+    s = setup.Setup(setup_name=config["name"].get() + "_" + str(scenario),
                     spatial_setup=setup.SpatialSetup(
                         setup_name=spatial_config["setup_name"].get(),
                         folder=spatial_base_path.as_posix(),
@@ -37,8 +41,7 @@ def simulate(config_file, scenario, nsim, jobs, interactive):
                         popnodes_key=spatial_config["popnodes"].get(),
                     ),
                     nsim=nsim,
-                    script_npi=(pathlib.Path(config["interventions"]["base_path"].get()) /
-                                config["interventions"][scenario].get()).as_posix(),
+                    script_npi=script_npi.as_posix(),
                     ti=config["start_date"].get(),
                     tf=config["end_date"].get(),
                     interactive=interactive,
