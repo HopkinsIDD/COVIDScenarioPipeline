@@ -389,7 +389,7 @@ make_final_hosp_dat <- function(hd_dat, end_date="2020-04-01"){
 
 ##' Helper function for determining the variables to report on a make_hosp_table
 ##' or make_hosp_table_county function call.
-_get_hosp_table_report_vars <- function(include_icu_pcap = FALSE) {
+local_get_hosp_table_report_vars <- function(include_icu_pcap = FALSE) {
     # jwills addition
     var_to_report <-  c("hosp_est_", "peak_hosp_cap_", "ICU_est_")
     if (include_icu_pcap) {
@@ -441,7 +441,7 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death, incl
                     values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
  
     # jwills addition 
-    var_to_report <- _get_hosp_table_report_vars(include_icu_pcap)
+    var_to_report <- local_get_hosp_table_report_vars(include_icu_pcap)
 
     cnames <- paste0(var_to_report, rep(p_death, each=length(var_to_report)))
     tab <- bind_rows(tmp_total[,c("metrop_labels", cnames)],
@@ -496,7 +496,7 @@ make_hosp_table_county <- function(final_hosp_dat, final_hosp_geoid_dat, county_
                     values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
   
     # jwills addition 
-    var_to_report <- _get_hosp_table_report_vars(include_icu_pcap) 
+    var_to_report <- local_get_hosp_table_report_vars(include_icu_pcap)
     cnames <- paste0(var_to_report, rep(p_death, each=length(var_to_report)))
     
     tab <- bind_rows(tmp_total[,c("geoid_label", cnames)],

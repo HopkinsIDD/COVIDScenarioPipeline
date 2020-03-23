@@ -20,8 +20,10 @@ from SEIR.utils import config
               default=multiprocessing.cpu_count(), show_default=True,
               help="the parallelization factor")
 @click.option("--interactive/--batch", default=False,
-              help="run in interactive or batch mode")
-def simulate(config_file, scenario, nsim, jobs, interactive):
+              help="run in interactive or batch mode [default: batch]")
+@click.option("--write-csv/--no-write-csv", default=True, show_default=True,
+              help="write CSV output at end of simulation")
+def simulate(config_file, scenario, nsim, jobs, interactive, write_csv):
     config.set_file(config_file)
 
     spatial_config = config["spatial_setup"]
@@ -45,7 +47,7 @@ def simulate(config_file, scenario, nsim, jobs, interactive):
                     ti=config["start_date"].get(),
                     tf=config["end_date"].get(),
                     interactive=interactive,
-                    write_csv=True,
+                    write_csv=write_csv,
                     dt=config["dt"].as_number())
 
     s.load_filter(config["dynfilter_path"].get())
