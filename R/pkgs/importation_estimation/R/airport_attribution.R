@@ -20,18 +20,19 @@
 
 # DATA --------------------------------------------------------------------
 
-get_airports_to_consider <- function(airport_codes_csv_file, airport_monthly_mean_travelers_csv_file, travelers_threshold) {
+get_airports_to_consider <- function(airport_codes_csv_file, airport_monthly_mean_travelers_csv_file, states_of_interest, travelers_threshold) {
     # Airport data, like 'data/airport-codes.csv'
-    airport_data <- read_csv(airport_codes_csv_file, na=c(""," "))
+    airport_data <- readr::read_csv(airport_codes_csv_file, na=c(""," "))
 
     ## filter from all airports in region based on number of travelers
     ## monthly mean travelers file like: paste0("data/", regioncode, "/airport_monthlymeantravelers.csv")
-    big_airports_region <- read_csv(airport_monthly_mean_travelers_csv_file) %>%
+    big_airports_region <- readr::read_csv(airport_monthly_mean_travelers_csv_file) %>%
         dplyr::rename(iata_code = dest) %>%
-        full_join(airport_data, by = c("iata_code")) %>%
+        dplyr::full_join(airport_data, by = c("iata_code")) %>%
         dplyr::filter(travelers > travelers_threshold) %>%
         dplyr::select(iata_code) %>% unlist %>% unname
 
+    regions_of_interest <- paste("US", states_of_interest, sep = "-")
     airports_to_consider <- airport_data %>%
         dplyr::filter(iso_region %in% regions_of_interest) %>%
         dplyr::filter(iata_code %in% big_airports_region) %>%
@@ -46,11 +47,11 @@ get_airports_to_consider <- function(airport_codes_csv_file, airport_monthly_mea
 do_airport_attribution <- function(airports_to_consider, airport_cluster_threshold, shapefile_path, regioncode, yr=2010, local_dir="data/", plot=FALSE) {
 
     ## airport edgelist to start dataframe
-    airnet <- make_full_graph(nrow(airports_to_consider), directed = FALSE, loops = FALSE) %>%
-        set_vertex_attr("name", value = airports_to_consider$iata_code)
+    airnet <- igraph::make_full_graph(nrow(airports_to_consider), directed = FALSE, loops = FALSE) %>%
+        igraph::set_vertex_attr("name", value = airports_to_consider$iata_code)
 
-    airedgelist <- data.frame(as_edgelist(airnet, names = TRUE), stringsAsFactors = FALSE) %>%
-        tbl_df() %>%
+    airedgelist <- data.frame(igraph::as_edgelist(airnet, names = TRUE), stringsAsFactors = FALSE) %>%
+        dplyr::tbl_df() %>%
         dplyr::rename(iata1 = X1, iata2 = X2) %>%
         dplyr::left_join(airports_to_consider %>% dplyr::select(iata_code, coor_lat, coor_lon), by = c("iata1" = "iata_code")) %>%
         dplyr::rename(lat1 = coor_lat, lon1 = coor_lon) %>%
@@ -59,7 +60,7 @@ do_airport_attribution <- function(airports_to_consider, airport_cluster_thresho
 
     lonlat1 <- airedgelist %>% dplyr::select(lon1, lat1) %>% as.matrix
     lonlat2 <- airedgelist %>% dplyr::select(lon2, lat2) %>% as.matrix
-    dist_km <- distHaversine(lonlat1, lonlat2) / 1000
+    dist_km <- geosphere::distHaversine(lonlat1, lonlat2) / 1000
 
     airdf <- airedgelist %>% dplyr::mutate(dist_km = dist_km)
     clusters <- airdf %>% dplyr::filter(dist_km <= airport_cluster_threshold)
@@ -100,26 +101,26 @@ do_airport_attribution <- function(airports_to_consider, airport_cluster_thresho
     remove_indexes <- sort(unique(unlist(lapply(1:length(joint_ls), function(i) { joint_ls[[i]][[2]] }))))
 
     ## remove clusters that are subsets of others
-    clusters_ls_cl <- list.remove(clusters_ls_cl, range = remove_indexes)
+    clusters_ls_cl <- rlist::list.remove(clusters_ls_cl, range = remove_indexes)
 
 
     # Get centroid of airport coordinate clusters -------------------------
-    cluster_ids <- map_dfr(1:length(clusters_ls_cl), function(i) {
+    cluster_ids <- purrr::map_dfr(1:length(clusters_ls_cl), function(i) {
         data.frame(iata_code = clusters_ls_cl[[i]], c_id = i, stringsAsFactors = FALSE)
     })
     clustered_airports <- airports_to_consider %>%
         dplyr::right_join(cluster_ids, by = c("iata_code")) %>%
         dplyr::select(iata_code, c_id, coor_lat, coor_lon) %>%
-        group_by(c_id) %>%
+        dplyr::group_by(c_id) %>%
         dplyr::summarise(iata_code = paste(iata_code, collapse = "_"), coor_lat = mean(coor_lat), coor_lon = mean(coor_lon)) %>%
-        ungroup %>% 
+        dplyr::ungroup() %>% 
         dplyr::select(iata_code, coor_lat, coor_lon)
 
     ## remerge clustered airports with other airports
     airports_to_consider_cl <- airports_to_consider %>%
         dplyr::filter(!(iata_code %in% cluster_ids$iata_code)) %>%
         dplyr::select(iata_code, coor_lat, coor_lon) %>%
-        bind_rows(clustered_airports)
+        dplyr::bind_rows(clustered_airports)
 
 
     # ~ Get Shapefile ---------------------------
@@ -132,16 +133,16 @@ do_airport_attribution <- function(airports_to_consider, airport_cluster_thresho
     }
 
     # Voronoi tesselation by airports
-    voronoi_tess <- voronoi_polygon(airports_to_consider_cl, x = "coor_lon", y = "coor_lat",
-                                    outline = adm0_loc)
+    voronoi_tess <- ggvoronoi::voronoi_polygon(airports_to_consider_cl, x = "coor_lon", y = "coor_lat",
+                                               outline = adm0_loc)
 
     ## change projections of voronoi tesselation to match county shapefiles
-    crs_shp <- crs(adm1_loc)
+    crs_shp <- raster::crs(adm1_loc)
     reg_loc <- maptools::unionSpatialPolygons(voronoi_tess, voronoi_tess@data$iata_code)
     reg_loc <- rgeos::gBuffer(reg_loc, byid=TRUE, width=0)
-    projection(reg_loc) <- crs_shp
+    raster::projection(reg_loc) <- crs_shp
 
-    airport_attribution <- tribble(~county, ~airport_iata, ~attribution)
+    airport_attribution <- tibble::tribble(~county, ~airport_iata, ~attribution)
 
     for (co in levels(loc_map@data$GEOID)) {
       cksum <- 0      # to test if there is no error
@@ -154,8 +155,8 @@ do_airport_attribution <- function(airports_to_consider, airport_cluster_thresho
             if (length(inter@polygons)>0) {
               percent_to_iata <- raster::area(inter) / raster::area(adm1_loc[co])
               cksum <- cksum + percent_to_iata
-              airport_attribution <- add_row(airport_attribution, county = co, 
-                                             airport_iata = iata, attribution = percent_to_iata)
+              airport_attribution <- tibble::add_row(airport_attribution, county = co, 
+                                                     airport_iata = iata, attribution = percent_to_iata)
             }
           }
         }
@@ -166,18 +167,18 @@ do_airport_attribution <- function(airports_to_consider, airport_cluster_thresho
 
     ## for loop over voronoi_tess@data$iata_code introduced duplicates (1 part of a county per adjacenet airport)
     lhs <- nrow(distinct(airport_attribution, county, airport_iata))
-    rhs <- nrow(distinct(airport_attribution, county, airport_iata, attribution)
+    rhs <- nrow(distinct(airport_attribution, county, airport_iata, attribution))
     if (lhs != rhs) {
         warning("There are duplicate county-airport pairs. Please check the data again.")
     }
 
 
     airport_attribution <- distinct(airport_attribution)
-    airport_attribution <- left_join(airport_attribution, data.frame(GEOID=loc_map$GEOID, countyname=loc_map$NAME), by=c("county"="GEOID"))
+    airport_attribution <- dplyr::left_join(airport_attribution, data.frame(GEOID=loc_map$GEOID, countyname=loc_map$NAME), by=c("county"="GEOID"))
 
     counties_with_errors <- airport_attribution %>% 
-        group_by(county) %>%
-        summarise(check = sum(attribution)) %>%
+        dplyr::group_by(county) %>%
+        dplyr::summarise(check = sum(attribution)) %>%
         dplyr::filter(round(check, 2) != 1)
 
     if (nrow(counties_with_errors) > 0) {
@@ -187,14 +188,14 @@ do_airport_attribution <- function(airports_to_consider, airport_cluster_thresho
         warning(paste0("Special warning for airport attribution in ", regioncode, "Manual fix for Kent County, DE was implemented."))
 
         ## For some reason the remainder of FIPS 10001 is not being appropriately assigned to the BWI catchment area, so do it manually
-        airport_attribution <- bind_rows(airport_attribution,
+        airport_attribution <- dplyr::bind_rows(airport_attribution,
             data.frame(county = "10001", airport_iata = "BWI", attribution = 1-0.915, countyname = "Kent")) %>%
             dplyr::arrange(county)
       }
 
       counties_with_errors_v2 <- airport_attribution %>% 
-          group_by(county) %>%
-          summarise(check = sum(attribution)) %>%
+          dplyr::group_by(county) %>%
+          dplyr::summarise(check = sum(attribution)) %>%
           dplyr::filter(round(check,2) != 1)
   
       if (nrow(counties_with_errors_v2) > 0) {
@@ -208,12 +209,12 @@ do_airport_attribution <- function(airports_to_consider, airport_cluster_thresho
     write.csv(airport_attribution, file=path, row.names=FALSE)
 
     if (plot) {
-      airport_map <- ggplot() + 
-          geom_point(data = airports_to_consider_cl, aes(coor_lon, coor_lat)) +
-          geom_polygon(data = fortify(reg_loc), 
-                       aes(long, lat, group = group),
-                       alpha = .4, size = .5,  colour = 'red') + 
-          theme(legend.position = "none")
+      airport_map <- ggplot2::ggplot() + 
+          ggplot2::geom_point(data = airports_to_consider_cl, aes(coor_lon, coor_lat)) +
+          ggplot2::geom_polygon(data = ggplot2::fortify(reg_loc), 
+                                ggplot2::aes(long, lat, group = group),
+                                alpha = .4, size = .5,  colour = 'red') + 
+          ggplot2::theme(legend.position = "none")
       print(airport_map)
     }
 
