@@ -3,6 +3,9 @@ import pandas as pd
 import datetime
 import os
 
+from .utils import config
+
+
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
@@ -89,79 +92,12 @@ class Setup():
         self.set_filter(np.loadtxt(dynfilter_path))
 
 
-class COVID19Parameters():
-    """ Class to hold parameters for COVID19 transmission.
-        When temporal rates, unit is [d^-1]
-    """
-    def __init__(self, s):
-        self.s = s
-        # https://github.com/midas-network/COVID-19/tree/master/parameter_estimates/2019_novel_coronavirus
-        # incubation period 5.2 days based on an estimate from Lauer et al. 2020
-        self.sigma = 1 / 5.2
-
-        # Number of infected compartiments
-        n_Icomp = 3
-
-        # time from symptom onset to recovery per compartiment
-        self.gamma = np.random.uniform(
-            1 / 6, 1 / 2.6,
-            s.nbetas) * n_Icomp  # range of serial from 8.2 to 6.5
-
-        if 'low' in s.setup_name:
-            self.R0s = np.random.uniform(
-                1.5, 2, s.nbetas)  # np.random.uniform(1.5, 2, nbetas)
-        if 'mid' in s.setup_name:
-            self.R0s = np.random.uniform(2, 3, s.nbetas)
-
-        self.betas = np.multiply(self.R0s, self.gamma) / n_Icomp
-
-        self.betas = np.vstack([self.betas] * len(s.t_inter))
-        self.gamma = np.vstack([self.gamma] * len(s.t_inter))
-        self.sigma = np.hstack([self.sigma] * len(s.t_inter))
-
-        self.betas = np.dstack([self.betas] * s.nnodes)
-        self.gamma = np.dstack([self.gamma] * s.nnodes)
-        self.sigma = np.vstack([self.sigma] * s.nnodes)
-
-    def draw(self, beta_id):
-        """ for speed, to use with numba JIT compilation"""
-        return (np.array([
-            self.betas[:, beta_id % self.s.nbetas], self.sigma.T,
-            self.gamma[:, beta_id % self.s.nbetas]
-        ]))
-
-    def addNPIfromcsv(self, filename):
-        npi = pd.read_csv(filename).T
-        npi.columns = npi.iloc[0]
-        npi = npi.drop('Unnamed: 0')
-        npi.index = pd.to_datetime(npi.index)
-        npi = npi.resample(str(self.s.dt * 24) + 'H').ffill()
-        for i in range(self.s.nbetas):
-            self.betas[:, i, :] = np.multiply(
-                self.betas[:, i, :],
-                np.ones_like(self.betas[:, i, :]) - npi.to_numpy())
-
-        print(f'>>> Added NPI as specicied in file {filename}')
-
-    def addNPIfromR(self, npi):
-        npi.index = pd.to_datetime(npi.index.astype(str))
-        npi = npi.resample(str(self.s.dt * 24) + 'H').ffill()
-        for i in range(self.s.nbetas):
-            self.betas[:, i, :] = np.multiply(
-                self.betas[:, i, :],
-                np.ones_like(self.betas[:, i, :]) - npi.to_numpy())
-
-
 def parameters_quick_draw(s, npi):
-    sigma = 1 / 5.2
     n_Icomp = 3
-    gamma = np.random.uniform(
-        1 / 6, 1 / 2.6) * n_Icomp  # range of serial from 8.2 to 6.5
 
-    if 'low' in s.setup_name:
-        R0s = np.random.uniform(1.5, 2)  # np.random.uniform(1.5, 2, nbetas)
-    if 'mid' in s.setup_name:
-        R0s = np.random.uniform(2, 3)
+    sigma = config["parameters_seir"]["sigma"].as_evaled_expression()
+    gamma = config["parameters_seir"]["gamma"].as_random_distribution()() * n_Icomp
+    R0s = config["parameters_seir"]["R0s"].as_random_distribution()()
 
     beta = np.multiply(R0s, gamma) / n_Icomp
 
