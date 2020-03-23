@@ -271,10 +271,11 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
     cmd <- "high"
     ncore <- 1
   }
+  names(p_death) = c('low','med','high')
 
   cat(paste(data_filename,"\n"))
   res_npi3 <- build_hospdeath_par(NULL,
-                                  p_hosp = p_death[3]*10,
+                                  p_hosp = p_death[cmd]*10,
                                   p_death = .1,
                                   p_vent = p_vent,
                                  p_ICU = p_ICU,
