@@ -1,0 +1,137 @@
+---
+title: Creating your very own COVID19 planning report
+author: "Joshua Kaminsky"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+html_document:
+---
+
+# Introduction
+
+The purpose of htis document is to provide full instruction on how to create a report using the COVIDScenarioPipeline.
+
+## Limitations
+
+Since this is an instructional document, it makes sense to consider whether this report is appropriate before going further.
+
+### Scope
+
+The report you will create discusses planning scenarios for different interventions on COVID19.  This is not a forecasting pipeline, and I will provide no explanation about how it may transfer to another disease.
+
+### Specific Limitations
+
+# Overview
+
+The pipeline is broken into several stages, each of which can be independently replaced.
+
+## Getting Set up
+
+This project uses R, python, pandoc, and make
+
+### R
+
+### python
+
+We use python3.  This differs based on operating system.
+
+#### Windows
+
+My preference here has been to use windows subsystem for linux (WSL), and use the linux instructions.
+
+You can find installation instructions [here](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
+
+#### Linux (Debian)
+
+#### Mac
+
+### pandoc
+
+https://github.com/jgm/pandoc/releases/tag/2.9.2
+
+### make
+
+Make should already come with your system
+
+
+# Importation
+
+# Epidemic Simulation
+
+The code for this section is in the `SEIR` python library in `COVIDScenarioPipeline`.
+
+We have code for a SEIR compartmental model with three infectious states.
+Within each geographic location, we assume even mixing.
+Between locations, we have a movement model based on empirical data you will need to provide.
+
+## SEIR parameters
+The epidemic is controlled by sigma, gamma, and R0
+
+## Geographic Data
+
+This file contains the geographic information over which the simulation should be run.
+It should have one line per location, and at least two columns containing information about those locations:
+- `geoid` A column containing a unique identifier for the location
+- `popnodes` A column containing the population of that location
+
+## Mobility File
+
+A matrix (stored as a space delimited scientific notation e.g., 0.000000000000000000e+00).  The matrix is used to calculate movement rates between geoids.  The number of people who move from `source` to `dest` is binomially distributed with probability `1 - exp( - mobility[source,dest] / popnodes[source] * dt)`
+
+## Interventions
+
+To help plan, we consider how the epidemic evolves under various intervention scenarios.  We have developed several scenarios
+
+To write your own intervention, you need to
+
+%% POPULATE ME
+
+### NoNPI
+
+This is a non-intervention scenario. It does not reduce `R0`
+
+### SC
+
+This intervention represents school closures. It reduces `R0` by %%POPULATE ME
+
+### KansasCity
+
+This intervention represents the social distancing scenario we saw during April in Kansas City ? It reduces `R0` by %%POPULATE ME
+
+
+### Wuhan
+
+This intervention represents shelter in place similar to what was done in Wuhan at the beginning of the outbreak. It reduces `R0` by %%POPULATE ME
+
+
+### BI1918
+
+This intervention represents the actions taken during the 1918 influenza epidemic It reduces `R0` by %%POPULATE ME
+
+
+# Hospitalization
+
+The code for this section is in the `hospitalization` package in `COVIDScenarioPipeline/R/pkgs/`.
+After you have run a simulation, and have infection rates, we use those results to calculate hospitalizations, icu admittances, ventilator use, deaths (and it would be relatively easy to add other outcomes if you have data).
+
+## Probability Parameters
+
+There are currently 5 variables that we measure track.  Infection (H), Hospitalization (H), death (D), ICU admittance (ICU), and Ventilator use (Vent).  They are calculated from eachother starting from infection, which we get from the Epidemic simulation.
+
+The current flow looks like this:
+
+  I -> H -> D
+       \-> ICU -> Vent
+
+ - p_X (e.g., p_ICU) represents the probability of X given the previous element (in this case hospitalization), of the flowchart above.
+
+## Duration Parameters
+
+For each event that has a probability, there is an associated time parameter, which measures expected time before that event from infection.  The parameter is given as two numbers, and the expectation is calculated as `round(exp(time_X_pars[1] + X_pars[2]^2 / 2))`.
+
+There are two other parameters that calculate different amounts of time.  They are in the same form, but measure the duration of one of the above events.  time_ICUdur_pars, and time_dischdur_pars measure the length of ICU stay and hospital stay respectively.
+
+# Report Generation
+
+## Templates
+
+We have generated templates to help create reports of different types.
