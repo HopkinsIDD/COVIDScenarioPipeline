@@ -27,7 +27,7 @@ Then copy the `main_template.py` from this repo into the root of the SPATIAL_SET
 if you haven't installed python packages, run
 
 ```
-pip3 install pandas numpy seaborn matplotlib geopy tqdm  geopandas shapely numba
+pip3 install -r requirements.txt
 ```
 
 You can now run the code:
@@ -35,3 +35,34 @@ You can now run the code:
 nohup python3 main.py > out.txt &
 ```
 creates a `figure/` and a `SCENARIO_model_output_TIMESTAMP` folder.
+
+
+# Docker
+
+A containerized environment is a packaged environment where all
+dependencies are bundled together. This means you're guaranteed to be
+using the same libraries and system configuration as everyone else and in
+any runtime environment. To learn more, [Docker
+Curriculum](https://docker-curriculum.com/) is a good starting point.
+
+## Starting environment
+
+A pre-built container can be pulled from Docker Hub via:
+```
+docker pull shahsam/covidscenariopipeline:latest
+```
+
+To start the container:
+```
+docker run -v ~/mysrcdir:/home/app/src -it shahsam/covidscenariopipeline:latest
+```
+
+Replace `mysrcdir` with where the code is mounted on your machine; it will
+be available in the `/home/app/src` directory inside the container.
+
+You'll be dropped to the bash prompt where you can run the Python or
+R scripts (with dependencies already installed).
+
+## Building the container
+
+Run `docker build` if you ever need to rebuild the container.
