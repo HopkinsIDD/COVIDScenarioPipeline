@@ -30,6 +30,7 @@ if(length(args) == 0){
   cmd <- "high"
   ncore <- 1
 }
+names(p_death) = c('low','med','high')
 
 #TODO (jwills): make this geodata file into a CLI arg
 county_dat <- read.csv("data/west-coast-AZ-NV/geodata.csv")
@@ -39,7 +40,7 @@ county_dat$new_pop <- county_dat$pop2010
 target_geo_ids <- county_dat$geoid[county_dat$stateUSPS=="CA"]
 
 cat(paste(data_filename,"\n"))
-res_npi3 <- build_hospdeath_par(p_hosp = p_death[3]*10,
+res_npi3 <- build_hospdeath_par(p_hosp = p_death[cmd]*10,
                                 p_death = .1,
                                 p_vent = p_vent,
                                 p_ICU = p_ICU,

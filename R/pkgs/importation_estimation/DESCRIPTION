@@ -1,6 +1,6 @@
 Package: importation.estimation
 Title: Maps airport-based importations to county-based seedings.
-Version: 0.0.1
+Version: 0.0.2
 Imports:
     geosphere,
     ggvoronoi,
