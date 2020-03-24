@@ -9,54 +9,86 @@ output: html_document
 
 The purpose of htis document is to provide full instruction on how to create a report using the COVIDScenarioPipeline.
 
-## Limitations
-
-Since this is an instructional document, it makes sense to consider whether this report is appropriate before going further.
-
-### Scope
+## Scope
 
 The report you will create discusses planning scenarios for different interventions on COVID19.  This is not a forecasting pipeline, and I will provide no explanation about how it may transfer to another disease.
 
-### Specific Limitations
+#### Specific Limitations
+
+ %% POPULATE ME please help scientists
+
+ - Interventions need to be implemented as an effect on `R0`
 
 # Overview
 
 The pipeline is broken into several stages, each of which can be independently replaced.
 
-## Getting Set up
+#### Importation
+
+We run a model to determine the likelihood of importing cases into the region of interest.
+
+#### Epidemic Simulation
+
+We run a location stratified SEIR model
+
+#### Hospitalization Estimation
+
+We estimate secondary effects of infection using infection numbers.
+
+#### Report Generation
+
+We provide functions to access results and help produce reports.
+
+
+# Getting Set up
 
 This project uses R, python, pandoc, and make
 
-### R
+#### R
 
-### python
+The code requires R version 3.6 or newer. You can download R from [cran](https://cran.rstudio.com/).  We also recommend [rstudio](https://rstudio.com/products/rstudio/download/), an R IDE We keep a list of [R packages](https://github.com/HopkinsIDD/COVIDScenarioPipeline/blob/dataseed/packages.R).  You can source the script to install the versions required (the most recent versions also likely work).
 
-We use python3.  This differs based on operating system.
+#### python
 
-#### Windows
+We use python3.6 or newer.  There is a python package we use that needs to know about R, so ensure you install R before python. This differs based on operating system. We keep a list of [python modules](https://github.com/HopkinsIDD/COVIDScenarioPipeline/blob/dataseed/requirements.txt).
+
+##### Windows
 
 My preference here has been to use windows subsystem for linux (WSL), and use the linux instructions.
 
 You can find installation instructions [here](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
 
-#### Linux (Debian)
+If you want to try something else, you can [directly download](https://www.python.org/downloads/release/python-382/) python.  During installation, be sure to add it to your path, or make won't work.
 
-#### Mac
+##### Linux (Debian)
+
+```
+# apt install python3 python3-pip
+```
+
+##### Mac
+
+%% POPULATE ME (someone that has a mac plz help)
+
+
 
 ### pandoc
 
-https://github.com/jgm/pandoc/releases/tag/2.9.2
+Pandoc is part of R markdown, but needs to be installed separately.  You can download it [here](https://github.com/jgm/pandoc/releases/tag/2.9.2)
 
 ### make
 
 Make should already come with your system
 
-
 # Importation
+
+The code for this section is in an [R package](https://github.com/HopkinsIDD/nCoV_Importation).  The repository is currently private, but we hope to release it soon.
+
+Calculate the expected number of cases imported from outside of the region of interest.
 
 # Epidemic Simulation
 
-The code for this section is in the `SEIR` python library in `COVIDScenarioPipeline`.
+The code for this section is in the [SEIR](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/SEIR) python module in `COVIDScenarioPipeline`.
 
 We have code for a SEIR compartmental model with three infectious states.
 Within each geographic location, we assume even mixing.
@@ -112,20 +144,44 @@ This intervention represents the actions taken during the 1918 influenza epidemi
 The code for this section is in the `hospitalization` package in `COVIDScenarioPipeline/R/pkgs/`.
 After you have run a simulation, and have infection rates, we use those results to calculate hospitalizations, icu admittances, ventilator use, deaths (and it would be relatively easy to add other outcomes if you have data).
 
-## Probability Parameters
+### Probability Parameters
 
-There are currently 5 variables that we measure track.  Infection (H), Hospitalization (H), death (D), ICU admittance (ICU), and Ventilator use (Vent).  They are calculated from eachother starting from infection, which we get from the Epidemic simulation.
+There are currently 5 variables that we measure track.  Infection (I), Hospitalization (H), death (D), ICU admittance (ICU), and Ventilator use (Vent).  They are calculated from eachother starting from infection, which we get from the Epidemic simulation.  Each parameter has an associated probability (p_H, p_D, etc.) which represents that probability of that event conditional on another event.  The dependence of the parameters is summarized by the following flowchart
+
 
 The current flow looks like this:
 
-  I -> H -> D
-       \-> ICU -> Vent
+```{r,echo=FALSE}
 
- - p_X (e.g., p_ICU) represents the probability of X given the previous element (in this case hospitalization), of the flowchart above.
+DiagrammeR::grViz("digraph flowchart {
+      # node definitions with substituted label text
+      node [fontname = Helvetica, shape = rectangle]
+      tab1 [label = '@@1']
+      tab2 [label = '@@2']
+      tab3 [label = '@@3']
+      tab4 [label = '@@4']
+      tab5 [label = '@@5']
 
-## Duration Parameters
+      # edge definitions with the node IDs
+      tab1 -> tab2 [label = 'p_hosp'];
+      tab2 -> tab3 [label = 'p_death'];
+      tab2 -> tab4 [label = 'p_vent'];
+      tab4 -> tab5 [label = 'p_ICU'];
+      }
+
+      [1]: 'Infection'
+      [2]: 'Hospitalization'
+      [3]: 'Death'
+      [4]: 'ICU'
+      [5]: 'Ventilation'
+      ")
+```
+
+### Duration Parameters
 
 For each event that has a probability, there is an associated time parameter, which measures expected time before that event from infection.  The parameter is given as two numbers, and the expectation is calculated as `round(exp(time_X_pars[1] + X_pars[2]^2 / 2))`.
+
+%% POPULATE ME - Need explanation for why the parameters are of the above form
 
 There are two other parameters that calculate different amounts of time.  They are in the same form, but measure the duration of one of the above events.  time_ICUdur_pars, and time_dischdur_pars measure the length of ICU stay and hospital stay respectively.
 
