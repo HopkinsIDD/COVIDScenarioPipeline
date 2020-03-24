@@ -21,7 +21,7 @@ Then copy the `main_template.py` from this repo into the root of the SPATIAL_SET
 if you haven't installed python packages, run
 
 ```
-pip3 install pandas numpy seaborn matplotlib geopy tqdm  geopandas shapely numba rpy2
+pip3 install pandas numpy seaborn matplotlib geopy tqdm  geopandas shapely numba rpy2 confuse sympy
 ```
 
 You can now run the code:
