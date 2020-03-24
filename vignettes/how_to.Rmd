@@ -2,8 +2,7 @@
 title: Creating your very own COVID19 planning report
 author: "Joshua Kaminsky"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output:
-html_document:
+output: html_document
 ---
 
 # Introduction
