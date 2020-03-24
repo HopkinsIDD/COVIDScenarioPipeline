@@ -66,3 +66,17 @@ R scripts (with dependencies already installed).
 ## Building the container
 
 Run `docker build` if you ever need to rebuild the container.
+
+
+# Configuration files
+
+The pipeline now uses a configuration file to set simulation parameters.
+A template can be found in `config.yml`. The easiest way to specify this
+config file to jobs is to use the `CONFIG_PATH` environment variable:
+
+```
+$ CONFIG_PATH=/path/to/config.yml python COVIDScenarioPipeline/simulate.py -s Wuhan
+    [...]
+$ CONFIG_PATH=/path/to/config.yml Rscript hosp_run.R
+```
+
