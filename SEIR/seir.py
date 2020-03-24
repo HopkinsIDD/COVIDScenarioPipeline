@@ -11,19 +11,18 @@ import numpy as np
 import pandas as pd
 import scipy
 
-from rpy2 import robjects
-from rpy2.robjects import pandas2ri
-pandas2ri.activate()
-from rpy2.rinterface import RRuntimeWarning
-warnings.filterwarnings("ignore", category=RRuntimeWarning)
-import rpy2.robjects as ro
-from rpy2.robjects.conversion import localconverter
-r_source = robjects.r['source']
-r_assign = robjects.r['assign']
-r_options = robjects.r['options']
-r_options(warn=-1)
-from rpy2.rinterface_lib.callbacks import logger as rpy2_logger
-rpy2_logger.setLevel(logging.ERROR)
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+
+    from rpy2 import robjects
+    from rpy2.robjects import pandas2ri
+    pandas2ri.activate()
+    r_source = robjects.r['source']
+    r_assign = robjects.r['assign']
+    r_options = robjects.r['options']
+    r_options(warn=-1)
+    from rpy2.rinterface_lib.callbacks import logger as rpy2_logger
+    rpy2_logger.setLevel(logging.ERROR)
 
 
 from . import setup
@@ -35,7 +34,6 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 def onerun_SEIR(s, uid):
     scipy.random.seed()
-    #p = setup.COVID19Parameters(s)
     r_assign('ti_str', str(s.ti))
     r_assign('tf_str', str(s.tf))
     r_assign('foldername', os.path.join(s.spatset.folder, ""))

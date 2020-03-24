@@ -1,0 +1,63 @@
+---
+title: "[STATE] Scenario Report"
+author: "[AUTHOR NAMES]"
+output:
+  bookdown::html_document2:
+    toc: true
+    fig_caption: true
+    template: flatly
+bibliography: ReportReferences.bib
+params:
+  num_scenarios: 3
+  scenario_names: [SCENARIO1, SCNERIO2]
+  scenario_dirs: [DIR1,DIR2]
+    
+---
+
+Prepared by [Johns Hopkins ID Dynamics](https://iddynamics.jhsph.edu/) Working Group  
+Updated `r Sys.Date()`
+
+**FOR PLANNING PURPOSES ONLY: NOT A FORECAST**
+
+
+```{r setup, include=FALSE}
+#Preamble
+library(tidyverse)
+
+options(scipen=999)
+knitr::opts_knit$set(root.dir = "..")
+knitr::opts_chunk$set(
+	echo = FALSE,
+	fig.align = "center",
+	message = FALSE,
+	warning = FALSE,
+	cache.lazy = FALSE,
+	bitmapType = "cairo"
+)
+
+
+```
+
+## State Level Results
+
+## Scenario Summaries
+
+## Appendix 1: Methods
+
+### Key Sources
+
+- Impact of broad scale non-pharmaceutical intervetions is based on the observed impact of such programs in 1918 as reported in [@Bootsma2007]. We took parameter estimates on the effectiveness of interventions from Milwaukee in this study.
+
+- School closure impacts based on data from [@Jackson2020], [@Cauchemez2008] and [@Litvinova2019]
+
+- Approximate generation time is based on data from [@Bi2020]
+
+- Range of $R_0$ selected to be consistent with the early stages of the Wuhan epidemic and is broadly consistent
+  with estimates from Imperial College (https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-2019-nCoV-transmissibility.pdf), [@Riou2020], [@Majumder2020], [@Zhao2020]
+
+
+## Appendix 2: Detailed County Lavel Results
+
+
+## Bibliography
+

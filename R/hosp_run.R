@@ -53,7 +53,7 @@ load_scenario_sims <- function(scenario_dir,
 
 build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_type="gamma",
                                 time_hosp_pars = c(1.23, 0.79), 
-                                time_ICU_pars = c(log(8.25),log(2.22)), #c(log(10.5), log((10.5-7)/1.35)),
+                                time_ICU_pars = c(log(8.25), log(2.22)), #c(log(10.5), log((10.5-7)/1.35)),
                                 time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
                                 time_death_pars = c(log(11.25), log(1.15)), 
                                 time_disch_pars = c(log(11.5), log(1.22)),
@@ -243,7 +243,7 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
   time_hosp_pars <- c(1.23, 0.79)
   time_disch_pars <- c(log(11.5), log(1.22))
   time_death_pars <- c(log(11.25), log(1.15))
-  time_ICU_pars = c(log(8.25),log(2.22)), #c(log(8.25), log(2.2))
+  time_ICU_pars = c(log(8.25),log(2.22)) #c(log(8.25), log(2.2))
   time_ICUdur_pars = c(log(17.46), log(4.044))
   time_vent_pars = c(log(10.5), log((10.5-8)/1.35))
   mean_inc <- 5.2
@@ -271,10 +271,11 @@ build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_typ
     cmd <- "high"
     ncore <- 1
   }
+  names(p_death) = c('low','med','high')
 
   cat(paste(data_filename,"\n"))
   res_npi3 <- build_hospdeath_par(NULL,
-                                  p_hosp = p_death[3]*10,
+                                  p_hosp = p_death[cmd]*10,
                                   p_death = .1,
                                   p_vent = p_vent,
                                  p_ICU = p_ICU,
