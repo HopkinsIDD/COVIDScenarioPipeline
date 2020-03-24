@@ -42,8 +42,8 @@ def simulate(config_file, scenario, nsim, jobs, interactive, write_csv):
                     ),
                     nsim=nsim,
                     script_npi=script_npi.as_posix(),
-                    ti=config["start_date"].get(),
-                    tf=config["end_date"].get(),
+                    ti=config["start_date"].as_date(),
+                    tf=config["end_date"].as_date(),
                     interactive=interactive,
                     write_csv=write_csv,
                     dt=config["dt"].as_number())
