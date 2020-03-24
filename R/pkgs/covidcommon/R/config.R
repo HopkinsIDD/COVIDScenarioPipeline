@@ -12,7 +12,7 @@ load_config <- function(fname) {
   require(yaml)
 
   if (missing(fname)) {
-    fname <- file.path(Sys.getenv("CONFIG_PATH"), "config.yml")
+    fname <- Sys.getenv("CONFIG_PATH")
   }
   if (file.exists(fname)) {
     return(yaml.load_file(fname))

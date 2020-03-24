@@ -27,15 +27,21 @@ seir:
       low: 2
       high: 3
 
-# TODO: these aren't used anywhere in the code yet
 hospitalization:
   paths:
     output_path: hospitalization
   parameters:
     time_hosp: [1.23, 0.79]
-    time_ICU: [log(10.5), log((10.5-7)/1.35)]
-    time_vent: [log(10.5), log((10.5-8)/1.35)]
-    time_death: [log(11.25), log(1.15)]
     time_disch: [log(11.5), log(1.22)]
+    time_death: [log(11.25), log(1.15)]
+    time_ICU: [log(8.25), log(2.2)]
     time_ICUdur: [log(17.46), log(4.044)]
-    end_hosp_date: 2020-04-01
+    time_vent: [log(10.5), log((10.5-8)/1.35)]
+    mean_inc: 5.2
+    dur_inf_shape: 2
+    dur_inf_scale: 3
+    end_date: 2020-10-01
+    p_death: [.0025, .005, .01]
+    p_death_rate: 0.1
+    p_ICU: 0.264
+    p_vent: 0.15
