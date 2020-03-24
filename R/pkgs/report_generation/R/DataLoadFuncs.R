@@ -10,6 +10,8 @@
 ##' 
 ##' 
 ##' @author Justin Lessler
+##' 
+##' @export
 load_scenario_sims_filtered <- function(scenario_dir, post_process=function(x) {x},
                                         pre_process=function(x){x}) {
   
@@ -51,6 +53,8 @@ load_scenario_sims_filtered <- function(scenario_dir, post_process=function(x) {
 ##' 
 ##' @author Justin Lessler
 ##'
+##'
+##'@export
 load_hosp_sims_filtered <- function(scenario_dir,
                                     name_filter = "",
                                     post_process=function(x) {x}) {
