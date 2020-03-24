@@ -6,13 +6,13 @@
 # that `options(tigris_use_cache = TRUE)`.
 get_county_pops <- function(states_of_interest, regioncode, yr=2010, local_dir="data/") {
     county_pops <- purrr::map(states_of_interest,
-                       ~get_acs(geography = "county",
-                                variables = "B01003_001", ## total population data
-                                state = .x, 
-                                year = yr,
-                                keep_geo_vars = TRUE,
-                                geometry = TRUE,
-                                show_call = TRUE)) %>%
+                       ~tidycensus::get_acs(geography = "county",
+                                            variables = "B01003_001", ## total population data
+                                            state = .x, 
+                                            year = yr,
+                                            keep_geo_vars = TRUE,
+                                            geometry = TRUE,
+                                            show_call = TRUE)) %>%
                    purrr::map2(states_of_interest, ~mutate(.x, id = .y))
     county_pops2 <- purrr::reduce(county_pops, rbind)
 

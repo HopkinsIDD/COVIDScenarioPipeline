@@ -13,10 +13,35 @@ spatial_setup:
   popnodes: pop2010
 
 interventions:
-  base_path: COVIDScenarioPipeline/data
+  scripts_path: COVIDScenarioPipeline/NPI
 
-  NoNPI: NPI_Scenario1_None.R
-  SC: NPI_Scenario2_School_Closure.R
-  BI1918: NPI_Scenario3_Bootsma_1918Influenza.R
-  KansasCity: NPI_Scenario4_KansasCity.R
-  Wuhan: NPI_Scenario5_Wuhan.R
+seir:
+  parameters:
+    sigma: 1 / 5.2
+    gamma:
+      distribution: uniform
+      low: 1 / 6
+      high: 1 / 2.6
+    R0s:
+      distribution: uniform
+      low: 2
+      high: 3
+
+hospitalization:
+  paths:
+    output_path: hospitalization
+  parameters:
+    time_hosp: [1.23, 0.79]
+    time_disch: [log(11.5), log(1.22)]
+    time_death: [log(11.25), log(1.15)]
+    time_ICU: [log(8.25), log(2.2)]
+    time_ICUdur: [log(17.46), log(4.044)]
+    time_vent: [log(10.5), log((10.5-8)/1.35)]
+    mean_inc: 5.2
+    dur_inf_shape: 2
+    dur_inf_scale: 3
+    end_date: 2020-10-01
+    p_death: [.0025, .005, .01]
+    p_death_rate: 0.1
+    p_ICU: 0.264
+    p_vent: 0.15

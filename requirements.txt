@@ -1,7 +1,7 @@
 attrs==19.3.0
 cffi==1.14.0
-click-plugins==1.1.1
 click==7.1.1
+click-plugins==1.1.1
 cligj==0.5.0
 confuse==1.0.0
 cycler==0.10.0
@@ -16,6 +16,7 @@ llvmlite==0.31.0
 MarkupSafe==1.1.1
 matplotlib==3.2.0
 more-itertools==8.2.0
+mpmath==1.1.0
 munch==2.5.0
 numba==0.48.0
 numpy==1.18.2
@@ -29,12 +30,14 @@ pyproj==2.5.0
 pytest==5.4.1
 python-dateutil==2.8.1
 pytz==2019.3
+PyYAML==5.3.1
 rpy2==3.2.6
 scipy==1.4.1
 seaborn==0.10.0
 Shapely==1.7.0
 simplegeneric==0.8.1
 six==1.14.0
+sympy==1.5.1
 tqdm==4.43.0
 tzlocal==2.0.0
 wcwidth==0.1.8
