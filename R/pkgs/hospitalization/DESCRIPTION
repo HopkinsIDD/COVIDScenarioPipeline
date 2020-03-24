@@ -9,7 +9,7 @@ Imports:
     readr,
     gridExtra,
     ggfortify,
-    ggplot,
+    ggplot2,
     flextable,
     doParallel,
     data.table,

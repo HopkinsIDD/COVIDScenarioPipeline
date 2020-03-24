@@ -576,6 +576,7 @@ make_arrvl_map <- function(ca_arrival_dat,
 make_state_inc_plot <- function(state_inc_dat){
     p <- ggplot(state_inc_dat, aes(x=time, y=meanInc)) +
         geom_bar(stat="identity", fill="red", alpha=.2) +
+        scale_y_continuous("Incident infections") +
         geom_pointrange(aes(ymin=pi_low, ymax=pi_high), color="red", fill="white", alpha=.75, shape=21)
     return(p)
 }
@@ -589,6 +590,7 @@ make_state_inc_plot <- function(state_inc_dat){
 ##'
 make_metro_inc_plot <- function(metro_inc_dat){
     p <- ggplot(metro_inc_dat, aes(x=time, y=mean)) +
+        scale_y_continuous("Incident infections") +
         facet_wrap(~metrop_labels, ncol=3) +
         geom_bar(stat="identity", fill="red", alpha=.2) +
         geom_pointrange(aes(ymin=pi_low, ymax=pi_high), color="red", fill="white", alpha=.75, shape=21)
