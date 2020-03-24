@@ -247,16 +247,6 @@ build_hospdeath_summarize <- function(res,
     filter(!is.na(time) & !is.na(metrop_labels)) %>% 
     mutate(time = as.Date(time)) %>%
     filter(time <= as.Date(end_date)) %>%
-    group_by(time, metrop_labels, sim_num) %>%
-    summarize(
-      incidH = sum(incidH),
-      incidICU = sum(incidICU),
-      incidVent = sum(incidVent),
-      incidD = sum(incidD),
-      hosp_curr = sum(hosp_curr),
-      icu_curr = sum(icu_curr),
-      vent_curr = sum(vent_curr)) %>%
-    ungroup() %>%
     group_by(metrop_labels, sim_num) %>% 
     summarize(
       # nInf = sum(incidI, na.rm = TRUE), 
@@ -307,16 +297,6 @@ build_hospdeath_summarize <- function(res,
   res_total <- res %>% 
     filter(!is.na(time)) %>% 
     filter(time <= as.Date(end_date)) %>%
-    group_by(time, sim_num) %>%
-    summarize(
-      incidH = sum(incidH),
-      incidICU = sum(incidICU),
-      incidVent = sum(incidVent),
-      incidD = sum(incidD),
-      hosp_curr = sum(hosp_curr),
-      icu_curr = sum(icu_curr),
-      vent_curr = sum(vent_curr)) %>%
-    ungroup() %>%
     group_by(sim_num) %>% 
     summarize(#nInf = sum(incidI, na.rm = TRUE), 
       nhosp = sum(incidH, na.rm = TRUE), 
