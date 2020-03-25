@@ -1,3 +1,4 @@
+import datetime
 import functools
 import numbers
 
@@ -19,6 +20,23 @@ def add_method(cls):
         setattr(cls, func.__name__, wrapper)
         return func
     return decorator
+
+
+class ISO8601Date(confuse.Template):
+    def convert(self, value, view):
+        if isinstance(value, datetime.date):
+            return value
+        elif isinstance(value, str):
+            return datetime.datetime.strptime(value, "%Y-%m-%d").date()
+        else:
+            self.fail("must be a date object or ISO8601 date", True)
+
+
+@add_method(confuse.ConfigView)
+def as_date(self):
+    "Evaluates an datetime.date or ISO8601 date string, raises ValueError on parsing errors."
+
+    return self.get(ISO8601Date())
 
 
 @add_method(confuse.ConfigView)
