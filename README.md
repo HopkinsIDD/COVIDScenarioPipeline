@@ -80,3 +80,17 @@ $ CONFIG_PATH=/path/to/config.yml python COVIDScenarioPipeline/simulate.py -s Wu
 $ CONFIG_PATH=/path/to/config.yml Rscript hosp_run.R
 ```
 
+# Profiling
+
+The Python simulation supports profiling as a command-line option with the
+`--profile` flag. To write output to a specific file, use the
+`--profile-output` command line option. If you're profiling, it's a good
+idea to run single-threaded (`-j 1`) to capture the statistics that would
+be lost within the child processes.
+
+Here's an example to run 10 simulations while profiling the simulation and
+outputting to `~/profile.output`.
+
+```
+$ ./simulate.py -n 10 --profile --profile-output $HOME/profile.output -j 1
+```
