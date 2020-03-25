@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import multiprocessing
 import pathlib
 import time
@@ -6,6 +7,7 @@ import click
 
 from SEIR import seir, setup
 from SEIR.utils import config
+from SEIR.profile import profile_options
 
 
 @click.command()
@@ -22,6 +24,7 @@ from SEIR.utils import config
               help="run in interactive or batch mode [default: batch]")
 @click.option("--write-csv/--no-write-csv", default=True, show_default=True,
               help="write CSV output at end of simulation")
+@profile_options
 def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
     config.set_file(config_file)
 
@@ -68,7 +71,7 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
 >> writing to folder : {s.datadir}{s.setup_name}
     """)
 
-        seir.run_parallel(s, jobs)
+        seir.run_parallel(s, n_jobs=jobs)
     print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")
 
 
