@@ -28,9 +28,3 @@ install_version("tidycensus", version = "0.9.5")
 install_version("yaml", version = "2.2.1")
 install_version("optparse", version = "1.6.4")
 install_version("lubridate", version = "1.7.4")
-
-# Install the packages we developed ourselves
-install_local("R/pkgs/covidcommon", force=TRUE, upgrade_dependencies=FALSE)
-install_local("R/pkgs/hospitalization", force=TRUE, upgrade_dependencies=FALSE)
-install_local("R/pkgs/importation_estimation", force=TRUE, upgrade_dependencies=FALSE)
-install_local("R/pkgs/report_generation", force=TRUE, upgrade_dependencies=FALSE)
