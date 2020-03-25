@@ -11,6 +11,7 @@ spatial_setup:
   geodata: geodata.csv
   mobility: mobility.txt
   popnodes: pop2010
+  include_in_report: targeted
 
 interventions:
   scripts_path: COVIDScenarioPipeline/NPI

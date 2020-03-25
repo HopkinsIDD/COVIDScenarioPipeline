@@ -26,8 +26,11 @@ install.packages("https://cran.r-project.org/src/contrib/Archive/rgdal/rgdal_1.4
 install.packages("https://cran.r-project.org/src/contrib/Archive/cowplot/cowplot_0.9.2.tar.gz", repos=NULL, type="source")
 install_version("tidycensus", version = "0.9.5")
 install_version("yaml", version = "2.2.1")
+install_version("optparse", version = "1.6.4")
+install_version("lubridate", version = "1.7.4")
 
 # Install the packages we developed ourselves
-install_local("R/pkgs/covidcommon", force=TRUE)
-install_local("R/pkgs/hospitalization", force=TRUE)
-install_local("R/pkgs/importation_estimation", force=TRUE)
+install_local("R/pkgs/covidcommon", force=TRUE, upgrade_dependencies=FALSE)
+install_local("R/pkgs/hospitalization", force=TRUE, upgrade_dependencies=FALSE)
+install_local("R/pkgs/importation_estimation", force=TRUE, upgrade_dependencies=FALSE)
+install_local("R/pkgs/report_generation", force=TRUE, upgrade_dependencies=FALSE)
