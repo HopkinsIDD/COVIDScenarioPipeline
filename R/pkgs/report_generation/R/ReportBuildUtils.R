@@ -321,32 +321,41 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
 ##'
 plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
                                             cty_names,
-                                            pdeath_level = "high",
+                                            pdeath_level = c("high", "med", "low"),
+                                            scenario = c("KC", "WH", "None")
                                             start_date,
                                             end_date) {
-
+  pdeath_level <- match.arg(pdeath_level)
+  scenario <- match.arg(scenario)
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
   to_plt <- hosp_cty_peaks %>%
-    dplyr::filter(pdeath==pdeath_level) %>%
+    dplyr::filter(pdeath==pdeath_level,
+                  scenario_name==scenario) %>%
     group_by(geoid, scenario_name) %>%
     dplyr::summarise(mean_pkTime = mean(time),
-                      median_pkTime = median(time),
-                      low_pkTime = as.Date(quantile(unclass(time), probs=.25), origin = "1970-01-01"),
-                      hi_pkTime = as.Date(quantile(unclass(time), .75), origin = "1970-01-01")) %>%
+                     median_pkTime = median(time),
+                     low_pkTime = quantile(time, probs=.25, type=1),
+                     hi_pkTime = quantile(time, probs=.75, type=1)) %>%
     ungroup %>%
-    dplyr::mutate(scenario_name = factor(scenario_name, levels = params$scenario_labels, labels = params$scenario_labels)) %>%
+    dplyr::mutate(scenario_name = factor(scenario_name,
+                                         levels = params$scenario_labels,
+                                         labels = params$scenario_labels)) %>%
     dplyr::left_join(cty_names, by = c("geoid"))
 
 
-  rc <- ggplot(data=to_plt, aes(x = reorder(county, -as.numeric(mean_pkTime)), y = mean_pkTime, ymin = low_pkTime, ymax = hi_pkTime)) +
+  rc <- ggplot(data=to_plt,
+               aes(x = reorder(county, -as.numeric(mean_pkTime)),
+                   y = mean_pkTime, ymin = low_pkTime, ymax = hi_pkTime)) +
     geom_pointrange() +
-    scale_y_date("Date of peak hospital occupancy", date_breaks = "2 months", date_labels = "%b", limits = c(as.Date(start_date), as.Date(end_date))) +
+    scale_y_date("Date of peak hospital occupancy",
+                 date_breaks = "2 months",
+                 date_labels = "%b",
+                 limits = c(start_date, end_date)) +
     xlab("County") +
     theme_bw() +
-    guides("none") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))  +
     coord_flip()
 
