@@ -4,6 +4,8 @@ end_date: 2020-10-01
 dt: 0.25
 dynfilter_path: data/west-coast-AZ-NV/filtergithub.txt
 
+simulations : 15
+
 spatial_setup:
   base_path: data/west-coast-AZ-NV
 
@@ -19,6 +21,18 @@ interventions:
     template: ReduceR0
     period_start_date: 2020-04-01
     period_end_date: 2020-05-15
+    value:
+      distribution: uniform
+      low: .14
+      high: .33
+  KansasCity:
+    template: ReduceR0
+    period_start_date: 2020-04-01
+    period_end_date: 2020-05-15
+    value:
+      distribution: uniform
+      low: .04
+      high: .23
 
 seir:
   parameters:
