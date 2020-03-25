@@ -58,6 +58,8 @@ print_pretty_date <- function() {
 plot_ts_hosp_state_sample <- function (hosp_state_totals,
                                        num_sims = 15,
                                        pdeath_level = "high",
+                                       scenario_labels,
+                                       scenario_cols,
                                        sim_start_date,
                                        sim_end_date,
                                        plot_intervention = FALSE, ## may not want to plot if it is too complicated
@@ -72,8 +74,8 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
                                       min(num_sims, length(unique(sim_num))),
                                       replace=FALSE)) %>%
     dplyr::mutate(scenario_name = factor(scenario_name,
-                                         levels = params$scenario_labels,
-                                         labels = params$scenario_labels),
+                                         levels = scenario_labels,
+                                         labels = scenario_labels),
                   sim_num = factor(sim_num))
 
   rc <- ggplot(data=to_plt,
@@ -85,8 +87,8 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
                  date_labels = "%b",
                  limits = c(as.Date(sim_start_date), as.Date(sim_end_date))) +
     scale_color_manual("Scenario",
-                      labels = params$scenario_labels,
-                      values = params$scenario_cols) +
+                      labels = scenario_labels,
+                      values = scenario_cols) +
     theme_minimal() +
     theme(axis.title.x =  element_blank(),
          legend.position = "bottom",
@@ -132,6 +134,8 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
 plot_ts_incid_inf_state_sample <- function (hosp_state_totals,
                                             num_sims = 15,
                                             pdeath_level = "high", ## doesn't really matter since data should be the same for infections
+                                            scenario_labels,
+                                            scenario_cols,
                                             sim_start_date,
                                             sim_end_date,
                                             plot_intervention = FALSE, ## may not want to plot if it is too complicated
@@ -146,8 +150,8 @@ plot_ts_incid_inf_state_sample <- function (hosp_state_totals,
                                       min(num_sims, length(unique(sim_num))),
                                       replace=FALSE)) %>%
     dplyr::mutate(scenario_name = factor(scenario_name,
-                                         levels = params$scenario_labels,
-                                         labels = params$scenario_labels),
+                                         levels = scenario_labels,
+                                         labels = scenario_labels),
                   sim_num = factor(sim_num))
 
   rc <- ggplot(data=to_plt,
@@ -159,8 +163,8 @@ plot_ts_incid_inf_state_sample <- function (hosp_state_totals,
                  date_labels = "%b",
                  limits = c(as.Date(sim_start_date), as.Date(sim_end_date))) +
     scale_color_manual("Scenario",
-                       labels = params$scenario_labels,
-                       values = params$scenario_cols) +
+                       labels = scenario_labels,
+                       values = scenario_cols) +
     theme_minimal() +
     theme(axis.title.x =  element_blank(),
           legend.position = "bottom",
@@ -204,6 +208,10 @@ plot_ts_incid_inf_state_sample <- function (hosp_state_totals,
 ##'
 plot_ts_incid_death_state_sample_allPdeath <- function (hosp_state_totals,
                                                         num_sims = 15,
+                                                        scenario_labels,
+                                                        scenario_cols,
+                                                        pdeath_filecode,
+                                                        pdeath_labels,
                                                         sim_start_date,
                                                         sim_end_date,
                                                         plot_intervention = FALSE, ## may not want to plot if it is too complicated
@@ -217,10 +225,10 @@ plot_ts_incid_death_state_sample_allPdeath <- function (hosp_state_totals,
                                       min(num_sims, length(unique(sim_num))),
                                       replace=FALSE)) %>%
     dplyr::mutate(scenario_name = factor(scenario_name,
-                                         levels = params$scenario_labels),
+                                         levels = scenario_labels),
                   pdeath = factor(pdeath,
-                                  levels = params$pdeath_filecode,
-                                  labels = params$pdeath_labels),
+                                  levels = pdeath_filecode,
+                                  labels = pdeath_labels),
                   sim_num = factor(sim_num))
 
   rc <- ggplot(data=to_plt,
@@ -232,8 +240,8 @@ plot_ts_incid_death_state_sample_allPdeath <- function (hosp_state_totals,
                  date_labels = "%b",
                  limits = c(as.Date(sim_start_date), as.Date(sim_end_date))) +
     scale_color_manual("Scenario",
-                       labels = params$scenario_labels,
-                       values = params$scenario_cols) +
+                       labels = scenario_labels,
+                       values = scenario_cols) +
     theme_minimal() +
     theme(axis.title.x =  element_blank(),
           legend.position = "bottom",
@@ -273,9 +281,11 @@ plot_ts_incid_death_state_sample_allPdeath <- function (hosp_state_totals,
 ##' @export
 ##'
 plot_hist_incidHosp_state <- function (hosp_state_totals,
-                                            pdeath_level = "high",
-                                            sim_start_date,
-                                            summary_date) {
+                                       pdeath_level = "high",
+                                       scenario_labels,
+                                       scenario_cols,
+                                       sim_start_date,
+                                       summary_date) {
 
   sim_start_date <- as.Date(sim_start_date)
   summary_date <- as.Date(summary_date)
@@ -287,12 +297,17 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
     group_by(scenario_name, sim_num) %>%
     dplyr::summarise(cumHosp = sum(NincidHosp)) %>%
     ungroup %>%
-    dplyr::mutate(scenario_name = factor(scenario_name, levels = params$scenario_labels, labels = params$scenario_labels))
+    dplyr::mutate(scenario_name = factor(scenario_name,
+                                         levels = scenario_labels,
+                                         labels = scenario_labels))
 
-  rc <- ggplot(data=to_plt, aes(x = cumHosp, fill = scenario_name, color = scenario_name)) +
+  rc <- ggplot(data=to_plt,
+               aes(x = cumHosp, fill = scenario_name, color = scenario_name)) +
     geom_histogram() +
     facet_wrap(scenario_name~., ncol = 1) +
-    scale_fill_manual(values = params$scenario_cols, labels = params$scenario_labels, aesthetics = c("colour", "fill")) +
+    scale_fill_manual(values = scenario_cols,
+                      labels = scenario_labels,
+                      aesthetics = c("colour", "fill")) +
     scale_x_continuous(paste("Cumulative hospitalizations by", print_pretty_date()(summary_date)), labels = scales::comma) +
     ylab("Number of simulations") +
     theme_bw() +
@@ -322,18 +337,19 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
 plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
                                             cty_names,
                                             pdeath_level = c("high", "med", "low"),
-                                            scenario = c("KC", "WH", "None")
+                                            scenario = c("KC", "WH", "None"),
+                                            scenario_labels,
+                                            scenario_cols,
                                             start_date,
                                             end_date) {
   pdeath_level <- match.arg(pdeath_level)
-  scenario <- match.arg(scenario)
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
   to_plt <- hosp_cty_peaks %>%
-    dplyr::filter(pdeath==pdeath_level,
-                  scenario_name==scenario) %>%
+    dplyr::filter(pdeath %in% pdeath_level,
+                  scenario_name %in% scenario) %>%
     group_by(geoid, scenario_name) %>%
     dplyr::summarise(mean_pkTime = mean(time),
                      median_pkTime = median(time),
@@ -341,23 +357,41 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
                      hi_pkTime = quantile(time, probs=.75, type=1)) %>%
     ungroup %>%
     dplyr::mutate(scenario_name = factor(scenario_name,
-                                         levels = params$scenario_labels,
-                                         labels = params$scenario_labels)) %>%
+                                         levels = scenario_labels,
+                                         labels = scenario_labels)) %>%
     dplyr::left_join(cty_names, by = c("geoid"))
 
-
-  rc <- ggplot(data=to_plt,
-               aes(x = reorder(county, -as.numeric(mean_pkTime)),
-                   y = mean_pkTime, ymin = low_pkTime, ymax = hi_pkTime)) +
-    geom_pointrange() +
-    scale_y_date("Date of peak hospital occupancy",
-                 date_breaks = "2 months",
-                 date_labels = "%b",
-                 limits = c(start_date, end_date)) +
-    xlab("County") +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))  +
-    coord_flip()
+  if(length(scenario)==1){
+    rc <- ggplot(data=to_plt,
+                 aes(x = reorder(county, -as.numeric(mean_pkTime)),
+                     y = mean_pkTime, ymin = low_pkTime, ymax = hi_pkTime)) +
+      geom_pointrange() +
+      scale_y_date("Date of peak hospital occupancy",
+                   date_breaks = "2 months",
+                   date_labels = "%b",
+                   limits = c(start_date, end_date)) +
+      xlab("County") +
+      theme_bw() +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))  +
+      coord_flip()
+  } else{
+    rc <- ggplot(data=to_plt,
+                 aes(x = reorder(county, -as.numeric(mean_pkTime)),
+                     y = mean_pkTime, ymin = low_pkTime, ymax = hi_pkTime,
+                     color = scenario_name)) +
+      geom_pointrange() +
+      scale_y_date("Date of peak hospital occupancy",
+                   date_breaks = "2 months",
+                   date_labels = "%b",
+                   limits = c(start_date, end_date)) +
+      xlab("County") +
+      scale_color_manual("Scenario",
+                         labels = scenario_labels,
+                         values = scenario_cols) +
+      theme_bw() +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))  +
+      coord_flip()
+  }
 
 
   return(rc)
