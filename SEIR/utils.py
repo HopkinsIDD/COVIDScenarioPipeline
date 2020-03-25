@@ -60,7 +60,10 @@ def as_random_distribution(self):
     "Constructs a random distribution object from a distribution config key"
 
     dist = self["distribution"].get()
-    if dist == "uniform":
+    if dist == "fixed":
+        return functools.partial(np.random.uniform, self["value"].as_evaled_expression(),
+                                 self["value"].as_evaled_expression())
+    elif dist == "uniform":
         return functools.partial(np.random.uniform, self["low"].as_evaled_expression(),
                                  self["high"].as_evaled_expression())
     elif dist == "poisson":
