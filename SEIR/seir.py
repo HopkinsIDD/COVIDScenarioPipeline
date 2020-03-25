@@ -1,6 +1,5 @@
 import itertools
 import logging
-import multiprocessing
 import os
 import time
 import uuid
@@ -10,6 +9,7 @@ from numba import jit
 import numpy as np
 import pandas as pd
 import scipy
+import tqdm.contrib.concurrent
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -32,7 +32,7 @@ ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
-def onerun_SEIR(s, uid):
+def onerun_SEIR(uid, s):
     scipy.random.seed()
     r_assign('ti_str', str(s.ti))
     r_assign('tf_str', str(s.tf))
@@ -98,19 +98,14 @@ def onerun_SEIR(s, uid):
 
 
 def run_parallel(s, processes):
-
-    tic = time.time()
+    start = time.monotonic()
     uids = np.arange(s.nsim)
+    tqdm.contrib.concurrent.process_map(onerun_SEIR, uids, itertools.repeat(s),
+                                        max_workers=processes)
 
-    with multiprocessing.Pool(processes=processes) as pool:
-        result = pool.starmap(
-            onerun_SEIR,
-            zip(
-                itertools.repeat(s),
-                #itertools.repeat(p),
-                uids))
-    print(f">>> {s.nsim}  Simulations done in {time.time()-tic} seconds...")
-    return result
+    print(f"""
+>> {s.nsim} simulations completed in {time.monotonic()-start:.1f} seconds
+""")
 
 
 #@jit(float64[:,:,:](float64[:,:], float64[:], int64), nopython=True)

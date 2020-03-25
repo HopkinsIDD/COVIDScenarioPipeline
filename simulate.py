@@ -36,6 +36,7 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
     if not nsim:
         nsim = config["nsimulations"].as_number()
 
+    start = time.monotonic()
     for scenario in scenarios:
         script_npi = interventions_base_path / (scenario + ".R")
         if not script_npi.exists():
@@ -60,17 +61,14 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
         s.load_filter(config["dynfilter_path"].get())
 
         print(f"""
-
 >> Scenario: {scenario}
 >> Starting {s.nsim} model runs on {jobs} processes
 >> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}
 >> writing to folder : {s.datadir}{s.setup_name}
-
     """)
 
-        start = time.monotonic()
         seir.run_parallel(s, jobs)
-        print(f">> Runs done in {time.monotonic() - start} seconds...")
+    print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")
 
 
 if __name__ == "__main__":
