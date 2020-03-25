@@ -10,6 +10,6 @@ colnames(NPI) <- as.Date(dates)
 rownames(NPI) <- county.status$geoid
 
 ## Introducing NPI: randomly assign a pc value to each county based on Bootsma paper values
-NPI[ , colnames(NPI) >= as.Date("2020/03/19") & colnames(NPI) <= as.Date("2020/05/14") ] <- 1
-county.status$pc <- replicate(dim(county.status)[1], runif(dim(county.status)[1], 0.44, 0.65))
+NPI[ , colnames(NPI) >= as.Date(begin) & colnames(NPI) <= as.Date(end) ] <- 1
+county.status$pc <- replicate(dim(county.status)[1], runif(dim(county.status)[1], lower, upper))
 NPI <- NPI * county.status$pc
