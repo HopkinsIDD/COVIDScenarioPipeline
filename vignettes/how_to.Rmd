@@ -1,5 +1,5 @@
 ---
-title: Creating COVID19 planning scenario reports
+title: "Creating COVID19 planning scenario reports"
 author: "Joshua Kaminsky"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
@@ -17,29 +17,35 @@ The report you will create discusses planning scenarios for different interventi
 
  %% POPULATE ME please help scientists
 
- - Interventions need to be implemented as an effect on `R0`
+ - Interventions need to be implemented as an effect on `beta`.  Some more mechanistic interventions cannot easily be captured this way.
 
 # Overview
 
 The pipeline is broken into several stages, each of which can be independently replaced.
 
+### Pipeline Phases
+
 #### Seeding
 
-We run a model to determine the likelihood of importing cases into the region of interest.
+We run a model to determine the likelihood of importing cases into the region of interest.  We maintain an [R package](https://github.com/HopkinsIDD/covidImportation).
 
 #### Epidemic Simulation
 
-We run a location stratified SEIR model
+We run a location stratified [SEIR model](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/SEIR), using a python module in `COVIDScenarioPipeline`.
 
 #### Hospitalization Estimation
 
-We estimate secondary effects of infection using infection numbers.
+We estimate secondary effects of infection using infection numbers using the [hospitalization](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/hospitalization) R package in `COVIDScenarioPipeline`.
 
 #### Report Generation
 
-We provide functions to access results and help produce reports.
+We provide functions to access results and help produce reports in the [report_generation](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/report_generation) R package in `COVIDScenarioPipeline`.
 
-%% POPULATE ME - Put some of the critical data/config pieces as well
+### Pipeline Configuration
+
+#### config.yml
+
+Most of the configuration done for this package is set in this configuration file.  A default is provided, but you should feel free to make your own copy tailored to your needs.
 
 # Getting Set up
 
@@ -47,9 +53,7 @@ This project uses R, python, pandoc, and make
 
 #### R
 
-%% POPULATE ME - mention that the R package link is also an installation script
-
-The code requires R version 3.6 or newer. You can download R from [cran](https://cran.rstudio.com/).  We also recommend [rstudio](https://rstudio.com/products/rstudio/download/), an R IDE We keep a list of [R packages](https://github.com/HopkinsIDD/COVIDScenarioPipeline/blob/dataseed/packages.R).  You can source the script to install the versions required (the most recent versions also likely work).
+The code requires R version 3.6 or newer. You can download R from [cran](https://cran.rstudio.com/).  We also recommend [rstudio](https://rstudio.com/products/rstudio/download/), an R IDE.  We keep a list of [R packages](https://github.com/HopkinsIDD/COVIDScenarioPipeline/blob/dataseed/packages.R).  You can source the script to install the versions required (the most recent versions also likely work).
 
 #### python
 
@@ -71,9 +75,9 @@ If you want to try something else, you can [directly download](https://www.pytho
 
 ##### Mac
 
-%% POPULATE ME (someone that has a mac plz help)
+%% POPULATE ME - can someone who has a mac make sure this works?
 
-
+[This webpage](https://docs.python-guide.org/starting/install3/osx/) has a guide to installing python3 and pip on mac
 
 ### pandoc
 
@@ -85,7 +89,7 @@ Make should already come with your system
 
 # Seeding
 
-The code for this section is in an [R package](https://github.com/HopkinsIDD/nCoV_Importation).  The repository is currently private, but we hope to release it soon.
+The code for this section is in an [R package](https://github.com/HopkinsIDD/covidImportation).
 
 Calculate the expected number of cases imported from outside of the region of interest.
 
@@ -111,20 +115,37 @@ It should have one line per location, and at least two columns containing inform
 
 A matrix (stored as a space delimited scientific notation e.g., 0.000000000000000000e+00).  The matrix is used to calculate movement rates between geoids.  The number of people who move from `source` to `dest` is binomially distributed with probability `1 - exp( - mobility[source,dest] / popnodes[source] * dt)`
 
+## Filter
+
+A matrix (number of days simulated x number of geographic nodes).  Each value contains a minimum number of cases for that time and place.  The SEIR simulation throws out simulations that are inconsistent with these reports.
+
+Currently, the filter is strict, meaning that any simulation that doesn't pass it exactly is rejected.  We expect to provide a more relaxed version that provides a tolerance parameter.
+
 ## Interventions
 
-To help plan, we consider how the epidemic evolves under various intervention scenarios.  We have developed several scenarios
+In order to allow flexibility in  interventions, we currently use an R script to define an intervention.  We provide several exampes in the NPI folder. In the future, we expect to move away from this model and toward specifying interventions directly in the config files.
 
-To write your own intervention, you need to
+To write an intervention, you need to write an R script that creates a matrix of your intervention's effects on `beta` by providing `NPI`, a matrix of percentage reduction for each location and time.  To reduce beta by 20% deterministically, one could use
 
-%% POPULATE ME
+```{r, eval=FALSE}
+## This block sets default values so the NPI can be tested outside of python
+if (!from_python) {         # or whatever values you use to test.
+    ti_str <- '2020-01-31'
+    tf_str <- '2020-08-31'
+    foldername <- 'west-coast/'
+}
 
+## This pulls data to determine the size of the location x time matrix
+county.status <- read.csv(paste0(foldername,'geodata.csv'))
+dates <- seq.Date(as.Date(ti_str), as.Date(tf_str), 1)
 
+## This creates and sets the location x time matrix.
+NPI <- as.data.frame(matrix(0.2, dim(county.status)[1],length(dates)), dimnames = list()
+```
 
+# Hospitalization and Outcome Generation
 
-# Hospitalization and Outcome Generator
-
-The code for this section is in the `hospitalization` package in `COVIDScenarioPipeline/R/pkgs/`.
+The code for this section is in the [hospitalization](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/hospitalization).
 After you have run a simulation, and have infection rates, we use those results to calculate hospitalizations, icu admittances, ventilator use, deaths (and it would be relatively easy to add other outcomes if you have data).
 
 ### Probability Parameters
@@ -148,8 +169,8 @@ DiagrammeR::grViz("digraph flowchart {
       # edge definitions with the node IDs
       tab1 -> tab2 [label = 'p_hosp'];
       tab2 -> tab3 [label = 'p_death'];
-      tab2 -> tab4 [label = 'p_vent'];
-      tab4 -> tab5 [label = 'p_ICU'];
+      tab2 -> tab4 [label = 'p_ICU'];
+      tab4 -> tab5 [label = 'p_vent'];
       }
 
       [1]: 'Infection'
@@ -170,13 +191,51 @@ There are two other parameters that calculate different amounts of time.  They a
 
 # Report Generation
 
+We provide a [package](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/report_generation) to help utilize the previous parts of the pipeline to create meaningful reports.  This support comes in the form of functions to help load the output of previous steps (it is sometimes quite large), and R Markdown templates to allow the easy creation of customizable reports without requiring the user to start from scratch.
+
 ## Functions
 
-We provide two
+We provide two functions to load the results from the [Epidemic Simulation] and [Hospitalization and Outcome Generation], `load_scenario_sims_filtered` and `load_hosp_sims_filtered` respectively.  These functions perform the same function on the two different data sources.  Because of the nature of the data, they do have different syntax though
+
+#### load_scenario_sims_filtered
+
+```{r, eval = FALSE}
+load_scenario_sims_filtered <- function(
+  scenario_dir,
+  post_process=function(x) {x},
+  pre_process=function(x){x}
+)
+```
+
+ - `scenario_dir` is the directory containing the output of the [Epidemic Simulation].  The function assumes it is in the `model_output` subdirectory of this directory.  You can access this by  %POPULATE ME - how to use
+ - `pre_process` is a function to be performed on each simulation file before transforming into a long data frame.
+ - `post_process` A function to be performed on each simulation file after transforming into a long data frame.
+
+#### load_hosp_sims_filtered
+
+```{r, eval = FALSE}
+load_hosp_sims_filtered <- function(
+  scenario_dir,
+  name_filter=function(x) {x},
+  post_process=function(x){x}
+)
+```
+
+ - `scenario_dir` is the directory containing the output of the [Hospitalization and Outcome Generation].  The function assumes it is in the `hospitalization/model_output` subdirectory of this directory.  You can access this by %POPULATE ME - how to use
+ - `post_process` A function to be performed on each simulation file after each piece of data is loaded.
+ - `name_filter` A string that all filenames need to match.  This is intended for distinguishing between different hospitalization parameterization scenarios, which are stored with the scenario as part of the filename.
 
 ## Templates
 
-We have generated templates to help create reports of different types.
+We have generated templates to help create reports of different types.  Templates are complete reports that you can use as a base of your output.  Currently, we have the beginning of one template intended for state level reports.
+
+#### Using templates
+
+To start a draft from a template, you can use, for example:
+
+```{r, eval = FALSE}
+rmarkdown::draft("Maryland_Report.Rmd", template = "state_report", package = "report_generation")
+```
 
 
 # Appendixes
@@ -204,3 +263,116 @@ This intervention represents shelter in place similar to what was done in Wuhan 
 ### BI1918
 
 This intervention represents the actions taken during the 1918 influenza epidemic It reduces `R0` by %%POPULATE ME
+
+
+## Actual Steps I went through to create a minimal working repository (by commit)
+
+
+ - Install python packages
+
+   ```{sh, eval=FALSE}
+   pip3 install -r https://raw.githubusercontent.com/HopkinsIDD/COVIDScenarioPipeline/dataseed/requirements.txt
+   ```
+
+ - Install cran R dependencies
+
+   ```{r,eval=FALSE,echo=TRUE}
+   source_url("https://raw.github.com/lcolladotor/ballgownR-devel/master/ballgownR/R/infoGene.R")
+   ```
+
+ - Install all relevant R packages from github:
+
+   ```{r,eval=FALSE,echo=TRUE}
+   devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/covidcommon')
+   devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/hospitalization')
+   devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/importation_estimation')
+   devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/report_generation')
+   ```
+
+ - Clone github repo
+   ```{sh, eval=FALSE}
+   git clone https://github.com/HopkinsIDD/COVIDScenarioPipeline.git
+   ```
+
+ - Copy the config.yml file from the COVIDScenarioPipeline repository to your current repository
+   ```{sh, eval=FALSE}
+   cp COVIDScenarioPipeline/config.yml config.yml
+   ```
+
+ - Remove all references to the COVIDScenarioPipeline repo from config.yml
+
+   ```{eval=FALSE}
+   1c1
+   < name: mid-west-coast-AZ-NV
+   ---
+   > name: minimal
+   5c5
+   < dynfilter_path: data/west-coast-AZ-NV/filtergithub.txt
+   ---
+   > dynfilter_path: data/filtergithub.txt
+   8c8
+   <   base_path: data/west-coast-AZ-NV
+   ---
+   >   base_path: data
+   10c10
+   <   setup_name: west-coast-AZ-NV
+   ---
+   >   setup_name: minimal
+   16c16
+   <   scripts_path: COVIDScenarioPipeline/NPI
+   ---
+   >   scripts_path: NPI
+   ```
+
+ - Make an Intervention
+
+   ```{sh, eval=FALSE}
+   mkdir NPI
+   cp COVIDScenarioPipeline/NPI/None.R NPI/
+   ```
+
+ - Aquire geodata
+
+   ```{sh, eval=FALSE}
+   mkdir data
+   echo "geoind,population
+10001,1000
+20002,2000" > data/geodata.csv
+   ```
+   Edit the config file so spatial_setup::base_path = data
+   Edit the config file so spatial_setup::geodata = geodata.csv
+
+ - Aquire mobility data
+
+   ```{sh, eval = FALSE}
+   echo "0 .03
+.03 0" > data/mobility.txt
+   ```
+   Edit the config file so spatial_setup::mobility = mobility.csv
+   Note that geodata and mobility data live in the same directory (basepath)
+
+ - Aquire filter
+
+   ```{sh, eval=FALSE}
+   echo "0 0" > data/filter.txt
+   echo "0 0" >> data/filter.txt
+   echo "0 0" >> data/filter.txt
+   echo "0 0" >> data/filter.txt
+   echo "0 0" >> data/filter.txt
+   echo "0 0" >> data/filter.txt
+   echo "0 0" >> data/filter.txt
+   echo "0 0" >> data/filter.txt
+   echo "0 0" >> data/filter.txt
+   echo "0 0" >> data/filter.txt
+   ```
+   The number of columns should be the number of geoids
+   The number of time steps should be end_date - start_date in days
+   dynfilter_path should be a path to this file
+
+ - Run simulate.py
+
+   ```{sh, eval=FALSE}
+   python3 COVIDScenarioPipeline/simulate.py -c config.yml -s None -n 15
+   ```
+
+ -
