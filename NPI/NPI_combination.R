@@ -8,6 +8,23 @@ t_NPI2 = as.Date("2020/3/19")
 t_NPI3 = as.Date("2020/5/15")
 t_end = as.Date(tf_str)
 
+scenarios <- c("None","KansasCity","Wuhan","None")
+start_times <- lubridate::ymd(c(ti_str,"2020-03-13","2020-03-19","2020-05-15"))
+end_times <- lubridate::ymd(c("2020-03-13","2020-03-19","2020-05-15",tf_str))
+
+all_NPI = list()
+for(scenario in scenarios){
+  source(paste0("~/git/COVIDScenarioPipeline/",scenario,".R"))
+  ## restrict based on above dates
+  NPI[,t_start + seq_len(start_times[[scenario]] - t_start - 1)] <- 0 # Whatever the no intervention state is
+  NPI[,end_times[[scenario]] + 1 + seq_len(t_end - end_times[[scenario]] - 1)] <- 0 # Whatever the no intervention state is
+  all_NPI[[scenario]] <- NPI
+}
+inverse_NPI <- 1 - all_NPI[[1]]
+for(idx in seq_len(length(NPI) - 1)){
+  rc <- rc * all_NPI[[idx]]
+}
+NPI <- 1 - inverse_NPI
 # West Coast
 county <- read.csv('west-coast-AZ-NV/geodata.csv')
 
