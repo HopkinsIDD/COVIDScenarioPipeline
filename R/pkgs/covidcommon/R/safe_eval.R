@@ -2,9 +2,9 @@
 
 init_safe_env = function() {
   safe_f <- c(
-    getGroupMembers("Math"),
-    getGroupMembers("Arith"),
-    getGroupMembers("Compare"),
+    methods::getGroupMembers("Math"),
+    methods::getGroupMembers("Arith"),
+    methods::getGroupMembers("Compare"),
     "<-", "{", "(", "min", "max", "pmin", "pmax",
     "seq", ":", "seq.default", "seq.int"
   )
