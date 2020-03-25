@@ -10,6 +10,11 @@ params:
   scenario_labels: [SCENARIO1, SCENARIO2, SCENARIO3]
   scenario_dirs: [DIR1,DIR2,DIR3]
   scenario_cols: ["#D95F02", "#1B9E77", "#7570B3"] #colors
+  pdeath_filecode: ["low", "med", "high"]
+  pdeath_labels: ["0.25% IFR", "0.5% IFR", "1% IFR"]
+  region_code: [REGIONCODENAME]
+  shapefile_fn: [DIRSHP]
+  pop_year: [POPESTYEAR]
     
 ---
 
@@ -35,8 +40,9 @@ knitr::opts_chunk$set(
 	bitmapType = "cairo"
 )
 
-
 LOADED_HOSP_STATE_TOTALS <- FALSE
+LOADED_INF_CTY_PEAKS <- FALSE
+LOADED_HOSP_CTY_PEAKS <- FALSE
 
 ```
 
