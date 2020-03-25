@@ -2,11 +2,11 @@
 
 library(dplyr)
 
-t_start = as.Date("2020/1/31")
+t_start = as.Date(ti_str)
 t_NPI1 = as.Date("2020/3/13")
 t_NPI2 = as.Date("2020/3/19")
 t_NPI3 = as.Date("2020/5/15")
-t_end = as.Date("2020/12/31")
+t_end = as.Date(tf_str)
 
 # West Coast
 geodata <- read.csv('west-coast-AZ-NV/geodata.csv')
