@@ -11,56 +11,66 @@ from SEIR.utils import config
 @click.command()
 @click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
               help="configuration file for this simulation")
-@click.option("-s", "--scenario", type=str, required=True,
-              help="the scenario to run for this simulation")
-@click.option("-n", "--nsim", type=int, required=True, default=1000, show_default=True,
-              help="the # of model runs")
-@click.option("-j", "--jobs", type=int, default=multiprocessing.cpu_count(), show_default=True,
+@click.option("-s", "--scenario", "scenarios", type=str, default=[], multiple=True,
+              help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]")
+@click.option("-n", "--nsim", type=click.IntRange(min=1),
+              help="override the # of simulation runs in the config file")
+@click.option("-j", "--jobs", type=click.IntRange(min=1),
+              default=multiprocessing.cpu_count(), show_default=True,
               help="the parallelization factor")
 @click.option("--interactive/--batch", default=False,
               help="run in interactive or batch mode [default: batch]")
 @click.option("--write-csv/--no-write-csv", default=True, show_default=True,
               help="write CSV output at end of simulation")
-def simulate(config_file, scenario, nsim, jobs, interactive, write_csv):
+def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
     config.set_file(config_file)
 
     spatial_config = config["spatial_setup"]
     spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 
     interventions_base_path = pathlib.Path(config["interventions"]["scripts_path"].get())
-    script_npi = interventions_base_path / (scenario + ".R")
-    if not script_npi.exists():
-        raise click.BadParameter(f"NPI scenario file [{script_npi}] not found")
+    if not scenarios:
+        scenarios = config["interventions"]["scenarios"].as_str_seq()
+    print(f"Scenarios to be run: {', '.join(scenarios)}")
 
-    s = setup.Setup(setup_name=config["name"].get() + "_" + str(scenario),
-                    spatial_setup=setup.SpatialSetup(
-                        setup_name=spatial_config["setup_name"].get(),
-                        folder=spatial_base_path.as_posix(),
-                        geodata_file=spatial_base_path / spatial_config["geodata"].get(),
-                        mobility_file=spatial_base_path / spatial_config["mobility"].get(),
-                        popnodes_key=spatial_config["popnodes"].get(),
-                    ),
-                    nsim=nsim,
-                    script_npi=script_npi.as_posix(),
-                    ti=config["start_date"].as_date(),
-                    tf=config["end_date"].as_date(),
-                    interactive=interactive,
-                    write_csv=write_csv,
-                    dt=config["dt"].as_number())
+    if not nsim:
+        nsim = config["nsimulations"].as_number()
 
-    s.load_filter(config["dynfilter_path"].get())
+    for scenario in scenarios:
+        script_npi = interventions_base_path / (scenario + ".R")
+        if not script_npi.exists():
+            raise click.BadParameter(f"NPI scenario file [{script_npi}] not found")
 
-    print(f"""
+        s = setup.Setup(setup_name=config["name"].get() + "_" + str(scenario),
+                        spatial_setup=setup.SpatialSetup(
+                            setup_name=spatial_config["setup_name"].get(),
+                            folder=spatial_base_path.as_posix(),
+                            geodata_file=spatial_base_path / spatial_config["geodata"].get(),
+                            mobility_file=spatial_base_path / spatial_config["mobility"].get(),
+                            popnodes_key=spatial_config["popnodes"].get(),
+                        ),
+                        nsim=nsim,
+                        script_npi=script_npi.as_posix(),
+                        ti=config["start_date"].as_date(),
+                        tf=config["end_date"].as_date(),
+                        interactive=interactive,
+                        write_csv=write_csv,
+                        dt=config["dt"].as_number())
 
->> Starting {s.nsim} model runs on {jobs} processes")
->> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}")
+        s.load_filter(config["dynfilter_path"].get())
+
+        print(f"""
+
+>> Scenario: {scenario}
+>> Starting {s.nsim} model runs on {jobs} processes
+>> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}
 >> writing to folder : {s.datadir}{s.setup_name}
 
-""")
+    """)
 
-    start = time.monotonic()
-    seir.run_parallel(s, jobs)
-    print(f">> Runs done in {time.monotonic() - start} seconds...")
+        start = time.monotonic()
+        seir.run_parallel(s, jobs)
+        print(f">> Runs done in {time.monotonic() - start} seconds...")
 
 
 if __name__ == "__main__":
