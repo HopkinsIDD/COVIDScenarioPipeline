@@ -22,34 +22,82 @@ Prepared by [Johns Hopkins ID Dynamics](https://iddynamics.jhsph.edu/) Working G
 Updated `r Sys.Date()`
 
 **FOR PLANNING PURPOSES ONLY: NOT A FORECAST**
+```{r setup, include=F}
+knitr::opts_knit$set(root.dir = "..")
+knitr::opts_chunk$set(
+    echo = FALSE,
+    fig.align = "center",
+    message = FALSE,
+    warning = FALSE,
+    cache.lazy = FALSE,
+    bitmapType = "cairo"
+)
+options(scipen=999)
+```
 
-
-```{r setup, include=FALSE}
+```{r library, include=F}
 #Preamble
 library(tidyverse)
 library(report.generation)
-
-options(scipen=999)
-knitr::opts_knit$set(root.dir = "..")
-knitr::opts_chunk$set(
-	echo = FALSE,
-	fig.align = "center",
-	message = FALSE,
-	warning = FALSE,
-	cache.lazy = FALSE,
-	bitmapType = "cairo"
-)
 
 LOADED_HOSP_STATE_TOTALS <- FALSE
 LOADED_INF_CTY_PEAKS <- FALSE
 LOADED_HOSP_CTY_PEAKS <- FALSE
 
+shp <- load_shapefile(region_code = params$region_code,
+                      state_fips = params$state_fips,
+                      shapefile_fn = params$shapefile_fn)
+ctynames <- load_county_pops(region_code = params$region_code,
+                             state_fips = params$state_fips,
+                             pop_year = params$pop_year)
 ```
 
-```{r r, child=reference_chunk("load_hosp_state_totals.Rmd")}
+```{r load-hosp-state-totals, child=reference_chunk("load_hosp_state_totals.Rmd")}
+```
+
+```{r load-inf-cty-peaks, child=reference_chunk("load_inf_cty_peaks.Rmd")}
+```
+
+```{r load-hosp-cty-peaks, child=reference_chunk("load_hosp_cty_peaks.Rmd")}
 ```
 
 ## State Level Results
+
+```{r plot-hosp-state-sample}
+plot_ts_hosp_state_sample(hosp_state_totals,
+                          pdeath_level = "high",
+                          scenario_labels = params$scenario_labels,
+                          scenario_cols = params$scenario_cols,
+                          sim_start_date = "2020-01-31",
+                          sim_end_date = "2020-09-30",
+                          plot_intervention = TRUE,
+                          interv_start_date = "2020-03-19",
+                          interv_end_date = "2020-05-14")
+```
+
+```{r plot-ts-inc-state}
+plot_ts_incid_inf_state_sample(hosp_state_totals,
+                               scenario_labels = params$scenario_labels,
+                               scenario_cols = params$scenario_cols,
+                               sim_start_date = "2020-01-31",
+                               sim_end_date = "2020-09-30",
+                               plot_intervention = TRUE,
+                               interv_start_date = "2020-03-19",
+                               interv_end_date = "2020-05-14")
+```
+
+```{r plot-ts-death}
+plot_ts_incid_death_state_sample_allPdeath(hosp_state_totals,
+                                           scenario_labels = params$scenario_labels,
+                                           scenario_cols = params$scenario_cols,
+                                           pdeath_filecode = params$pdeath_filecode,
+                                           pdeath_labels = params$pdeath_labels,
+                                           sim_start_date = "2020-01-31",
+                                           sim_end_date = "2020-09-30",
+                                           plot_intervention = TRUE,
+                                           interv_start_date = "2020-03-19",
+                                           interv_end_date = "2020-05-14")
+```
 
 ## Scenario Summaries
 
