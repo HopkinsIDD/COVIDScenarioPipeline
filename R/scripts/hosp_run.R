@@ -50,7 +50,7 @@ county_dat <- read.csv(file.path(config$spatial_setup$base_path, config$spatial_
 county_dat$geoid <- as.character(county_dat$geoid)
 county_dat$new_pop <- county_dat$pop2010
 #county_dat <- make_metrop_labels(county_dat)
-target_geo_ids <- county_dat$geoid[county_dat$targeted]
+target_geo_ids <- county_dat$geoid[county_dat$include_in_report
 
 cat(paste(data_filename,"\n"))
 res_npi3 <- build_hospdeath_par(p_hosp = p_death[cmd]*10,
