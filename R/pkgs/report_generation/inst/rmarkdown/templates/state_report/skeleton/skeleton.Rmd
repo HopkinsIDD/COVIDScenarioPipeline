@@ -29,6 +29,7 @@ knitr::opts_chunk$set(
     fig.align = "center",
     message = FALSE,
     warning = FALSE,
+    error = TRUE,
     cache.lazy = FALSE,
     bitmapType = "cairo"
 )
