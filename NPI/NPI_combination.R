@@ -22,7 +22,7 @@ for(scenario in scenarios){
 }
 inverse_NPI <- 1 - all_NPI[[1]]
 for(idx in seq_len(length(NPI) - 1)){
-  rc <- rc * all_NPI[[idx]]
+  rc <- rc * ( 1 - all_NPI[[idx]])
 }
 NPI <- 1 - inverse_NPI
 # West Coast
