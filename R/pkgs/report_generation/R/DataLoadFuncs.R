@@ -12,8 +12,10 @@
 ##' @author Justin Lessler
 ##' 
 ##' @export
-load_scenario_sims_filtered <- function(scenario_dir, post_process=function(x) {x},
-                                        pre_process=function(x){x}) {
+load_scenario_sims_filtered <- function(scenario_dir, 
+                                        loc_filter = state_fips,
+                                        post_process = function(x) {x},
+                                        pre_process = function(x){x}) {
   
   require(tidyverse)
   
@@ -30,6 +32,8 @@ load_scenario_sims_filtered <- function(scenario_dir, post_process=function(x) {
                                                   comp=col_character()))  %>%
       pre_process %>%
       pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>% 
+      dplyr::mutate(geoid = ifelse(nchar(geoid)==4, paste0("0", geoid), geoid)) %>%
+      dplyr::filter(stringr::str_sub(geoid, 1, 2) == loc_filter) %>%
       post_process %>%
       mutate(sim_num = i)
     
@@ -57,13 +61,19 @@ load_scenario_sims_filtered <- function(scenario_dir, post_process=function(x) {
 ##'@export
 load_hosp_sims_filtered <- function(scenario_dir,
                                     name_filter = "",
+                                    loc_filter = state_fips,
+                                    random_sample_filter = NA,
                                     post_process=function(x) {x}) {
   
   require(tidyverse)
   
   files <- dir(sprintf("hospitalization/model_output/%s", scenario_dir),full.names = TRUE)
   files <- files[grepl(name_filter,files)]
-  
+  if(!is.na(random_sample_filter)){
+    files <- sample(files, size = random_sample_filter, replace = FALSE)
+  }
+
+
   rc <- list()
   
   
@@ -75,6 +85,8 @@ load_hosp_sims_filtered <- function(scenario_dir,
       uid=col_character(),
       comp=col_character()
     )) %>% 
+      dplyr::mutate(geoid = ifelse(nchar(geoid)==4, paste0("0", geoid), geoid)) %>%
+      dplyr::filter(stringr::str_sub(geoid, 1, 2) == loc_filter) %>%
       post_process %>%
       mutate(sim_num = i)
     
