@@ -1,6 +1,7 @@
 name: mid-west-coast-AZ-NV
 start_date: 2020-01-31
 end_date: 2020-10-01
+nsimulations: 1000
 dt: 0.25
 dynfilter_path: data/west-coast-AZ-NV/filtergithub.txt
 
@@ -17,37 +18,42 @@ spatial_setup:
 
 interventions:
   scripts_path: COVIDScenarioPipeline/NPI
-  None:
-    template: ReduceR0
-    period_start_date: 2020-04-01
-    period_end_date: 2020-05-15
-    value: 0
-  Wuhan:
-    template: ReduceR0
-    period_start_date: 2020-04-01
-    period_end_date: 2020-05-15
-    value:
-      distribution: uniform
-      low: .14
-      high: .33
-  KansasCity:
-    template: ReduceR0
-    period_start_date: 2020-04-01
-    period_end_date: 2020-05-15
-    value:
-      distribution: uniform
-      low: .04
-      high: .23
-  Scenario1:
-    template: Combination
-    scenarios: Wuhan, SC
-    start_dates: 2020-03-01,2020-03-09
-    end_dates: 2020-03-09,2020-03-15
-  Scenario2:
-    template: Combination
-    scenarios: Wuhan, SC, Wuhan
-    start_dates: 2020-03-01,2020-03-09,2020-03-15
-    end_dates: 2020-03-09,2020-03-15,2020-05-25
+  scenarios:
+    - Wuhan
+    - None
+    - KansasCity
+  settings:
+    None:
+      template: ReduceR0
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value: 0
+    Wuhan:
+      template: ReduceR0
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: uniform
+        low: .14
+        high: .33
+    KansasCity:
+      template: ReduceR0
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: uniform
+        low: .04
+        high: .23
+    Scenario1:
+      template: Combination
+      scenarios: Wuhan, SC
+      start_dates: 2020-03-01,2020-03-09
+      end_dates: 2020-03-09,2020-03-15
+    Scenario2:
+      template: Combination
+      scenarios: Wuhan, SC, Wuhan
+      start_dates: 2020-03-01,2020-03-09,2020-03-15
+      end_dates: 2020-03-09,2020-03-15,2020-05-25
 
 seir:
   parameters:
