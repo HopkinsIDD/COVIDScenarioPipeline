@@ -8,6 +8,7 @@ on:
       - 'requirements.txt'
       - 'packages.R'
       - 'Dockerfile'
+      - 'R/pkgs/**'
 
 name: Deploy to Amazon ECR
 
