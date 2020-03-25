@@ -1,9 +1,6 @@
 import itertools
-import logging
-import os
 import time
 import uuid
-import warnings
 
 from numba import jit
 import numpy as np
@@ -11,22 +8,9 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-
-    from rpy2 import robjects
-    from rpy2.robjects import pandas2ri
-    pandas2ri.activate()
-    r_source = robjects.r['source']
-    r_assign = robjects.r['assign']
-    r_options = robjects.r['options']
-    r_options(warn=-1)
-    from rpy2.rinterface_lib.callbacks import logger as rpy2_logger
-    rpy2_logger.setLevel(logging.ERROR)
-
-
 from . import setup
-
+from . import NPI
+from .utils import config
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
@@ -34,29 +18,12 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 def onerun_SEIR(uid, s):
     scipy.random.seed()
-    r_assign('ti_str', str(s.ti))
-    r_assign('tf_str', str(s.tf))
-    r_assign('foldername', os.path.join(s.spatset.folder, ""))
-    for key, value in s.npi_settings.items():       # inject NPI-specific config
-        r_assign(key, value)
-    r_source(s.script_npi)
-    npi = robjects.r['NPI'].T
-    #p.addNPIfromR(npi)
+    geoids = s.spatset.data["geoid"].astype(int)
 
-    #r_assign('region', s.spatset.setup_name)
-    #r_source(s.script_import)
-    #importation = robjects.r['county_importations_total']
-    #importation = importation.pivot(index='date', columns='fips_cty', values='importations')
-    #importation = importation.fillna(value = 0)
-    #importation.index = pd.to_datetime(importation.index)
-    #importation.columns = pd.to_numeric(importation.columns)
-    #for col in s.spatset.data['geoid']:
-    #    if col not in importation.columns:
-    #        importation[col] = 0
-    #importation = importation.reindex(sorted(importation.columns), axis=1)
-    #idx = pd.date_range(s.ti, s.tf)
-    #importation = importation.reindex(idx, fill_value=0)
-    #importation = importation.to_numpy()
+    template = s.npi_config["template"].as_str()
+    npi_class = getattr(NPI, template)
+    npi = npi_class(npi_config=s.npi_config, global_config=config, geoids=geoids).get()
+    npi = npi.T
     importation = np.zeros((s.t_span + 3, s.nnodes))
 
     states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
@@ -80,7 +47,7 @@ def onerun_SEIR(uid, s):
                                            m), na.reshape(n * m, -1)))
         out_df = pd.DataFrame(
             out_arr,
-            columns=['comp'] + list(s.spatset.data['geoid'].astype(int)),
+            columns=['comp'] + list(geoids),
             index=pd.date_range(s.ti, s.tf, freq='D').repeat(ncomp + 1))
         out_df['comp'].replace(S, 'S', inplace=True)
         out_df['comp'].replace(E, 'E', inplace=True)

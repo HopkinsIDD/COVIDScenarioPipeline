@@ -5,8 +5,6 @@ nsimulations: 1000
 dt: 0.25
 dynfilter_path: data/west-coast-AZ-NV/filtergithub.txt
 
-simulations : 15
-
 spatial_setup:
   base_path: data/west-coast-AZ-NV
 
@@ -17,7 +15,6 @@ spatial_setup:
   include_in_report: targeted
 
 interventions:
-  scripts_path: COVIDScenarioPipeline/NPI
   scenarios:
     - Wuhan
     - None
@@ -27,7 +24,9 @@ interventions:
       template: ReduceR0
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
-      value: 0
+      value:
+        distribution: fixed
+        value: 0
     Wuhan:
       template: ReduceR0
       period_start_date: 2020-04-01
@@ -44,6 +43,7 @@ interventions:
         distribution: uniform
         low: .04
         high: .23
+# FIXME: Combination is not supported yet
     Scenario1:
       template: Combination
       scenarios: Wuhan, SC
