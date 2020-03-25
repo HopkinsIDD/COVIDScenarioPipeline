@@ -37,6 +37,8 @@ def onerun_SEIR(uid, s):
     r_assign('ti_str', str(s.ti))
     r_assign('tf_str', str(s.tf))
     r_assign('foldername', os.path.join(s.spatset.folder, ""))
+    for key, value in s.npi_settings.items():       # inject NPI-specific config
+        r_assign(key, value)
     r_source(s.script_npi)
     npi = robjects.r['NPI'].T
     #p.addNPIfromR(npi)
