@@ -38,7 +38,7 @@ dates.3 <- seq.Date(t_NPI3, t_end, 1)#seq.Date(as.Date("2020/5/15"), as.Date("20
 NPI.3 <- as.data.frame(matrix(1, dim(county)[1],length(dates.3)))
 colnames(NPI.3) <- as.Date(dates.3)
 rownames(NPI.3) <- county$geoid
-county$NPI.3 <- replicate(dim(county)[1], runif(dim(county)[1], 0.2, 0.4))
+county$NPI.3 <- replicate(dim(county)[1], runif(dim(county)[1], 0.32, 0.88)) 
 NPI.3 <- NPI.3 * county$NPI.3
 
 # Stitch together
