@@ -6,14 +6,18 @@ output:
     df_print: paged
 bibliography: ReportReferences.bib
 params:
-  num_scenarios: 2
+  num_scenarios: 3
   scenario_labels: [SCENARIO1, SCENARIO2, SCENARIO3]
   scenario_dirs: [DIR1,DIR2,DIR3]
   scenario_cols: ["#D95F02", "#1B9E77", "#7570B3"] #colors
   pdeath_filecode: ["low", "med", "high"]
   pdeath_labels: ["0.25% IFR", "0.5% IFR", "1% IFR"]
+  sim_dates: [SIMSTART, SIMEND]
+  interv_yesno: [TRUEFALSE]
+  interv_date: [INTERVSTART, INTERVEND]
   region_code: [REGIONCODENAME]
   shapefile_fn: [DIRSHP]
+  state_fips: [STATEFIPS]
   pop_year: [POPESTYEAR]
     
 ---
