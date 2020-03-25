@@ -9,9 +9,7 @@ t_NPI3 = as.Date("2020/5/15")
 t_end = as.Date(tf_str)
 
 # West Coast
-geodata <- read.csv('west-coast-AZ-NV/geodata.csv')
-filterUSPS = c('CA')
-county <- subset(geodata, stateUSPS %in% filterUSPS)
+county <- read.csv('west-coast-AZ-NV/geodata.csv')
 
 # Before interventions:
 dates.pre <- seq.Date(t_start, t_NPI1 - 1, 1)#seq.Date(as.Date("2020/1/31"), as.Date("2020/3/12"), 1)
