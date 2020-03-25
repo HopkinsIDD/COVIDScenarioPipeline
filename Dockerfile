@@ -22,6 +22,7 @@ RUN apt-get update && \
     git-core \
     curl \
     pandoc \
+    pandoc-citeproc \
     postgresql-client \
     libpq-dev \
     libssl-dev \
