@@ -15,6 +15,10 @@ spatial_setup:
 
 interventions:
   scripts_path: COVIDScenarioPipeline/NPI
+  Wuhan:
+    template: ReduceR0
+    period_start_date: 2020-04-01
+    period_end_date: 2020-05-15
 
 seir:
   parameters:
