@@ -33,7 +33,7 @@ as_evaled_expression <- function(l) {
     if (is.numeric(obj)) {
       return(obj)
     } else if (is.character(obj)) {
-      return(as.numeric(eval(parse(text=obj))))
+      return(as.numeric(safe_eval(parse(text=obj))))
     } else {
       stop("expected numeric or string expression")
     }
