@@ -99,11 +99,16 @@ def onerun_SEIR(uid, s):
     return 1
 
 
-def run_parallel(s, processes):
+def run_parallel(s, *, n_jobs=1):
     start = time.monotonic()
     uids = np.arange(s.nsim)
-    tqdm.contrib.concurrent.process_map(onerun_SEIR, uids, itertools.repeat(s),
-                                        max_workers=processes)
+
+    if n_jobs == 1:          # run single process for debugging/profiling purposes
+        for uid in tqdm.tqdm(uids):
+            onerun_SEIR(uid, s)
+    else:
+        tqdm.contrib.concurrent.process_map(onerun_SEIR, uids, itertools.repeat(s),
+                                            max_workers=n_jobs)
 
     print(f"""
 >> {s.nsim} simulations completed in {time.monotonic()-start:.1f} seconds
