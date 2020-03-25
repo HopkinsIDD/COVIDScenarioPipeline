@@ -8,6 +8,7 @@ from the infection genertion modeling pipeline.}
 \usage{
 load_scenario_sims_filtered(
   scenario_dir,
+  loc_filter = state_fips,
   post_process = function(x) {     x },
   pre_process = function(x) {     x }
 )
@@ -16,6 +17,9 @@ load_scenario_sims_filtered(
 \item{scenario_dir}{the subdirectory containing this scenario}
 
 \item{post_process}{function that does processing after}
+}
+\value{
+a combined data frame of all hospital simulations with filters applied pre merge.
 }
 \description{
 Function designed to allow generic filtering and summarization

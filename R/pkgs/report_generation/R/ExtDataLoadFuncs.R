@@ -34,15 +34,15 @@ load_shapefile <- function(region_code, state_fips, shapefile_fn) {
 ##' @author Elizabeth Lee
 ##' 
 ##' @export
-load_county_pops <- function(region_code, state_fips, shapefile_fn) {
+load_county_pops <- function(region_code, state_fips, pop_year) {
     
-  file <- sprintf("COVIDScenarioPipeline/data/%s/county_pops_%s.csv", region_code, shapefile_fn, pop_year)
+  file <- sprintf("COVIDScenarioPipeline/data/%s/county_pops_%s.csv", region_code, pop_year)
   
   rc <- read_csv(file) %>%
-    dplyr::mutate(STATEFP = ifelse(nchar(STATEFP)==1, paste0("0", STATEFP))) %>%
+    dplyr::mutate(STATEFP = ifelse(nchar(STATEFP)==1, paste0("0", STATEFP), STATEFP)) %>%
     dplyr::filter(STATEFP == state_fips) %>%
-    dplyr::select(GEOID, NAME, estimate) %>%
-    dplyr::rename(geoid = GEOID, county = NAME, population = estimate)
+    dplyr::select(GEOID, NAME.x, estimate) %>%
+    dplyr::rename(geoid = GEOID, county = NAME.x, population = estimate)
   
   ## testcases to add: 
   ## check variable column represents Census population variable

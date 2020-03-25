@@ -7,16 +7,21 @@ with pre and post filters}
 \usage{
 load_hosp_sims_filtered(
   scenario_dir,
-  pdeath = "low",
+  name_filter = "",
+  loc_filter = state_fips,
+  random_sample_filter = NA,
   post_process = function(x) {     x }
 )
 }
 \arguments{
 \item{scenario_dir}{the subdirectory containing this scenario}
 
-\item{pdeath}{probablity of death for these simulations....probably can be reduced.}
+\item{name_filter}{function that}
 
 \item{post_process}{function that does processing after}
+}
+\value{
+a combined data frame of all hospital simulations with filters applied pre merge.
 }
 \description{
 Function loads multiple hospital simulations into a combined data frame
