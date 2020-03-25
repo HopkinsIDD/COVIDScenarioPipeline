@@ -9,8 +9,8 @@ Authors@R:
            family = "Lessler",
            role = c("aut", "cre"),
            email = "justin@jhu.edu")
-Description: Contains data load utilities and report templates for fast deevelopment
-    and compelation of reports on sceario simulations. 
+Description: Contains data load utilities and report templates for fast development
+    and compilation of reports on scenario simulations. 
 License: What license it uses
 Encoding: UTF-8
 LazyData: true
