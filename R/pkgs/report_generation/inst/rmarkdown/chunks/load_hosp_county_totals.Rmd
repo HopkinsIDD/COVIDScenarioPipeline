@@ -3,15 +3,17 @@
 if (!LOADED_HOSP_CTY_TOTALS) {
     hosp_post_process <- function(x) {
         x %>% 
-            filter(!is.na(time)) %>%
+            dplyr::filter(!is.na(time)) %>%
+            dplyr::filter(geoid %in% included_geoids) %>%
             group_by(geoid, time, sim_num) %>% 
-            summarize(Nhosp = sum(hosp_curr),
-                      NICU = sum(icu_curr),
-                      Ndeath = sum(incidD),
+            summarize(NhospCurr = sum(hosp_curr),
+                      NICUCurr = sum(icu_curr),
+                      NincidDeath = sum(incidD),
                       NincidInf = sum(incidI),
                       NincidICU=sum(incidICU),
                       NincidHosp=sum(incidH)) %>% 
             ungroup()
+      
     }
 
     scn_dirs <- params$scenario_dirs
@@ -21,14 +23,13 @@ if (!LOADED_HOSP_CTY_TOTALS) {
         for (pdeath in params$pdeath_filecode) {
             hosp_cty_totals <- dplyr::bind_rows(hosp_cty_totals, load_hosp_sims_filtered(scn_dirs[i],
                                           name_filter = pdeath,
-                                          loc_filter = params$state_fips,
                                           post_process = hosp_post_process) %>% 
                 mutate(scenario_num=i, scenario_name=params$scenario_labels[i], pdeath=pdeath))
         }
     }
     
     
-    LOADED_HOSP_CTY_TOTALS <- TRUE 
+    LOADED_HOSP_CTY_TOTALS <- TRUE
 }
 
 
