@@ -6,6 +6,8 @@ from importlib import import_module
 
 from .base import NPIBase
 
+__all__ = ["NPIBase"]
+
 
 def _load_npi_plugins():
     "Recurse through the package directory and import classes that derive from NPIBase"
