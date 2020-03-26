@@ -11,6 +11,7 @@ if (!LOADED_INF_CTY_PEAKS) {
     x %>% 
       ungroup %>%
       dplyr::filter(!is.na(time)) %>%
+      dplyr::filter(geoid %in% included_geoids) %>%
       group_by(geoid) %>%
       dplyr::slice(which.max(N)) %>%
       ungroup
@@ -21,7 +22,6 @@ if (!LOADED_INF_CTY_PEAKS) {
   
   for (i in 1:length(scn_dirs)) {
       inf_cty_peaks <- dplyr::bind_rows(inf_cty_peaks, load_scenario_sims_filtered(scn_dirs[i],
-                                                                                  loc_filter = params$state_fips,
                                                                                   pre_process = inf_pre_process,
                                                                                   post_process = inf_post_process) %>% 
                                               mutate(scenario_num=i, scenario_name=params$scenario_labels[i]))

@@ -6,7 +6,7 @@ covidcommon::load_config(params$config_filename)
 
 ```{r,echo=FALSE}
 ## Code loads the state geodata if it has not yet been loaded
-geodata <- read.csv(params$geodata)
+geodata <- read.csv(config$spatial_setup$geodata)
 included_geoids <- geodata[[config$spatial_setup$include_in_report]]
 populations <- geodata[[config$spatial_setup$popnodes]]
 ```

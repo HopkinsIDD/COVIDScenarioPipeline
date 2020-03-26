@@ -18,7 +18,6 @@ if (!LOADED_HOSP_CTY_PEAKS) {
         for (pdeath in params$pdeath_filecode) {
             hosp_cty_peaks <- dplyr::bind_rows(hosp_cty_peaks, load_hosp_sims_filtered(scn_dirs[i],
                                           name_filter = pdeath,
-                                          loc_filter = params$state_fips,
                                           post_process = hosp_post_process) %>% 
                 mutate(scenario_num=i, scenario_name=params$scenario_labels[i], pdeath=pdeath))
         }
