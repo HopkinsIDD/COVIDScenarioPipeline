@@ -4,6 +4,7 @@ import numbers
 
 import confuse
 import numpy as np
+import scipy.stats
 import sympy.parsing.sympy_parser
 
 config = confuse.Configuration("COVIDScenarioPipeline")
@@ -55,6 +56,12 @@ def as_evaled_expression(self):
         raise ValueError(f"expected numeric or string expression [got: {value}]")
 
 
+def get_truncated_normal(*, mean=0, sd=1, a=0, b=10):
+    "Returns the truncated normal distribution"
+
+    return scipy.stats.truncnorm((a - mean) / sd, (b - mean) / sd, loc=mean, scale=sd)
+
+
 @add_method(confuse.ConfigView)
 def as_random_distribution(self):
     "Constructs a random distribution object from a distribution config key"
@@ -70,5 +77,9 @@ def as_random_distribution(self):
         return functools.partial(np.random.poisson, self["lam"].as_evaled_expression())
     elif dist == "binomial":
         return functools.partial(np.random.binomial, self["n"].as_evaled_expression(), self["p"].as_evaled_expression())
+    elif dist == "truncnorm":
+        return get_truncated_normal(mean=self["mean"].as_evaled_expression(), sd=self["sd"].as_evaled_expression(),
+                                    a=self["a"].as_evaled_expression(), b=self["b"].as_evaled_expression()
+                                    ).rvs
     else:
         raise NotImplementedError(f"unknown distribution [got: {dist}]")
