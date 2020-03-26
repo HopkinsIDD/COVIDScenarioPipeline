@@ -44,7 +44,7 @@ interventions:
     Influenza1918:
       template: ReduceR0
       period_start_date: 2020-05-15
-      period_end_date: 2020-12-31
+      period_end_date: 2020-10-01
       value:
         distribution: uniform
         low: .04
@@ -62,7 +62,7 @@ interventions:
     TestIsolate:
       template: ReduceR0
       period_start_date: 2020-05-15
-      period_end_date: 2020-12-31
+      period_end_date: 2020-10-01
       value:
         distribution: uniform
         low: .45
@@ -75,13 +75,13 @@ interventions:
     CaliforniaSevere:
       template: Stacked
       scenarios:
-        - SC
+        - SchoolClosure
         - Wuhan
         - TestIsolate
     CaliforniaMid:
       template: Stacked
       scenarios:
-        - SC
+        - SchoolClosure
         - Wuhan
         - BI1918
 
