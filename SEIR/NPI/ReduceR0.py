@@ -8,8 +8,10 @@ class ReduceR0(NPIBase):
         self.start_date = global_config["start_date"].as_date()
         self.end_date = global_config["end_date"].as_date()
 
-        self.period_start_date = npi_config["period_start_date"].as_date()
-        self.period_end_date = npi_config["period_end_date"].as_date()
+        self.period_start_date = npi_config["period_start_date"].as_date() \
+            if npi_config["period_start_date"].exists() else self.start_date
+        self.period_end_date = npi_config["period_end_date"].as_date() \
+            if npi_config["period_end_date"].exists() else self.end_date
         self.dist = npi_config["value"].as_random_distribution()
 
         self.npi = pd.DataFrame(0.0, index=geoids,
