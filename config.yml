@@ -4,10 +4,10 @@ end_date: 2020-10-01
 nsimulations: 1000
 dt: 0.25
 dynfilter_path: data/west-coast-AZ-NV/filtergithub.txt
+report_location_name: California
 
 spatial_setup:
   base_path: data/west-coast-AZ-NV
-
   setup_name: west-coast-AZ-NV
   geodata: geodata.csv
   mobility: mobility.txt
@@ -63,3 +63,21 @@ hospitalization:
     p_death_rate: 0.1
     p_ICU: 0.264
     p_vent: 0.15
+
+report:
+  paths:
+    scenario_output_paths: ["unifiedKansasCity", "unifiedWuhan", "unifiedNPI"]
+    shapefile_fn: counties_2010_west-coast-AZ-NV.shp
+  data_settings:
+    pop_year: 2010
+  plot_settings:
+    plot_intervention: TRUE
+  formatting:
+    scenario_labels_short: ["KC", "WH", "UC"]
+    scenario_labels: ["Pre-Lockdown-like","Wuhan/Lockdown-like","Worst Case Uncontrolled"]
+    scenario_colors: ["#D95F02", "#1B9E77", "#7570B3"]
+    pdeath_level: ["low", "med", "high"]
+    pdeath_labels: ["0.25% IFR", "0.5% IFR", "1% IFR"]
+
+
+
