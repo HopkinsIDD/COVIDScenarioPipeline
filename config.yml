@@ -8,6 +8,7 @@ report_location_name: California
 
 spatial_setup:
   base_path: data/west-coast-AZ-NV
+
   setup_name: west-coast-AZ-NV
   geodata: geodata.csv
   mobility: mobility.txt
@@ -15,23 +16,74 @@ spatial_setup:
   include_in_report: targeted
 
 interventions:
-  scripts_path: COVIDScenarioPipeline/NPI
   scenarios:
     - Wuhan
     - None
-    - KansasCity
+    - Influenza1918
+    - SchoolClosure
+    - TestIsolate
+    - CaliforniaMild
+    - CaliforniaMid
+    - CaliforniaSevere
   settings:
-    Wuhan:
-      begin: 2020/03/19
-      end: 2020/05/14
-      upper: 0.89
-      lower: 0.81
     None:
-    KansasCity:
-      begin: 2020/03/19
-      end: 2020/05/14
-      upper: 0.65
-      lower: 0.44
+      template: ReduceR0
+      period_start_date: 2020-01-31
+      period_end_date: 2020-03-13   
+      value:
+        distribution: fixed
+        value: 0
+    Wuhan:
+      template: ReduceR0
+      period_start_date: 2020-03-19
+      period_end_date: 2020-05-14
+      value:
+        distribution: uniform
+        low: .14
+        high: .33
+    Influenza1918:
+      template: ReduceR0
+      period_start_date: 2020-05-15
+      period_end_date: 2020-10-01
+      value:
+        distribution: uniform
+        low: .04
+        high: .23
+    SchoolClosure:
+      template: ReduceR0
+      period_start_date: 2020-03-13
+      period_end_date: 2020-03-19
+      value:
+        distribution: truncnorm
+        a: 0.16
+        b: 0.30
+        mean: 0.18
+        sd: 0.05
+    TestIsolate:
+      template: ReduceR0
+      period_start_date: 2020-05-15
+      period_end_date: 2020-10-01
+      value:
+        distribution: uniform
+        low: .45
+        high: .96
+    CaliforniaMild:
+      template: Stacked
+      scenarios:
+        - SchoolClosure
+        - Wuhan
+    CaliforniaSevere:
+      template: Stacked
+      scenarios:
+        - SchoolClosure
+        - Wuhan
+        - TestIsolate
+    CaliforniaMid:
+      template: Stacked
+      scenarios:
+        - SchoolClosure
+        - Wuhan
+        - Influenza1918
 
 seir:
   parameters:
