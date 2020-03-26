@@ -1,12 +1,13 @@
 ```{r}
-if (!LOADED_HOSP_STATE_TOTALS) {
+## Code loads the state hospitalization totals if it has not yet been loaded
+if (!LOADED_HOSP_CTY_TOTALS) {
     hosp_post_process <- function(x) {
         x %>% 
             filter(!is.na(time)) %>%
-            group_by(time, sim_num) %>% 
-            summarize(NhospCurr = sum(hosp_curr),
-                      NICUCurr = sum(icu_curr),
-                      NincidDeath = sum(incidD),
+            group_by(geoid, time, sim_num) %>% 
+            summarize(Nhosp = sum(hosp_curr),
+                      NICU = sum(icu_curr),
+                      Ndeath = sum(incidD),
                       NincidInf = sum(incidI),
                       NincidICU=sum(incidICU),
                       NincidHosp=sum(incidH)) %>% 
@@ -14,11 +15,11 @@ if (!LOADED_HOSP_STATE_TOTALS) {
     }
 
     scn_dirs <- params$scenario_dirs
-    hosp_state_totals <- NULL
+    hosp_cty_totals <- NULL
     
     for (i in 1:length(scn_dirs)) {
         for (pdeath in params$pdeath_filecode) {
-            hosp_state_totals <- dplyr::bind_rows(hosp_state_totals, load_hosp_sims_filtered(scn_dirs[i],
+            hosp_cty_totals <- dplyr::bind_rows(hosp_cty_totals, load_hosp_sims_filtered(scn_dirs[i],
                                           name_filter = pdeath,
                                           loc_filter = params$state_fips,
                                           post_process = hosp_post_process) %>% 
@@ -27,7 +28,7 @@ if (!LOADED_HOSP_STATE_TOTALS) {
     }
     
     
-    LOADED_HOSP_STATE_TOTALS <- TRUE 
+    LOADED_HOSP_CTY_TOTALS <- TRUE 
 }
 
 
