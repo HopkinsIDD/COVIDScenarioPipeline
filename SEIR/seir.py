@@ -8,8 +8,7 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from . import setup
-from . import NPI
+from . import NPI, setup
 from .utils import config
 
 ncomp = 7
@@ -20,10 +19,8 @@ def onerun_SEIR(uid, s):
     scipy.random.seed()
     geoids = s.spatset.data["geoid"].astype(int)
 
-    template = s.npi_config["template"].as_str()
-    npi_class = getattr(NPI, template)
-    npi = npi_class(npi_config=s.npi_config, global_config=config, geoids=geoids).get()
-    npi = npi.T
+    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=geoids)
+    npi = npi.get().T
     importation = np.zeros((s.t_span + 3, s.nnodes))
 
     states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
