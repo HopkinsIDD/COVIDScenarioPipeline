@@ -16,10 +16,12 @@ spatial_setup:
 
 interventions:
   scenarios:
-    - SC
     - Wuhan
     - None
     - KansasCity
+    - SC
+    - Scenario1
+    - Scenario2
   settings:
     None:
       template: ReduceR0
@@ -53,18 +55,29 @@ interventions:
         b: 0.30
         mean: 0.18
         sd: 0.05
-
-# FIXME: Combination is not supported yet
     Scenario1:
-      template: Combination
-      scenarios: Wuhan, SC
-      start_dates: 2020-03-01,2020-03-09
-      end_dates: 2020-03-09,2020-03-15
+      template: Stacked
+      scenarios:
+        - Wuhan
+        - SC
     Scenario2:
-      template: Combination
-      scenarios: Wuhan, SC, Wuhan
-      start_dates: 2020-03-01,2020-03-09,2020-03-15
-      end_dates: 2020-03-09,2020-03-15,2020-05-25
+      template: Stacked
+      scenarios:
+        - template: ReduceR0
+          period_start_date: 2020-03-01
+          period_end_date: 2020-03-09
+          value:
+            distribution: uniform
+            low: .14
+            high: .33
+        - SC
+        - template: ReduceR0
+          period_start_date: 2020-03-15
+          period_end_date: 2020-05-25
+          value:
+            distribution: uniform
+            low: .14
+            high: .33
 
 seir:
   parameters:
