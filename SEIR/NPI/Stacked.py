@@ -19,7 +19,7 @@ class Stacked(NPIBase):
             npi = NPIBase.execute(npi_config=scenario_npi_config, global_config=global_config, geoids=geoids)
             npis.append(npi.get())
 
-        self.npi = 1 - functools.reduce(lambda a, b: a * (1 - b), npis)
-
+        #self.npi = 1 - functools.reduce(lambda a, b: a * (1 - b), npis)
+        self.npi = 1 - functools.reduce(lambda a,b : a * (1-b) , npis, 1)
     def get(self):
         return self.npi
