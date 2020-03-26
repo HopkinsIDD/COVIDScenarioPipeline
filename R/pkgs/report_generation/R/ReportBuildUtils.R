@@ -37,7 +37,36 @@ print_pretty_date <- function() {
   return(lubridate::stamp("September 12, 1999"))
 }
 
+##'Function to round cleanly
+##'
+##'@param x single number to round
+##'
+##'@return rounded x
+##'
+##'@export
+##'
+conv_round <- function(x){
+  if(x>50){x <- round(x, -2)}
+  if(x<50){x <- round(x, -1)}
+  return(x)
+}
 
+
+##'
+##'Function to print CIs
+##'
+##'@param lo numeric or vector of lower bound of CI
+##'@param hi numeric or vector of upper bound of CI
+##'
+##'@return formatted texted for CI: '\(lo, hi\)'
+##'
+##'@export
+##'
+make_CI <- function(lo, hi){
+  if(is.numeric(lo)){
+    paste0("(", conv_round(lo), ", ", conv_round(hi), ")") }else{
+      paste0("(", format.Date(lo, format="%d %b"), ", ", format.Date(hi, format="%d %b"), ")") }
+}
 
 ##'
 ##' Plot figure showing 15 random sims of hospitalization occupancy
@@ -397,3 +426,168 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
   return(rc)
 
 }
+
+
+
+##'
+##' Make statewide table of infections, hosp, ICU, deaths for given scenario
+##'
+##' @param current_scenario text string of scenario label for which to build table
+##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
+##' @param table_dates formatted table_dates object
+##' @param params parameter object with table_dates, table_date_labels, pdeath_labels, pdeath_filecode
+##'
+##' @return plot of distribution of peak timing across simulations by county
+##'
+##' @export
+##'
+make_scn_state_table <- function(current_scenario,
+                                 hosp_state_totals,
+                                 table_dates,
+                                 params){
+  
+tmp <- data.frame(name=c("Infections", 
+                         "Hospitalizations\n  total", "", "", 
+                         "  daily peak admissions", "", "", 
+                         "  daily peak capacity", "", "",
+                         "ICU Admissions\n  total", "", "", 
+                         "  daily peak admissions", "", "",
+                         "  daily peak capacity", "", "",
+                         "Deaths\n  total", "", ""))
+tmp$name <- as.character(tmp$name)
+
+for(i in 1:length(table_dates)){
+  xx <- hosp_state_totals %>%
+    filter(!is.na(time) & scenario_name==current_scenario) %>% 
+    filter(time <= table_dates[i]) %>%
+    group_by(scenario_name, pdeath, sim_num) %>%
+    summarize(
+      TotalIncidInf = sum(NincidInf, na.rm = TRUE), 
+      TotalIncidHosp = sum(NincidHosp, na.rm = TRUE), 
+      TotalIncidICU = sum(NincidICU, na.rm = TRUE), 
+      TotalIncidDeath = sum(NincidDeath, na.rm = TRUE),
+      maxHospAdm = max(NincidHosp, na.rm=TRUE),
+      maxICUAdm = max(NincidICU, na.rm=TRUE),
+      maxHospCap = max(NhospCurr, na.rm = TRUE),
+      maxICUCap = max(NICUCurr, na.rm=TRUE)
+    ) %>%
+    ungroup() %>%
+    group_by(scenario_name, pdeath) %>%
+    summarize(
+      nIncidInf_final = mean(TotalIncidInf),
+      nIncidInf_lo = quantile(TotalIncidInf, 0.25),
+      nIncidInf_hi = quantile(TotalIncidInf, 0.75),
+      nIncidHosp_final = mean(TotalIncidHosp),
+      nIncidHosp_lo = quantile(TotalIncidHosp, 0.25),
+      nIncidHosp_hi = quantile(TotalIncidHosp, 0.75),
+      pIncidHosp_final = mean(maxHospAdm),
+      pIncidHosp_lo = quantile(maxHospAdm, 0.25),
+      pIncidHosp_hi = quantile(maxHospAdm, 0.75),
+      nIncidICU_final = mean(TotalIncidICU),
+      nIncidICU_lo = quantile(TotalIncidICU, 0.25),
+      nIncidICU_hi = quantile(TotalIncidICU, 0.75),
+      pIncidICU_final = mean(maxICUAdm),
+      pIncidICU_lo = quantile(maxICUAdm, 0.25),
+      pIncidICU_hi = quantile(maxICUAdm, 0.75),
+      nIncidDeath_final = mean(TotalIncidDeath),
+      nIncidDeath_lo = quantile(TotalIncidDeath, 0.25),
+      nIncidDeath_hi = quantile(TotalIncidDeath, 0.75),
+      nCurrHosp_final = mean(maxHospCap),
+      nCurrHosp_lo = quantile(maxHospCap, 0.25),
+      nCurrHosp_hi = quantile(maxHospCap, 0.75),
+      nCurrICU_final = mean(maxICUCap),
+      nCurrICU_lo = quantile(maxICUCap, 0.25),
+      nCurrICU_hi = quantile(maxICUCap, 0.75)) %>%
+    ungroup() %>%
+    mutate(pdeath = params$pdeath_labels[match(pdeath, params$pdeath_filecode)])
+  
+  
+  tmp <- bind_cols(tmp, 
+                   xx %>% filter(pdeath==params$pdeath_labels[1]) %>%
+                     mutate(ci = make_CI(nIncidInf_lo, nIncidInf_hi),
+                            est = conv_round(nIncidInf_final),
+                            lvl = paste0("total inc infections")) %>%
+                     select(lvl, est, ci, pdeath) %>% 
+                     bind_rows(xx %>%
+                                 mutate(ci = make_CI(nIncidHosp_lo, nIncidHosp_hi),
+                                        est = conv_round(nIncidHosp_final),
+                                        lvl = paste0("total inc hosp", pdeath)) %>%
+                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%   
+                     bind_rows(xx %>%
+                                 mutate(ci = make_CI(pIncidHosp_lo, pIncidHosp_hi),
+                                        est = conv_round(pIncidHosp_final),
+                                        lvl = paste0("peak inc hosp", pdeath)) %>%
+                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>% 
+                     bind_rows(xx %>%
+                                 mutate(ci = make_CI(nCurrHosp_lo, nCurrHosp_hi),
+                                        est = conv_round(nCurrHosp_final),
+                                        lvl = paste0("peak hosp cap", pdeath)) %>%
+                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                     bind_rows(xx %>%
+                                 mutate(ci = make_CI(nIncidICU_lo, nIncidICU_hi),
+                                        est = conv_round(nIncidICU_final),
+                                        lvl = paste0("total inc ICU", pdeath)) %>%
+                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%   
+                     bind_rows(xx %>%
+                                 mutate(ci = make_CI(pIncidICU_lo, pIncidICU_hi),
+                                        est = conv_round(pIncidICU_final),
+                                        lvl = paste0("peak inc ICU", pdeath)) %>%
+                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>% 
+                     bind_rows(xx %>%
+                                 mutate(ci = make_CI(nCurrICU_lo, nCurrICU_hi),
+                                        est = conv_round(nCurrICU_final),
+                                        lvl = paste0("peak ICU cap", pdeath)) %>%
+                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                     bind_rows(xx %>%
+                                 mutate(ci = make_CI(nIncidDeath_lo, nIncidDeath_hi),
+                                        est = conv_round(nIncidDeath_final),
+                                        lvl = paste0("total inc death", pdeath)) %>%
+                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath))
+  )
+}
+
+
+tlabels <- c(" ", "IFR")    
+nlabels <- c("name", "pdeath", "est", "ci")
+
+for(i in 1:length(params$table_date_labels)){
+  tlabels <- c(tlabels, 
+               paste0(params$table_date_labels[i], "\nmean"),
+               "\nIQR")
+  if(i>1){nlabels <- c(nlabels, paste0("est", i-1), paste0("ci", i-1))}
+}   
+names(tlabels) <- nlabels
+
+flextable(tmp[,nlabels]) %>%
+  set_header_labels(values=tlabels) %>%
+  valign(valign="bottom") %>%
+  colformat_num(digits=0) %>%
+  autofit()
+
+}
+
+
+##'
+##' Make caption for statewide table of infections, hosp, ICU, deaths for given scenario
+##'
+##' @param current_scenario text string of scenario label for which to build table
+##' @param table_dates formatted table_dates object
+##'
+##' @return plot of distribution of peak timing across simulations by county
+##'
+##' @export
+##'
+make_scn_state_table_cap <- function(current_scenario,
+                                     table_date_labels,
+                                     table_num = ""){
+
+  to_print <- paste0("Table ", table_num,
+                     "Number of infections, hospitalizations, and deaths due to COVID-19 estimated to occur cumulatively by",
+                     table_date_labels,
+                     "under multiple estimates of the infection fatality rate (IFR) and moderate to high transmission of SARS-CoV-2 under",
+                     current_scenario,
+                     "scenario of transmission")
+  print(to_print)
+}
+
+
