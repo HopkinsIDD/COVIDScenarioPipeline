@@ -30,8 +30,8 @@ class Setup():
                  nsim,
                  ti,
                  tf,
-                 script_npi=None,
-                 npi_settings={},
+                 npi_scenario=None,
+                 npi_config={},
                  interactive=True,
                  write_csv=False,
                  dt=1 / 6,
@@ -41,8 +41,8 @@ class Setup():
         self.dt = dt
         self.ti = ti
         self.tf = tf
-        self.script_npi = script_npi
-        self.npi_settings = npi_settings
+        self.npi_scenario = npi_scenario
+        self.npi_config = npi_config
         self.interactive = interactive
         self.write_csv = write_csv
 
