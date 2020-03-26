@@ -1,0 +1,10 @@
+```{r,echo=FALSE}
+if (!LOADED_CONFIG){stop("This chunk requires loading the config")}
+
+if (!LOADED_SHAPEFILES){
+  shp <- suppressMessages(sf::st_read(paste(config$spatial_setup$base_path,config$spatial_setup$shapefile_name,sep='/'), quiet=TRUE))
+  shp <- shp[shp[["geoid"]] %in% included_geoids,]
+  LOADED_SHAPEFILES <- TRUE
+}
+
+```

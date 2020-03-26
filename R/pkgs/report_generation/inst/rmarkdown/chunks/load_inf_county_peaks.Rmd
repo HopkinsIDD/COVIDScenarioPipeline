@@ -1,4 +1,5 @@
 ```{r}
+if(!LOADED_CONFIG){stop("This chunk requires the config to be loaded")}
 ## Code loads the county infection peaks if it has not yet been loaded
 if (!LOADED_INF_CTY_PEAKS) {
   
@@ -17,14 +18,14 @@ if (!LOADED_INF_CTY_PEAKS) {
       ungroup
   }
   
-  scn_dirs <- params$scenario_dirs
+  scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
   inf_cty_peaks <- NULL
   
   for (i in 1:length(scn_dirs)) {
       inf_cty_peaks <- dplyr::bind_rows(inf_cty_peaks, load_scenario_sims_filtered(scn_dirs[i],
                                                                                   pre_process = inf_pre_process,
                                                                                   post_process = inf_post_process) %>% 
-                                              mutate(scenario_num=i, scenario_name=params$scenario_labels[i]))
+                mutate(scenario_num=i, scenario_name=config$report$formatting$scenario_labels[i]))
 
   }
   

@@ -112,11 +112,11 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
   rc <- ggplot(data=to_plt,
                aes(x=time, colour = scenario_name,
                    group = interaction(sim_num, scenario_name))) +
-    geom_line(aes(y = Nhosp), alpha=0.3, size=.75) +
+    geom_line(aes(y = NincidHosp), alpha=0.3, size=.75) +
     scale_y_continuous("Daily hospital occupancy", labels = scales::comma) +
     scale_x_date(date_breaks = "1 month",
                  date_labels = "%b",
-                 limits = c(as.Date(sim_start_date), as.Date(sim_end_date))) +
+                 limits = c(lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date))) +
     scale_color_manual("Scenario",
                       labels = scenario_labels,
                       values = scenario_cols) +
@@ -128,10 +128,10 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
 
 
   if(plot_intervention){
-    interv_dates <- data.frame(xmin = as.Date(interv_start_date),
-                               xmax = as.Date(interv_end_date),
+    interv_dates <- data.frame(xmin = lubridate::ymd(interv_start_date),
+                               xmax = lubridate::ymd(interv_end_date),
                                ymin = 0,
-                               ymax = 1.05*max(to_plt$Nhosp))
+                               ymax = 1.05*max(to_plt$NincidHosp))
 
     rc <- rc +
       geom_rect(data = interv_dates, inherit.aes = FALSE,
@@ -192,7 +192,7 @@ plot_ts_incid_inf_state_sample <- function (hosp_state_totals,
     scale_y_continuous("Daily incident infections", labels = scales::comma) +
     scale_x_date(date_breaks = "1 month",
                  date_labels = "%b",
-                 limits = c(as.Date(sim_start_date), as.Date(sim_end_date))) +
+                 limits = c(lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date))) +
     scale_color_manual("Scenario",
                        labels = scenario_labels,
                        values = scenario_cols) +
@@ -204,8 +204,8 @@ plot_ts_incid_inf_state_sample <- function (hosp_state_totals,
 
 
   if(plot_intervention){
-    interv_dates <- data.frame(xmin = as.Date(interv_start_date),
-                               xmax = as.Date(interv_end_date),
+    interv_dates <- data.frame(xmin = lubridate::ymd(interv_start_date),
+                               xmax = lubridate::ymd(interv_end_date),
                                ymin = 0,
                                ymax = 1.05*max(to_plt$NincidInf))
 
@@ -265,11 +265,11 @@ plot_ts_incid_death_state_sample_allPdeath <- function (hosp_state_totals,
   rc <- ggplot(data=to_plt,
                aes(x=time, color=scenario_name,
                    group=interaction(sim_num, scenario_name))) +
-    geom_line(aes(y=Ndeath), alpha=0.2, size=.75) +
+    geom_line(aes(y=NincidDeath), alpha=0.2, size=.75) +
     scale_y_continuous("Daily incident deaths", labels = scales::comma) +
     scale_x_date(date_breaks = "2 months",
                  date_labels = "%b",
-                 limits = c(as.Date(sim_start_date), as.Date(sim_end_date))) +
+                 limits = c(lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date))) +
     scale_color_manual("Scenario",
                        labels = scenario_labels,
                        values = scenario_cols) +
@@ -282,10 +282,10 @@ plot_ts_incid_death_state_sample_allPdeath <- function (hosp_state_totals,
 
 
   if(plot_intervention){
-    interv_dates <- data.frame(xmin = as.Date(interv_start_date),
-                               xmax = as.Date(interv_end_date),
+    interv_dates <- data.frame(xmin = lubridate::ymd(interv_start_date),
+                               xmax = lubridate::ymd(interv_end_date),
                                ymin = 0,
-                               ymax = 1.05*max(to_plt$Ndeath))
+                               ymax = 1.05*max(to_plt$NincidDeath))
 
     rc <- rc +
       geom_rect(data = interv_dates, inherit.aes = FALSE,
@@ -318,8 +318,8 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
                                        sim_start_date,
                                        summary_date) {
 
-  sim_start_date <- as.Date(sim_start_date)
-  summary_date <- as.Date(summary_date)
+  sim_start_date <- lubridate::ymd(sim_start_date)
+  summary_date <- lubridate::ymd(summary_date)
 
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
   to_plt <- hosp_state_totals %>%
@@ -375,8 +375,8 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
                                             start_date,
                                             end_date) {
   pdeath_level <- match.arg(pdeath_level)
-  start_date <- as.Date(start_date)
-  end_date <- as.Date(end_date)
+  start_date <- lubridate::ymd(start_date)
+  end_date <- lubridate::ymd(end_date)
 
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
   to_plt <- hosp_cty_peaks %>%
