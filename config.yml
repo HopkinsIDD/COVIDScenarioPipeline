@@ -60,24 +60,26 @@ hospitalization:
     dur_inf_scale: 3
     end_date: 2020-10-01
     p_death: [.0025, .005, .01]
+    p_death_names: ["low","mid","high"]
     p_death_rate: 0.1
     p_ICU: 0.264
     p_vent: 0.15
 
 report:
-  paths:
-    scenario_output_paths: ["unifiedKansasCity", "unifiedWuhan", "unifiedNPI"]
-    shapefile_fn: counties_2010_west-coast-AZ-NV.shp
   data_settings:
     pop_year: 2010
   plot_settings:
     plot_intervention: TRUE
   formatting:
-    scenario_labels_short: ["KC", "WH", "UC"]
-    scenario_labels: ["Pre-Lockdown-like","Wuhan/Lockdown-like","Worst Case Uncontrolled"]
-    scenario_colors: ["#D95F02", "#1B9E77", "#7570B3"]
-    pdeath_level: ["low", "med", "high"]
+    scenario_labels_short: ["WH","UC","1918","SC","TI","M1","M2","M3"]
+    scenario_labels:
+    - Wuhan/Lockdown
+    - Worst Case Uncontrolled
+    - Influenza 1918
+    - School Closure
+    - Test and Isolate
+    - Mild Proposed Scenario
+    - Moderate Proposed Scenario
+    - Severe Proposed Scenario
+    scenario_colors: ["#D95F02", "#1B9E77", "#7570B3", "#7570B3", "#7570B3", "#7570B3", "#7570B3", "#7570B3"]
     pdeath_labels: ["0.25% IFR", "0.5% IFR", "1% IFR"]
-
-
-
