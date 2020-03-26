@@ -31,6 +31,7 @@ pytest==5.4.1
 python-dateutil==2.8.1
 pytz==2019.3
 PyYAML==5.3.1
+rpy2==3.2.6
 scipy==1.4.1
 seaborn==0.10.0
 Shapely==1.7.0
