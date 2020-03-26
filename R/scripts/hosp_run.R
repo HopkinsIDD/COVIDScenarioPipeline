@@ -39,7 +39,7 @@ p_death_rate <- as_evaled_expression(config$hospitalization$parameters$p_death_r
 p_ICU <- as_evaled_expression(config$hospitalization$parameters$p_ICU)
 p_vent <- as_evaled_expression(config$hospitalization$parameters$p_vent)
 
-data_filename <- paste0("model_output/",config$spatial_setup$setup_name,"_",opt$s)
+data_filename <- paste0("model_output/",config$name,"_",opt$s)
 # config$hospitalization$paths$output_path
 cmd <- opt$d
 ncore = opt$j
