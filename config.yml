@@ -83,7 +83,7 @@ interventions:
       scenarios:
         - SchoolClosure
         - Wuhan
-        - BI1918
+        - Influenza1918
 
 seir:
   parameters:
