@@ -8,6 +8,8 @@ plot_ts_incid_inf_state_sample(
   hosp_state_totals,
   num_sims = 15,
   pdeath_level = "high",
+  scenario_labels,
+  scenario_cols,
   sim_start_date,
   sim_end_date,
   plot_intervention = FALSE,

@@ -7,6 +7,10 @@
 plot_ts_incid_death_state_sample_allPdeath(
   hosp_state_totals,
   num_sims = 15,
+  scenario_labels,
+  scenario_cols,
+  pdeath_filecode,
+  pdeath_labels,
   sim_start_date,
   sim_end_date,
   plot_intervention = FALSE,
