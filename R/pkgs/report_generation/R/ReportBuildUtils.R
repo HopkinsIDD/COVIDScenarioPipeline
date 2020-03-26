@@ -37,6 +37,8 @@ print_pretty_date <- function() {
   return(lubridate::stamp("September 12, 1999"))
 }
 
+
+##
 ##'Function to round cleanly
 ##'
 ##'@param x single number to round
@@ -446,12 +448,12 @@ make_scn_state_table <- function(current_scenario,
                                  hosp_state_totals,
                                  table_dates,
                                  params){
-  
-tmp <- data.frame(name=c("Infections", 
-                         "Hospitalizations\n  total", "", "", 
-                         "  daily peak admissions", "", "", 
+
+tmp <- data.frame(name=c("Infections",
+                         "Hospitalizations\n  total", "", "",
+                         "  daily peak admissions", "", "",
                          "  daily peak capacity", "", "",
-                         "ICU Admissions\n  total", "", "", 
+                         "ICU Admissions\n  total", "", "",
                          "  daily peak admissions", "", "",
                          "  daily peak capacity", "", "",
                          "Deaths\n  total", "", ""))
@@ -459,13 +461,13 @@ tmp$name <- as.character(tmp$name)
 
 for(i in 1:length(table_dates)){
   xx <- hosp_state_totals %>%
-    filter(!is.na(time) & scenario_name==current_scenario) %>% 
+    filter(!is.na(time) & scenario_name==current_scenario) %>%
     filter(time <= table_dates[i]) %>%
     group_by(scenario_name, pdeath, sim_num) %>%
     summarize(
-      TotalIncidInf = sum(NincidInf, na.rm = TRUE), 
-      TotalIncidHosp = sum(NincidHosp, na.rm = TRUE), 
-      TotalIncidICU = sum(NincidICU, na.rm = TRUE), 
+      TotalIncidInf = sum(NincidInf, na.rm = TRUE),
+      TotalIncidHosp = sum(NincidHosp, na.rm = TRUE),
+      TotalIncidICU = sum(NincidICU, na.rm = TRUE),
       TotalIncidDeath = sum(NincidDeath, na.rm = TRUE),
       maxHospAdm = max(NincidHosp, na.rm=TRUE),
       maxICUAdm = max(NincidICU, na.rm=TRUE),
@@ -501,24 +503,24 @@ for(i in 1:length(table_dates)){
       nCurrICU_hi = quantile(maxICUCap, 0.75)) %>%
     ungroup() %>%
     mutate(pdeath = params$pdeath_labels[match(pdeath, params$pdeath_filecode)])
-  
-  
-  tmp <- bind_cols(tmp, 
+
+
+  tmp <- bind_cols(tmp,
                    xx %>% filter(pdeath==params$pdeath_labels[1]) %>%
                      mutate(ci = make_CI(nIncidInf_lo, nIncidInf_hi),
                             est = conv_round(nIncidInf_final),
                             lvl = paste0("total inc infections")) %>%
-                     select(lvl, est, ci, pdeath) %>% 
+                     select(lvl, est, ci, pdeath) %>%
                      bind_rows(xx %>%
                                  mutate(ci = make_CI(nIncidHosp_lo, nIncidHosp_hi),
                                         est = conv_round(nIncidHosp_final),
                                         lvl = paste0("total inc hosp", pdeath)) %>%
-                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%   
+                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                      bind_rows(xx %>%
                                  mutate(ci = make_CI(pIncidHosp_lo, pIncidHosp_hi),
                                         est = conv_round(pIncidHosp_final),
                                         lvl = paste0("peak inc hosp", pdeath)) %>%
-                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>% 
+                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                      bind_rows(xx %>%
                                  mutate(ci = make_CI(nCurrHosp_lo, nCurrHosp_hi),
                                         est = conv_round(nCurrHosp_final),
@@ -528,12 +530,12 @@ for(i in 1:length(table_dates)){
                                  mutate(ci = make_CI(nIncidICU_lo, nIncidICU_hi),
                                         est = conv_round(nIncidICU_final),
                                         lvl = paste0("total inc ICU", pdeath)) %>%
-                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%   
+                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                      bind_rows(xx %>%
                                  mutate(ci = make_CI(pIncidICU_lo, pIncidICU_hi),
                                         est = conv_round(pIncidICU_final),
                                         lvl = paste0("peak inc ICU", pdeath)) %>%
-                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>% 
+                                 select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                      bind_rows(xx %>%
                                  mutate(ci = make_CI(nCurrICU_lo, nCurrICU_hi),
                                         est = conv_round(nCurrICU_final),
@@ -548,15 +550,15 @@ for(i in 1:length(table_dates)){
 }
 
 
-tlabels <- c(" ", "IFR")    
+tlabels <- c(" ", "IFR")
 nlabels <- c("name", "pdeath", "est", "ci")
 
 for(i in 1:length(params$table_date_labels)){
-  tlabels <- c(tlabels, 
+  tlabels <- c(tlabels,
                paste0(params$table_date_labels[i], "\nmean"),
                "\nIQR")
   if(i>1){nlabels <- c(nlabels, paste0("est", i-1), paste0("ci", i-1))}
-}   
+}
 names(tlabels) <- nlabels
 
 flextable(tmp[,nlabels]) %>%
@@ -571,8 +573,9 @@ flextable(tmp[,nlabels]) %>%
 ##'
 ##' Make caption for statewide table of infections, hosp, ICU, deaths for given scenario
 ##'
+##' @param table_date_labels
+##' @param table_num
 ##' @param current_scenario text string of scenario label for which to build table
-##' @param table_dates formatted table_dates object
 ##'
 ##' @return plot of distribution of peak timing across simulations by county
 ##'

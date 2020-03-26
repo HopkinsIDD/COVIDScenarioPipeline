@@ -2,12 +2,15 @@
 % Please edit documentation in R/ReportBuildUtils.R
 \name{plot_line_hospPeak_time_county}
 \alias{plot_line_hospPeak_time_county}
-\title{THIS FUNCTION HAS NOT YET BEEN TESTED 3/25/2020 ECL}
+\title{Plot figure showing histogram of peak hospital occupancy by a certain date}
 \usage{
 plot_line_hospPeak_time_county(
   hosp_cty_peaks,
   cty_names,
-  pdeath_level = "high",
+  pdeath_level = c("high", "med", "low"),
+  scenario = c("KC", "WH", "None"),
+  scenario_labels,
+  scenario_cols,
   start_date,
   end_date
 )

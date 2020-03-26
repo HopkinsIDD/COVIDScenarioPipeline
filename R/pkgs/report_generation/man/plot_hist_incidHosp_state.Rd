@@ -7,6 +7,8 @@
 plot_hist_incidHosp_state(
   hosp_state_totals,
   pdeath_level = "high",
+  scenario_labels,
+  scenario_cols,
   sim_start_date,
   summary_date
 )

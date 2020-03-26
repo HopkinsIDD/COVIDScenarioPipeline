@@ -2,7 +2,7 @@
 % Please edit documentation in R/ReportBuildUtils.R
 \name{reference_chunk}
 \alias{reference_chunk}
-\title{Utility function for easily referencing chunks inluded as part of 
+\title{Utility function for easily referencing chunks inluded as part of
 the package as part of the report.}
 \usage{
 reference_chunk(chunkname)
@@ -14,7 +14,7 @@ reference_chunk(chunkname)
 the path to the chunk
 }
 \description{
-Utility function for easily referencing chunks inluded as part of 
+Utility function for easily referencing chunks inluded as part of
 the package as part of the report.
 }
 \author{
