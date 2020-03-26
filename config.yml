@@ -16,6 +16,7 @@ spatial_setup:
 
 interventions:
   scenarios:
+    - SC
     - Wuhan
     - None
     - KansasCity
@@ -43,6 +44,17 @@ interventions:
         distribution: uniform
         low: .04
         high: .23
+    SC:
+      template: ReduceR0
+      period_start_date: 2020-03-13
+      period_end_date: 2020-10-01
+      value:
+        distribution: truncnorm
+        a: 0.16
+        b: 0.30
+        mean: 0.18
+        sd: 0.05
+
 # FIXME: Combination is not supported yet
     Scenario1:
       template: Combination
