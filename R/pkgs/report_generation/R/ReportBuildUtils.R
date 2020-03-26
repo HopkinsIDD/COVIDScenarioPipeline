@@ -308,7 +308,9 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
     scale_fill_manual(values = scenario_cols,
                       labels = scenario_labels,
                       aesthetics = c("colour", "fill")) +
-    scale_x_continuous(paste("Cumulative hospitalizations by", print_pretty_date()(summary_date)), labels = scales::comma) +
+    scale_x_continuous(paste("Cumulative hospitalizations by",
+                             print_pretty_date()(summary_date)),
+                       labels = scales::comma) +
     ylab("Number of simulations") +
     theme_bw() +
     guides("none") +
@@ -321,7 +323,6 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
 
 
 
-##' THIS FUNCTION HAS NOT YET BEEN TESTED 3/25/2020 ECL
 ##'
 ##' Plot figure showing histogram of peak hospital occupancy by a certain date
 ##'
