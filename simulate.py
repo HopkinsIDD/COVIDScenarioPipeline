@@ -31,6 +31,7 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
     spatial_config = config["spatial_setup"]
     spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 
+    interventions_base_path = pathlib.Path(config["interventions"]["scripts_path"].get())
     if not scenarios:
         scenarios = config["interventions"]["scenarios"].as_str_seq()
     print(f"Scenarios to be run: {', '.join(scenarios)}")
@@ -40,6 +41,10 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
 
     start = time.monotonic()
     for scenario in scenarios:
+        script_npi = interventions_base_path / (scenario + ".R")
+        if not script_npi.exists():
+            raise click.BadParameter(f"NPI scenario file [{script_npi}] not found")
+
         s = setup.Setup(setup_name=config["name"].get() + "_" + str(scenario),
                         spatial_setup=setup.SpatialSetup(
                             setup_name=spatial_config["setup_name"].get(),
@@ -49,8 +54,8 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
                             popnodes_key=spatial_config["popnodes"].get(),
                         ),
                         nsim=nsim,
-                        npi_scenario=scenario,
-                        npi_config=config["interventions"]["settings"][scenario],
+                        script_npi=script_npi.as_posix(),
+                        npi_settings=config["interventions"]["settings"][scenario].get() or {},
                         ti=config["start_date"].as_date(),
                         tf=config["end_date"].as_date(),
                         interactive=interactive,
