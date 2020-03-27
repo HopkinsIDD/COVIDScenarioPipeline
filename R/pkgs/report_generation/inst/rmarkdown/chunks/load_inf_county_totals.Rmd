@@ -1,0 +1,37 @@
+```{r}
+if(!LOADED_CONFIG){stop("This chunk requires the config to be loaded")}
+## Code loads the county infection peaks if it has not yet been loaded
+if (!LOADED_INF_CTY_TOTALS) {
+  
+  inf_pre_process <- function(x) {
+    x %>%
+      dplyr::filter(comp == "cumI")
+  }
+  
+  inf_post_process <- function(x) {
+    x %>% 
+      ungroup %>%
+      dplyr::filter(!is.na(time), geoid %in% included_geoids)
+  }
+  
+  scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
+  inf_cty_totals <- NULL
+  
+  for (i in 1:length(scn_dirs)) {
+      inf_cty_totals <- inf_cty_totals %>% 
+        dplyr::bind_rows(load_scenario_sims_filtered(scn_dirs[i],
+                                                     pre_process = inf_pre_process,
+                                                     post_process = inf_post_process) %>% 
+                           mutate(scenario_num=i,
+                                  scenario_name=config$report$formatting$scenario_labels[i]) %>% 
+                           group_by(geoid, time, scenario_num, scenario_name) %>% 
+                           dplyr::summarize(Nincid=mean(N)) %>% 
+                           ungroup()
+        )
+  }
+  
+  LOADED_INF_CTY_TOTALS <- TRUE 
+}
+
+
+```

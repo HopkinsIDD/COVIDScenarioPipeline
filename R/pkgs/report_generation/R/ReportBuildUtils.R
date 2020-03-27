@@ -431,6 +431,59 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
 }
 
 
+##'
+##' Plot figure showing histogram of peak hospital occupancy by a certain date
+##'
+##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
+##' @param pdeath_level level of IFR (string: high/med/low) for filtering hospitalization data
+##' @param start_date date to filter to start search for peak timing (character string)
+##' @param end_date date to filter to end search for peak timing (character string)
+##'
+##' @return plot of distribution of peak timing across simulations by county
+##'
+##' @export
+##'
+plot_county_attack_rate_map <- function (inf_cty_totals,
+                                         cty_names,
+                                         shp,
+                                         # pdeath_level = c("high", "med", "low"),
+                                         scenario = c("KC", "WH", "None"),
+                                         display_date) {
+  # pdeath_level <- match.arg(pdeath_level)
+  scenario <- match.arg(scenario)
+  display_date <- as.Date(display_date)
+
+  ##TODO: Make this so each scenario does not use the same sims...though should not matter.
+  to_plt <- inf_cty_totals %>%
+    dplyr::filter(scenario_name == scenario,
+                  time == display_date) %>%
+    dplyr::mutate(geoid = ifelse(nchar(geoid)==4, paste0("0",geoid),geoid)) %>%
+    left_join(cty_names) %>%
+    # mutate(attack_rate=Nincid/population)
+    group_by(geoid) %>%
+    dplyr::summarise(attack_rate=mean(Nincid/population)) %>%
+    ungroup
+
+  plot_shp <- left_join(shp, to_plt, by=c("GEOID"="geoid"))
+
+    rc <- ggplot(plot_shp) +
+      geom_sf(aes(fill=attack_rate)) +
+      theme_minimal() +
+      scale_fill_viridis_c(option="plasma", limits=c(0,1)) +
+      ggtitle(as.Date(display_date, format="%b %d")) +
+      theme(axis.title.x=element_blank(),
+            axis.text.x=element_blank(),
+            axis.ticks.x=element_blank(),
+            axis.title.y=element_blank(),
+            axis.text.y=element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            axis.ticks.y=element_blank())
+    return(rc)
+
+}
+
 
 ##'
 ##' Make statewide table of infections, hosp, ICU, deaths for given scenario

@@ -25,7 +25,8 @@ if (!LOADED_INF_CTY_PEAKS) {
       inf_cty_peaks <- dplyr::bind_rows(inf_cty_peaks, load_scenario_sims_filtered(scn_dirs[i],
                                                                                   pre_process = inf_pre_process,
                                                                                   post_process = inf_post_process) %>% 
-                mutate(scenario_num=i, scenario_name=config$report$formatting$scenario_labels[i]))
+                mutate(scenario_num=i,
+                       scenario_name=config$report$formatting$scenario_labels[i]))
 
   }
   
