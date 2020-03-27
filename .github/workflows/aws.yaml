@@ -1,4 +1,9 @@
 # This workflow will build and push a new container image to Amazon ECR
+# The following information will need to be included in your Github secrets:
+# - AWS_ACCESS_KEY_ID: dedicated user AWS key ID
+# - AWS_SECRET_ACCESS_KEY: dedicated user AWS access key
+# - AWS_REGION: your AWS region, ex: us-east-1, us-west-2...
+# - ECR_REPOSITORY_NAME: name of the ECR repository, ex: myrepo
 
 on:
   push:
@@ -26,7 +31,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-west-2
+        aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Login to Amazon ECR
       id: login-ecr
@@ -37,15 +42,20 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
-        # tag with the commit sha, ideally use git tags instead
-        IMAGE_TAG: ${{ github.sha }}
+        IMAGE_TAG_SHA: ${{ github.sha }}
+        IMAGE_TAG_RUN: ${{ github.run_number }}
+        IMAGE_TAG_REF: ${{ github.ref }}
       run: |
         # Build a docker container and
         # push it to ECR so that it can
         # be deployed to ECS.
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA .
+        # Add new tags
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$(git log -1 --pretty=%h)
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:${IMAGE_TAG_REF##*/}-r$IMAGE_TAG_RUN
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY
+        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY"
 
     - name: Logout of Amazon ECR
       if: always()
