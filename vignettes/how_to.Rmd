@@ -242,27 +242,121 @@ rmarkdown::draft("Maryland_Report.Rmd", template = "state_report", package = "re
 
 ### Implemented interventions
 
-### NoNPI
+Each intervention is associated with a start and end date and a range of values to sample from.
 
-This is a non-intervention scenario. It does not reduce `R0`
+### None
 
-### SC
+This is a non-intervention scenario. It does not reduce `R0`.
+```{r None}
+None:
+      template: ReduceR0
+      period_start_date: YYYY-MM-DD
+      period_end_date: YYYY-MM-DD   
+      value:
+        distribution: fixed
+        value: 0
+```
 
-This intervention represents school closures. It reduces `R0` by %%POPULATE ME
+### SchoolClosure
 
-### KansasCity
+This intervention represents school closures. It reduces `R0` by 16-30%.
 
-This intervention represents the social distancing scenario we saw during April in Kansas City ? It reduces `R0` by %%POPULATE ME
+```{r School Closure}
+SchoolClosure:
+      template: ReduceR0
+      period_start_date: YYYY-MM-DD
+      period_end_date: YYYY-MM-DD
+      value:
+        distribution: truncnorm
+        a: 0.16
+        b: 0.30
+        mean: 0.18
+        sd: 0.05
+```
 
+
+
+### Influenza1918
+
+This intervention represents the influence of different social distancing scenarios observed in the 1918 Influenza. It reduces `R0` by 44-65%, based on values observed in Milwaukee, Wisconsin. These values can be altered to reflect different cities and scenarios reported by M.Bootsma & N.M.Ferguson in https://www.pnas.org/content/104/18/7588.long
+
+```{r Influenza1918}
+Influenza1918:
+      template: ReduceR0
+      period_start_date: YYYY-MM-DD
+      period_end_date: YYYY-MM-DD
+      value:
+        distribution: uniform
+        low: .44
+        high: .65
+```
 
 ### Wuhan
 
-This intervention represents shelter in place similar to what was done in Wuhan at the beginning of the outbreak. It reduces `R0` by %%POPULATE ME
+This intervention represents shelter in place similar to what was done in Wuhan at the beginning of the outbreak. It reduces `R0` by 81-89%.
 
+```{r Wuhan}
+Wuhan:
+      template: ReduceR0
+      period_start_date: YYYY-MM-DD
+      period_end_date: YYYY-MM-DD
+      value:
+        distribution: uniform
+        low: .81
+        high: .89
+```
 
-### BI1918
+### TestIsolate
 
-This intervention represents the actions taken during the 1918 influenza epidemic It reduces `R0` by %%POPULATE ME
+This intervention represents rapid testing and isolation of cases, similar to what was done in Wuhan at the beginning of the outbreak. It reduces `R0` by 45-96%.
+
+```{r TestIsolate}
+TestIsolate:
+      template: ReduceR0
+      period_start_date: YYYY-MM-DD
+      period_end_date: YYYY-MM-DD
+      value:
+        distribution: uniform
+        low: .45
+        high: .96
+```
+
+### Mild
+
+This intervention has two sequential interventions: School closures followed by a Wuhan-style lockdown.
+
+```{r Mild}
+Mild:
+    template: Stacked
+    scenarios:
+      - SchoolClosure
+      - Wuhan
+```
+### Mid
+
+This intervention has three sequential interventions: School closures, followed by a Wuhan-style lockdown, followed by social distancing practices used during the 1918 Influenza pandemic.
+
+```{r Mid}
+Mid:
+    template: Stacked
+    scenarios:
+      - SchoolClosure
+      - Wuhan
+      - Influenza1918
+```
+
+### Severe
+
+This intervention has three sequential interventions: School closures, followed by a Wuhan-style lockdown, followed by rapid testing and isolation.
+
+```{r Severe}
+Severe:
+    template: Stacked
+    scenarios:
+      - SchoolClosure
+      - Wuhan
+      - TestIsolate
+```
 
 
 ## Actual Steps I went through to create a minimal working repository (by commit)
