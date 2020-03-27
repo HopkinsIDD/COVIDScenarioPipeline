@@ -6,19 +6,7 @@ output:
     df_print: paged
 bibliography: ReportReferences.bib
 params:
-  num_scenarios: 3
-  scenario_labels: [SCENARIO1, SCENARIO2, SCENARIO3]
-  scenario_dirs: [DIR1,DIR2,DIR3]
-  scenario_cols: ["#D95F02", "#1B9E77", "#7570B3"] #colors
-  pdeath_filecode: ["low", "med", "high"]
-  pdeath_labels: ["0.25% IFR", "0.5% IFR", "1% IFR"]
-  sim_dates: [SIMSTART, SIMEND]
-  interv_yesno: [TRUEFALSE]
-  interv_date: [INTERVSTART, INTERVEND]
-  region_code: [REGIONCODENAME]
-  shapefile_fn: [DIRSHP]
-  state_fips: [STATEFIPS]
-  pop_year: [POPESTYEAR]
+  config_file: "config.yml"
     
 ---
 
@@ -46,39 +34,44 @@ library(tidyverse)
 library(covidcommon)
 library(report.generation)
 
+LOADED_CONFIG <- FALSE
+LOADED_GEOIDS <- FALSE
 LOADED_HOSP_STATE_TOTALS <- FALSE
 LOADED_INF_CTY_PEAKS <- FALSE
 LOADED_HOSP_CTY_PEAKS <- FALSE
 LOADED_HOSP_CTY_TOTALS <- FALSE
+LOADED_INF_CTY_TOTALS <- FALSE
+LOADED_SHAPEFILES <- FALSE
+LOADED_POPULATION <- FALSE
 
 
 ```
 
+#### load-config
 ```{r load-config, child=reference_chunk("load_config.Rmd")}
 ```
 
 ```{r load-hosp-state-totals, child=reference_chunk("load_hosp_state_totals.Rmd")}
 ```
 
-```{r load-inf-cty-peaks, child=reference_chunk("load_inf_cty_peaks.Rmd")}
+```{r load-inf-cty-peaks, child=reference_chunk("load_inf_county_peaks.Rmd")}
 ```
 
-```{r load-hosp-cty-peaks, child=reference_chunk("load_hosp_cty_peaks.Rmd")}
+```{r load-hosp-cty-peaks, child=reference_chunk("load_hosp_county_peaks.Rmd")}
 ```
 
-```{r load-shapefile}
-shp <- load_shapefile(region_code = config$name,
-                      geoids = included_geoids,
-                      shapefile_fn = config$paths$shapefile_fn)
+```{r load-inf-cty-peaks, child=reference_chunk("load_inf_county_totals.Rmd")}
 ```
 
-```{r load-population}
-ctynames <- load_county_pops(region_code = config$name,
-                             geoids = included_geoids,
-                             pop_year = config$data_settings$pop_year)
+
+#### load-shapefiles
+```{r load-shapefile, child=reference_chunk("load_shapefiles.Rmd")}
 ```
+
 
 ## State Level Results
+
+#### plot-hosp-state-sample
 
 ```{r plot-hosp-state-sample}
 plot_ts_hosp_state_sample(hosp_state_totals,
@@ -88,13 +81,13 @@ plot_ts_hosp_state_sample(hosp_state_totals,
                           sim_start_date = config$start_date,
                           sim_end_date = config$end_date,
                           plot_intervention = config$report$plot_settings$plot_intervention, ## may not make sense to plot interventions if there are multiple intervention periods
-                          interv_start_date = config$interventions$settings$Wuhan$begin, ## N.B. these are currently hard-coded to Wuhan like settings
-                          interv_end_date = config$interventions$settings$Wuhan$end)
+                          interv_start_date = config$interventions$settings$Wuhan$period_start_date, ## N.B. these are currently hard-coded to Wuhan like settings
+                          interv_end_date = config$interventions$settings$Wuhan$period_end_date)
 ```
 
-`r make_fig_captions("ts_hosp_state_sample", scenario_nums = length(config$report$paths$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$begin, interv_end_date = config$interventions$settings$Wuhan$end, sim_start_date = config$start_date, sim_end_date = config$end_date, state = config$report_location_name)`
+`r #make_fig_captions("ts_hosp_state_sample", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_start_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)`
 
-
+#### plot-ts-inc-state
 ```{r plot-ts-inc-state}
 plot_ts_incid_inf_state_sample(hosp_state_totals,
                                num_sim = 15,
@@ -104,72 +97,124 @@ plot_ts_incid_inf_state_sample(hosp_state_totals,
                                sim_start_date = config$start_date,
                                sim_end_date = config$end_date,
                                plot_intervention = config$report$plot_settings$plot_intervention, ## may not make sense to plot interventions if there are multiple intervention periods
-                               interv_start_date = config$interventions$settings$Wuhan$begin, ## N.B. these are currently hard-coded to Wuhan like settings
-                               interv_end_date = config$interventions$settings$Wuhan$end)
+                               interv_start_date = config$interventions$settings$Wuhan$period_start_date, ## N.B. these are currently hard-coded to Wuhan like settings
+                               interv_end_date = config$interventions$settings$Wuhan$period_start_date)
 ```
 
-`r make_fig_captions("ts_incid_inf_state_sample", scenario_nums = length(config$report$paths$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$begin, interv_end_date = config$interventions$settings$Wuhan$end, sim_start_date = config$start_date, sim_end_date = config$end_date, state = config$report_location_name)`
+`r #make_fig_captions("ts_incid_inf_state_sample", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_start_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)`
 
+#### plot-ts-death
 ```{r plot-ts-death}
-plot_ts_incid_death_state_sample_allPdeath(hosp_state_totals,
-                                           num_sims = 15,
-                                           scenario_labels = config$report$formatting$scenario_labels,
-                                           scenario_cols = config$report$formatting$scenario_colors,
-                                           # pdeath_level = , ## default is high
-                                           pdeath_labels = config$report$pdeath_labels,
-                                           sim_start_date = config$start_date,
-                                           sim_end_date = config$end_date,
-                                           plot_intervention = config$report$plot_settings$plot_intervention, ## may not make sense to plot interventions if there are multiple intervention periods
-                                           interv_start_date = config$interventions$settings$Wuhan$begin, ## N.B. these are currently hard-coded to Wuhan like settings
-                                           interv_end_date = config$interventions$settings$Wuhan$end)
+plot_ts_incid_death_state_sample_allPdeath(
+  hosp_state_totals,
+  num_sims = 15,
+  scenario_labels = config$report$formatting$scenario_labels,
+  scenario_cols = config$report$formatting$scenario_colors,
+  pdeath_labels = config$report$formatting$pdeath_labels[3],
+  sim_start_date = config$start_date,
+  sim_end_date = config$end_date,
+  plot_intervention = config$report$plot_settings$plot_intervention,
+  interv_start_date = config$interventions$settings$Wuhan$period_start_date,
+  interv_end_date = config$interventions$settings$Wuhan$period_end_date
+)
 ```
 
-`r make_fig_captions("ts_incid_death_state_sample_allPdeath", scenario_nums = length(config$report$paths$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$begin, interv_end_date = config$interventions$settings$Wuhan$end, sim_start_date = config$start_date, sim_end_date = config$end_date, state = config$report_location_name)`
+`r #make_fig_captions("ts_incid_death_state_sample_allPdeath", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_start_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)`
 
-
+#### plot-hist-incidHosp-state
 ```{r plot-hist-incidHosp-state}
-plot_hist_incidHosp_state(hosp_state_totals,
-                         # pdeath_level = , ## default is high
-                         scenario_labels = config$report$formatting$scenario_labels,
-                         scenario_cols = config$report$formatting$scenario_colors,
-                         sim_start_date = config$start_date,
-                         summary_date = DATE) ## choose date for cumulative final size histogram of hosp occupancy
+plot_hist_incidHosp_state(
+  hosp_state_totals,
+  # pdeath_level = , ## default is high
+  scenario_labels = config$report$formatting$scenario_labels,
+  scenario_cols = config$report$formatting$scenario_colors,
+  sim_start_date = config$start_date,
+  summary_date = "2020-05-14"
+) #ls# choose date for cumulative final size histogram of hosp occupancy
 ```
 
-`r make_fig_captions("hist_incidHosp_state", scenario_nums = length(config$report$paths$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$begin, interv_end_date = config$interventions$settings$Wuhan$end, sim_start_date = config$start_date, sim_end_date = config$end_date, state = config$report_location_name)`
+`r #make_fig_captions("hist_incidHosp_state", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_end_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, state = config$report_location_name, figure_num = 1)`
 
+#### plot-line-hospPeak-time-county
 ```{r plot-line-hospPeak-time-county}
-plot_line_hospPeak_time_county(hosp_cty_peaks,
-                               cty_names,
-                               scenario = config$report$scenario_labels_short,
-                               scenario_labels = config$report$formatting$scenario_labels,
-                               scenario_cols = config$report$formatting$scenario_colors,
-                               start_date = config$start_date,
-                               summary_date = DATE) ## choose date for cumulative final size histogram of hosp occupancy
-      ```
+plot_line_hospPeak_time_county(
+  hosp_cty_peaks,
+  cty_names,
+  scenario = config$report$formatting$scenario_labels[1],
+  scenario_labels = config$report$formatting$scenario_labels[1],
+  scenario_cols = config$report$formatting$scenario_colors[1],
+  start_date = config$start_date,
+  end_date = config$end_date
+) ## choose date for cumulative final size histogram of hosp occupancy
+```
 
+`r #make_fig_captions("line_hospPeak_time_county", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_end_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)`
 
+## Scenario-Specific Results
 
+`r #make_scn_state_table_cap(current_scenario = config$report$formatting$scenario_labels[1], table_dates = config$report$formatting$display_dates, table_num = 1)`
+
+```{r scn-state-table}
+## MAY NOT BE WORKING
+make_scn_state_table(current_scenario = config$report$formatting$scenario_labels[1],
+                     hosp_state_totals,
+                     table_dates = config$report$formatting$display_dates,
+                     pdeath_labels = config$report$formatting$pdeath_labels,
+                     pdeath_filecode = config$report$formatting$display_dates
+                     )
+
+```
+
+#### plot-attack-rate-map
+```{r plot-attack-rate-map}
+
+ARmap1 <- plot_county_attack_rate_map(inf_cty_totals,
+                            geodata,
+                            shp,
+                            scenario = config$report$formatting$scenario_labels[1],
+                            display_date = config$report$formatting$display_dates[1])
+
+ARmap2 <- plot_county_attack_rate_map(inf_cty_totals,
+                            geodata,
+                            shp,
+                            scenario = config$report$formatting$scenario_labels[1],
+                            display_date = config$report$formatting$display_dates[2])
+
+ARmap3 <- plot_county_attack_rate_map(inf_cty_totals,
+                            geodata,
+                            shp,
+                            scenario = config$report$formatting$scenario_labels[1],
+                            display_date = config$report$formatting$display_dates[3])
+cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3)
+
+```
+
+`r #make_fig_captions("county_attack_rate_map", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_end_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)`
 
 ## Scenario Summaries
 
+
 ## Appendix 1: Methods
+```{r plot-model-param-distr}
+## NOT WORKING - CHECK WITH JOSH BC HE WROTE THE FIG CODE
+layout(mat = matrix(c(1,1,2,2,
+                      3,3,4,4,
+                      5,5,6,6,
+                      7,7,8,8
+                      ), nrow=4, byrow=TRUE))
+
+for(i in 1:length(config$report$plot_settings$parameters_to_display)){
+  plot_model_parameter_distributions(config$report$plot_settings$parameters_to_display[[i]], config)
+}
+
+```
 
 
 ### Limitations
-
 ```{r, child=reference_chunk("limitations.Rmd")}
 ```
-
 ### Key Sources
-
-
 ```{r, child=reference_chunk("key_sources.Rmd")}
 ```
-
-
-## Appendix 2: Detailed County Lavel Results
-
-
+## Appendix 2: Detailed County Level Results
 ## Bibliography
-

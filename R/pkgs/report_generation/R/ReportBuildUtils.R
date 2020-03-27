@@ -38,6 +38,19 @@ print_pretty_date <- function() {
 }
 
 
+##'
+##' Pretty print short date for text and tables
+##'
+##' @return a function that formats short pretty dates
+##'
+##' @export
+##'
+print_pretty_date_short <- function() {
+
+  return(lubridate::stamp("Sep 12"))
+}
+
+
 ##
 ##'Function to round cleanly
 ##'
@@ -357,8 +370,11 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
 ##'
 ##' Plot figure showing histogram of peak hospital occupancy by a certain date
 ##'
-##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
+##' @param hosp_cty_peaks totals for hospitalization related data for state for all pdeath
+##' @param cty_names Dataframe with county geoid and county name
 ##' @param pdeath_level level of IFR (string: high/med/low) for filtering hospitalization data
+##' @param scenario_labels scenario names from config
+##' @param scenario_cols scenario colors from config
 ##' @param start_date date to filter to start search for peak timing (character string)
 ##' @param end_date date to filter to end search for peak timing (character string)
 ##'
@@ -367,44 +383,44 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
 ##' @export
 ##'
 plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
-                                            geodata,
-                                            pdeath_level = "high",
-                                            scenario = c("KC", "WH", "None"),
+                                            cty_names,
+                                            pdeath_level = "high", ## choose one to display peak
                                             scenario_labels,
                                             scenario_cols,
                                             start_date,
                                             end_date) {
-  # pdeath_level <- match.arg(pdeath_level)
+  pdeath_level <- match.arg(pdeath_level)
   start_date <- lubridate::ymd(start_date)
   end_date <- lubridate::ymd(end_date)
 
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
   to_plt <- hosp_cty_peaks %>%
     dplyr::filter(pdeath %in% pdeath_level,
-                  scenario_name %in% scenario) %>%
+                  scenario_name %in% scenario_labels) %>%
     group_by(geoid, scenario_name) %>%
-    dplyr::summarise(mean_pkTime = mean(time),
-                     median_pkTime = median(time),
-                     low_pkTime = quantile(time, probs=.25, type=1),
-                     hi_pkTime = quantile(time, probs=.75, type=1)) %>%
+    dplyr::summarise(mean_pkTime = as.Date(mean(time)),
+                     median_pkTime = as.Date(median(time)),
+                     low_pkTime = as.Date(quantile(time, probs=.25, type=1)),
+                     hi_pkTime = as.Date(quantile(time, probs=.75, type=1))) %>%
     ungroup %>%
     dplyr::mutate(scenario_name = factor(scenario_name,
                                          levels = scenario_labels,
                                          labels = scenario_labels)) %>%
-    dplyr::left_join(geodata, by = c("geoid"))
+    dplyr::left_join(cty_names, by = c("geoid")) 
 
-  if(length(scenario)==1){
+  if(length(scenario_labels)==1){
     rc <- ggplot(data=to_plt,
                  aes(x = reorder(countyname, -as.numeric(mean_pkTime)),
                      y = mean_pkTime, ymin = low_pkTime, ymax = hi_pkTime)) +
       geom_pointrange() +
       scale_y_date("Date of peak hospital occupancy",
-                   date_breaks = "2 months",
+                   date_breaks = "1 months",
                    date_labels = "%b",
-                   limits = c(start_date, end_date)) +
+                   # limits = c(as.Date(start_date), as.Date(end_date))
+                   ) +
       xlab("County") +
       theme_bw() +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1))  +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "bottom")  +
       coord_flip()
   } else{
     rc <- ggplot(data=to_plt,
@@ -413,15 +429,16 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
                      color = scenario_name)) +
       geom_pointrange() +
       scale_y_date("Date of peak hospital occupancy",
-                   date_breaks = "2 months",
+                   date_breaks = "1 months",
                    date_labels = "%b",
-                   limits = c(start_date, end_date)) +
+                   # limits = c(as.Date(start_date), as.Date(end_date))
+                   ) +
       xlab("County") +
       scale_color_manual("Scenario",
                          labels = scenario_labels,
                          values = scenario_cols) +
       theme_bw() +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1))  +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "bottom")  +
       coord_flip()
   }
 
@@ -484,6 +501,140 @@ plot_county_attack_rate_map <- function (inf_cty_totals,
 
 }
 
+##'
+##' Plot modeling assumption parameter distributions
+##'
+##' @param name parameter name
+##' @param config config file
+##' @return plot of distribution of peak timing across simulations by county
+##'
+##' @export
+##'
+plot_model_parameter_distributions <- function(name, config){
+  dist_plot_config <- config$report$plot_settings$parameters_to_display
+  local_config <- dist_plot_config[[name]]
+  value <- config[[local_config$type]][['parameters']][[name]]
+  if((length(value) > 1) & ("distribution" %in% names(value))){
+    if(value$distribution == 'uniform' ){
+      value <- runif(1e5,covidcommon::as_evaled_expression(value$low) , covidcommon::as_evaled_expression(value$high))
+    }
+  } else {
+    value <- covidcommon::as_evaled_expression(value)
+  }
+  if('transform' %in% names(dist_plot_config[[name]]) ){
+    if(dist_plot_config[[name]][['transform']] == 'invert'){
+      value = 1 / value
+    }
+  }
+  rval <- NaN
+  if(local_config$distribution == "lnormal"){
+    rval <- (rlnorm(1e5,meanlog= value[1], sdlog = value[2]))
+  }
+  if(local_config$distribution == "exp"){
+    rval <- rexp(1e5,rate=value)
+  }
+  if(local_config$distribution == "gamma"){
+    all_compartments <<- unique(report.generation::load_scenario_sims_filtered('mid-west-coast-AZ-NV_CaliforniaMild/',pre_process=function(x){return(x[x$time==x$time[1], ])})$comp)
+    number_compartments <<- sum(grepl("I[[:digit:]]+",all_compartments))
+    if(length(value)==1){
+      value[2] <- 1/value[1]
+    }
+    rval <- rgamma(1e5,shape=value/number_compartments,scale=number_compartments)
+  }
+  if('xlim' %in% names(local_config)){
+    plt <- plot(density(rval),main = local_config$formal_name, xlab = local_config$xlab, bty='n', xlim=as.numeric(local_config$xlim))
+  } else {
+    plt <- plot(density(rval),main = local_config$formal_name, xlab = local_config$xlab, bty='n')
+  }
+  return(plt)
+}
+
+
+##'
+##' Make figure captions
+##'
+##' @param scenario scenario name from config
+##' @param scenario_nums
+##' @param interv_start_date intervention start date
+##' @param interv_end_date intervention end date
+##' @param sim_start_date sim start date
+##' @param sim_end_date sim end date
+##' @param location_name report location name
+##' @param figure_num figure number
+##'
+##' @return plot of distribution of peak timing across simulations by county
+##'
+##' @export
+##'
+make_fig_captions <- function(scenario,
+                           scenario_nums = length(scenario_labels),
+                           interv_start_date = interv_date_start,
+                           interv_end_date = interv_date_end,
+                           sim_start_date = sim_date_start,
+                           sim_end_date = sim_date_end,
+                           location_name = report_location_name,
+                           figure_num = 1){
+  
+  
+  start.Int = format(as.Date(interv_start_date), "%b %d")  # intervention start date
+  end.Int = format(as.Date(interv_end_date), "%b %d")      # intervention end date
+  start.Obs = format(as.Date(sim_start_date), "%b %d")  # simulation observation start date
+  end.Obs = format(as.Date(sim_end_date), "%b %d")      # simulation observatoin end date
+  
+  ## Caption for daily hospital occupancy
+  if (scenario == "ts_hosp_state_sample"){
+    
+    return(paste("Figure", figure_num, "**Daily hospital occupancy** for 15 random example simulations (light lines) for", scenario_nums,
+                 " planning scenarios of SARS-CoV-2 spread in", location_name," with 1% IFR assumptions. Interventions were applied from", 
+                 start.Int," to", end.Int," (grey box).*"))
+    
+  }
+  
+  ## Caption for daily incident infections
+  if (scenario == "ts_incid_inf_state_sample"){
+    caption = paste("Figure", figure_num, "**Daily incident infections** for 15 random example simulations (light lines) for", scenario_nums,
+                    " planning scenarios of SARS-CoV-2 spread in", location_name," with 1% IFR assumptions. Interventions were applied from", 
+                    start.Int," to", end.Int," (grey box).*")
+    return(caption)
+    
+  }
+  
+  ## Caption for daily incident deaths
+  if (scenario == "ts_incid_death_state_sample_allPdeath"){
+    caption = paste("Figure", figure_num, "**Daily incident deaths** for 15 random example simulations (light lines) for", scenario_nums,
+                    " planning scenarios of SARS-CoV-2 spread in", location_name," with 1% IFR assumptions. Interventions were applied from", 
+                    start.Int," to", end.Int," (grey box).*")
+    return(caption)
+    
+  }
+  
+  ## Caption for distribution of simulation results for the cumulative number of COVID-19 hospitalizations
+  if (scenario == "hist_incidHosp_state"){
+    caption = paste("Figure", figure_num, "Distribution of simulation results for the cumulative number of COVID-19 hospitalizations from", 
+                    start.Obs, "through", end.Obs, "for", scenario_nums," scenarios with 1% IFR assumptions.*")
+    
+    return(caption)
+  }
+
+  ## Caption for distribution of simulation results for the cumulative number of COVID-19 hospitalizations
+  if (scenario == "line_hospPeak_time_county"){
+    caption = paste("Figure", figure_num, "Distribution of peak hospital occupancy from", 
+                    start.Obs, "through", end.Obs, "for", scenario_nums," scenarios with 1% IFR assumptions.*")
+    
+    return(caption)
+  }
+
+   ## Caption for county-level cumulative attack rates
+  if (scenario == "county_attack_rate_map"){
+    caption = paste("Figure", figure_num, "County-level cumulative attack rates for", scenario_nums," scenarios.*")
+    
+    return(caption)
+  }
+
+
+} 
+
+
 
 ##'
 ##' Make statewide table of infections, hosp, ICU, deaths for given scenario
@@ -491,16 +642,18 @@ plot_county_attack_rate_map <- function (inf_cty_totals,
 ##' @param current_scenario text string of scenario label for which to build table
 ##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
 ##' @param table_dates formatted table_dates object
-##' @param params parameter object with table_dates, table_date_labels, pdeath_labels, pdeath_filecode
+##' @param pdeath_labels pdeath formatted labels
+##' @param pdeath_filecode pdeath file column codes
 ##'
-##' @return plot of distribution of peak timing across simulations by county
+##' @return state scenario table
 ##'
 ##' @export
 ##'
 make_scn_state_table <- function(current_scenario,
                                  hosp_state_totals,
                                  table_dates,
-                                 params){
+                                 pdeath_labels,
+                                 pdeath_filecode){
 
 tmp <- data.frame(name=c("Infections",
                          "Hospitalizations\n  total", "", "",
@@ -511,6 +664,7 @@ tmp <- data.frame(name=c("Infections",
                          "  daily peak capacity", "", "",
                          "Deaths\n  total", "", ""))
 tmp$name <- as.character(tmp$name)
+table_dates <- as.Date(table_dates)
 
 for(i in 1:length(table_dates)){
   xx <- hosp_state_totals %>%
@@ -555,11 +709,11 @@ for(i in 1:length(table_dates)){
       nCurrICU_lo = quantile(maxICUCap, 0.25),
       nCurrICU_hi = quantile(maxICUCap, 0.75)) %>%
     ungroup() %>%
-    mutate(pdeath = params$pdeath_labels[match(pdeath, params$pdeath_filecode)])
+    mutate(pdeath = pdeath_labels[match(pdeath, pdeath_filecode)])
 
 
   tmp <- bind_cols(tmp,
-                   xx %>% filter(pdeath==params$pdeath_labels[1]) %>%
+                   xx %>% filter(pdeath==pdeath_labels[1]) %>%
                      mutate(ci = make_CI(nIncidInf_lo, nIncidInf_hi),
                             est = conv_round(nIncidInf_final),
                             lvl = paste0("total inc infections")) %>%
@@ -606,9 +760,9 @@ for(i in 1:length(table_dates)){
 tlabels <- c(" ", "IFR")
 nlabels <- c("name", "pdeath", "est", "ci")
 
-for(i in 1:length(params$table_date_labels)){
+for(i in 1:length(table_dates)){
   tlabels <- c(tlabels,
-               paste0(params$table_date_labels[i], "\nmean"),
+               paste0(print_pretty_date_short()(table_dates[i]), "\nmean"),
                "\nIQR")
   if(i>1){nlabels <- c(nlabels, paste0("est", i-1), paste0("ci", i-1))}
 }
@@ -626,21 +780,21 @@ flextable(tmp[,nlabels]) %>%
 ##'
 ##' Make caption for statewide table of infections, hosp, ICU, deaths for given scenario
 ##'
-##' @param table_date_labels
-##' @param table_num
 ##' @param current_scenario text string of scenario label for which to build table
+##' @param table_dates display dates for table
+##' @param table_num table number
 ##'
 ##' @return plot of distribution of peak timing across simulations by county
 ##'
 ##' @export
 ##'
 make_scn_state_table_cap <- function(current_scenario,
-                                     table_date_labels,
+                                     table_dates,
                                      table_num = ""){
 
   to_print <- paste0("Table ", table_num,
                      "Number of infections, hospitalizations, and deaths due to COVID-19 estimated to occur cumulatively by",
-                     table_date_labels,
+                     print_pretty_date_short()(table_dates),
                      "under multiple estimates of the infection fatality rate (IFR) and moderate to high transmission of SARS-CoV-2 under",
                      current_scenario,
                      "scenario of transmission")
