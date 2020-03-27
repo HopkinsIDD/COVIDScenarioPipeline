@@ -501,6 +501,86 @@ plot_county_attack_rate_map <- function (inf_cty_totals,
 
 }
 
+
+##'
+##' Plot figure showing median and IQR time series for the state for one scenario
+##'
+##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
+##' @param geodata geodata object from load_config
+##' @param pdeath_level level of IFR (string: high/med/low) for filtering hospitalization data -- choose 1
+##' @param scenario_label which scenario name from config
+##' @param scenario_col which scenario color from config
+##' @param sim_start_date simulation start date as character string "2020-01-01"
+##' @param sim_end_date simulation end date as character string
+##' @param plot_intervention logical indicating whether to plot grey box over a single intervention period -- will need to adapt if we want to show multiple intervention periods
+##' @param interv_start_date intervention start date as character string
+##' @param interv_end_date intervention end date as character string
+##'
+##' @return plot state time series median and IQR
+##'
+##' @export
+##'
+plot_ts_incid_ar_state <- function (hosp_state_totals,
+                                    geodata,
+                                    pop_name,
+                                    pdeath_level = "high", ## doesn't really matter since data should be the same for infections
+                                    scenario_label,
+                                    scenario_col,
+                                    sim_start_date,
+                                    sim_end_date,
+                                    plot_intervention = FALSE, ## may not want to plot if it is too complicated
+                                    interv_start_date = NA,
+                                    interv_end_date = NA) {
+
+  geopop <- geodata %>% 
+    dplyr::filter(include_in_report) %>%
+    dplyr::select(!! pop_name) %>% 
+    unlist %>% unname
+
+  ##TODO: Make this so each scenario does not use the same sims...though should not matter.
+  to_plt <- hosp_state_totals %>%
+    dplyr::filter(pdeath==pdeath_level) %>%
+    dplyr::mutate(scenario_name = factor(scenario_name,
+                                         levels = scenario_label,
+                                         labels = scenario_label)) %>%
+    dplyr::filter(scenario_name == scenario_label) %>%
+    dplyr::group_by(time) %>%
+    dplyr::summarise(NincidInf_med = median(NincidInf), NincidInf_mean = mean(NincidInf), NincidInf_lo = quantile(NincidInf, .25), NincidInf_hi = quantile(NincidInf, .75)) %>%
+    dplyr::mutate(pop = sum(geopop)) %>%
+    dplyr::mutate(AR_med = NincidInf_med/pop*100000,
+                  AR_mean = NincidInf_mean/pop*100000,
+                  AR_lo = NincidInf_lo/pop*100000,
+                  AR_hi = NincidInf_hi/pop*100000)
+
+  rc <- ggplot(data=to_plt, aes(x = time)) +
+    geom_pointrange(aes(y = AR_med, ymin = AR_lo, ymax = AR_hi), colour = scenario_col) +
+    scale_y_continuous("Infections per 100K", labels = scales::comma) +
+    scale_x_date(date_breaks = "1 month",
+                 date_labels = "%b",
+                 limits = c(lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date))) +
+    theme_minimal() +
+    theme(axis.title.x =  element_blank(),
+          legend.position = "bottom",
+          legend.title = element_blank()) 
+
+
+  if(plot_intervention){
+    interv_dates <- data.frame(xmin = lubridate::ymd(interv_start_date),
+                               xmax = lubridate::ymd(interv_end_date),
+                               ymin = 0,
+                               ymax = 1.05*max(to_plt$AR_hi))
+
+    rc <- rc +
+      geom_rect(data = interv_dates, inherit.aes = FALSE,
+                aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+                color = "grey", fill = "grey", alpha = 0.33)
+  }
+
+  return(rc)
+
+}
+
+
 ##'
 ##' Plot modeling assumption parameter distributions
 ##'
