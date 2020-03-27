@@ -368,13 +368,13 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
 ##'
 plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
                                             geodata,
-                                            pdeath_level = c("high", "med", "low"),
+                                            pdeath_level = "high",
                                             scenario = c("KC", "WH", "None"),
                                             scenario_labels,
                                             scenario_cols,
                                             start_date,
                                             end_date) {
-  pdeath_level <- match.arg(pdeath_level)
+  # pdeath_level <- match.arg(pdeath_level)
   start_date <- lubridate::ymd(start_date)
   end_date <- lubridate::ymd(end_date)
 
@@ -395,7 +395,7 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
 
   if(length(scenario)==1){
     rc <- ggplot(data=to_plt,
-                 aes(x = reorder(county, -as.numeric(mean_pkTime)),
+                 aes(x = reorder(countyname, -as.numeric(mean_pkTime)),
                      y = mean_pkTime, ymin = low_pkTime, ymax = hi_pkTime)) +
       geom_pointrange() +
       scale_y_date("Date of peak hospital occupancy",
@@ -408,7 +408,7 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
       coord_flip()
   } else{
     rc <- ggplot(data=to_plt,
-                 aes(x = reorder(county, -as.numeric(mean_pkTime)),
+                 aes(x = reorder(countyname, -as.numeric(mean_pkTime)),
                      y = mean_pkTime, ymin = low_pkTime, ymax = hi_pkTime,
                      color = scenario_name)) +
       geom_pointrange() +
@@ -447,10 +447,10 @@ plot_county_attack_rate_map <- function (inf_cty_totals,
                                          geodata,
                                          shp,
                                          # pdeath_level = c("high", "med", "low"),
-                                         scenario = c("KC", "WH", "None"),
+                                         scenario,
                                          display_date) {
   # pdeath_level <- match.arg(pdeath_level)
-  scenario <- match.arg(scenario)
+  # scenario <- match.arg(scenario)
   display_date <- as.Date(display_date)
 
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
@@ -464,7 +464,7 @@ plot_county_attack_rate_map <- function (inf_cty_totals,
     dplyr::summarise(attack_rate=mean(Nincid/pop2010)) %>%
     ungroup
 
-  plot_shp <- left_join(shp, to_plt, by=c("GEOID"="geoid"))
+  plot_shp <- left_join(shp, to_plt, by="geoid")
 
     rc <- ggplot(plot_shp) +
       geom_sf(aes(fill=attack_rate)) +
