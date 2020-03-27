@@ -10,9 +10,8 @@ if(! LOADED_CONFIG){
 ## Code loads the state geodata if it has not yet been loaded
 if(!LOADED_GEOIDS){
   geodata <- read.csv(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
-  geodata$geoid <- as.character(geodata$geoid)
+  geodata$geoid <- ifelse(nchar(geodata$geoid)==4, paste0("0", geodata$geoid), as.character(geodata$geoid))
   included_geoids <- geodata[["geoid"]][geodata[[config$spatial_setup$include_in_report]]]
-  # populations <- geodata[[config$spatial_setup$popnodes]]
   LOADED_GEOIDS <- TRUE
 }
 ```
