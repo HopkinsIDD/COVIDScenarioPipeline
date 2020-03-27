@@ -35,6 +35,7 @@ end_date = lubridate::ymd(config$hospitalization$parameters$end)
 
 # set death + hospitalization parameters
 p_death <- as_evaled_expression(config$hospitalization$parameters$p_death)
+names(p_death) = config$hospitalization$parameters$p_death_names
 p_death_rate <- as_evaled_expression(config$hospitalization$parameters$p_death_rate)
 p_ICU <- as_evaled_expression(config$hospitalization$parameters$p_ICU)
 p_vent <- as_evaled_expression(config$hospitalization$parameters$p_vent)
@@ -42,9 +43,13 @@ p_vent <- as_evaled_expression(config$hospitalization$parameters$p_vent)
 data_filename <- paste0("model_output/",config$spatial_setup$setup_name,"_",opt$s)
 # config$hospitalization$paths$output_path
 cmd <- opt$d
-ncore = opt$j
+ncore <- opt$j
 
-names(p_death) = c('low','med','high')
+# Verify that the cmd maps to a known p_death value
+if (is.na(p_death[cmd]) || is.null(p_death[cmd]) || p_death[cmd] == 0) {
+  message(paste("Invalid cmd argument:", cmd, "did not match any of the named args in", p_death))
+  quit("yes", status=1)
+}
 
 county_dat <- read.csv(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
 county_dat$geoid <- as.character(county_dat$geoid)
