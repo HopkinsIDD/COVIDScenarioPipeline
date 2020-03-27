@@ -11,6 +11,7 @@ if (!LOADED_INF_CTY_TOTALS) {
   inf_post_process <- function(x) {
     x %>% 
       ungroup %>%
+      dplyr::mutate(geoid=ifelse(nchar(geoid)==4, paste0("0",geoid),geoid)) %>% 
       dplyr::filter(!is.na(time), geoid %in% included_geoids)
   }
   
