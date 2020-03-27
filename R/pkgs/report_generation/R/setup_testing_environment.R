@@ -1,5 +1,5 @@
 #' @export
-setup_testing_environment <- function(cf = "config_local.yml"){
+setup_testing_environment <- function(cf = "config.yml"){
   params = list(config_file = cf)
   library(tidyverse)
   library(covidcommon)
@@ -21,15 +21,15 @@ setup_testing_environment <- function(cf = "config_local.yml"){
       stop("A document parameter `config_file` is required to load the config file")
     }
     config <- covidcommon:::load_config(params$config_file)
-    LOADED_CONFIG <- TRUE
+    LOADED_CONFIG <<- TRUE
   }
 
   ## Code loads the state geodata if it has not yet been loaded
   if(!LOADED_GEOIDS){
-    geodata <- read.csv(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
-    geodata$geoid <- ifelse(nchar(geodata$geoid)==4, paste0("0", geodata$geoid), as.character(geodata$geoid))
-    included_geoids <- geodata[["geoid"]][geodata[[config$spatial_setup$include_in_report]]]
-    LOADED_GEOIDS <- TRUE
+    geodata <<- read.csv(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
+    geodata$geoid <<- ifelse(nchar(geodata$geoid)==4, paste0("0", geodata$geoid), as.character(geodata$geoid))
+    included_geoids <<- geodata[["geoid"]][geodata[[config$spatial_setup$include_in_report]]]
+    LOADED_GEOIDS <<- TRUE
   }
   
 
@@ -46,11 +46,11 @@ setup_testing_environment <- function(cf = "config_local.yml"){
       }
 
       scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
-      hosp_cty_peaks <- NULL
+      hosp_cty_peaks <<- NULL
       
       for (i in 1:length(scn_dirs)) {
           for (pdeath in config$hospitalization$parameters$p_death_names) {
-              hosp_cty_peaks <- dplyr::bind_rows(hosp_cty_peaks, load_hosp_sims_filtered(scn_dirs[i],
+              hosp_cty_peaks <<- dplyr::bind_rows(hosp_cty_peaks, load_hosp_sims_filtered(scn_dirs[i],
                                             name_filter = pdeath,
                                             post_process = hosp_post_process) %>% 
                   mutate(scenario_num=i, scenario_name=config$report$formatting$scenario_labels[i], pdeath=pdeath))
@@ -58,7 +58,7 @@ setup_testing_environment <- function(cf = "config_local.yml"){
       }
       
       
-      LOADED_HOSP_CTY_PEAKS <- TRUE 
+      LOADED_HOSP_CTY_PEAKS <<- TRUE 
   }
 
 
@@ -80,12 +80,12 @@ setup_testing_environment <- function(cf = "config_local.yml"){
         
       }
 
-      scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
-      hosp_cty_totals <- NULL
+      scn_dirs <<- paste(config$name,config$interventions$scenarios,sep='_')
+      hosp_cty_totals <<- NULL
       
       for (i in 1:length(scn_dirs)) {
           for (pdeath in config$hospitalization$parameters$p_death_names) {
-              hosp_cty_totals <- dplyr::bind_rows(hosp_cty_totals, load_hosp_sims_filtered(scn_dirs[i],
+              hosp_cty_totals <<- dplyr::bind_rows(hosp_cty_totals, load_hosp_sims_filtered(scn_dirs[i],
                                             name_filter = pdeath,
                                             post_process = hosp_post_process) %>% 
                   mutate(scenario_num=i, scenario_name=config$report$formatting$scenario_labels[i], pdeath=pdeath))
@@ -93,7 +93,7 @@ setup_testing_environment <- function(cf = "config_local.yml"){
       }
       
       
-      LOADED_HOSP_CTY_TOTALS <- TRUE
+      LOADED_HOSP_CTY_TOTALS <<- TRUE
   }
   
 
@@ -114,12 +114,12 @@ setup_testing_environment <- function(cf = "config_local.yml"){
               ungroup()
       }
 
-      scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
-      hosp_state_totals <- NULL
+      scn_dirs <<- paste(config$name,config$interventions$scenarios,sep='_')
+      hosp_state_totals <<- NULL
       
       for (i in 1:length(scn_dirs)) {
           for (pdeath in config$hospitalization$parameters$p_death_names) {
-              hosp_state_totals <- dplyr::bind_rows(hosp_state_totals, load_hosp_sims_filtered(scn_dirs[i],
+              hosp_state_totals <<- dplyr::bind_rows(hosp_state_totals, load_hosp_sims_filtered(scn_dirs[i],
                                             name_filter = pdeath,
                                             post_process = hosp_post_process) %>% 
                   mutate(scenario_num = i, scenario_name = config$report$formatting$scenario_labels[i], pdeath=pdeath)) 
@@ -152,11 +152,11 @@ setup_testing_environment <- function(cf = "config_local.yml"){
         ungroup
     }
     
-    scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
-    inf_cty_peaks <- NULL
+    scn_dirs <<- paste(config$name,config$interventions$scenarios,sep='_')
+    inf_cty_peaks <<- NULL
     
     for (i in 1:length(scn_dirs)) {
-        inf_cty_peaks <- dplyr::bind_rows(inf_cty_peaks, load_scenario_sims_filtered(scn_dirs[i],
+        inf_cty_peaks <<- dplyr::bind_rows(inf_cty_peaks, load_scenario_sims_filtered(scn_dirs[i],
                                                                                     pre_process = inf_pre_process,
                                                                                     post_process = inf_post_process) %>% 
                   mutate(scenario_num=i,
@@ -165,7 +165,7 @@ setup_testing_environment <- function(cf = "config_local.yml"){
     }
     
     
-    LOADED_INF_CTY_PEAKS <- TRUE 
+    LOADED_INF_CTY_PEAKS <<- TRUE 
   }
 
 
@@ -185,11 +185,11 @@ setup_testing_environment <- function(cf = "config_local.yml"){
         dplyr::filter(!is.na(time), geoid %in% included_geoids)
     }
     
-    scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
-    inf_cty_totals <- NULL
+    scn_dirs <<- paste(config$name,config$interventions$scenarios,sep='_')
+    inf_cty_totals <<- NULL
     
     for (i in 1:length(scn_dirs)) {
-        inf_cty_totals <- inf_cty_totals %>% 
+        inf_cty_totals <<- inf_cty_totals %>% 
           dplyr::bind_rows(load_scenario_sims_filtered(scn_dirs[i],
                                                        pre_process = inf_pre_process,
                                                        post_process = inf_post_process) %>% 
@@ -201,21 +201,21 @@ setup_testing_environment <- function(cf = "config_local.yml"){
           )
     }
     
-    LOADED_INF_CTY_TOTALS <- TRUE 
+    LOADED_INF_CTY_TOTALS <<- TRUE 
   }
 
   if (!LOADED_CONFIG){stop("This chunk requires loading the config")}
 
   if (!LOADED_SHAPEFILES | !LOADED_POPULATION){
-    shp <- suppressMessages(sf::st_read(paste(config$spatial_setup$base_path,config$spatial_setup$shapefile_name,sep='/'), quiet=TRUE) %>%
+    shp <<- suppressMessages(sf::st_read(paste(config$spatial_setup$base_path,config$spatial_setup$shapefile_name,sep='/'), quiet=TRUE) %>%
                             dplyr::rename(geoid = GEOID, countyname = NAME))
     shp <- shp[shp[["geoid"]] %in% included_geoids,]
-    LOADED_SHAPEFILES <- TRUE
+    LOADED_SHAPEFILES <<- TRUE
 
-    cty_names <- shp %>%
+    cty_names <<- shp %>%
       sf::st_drop_geometry() %>%
       dplyr::select(geoid, countyname) 
-    LOADED_POPULATION <- TRUE
+    LOADED_POPULATION <<- TRUE
   }
 
 }
