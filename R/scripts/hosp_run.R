@@ -35,7 +35,7 @@ end_date = lubridate::ymd(config$hospitalization$parameters$end)
 
 # set death + hospitalization parameters
 p_death <- as_evaled_expression(config$hospitalization$parameters$p_death)
-names(p_death) = as_evaled_expression(config$hospitalization$parameters$p_death_names)
+names(p_death) = config$hospitalization$parameters$p_death_names
 p_death_rate <- as_evaled_expression(config$hospitalization$parameters$p_death_rate)
 p_ICU <- as_evaled_expression(config$hospitalization$parameters$p_ICU)
 p_vent <- as_evaled_expression(config$hospitalization$parameters$p_vent)
@@ -43,7 +43,7 @@ p_vent <- as_evaled_expression(config$hospitalization$parameters$p_vent)
 data_filename <- paste0("model_output/",config$spatial_setup$setup_name,"_",opt$s)
 # config$hospitalization$paths$output_path
 cmd <- opt$d
-ncore <_ opt$j
+ncore <- opt$j
 
 # Verify that the cmd maps to a known p_death value
 if (is.na(p_death[cmd]) || is.null(p_death[cmd]) || p_death[cmd] == 0) {
