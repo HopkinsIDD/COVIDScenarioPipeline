@@ -12,6 +12,7 @@ if (!LOADED_INF_CTY_PEAKS) {
     x %>% 
       ungroup %>%
       dplyr::filter(!is.na(time)) %>%
+      dplyr::mutate(geoid=ifelse(nchar(geoid)==4, paste0("0",geoid),geoid)) %>% 
       dplyr::filter(geoid %in% included_geoids) %>%
       group_by(geoid) %>%
       dplyr::slice(which.max(N)) %>%

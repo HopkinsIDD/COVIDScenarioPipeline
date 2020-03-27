@@ -367,7 +367,7 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
 ##' @export
 ##'
 plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
-                                            cty_names,
+                                            geodata,
                                             pdeath_level = c("high", "med", "low"),
                                             scenario = c("KC", "WH", "None"),
                                             scenario_labels,
@@ -391,7 +391,7 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
     dplyr::mutate(scenario_name = factor(scenario_name,
                                          levels = scenario_labels,
                                          labels = scenario_labels)) %>%
-    dplyr::left_join(cty_names, by = c("geoid"))
+    dplyr::left_join(geodata, by = c("geoid"))
 
   if(length(scenario)==1){
     rc <- ggplot(data=to_plt,
@@ -444,7 +444,7 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
 ##' @export
 ##'
 plot_county_attack_rate_map <- function (inf_cty_totals,
-                                         cty_names,
+                                         geodata,
                                          shp,
                                          # pdeath_level = c("high", "med", "low"),
                                          scenario = c("KC", "WH", "None"),
@@ -458,10 +458,10 @@ plot_county_attack_rate_map <- function (inf_cty_totals,
     dplyr::filter(scenario_name == scenario,
                   time == display_date) %>%
     dplyr::mutate(geoid = ifelse(nchar(geoid)==4, paste0("0",geoid),geoid)) %>%
-    left_join(cty_names) %>%
+    left_join(geodata) %>%
     # mutate(attack_rate=Nincid/population)
     group_by(geoid) %>%
-    dplyr::summarise(attack_rate=mean(Nincid/population)) %>%
+    dplyr::summarise(attack_rate=mean(Nincid/pop2010)) %>%
     ungroup
 
   plot_shp <- left_join(shp, to_plt, by=c("GEOID"="geoid"))
