@@ -219,5 +219,3 @@ setup_testing_environment <- function(cf = "config.yml"){
   }
 
 }
-
-
