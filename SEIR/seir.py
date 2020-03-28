@@ -2,6 +2,7 @@ import itertools
 import time
 import uuid
 
+from numba import jit
 import numpy as np
 import pandas as pd
 import scipy
@@ -78,6 +79,8 @@ def run_parallel(s, *, n_jobs=1):
 """)
 
 
+#@jit(float64[:,:,:](float64[:,:], float64[:], int64), nopython=True)
+@jit(nopython=True)
 def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes, mobility,
                   dynfilter, importation):
     """
@@ -100,16 +103,18 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes, mobility,
 
     p_infect = 1 - np.exp(-dt * p_vec[1][0][0])
     p_recover = 1 - np.exp(-dt * p_vec[2][0][0])
-    mobility_probs = 1.0 - np.exp(-dt * mobility.data / popnodes[mobility.row])
 
     for it, t in enumerate(t_inter):
         if (it % int(1 / dt) == 0):
             y[E] = y[E] + importation[int(t)]
-        for (ori, dest, prob) in zip(mobility.row, mobility.col, mobility_probs):
-            for c in range(ncomp - 1):
-                mv[c] = np.random.binomial(y[c, ori], prob)
-            y[:-1, dest] += mv
-            y[:-1, ori] -= mv
+        for ori in range(nnodes):
+            for dest in range(nnodes):
+                for c in range(ncomp - 1):
+                    mv[c] = np.random.binomial(
+                        y[c, ori],
+                        1 - np.exp(-dt * mobility[ori, dest] / popnodes[ori]))
+                y[:-1, dest] += mv
+                y[:-1, ori] -= mv
 
         p_expose = 1 - np.exp(-dt * p_vec[0][it] *
                               (y[I1] + y[I2] + y[I3]) / popnodes)  # vector
