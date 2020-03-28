@@ -37,12 +37,13 @@ library(report.generation)
 ```
 
 ```{r}
+reportStateUSPS <- "[STATE POSTAL CODE  HERE]"
 
 ## Block loads the config file and geodata
 config <- covidcommon:::load_config(params$config_file)
 geodata <- read.csv(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
 geodata$geoid <- ifelse(nchar(geodata$geoid)==4, paste0("0", geodata$geoid), as.character(geodata$geoid))
-included_geoids <- geodata[["geoid"]][geodata[[config$spatial_setup$include_in_report]]]
+included_geoids <- (geodata %>% filter(stateUSPS==reportStateUSPS))$geoid
 
 ```
 
@@ -52,7 +53,21 @@ included_geoids <- geodata[["geoid"]][geodata[[config$spatial_setup$include_in_r
 <!-- Default figure is the  -->
 
 
-```{r load-hosp-state-totals, child=reference_chunk("load_hosp_state_totals.Rmd")}
+```{r}
+###Load state totalsk for the hospital.
+scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
+
+state_hosp_totals <- list()
+
+for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
+    state_hosp_totals <- load_hosp_geocombined_totals(scn_dirs,
+                                               config$report$formatting$scenario_labels,
+                                               name_filter=,
+                                               included_geoids=included_geoids) %>%
+        mutate(pdeath=config$hospitalization$parameters$p_death[i])
+}
+
+state_hosp_totals <- dplyr::bind_rows(state_hosp_totals)
 ```
 
 <!-- ```{r load-inf-cty-peaks, child=reference_chunk("load_inf_county_peaks.Rmd")} -->
