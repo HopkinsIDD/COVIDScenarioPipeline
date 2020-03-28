@@ -47,25 +47,22 @@ hosp_load_scenario_sim <- function(scenario_dir,
 ##' @param p_vent probability of needing a ventilator among ICU patients
 ##' @param data_filename Path to the directory that contains the CSV output of the simulation model
 ##' @param scenario_name The name of the scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
-##' @param target_geo_ids The subset of geo ids from the simulation model that we want to analyze here
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_ICU_pars parameters for time from hospitalization to ICU
 ##' @param time_vent_pars parameters for time from ICU to time on ventilator
 ##' @param time_death_pars parameters for time from hospitalization to death distribution
 ##' @param time_disch_pars parameters for time from hospitalization to discharge parameters
 ##' @param time_ICUdur_pars parameetrs for time of ICU duration
-##' @param end_date not totally sure what it means here- jwills
 ##' @param cores The number of CPU cores to run this model on in parallel
 ##' @param root_out_dir Path to the directory to write the outputs of this analysis
 ##'
-build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, scenario_name, target_geo_ids,
+build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, scenario_name,
                                 time_hosp_pars = c(1.23, 0.79), 
                                 time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
                                 time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
                                 time_death_pars = c(log(11.25), log(1.15)), 
                                 time_disch_pars = c(log(11.5), log(1.22)),
                                 time_ICUdur_pars = c(log(17.46), log(4.044)),
-                                end_date = "2020-04-01",
                                 cores=8,
                                 root_out_dir='hospitalization') {
   
@@ -73,13 +70,19 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
   
+  if(n_sim == 0){
+    stop("No simulations selected to run")
+  }
+
   print(paste("Running over",n_sim,"simulations"))
+
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   dat_final <- foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    dat_ <- hosp_load_scenario_sim(data_filename,s,keep_compartments = c("diffI","cumI")) %>%
-    filter(geoid %in% target_geo_ids, time<=end_date, comp == "diffI") %>%
-    mutate(hosp_curr = 0, icu_curr = 0, vent_curr = 0, uid = paste0(geoid, "-",sim_num)) %>%
-    rename(incidI = N)
+  # for(s in seq_len(n_sim)){
+    dat_ <- hosp_load_scenario_sim(data_filename,s,keep_compartments = c("diffI","cumI"))
+    dat_ <- dat_ %>% dplyr::filter(comp == "diffI") 
+    dat_ <- dat_ %>% mutate(hosp_curr = 0, icu_curr = 0, vent_curr = 0, uid = paste0(geoid, "-",sim_num))
+    dat_ <- dat_ %>% rename(incidI = N)
     dates_ <- as.Date(dat_$time)
     
     # Add time things
@@ -97,6 +100,7 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
     res <- merge(res, data_D %>% mutate(uid = as.character(uid)), all=TRUE)
     res <- merge(dat_ %>% mutate(uid = as.character(uid)), 
                  res %>% mutate(uid = as.character(uid)), all=TRUE)
+    
     
     res <- res %>% 
       replace_na(
@@ -138,6 +142,5 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
     }
     write.csv(res,outfile)
   }
-  print(paste("Parallel portion finished"))
   doParallel::stopImplicitCluster()
 }

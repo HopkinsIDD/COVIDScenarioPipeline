@@ -470,6 +470,7 @@ plot_county_attack_rate_map <- function (inf_cty_totals,
   # scenario <- match.arg(scenario)
   display_date <- as.Date(display_date)
 
+  shp$geoid <- as.character(shp$geoid)
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
   to_plt <- inf_cty_totals %>%
     dplyr::filter(scenario_name == scenario,
