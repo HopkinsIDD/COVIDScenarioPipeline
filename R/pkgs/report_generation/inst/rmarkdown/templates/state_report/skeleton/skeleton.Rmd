@@ -46,6 +46,11 @@ geodata <- read.csv(file.path(config$spatial_setup$base_path, config$spatial_set
 geodata$geoid <- ifelse(nchar(geodata$geoid)==4, paste0("0", geodata$geoid), as.character(geodata$geoid))
 included_geoids <- (geodata %>% filter(stateUSPS==reportStateUSPS))$geoid
 
+## load the shapefile
+shp <- suppressMessages(sf::st_read(paste(config$spatial_setup$base_path,config$spatial_setup$shapefile_name,sep='/'), quiet=TRUE) %>%
+                          dplyr::rename(geoid = GEOID, countyname = NAME))
+shp <- shp[shp[["geoid"]] %in% included_geoids,]
+
 ```
 
 
