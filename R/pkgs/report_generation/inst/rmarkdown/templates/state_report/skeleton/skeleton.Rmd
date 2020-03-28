@@ -63,11 +63,23 @@ for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
     state_hosp_totals <- load_hosp_geocombined_totals(scn_dirs,
                                                config$report$formatting$scenario_labels,
                                                name_filter=,
-                                               included_geoids=included_geoids) %>%
+                                               incl_geoids=included_geoids) %>%
         mutate(pdeath=config$hospitalization$parameters$p_death[i])
 }
 
 state_hosp_totals <- dplyr::bind_rows(state_hosp_totals)
+```
+
+
+```{r}
+###Load cumulative infections on specific dates
+scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
+
+cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
+                           config$report$formatting$display_dates,
+                           config$report$formatting$scenario_labels,
+                           incl_geoids=included_geoids)
+
 ```
 
 <!-- ```{r load-inf-cty-peaks, child=reference_chunk("load_inf_county_peaks.Rmd")} -->
@@ -76,8 +88,7 @@ state_hosp_totals <- dplyr::bind_rows(state_hosp_totals)
 <!-- ```{r load-hosp-cty-peaks, child=reference_chunk("load_hosp_county_peaks.Rmd")} -->
 <!-- ``` -->
 
-<!-- ```{r load-inf-cty-peaks, child=reference_chunk("load_inf_county_totals.Rmd")} -->
-<!-- ``` -->
+
 
 
 <!-- #### load-shapefiles -->

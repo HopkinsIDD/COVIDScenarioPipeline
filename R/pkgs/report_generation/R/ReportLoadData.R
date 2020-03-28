@@ -16,7 +16,7 @@
 ##'          - scenario_name
 ##'
 ##' @export
-load_cum_inf_geounit_dates <- function(scn_dirs=paste(config$name, config$interventions$scenarios, sep = "_"),
+load_cum_inf_geounit_dates <- function(scn_dirs,
                                       config_display_dates=config$report$formatting$display_dates,
                                       config_scenariolabels=config$report$formatting$scenario_labels,
                                       incl_geoids=NULL){
@@ -83,7 +83,7 @@ load_cum_inf_geounit_dates <- function(scn_dirs=paste(config$name, config$interv
 ##'
 ##' @export
 ##'
-load_hosp_geocombined_totals <- function(scn_dirs=paste(config$name, config$interventions$scenarios, sep = "_"),
+load_hosp_geocombined_totals <- function(scn_dirs,
                                          scenario_labels = config$report$formatting$scenario_labels,
                                          name_filter = "",
                                          incl_geoids = NULL) {
@@ -148,7 +148,7 @@ load_hosp_geocombined_totals <- function(scn_dirs=paste(config$name, config$inte
 ##'          - scenario_name
 ##'
 ##' @export 
-load_inf_geounit_peaks <- function(scn_dirs=paste(config$name, config$interventions$scenarios, sep = "_"),
+load_inf_geounit_peaks <- function(scn_dirs,
                                   config_scenariolabels=config$report$formatting$scenario_labels,
                                   incl_geoids=NULL){
 
