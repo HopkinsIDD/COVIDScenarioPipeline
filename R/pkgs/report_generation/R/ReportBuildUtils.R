@@ -635,7 +635,7 @@ plot_model_parameter_distributions <- function(name, config){
 ##' Make figure captions
 ##'
 ##' @param scenario scenario name from config
-##' @param scenario_nums
+##' @param scenario_nums number of scenarios
 ##' @param interv_start_date intervention start date
 ##' @param interv_end_date intervention end date
 ##' @param sim_start_date sim start date
