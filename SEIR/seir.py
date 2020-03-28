@@ -2,7 +2,6 @@ import itertools
 import time
 import uuid
 
-from numba import jit
 import numpy as np
 import pandas as pd
 import scipy
@@ -79,8 +78,6 @@ def run_parallel(s, *, n_jobs=1):
 """)
 
 
-#@jit(float64[:,:,:](float64[:,:], float64[:], int64), nopython=True)
-@jit(nopython=True)
 def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes, mobility,
                   dynfilter, importation):
     """
