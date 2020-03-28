@@ -1,19 +1,25 @@
 
-##' Load cumulative county infections at specific dates
+##' Convenience function to load cumulative geounit infections at specific dates for the given scenarios
 ##'
 ##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
 ##' @param config_display_dates config$report$formatting$display_dates character vector of dates to for which cumulative infections should be extracted
 ##' @param config_scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
-##' @param included_geoids character vector of geoids that are included in the report
+##' @param incl_geoids character vector of geoids that are included in the report
 ##'
 ##' @return a data frame with columns
-##'          [TODO: add columns]
+##'          - time
+##'          - comp
+##'          - geoid
+##'          - N
+##'          - sim_num
+##'          - scenario_num
+##'          - scenario_name
 ##'
 ##' @export
-load_inf_geounit_cum_dates <- function(scn_dirs,
-                                      config_display_dates,
-                                      config_scenariolabels,
-                                      included_geoids=NULL){
+load_cum_inf_geounit_dates <- function(scn_dirs=paste(config$name, config$interventions$scenarios, sep = "_"),
+                                      config_display_dates=config$report$formatting$display_dates,
+                                      config_scenariolabels=config$report$formatting$scenario_labels,
+                                      incl_geoids=NULL){
 
   display_dates <- as.Date(config_display_dates)
   inf_pre_process <- function(x) {
@@ -22,12 +28,12 @@ load_inf_geounit_cum_dates <- function(scn_dirs,
       dplyr::filter(time %in% display_dates)
   }
 
-  if (!is.null(included_geoids)) {
+  if (!is.null(incl_geoids)) {
       inf_post_process <- function(x) {
           x %>%
               ungroup %>%
               dplyr::mutate(geoid=ifelse(nchar(geoid)==4, paste0("0",geoid),geoid)) %>%
-              dplyr::filter(!is.na(time), geoid %in% included_geoids)
+              dplyr::filter(!is.na(time), geoid %in% incl_geoids)
       }
   } else {
       inf_post_process <- function(x) {
@@ -38,19 +44,18 @@ load_inf_geounit_cum_dates <- function(scn_dirs,
       }
   }
 
-  inf_county_cum_dates<- list()
-
+  rc <- list()
   for (i in 1:length(scn_dirs)) {
-      inf_county_cum_dates[[i]] <- load_scenario_sims_filtered(scn_dirs[i],
-                                                               pre_process = inf_pre_process,
-                                                               post_process = inf_post_process) %>%
+      rc[[i]] <- load_scenario_sims_filtered(scn_dirs[i],
+                                             pre_process = inf_pre_process,
+                                             post_process = inf_post_process) %>%
           mutate(scenario_num=i,
                  scenario_name=config_scenariolabels[i]) %>%
           ungroup
 
   }
 
-  return(dplyr::bind_rows(inf_county_cum_dates))
+  return(dplyr::bind_rows(rc))
 
 }
 
@@ -58,7 +63,7 @@ load_inf_geounit_cum_dates <- function(scn_dirs,
 
 
 ##'
-##' Convienence function to allow us to load hospital totals for the state quickly for
+##' Convienence function to allow us to load hospital totals for the combined geounits quickly for
 ##' the given scenarios.
 ##'
 ##' @param scn_dirs the dirctories containing the relevant scenarios
@@ -66,7 +71,7 @@ load_inf_geounit_cum_dates <- function(scn_dirs,
 ##' @param name_filter filename filter
 ##' @param fil
 ##'
-##' @return a data frome with columns:
+##' @return a data frame with columns:
 ##'    - sim_num
 ##'    - NhospCurr number of people in hospital on a day
 ##'    - NICUCurr number of people in ICU on a day
@@ -78,16 +83,16 @@ load_inf_geounit_cum_dates <- function(scn_dirs,
 ##'
 ##' @export
 ##'
-load_hosp_geocombined_totals <- function(scn_dirs,
-                                   scenario_labels = config$report$formatting$scenario_labels,
-                                   name_filter = "",
-                                   included_geoids = NULL) {
+load_hosp_geocombined_totals <- function(scn_dirs=paste(config$name, config$interventions$scenarios, sep = "_"),
+                                         scenario_labels = config$report$formatting$scenario_labels,
+                                         name_filter = "",
+                                         incl_geoids = NULL) {
 
     ##filter to munge the data at the senario level
-    if (!is.null(included_geoids)) {
+    if (!is.null(incl_geoids)) {
          hosp_post_process <- function(x) {
             x %>%
-                dplyr::filter(!is.na(time), geoid %in% included_geoids) %>%
+                dplyr::filter(!is.na(time), geoid %in% incl_geoids) %>%
                 group_by(time, sim_num) %>%
                 dplyr::summarize(NhospCurr = sum(hosp_curr),
                                  NICUCurr = sum(icu_curr),
@@ -124,3 +129,69 @@ load_hosp_geocombined_totals <- function(scn_dirs,
 
     return(dplyr::bind_rows(rc))
 }
+
+
+
+
+##' Convenience function to load peak geounit infections for the given scenarios
+##' 
+##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
+##' @param config_scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
+##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
+##' @return a data frame with columns
+##'          - time
+##'          - comp
+##'          - geoid
+##'          - N
+##'          - sim_num
+##'          - scenario_num
+##'          - scenario_name
+##'
+##' @export 
+load_inf_geounit_peaks <- function(scn_dirs=paste(config$name, config$interventions$scenarios, sep = "_"),
+                                  config_scenariolabels=config$report$formatting$scenario_labels,
+                                  incl_geoids=NULL){
+
+  inf_pre_process <- function(x) {
+      x %>%
+        dplyr::filter(comp == "diffI") 
+    }
+  
+  if (!is.null(incl_geoids)) {
+        inf_post_process <- function(x) {
+          x %>% 
+            ungroup %>%
+            dplyr::mutate(geoid=ifelse(nchar(geoid)==4, paste0("0",geoid),geoid)) %>% 
+            dplyr::filter(!is.na(time), geoid %in% incl_geoids) %>%
+            group_by(geoid) %>%
+            dplyr::slice(which.max(N)) %>%
+            ungroup()
+        } 
+  } else{
+        inf_post_process <- function(x) {
+          x %>% 
+            ungroup %>%
+            dplyr::filter(!is.na(time)) %>%
+            dplyr::mutate(geoid=ifelse(nchar(geoid)==4, paste0("0",geoid),geoid)) %>% 
+            group_by(geoid) %>%
+            dplyr::slice(which.max(N)) %>%
+            ungroup()
+        }
+    
+  }
+    
+  rc <- list()
+  for (i in 1:length(scn_dirs)) {
+      rc[[i]] <- load_scenario_sims_filtered(scn_dirs[i],
+                                            pre_process = inf_pre_process,
+                                            post_process = inf_post_process) %>% 
+                dplyr::mutate(scenario_num=i,
+                              scenario_name=config_scenariolabels[i]) %>%
+                ungroup()
+
+  }
+
+  return(dplyr::bind_rows(rc))
+
+}
+
