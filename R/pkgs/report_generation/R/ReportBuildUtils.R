@@ -87,15 +87,17 @@ make_CI <- function(lo, hi){
 ##' Plot figure showing 15 random sims of hospitalization occupancy
 ##'
 ##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
-##' @param pdeath_level level of IFR (string: high/med/low) for filtering hospitalization data
 ##' @param num_sims the number of simulations to show
+##' @param pdeath_level level of IFR for filtering hospitalization data - TODO: Move our of functions
+##' @param scenario_labels names of the scenarios to include- TODO: give a default
+##' @param scenario_cols colors to plot each scenario in  - TODO: give a default
 ##' @param sim_start_date simulation start date as character string "2020-01-01"
 ##' @param sim_end_date simulation end date as character string
 ##' @param plot_intervention logical indicating whether to plot grey box over a single intervention period -- will need to adapt if we want to show multiple intervention periods
 ##' @param interv_start_date intervention start date as character string
 ##' @param interv_end_date intervention end date as character string
 ##'
-##' @return plot with 15 random simulations of hospital occupancy
+##' @return plot with N random simulations of hospital occupancy
 ##'
 ##' @export
 ##'
@@ -110,7 +112,6 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
                                        interv_start_date = NA,
                                        interv_end_date = NA) {
 
-
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
   to_plt <- hosp_state_totals %>%
     dplyr::filter(pdeath==pdeath_level,
@@ -121,7 +122,7 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
                                          levels = scenario_labels,
                                          labels = scenario_labels),
                   sim_num = factor(sim_num))
-
+  
   rc <- ggplot(data=to_plt,
                aes(x=time, colour = scenario_name,
                    group = interaction(sim_num, scenario_name))) +
@@ -635,7 +636,7 @@ plot_model_parameter_distributions <- function(name, config){
 ##' Make figure captions
 ##'
 ##' @param scenario scenario name from config
-##' @param scenario_nums number of scenarios
+##' @param scenario_nums
 ##' @param interv_start_date intervention start date
 ##' @param interv_end_date intervention end date
 ##' @param sim_start_date sim start date
