@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import datetime
 import os
-import scipy.sparse
 
 from .utils import config
 
@@ -16,7 +15,7 @@ class SpatialSetup:
         self.setup_name = setup_name
         self.folder = folder
         self.data = pd.read_csv(geodata_file)
-        self.mobility = scipy.sparse.coo_matrix(np.loadtxt(mobility_file))
+        self.mobility = np.loadtxt(mobility_file)
         self.popnodes = self.data[popnodes_key].to_numpy()
         self.nnodes = len(self.data)
 
