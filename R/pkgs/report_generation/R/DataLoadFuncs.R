@@ -76,7 +76,6 @@ load_hosp_sims_filtered <- function(scenario_dir,
       uid=col_character(),
       comp=col_character()
     )) %>% 
-      dplyr::mutate(geoid = ifelse(nchar(geoid)==4, paste0("0", geoid), geoid)) %>%
       post_process %>%
       mutate(sim_num = i)
     
