@@ -100,7 +100,7 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes, mobility,
 
     p_infect = 1 - np.exp(-dt * p_vec[1][0][0])
     p_recover = 1 - np.exp(-dt * p_vec[2][0][0])
-    mobility_probs = 1.0 - np.exp(-dt * mobility.data / popnodes[mobiliy.row])
+    mobility_probs = 1.0 - np.exp(-dt * mobility.data / popnodes[mobility.row])
 
     for it, t in enumerate(t_inter):
         if (it % int(1 / dt) == 0):
