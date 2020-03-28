@@ -120,11 +120,12 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes, mobility,
         p_expose = 1 - np.exp(-dt * p_vec[0][it] *
                               (y[I1] + y[I2] + y[I3]) / popnodes)  # vector
 
-        exposeCases = np.random.binomial(y[S], p_expose)
-        incidentCases = np.random.binomial(y[E], p_infect)
-        incident2Cases = np.random.binomial(y[I1], p_recover)
-        incident3Cases = np.random.binomial(y[I2], p_recover)
-        recoveredCases = np.random.binomial(y[I3], p_recover)
+        for i in range(nnodes):
+            exposeCases[i] = np.random.binomial(y[S][i], p_expose[i])
+            incidentCases[i] = np.random.binomial(y[E][i], p_infect)
+            incident2Cases[i] = np.random.binomial(y[I1][i], p_recover)
+            incident3Cases[i] = np.random.binomial(y[I2][i], p_recover)
+            recoveredCases[i] = np.random.binomial(y[I3][i], p_recover)
 
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases
