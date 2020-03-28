@@ -2,9 +2,10 @@
 
 export(conv_round)
 export(list_chunks)
+export(load_cum_inf_geounit_dates)
 export(load_hosp_geocombined_totals)
 export(load_hosp_sims_filtered)
-export(load_inf_geounit_cum_dates)
+export(load_inf_geounit_peaks)
 export(load_scenario_sims_filtered)
 export(make_CI)
 export(make_fig_captions)

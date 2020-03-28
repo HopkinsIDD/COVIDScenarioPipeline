@@ -4,6 +4,7 @@ author: "[AUTHOR NAMES]"
 output:
   html_document:
     df_print: paged
+    fig_caption: true
 bibliography: ReportReferences.bib
 params:
   config_file: "config.yml"
@@ -36,7 +37,7 @@ library(report.generation)
 
 ```
 
-```{r}
+```{r  load_config}
 reportStateUSPS <- "[STATE POSTAL CODE  HERE]"
 
 ## Block loads the config file and geodata
@@ -48,12 +49,12 @@ included_geoids <- (geodata %>% filter(stateUSPS==reportStateUSPS))$geoid
 ```
 
 
-[OVERALL SUMMARY FIGS GO HERE]
+[OVERALL SUMMARY TEXT GOES HERE]
 
 <!-- Default figure is the  -->
 
 
-```{r}
+```{r load_hosp_data}
 ###Load state totalsk for the hospital.
 scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 
@@ -69,6 +70,16 @@ for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
 
 state_hosp_totals <- dplyr::bind_rows(state_hosp_totals)
 ```
+```{r summary_fig,  summary_fig, fig.cap="**Fig. 1**:  Peak hospitalizations for 15 realizations from [LIST SCENARIOS AND COLORS]"}
+plot_ts_hosp_state_sample(state_hosp_totals,
+                          scenario_labels = config$report$formatting$scenario_labels,
+                          scenario_cols = config$report$formatting$scenario_colors,
+                          sim_start_date = config$start_date,
+                          sim_end_date = config$end_date,
+                          pdeath_level = 0.01)
+```
+
+
 
 
 ```{r}
@@ -81,6 +92,8 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
                            incl_geoids=included_geoids)
 
 ```
+
+
 
 <!-- ```{r load-inf-cty-peaks, child=reference_chunk("load_inf_county_peaks.Rmd")} -->
 <!-- ``` -->
