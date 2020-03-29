@@ -67,7 +67,7 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
 
 
 ##'
-##' Convienence function to allow us to load hospital totals for the combined geounits quickly for
+##' Convenience function to allow us to load hospital totals for the combined geounits quickly for
 ##' the given scenarios.
 ##'
 ##' @param scn_dirs the dirctories containing the relevant scenarios
@@ -224,6 +224,7 @@ load_inf_geounit_peaks <- function(scn_dirs,
 ##'         - NincidDeath  number of incidence deaths on a day
 ##'         - NincidInf  number of incident infections on a day
 ##'         - NincidICH number of incident ICUs on a day
+##' @export
 ### all of the peak times for each sim and each county so we can make a figure for when things peak
 load_hosp_geounit_peak <- function(
   scn_dirs,
@@ -288,6 +289,7 @@ load_hosp_geounit_peak <- function(
 ##'         - NincidDeath  number of incidence deaths on a day
 ##'         - NincidInf  number of incident infections on a day
 ##'         - NincidICH number of incident ICUs on a day
+##' @export
 ### all of the peak times for each sim and each county so we can make a figure for when things peak
 load_hosp_geounit_threshold <- function(
   scn_dirs,
@@ -346,3 +348,66 @@ load_hosp_geounit_threshold <- function(
                     NincidHosp = incidH) %>%
       return()
 }
+
+
+
+##' Convenience function to load geodata.csv
+##'
+##' @param filename geodata.csv filename
+##' @param geoid_len length of geoid character string
+##' @param geoid_pad what to pad the geoid character string with 
+##' @param to_lower lowercase geoidata column names
+##' 
+##' @return a data frame with columns
+##'         - 
+##' @export
+### all of the peak times for each sim and each county so we can make a figure for when things peak
+load_geodata_file <- function(
+  filename,
+  geoid_len = 0,
+  geoid_pad = "0",
+  to_lower = FALSE
+) {
+  if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
+  geodata <- readr::read_csv(filename)
+  if(!('geoid' %in% names('geodata'))){stop(paste(filename,"does not have a column named geoid"))}
+
+  if(to_lower){
+    names(geodata) <- tolower(names(geodata))
+  }
+
+  if(geoid_len > 0){
+    geodata$geoid <- stringr::str_pad(geodata$geoid,geoid_len, pad = geoid_pad)
+  }
+}
+
+
+
+##' Convenience function to load shapefile
+##'
+##' @param filename shapefile name
+##' @param geoid_len length of geoid character string
+##' @param geoid_pad what to pad the geoid character string with 
+##' @param to_lower lowercase geoidata column names
+##' 
+##' @return a data frame with columns
+##'         - 
+##' @export
+load_shape_file<- function(
+  filename,
+  geoid_len = 0,
+  geoid_pad = "0",
+  to_lower = FALSE
+) {
+  if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
+  shp <- sf::st_read(filename)
+  if(!('geoid' %in% names('shp'))){stop(paste(filename,"does not have a column named geoid"))}
+
+  if(to_lower){
+    names(shp) <- tolower(names(shp))
+  }
+  if(geoid_len > 0){
+    shp$geoid <- stringr::str_pad(shp$geoid,geoid_len, pad = geoid_pad)
+  }
+}
+
