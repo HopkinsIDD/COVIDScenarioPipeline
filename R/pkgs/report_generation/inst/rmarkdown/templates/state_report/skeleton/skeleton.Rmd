@@ -49,7 +49,6 @@ included_geoids <- (geodata %>% filter(stateUSPS==reportStateUSPS))$geoid
 
 ```
 
-
 [OVERALL SUMMARY TEXT GOES HERE]
 
 <!-- Default figure is the  -->
@@ -96,7 +95,30 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
 
 ```
 
+## test this map below after load_shape_file and load_geodata_file are added above
+<!-- ```{r} -->
+<!-- ARmap1 <- plot_geounit_attack_rate_map(cum_inf_dates, -->
+<!--                             geodata, -->
+<!--                             shp, -->
+<!--                             config_scenariolabel = config$report$formatting$scenario_labels[1], -->
+<!--                             display_date = config$report$formatting$display_dates[1], -->
+<!--                             viridis_palette = "plasma") -->
 
+<!-- ARmap2 <- plot_geounit_attack_rate_map(cum_inf_dates, -->
+<!--                             geodata, -->
+<!--                             shp, -->
+<!--                             config_scenariolabel = config$report$formatting$scenario_labels[1], -->
+<!--                             display_date = config$report$formatting$display_dates[2], -->
+<!--                             viridis_palette = "viridis") -->
+
+<!-- ARmap3 <- plot_geounit_attack_rate_map(cum_inf_dates, -->
+<!--                             geodata, -->
+<!--                             shp, -->
+<!--                             config_scenariolabel = config$report$formatting$scenario_labels[1], -->
+<!--                             display_date = config$report$formatting$display_dates[3], -->
+<!--                             viridis_palette = "cividis") -->
+<!-- cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3) -->
+<!-- ``` -->
 
 <!-- ```{r load-inf-cty-peaks, child=reference_chunk("load_inf_county_peaks.Rmd")} -->
 <!-- ``` -->
