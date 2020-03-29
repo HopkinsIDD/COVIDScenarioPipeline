@@ -5,6 +5,7 @@ output:
   html_document:
     df_print: paged
     fig_caption: true
+    theme: journal
 bibliography: ReportReferences.bib
 params:
   config_file: "config.yml"
@@ -43,8 +44,8 @@ reportStateUSPS <- "[STATE POSTAL CODE  HERE]"
 
 ## Block loads the config file and geodata
 config <- covidcommon:::load_config(params$config_file)
-geodata <- read.csv(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
-geodata$geoid <- ifelse(nchar(geodata$geoid)==4, paste0("0", geodata$geoid), as.character(geodata$geoid))
+geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
+                             geoid_len=5)
 included_geoids <- (geodata %>% filter(stateUSPS==reportStateUSPS))$geoid
 
 ```
