@@ -354,7 +354,7 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
                       labels = scenario_labels,
                       aesthetics = c("colour", "fill")) +
     scale_x_continuous(paste("Cumulative hospitalizations by",
-                             print_pretty_date()(summary_date)),
+                             print_pretty_date(summary_date)),
                        labels = scales::comma) +
     ylab("Number of simulations") +
     theme_bw() +
@@ -843,7 +843,7 @@ nlabels <- c("name", "pdeath", "est", "ci")
 
 for(i in 1:length(table_dates)){
   tlabels <- c(tlabels,
-               paste0(print_pretty_date_short()(table_dates[i]), "\nmean"),
+               paste0(print_pretty_date_short(table_dates[i]), "\nmean"),
                "\nIQR")
   if(i>1){nlabels <- c(nlabels, paste0("est", i-1), paste0("ci", i-1))}
 }
@@ -875,7 +875,7 @@ make_scn_state_table_cap <- function(current_scenario,
 
   to_print <- paste0("Table ", table_num,
                      "Number of infections, hospitalizations, and deaths due to COVID-19 estimated to occur cumulatively by",
-                     print_pretty_date_short()(table_dates),
+                     print_pretty_date_short(table_dates),
                      "under multiple estimates of the infection fatality rate (IFR) and moderate to high transmission of SARS-CoV-2 under",
                      current_scenario,
                      "scenario of transmission")
