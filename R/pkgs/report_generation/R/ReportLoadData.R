@@ -295,12 +295,18 @@ load_hosp_geounit_peak <- function(scn_dirs,
 load_hosp_geounit_threshold <- function(
   scn_dirs,
   threshold,
+  variable,
   name_filter = "",
   incl_geoids = NULL,
   scenario_labels = NULL,
   geoid_len = 0,
   padding_char = "0"
 ){
+    if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
+    catch_all_threshold <- Inf
+    if(sum(names(threshold) == "") > 0){
+      catch_all_threshold <- threshold[names(threshold) == ""]
+    }
     if (!is.null(incl_geoids)) {
          hosp_post_process <- function(x) {
             x %>%
@@ -308,8 +314,8 @@ load_hosp_geounit_threshold <- function(
                 group_by(geoid) %>% 
                 group_map(function(.x,.y){
                   .x <- .x %>% arrange(time)
-                  # Take the first element of the arranged data frame that meets the threshold
-                  .x <- .x[which(.x[[names(threshold)]] >= threshold)[1], ]
+                  # Take the first element of the arranged data frame that meets the threshold for that geoid
+                  .x <- .x[which(.x[[variable]] >= threshold[.y$geoid])[1], ]
                 }) %>%
                 do.call(what=dplyr::bind_rows) %>%
                 ungroup()
@@ -322,7 +328,13 @@ load_hosp_geounit_threshold <- function(
                 group_map(function(.x,.y){
                   .x <- .x %>% arrange(time)
                   # Take the first element of the arranged data frame that meets the threshold
-                  .x <- .x[which(.x[[names(threshold)]] >= threshold)[1], ]
+                  if(.y$geoid %in% names(threshold)) {
+                    .x <- .x[which(.x[[variable]] >= threshold[.y$geoid])[1], ]
+                  } else {
+                    .x <- .x[which(.x[[variable]] >= catch_all_threshold)[1], ]
+                  }
+                  .x$geoid <- .y$geoid
+                  return(.x)
                 }, keep = TRUE) %>%
                 do.call(what=dplyr::bind_rows) %>%
                 ungroup()
@@ -357,7 +369,7 @@ load_hosp_geounit_threshold <- function(
 ##' @param filename geodata.csv filename
 ##' @param geoid_len length of geoid character string
 ##' @param geoid_pad what to pad the geoid character string with 
-##' @param to_lower lowercase geoidata column names
+##' @param to_lower whether to make all column names lowercase
 ##' 
 ##' @return a data frame with columns
 ##'         - 
@@ -371,15 +383,16 @@ load_geodata_file <- function(
 ) {
   if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
   geodata <- readr::read_csv(filename)
-  if(!('geoid' %in% names('geodata'))){stop(paste(filename,"does not have a column named geoid"))}
 
   if(to_lower){
     names(geodata) <- tolower(names(geodata))
   }
+  if(!('geoid' %in% names(geodata))){stop(paste(filename,"does not have a column named geoid"))}
 
   if(geoid_len > 0){
     geodata$geoid <- stringr::str_pad(geodata$geoid,geoid_len, pad = geoid_pad)
   }
+  return(geodata)
 }
 
 
@@ -389,7 +402,7 @@ load_geodata_file <- function(
 ##' @param filename shapefile name
 ##' @param geoid_len length of geoid character string
 ##' @param geoid_pad what to pad the geoid character string with 
-##' @param to_lower lowercase geoidata column names
+##' @param to_lower whether to make all column names lowercase
 ##' 
 ##' @return a data frame with columns
 ##'         - 
@@ -402,13 +415,14 @@ load_shape_file<- function(
 ) {
   if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
   shp <- sf::st_read(filename)
-  if(!('geoid' %in% names('shp'))){stop(paste(filename,"does not have a column named geoid"))}
 
   if(to_lower){
     names(shp) <- tolower(names(shp))
   }
+  if(!('geoid' %in% names(shp))){stop(paste(filename,"does not have a column named geoid"))}
   if(geoid_len > 0){
     shp$geoid <- stringr::str_pad(shp$geoid,geoid_len, pad = geoid_pad)
   }
+  return(shp)
 }
 
