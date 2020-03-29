@@ -18,7 +18,6 @@ class SpatialSetup:
         self.mobility = np.loadtxt(mobility_file)
         self.popnodes = self.data[popnodes_key].to_numpy()
         self.nodenames = self.data[nodenames_key].tolist()
-        print(self.nodenames)
         self.nnodes = len(self.data)
 
 
@@ -107,15 +106,15 @@ def seeding_draw(s, uid):
         for  _, row in seeding.iterrows():
             importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = \
                 np.random.poisson(row['amount'])
-                
-    elif (method == 'FolderDraw'): # CURRENTLY UNTESTED
-        folder_path = s.seeding_config["folder_path"]
-        nfile = (uid+1)%len(os.listdir(folder_path))
+
+    elif (method == 'FolderDraw'):
+        folder_path = s.seeding_config["folder_path"].as_str()
+        nfile = uid%len(os.listdir(folder_path)) + 1
         seeding = pd.read_csv(f'{folder_path}importation_{nfile}.csv', 
                               converters={'place': lambda x: str(x)},
                               parse_dates=['date'])
         for  _, row in seeding.iterrows():
-            importation[(row['date'].date()-s.ti).days][int(s.spatset.data[s.spatset.nodenames == row['place']].id)] = row['amount']
+            importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
     else:
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
     return importation
