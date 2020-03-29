@@ -80,6 +80,15 @@ plot_ts_hosp_state_sample(state_hosp_totals,
                           pdeath_level = 0.01)
 ```
 
+```{r}
+## Load peak infections by specific date
+
+inf_geounit_peaks <- load_inf_geounit_peaks_date(scn_dirs,
+                           display_date = config$report$formatting$display_dates[1],
+                           scenariolabels = config$report$formatting$scenario_labels,
+                           incl_geoids = included_geoids,
+                           geoid_len = 5)
+```
 
 ```{r}
 ###Load cumulative infections on specific dates

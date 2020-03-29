@@ -142,10 +142,11 @@ load_hosp_geocombined_totals <- function(scn_dirs,
 
 
 
-##' Convenience function to load peak geounit infections for the given scenarios
+##' Convenience function to load peak geounit infections before a given date for the given scenarios
 ##' 
 ##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
-##' @param config_scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
+##' @param display_date character string for date before which infection peak should be identified
+##' @param scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
 ##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
 ##' @param geoid_len required length of geoid
 ##' @param padding_char padding
@@ -160,15 +161,17 @@ load_hosp_geocombined_totals <- function(scn_dirs,
 ##'          - scenario_name
 ##'
 ##' @export 
-load_inf_geounit_peaks <- function(scn_dirs,
-                                  config_scenariolabels=config$report$formatting$scenario_labels,
-                                  incl_geoids=NULL,
-                                  geoid_len = 0,
-                                  padding_char = "0"){
+load_inf_geounit_peaks_date <- function(scn_dirs,
+                                        display_date=config$end_date,
+                                        scenariolabels=config$report$formatting$scenario_labels,
+                                        incl_geoids=NULL,
+                                        geoid_len = 0,
+                                        padding_char = "0"){
 
+  display_date <- as.Date(display_date)
   inf_pre_process <- function(x) {
       x %>%
-        dplyr::filter(comp == "diffI") 
+        dplyr::filter(comp == "diffI" & time <= display_date) 
     }
   
   if (!is.null(incl_geoids)) {
@@ -200,7 +203,7 @@ load_inf_geounit_peaks <- function(scn_dirs,
                                             geoid_len = geoid_len,
                                             padding_char = padding_char) %>% 
                 dplyr::mutate(scenario_num=i,
-                              scenario_name=config_scenariolabels[i]) %>%
+                              scenario_name=scenariolabels[i]) %>%
                 ungroup()
 
   }
@@ -226,14 +229,12 @@ load_inf_geounit_peaks <- function(scn_dirs,
 ##'         - NincidICH number of incident ICUs on a day
 ##' @export
 ### all of the peak times for each sim and each county so we can make a figure for when things peak
-load_hosp_geounit_peak <- function(
-  scn_dirs,
-  name_filter = "",
-  incl_geoids = NULL,
-  scenario_labels = NULL,
-  geoid_len = 0,
-  padding_char = "0"
-){
+load_hosp_geounit_peak <- function(scn_dirs,
+                                  name_filter = "",
+                                  incl_geoids = NULL,
+                                  scenario_labels = NULL,
+                                  geoid_len = 0,
+                                  padding_char = "0"){
     if (!is.null(incl_geoids)) {
          hosp_post_process <- function(x) {
             x %>%
