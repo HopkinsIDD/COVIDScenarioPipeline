@@ -43,7 +43,6 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
         s = setup.Setup(setup_name=config["name"].get() + "_" + str(scenario),
                         spatial_setup=setup.SpatialSetup(
                             setup_name=spatial_config["setup_name"].get(),
-                            folder=spatial_base_path.as_posix(),
                             geodata_file=spatial_base_path / spatial_config["geodata"].get(),
                             mobility_file=spatial_base_path / spatial_config["mobility"].get(),
                             popnodes_key=spatial_config["popnodes"].get(),
