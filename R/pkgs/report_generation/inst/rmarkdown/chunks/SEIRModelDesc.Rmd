@@ -1,0 +1,4 @@
+
+Once the model is seeded, infections are generated using a stochastic,
+individual based, Susceptible, Exposed, Infectious, Recovered (SEIR) meta-population
+model. [ADD MORE...]
