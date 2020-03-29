@@ -29,6 +29,8 @@ The pipeline is broken into several stages, each of which can be independently r
 
 We run a model to determine the likelihood of importing cases into the region of interest.  We maintain an [R package](https://github.com/HopkinsIDD/covidImportation).
 
+
+
 #### Epidemic Simulation
 
 We run a location stratified [SEIR model](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/SEIR), using a python module in `COVIDScenarioPipeline`.
@@ -120,6 +122,30 @@ A matrix (stored as a space delimited scientific notation e.g., 0.00000000000000
 A matrix (number of days simulated x number of geographic nodes).  Each value contains a minimum number of cases for that time and place.  The SEIR simulation throws out simulations that are inconsistent with these reports.
 
 Currently, the filter is strict, meaning that any simulation that doesn't pass it exactly is rejected.  We expect to provide a more relaxed version that provides a tolerance parameter.
+
+## Seeding or importation
+
+in the `config.yaml` file:
+
+```
+seeding:
+  method: FolderDraw
+  folder_path: model_output/importation/
+# OR !
+seeding:
+  method: PoissonDistributed
+  lambda_file: data/west-coast-AZ-NV/seeding.csv
+```
+
+
+`FolderDraw`: each sim will pull importation from file `importation_{$UID}.csv` in folder `folder_path`. If there is more sims than files in this folder, it’ll loop. `$UID` starts 1 to match R 1-based indexing.
+`PoissonDistributed`: will draw a poisson with lambda specified in à `lambda_file`
+
+In both methods, csv files needs to have at least three columns named `place,date,amount` . `place` are places that match exactly a `place` in the `geodata.csv`. `date` are cases dates in any sensible format, and `amount` either the number of importation (`FolderDraw`) or the lambda parameter of the poisson (`PoissonDistributed`).
+
+in the CA repo, in `data/west-coast-AZ-NV/seeding.csv` there is an example file. I created it taking cum cases until the model start date, multiplied by 5 and adding 0.1 (so there is a chance in every county). This is a good way to start if the importation module is not availble for you.
+
+
 
 ## Interventions
 
