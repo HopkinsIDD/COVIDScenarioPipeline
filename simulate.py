@@ -47,6 +47,7 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
                             geodata_file=spatial_base_path / spatial_config["geodata"].get(),
                             mobility_file=spatial_base_path / spatial_config["mobility"].get(),
                             popnodes_key=spatial_config["popnodes"].get(),
+                            nodenames_key=spatial_config["nodenames"].get()
                         ),
                         nsim=nsim,
                         npi_scenario=scenario,

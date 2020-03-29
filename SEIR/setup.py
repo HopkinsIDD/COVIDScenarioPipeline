@@ -11,12 +11,14 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
 class SpatialSetup:
-    def __init__(self, *, setup_name, folder, geodata_file, mobility_file, popnodes_key):
+    def __init__(self, *, setup_name, folder, geodata_file, mobility_file, popnodes_key, nodenames_key):
         self.setup_name = setup_name
         self.folder = folder
-        self.data = pd.read_csv(geodata_file)
+        self.data = pd.read_csv(geodata_file, converters={nodenames_key: lambda x: str(x)})
         self.mobility = np.loadtxt(mobility_file)
         self.popnodes = self.data[popnodes_key].to_numpy()
+        self.nodenames = self.data[nodenames_key].tolist()
+        print(self.nodenames)
         self.nnodes = len(self.data)
 
 
@@ -70,24 +72,24 @@ class Setup():
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
 
-    def buildIC(self, seeding_places, seeding_amount):
-        self.y0 = np.zeros((ncomp, self.nnodes))
-        self.y0[S, :] = self.popnodes
-        for i, pl in enumerate(seeding_places):
-            self.y0[S, pl] = self.popnodes[pl] - seeding_amount[i]
-            self.y0[I1, pl] = seeding_amount[i]
-        return self.y0
+    #def buildIC(self, seeding_places, seeding_amount):
+    #    self.y0 = np.zeros((ncomp, self.nnodes))
+    #    self.y0[S, :] = self.popnodes
+    #    for i, pl in enumerate(seeding_places):
+    #        self.y0[S, pl] = self.popnodes[pl] - seeding_amount[i]
+    #        self.y0[I1, pl] = seeding_amount[i]
+    #    return self.y0
 
-    def buildICfromfilter(self):
-        y0 = np.zeros((ncomp, self.nnodes))
-        draw = np.random.poisson(5 * self.dynfilter[31] + 0.1)
-        y0[S, :] = self.popnodes - draw
-        y0[E, :] = (draw / 4).astype(np.int)
-        y0[I1, :] = (draw / 4).astype(np.int)
-        y0[I2, :] = (draw / 4).astype(np.int)
-        y0[I3, :] = (draw / 4).astype(np.int)
-        y0[cumI, :] = (3 * draw / 4).astype(np.int)
-        return y0
+    #def buildICfromfilter(self):
+    #    y0 = np.zeros((ncomp, self.nnodes))
+    #    draw = np.random.poisson(5 * self.dynfilter[31] + 0.1)
+    #    y0[S, :] = self.popnodes - draw
+    #    y0[E, :] = (draw / 4).astype(np.int)
+    #    y0[I1, :] = (draw / 4).astype(np.int)
+    #    y0[I2, :] = (draw / 4).astype(np.int)
+    #    y0[I3, :] = (draw / 4).astype(np.int)
+    #    y0[cumI, :] = (3 * draw / 4).astype(np.int)
+    #    return y0
 
     def set_filter(self, dynfilter):
         self.dynfilter = dynfilter
@@ -99,16 +101,21 @@ def seeding_draw(s, uid):
     importation = np.zeros((s.t_span+1, s.nnodes))
     method = s.seeding_config["method"].as_str()
     if (method == 'PoissonDistributed'):
-        seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(), parse_dates=['date'])
+        seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
+                              converters={'place': lambda x: str(x)},
+                              parse_dates=['date'])
         for  _, row in seeding.iterrows():
-            importation[(row['date'].date()-s.ti).days][int(s.spatset.data[s.spatset.data['geoid'] == row['place']].id)] = \
+            importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = \
                 np.random.poisson(row['amount'])
+                
     elif (method == 'FolderDraw'): # CURRENTLY UNTESTED
         folder_path = s.seeding_config["folder_path"]
         nfile = (uid+1)%len(os.listdir(folder_path))
-        seeding = pd.read_csv(f'{folder_path}importation_{nfile}.csv', parse_dates=['date'])
+        seeding = pd.read_csv(f'{folder_path}importation_{nfile}.csv', 
+                              converters={'place': lambda x: str(x)},
+                              parse_dates=['date'])
         for  _, row in seeding.iterrows():
-            importation[(row['date'].date()-s.ti).days][int(s.spatset.data[s.spatset.data['geoid'] == row['place']].id)] = row['amount']
+            importation[(row['date'].date()-s.ti).days][int(s.spatset.data[s.spatset.nodenames == row['place']].id)] = row['amount']
     else:
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
     return importation
