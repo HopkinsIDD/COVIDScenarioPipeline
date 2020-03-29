@@ -58,8 +58,11 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
                         interactive=interactive,
                         write_csv=write_csv,
                         dt=config["dt"].as_number())
-
-        s.load_filter(config["dynfilter_path"].get())
+        try:
+            s.load_filter(config["dynfilter_path"].get())
+            print(' We are using a filter')
+        except:
+            print('No filter used')
 
         print(f"""
 >> Scenario: {scenario}
