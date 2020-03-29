@@ -19,9 +19,8 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 def onerun_SEIR(uid, s):
     scipy.random.seed()
-    geoids = s.spatset.data["geoid"].astype(int)
 
-    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=geoids)
+    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
     npi = npi.get().T
 
     seeding = setup.seeding_draw(s, uid)
@@ -46,7 +45,7 @@ def onerun_SEIR(uid, s):
                                            m), na.reshape(n * m, -1)))
         out_df = pd.DataFrame(
             out_arr,
-            columns=['comp'] + list(geoids),
+            columns=['comp'] + s.spatset.nodenames,
             index=pd.date_range(s.ti, s.tf, freq='D').repeat(ncomp + 1))
         out_df['comp'].replace(S, 'S', inplace=True)
         out_df['comp'].replace(E, 'E', inplace=True)
