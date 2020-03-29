@@ -736,6 +736,10 @@ make_scn_state_table <- function(current_scenario,
                                  pdeath_labels,
                                  pdeath_filecode){
 
+if (length(pdeath_filecode)==1) {
+  stop("Currently does not supprt single values of pdeath")
+}
+  
 tmp <- data.frame(name=c("Infections",
                          "Hospitalizations\n  total", "", "",
                          "  daily peak admissions", "", "",
@@ -849,11 +853,11 @@ for(i in 1:length(table_dates)){
 }
 names(tlabels) <- nlabels
 
-flextable(tmp[,nlabels]) %>%
-  set_header_labels(values=tlabels) %>%
-  valign(valign="bottom") %>%
-  colformat_num(digits=0) %>%
-  autofit()
+flextable::flextable(tmp[,nlabels]) %>%
+  flextable::set_header_labels(values=tlabels) %>%
+  flextable::valign(valign="bottom") %>%
+  flextable::colformat_num(digits=0) %>%
+  flextable::autofit()
 
 }
 
