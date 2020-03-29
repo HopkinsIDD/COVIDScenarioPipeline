@@ -29,7 +29,7 @@ def onerun_SEIR(uid, s):
     mobility_prob = 1.0 - np.exp(-s.dt * s.mobility.data / s.popnodes[mobility_ori])
     states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
                            seeding, uid, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_ori, mobility_dest, mobility_probs, s.dynfilter)
+                           mobility_ori, mobility_dest, mobility_prob, s.dynfilter)
 
     # Tidyup data for  R, to save it:
     if s.write_csv:
@@ -84,7 +84,7 @@ def run_parallel(s, *, n_jobs=1):
 
 @jit(nopython=True)
 def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
-                  mobility_ori, mobility_dest, mobility_probs, dynfilter):
+                  mobility_ori, mobility_dest, mobility_prob, dynfilter):
     """
         Made to run just-in-time-compiled by numba, hence very descriptive and using loop,
         because loops are expanded by the compiler hence not a problem.
