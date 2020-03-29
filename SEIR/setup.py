@@ -7,17 +7,22 @@ from .utils import config
 
 
 ncomp = 7
+n_Icomp = 3
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
 class SpatialSetup:
-    def __init__(self, *, setup_name, folder, geodata_file, mobility_file, popnodes_key):
+    # def __init__(self, *, setup_name, folder, geodata_file, mobility_file, popnodes_key):
+    def __init__(self, *, setup_name, geodata_file, mobility_file, popnodes_key):
+        # popnodes_key is the name of the column in self.data that has populations
         self.setup_name = setup_name
-        self.folder = folder
-        self.data = pd.read_csv(geodata_file)
-        self.mobility = np.loadtxt(mobility_file)
-        self.popnodes = self.data[popnodes_key].to_numpy()
-        self.nnodes = len(self.data)
+        self.data = pd.read_csv(geodata_file) # geoids and populations
+        self.mobility = np.loadtxt(mobility_file) # K x K matrix of people moving
+        self.popnodes = self.data[popnodes_key].to_numpy() # population
+        self.nnodes = len(self.data) # K = # of locations
+
+        if self.mobility.shape != (self.nnodes, self.nnodes):
+            raise ValueError(f"Mobility file should be of dimensions ({self.nnodes}, {self.nnodes})")
 
 
 class Setup():
@@ -26,16 +31,16 @@ class Setup():
     """
     def __init__(self, *,
                  setup_name,
-                 spatial_setup,
+                 spatial_setup, # SpatialSetup
                  nsim,
-                 ti,
-                 tf,
+                 ti, # time to start
+                 tf, # time to finish
                  npi_scenario=None,
                  npi_config={},
                  interactive=True,
                  write_csv=False,
-                 dt=1 / 6,
-                 nbetas=None):
+                 dt=1 / 6, # step size, in days
+                 nbetas=None): # # of betas, which are rates of infection
         self.setup_name = setup_name
         self.nsim = nsim
         self.dt = dt
@@ -53,7 +58,7 @@ class Setup():
         self.spatset = spatial_setup
 
         self.build_setup()
-        self.dynfilter = -np.ones((self.t_span, self.nnodes))
+        self.dynfilter = -np.ones((self.t_span, self.nnodes)) # time x location matrix. Stores minimum # of infections so that infection matches reality
 
         if self.write_csv:
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -95,8 +100,6 @@ class Setup():
 
 
 def parameters_quick_draw(s, npi):
-    n_Icomp = 3
-
     sigma = config["seir"]["parameters"]["sigma"].as_evaled_expression()
     gamma = config["seir"]["parameters"]["gamma"].as_random_distribution()() * n_Icomp
     R0s = config["seir"]["parameters"]["R0s"].as_random_distribution()()

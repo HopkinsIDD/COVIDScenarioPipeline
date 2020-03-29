@@ -14,8 +14,12 @@ from .utils import config
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
-
 def onerun_SEIR(uid, s):
+    """
+    Performs one simulation
+
+    s is setup.Setup()
+    """
     scipy.random.seed()
     geoids = s.spatset.data["geoid"].astype(int)
 
@@ -28,7 +32,7 @@ def onerun_SEIR(uid, s):
                            s.nnodes, s.popnodes, s.mobility, s.dynfilter,
                            importation)
 
-    # Tidyup data for  R, to save it:
+    # Tidyup data for R, to save it:
     if s.write_csv:
         a = states.copy()[:, :, ::int(1 / s.dt)]
         a = np.moveaxis(a, 1, 2)
