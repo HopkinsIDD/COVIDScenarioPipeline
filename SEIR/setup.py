@@ -32,6 +32,7 @@ class Setup():
                  tf,
                  npi_scenario=None,
                  npi_config={},
+                 seeding_config={},
                  interactive=True,
                  write_csv=False,
                  dt=1 / 6,
@@ -43,6 +44,7 @@ class Setup():
         self.tf = tf
         self.npi_scenario = npi_scenario
         self.npi_config = npi_config
+        self.seeding_config = seeding_config
         self.interactive = interactive
         self.write_csv = write_csv
 
@@ -92,6 +94,24 @@ class Setup():
 
     def load_filter(self, dynfilter_path):
         self.set_filter(np.loadtxt(dynfilter_path))
+
+def seeding_draw(s, uid):
+    importation = np.zeros((s.t_span+1, s.nnodes))
+    method = s.seeding_config["method"].as_str()
+    if (method == 'PoissonDistributed'):
+        seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(), parse_dates=['date'])
+        for  _, row in seeding.iterrows():
+            importation[(row['date'].date()-s.ti).days][int(s.spatset.data[s.spatset.data['geoid'] == row['place']].id)] = \
+                np.random.poisson(row['amount'])
+    elif (method == 'FolderDraw'): # CURRENTLY UNTESTED
+        folder_path = s.seeding_config["folder_path"]
+        nfile = (uid+1)%len(os.listdir(folder_path))
+        seeding = pd.read_csv(f'{folder_path}importation_{nfile}.csv', parse_dates=['date'])
+        for  _, row in seeding.iterrows():
+            importation[(row['date'].date()-s.ti).days][int(s.spatset.data[s.spatset.data['geoid'] == row['place']].id)] = row['amount']
+    else:
+        raise NotImplementedError(f"unknown seeding method [got: {method}]")
+    return importation
 
 
 def parameters_quick_draw(s, npi):

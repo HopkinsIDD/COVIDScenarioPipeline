@@ -14,6 +14,8 @@ from .utils import config
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
+#def getimportation(uid, s):
+
 
 def onerun_SEIR(uid, s):
     scipy.random.seed()
@@ -21,12 +23,12 @@ def onerun_SEIR(uid, s):
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=geoids)
     npi = npi.get().T
-    importation = np.zeros((s.t_span + 3, s.nnodes))
+
+    seeding = setup.seeding_draw(s, uid)
 
     states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
-                           s.buildICfromfilter(), uid, s.dt, s.t_inter,
-                           s.nnodes, s.popnodes, s.mobility, s.dynfilter,
-                           importation)
+                           seeding, uid, s.dt, s.t_inter,
+                           s.nnodes, s.popnodes, s.mobility, s.dynfilter)
 
     # Tidyup data for  R, to save it:
     if s.write_csv:
@@ -81,8 +83,8 @@ def run_parallel(s, *, n_jobs=1):
 
 #@jit(float64[:,:,:](float64[:,:], float64[:], int64), nopython=True)
 @jit(nopython=True)
-def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes, mobility,
-                  dynfilter, importation):
+def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes, mobility,
+                  dynfilter):
     """
         Made to run just-in-time-compiled by numba, hence very descriptive and using loop,
         because loops are expanded by the compiler hence not a problem.
@@ -91,7 +93,8 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes, mobility,
     #np.random.seed(uid)
     t = 0
 
-    y = np.copy(y0)
+    y = np.zeros((ncomp, nnodes))
+    y[S, :] = popnodes
     states = np.zeros((ncomp, nnodes, len(t_inter)))
 
     mv = np.empty(ncomp - 1)
@@ -106,7 +109,8 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes, mobility,
 
     for it, t in enumerate(t_inter):
         if (it % int(1 / dt) == 0):
-            y[E] = y[E] + importation[int(t)]
+            y[I1] = y[I1] + seeding[int(t)]
+            y[cumI] = y[cumI] + seeding[int(t)]
         for ori in range(nnodes):
             for dest in range(nnodes):
                 for c in range(ncomp - 1):
@@ -134,8 +138,8 @@ def steps_SEIR_nb(p_vec, y0, uid, dt, t_inter, nnodes, popnodes, mobility,
         y[R] += recoveredCases
         y[cumI] += incidentCases
         states[:, :, it] = y
-        if (it % int(1 / dt) == 0):
-            y[cumI] += importation[int(t)]
+        #if (it % int(1 / dt) == 0):
+        #    y[cumI] += importation[int(t)]
         if (it%(1/dt) == 0 and (y[cumI] < dynfilter[int(it%(1/dt))]).any()):
                 return -np.ones((ncomp, nnodes, len(t_inter)))
 
