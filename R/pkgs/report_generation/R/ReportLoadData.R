@@ -163,10 +163,14 @@ load_hosp_geocombined_totals <- function(scn_dirs,
 ##' @export 
 load_inf_geounit_peaks_date <- function(scn_dirs,
                                         display_date=config$end_date,
-                                        scenariolabels=config$report$formatting$scenario_labels,
+                                        scenariolabels=NULL,
                                         incl_geoids=NULL,
                                         geoid_len = 0,
                                         padding_char = "0"){
+
+  if(is.null(scenariolabels)){
+      warning("You have not specified scenario labels for this function. You may encounter future errors.")  
+  }
 
   display_date <- as.Date(display_date)
   inf_pre_process <- function(x) {
@@ -201,10 +205,9 @@ load_inf_geounit_peaks_date <- function(scn_dirs,
                                             pre_process = inf_pre_process,
                                             post_process = inf_post_process,
                                             geoid_len = geoid_len,
-                                            padding_char = padding_char) %>% 
-                dplyr::mutate(scenario_num=i,
-                              scenario_name=scenariolabels[i]) %>%
-                ungroup()
+                                            padding_char = padding_char) 
+      rc[[i]]$scenario_num <- i
+      rc[[i]]$scenario_name <- scenariolabels[[i]]
 
   }
 
@@ -212,10 +215,14 @@ load_inf_geounit_peaks_date <- function(scn_dirs,
 
 }
 
-##' Convenience function to load peak geounit hospitalizations for the given scenarios
+##' Convenience function to load peak geounit hospitalizations by a specific date for the given scenarios
+##' I THINK WE MAY WANT TO CHANGE THIS TO SPECIFY WHICH VARIABLE TO MAXIMIZE IN THE FXN ARG
 ##'
 ##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
-##' @param config_scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
+##' @param display_date date before which we should search for peaks
+##' @param name_filter character string that filenames should match
+##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
+##' @param scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
 ##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
 ##' @param geoid_len required length of geoid
 ##' @param padding_char padding
@@ -229,16 +236,23 @@ load_inf_geounit_peaks_date <- function(scn_dirs,
 ##'         - NincidICH number of incident ICUs on a day
 ##' @export
 ### all of the peak times for each sim and each county so we can make a figure for when things peak
-load_hosp_geounit_peak <- function(scn_dirs,
+load_hosp_geounit_peak_date <- function(scn_dirs,
+                                  display_date = config$end_date,
                                   name_filter = "",
                                   incl_geoids = NULL,
-                                  scenario_labels = NULL,
+                                  scenariolabels = NULL,
                                   geoid_len = 0,
                                   padding_char = "0"){
+    
+    if(is.null(scenariolabels)){
+      warning("You have not specified scenario labels for this function. You may encounter future errors.")  
+    }
+
+    display_date <- as.Date(display_date)
     if (!is.null(incl_geoids)) {
          hosp_post_process <- function(x) {
             x %>%
-                dplyr::filter(!is.na(time), geoid %in% incl_geoids) %>%
+                dplyr::filter(!is.na(time), geoid %in% incl_geoids, time <= display_date) %>%
                 group_by(geoid) %>% 
                 dplyr::slice(which.max(hosp_curr)) %>%
                 ungroup()
@@ -246,7 +260,7 @@ load_hosp_geounit_peak <- function(scn_dirs,
     } else {
         hosp_post_process <- function(x) {
             x %>%
-                dplyr::filter(!is.na(time)) %>%
+                dplyr::filter(!is.na(time), time <= display_date) %>%
                 group_by(geoid) %>% 
                 dplyr::slice(which.max(hosp_curr)) %>%
                 ungroup()
@@ -260,7 +274,7 @@ load_hosp_geounit_peak <- function(scn_dirs,
                                            geoid_len = geoid_len,
                                            padding_char = padding_char)
         rc[[i]]$scenario_num <- i
-        rc[[i]]$scenario_name <- scenario_labels[[i]]
+        rc[[i]]$scenario_name <- scenariolabels[[i]]
     }
 
     rc %>% 
