@@ -33,6 +33,11 @@ reports/
 
 # RStudio files
 .Rproj.user/
+*.Rproj
+.Rbuildignore
+
+# R documentation
+*.Rd
 
 # produced vignettes
 vignettes/*.html
@@ -51,4 +56,3 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
->>>>>>> bee4416083d1cd42367acf7b0f1bcf872718f101
