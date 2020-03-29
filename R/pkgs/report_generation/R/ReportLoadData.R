@@ -2,8 +2,8 @@
 ##' Convenience function to load cumulative geounit infections at specific dates for the given scenarios
 ##'
 ##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
-##' @param config_display_dates config$report$formatting$display_dates character vector of dates to for which cumulative infections should be extracted
-##' @param config_scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
+##' @param display_dates config$report$formatting$display_dates character vector of dates to for which cumulative infections should be extracted
+##' @param scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
 ##' @param incl_geoids character vector of geoids that are included in the report
 ##' @param geoid_len in defined, this we want to make geoids all the same length
 ##' @param padding_char character to add to the front of geoids if fixed length
@@ -19,13 +19,17 @@
 ##'
 ##' @export
 load_cum_inf_geounit_dates <- function(scn_dirs,
-                                      config_display_dates=config$report$formatting$display_dates,
-                                      config_scenariolabels=config$report$formatting$scenario_labels,
+                                      display_dates=config$end_date,
+                                      scenariolabels=NULL,
                                       incl_geoids=NULL,
                                       geoid_len = 0,
                                       padding_char = "0"){
 
-  display_dates <- as.Date(config_display_dates)
+  if(is.null(scenariolabels)){
+      warning("You have not specified scenario labels for this function. You may encounter future errors.")  
+    }
+
+  display_dates <- as.Date(display_dates)
   inf_pre_process <- function(x) {
     x %>%
       dplyr::filter(comp == "cumI") %>%
@@ -52,11 +56,9 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
                                              pre_process = inf_pre_process,
                                              post_process = inf_post_process,
                                              geoid_len = geoid_len,
-                                             padding_char = padding_char) %>%
-          mutate(scenario_num=i,
-                 scenario_name=config_scenariolabels[i]) %>%
-          ungroup
-
+                                             padding_char = padding_char)
+      rc[[i]]$scenario_num <- i
+      rc[[i]]$scenario_name <- scenariolabels[[i]]
   }
 
   return(dplyr::bind_rows(rc))
@@ -71,7 +73,7 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
 ##' the given scenarios.
 ##'
 ##' @param scn_dirs the dirctories containing the relevant scenarios
-##' @param scenario_labels the scenarios labels
+##' @param scenariolabels the scenarios labels
 ##' @param name_filter character string that filenames should match
 ##' @param geoid_len required length of geoid
 ##' @param padding_char padding
@@ -89,11 +91,15 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
 ##' @export
 ##'
 load_hosp_geocombined_totals <- function(scn_dirs,
-                                         scenario_labels = config$report$formatting$scenario_labels,
+                                         scenariolabels = NULL,
                                          name_filter = "",
                                          incl_geoids = NULL,
                                          geoid_len = 0,
                                          padding_char = "0") {
+
+    if(is.null(scenariolabels)){
+      warning("You have not specified scenario labels for this function. You may encounter future errors.")  
+    }
 
     ##filter to munge the data at the senario level
     if (!is.null(incl_geoids)) {
@@ -131,9 +137,9 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                            name_filter = name_filter,
                                            post_process = hosp_post_process,
                                            geoid_len = geoid_len,
-                                           padding_char = padding_char) %>%
-            mutate(scenario_num = i,
-                   scenario_name = config$report$formatting$scenario_labels[i])
+                                           padding_char = padding_char) 
+        rc[[i]]$scenario_num <- i
+        rc[[i]]$scenario_name <- scenariolabels[[i]]
     }
 
     return(dplyr::bind_rows(rc))
@@ -292,7 +298,8 @@ load_hosp_geounit_peak_date <- function(scn_dirs,
 ##'
 ##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
 ##' @param threshold A named numeric vector.  This function will pull the first time slice that meets or exceeds all thresholds
-##' @param config_scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
+##' @param variable character string of variable to which to compare threshold
+##' @param scenario_labels config$report$formatting$scenario_labels character vector of scenario labels
 ##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
 ##' @param geoid_len required length of geoid
 ##' @param padding_char padding
@@ -321,6 +328,11 @@ load_hosp_geounit_threshold <- function(
     if(sum(names(threshold) == "") > 0){
       catch_all_threshold <- threshold[names(threshold) == ""]
     }
+
+    if(is.null(scenario_labels)){
+      warning("You have not specified scenario labels for this function. You may encounter future errors.")  
+    }
+
     if (!is.null(incl_geoids)) {
          hosp_post_process <- function(x) {
             x %>%
@@ -428,7 +440,7 @@ load_shape_file<- function(
   to_lower = FALSE
 ) {
   if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
-  shp <- sf::st_read(filename)
+  shp <- suppressMessages(sf::st_read(filename))
 
   if(to_lower){
     names(shp) <- tolower(names(shp))
