@@ -11,6 +11,7 @@ Working Group**:
 * Qifang Bi
 * Kyra H. Grantz
 * Joshua Kaminsky
+* Stephen A. Lauer
 * Elizabeth C. Lee
 * Justin Lessler
 * Hannah R. Meredith
