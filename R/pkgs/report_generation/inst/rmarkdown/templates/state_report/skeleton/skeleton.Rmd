@@ -47,11 +47,6 @@ geodata <- read.csv(file.path(config$spatial_setup$base_path, config$spatial_set
 geodata$geoid <- ifelse(nchar(geodata$geoid)==4, paste0("0", geodata$geoid), as.character(geodata$geoid))
 included_geoids <- (geodata %>% filter(stateUSPS==reportStateUSPS))$geoid
 
-## load the shapefile
-shp <- suppressMessages(sf::st_read(paste(config$spatial_setup$base_path,config$spatial_setup$shapefile_name,sep='/'), quiet=TRUE) %>%
-                          dplyr::rename(geoid = GEOID, countyname = NAME))
-shp <- shp[shp[["geoid"]] %in% included_geoids,]
-
 ```
 
 
@@ -70,7 +65,8 @@ for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
     state_hosp_totals <- load_hosp_geocombined_totals(scn_dirs,
                                                config$report$formatting$scenario_labels,
                                                name_filter=,
-                                               incl_geoids=included_geoids) %>%
+                                               incl_geoids=included_geoids,
+                                               geoid_len=5) %>%
         mutate(pdeath=config$hospitalization$parameters$p_death[i])
 }
 
@@ -95,7 +91,8 @@ scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
                            config$report$formatting$display_dates,
                            config$report$formatting$scenario_labels,
-                           incl_geoids=included_geoids)
+                           incl_geoids=included_geoids,
+                           geoid_len=5)
 
 ```
 
@@ -127,7 +124,7 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
 ```{r  death_histograms, fig.cap = cap}
 ##Chunk plots the distribution of hospitalizations at multiple time points
 
-show_dates <- c("[LIST OF DATES]")
+show_dates <-    config$report$formatting$display_dates
 hist_plts <- list()
 
 for (i in 1:length(show_dates)) {

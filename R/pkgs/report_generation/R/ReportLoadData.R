@@ -5,6 +5,8 @@
 ##' @param config_display_dates config$report$formatting$display_dates character vector of dates to for which cumulative infections should be extracted
 ##' @param config_scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
 ##' @param incl_geoids character vector of geoids that are included in the report
+##' @param geoid_len in defined, this we want to make geoids all the same length
+##' @param padding_char character to add to the front of geoids if fixed length
 ##'
 ##' @return a data frame with columns
 ##'          - time
@@ -19,7 +21,9 @@
 load_cum_inf_geounit_dates <- function(scn_dirs,
                                       config_display_dates=config$report$formatting$display_dates,
                                       config_scenariolabels=config$report$formatting$scenario_labels,
-                                      incl_geoids=NULL){
+                                      incl_geoids=NULL,
+                                      geoid_len = 0,
+                                      padding_char = "0"){
 
   display_dates <- as.Date(config_display_dates)
   inf_pre_process <- function(x) {
@@ -32,14 +36,12 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
       inf_post_process <- function(x) {
           x %>%
               ungroup %>%
-              dplyr::mutate(geoid=ifelse(nchar(geoid)==4, paste0("0",geoid),geoid)) %>%
               dplyr::filter(!is.na(time), geoid %in% incl_geoids)
       }
   } else {
       inf_post_process <- function(x) {
           x %>%
               ungroup %>%
-              dplyr::mutate(geoid=ifelse(nchar(geoid)==4, paste0("0",geoid),geoid)) %>%
               dplyr::filter(!is.na(time))
       }
   }
@@ -48,7 +50,9 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
   for (i in 1:length(scn_dirs)) {
       rc[[i]] <- load_scenario_sims_filtered(scn_dirs[i],
                                              pre_process = inf_pre_process,
-                                             post_process = inf_post_process) %>%
+                                             post_process = inf_post_process,
+                                             geoid_len = geoid_len,
+                                             padding_char = padding_char) %>%
           mutate(scenario_num=i,
                  scenario_name=config_scenariolabels[i]) %>%
           ungroup
@@ -69,6 +73,8 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
 ##' @param scn_dirs the dirctories containing the relevant scenarios
 ##' @param scenario_labels the scenarios labels
 ##' @param name_filter character string that filenames should match
+##' @param geoid_len required length of geoid
+##' @param padding_char padding
 ##'
 ##' @return a data frame with columns:
 ##'    - sim_num
@@ -85,7 +91,9 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
 load_hosp_geocombined_totals <- function(scn_dirs,
                                          scenario_labels = config$report$formatting$scenario_labels,
                                          name_filter = "",
-                                         incl_geoids = NULL) {
+                                         incl_geoids = NULL,
+                                         geoid_len = 0,
+                                         padding_char = "0") {
 
     ##filter to munge the data at the senario level
     if (!is.null(incl_geoids)) {
@@ -108,7 +116,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                 group_by(time, sim_num) %>%
                 dplyr::summarize(NhospCurr = sum(hosp_curr),
                                  NICUCurr = sum(icu_curr),
-                                 NincidDeath = sum(incidD),
+                                 N = sum(incidD),
                                  NincidInf = sum(incidI),
                                  NincidICU=sum(incidICU),
                                  NincidHosp=sum(incidH)) %>%
@@ -121,7 +129,9 @@ load_hosp_geocombined_totals <- function(scn_dirs,
     for (i in 1:length(scn_dirs)) {
         rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
                                            name_filter = name_filter,
-                                           post_process = hosp_post_process) %>%
+                                           post_process = hosp_post_process,
+                                           geoid_len = geoid_len,
+                                           padding_char = padding_char) %>%
             mutate(scenario_num = i,
                    scenario_name = config$report$formatting$scenario_labels[i])
     }
@@ -137,6 +147,9 @@ load_hosp_geocombined_totals <- function(scn_dirs,
 ##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
 ##' @param config_scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
 ##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
+##' @param geoid_len required length of geoid
+##' @param padding_char padding
+##' 
 ##' @return a data frame with columns
 ##'          - time
 ##'          - comp
@@ -149,7 +162,9 @@ load_hosp_geocombined_totals <- function(scn_dirs,
 ##' @export 
 load_inf_geounit_peaks <- function(scn_dirs,
                                   config_scenariolabels=config$report$formatting$scenario_labels,
-                                  incl_geoids=NULL){
+                                  incl_geoids=NULL,
+                                  geoid_len = 0,
+                                  padding_char = "0"){
 
   inf_pre_process <- function(x) {
       x %>%
@@ -160,7 +175,6 @@ load_inf_geounit_peaks <- function(scn_dirs,
         inf_post_process <- function(x) {
           x %>% 
             ungroup %>%
-            dplyr::mutate(geoid=ifelse(nchar(geoid)==4, paste0("0",geoid),geoid)) %>% 
             dplyr::filter(!is.na(time), geoid %in% incl_geoids) %>%
             group_by(geoid) %>%
             dplyr::slice(which.max(N)) %>%
@@ -171,7 +185,6 @@ load_inf_geounit_peaks <- function(scn_dirs,
           x %>% 
             ungroup %>%
             dplyr::filter(!is.na(time)) %>%
-            dplyr::mutate(geoid=ifelse(nchar(geoid)==4, paste0("0",geoid),geoid)) %>% 
             group_by(geoid) %>%
             dplyr::slice(which.max(N)) %>%
             ungroup()
@@ -183,7 +196,9 @@ load_inf_geounit_peaks <- function(scn_dirs,
   for (i in 1:length(scn_dirs)) {
       rc[[i]] <- load_scenario_sims_filtered(scn_dirs[i],
                                             pre_process = inf_pre_process,
-                                            post_process = inf_post_process) %>% 
+                                            post_process = inf_post_process,
+                                            geoid_len = geoid_len,
+                                            padding_char = padding_char) %>% 
                 dplyr::mutate(scenario_num=i,
                               scenario_name=config_scenariolabels[i]) %>%
                 ungroup()
@@ -199,6 +214,9 @@ load_inf_geounit_peaks <- function(scn_dirs,
 ##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
 ##' @param config_scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
 ##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
+##' @param geoid_len required length of geoid
+##' @param padding_char padding
+##' 
 ##' @return a data frame with columns
 ##'         - sim_num
 ##'         - NhospCurr number of people in hospital on a day
@@ -211,7 +229,9 @@ load_hosp_geounit_peak <- function(
   scn_dirs,
   name_filter = "",
   incl_geoids = NULL,
-  scenario_labels = NULL
+  scenario_labels = NULL,
+  geoid_len = 0,
+  padding_char = "0"
 ){
     if (!is.null(incl_geoids)) {
          hosp_post_process <- function(x) {
@@ -234,7 +254,9 @@ load_hosp_geounit_peak <- function(
     for (i in 1:length(scn_dirs)) {
         rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
                                            name_filter = name_filter,
-                                           post_process = hosp_post_process)
+                                           post_process = hosp_post_process,
+                                           geoid_len = geoid_len,
+                                           padding_char = padding_char)
         rc[[i]]$scenario_num <- i
         rc[[i]]$scenario_name <- scenario_labels[[i]]
     }
@@ -256,6 +278,9 @@ load_hosp_geounit_peak <- function(
 ##' @param threshold A named numeric vector.  This function will pull the first time slice that meets or exceeds all thresholds
 ##' @param config_scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
 ##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
+##' @param geoid_len required length of geoid
+##' @param padding_char padding
+##' 
 ##' @return a data frame with columns
 ##'         - sim_num
 ##'         - NhospCurr number of people in hospital on a day
@@ -269,7 +294,9 @@ load_hosp_geounit_threshold <- function(
   threshold,
   name_filter = "",
   incl_geoids = NULL,
-  scenario_labels = NULL
+  scenario_labels = NULL,
+  geoid_len = 0,
+  padding_char = "0"
 ){
     if (!is.null(incl_geoids)) {
          hosp_post_process <- function(x) {
@@ -302,7 +329,9 @@ load_hosp_geounit_threshold <- function(
     for (i in 1:length(scn_dirs)) {
         rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
                                            name_filter = name_filter,
-                                           post_process = hosp_post_process)
+                                           post_process = hosp_post_process,
+                                           geoid_len = geoid_len,
+                                           padding_char = padding_char)
         rc[[i]]$scenario_num <- i
         rc[[i]]$scenario_name <- scenario_labels[[i]]
     }
