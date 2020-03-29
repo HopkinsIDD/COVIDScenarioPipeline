@@ -1,3 +1,13 @@
+##'Creates file "Makefile" in current directory
+##'
+##'@param cf Filepath to config YAML. Default is "config.yml"
+##'@return None
+##'
+##'@examples
+##'make_makefile()
+##'make_makefile("myconfig.yml")
+##'
+##'@export
 make_makefile <- function(cf = "config.yml"){
   
   config = covidcommon::load_config(cf)
