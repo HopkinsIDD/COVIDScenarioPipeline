@@ -135,3 +135,4 @@ report:
     - Severe Proposed Scenario
     scenario_colors: ["#D95F02", "#1B9E77", "#7570B3", "#7570B3", "#7570B3", "#7570B3", "#7570B3", "#7570B3"]
     pdeath_labels: ["0.25% IFR", "0.5% IFR", "1% IFR"]
+    display_dates: ["2020-5-1", "2020-7-1", "2020-9-1"]

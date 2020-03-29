@@ -49,7 +49,6 @@ included_geoids <- (geodata %>% filter(stateUSPS==reportStateUSPS))$geoid
 
 ```
 
-
 [OVERALL SUMMARY TEXT GOES HERE]
 
 <!-- Default figure is the  -->
@@ -80,8 +79,6 @@ plot_ts_hosp_state_sample(state_hosp_totals,
                           sim_end_date = config$end_date,
                           pdeath_level = 0.01)
 ```
-
-
 
 
 ```{r}
@@ -119,6 +116,7 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
 
 [TABLE SUMMARIZING STATE LEVEL RESULTS BY MORTALITY RATE, ETC.]
 
+
 ### Diversity of Possible Outcomes
 
 ```{r  death_histograms, fig.cap = cap}
@@ -142,6 +140,9 @@ ggpubr::ggarrange(plotlist=hist_plts, nrow=1)
 cap <- "**Fig 2**: Distribution of total hospitalizations by scenario at XXX time points, [LIST TIME POINTS]."
 ```
 
+
+
+
 <!-- #### plot-hosp-state-sample -->
 
 <!-- ```{r plot-hosp-state-sample} -->
@@ -152,7 +153,7 @@ cap <- "**Fig 2**: Distribution of total hospitalizations by scenario at XXX tim
 <!--                           sim_start_date = config$start_date, -->
 <!--                           sim_end_date = config$end_date, -->
 <!--                           plot_intervention = config$report$plot_settings$plot_intervention, ## may not make sense to plot interventions if there are multiple intervention periods -->
-<!--                           interv_start_date = config$interventions$settings$Wuhan$period_start_date, ## N.B. these are currently hard-coded to Wuhan like settings -->
+z<!--                           interv_start_date = config$interventions$settings$Wuhan$period_start_date, ## N.B. these are currently hard-coded to Wuhan like settings -->
 <!--                           interv_end_date = config$interventions$settings$Wuhan$period_end_date) -->
 <!-- ``` -->
 
@@ -262,10 +263,22 @@ cap <- "**Fig 2**: Distribution of total hospitalizations by scenario at XXX tim
 
 <!-- `r #make_fig_captions("county_attack_rate_map", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_end_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)` -->
 
-# Scenario Summaries
+## Scenario Summaries
+
+### Scenario 1: [Scenario Name]
+
+[BRIEF SCENARIO DESCRIPTION]
+
+[STATE LEVEL SCENARIO SUMMARY TABLE]
+```{r}
+
+```
+
+[MULTI PANEL SCENARIO SUMMARY FIG]
 
 
-<!-- ## Appendix 1: Methods -->
+
+## Appendix 1: Methods
 <!-- ```{r plot-model-param-distr} -->
 <!-- ## NOT WORKING - CHECK WITH JOSH BC HE WROTE THE FIG CODE -->
 <!-- layout(mat = matrix(c(1,1,2,2, -->
