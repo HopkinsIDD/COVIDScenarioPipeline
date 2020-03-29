@@ -455,8 +455,10 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
 ##' @param cum_inf_geounit_dates dataframe with cumulative infections up through a specific date, produced by load_cum_inf_geounit_dates, perhaps
 ##' @param geodata as loaded by skeleton
 ##' @param shp shapefile with geounits
-##' @param config_scenariolabels 
-##' @param character string of display date for map
+##' @param scenariolabel scenario label character string
+##' @param popnodes name of pop variable in geodata
+##' @param display_datecharacter string of display date for map
+##' @param viridis_palette character string of viridis palette
 ##'
 ##' @return plot of cumulative infections per 10K by a specific date by geounit for a single scenario
 ##'
@@ -465,8 +467,8 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
 plot_geounit_attack_rate_map <- function (cum_inf_geounit_dates,
                                            geodata,
                                            shp,
-                                           config_scenariolabel = config$report$formatting$scenario_labels[1],
-                                           config_popnodes = config$spatial_setup$popnodes,
+                                           scenariolabel = config$report$formatting$scenario_labels[1],
+                                           popnodes = config$spatial_setup$popnodes,
                                            display_date,
                                            viridis_palette = "plasma") {
 
@@ -474,10 +476,10 @@ plot_geounit_attack_rate_map <- function (cum_inf_geounit_dates,
   shp$geoid <- as.character(shp$geoid)
 
   to_plt <- cum_inf_geounit_dates %>%
-    dplyr::filter(scenario_name == config_scenariolabel,
+    dplyr::filter(scenario_name == scenariolabel,
                   time == display_date) %>%
     left_join(geodata) %>%
-    dplyr::rename(pop = !!config_popnodes) %>%
+    dplyr::rename(pop = !!popnodes) %>%
     group_by(geoid) %>%
     dplyr::summarise(attack_rate=mean(N/pop)*10000) %>%
     ungroup
