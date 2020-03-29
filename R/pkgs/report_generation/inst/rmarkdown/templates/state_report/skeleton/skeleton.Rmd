@@ -61,7 +61,7 @@ scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 state_hosp_totals <- list()
 
 for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
-    state_hosp_totals <- load_hosp_geocombined_totals(scn_dirs,
+    state_hosp_totals[[i]] <- load_hosp_geocombined_totals(scn_dirs,
                                                config$report$formatting$scenario_labels,
                                                name_filter=,
                                                incl_geoids=included_geoids,
@@ -294,7 +294,11 @@ z<!--                           interv_start_date = config$interventions$setting
 
 [STATE LEVEL SCENARIO SUMMARY TABLE]
 ```{r}
-
+make_scn_state_table(config$report$formatting$scenario_labels[1],
+                     state_hosp_totals,
+                     table_dates = config$report$formatting$display_dates,
+                     pdeath_labels = config$report$formatting$pdeath_labels,
+                     pdeath_filecode = config$hospitalization$parameters$p_death)
 ```
 
 [MULTI PANEL SCENARIO SUMMARY FIG]
@@ -317,17 +321,30 @@ z<!--                           interv_start_date = config$interventions$setting
 <!-- ``` -->
 
 
+### SEIR Model
+
+```{r, child=reference_chunk("SEIRModelDesc.Rmd")}
+```
+
 
 ### Limitations
+
 ```{r, child=reference_chunk("limitations.Rmd")}
 ```
+
 ### Key Sources
+
 ```{r, child=reference_chunk("key_sources.Rmd")}
 ```
 
 ## Appendix 2: Supplemental State Level Tables
 
 ## Appendix 3: Detailed County Level Results
+
+## Appendix 4: Team
+
+```{r, child=reference_chunk("DevelopmentTeam.Rmd")}
+```
 
 
 
