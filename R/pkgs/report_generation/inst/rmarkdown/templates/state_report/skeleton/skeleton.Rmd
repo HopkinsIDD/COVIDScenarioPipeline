@@ -50,6 +50,13 @@ included_geoids <- (geodata %>% filter(stateUSPS==reportStateUSPS))$geoid
 
 ```
 
+```{r load_shapefile}
+## Load shapefile
+shp <- load_shape_file(filename = file.path(config$spatial_setup$base_path, config$spatial_setup$shapefile_name),
+                       to_lower = TRUE,
+                       geoid_len = 5)
+```
+
 [OVERALL SUMMARY TEXT GOES HERE]
 
 <!-- Default figure is the  -->
@@ -103,44 +110,15 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
 
 ```
 
-## test this map below after load_shape_file and load_geodata_file are added above
-<!-- ```{r} -->
-<!-- ARmap1 <- plot_geounit_attack_rate_map(cum_inf_dates, -->
-<!--                             geodata, -->
-<!--                             shp, -->
-<!--                             config_scenariolabel = config$report$formatting$scenario_labels[1], -->
-<!--                             display_date = config$report$formatting$display_dates[1], -->
-<!--                             viridis_palette = "plasma") -->
+```{r}
+## Load peak hosp_curr by specific date
 
-<!-- ARmap2 <- plot_geounit_attack_rate_map(cum_inf_dates, -->
-<!--                             geodata, -->
-<!--                             shp, -->
-<!--                             config_scenariolabel = config$report$formatting$scenario_labels[1], -->
-<!--                             display_date = config$report$formatting$display_dates[2], -->
-<!--                             viridis_palette = "viridis") -->
-
-<!-- ARmap3 <- plot_geounit_attack_rate_map(cum_inf_dates, -->
-<!--                             geodata, -->
-<!--                             shp, -->
-<!--                             config_scenariolabel = config$report$formatting$scenario_labels[1], -->
-<!--                             display_date = config$report$formatting$display_dates[3], -->
-<!--                             viridis_palette = "cividis") -->
-<!-- cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3) -->
-<!-- ``` -->
-
-<!-- ```{r load-inf-cty-peaks, child=reference_chunk("load_inf_county_peaks.Rmd")} -->
-<!-- ``` -->
-
-<!-- ```{r load-hosp-cty-peaks, child=reference_chunk("load_hosp_county_peaks.Rmd")} -->
-<!-- ``` -->
-
-
-
-
-<!-- #### load-shapefiles -->
-<!-- ```{r load-shapefile, child=reference_chunk("load_shapefiles.Rmd")} -->
-<!-- ``` -->
-
+hosp_geounit_peaks <- load_hosp_geounit_peak_date(scn_dirs,
+                          display_date = config$report$formatting$display_dates[1],
+                          scenariolabels = config$report$formatting$scenario_labels,
+                          incl_geoids = included_geoids,
+                          geoid_len = 5)
+```
 
 ## State Level Results
 
@@ -173,24 +151,6 @@ ggpubr::ggarrange(plotlist=hist_plts, nrow=1)
 cap <- "**Fig 2**: Distribution of total hospitalizations by scenario at XXX time points, [LIST TIME POINTS]."
 ```
 
-
-
-
-<!-- #### plot-hosp-state-sample -->
-
-<!-- ```{r plot-hosp-state-sample} -->
-<!-- plot_ts_hosp_state_sample(hosp_state_totals, -->
-<!--                           pdeath_level = "high", -->
-<!--                           scenario_labels = config$report$formatting$scenario_labels, -->
-<!--                           scenario_cols = config$report$formatting$scenario_colors, -->
-<!--                           sim_start_date = config$start_date, -->
-<!--                           sim_end_date = config$end_date, -->
-<!--                           plot_intervention = config$report$plot_settings$plot_intervention, ## may not make sense to plot interventions if there are multiple intervention periods -->
-z<!--                           interv_start_date = config$interventions$settings$Wuhan$period_start_date, ## N.B. these are currently hard-coded to Wuhan like settings -->
-<!--                           interv_end_date = config$interventions$settings$Wuhan$period_end_date) -->
-<!-- ``` -->
-
-<!-- `r #make_fig_captions("ts_hosp_state_sample", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_start_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)` -->
 
 <!-- #### plot-ts-inc-state -->
 <!-- ```{r plot-ts-inc-state} -->
@@ -255,44 +215,6 @@ z<!--                           interv_start_date = config$interventions$setting
 
 <!-- `r #make_fig_captions("line_hospPeak_time_county", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_end_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)` -->
 
-<!-- ## Scenario-Specific Results -->
-
-<!-- `r #make_scn_state_table_cap(current_scenario = config$report$formatting$scenario_labels[1], table_dates = config$report$formatting$display_dates, table_num = 1)` -->
-
-<!-- ```{r scn-state-table} -->
-<!-- ## MAY NOT BE WORKING -->
-<!-- make_scn_state_table(current_scenario = config$report$formatting$scenario_labels[1], -->
-<!--                      hosp_state_totals, -->
-<!--                      table_dates = config$report$formatting$display_dates, -->
-<!--                      pdeath_labels = config$report$formatting$pdeath_labels, -->
-<!--                      pdeath_filecode = config$report$formatting$display_dates -->
-<!--                      ) -->
-
-<!-- ``` -->
-
-<!-- #### plot-attack-rate-map -->
-<!-- ```{r plot-attack-rate-map} -->
-
-<!-- ARmap1 <- plot_county_attack_rate_map(inf_cty_totals, -->
-<!--                             geodata, -->
-<!--                             shp, -->
-<!--                             scenario = config$report$formatting$scenario_labels[1], -->
-<!--                             display_date = config$report$formatting$display_dates[1]) -->
-
-<!-- ARmap2 <- plot_county_attack_rate_map(inf_cty_totals, -->
-<!--                             geodata, -->
-<!--                             shp, -->
-<!--                             scenario = config$report$formatting$scenario_labels[1], -->
-<!--                             display_date = config$report$formatting$display_dates[2]) -->
-
-<!-- ARmap3 <- plot_county_attack_rate_map(inf_cty_totals, -->
-<!--                             geodata, -->
-<!--                             shp, -->
-<!--                            scenario = config$report$formatting$scenario_labels[1], -->
-<!--                             display_date = config$report$formatting$display_dates[3]) -->
-<!-- cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3) -->
-
-<!-- ``` -->
 
 <!-- `r #make_fig_captions("county_attack_rate_map", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_end_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)` -->
 
@@ -310,6 +232,32 @@ make_scn_state_table(config$report$formatting$scenario_labels[1],
                      pdeath_labels = config$report$formatting$pdeath_labels,
                      pdeath_filecode = config$hospitalization$parameters$p_death)
 ```
+
+
+```{r}
+ARmap1 <- plot_geounit_attack_rate_map(cum_inf_dates,
+                            geodata,
+                            shp,
+                            scenariolabel = config$report$formatting$scenario_labels[1],
+                            display_date = config$report$formatting$display_dates[1],
+                            viridis_palette = "plasma")
+
+ARmap2 <- plot_geounit_attack_rate_map(cum_inf_dates,
+                            geodata,
+                            shp,
+                            scenariolabel = config$report$formatting$scenario_labels[1],
+                            display_date = config$report$formatting$display_dates[2],
+                            viridis_palette = "viridis")
+
+ARmap3 <- plot_geounit_attack_rate_map(cum_inf_dates,
+                            geodata,
+                            shp,
+                            scenariolabel = config$report$formatting$scenario_labels[1],
+                            display_date = config$report$formatting$display_dates[3],
+                            viridis_palette = "cividis")
+cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3)
+```
+
 
 [MULTI PANEL SCENARIO SUMMARY FIG]
 
