@@ -27,6 +27,7 @@ knitr::opts_chunk$set(
     cache.lazy = FALSE,
     bitmapType = "cairo"
     )
+knitr::opts_knit$set(eval.after = 'fig.cap') ##Allows us to set a variable to figure caption in the block
 
 options(scipen=999)
 
@@ -109,7 +110,35 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
 <!-- ``` -->
 
 
-<!-- ## State Level Results -->
+## State Level Results
+
+### Summary
+[DESCRIPTION OF REPORT AND SCENARIOS]
+
+[TABLE SUMMARIZING STATE LEVEL RESULTS BY MORTALITY RATE, ETC.]
+
+### Diversity of Possible Outcomes
+
+```{r  death_histograms, fig.cap = cap}
+##Chunk plots the distribution of hospitalizations at multiple time points
+
+show_dates <- c("[LIST OF DATES]")
+hist_plts <- list()
+
+for (i in 1:length(show_dates)) {
+    hist_plts[[i]] <- plot_hist_incidHosp_state(state_hosp_totals,
+                                           scenario_labels =  config$report$formatting$scenario_labels,
+                                           scenario_cols =  config$report$formatting$scenario_colors,
+                                           sim_start_date = config$start_date,
+                                           summary_date = show_dates[i],
+                                           pdeath_level = 0.01)
+}
+
+ggpubr::ggarrange(plotlist=hist_plts, nrow=1)
+
+
+cap <- "**Fig 2**: Distribution of total hospitalizations by scenario at XXX time points, [LIST TIME POINTS]."
+```
 
 <!-- #### plot-hosp-state-sample -->
 
@@ -223,7 +252,7 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
 <!-- ARmap3 <- plot_county_attack_rate_map(inf_cty_totals, -->
 <!--                             geodata, -->
 <!--                             shp, -->
-<!--                             scenario = config$report$formatting$scenario_labels[1], -->
+<!--                            scenario = config$report$formatting$scenario_labels[1], -->
 <!--                             display_date = config$report$formatting$display_dates[3]) -->
 <!-- cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3) -->
 
@@ -231,7 +260,7 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
 
 <!-- `r #make_fig_captions("county_attack_rate_map", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_end_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)` -->
 
-<!-- ## Scenario Summaries -->
+# Scenario Summaries
 
 
 <!-- ## Appendix 1: Methods -->
@@ -257,5 +286,11 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
 ### Key Sources
 ```{r, child=reference_chunk("key_sources.Rmd")}
 ```
-## Appendix 2: Detailed County Level Results
+
+## Appendix 2: Supplemental State Level Tables
+
+## Appendix 3: Detailed County Level Results
+
+
+
 ## Bibliography
