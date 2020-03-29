@@ -331,7 +331,14 @@ make_scn_state_table(config$report$formatting$scenario_labels[1],
 <!-- ``` -->
 
 
-### SEIR Model
+### Pipeline Overview
+
+```{r, child=reference_chunk("PipelineDescription.Rmd")}
+```
+
+### Technical Details
+
+#### SEIR Model
 
 ```{r, child=reference_chunk("SEIRModelDesc.Rmd")}
 ```
