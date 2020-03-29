@@ -346,3 +346,43 @@ load_hosp_geounit_threshold <- function(
                     NincidHosp = incidH) %>%
       return()
 }
+
+
+load_geodata_file <- function(
+  filename,
+  geoid_len = 0,
+  geoid_pad = "0",
+  to_lower = FALSE
+) {
+  if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
+  geodata <- readr::read_csv(filename)
+  if(!('geoid' %in% names('geodata'))){stop(paste(filename,"does not have a column named geoid"))}
+
+  if(to_lower){
+    names(geodata) <- tolower(names(geodata))
+  }
+
+  if(geoid_len > 0){
+    geodata$geoid <- stringr::str_pad(geodata$geoid,geoid_len, pad = geoid_pad)
+  }
+}
+
+
+load_shape_file<- function(
+  filename,
+  geoid_len = 0,
+  geoid_pad = "0",
+  to_lower = FALSE
+) {
+  if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
+  geodata <- sf::st_read(filename)
+  if(!('geoid' %in% names('geodata'))){stop(paste(filename,"does not have a column named geoid"))}
+
+  if(to_lower){
+    names(geodata) <- tolower(names(geodata))
+  }
+  if(geoid_len > 0){
+    geodata$geoid <- stringr::str_pad(geodata$geoid,geoid_len, pad = geoid_pad)
+  }
+}
+
