@@ -357,7 +357,7 @@ load_hosp_geounit_peak_date <- function(scn_dirs,
                                            post_process = hosp_post_process,
                                            geoid_len = geoid_len,
                                            padding_char = padding_char) %>%
-                        dplyr::select(time, geoid, sim_num, max_var)
+                        dplyr::select(time, geoid, sim_num, mx_var)
         rc[[i]]$scenario_num <- i
         rc[[i]]$scenario_name <- scenariolabels[[i]]
     }
@@ -517,7 +517,7 @@ load_shape_file<- function(
   to_lower = FALSE
 ) {
   if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
-  shp <- suppressMessages(sf::st_read(filename))
+  shp <- suppressMessages(sf::st_read(filename, quiet = TRUE))
 
   if(to_lower){
     names(shp) <- tolower(names(shp))

@@ -118,7 +118,7 @@ scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
   cum_hosp_dates <- load_cum_hosp_geounit_date(scn_dirs,
                               name_filter = config$hospitalization$parameters$p_death_names[i],
-                              display_dates = config$report$formatting$display_dates,
+                              display_date = config$report$formatting$display_dates,
                               scenariolabels = config$report$formatting$scenario_labels,
                               incl_geoids=included_geoids,
                               geoid_len=5) %>%
