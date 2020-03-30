@@ -19,16 +19,17 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 def onerun_SEIR(uid, s):
     scipy.random.seed()
-    geoids = s.spatset.data["geoid"].astype(int)
 
-    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=geoids)
+    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
     npi = npi.get().T
 
     seeding = setup.seeding_draw(s, uid)
 
+    mobility_ori, mobility_dest = s.mobility.row, s.mobility.col
+    mobility_prob = 1.0 - np.exp(-s.dt * s.mobility.data / s.popnodes[mobility_ori])
     states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
-                           seeding, uid, s.dt, s.t_inter,
-                           s.nnodes, s.popnodes, s.mobility, s.dynfilter)
+                           seeding, uid, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                           mobility_ori, mobility_dest, mobility_prob, s.dynfilter)
 
     # Tidyup data for  R, to save it:
     if s.write_csv:
@@ -46,7 +47,7 @@ def onerun_SEIR(uid, s):
                                            m), na.reshape(n * m, -1)))
         out_df = pd.DataFrame(
             out_arr,
-            columns=['comp'] + list(geoids),
+            columns=['comp'] + s.spatset.nodenames,
             index=pd.date_range(s.ti, s.tf, freq='D').repeat(ncomp + 1))
         out_df['comp'].replace(S, 'S', inplace=True)
         out_df['comp'].replace(E, 'E', inplace=True)
@@ -81,10 +82,9 @@ def run_parallel(s, *, n_jobs=1):
 """)
 
 
-#@jit(float64[:,:,:](float64[:,:], float64[:], int64), nopython=True)
 @jit(nopython=True)
-def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes, mobility,
-                  dynfilter):
+def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
+                  mobility_ori, mobility_dest, mobility_prob, dynfilter):
     """
         Made to run just-in-time-compiled by numba, hence very descriptive and using loop,
         because loops are expanded by the compiler hence not a problem.
@@ -92,6 +92,7 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes, mobility,
     """
     #np.random.seed(uid)
     t = 0
+    mobility_len = len(mobility_ori)
 
     y = np.zeros((ncomp, nnodes))
     y[S, :] = popnodes
@@ -111,14 +112,14 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes, mobility,
         if (it % int(1 / dt) == 0):
             y[I1] = y[I1] + seeding[int(t)]
             y[cumI] = y[cumI] + seeding[int(t)]
-        for ori in range(nnodes):
-            for dest in range(nnodes):
-                for c in range(ncomp - 1):
-                    mv[c] = np.random.binomial(
-                        y[c, ori],
-                        1 - np.exp(-dt * mobility[ori, dest] / popnodes[ori]))
-                y[:-1, dest] += mv
-                y[:-1, ori] -= mv
+        for i in range(mobility_len):
+            ori = mobility_ori[i]
+            dest = mobility_dest[i]
+            prob = mobility_prob[i]
+            for c in range(ncomp - 1):
+                mv[c] = np.random.binomial(y[c, ori], prob)
+            y[:-1, dest] += mv
+            y[:-1, ori] -= mv
 
         p_expose = 1 - np.exp(-dt * p_vec[0][it] *
                               (y[I1] + y[I2] + y[I3]) / popnodes)  # vector

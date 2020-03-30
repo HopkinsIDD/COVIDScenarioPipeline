@@ -353,8 +353,8 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
     scale_fill_manual(values = scenario_cols,
                       labels = scenario_labels,
                       aesthetics = c("colour", "fill")) +
-    scale_x_continuous(paste("Cumulative hospitalizations by",
-                             print_pretty_date(summary_date)),
+    scale_x_continuous(paste("Cumulative hospitalizations\n by",
+                             print_pretty_date_short(summary_date)),
                        labels = scales::comma) +
     ylab("Number of simulations") +
     theme_bw() +
@@ -455,8 +455,10 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
 ##' @param cum_inf_geounit_dates dataframe with cumulative infections up through a specific date, produced by load_cum_inf_geounit_dates, perhaps
 ##' @param geodata as loaded by skeleton
 ##' @param shp shapefile with geounits
-##' @param config_scenariolabels
-##' @param character string of display date for map
+##' @param scenariolabel scenario label character string
+##' @param popnodes name of pop variable in geodata
+##' @param display_datecharacter string of display date for map
+##' @param viridis_palette character string of viridis palette
 ##'
 ##' @return plot of cumulative infections per 10K by a specific date by geounit for a single scenario
 ##'
@@ -465,8 +467,8 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
 plot_geounit_attack_rate_map <- function (cum_inf_geounit_dates,
                                            geodata,
                                            shp,
-                                           config_scenariolabel = config$report$formatting$scenario_labels[1],
-                                           config_popnodes = config$spatial_setup$popnodes,
+                                           scenariolabel = config$report$formatting$scenario_labels[1],
+                                           popnodes = config$spatial_setup$popnodes,
                                            display_date,
                                            viridis_palette = "plasma") {
 
@@ -474,10 +476,10 @@ plot_geounit_attack_rate_map <- function (cum_inf_geounit_dates,
   shp$geoid <- as.character(shp$geoid)
 
   to_plt <- cum_inf_geounit_dates %>%
-    dplyr::filter(scenario_name == config_scenariolabel,
+    dplyr::filter(scenario_name == scenariolabel,
                   time == display_date) %>%
     left_join(geodata) %>%
-    dplyr::rename(pop = !!config_popnodes) %>%
+    dplyr::rename(pop = !!popnodes) %>%
     group_by(geoid) %>%
     dplyr::summarise(attack_rate=mean(N/pop)*10000) %>%
     ungroup
@@ -737,7 +739,7 @@ make_scn_state_table <- function(current_scenario,
                                  pdeath_filecode){
 
 if (length(pdeath_filecode)==1) {
-  stop("Currently does not supprt single values of pdeath")
+  stop("Currently does not support single values of pdeath")
 }
 
 tmp <- data.frame(name=c("Infections",
@@ -993,3 +995,109 @@ make_scn_state_table_cap <- function(current_scenario,
 }
 
 
+
+##'
+##' Plot figure showing when event time by geoid
+##'
+##' @param hosp_county_peak hosp geounit peak data
+##' @param shapefile object with geoid and name
+##' @param scenario_labels character vector of scenario labels from config
+##' @param scenario_colors character vector of colors from config
+##' @param time_caption label for time axis
+##' @param geoid_caption label for geoid axis
+##' @param value_name name of secondary axis value
+##' @param exclude_zeroes logical indicating whether to exclude geounits with no beds
+##' @param start_date start date as character string "2020-01-01"
+##' @param end_date end date as character string
+##'
+##' @return plot state time series median and IQR
+##'
+##' @export
+##'
+plot_event_time_by_geoid <- function(hosp_county_peaks,
+                                     shapefile,
+                                     scenario_labels, # TODO provide default arguments
+                                     scenario_colors, # TODO provide default arguments
+                                     time_caption,
+                                     geoid_caption,
+                                     value_name,
+                                     exclude_zeroes = TRUE,
+                                     start_date,      # TODO provide default arguments
+                                     end_date) {
+ 
+  start_date <- lubridate::ymd(start_date)
+  end_date <- lubridate::ymd(end_date)
+
+  if(is.null(value_name) & (length(scenario_labels) == 1)){stop("Value name must be provided if only one scenario is plotted.")}
+
+  value_name <- rlang::sym(value_name)
+
+  hosp_county_peaks$time[is.na(hosp_county_peaks$time)] <- end_date+1
+  hosp_county_peaks$time[hosp_county_peaks$time > end_date] <- end_date+1
+  hosp_county_peaks$time[hosp_county_peaks$time < start_date] <- start_date-1
+
+  to_plt <- hosp_county_peaks %>%
+    filter(scenario_label %in% scenario_labels) %>%
+    group_by(geoid, scenario_label) %>%
+    dplyr::summarise(mean_time = mean(time),
+                     median_time = median(time),
+                     low_time = quantile(time, probs=.25, type=1),
+                     hi_time = quantile(time, probs=.75, type=1),
+                     value = round(mean(!!value_name,na.rm=T),0)) %>%
+    ungroup %>%
+    dplyr::mutate(scenario_label = factor(scenario_label,
+                                         levels = scenario_labels,
+                                         labels = scenario_labels)) %>%
+    dplyr::inner_join(shapefile, by = c("geoid")) %>%
+    mutate(
+      name = reorder(name, -as.numeric(median_time)),
+    )
+
+  ## exclude counties with 0 hospital beds
+  if(exclude_zeroes){
+    to_plt <- to_plt %>%
+      dplyr::filter(value>0)
+  }
+
+
+  if(length(scenario_labels)==1){
+    rc <- ggplot(data=to_plt,
+                 aes(x = as.numeric(name),
+                     y = median_time, ymin = low_time, ymax = hi_time)) +
+      geom_pointrange() +
+      scale_x_continuous(
+        labels=levels(to_plt$name),
+        breaks=seq_len(nrow(to_plt)),
+        sec.axis = sec_axis(~.,labels = to_plt$value[rank(levels(to_plt$name))], breaks = seq_len(nrow(to_plt)))
+      ) +
+      scale_y_date(time_caption,
+                   date_breaks = "1 months",
+                   date_labels = "%b"
+                   ) +
+      xlab(geoid_caption) +
+      theme_bw() +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "bottom")  +
+      coord_flip()
+  } else{
+    rc <- ggplot(data=to_plt,
+                 aes(x = reorder(name, -as.numeric(median_time)),
+                     y = median_time, ymin = low_time, ymax = hi_time,
+                     color = scenario_label)) +
+      geom_pointrange() +
+      scale_y_date(time_caption,
+                   date_breaks = "1 months",
+                   date_labels = "%b"
+                   ) +
+      xlab(geoid_caption) +
+      scale_color_manual("Scenario",
+                         labels = scenario_labels,
+                         values = scenario_colors) +
+      theme_bw() +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "bottom")  +
+      coord_flip()
+  }
+
+
+  return(rc)
+
+}
