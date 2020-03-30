@@ -4,12 +4,12 @@ require(devtools)
 repo_url <- "https://cran.rstudio.com"
 
 # TODO: better than nothing, but this doesn't handle package dependencies (use packrat)
+install_version("rgdal", version = "1.4-8", repos = repo_url)
 install_version("doParallel", version = "1.0.14", repos = repo_url)
 install_version("tidyr", version = "1.0.2", repos = repo_url)
 install_version("dplyr", version = "0.8.3", repos = repo_url)
 install_version("readr", version = "1.3.1", repos = repo_url)
 install_version("ggplot2", version = "3.2.0", repos = repo_url)
-install_version("rgdal", version = "1.4-8", repos = repo_url)
 install_version("gridExtra", version = "2.3", repos = repo_url)
 install_version("viridis", version = "0.5.1", repos = repo_url)
 install_version("ggfortify", version = "0.4.8", repos = repo_url)
