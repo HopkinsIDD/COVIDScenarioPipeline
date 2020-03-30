@@ -86,6 +86,8 @@ make_CI <- function(lo, hi){
 ##'
 ##' Plot figure showing 15 random sims of hospitalization occupancy
 ##'
+##' TODO ADD OPTION TO CHANGE VARIABLE THAT IS PLOTTED TO ANYTHING IN HOSP OUTCOMES DATASET
+##'
 ##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
 ##' @param num_sims the number of simulations to show
 ##' @param pdeath_level level of IFR for filtering hospitalization data - TODO: Move our of functions
@@ -126,7 +128,7 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
   rc <- ggplot(data=to_plt,
                aes(x=time, colour = scenario_name,
                    group = interaction(sim_num, scenario_name))) +
-    geom_line(aes(y = NincidHosp), alpha=0.3, size=.75) +
+    geom_line(aes(y = NhospCurr), alpha=0.3, size=.75) +
     scale_y_continuous("Daily hospital occupancy", labels = scales::comma) +
     scale_x_date(date_breaks = "1 month",
                  date_labels = "%b",
