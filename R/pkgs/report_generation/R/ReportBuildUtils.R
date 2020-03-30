@@ -915,7 +915,6 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
                                      time_caption,
                                      geoid_caption,
                                      value_name,
-                                     exclude_zeroes = TRUE,
                                      start_date,      # TODO provide default arguments
                                      end_date) {
  
@@ -946,13 +945,6 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
     mutate(
       name = reorder(name, -as.numeric(median_time)),
     )
-
-  ## exclude counties with 0 hospital beds
-  if(exclude_zeroes){
-    to_plt <- to_plt %>%
-      dplyr::filter(value>0)
-  }
-
 
   if(length(scenario_labels)==1){
     rc <- ggplot(data=to_plt,
