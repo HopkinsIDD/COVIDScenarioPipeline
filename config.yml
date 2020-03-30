@@ -16,6 +16,30 @@ spatial_setup:
   nodenames: geoid  # Name of the column in geodata with uniquely name of nodes
   include_in_report: targeted
 
+importation:
+  census_api_key: "DO NOT PUT THE KEY IN  THE PUBLIC REPO"
+  travel_dispersion: 3
+  maximum_destinations: Inf
+  dest_type : state
+  dest_country : USA
+  aggregate_to: airport
+  cache_work: TRUE
+  update_case_data: TRUE
+  draw_travel_from_distribution: FALSE
+  print_progress: FALSE
+  travelers_threshold: 10000
+  airport_cluster_distance: 80
+  param_list:
+    incub_mean_log: log(5.89)
+    incub_sd_log: log(1.74)
+    inf_period_nohosp_mean: 15
+    inf_period_nohosp_sd: 5
+    inf_period_hosp_shape: 0.75
+    inf_period_hosp_scale: 5.367
+    p_report_source: [0.05, 0.25]
+    shift_incid_days: -10
+    delta: 1
+
 #seeding:
 #  method: FolderDraw
 #  folder_path: model_output/importation/

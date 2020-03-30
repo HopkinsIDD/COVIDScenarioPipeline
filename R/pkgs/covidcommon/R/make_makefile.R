@@ -13,6 +13,41 @@ make_makefile <- function(cf = "config.yml"){
   cat(deathrates)
   cat("\n")
   
+
+importation_target_name <- function(simulation, prefix = ""){
+  paste0(".files/",prefix,simulation,"_importation")
+}
+
+importation_make_command <- function(simulation,prefix=""){
+  target_name <- importation_target_name(simulation,prefix)
+  dependency_name <- ""
+  command_name <- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/importation.R -c  $(CONFIG)")
+  touch_name <- paste0("touch ",target_name)
+  return(paste0(
+    target_name, ": ",
+    dependency_name, "\n", 
+    "\t",command_name, "\n",
+    "\t",touch_name, "\n"
+  ))
+}
+
+filter_target_name <- function(simulation, prefix = "" ){
+  paste0(".files/",prefix,simulation,"_filter")
+}
+
+filter_make_command <- function(simulation,prefix=""){
+  target_name <- filter_target_name(simulation,prefix)
+  dependency_name <- ""
+  command_name<- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/importation.R -c $(CONFIG) -j $(NCOREPER)")
+  touch_name <- paste0("touch ",target_name)
+  return(paste0(
+    target_name, ": ",
+    dependency_name, "\n", 
+    "\t",command_name, "\n",
+    "\t",touch_name, "\n"
+  ))
+}
+
   hospitalizaiton_target_name <- function(simulation,scenario,deathrate, prefix = ''){
     paste0(".files/",prefix,simulation,"_hospitalization_",scenario,"_",deathrate)
   }
@@ -42,6 +77,7 @@ make_makefile <- function(cf = "config.yml"){
     } else {
       previous_simulation <- 0
     }
+  dependency_name <- paste(dependency_name,filter_target_name(simulation,prefix),importation_target_name(simulation,prefix))
     command_name <- paste0("$(PYTHON) $(PIPELINE)/simulate.py -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER)")
     touch_name <- paste0("touch ",target_name)
     return(paste0(
@@ -78,6 +114,12 @@ make_makefile <- function(cf = "config.yml"){
   cat("\n	Rscript compile_Rmd.R\n")
   
   for(sim_idx in seq_len(length(simulations))){
+  
+  cat(filter_make_command(simulations[sim_idx]))
+  cat(importation_make_command(simulations[sim_idx]))
+}
+
+for(sim_idx in seq_len(length(simulations))){
     sim <- simulations[sim_idx]
     prev_sim <- dplyr::lag(simulations)[sim_idx]
     for(scenario in scenarios){
@@ -88,21 +130,29 @@ make_makefile <- function(cf = "config.yml"){
     }
   }
   
-  cat("
+cat(paste0("
   
   rerun: rerun_simulations rerun_hospitalization
+rerun_filter:
+	rm .files/1*_filter
+rerun_importation:
+	rm .files/1*_importation
   rerun_simulations: clean_simulations
   	rm -f .files/1*_simulation*
   rerun_hospitalization:
   	rm -f .files/1*_hospitalization*
-  clean: clean_simulations clean_hospitalization clean_reports
+clean: clean_simulations clean_hospitalization clean_reports clean_importation
+clean_filter: rerun_filter
+	rm -rf ",config$spatial_setup$dynfilter_path,"
+clean_importation: rerun_importation
+	rm -rf importation
   clean_reports:
   	rm -f notebooks/*.html
   clean_simulations: rerun_simulations
   	rm -rf model_output
   clean_hospitalization: rerun_hospitalization
   	rm -rf hospitalization
-  ")
+  "))
   
   cat("production_report:")
   for(scenario in scenarios){
