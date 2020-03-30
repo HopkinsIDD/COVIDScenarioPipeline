@@ -122,7 +122,7 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
                                          levels = scenario_labels,
                                          labels = scenario_labels),
                   sim_num = factor(sim_num))
-  
+
   rc <- ggplot(data=to_plt,
                aes(x=time, colour = scenario_name,
                    group = interaction(sim_num, scenario_name))) +
@@ -407,7 +407,7 @@ plot_line_hospPeak_time_county <- function (hosp_cty_peaks,
     dplyr::mutate(scenario_name = factor(scenario_name,
                                          levels = scenario_labels,
                                          labels = scenario_labels)) %>%
-    dplyr::left_join(cty_names, by = c("geoid")) 
+    dplyr::left_join(cty_names, by = c("geoid"))
 
   if(length(scenario_labels)==1){
     rc <- ggplot(data=to_plt,
@@ -535,9 +535,9 @@ plot_ts_incid_ar_state <- function (hosp_state_totals,
                                     interv_start_date = NA,
                                     interv_end_date = NA) {
 
-  geopop <- geodata %>% 
+  geopop <- geodata %>%
     dplyr::filter(include_in_report) %>%
-    dplyr::select(!! pop_name) %>% 
+    dplyr::select(!! pop_name) %>%
     unlist %>% unname
 
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
@@ -564,7 +564,7 @@ plot_ts_incid_ar_state <- function (hosp_state_totals,
     theme_minimal() +
     theme(axis.title.x =  element_blank(),
           legend.position = "bottom",
-          legend.title = element_blank()) 
+          legend.title = element_blank())
 
 
   if(plot_intervention){
@@ -657,65 +657,65 @@ make_fig_captions <- function(scenario,
                            sim_end_date = sim_date_end,
                            location_name = report_location_name,
                            figure_num = 1){
-  
-  
+
+
   start.Int = format(as.Date(interv_start_date), "%b %d")  # intervention start date
   end.Int = format(as.Date(interv_end_date), "%b %d")      # intervention end date
   start.Obs = format(as.Date(sim_start_date), "%b %d")  # simulation observation start date
   end.Obs = format(as.Date(sim_end_date), "%b %d")      # simulation observatoin end date
-  
+
   ## Caption for daily hospital occupancy
   if (scenario == "ts_hosp_state_sample"){
-    
+
     return(paste("Figure", figure_num, "**Daily hospital occupancy** for 15 random example simulations (light lines) for", scenario_nums,
-                 " planning scenarios of SARS-CoV-2 spread in", location_name," with 1% IFR assumptions. Interventions were applied from", 
+                 " planning scenarios of SARS-CoV-2 spread in", location_name," with 1% IFR assumptions. Interventions were applied from",
                  start.Int," to", end.Int," (grey box).*"))
-    
+
   }
-  
+
   ## Caption for daily incident infections
   if (scenario == "ts_incid_inf_state_sample"){
     caption = paste("Figure", figure_num, "**Daily incident infections** for 15 random example simulations (light lines) for", scenario_nums,
-                    " planning scenarios of SARS-CoV-2 spread in", location_name," with 1% IFR assumptions. Interventions were applied from", 
+                    " planning scenarios of SARS-CoV-2 spread in", location_name," with 1% IFR assumptions. Interventions were applied from",
                     start.Int," to", end.Int," (grey box).*")
     return(caption)
-    
+
   }
-  
+
   ## Caption for daily incident deaths
   if (scenario == "ts_incid_death_state_sample_allPdeath"){
     caption = paste("Figure", figure_num, "**Daily incident deaths** for 15 random example simulations (light lines) for", scenario_nums,
-                    " planning scenarios of SARS-CoV-2 spread in", location_name," with 1% IFR assumptions. Interventions were applied from", 
+                    " planning scenarios of SARS-CoV-2 spread in", location_name," with 1% IFR assumptions. Interventions were applied from",
                     start.Int," to", end.Int," (grey box).*")
     return(caption)
-    
+
   }
-  
+
   ## Caption for distribution of simulation results for the cumulative number of COVID-19 hospitalizations
   if (scenario == "hist_incidHosp_state"){
-    caption = paste("Figure", figure_num, "Distribution of simulation results for the cumulative number of COVID-19 hospitalizations from", 
+    caption = paste("Figure", figure_num, "Distribution of simulation results for the cumulative number of COVID-19 hospitalizations from",
                     start.Obs, "through", end.Obs, "for", scenario_nums," scenarios with 1% IFR assumptions.*")
-    
+
     return(caption)
   }
 
   ## Caption for distribution of simulation results for the cumulative number of COVID-19 hospitalizations
   if (scenario == "line_hospPeak_time_county"){
-    caption = paste("Figure", figure_num, "Distribution of peak hospital occupancy from", 
+    caption = paste("Figure", figure_num, "Distribution of peak hospital occupancy from",
                     start.Obs, "through", end.Obs, "for", scenario_nums," scenarios with 1% IFR assumptions.*")
-    
+
     return(caption)
   }
 
    ## Caption for county-level cumulative attack rates
   if (scenario == "county_attack_rate_map"){
     caption = paste("Figure", figure_num, "County-level cumulative attack rates for", scenario_nums," scenarios.*")
-    
+
     return(caption)
   }
 
 
-} 
+}
 
 
 
@@ -741,7 +741,7 @@ make_scn_state_table <- function(current_scenario,
 if (length(pdeath_filecode)==1) {
   stop("Currently does not support single values of pdeath")
 }
-  
+
 tmp <- data.frame(name=c("Infections",
                          "Hospitalizations\n  total", "", "",
                          "  daily peak admissions", "", "",
@@ -863,6 +863,112 @@ flextable::flextable(tmp[,nlabels]) %>%
 
 }
 
+
+##'
+##' Function makes a summary table for an entire state.
+##'
+##' @param hosp_state_totals contains the relevant hospital data
+##' @param period_breas the dates to break up the display periods.
+##' @param pi_low low side of the prediction interval
+##' @param pi_high high side of the prediction interval
+##' @param round_digit what level to round to
+##' 
+##' @export
+##'
+make_scn_time_summary_table <- function(hosp_state_totals,
+                                        period_breaks,
+                                        pi_low = 0.025,
+                                        pi_high = 0.975,
+                                        round_digit=-2) {
+    ##Make the period ranges and labels 
+    period_breaks <- c(min(hosp_state_totals$time)-1, as.Date(period_breaks), max(hosp_state_totals$time)+1)
+    len <- length(period_breaks)
+    lbls <- sprintf("%s-%s", format(period_breaks[1:(len-1)], "%b %d"),
+                    format(period_breaks[2:len], "%b %d"))
+    
+    ## Build the table with summaries of all of the periods in it. 
+    tbl_df <- hosp_state_totals %>% 
+      mutate(period = cut(time, period_breaks, labels=lbls)) %>%
+      group_by(period, scenario_name, sim_num) %>% #summarize totals in periods by scenario
+      summarize(PeriodInf = sum(NincidInf),
+                PeriodDeath= sum(NincidDeath),
+                PeriodHosp=sum(NincidHosp),
+                PeriodPkHosp=max(NhospCurr)) %>% 
+    tbl_df%>%ungroup %>%
+      group_by(period, scenario_name) %>%  #now get means and prediction intervals
+      summarize(PeriodInfPILow = round(quantile(PeriodInf, probs = c(pi_low)),digits = round_digit),
+                PeriodDeathPILow = round(quantile(PeriodDeath, probs = c(pi_low)),digits = round_digit),
+                PeriodHospPILow = round(quantile(PeriodHosp, probs = c(pi_low)),digits = round_digit),
+                PeriodPkHospPILow = round(quantile(PeriodPkHosp, probs = c(pi_low)),digits = round_digit),
+                PeriodInfPIHigh = round(quantile(PeriodInf, probs = c(pi_high)),digits = round_digit),
+                PeriodDeathPIHigh = round(quantile(PeriodDeath, probs = c(pi_high)),digits = round_digit),
+                PeriodHospPIHigh = round(quantile(PeriodHosp, probs = c(pi_high)),digits = round_digit),
+                PeriodPkHospPIHigh = round(quantile(PeriodPkHosp, probs = c(pi_high)),digits = round_digit),
+                PeriodInf = round(mean(PeriodInf),digits = round_digit),
+                PeriodDeath = round(mean(PeriodDeath),digits = round_digit),
+                PeriodHosp = round(mean(PeriodHosp),digits = round_digit),
+                PeriodPkHosp = round(mean(PeriodPkHosp),digits = round_digit)) %>%
+      ungroup() %>% ##make hi/low into CIs
+      mutate(PeriodInfPI = sprintf("(%1.0f-%1.0f)", PeriodInfPILow, PeriodInfPIHigh),
+             PeriodDeathPI = sprintf("(%1.0f-%1.0f)", PeriodDeathPILow, PeriodDeathPIHigh),
+             PeriodHospPI = sprintf("(%1.0f-%1.0f)", PeriodHospPILow, PeriodHospPIHigh),
+             PeriodPkHospPI = sprintf("(%1.0f-%1.0f)", PeriodPkHospPILow, PeriodPkHospPIHigh))%>%
+      select(-PeriodInfPILow, -PeriodInfPIHigh,
+             -PeriodDeathPILow, -PeriodDeathPIHigh,
+             -PeriodHospPILow, -PeriodHospPIHigh,
+             -PeriodPkHospPILow, -PeriodPkHospPIHigh) 
+    
+  
+    tmp<-sprintf("%s_%s", rep(lbls, each=2),c("mean","PI"))
+   
+   
+    ##inellegant but should work
+    tbl_df <- 
+     bind_rows(tbl_df%>%select(period,scenario_name, PeriodInf, PeriodInfPI)%>%mutate(outcome="Infections in Period")%>%
+                 rename(mean=PeriodInf,`PI`=PeriodInfPI),
+               tbl_df%>%select(period,scenario_name, PeriodDeath, PeriodDeathPI)%>%mutate(outcome="Deaths in Period")%>%
+                 rename(mean=PeriodDeath,`PI`=PeriodDeathPI),
+               tbl_df%>%select(period,scenario_name, PeriodHosp, PeriodHospPI)%>%mutate(outcome="Hospitalizations in Period")%>%
+                 rename(mean=PeriodHosp,`PI`=PeriodHospPI),
+               tbl_df%>%select(period,scenario_name, PeriodPkHosp, PeriodPkHospPI)%>%mutate(outcome="Peak Occupancy in Period")%>%
+                 rename(mean=PeriodPkHosp,`PI`=PeriodPkHospPI)) %>%
+      mutate(period=as.character(period)) %>%
+      pivot_wider(names_from=period, values_from = c(mean,`PI`), names_sep=".")%>%
+      setNames(nm = sub("(.*)\\.(.*)", "\\2_\\1", names(.)))%>%
+      select(outcome,scenario_name,all_of(tmp))
+
+    #tells how to group columns
+    tbl_df <- flextable::as_grouped_data(tbl_df,groups="outcome")
+    tmp <- is.na(tbl_df$scenario_name)
+    tbl_df$scenario_name[tmp] <-tbl_df$outcome[tmp]
+    tbl_df <- tbl_df%>%select(-outcome)
+    typology<-data_frame(col_keys=colnames(tbl_df),
+                         colA=c("",rep(lbls,each=2)),
+                         colB=c("",rep(c("mean","PI"),length(lbls))))
+   
+    
+    
+ 
+
+    flx <- flextable::flextable(tbl_df)  %>%
+      flextable::colformat_num(digits=0)%>%
+      #flextable::merge_v(j="outcome")%>%
+      flextable::autofit(add_w=.05)%>%
+      flextable::valign(valign="top") %>%
+      flextable::set_header_df(mapping = typology, key = "col_keys" )%>%
+      #flextable::merge_h(part="header")%>%
+      flextable::bold(j=sprintf("%s_mean",lbls))%>%
+      flextable::bold(part="header",bold=TRUE)%>%
+      flextable::bold(j = 1, i =which(tmp), bold = TRUE, part = "body" )%>%
+      flextable::align(i=1,align = "center", part="header") %>% 
+      flextable::align(i=2,j=which(typology$colB=="mean"), align = "right", part="header") %>%
+      flextable::hline(i=2, part="header",  border = officer::fp_border())%>%
+      flextable::hline_top(part="header",  border = officer::fp_border(width=2))%>%
+      flextable::border(i=which(tmp),  border.top = officer::fp_border(col="grey"))
+    
+    return(flx)
+
+}
 
 ##'
 ##' Make caption for statewide table of infections, hosp, ICU, deaths for given scenario
