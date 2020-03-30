@@ -92,14 +92,14 @@ filter_make_command <- function(simulation,prefix=""){
   
    
   cat("
-  .PHONY: rerun rerun_simulations rerun_hospitalization clean_hospitalization clean clean_simulations
-  
-  NCOREPER=4
-  RSCRIPT=Rscript
-  PYTHON=python3
-  PIPELINE=COVIDScenarioPipeline/
-  ")
-  cat(paste0("CONFIG=",config_file),"\n")
+.PHONY: rerun rerun_simulations rerun_hospitalization clean_hospitalization clean clean_simulations
+
+NCOREPER=4
+RSCRIPT=Rscript
+PYTHON=python3
+PIPELINE=COVIDScenarioPipeline/
+")
+  cat(paste0("CONFIG=",cf),"\n")
   cat(paste0("OUTPUTBASE=",config$name),"\n")
   
   cat("report:")
@@ -131,28 +131,28 @@ for(sim_idx in seq_len(length(simulations))){
   }
   
 cat(paste0("
-  
-  rerun: rerun_simulations rerun_hospitalization
+
+rerun: rerun_simulations rerun_hospitalization
 rerun_filter:
 	rm .files/1*_filter
 rerun_importation:
 	rm .files/1*_importation
-  rerun_simulations: clean_simulations
-  	rm -f .files/1*_simulation*
-  rerun_hospitalization:
-  	rm -f .files/1*_hospitalization*
+rerun_simulations: clean_simulations
+	rm -f .files/1*_simulation*
+rerun_hospitalization:
+	rm -f .files/1*_hospitalization*
 clean: clean_simulations clean_hospitalization clean_reports clean_importation
 clean_filter: rerun_filter
 	rm -rf ",config$spatial_setup$dynfilter_path,"
 clean_importation: rerun_importation
 	rm -rf importation
-  clean_reports:
-  	rm -f notebooks/*.html
-  clean_simulations: rerun_simulations
-  	rm -rf model_output
-  clean_hospitalization: rerun_hospitalization
-  	rm -rf hospitalization
-  "))
+clean_reports:
+	rm -f notebooks/*.html
+clean_simulations: rerun_simulations
+	rm -rf model_output
+clean_hospitalization: rerun_hospitalization
+	rm -rf hospitalization
+"))
   
   cat("production_report:")
   for(scenario in scenarios){
