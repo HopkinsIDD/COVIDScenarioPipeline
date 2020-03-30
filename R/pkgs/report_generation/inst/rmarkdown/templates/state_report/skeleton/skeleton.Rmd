@@ -71,7 +71,7 @@ state_hosp_totals <- list()
 for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
     state_hosp_totals[[i]] <- load_hosp_geocombined_totals(scn_dirs,
                                                config$report$formatting$scenario_labels,
-                                               name_filter=,
+                                               name_filter= config$hospitalization$parameters$p_death_names[i],
                                                incl_geoids=included_geoids,
                                                geoid_len=5) %>%
         mutate(pdeath=config$hospitalization$parameters$p_death[i])
@@ -103,21 +103,42 @@ inf_geounit_peaks <- load_inf_geounit_peaks_date(scn_dirs,
 scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 
 cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
-                           config$report$formatting$display_dates,
-                           config$report$formatting$scenario_labels,
+                           display_dates = config$report$formatting$display_dates,
+                           scenariolabels = config$report$formatting$scenario_labels,
                            incl_geoids=included_geoids,
                            geoid_len=5)
 
 ```
 
+
+```{r}
+###Load cumulative hospitalizations on specific dates
+scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
+
+for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
+  cum_hosp_dates <- load_cum_hosp_geounit_date(scn_dirs,
+                              name_filter = config$hospitalization$parameters$p_death_names[i],
+                              display_dates = config$report$formatting$display_dates,
+                              scenariolabels = config$report$formatting$scenario_labels,
+                              incl_geoids=included_geoids,
+                              geoid_len=5) %>%
+        mutate(pdeath=config$hospitalization$parameters$p_death[i])
+}
+
+```
+
 ```{r}
 ## Load peak hosp_curr by specific date
-
-hosp_geounit_peaks <- load_hosp_geounit_peak_date(scn_dirs,
+for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
+  hosp_geounit_peaks <- load_hosp_geounit_peak_date(scn_dirs,
+                          max_var = "hosp_curr",
+                          name_filter= config$hospitalization$parameters$p_death_names[i],
                           display_date = config$report$formatting$display_dates[1],
                           scenariolabels = config$report$formatting$scenario_labels,
                           incl_geoids = included_geoids,
-                          geoid_len = 5)
+                          geoid_len = 5) %>%
+        mutate(pdeath=config$hospitalization$parameters$p_death[i])
+}
 ```
 
 ## State Level Results
