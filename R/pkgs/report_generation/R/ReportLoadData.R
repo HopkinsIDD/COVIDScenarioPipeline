@@ -393,7 +393,7 @@ load_hosp_geounit_threshold <- function(
   threshold,
   variable,
   end_date = config$end_date,
-  name_filter,
+  name_filter = "",
   incl_geoids = NULL,
   scenario_labels = NULL,
   geoid_len = 0,
@@ -433,8 +433,10 @@ load_hosp_geounit_threshold <- function(
                   # Take the first element of the arranged data frame that meets the threshold
                   if(.y$geoid %in% names(threshold)) {
                     .x <- .x[which(.x[[variable]] >= threshold[.y$geoid])[1], ]
+                    .x$threshold_value <- threshold[.y$geoid]
                   } else {
                     .x <- .x[which(.x[[variable]] >= catch_all_threshold)[1], ]
+                    .x$threshold_value <- catch_all_threshold
                   }
                   .x$geoid <- .y$geoid
                   return(.x)
@@ -451,7 +453,7 @@ load_hosp_geounit_threshold <- function(
                                            geoid_len = geoid_len,
                                            padding_char = padding_char)
         rc[[i]]$scenario_num <- i
-        rc[[i]]$scenario_name <- scenario_labels[[i]]
+        rc[[i]]$scenario_label <- scenario_labels[[i]]
     }
 
     rc %>% 

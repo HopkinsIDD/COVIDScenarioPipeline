@@ -889,3 +889,84 @@ make_scn_state_table_cap <- function(current_scenario,
 }
 
 
+plot_time_where_geoid_does_something <- function(hosp_county_peaks,
+                                                 geodata,
+                                                 scenario_labels, # TODO provide default arguments
+                                                 scenario_colors, # TODO provide default arguments
+                                                 time_caption,
+                                                 geoid_caption,
+                                                 value_name,
+                                                 start_date,      # TODO provide default arguments
+                                                 end_date) {
+ 
+  start_date <- lubridate::ymd(start_date)
+  end_date <- lubridate::ymd(end_date)
+
+  if(is.null(value_name) & (length(scenario_labels) == 1)){stop("Value name must be provided if only one scenario is plotted.")}
+
+  value_name <- rlang::sym(value_name)
+
+  hosp_county_peaks$time[is.na(hosp_county_peaks$time)] <- end_date+1
+  hosp_county_peaks$time[hosp_county_peaks$time > end_date] <- end_date+1
+  hosp_county_peaks$time[hosp_county_peaks$time < start_date] <- start_date-1
+
+  to_plt <- hosp_county_peaks %>%
+    filter(scenario_label %in% scenario_labels) %>%
+    group_by(geoid, scenario_label) %>%
+    dplyr::summarise(mean_time = mean(time),
+                     median_time = median(time),
+                     low_time = quantile(time, probs=.25, type=1),
+                     hi_time = quantile(time, probs=.75, type=1),
+                     value = round(mean(!!value_name,na.rm=T),0)) %>%
+    ungroup %>%
+    dplyr::mutate(scenario_label = factor(scenario_label,
+                                         levels = scenario_labels,
+                                         labels = scenario_labels)) %>%
+    dplyr::inner_join(geodata, by = c("geoid")) %>%
+    mutate(
+      name = reorder(name, -as.numeric(median_time)),
+    )
+
+
+  if(length(scenario_labels)==1){
+    browser()
+    rc <- ggplot(data=to_plt,
+                 aes(x = as.numeric(name),
+                     y = median_time, ymin = low_time, ymax = hi_time)) +
+      geom_pointrange() +
+      scale_x_continuous(
+        labels=levels(to_plt$name),
+        breaks=seq_len(nrow(to_plt)),
+        sec.axis = sec_axis(~.,labels = to_plt$value[rank(levels(to_plt$name))], breaks = seq_len(nrow(to_plt)))
+      ) +
+      scale_y_date(time_caption,
+                   date_breaks = "1 months",
+                   date_labels = "%b"
+                   ) +
+      xlab(geoid_caption) +
+      theme_bw() +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "bottom")  +
+      coord_flip()
+  } else{
+    rc <- ggplot(data=to_plt,
+                 aes(x = reorder(name, -as.numeric(median_time)),
+                     y = median_time, ymin = low_time, ymax = hi_time,
+                     color = scenario_label)) +
+      geom_pointrange() +
+      scale_y_date(time_caption,
+                   date_breaks = "1 months",
+                   date_labels = "%b"
+                   ) +
+      xlab(geoid_caption) +
+      scale_color_manual("Scenario",
+                         labels = scenario_labels,
+                         values = scenario_colors) +
+      theme_bw() +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "bottom")  +
+      coord_flip()
+  }
+
+
+  return(rc)
+
+}
