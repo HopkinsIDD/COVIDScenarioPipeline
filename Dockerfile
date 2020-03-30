@@ -72,7 +72,7 @@ ENV HOME /home/app
 # R
 #####
 
-ENV R_VERSION 3.5.3-1bionic
+ENV R_VERSION 3.6.3-1bionic
 
 # see https://www.digitalocean.com/community/tutorials/how-to-install-r-on-ubuntu-18-04
 # https://cran.r-project.org/bin/linux/debian/
