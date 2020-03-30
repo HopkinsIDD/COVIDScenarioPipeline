@@ -79,6 +79,10 @@ COPY packages.R $HOME
 RUN sudo apt-get install -y --yes-install-recommends r-base-dev=$R_VERSION
 RUN Rscript packages.R
 
+# install custom packages from R/pkgs/**
+RUN Rscript packages-custom.R
+
+
 #####
 # Python (managed via pyenv)
 #####
