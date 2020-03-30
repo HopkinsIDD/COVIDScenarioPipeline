@@ -8,9 +8,9 @@ report_location_name: California
 
 spatial_setup:
   base_path: data/west-coast-AZ-NV
-
   setup_name: west-coast-AZ-NV
   geodata: geodata.csv
+  shapefile_name: shp/counties_2010_west-coast-AZ-NV.shp
   mobility: mobility.txt
   popnodes: pop2010
   nodenames: geoid  # Name of the column in geodata with uniquely name of nodes
@@ -145,7 +145,7 @@ hospitalization:
     dur_inf_scale: 3
     end_date: 2020-10-01
     p_death: [.0025, .005, .01]
-    p_death_names: ["low","mid","high"]
+    p_death_names: ["low","med","high"]
     p_death_rate: 0.1
     p_ICU: 0.264
     p_vent: 0.15
