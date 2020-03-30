@@ -417,9 +417,17 @@ load_hosp_geounit_threshold <- function(
                 group_by(geoid) %>% 
                 group_map(function(.x,.y){
                   .x <- .x %>% arrange(time)
-                  # Take the first element of the arranged data frame that meets the threshold for that geoid
-                  .x <- .x[which(.x[[variable]] >= threshold[.y$geoid])[1], ]
-                }) %>%
+                  # Take the first element of the arranged data frame that meets the threshold
+                  if(.y$geoid %in% names(threshold)) {
+                    .x <- .x[which(.x[[variable]] >= threshold[.y$geoid])[1], ]
+                    .x$threshold_value <- threshold[.y$geoid]
+                  } else {
+                    .x <- .x[which(.x[[variable]] >= catch_all_threshold)[1], ]
+                    .x$threshold_value <- catch_all_threshold
+                  }
+                  .x$geoid <- .y$geoid
+                  return(.x)
+                }, keep = TRUE) %>%
                 do.call(what=dplyr::bind_rows) %>%
                 ungroup()
         }

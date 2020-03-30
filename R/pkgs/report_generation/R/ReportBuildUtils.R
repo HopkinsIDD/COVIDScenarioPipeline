@@ -889,15 +889,35 @@ make_scn_state_table_cap <- function(current_scenario,
 }
 
 
-plot_time_where_geoid_does_something <- function(hosp_county_peaks,
-                                                 geodata,
-                                                 scenario_labels, # TODO provide default arguments
-                                                 scenario_colors, # TODO provide default arguments
-                                                 time_caption,
-                                                 geoid_caption,
-                                                 value_name,
-                                                 start_date,      # TODO provide default arguments
-                                                 end_date) {
+
+##'
+##' Plot figure showing when event time by geoid
+##'
+##' @param hosp_county_peak hosp geounit peak data
+##' @param shapefile object with geoid and name
+##' @param scenario_labels character vector of scenario labels from config
+##' @param scenario_colors character vector of colors from config
+##' @param time_caption label for time axis
+##' @param geoid_caption label for geoid axis
+##' @param value_name name of secondary axis value
+##' @param exclude_zeroes logical indicating whether to exclude geounits with no beds
+##' @param start_date start date as character string "2020-01-01"
+##' @param end_date end date as character string
+##'
+##' @return plot state time series median and IQR
+##'
+##' @export
+##'
+plot_event_time_by_geoid <- function(hosp_county_peaks,
+                                     shapefile,
+                                     scenario_labels, # TODO provide default arguments
+                                     scenario_colors, # TODO provide default arguments
+                                     time_caption,
+                                     geoid_caption,
+                                     value_name,
+                                     exclude_zeroes = TRUE,
+                                     start_date,      # TODO provide default arguments
+                                     end_date) {
  
   start_date <- lubridate::ymd(start_date)
   end_date <- lubridate::ymd(end_date)
@@ -922,14 +942,19 @@ plot_time_where_geoid_does_something <- function(hosp_county_peaks,
     dplyr::mutate(scenario_label = factor(scenario_label,
                                          levels = scenario_labels,
                                          labels = scenario_labels)) %>%
-    dplyr::inner_join(geodata, by = c("geoid")) %>%
+    dplyr::inner_join(shapefile, by = c("geoid")) %>%
     mutate(
       name = reorder(name, -as.numeric(median_time)),
     )
 
+  ## exclude counties with 0 hospital beds
+  if(exclude_zeroes){
+    to_plt <- to_plt %>%
+      dplyr::filter(value>0)
+  }
+
 
   if(length(scenario_labels)==1){
-    browser()
     rc <- ggplot(data=to_plt,
                  aes(x = as.numeric(name),
                      y = median_time, ymin = low_time, ymax = hi_time)) +
