@@ -24,6 +24,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
   require(tidyverse)
   
   files <- dir(sprintf("model_output/%s", scenario_dir),full.names = TRUE)
+  if(length(files) == 0){stop(paste0("There were no files in ",getwd(),"/",sprintf("model_output/%s", scenario_dir)))}
   
   rc <- list()
   
@@ -83,6 +84,7 @@ load_hosp_sims_filtered <- function(scenario_dir,
   
   files <- dir(sprintf("hospitalization/model_output/%s", scenario_dir),full.names = TRUE)
   files <- files[grepl(name_filter,files)]
+  if(length(files) == 0){stop(paste0("There were no files in ",getwd(),"/",sprintf("model_output/%s", scenario_dir," matching name filter |",name_filter,"|")))}
 
   rc <- list()
   
