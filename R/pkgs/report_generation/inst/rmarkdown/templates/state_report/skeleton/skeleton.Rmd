@@ -147,7 +147,9 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
 ### Summary
 [DESCRIPTION OF REPORT AND SCENARIOS]
 
-[TABLE SUMMARIZING STATE LEVEL RESULTS BY MORTALITY RATE, ETC.]
+```{r}
+make_scn_time_summary_table(state_hosp_totals%>%filter(pdeath==.01), config$report$formatting$display_dates)
+```
 
 
 ### Diversity of Possible Outcomes
