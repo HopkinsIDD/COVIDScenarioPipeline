@@ -13,7 +13,16 @@ spatial_setup:
   geodata: geodata.csv
   mobility: mobility.txt
   popnodes: pop2010
+  nodenames: geoid  # Name of the column in geodata with uniquely name of nodes
   include_in_report: targeted
+
+#seeding:
+#  method: FolderDraw
+#  folder_path: model_output/importation/
+
+seeding:
+  method: PoissonDistributed
+  lambda_file: data/west-coast-AZ-NV/seeding.csv
 
 interventions:
   scenarios:
