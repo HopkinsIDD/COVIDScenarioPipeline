@@ -28,4 +28,6 @@ install_version("tidycensus", version = "0.9.5")
 install_version("yaml", version = "2.2.1")
 install_version("optparse", version = "1.6.4")
 install_version("lubridate", version = "1.7.4")
+
+install_github("HopkinsIDD/globaltoolboxlite")
 install_github("HopkinsIDD/covidImportation")
