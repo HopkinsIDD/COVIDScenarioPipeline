@@ -405,7 +405,6 @@ Severe:
    ```{r,eval=FALSE,echo=TRUE}
    devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/covidcommon')
    devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/hospitalization')
-   devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/importation_estimation')
    devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/report_generation')
    ```
 

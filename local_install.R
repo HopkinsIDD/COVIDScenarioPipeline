@@ -7,5 +7,4 @@ pkg.dir <- paste0(dirname(script.name), "/R/pkgs/")
 
 install_local(paste0(pkg.dir, "covidcommon"), force=TRUE, upgrade="never")
 install_local(paste0(pkg.dir, "hospitalization"), force=TRUE, upgrade="never")
-install_local(paste0(pkg.dir, "importation_estimation"), force=TRUE, upgrade="never")
 install_local(paste0(pkg.dir, "report_generation"), force=TRUE, upgrade="never")
