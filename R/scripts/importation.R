@@ -1,6 +1,6 @@
 library(covidImportation)
 library(doParallel)
-options(error=function(){quit(2)})
+#options(error=function(){quit(2)})
 # options(tigris_use_cache = TRUE)
 
 option_list = list(
@@ -17,15 +17,15 @@ outdir <- file.path('importation',config$spatial_setup$setup_name)
 if(!dir.exists(outdir)){
   dir.create(outdir,recursive=TRUE)
 }
-if(!dir.exists(file.path(outdir,dest))){
-  dir.create(file.path(outdir,dest,recursive=TRUE))
+if(!dir.exists(file.path(outdir,paste(dest,collapse='_')))){
+  dir.create(file.path(outdir,paste(dest,collapse='_')),recursive=TRUE)
 }
 case_data_dir <- file.path('importation',config$spatial_setup$setup_name,"case_data")
 if(!dir.exists(case_data_dir)){
   dir.create(case_data_dir,recursive=TRUE)
 }
-if(!dir.exists(file.path(config$spatial_setup$base_path,dest))){
-  dir.create(file.path(config$spatial_setup$base_path,dest),recursive=TRUE)
+if(!dir.exists(file.path(config$spatial_setup$base_path,paste(dest,collapse='_')))){
+  dir.create(file.path(config$spatial_setup$base_path,paste(dest,collapse='_')),recursive=TRUE)
 }
 param_list <- config$param_list
 
