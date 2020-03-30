@@ -739,7 +739,7 @@ make_scn_state_table <- function(current_scenario,
                                  pdeath_filecode){
 
 if (length(pdeath_filecode)==1) {
-  stop("Currently does not supprt single values of pdeath")
+  stop("Currently does not support single values of pdeath")
 }
   
 tmp <- data.frame(name=c("Infections",
