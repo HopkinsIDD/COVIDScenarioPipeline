@@ -11,7 +11,7 @@ library(data.table)
 set.seed(123456789)
 
 option_list = list(
-  optparse::make_option(c("-c", "--config"), action="store", default='config_r0Mid.yml', type='character', help="path to the config file"),
+  optparse::make_option(c("-c", "--config"), action="store", default='config.yml', type='character', help="path to the config file"),
   optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenario to run, or 'all' to run all of them"),
   optparse::make_option(c("-s", "--scenario"), action="store", default='all', type='character', help="name of the intervention to run, or 'all' to run all of them"),
   optparse::make_option(c("-j", "--jobs"), action="store", default='8', type='numeric', help="number of cores used")
@@ -62,7 +62,7 @@ print(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
 county_dat <- read.csv(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
 print(county_dat)
 county_dat$geoid <- as.character(county_dat$geoid)
-county_dat$new_pop <- county_dat$pop2018  # original has pop2010
+county_dat$new_pop <- county_dat[[config$spatial_setup$popnodes]]
 #county_dat <- make_metrop_labels(county_dat)
 
 for (scn0 in scenario) {
@@ -87,3 +87,4 @@ for (scn0 in scenario) {
     )
   }
 }
+
