@@ -21,7 +21,7 @@ incid_data_list <- covidImportation::get_incidence_data(
   check_saved_data=TRUE,
   save_data=TRUE
 )
-jhucsse <- incid_data_list$jhucsse
+jhucsse <- incid_data_list$jhucsse_case_data
 
 all_times <- lubridate::ymd(config$start_date) +
   seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
