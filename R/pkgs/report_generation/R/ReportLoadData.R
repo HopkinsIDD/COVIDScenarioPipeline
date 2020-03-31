@@ -393,7 +393,7 @@ load_hosp_geounit_threshold <- function(
   threshold,
   variable,
   end_date = config$end_date,
-  name_filter = "",
+  name_filter,
   incl_geoids = NULL,
   scenario_labels = NULL,
   geoid_len = 0,
