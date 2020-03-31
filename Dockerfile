@@ -88,6 +88,7 @@ COPY packages.R $HOME
 RUN Rscript packages.R
 
 # install custom packages from R/pkgs/**
+COPY packages-custom.R $HOME
 RUN Rscript packages-custom.R
 
 
