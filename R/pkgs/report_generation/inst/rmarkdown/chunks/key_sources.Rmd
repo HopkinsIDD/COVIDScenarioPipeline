@@ -7,3 +7,4 @@
 - Range of $R_0$ selected to be consistent with the early stages of the Wuhan epidemic and is broadly consistent
   with estimates from Imperial College (https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-2019-nCoV-transmissibility.pdf), [@Riou2020], [@Majumder2020], [@Zhao2020]
 
+- Assumption on ICU occupancy in the United States [@Halpern2015]
