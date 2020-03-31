@@ -79,7 +79,7 @@ conv_round <- function(x){
 ##'
 make_CI <- function(lo, hi){
   if(is.numeric(lo)){
-    paste0("(", conv_round(lo), ", ", conv_round(hi), ")") }else{
+    paste0("(", format(conv_round(lo), big.mark = ","), "-", format(conv_round(hi), big.mark=","), ")") }else{
       paste0("(", format.Date(lo, format="%d %b"), ", ", format.Date(hi, format="%d %b"), ")") }
 }
 
@@ -89,6 +89,8 @@ make_CI <- function(lo, hi){
 ##' TODO ADD OPTION TO CHANGE VARIABLE THAT IS PLOTTED TO ANYTHING IN HOSP OUTCOMES DATASET
 ##'
 ##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
+##' @param varname character string of variable name to plot from hosp data
+##' @param varlabel character string of varialbe name label for plot
 ##' @param num_sims the number of simulations to show
 ##' @param pdeath_level level of IFR for filtering hospitalization data - TODO: Move our of functions
 ##' @param scenario_labels names of the scenarios to include- TODO: give a default
@@ -104,6 +106,8 @@ make_CI <- function(lo, hi){
 ##' @export
 ##'
 plot_ts_hosp_state_sample <- function (hosp_state_totals,
+                                       varname = "NhospCurr",
+                                       varlabel = "Daily hospital occupancy",
                                        num_sims = 15,
                                        pdeath_level = "high",
                                        scenario_labels,
@@ -123,13 +127,14 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
     dplyr::mutate(scenario_name = factor(scenario_name,
                                          levels = scenario_labels,
                                          labels = scenario_labels),
-                  sim_num = factor(sim_num))
+                  sim_num = factor(sim_num)) %>%
+    dplyr::rename(pltvar = !!varname)
 
   rc <- ggplot(data=to_plt,
                aes(x=time, colour = scenario_name,
                    group = interaction(sim_num, scenario_name))) +
-    geom_line(aes(y = NhospCurr), alpha=0.3, size=.75) +
-    scale_y_continuous("Daily hospital occupancy", labels = scales::comma) +
+    geom_line(aes(y = pltvar), alpha=0.3, size=.75) +
+    scale_y_continuous(varlabel, labels = scales::comma) +
     scale_x_date(date_breaks = "1 month",
                  date_labels = "%b",
                  limits = c(lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date))) +
@@ -316,9 +321,10 @@ plot_ts_incid_death_state_sample_allPdeath <- function (hosp_state_totals,
 
 
 ##'
-##' Plot figure showing histogram of cumulative hospitalizations by a certain date
+##' Plot figure showing histogram of cumulative hospitalizations (or other incident outcome) by a certain date
 ##'
 ##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
+##' @param var_name variable name for final size distribution
 ##' @param pdeath_level level of IFR (string: high/med/low) for filtering hospitalization data
 ##' @param sim_start_date simulation start date as character string "2020-01-01"
 ##' @param summary_date date at which to present cumulative summary of hospitalizations
@@ -328,6 +334,7 @@ plot_ts_incid_death_state_sample_allPdeath <- function (hosp_state_totals,
 ##' @export
 ##'
 plot_hist_incidHosp_state <- function (hosp_state_totals,
+                                      var_name,
                                        pdeath_level = "high",
                                        scenario_labels,
                                        scenario_cols,
@@ -339,29 +346,31 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
 
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
   to_plt <- hosp_state_totals %>%
+    dplyr::rename(pltVar = !!var_name) %>%
     dplyr::filter(pdeath==pdeath_level) %>%
     dplyr::filter(time >= sim_start_date & time <= summary_date) %>%
     group_by(scenario_name, sim_num) %>%
-    dplyr::summarise(cumHosp = sum(NincidHosp)) %>%
+    dplyr::summarise(pltVar = sum(pltVar)) %>%
     ungroup %>%
     dplyr::mutate(scenario_name = factor(scenario_name,
                                          levels = scenario_labels,
                                          labels = scenario_labels))
 
   rc <- ggplot(data=to_plt,
-               aes(x = cumHosp, fill = scenario_name, color = scenario_name)) +
-    geom_histogram() +
+               aes(x = pltVar, fill = scenario_name, color = scenario_name)) +
+    geom_histogram(binwidth = 1000) +
     facet_wrap(scenario_name~., ncol = 1) +
     scale_fill_manual(values = scenario_cols,
                       labels = scenario_labels,
                       aesthetics = c("colour", "fill")) +
-    scale_x_continuous(paste("Cumulative hospitalizations\n by",
+    scale_x_continuous(paste("by",
                              print_pretty_date_short(summary_date)),
-                       labels = scales::comma) +
+                       labels = scales::comma,
+                       ) +
     ylab("Number of simulations") +
     theme_bw() +
     guides("none") +
-    theme(legend.position = "none")
+    theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1, vjust =1))
 
 
   return(rc)
@@ -639,7 +648,7 @@ plot_model_parameter_distributions <- function(name, config){
 ##' Make figure captions
 ##'
 ##' @param scenario scenario name from config
-##' @param scenario_nums
+##' @param scenario_nums numbering of scenario
 ##' @param interv_start_date intervention start date
 ##' @param interv_end_date intervention end date
 ##' @param sim_start_date sim start date
@@ -740,18 +749,21 @@ make_scn_state_table <- function(current_scenario,
                                  pdeath_labels,
                                  pdeath_filecode){
 
+ci_lo = 0.025
+ci_hi = 0.975
+
 if (length(pdeath_filecode)==1) {
   stop("Currently does not support single values of pdeath")
 }
 
-tmp <- data.frame(name=c("Infections",
-                         "Hospitalizations\n  total", "", "",
+tmp <- data.frame(name=c("INFECTIONS",
+                         "HOSPITALIZATIONS\n  total", "", "",
                          "  daily peak admissions", "", "",
                          "  daily peak capacity", "", "",
-                         "ICU Admissions\n  total", "", "",
+                         "ICU \n  total", "", "",
                          "  daily peak admissions", "", "",
                          "  daily peak capacity", "", "",
-                         "Deaths\n  total", "", ""))
+                         "DEATHS\n  total", "", ""))
 tmp$name <- as.character(tmp$name)
 table_dates <- as.Date(table_dates)
 
@@ -774,29 +786,29 @@ for(i in 1:length(table_dates)){
     group_by(scenario_name, pdeath) %>%
     summarize(
       nIncidInf_final = mean(TotalIncidInf),
-      nIncidInf_lo = quantile(TotalIncidInf, 0.25),
-      nIncidInf_hi = quantile(TotalIncidInf, 0.75),
+      nIncidInf_lo = quantile(TotalIncidInf, ci_lo),
+      nIncidInf_hi = quantile(TotalIncidInf, ci_hi),
       nIncidHosp_final = mean(TotalIncidHosp),
-      nIncidHosp_lo = quantile(TotalIncidHosp, 0.25),
-      nIncidHosp_hi = quantile(TotalIncidHosp, 0.75),
+      nIncidHosp_lo = quantile(TotalIncidHosp, ci_lo),
+      nIncidHosp_hi = quantile(TotalIncidHosp, ci_hi),
       pIncidHosp_final = mean(maxHospAdm),
-      pIncidHosp_lo = quantile(maxHospAdm, 0.25),
-      pIncidHosp_hi = quantile(maxHospAdm, 0.75),
+      pIncidHosp_lo = quantile(maxHospAdm, ci_lo),
+      pIncidHosp_hi = quantile(maxHospAdm, ci_hi),
       nIncidICU_final = mean(TotalIncidICU),
-      nIncidICU_lo = quantile(TotalIncidICU, 0.25),
-      nIncidICU_hi = quantile(TotalIncidICU, 0.75),
+      nIncidICU_lo = quantile(TotalIncidICU, ci_lo),
+      nIncidICU_hi = quantile(TotalIncidICU, ci_hi),
       pIncidICU_final = mean(maxICUAdm),
-      pIncidICU_lo = quantile(maxICUAdm, 0.25),
-      pIncidICU_hi = quantile(maxICUAdm, 0.75),
+      pIncidICU_lo = quantile(maxICUAdm, ci_lo),
+      pIncidICU_hi = quantile(maxICUAdm, ci_hi),
       nIncidDeath_final = mean(TotalIncidDeath),
-      nIncidDeath_lo = quantile(TotalIncidDeath, 0.25),
-      nIncidDeath_hi = quantile(TotalIncidDeath, 0.75),
+      nIncidDeath_lo = quantile(TotalIncidDeath, ci_lo),
+      nIncidDeath_hi = quantile(TotalIncidDeath, ci_hi),
       nCurrHosp_final = mean(maxHospCap),
-      nCurrHosp_lo = quantile(maxHospCap, 0.25),
-      nCurrHosp_hi = quantile(maxHospCap, 0.75),
+      nCurrHosp_lo = quantile(maxHospCap, ci_lo),
+      nCurrHosp_hi = quantile(maxHospCap, ci_hi),
       nCurrICU_final = mean(maxICUCap),
-      nCurrICU_lo = quantile(maxICUCap, 0.25),
-      nCurrICU_hi = quantile(maxICUCap, 0.75)) %>%
+      nCurrICU_lo = quantile(maxICUCap, ci_lo),
+      nCurrICU_hi = quantile(maxICUCap, ci_hi)) %>%
     ungroup() %>%
     mutate(pdeath = pdeath_labels[match(pdeath, pdeath_filecode)])
 
@@ -805,7 +817,8 @@ for(i in 1:length(table_dates)){
                    xx %>% filter(pdeath==pdeath_labels[1]) %>%
                      mutate(ci = make_CI(nIncidInf_lo, nIncidInf_hi),
                             est = conv_round(nIncidInf_final),
-                            lvl = paste0("total inc infections")) %>%
+                            lvl = paste0("total inc infections"),
+                            pdeath = "") %>% ## infections have no pdeath
                      select(lvl, est, ci, pdeath) %>%
                      bind_rows(xx %>%
                                  mutate(ci = make_CI(nIncidHosp_lo, nIncidHosp_hi),
@@ -851,8 +864,8 @@ nlabels <- c("name", "pdeath", "est", "ci")
 
 for(i in 1:length(table_dates)){
   tlabels <- c(tlabels,
-               paste0(print_pretty_date_short(table_dates[i]), "\nmean"),
-               "\nIQR")
+               paste0(print_pretty_date_short(table_dates[i]), "\nmean    "),
+               "\n    95% PI")
   if(i>1){nlabels <- c(nlabels, paste0("est", i-1), paste0("ci", i-1))}
 }
 names(tlabels) <- nlabels
@@ -911,31 +924,31 @@ make_scn_time_summary_table <- function(hosp_state_totals,
                 PeriodHosp = round(mean(PeriodHosp),digits = round_digit),
                 PeriodPkHosp = round(mean(PeriodPkHosp),digits = round_digit)) %>%
       ungroup() %>% ##make hi/low into CIs
-      mutate(PeriodInfPI = sprintf("(%1.0f-%1.0f)", PeriodInfPILow, PeriodInfPIHigh),
-             PeriodDeathPI = sprintf("(%1.0f-%1.0f)", PeriodDeathPILow, PeriodDeathPIHigh),
-             PeriodHospPI = sprintf("(%1.0f-%1.0f)", PeriodHospPILow, PeriodHospPIHigh),
-             PeriodPkHospPI = sprintf("(%1.0f-%1.0f)", PeriodPkHospPILow, PeriodPkHospPIHigh))%>%
+      mutate(PeriodInfPI = paste(format(PeriodInfPILow,big.mark=","), format(PeriodInfPIHigh,big.mark=","), sep="-"),
+             PeriodDeathPI = paste(format(PeriodDeathPILow,big.mark=","), format(PeriodDeathPIHigh,big.mark=","), sep="-"),
+             PeriodHospPI = paste(format(PeriodHospPILow,big.mark=","), format(PeriodHospPIHigh,big.mark=","), sep="-"),
+             PeriodPkHospPI = paste(format(PeriodPkHospPILow,big.mark=","), format(PeriodPkHospPIHigh,big.mark=","), sep="-")) %>%
       select(-PeriodInfPILow, -PeriodInfPIHigh,
              -PeriodDeathPILow, -PeriodDeathPIHigh,
              -PeriodHospPILow, -PeriodHospPIHigh,
              -PeriodPkHospPILow, -PeriodPkHospPIHigh) 
     
   
-    tmp<-sprintf("%s_%s", rep(lbls, each=2),c("mean","PI"))
+    tmp<-sprintf("%s_%s", rep(lbls, each=2),c("mean","95% PI"))
    
    
     ##inellegant but should work
     tbl_df <- 
      bind_rows(tbl_df%>%select(period,scenario_name, PeriodInf, PeriodInfPI)%>%mutate(outcome="Infections in Period")%>%
-                 rename(mean=PeriodInf,`PI`=PeriodInfPI),
+                 rename(mean=PeriodInf,`95% PI`=PeriodInfPI),
                tbl_df%>%select(period,scenario_name, PeriodDeath, PeriodDeathPI)%>%mutate(outcome="Deaths in Period")%>%
-                 rename(mean=PeriodDeath,`PI`=PeriodDeathPI),
+                 rename(mean=PeriodDeath,`95% PI`=PeriodDeathPI),
                tbl_df%>%select(period,scenario_name, PeriodHosp, PeriodHospPI)%>%mutate(outcome="Hospitalizations in Period")%>%
-                 rename(mean=PeriodHosp,`PI`=PeriodHospPI),
-               tbl_df%>%select(period,scenario_name, PeriodPkHosp, PeriodPkHospPI)%>%mutate(outcome="Peak Occupancy in Period")%>%
-                 rename(mean=PeriodPkHosp,`PI`=PeriodPkHospPI)) %>%
+                 rename(mean=PeriodHosp,`95% PI`=PeriodHospPI),
+               tbl_df%>%select(period,scenario_name, PeriodPkHosp, PeriodPkHospPI)%>%mutate(outcome="Peak Hospital Occupancy in Period")%>%
+                 rename(mean=PeriodPkHosp,`95% PI`=PeriodPkHospPI)) %>%
       mutate(period=as.character(period)) %>%
-      pivot_wider(names_from=period, values_from = c(mean,`PI`), names_sep=".")%>%
+      pivot_wider(names_from=period, values_from = c(mean,`95% PI`), names_sep=".")%>%
       setNames(nm = sub("(.*)\\.(.*)", "\\2_\\1", names(.)))%>%
       select(outcome,scenario_name,all_of(tmp))
 
@@ -946,7 +959,7 @@ make_scn_time_summary_table <- function(hosp_state_totals,
     tbl_df <- tbl_df%>%select(-outcome)
     typology<-data_frame(col_keys=colnames(tbl_df),
                          colA=c("",rep(lbls,each=2)),
-                         colB=c("",rep(c("mean","PI"),length(lbls))))
+                         colB=c("",rep(c("mean","95% PI"),length(lbls))))
    
     
     
@@ -1008,6 +1021,7 @@ make_scn_state_table_cap <- function(current_scenario,
 ##' @param time_caption label for time axis
 ##' @param geoid_caption label for geoid axis
 ##' @param value_name name of secondary axis value
+##' @param value_label secondary axis character label
 ##' @param exclude_zeroes logical indicating whether to exclude geounits with no beds
 ##' @param start_date start date as character string "2020-01-01"
 ##' @param end_date end date as character string
@@ -1023,6 +1037,7 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
                                      time_caption,
                                      geoid_caption,
                                      value_name,
+                                     value_label,
                                      start_date,      # TODO provide default arguments
                                      end_date) {
  
@@ -1062,11 +1077,11 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
       scale_x_continuous(
         labels=levels(to_plt$name),
         breaks=seq_len(nrow(to_plt)),
-        sec.axis = sec_axis(~.,labels = to_plt$value[rank(levels(to_plt$name))], breaks = seq_len(nrow(to_plt)))
+        sec.axis = sec_axis(~.,labels = to_plt$value[rank(levels(to_plt$name))], breaks = seq_len(nrow(to_plt)), name = value_label)
       ) +
       scale_y_date(time_caption,
-                   date_breaks = "1 months",
-                   date_labels = "%b"
+                   date_breaks = "1 week",
+                   date_labels = "%b %d"
                    ) +
       xlab(geoid_caption) +
       theme_bw() +
@@ -1079,8 +1094,8 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
                      color = scenario_label)) +
       geom_pointrange() +
       scale_y_date(time_caption,
-                   date_breaks = "1 months",
-                   date_labels = "%b"
+                   date_breaks = "1 week",
+                   date_labels = "%b %d"
                    ) +
       xlab(geoid_caption) +
       scale_color_manual("Scenario",

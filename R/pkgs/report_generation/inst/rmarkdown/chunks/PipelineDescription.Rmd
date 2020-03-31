@@ -6,7 +6,7 @@ is all open source. The core pipeline phases are:
 
 
 * **Seeding:** We run a model to determine the likelihood of importing
-  cases into the region of interest.  We maintain an [R
+  cases into the region of interest. We maintain an [R
   package](https://github.com/HopkinsIDD/covidImportation).
 
 * **Epidemic Simulation:** We run a location stratified [SEIR
@@ -17,7 +17,6 @@ is all open source. The core pipeline phases are:
   effects of infection using infection numbers using the
   [hospitalization](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/hospitalization)
   R package in `COVIDScenarioPipeline`.
-  
 
 * **Report Generation:** We provide functions to access results and
   help produce reports in the
