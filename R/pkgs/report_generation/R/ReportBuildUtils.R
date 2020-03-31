@@ -134,7 +134,7 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
                aes(x=time, colour = scenario_name,
                    group = interaction(sim_num, scenario_name))) +
     geom_line(aes(y = pltvar), alpha=0.3, size=.75) +
-    scale_y_continuous(varlabel, labels = scales::comma) +
+    scale_y_log10(varlabel, labels = scales::comma) +
     scale_x_date(date_breaks = "1 month",
                  date_labels = "%b",
                  limits = c(lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date))) +
@@ -960,9 +960,6 @@ make_scn_time_summary_table <- function(hosp_state_totals,
     typology<-data_frame(col_keys=colnames(tbl_df),
                          colA=c("",rep(lbls,each=2)),
                          colB=c("",rep(c("mean","95% PI"),length(lbls))))
-   
-    
-    
  
 
     flx <- flextable::flextable(tbl_df)  %>%
