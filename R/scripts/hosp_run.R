@@ -62,7 +62,7 @@ print(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
 county_dat <- read.csv(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
 print(county_dat)
 county_dat$geoid <- as.character(county_dat$geoid)
-county_dat$new_pop <- county_dat$pop2010
+county_dat$new_pop <- county_dat[[config$spatial_setup$popnodes]]
 #county_dat <- make_metrop_labels(county_dat)
 
 for (scn0 in scenario) {
@@ -87,3 +87,4 @@ for (scn0 in scenario) {
     )
   }
 }
+
