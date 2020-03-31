@@ -943,7 +943,7 @@ make_scn_time_summary_table <- function(hosp_state_totals,
                  rename(mean=PeriodInf,`95% PI`=PeriodInfPI),
                tbl_df%>%select(period,scenario_name, PeriodDeath, PeriodDeathPI)%>%mutate(outcome="Deaths in Period")%>%
                  rename(mean=PeriodDeath,`95% PI`=PeriodDeathPI),
-               tbl_df%>%select(period,scenario_name, PeriodHosp, PeriodHospPI)%>%mutate(outcome="Hospitalizations in Period")%>%
+               tbl_df%>%select(period,scenario_name, PeriodHosp, PeriodHospPI)%>%mutate(outcome="Hospital Admissions in Period")%>%
                  rename(mean=PeriodHosp,`95% PI`=PeriodHospPI),
                tbl_df%>%select(period,scenario_name, PeriodPkHosp, PeriodPkHospPI)%>%mutate(outcome="Peak Hospital Occupancy in Period")%>%
                  rename(mean=PeriodPkHosp,`95% PI`=PeriodPkHospPI)) %>%
