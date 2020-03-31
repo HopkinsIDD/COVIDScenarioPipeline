@@ -5,8 +5,9 @@ import os
 
 from .utils import config
 
-
+# Number of components
 ncomp = 7
+# Number of infection components
 n_Icomp = 3
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
@@ -14,11 +15,15 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 class SpatialSetup:
     # def __init__(self, *, setup_name, folder, geodata_file, mobility_file, popnodes_key):
     def __init__(self, *, setup_name, geodata_file, mobility_file, popnodes_key):
-        # popnodes_key is the name of the column in self.data that has populations
         self.setup_name = setup_name
         self.data = pd.read_csv(geodata_file) # geoids and populations
         self.mobility = np.loadtxt(mobility_file) # K x K matrix of people moving
+
+        # popnodes_key is the name of the column in self.data that has populations
+        if popnodes_key not in self.data:
+            raise KeyError(f"popnodes_key: {popnodes_key} does not correspond to column in geodata_file.");
         self.popnodes = self.data[popnodes_key].to_numpy() # population
+
         self.nnodes = len(self.data) # K = # of locations
 
         if self.mobility.shape != (self.nnodes, self.nnodes):
@@ -46,6 +51,8 @@ class Setup():
         self.dt = dt
         self.ti = ti
         self.tf = tf
+        if self.tf <= self.ti:
+            raise ValueError("tf (time to finish) is less than or equal to ti (time to start)")
         self.npi_scenario = npi_scenario
         self.npi_config = npi_config
         self.interactive = interactive
@@ -73,6 +80,7 @@ class Setup():
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
 
+    # build initial conditions
     def buildIC(self, seeding_places, seeding_amount):
         self.y0 = np.zeros((ncomp, self.nnodes))
         self.y0[S, :] = self.popnodes
