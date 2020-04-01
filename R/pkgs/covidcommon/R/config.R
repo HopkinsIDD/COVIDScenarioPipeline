@@ -53,11 +53,11 @@ as_random_distribution <- function(obj) {
   require(purrr)
 
   if (obj$distribution == "uniform") {
-    return(partial(runif, min=as_evaled_expression(obj$low), max=as_evaled_expression(obj$high)))
+    return(purr::partial(runif, min=as_evaled_expression(obj$low), max=as_evaled_expression(obj$high)))
   } else if (obj$distribution == "poisson") {
-    return(partial(rpois, lambda=as_evaled_expression(obj$lam)))
+    return(purrr::partial(rpois, lambda=as_evaled_expression(obj$lam)))
   } else if (obj$distribution == "binomial") {
-    return(partial(rbinom, size=as_evaled_expression(obj$n), prob=as_evaled_expression(obj$p)))
+    return(purr::partial(rbinom, size=as_evaled_expression(obj$n), prob=as_evaled_expression(obj$p)))
   } else {
       stop("unknown distribution")
   }
