@@ -57,5 +57,5 @@ mobility = mobility + mobility.T # Symetric mobility doubling fluxes mobility.su
 
 if not os.path.exists(foldername):
     os.makedirs(foldername)
-np.savetxt(f'{foldername}mobilityNEW.txt', mobility)
-geodata.to_csv(f'{foldername}geodataNEW.csv', index_label='id')
+np.savetxt(f'{foldername}mobility.txt', mobility)
+geodata.to_csv(f'{foldername}geodata.csv', index_label='id')

@@ -46,17 +46,22 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
                             geodata_file=spatial_base_path / spatial_config["geodata"].get(),
                             mobility_file=spatial_base_path / spatial_config["mobility"].get(),
                             popnodes_key=spatial_config["popnodes"].get(),
+                            nodenames_key=spatial_config["nodenames"].get()
                         ),
                         nsim=nsim,
                         npi_scenario=scenario,
                         npi_config=config["interventions"]["settings"][scenario],
+                        seeding_config=config["seeding"],
                         ti=config["start_date"].as_date(),
                         tf=config["end_date"].as_date(),
                         interactive=interactive,
                         write_csv=write_csv,
                         dt=config["dt"].as_number())
-
-        s.load_filter(config["dynfilter_path"].get())
+        try:
+            s.load_filter(config["dynfilter_path"].get())
+            print(' We are using a filter')
+        except:
+            print('No filter used')
 
         print(f"""
 >> Scenario: {scenario}
