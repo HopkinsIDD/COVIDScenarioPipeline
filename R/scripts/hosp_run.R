@@ -7,19 +7,22 @@ library(tidyr)
 library(magrittr)
 library(hospitalization)
 library(data.table)
+library(parallel)
 
 set.seed(123456789)
 
 option_list = list(
-  optparse::make_option(c("-c", "--config"), action="store", default='config.yml', type='character', help="path to the config file"),
+  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
   optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenario to run, or 'all' to run all of them"),
   optparse::make_option(c("-s", "--scenario"), action="store", default='all', type='character', help="name of the intervention to run, or 'all' to run all of them"),
-  optparse::make_option(c("-j", "--jobs"), action="store", default='8', type='numeric', help="number of cores used")
+  optparse::make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used")
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
 config <- covidcommon::load_config(opt$c)
-
+if (is.na(config)) {
+  stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
+}
 
 # set parameters for time to hospitalization, time to death, time to discharge
 time_hosp_pars <- as_evaled_expression(config$hospitalization$parameters$time_hosp)
