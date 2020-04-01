@@ -1,29 +1,55 @@
 import numpy as np
 import pandas as pd
-import geopandas as gpd
 import datetime
-from shapely.geometry import Point, Polygon
-from COVIDScenarioPipeline.SEIR import seir
+import os
+import scipy.sparse
+
+from .utils import config
+
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
+class SpatialSetup:
+    def __init__(self, *, setup_name, folder, geodata_file, mobility_file, popnodes_key, nodenames_key):
+        self.setup_name = setup_name
+        self.folder = folder
+        self.data = pd.read_csv(geodata_file, converters={nodenames_key: lambda x: str(x)})
+        self.mobility = scipy.sparse.coo_matrix(np.loadtxt(mobility_file))
+        self.popnodes = self.data[popnodes_key].to_numpy()
+        self.nodenames = self.data[nodenames_key].tolist()
+        self.nnodes = len(self.data)
+
+
 class Setup():
-    """ 
+    """
         This class hold a setup model setup.
     """
-    def __init__(self, setup_name, spatial_setup, nsim, ti, tf, 
-                 interactive = True, write_csv = False, 
-                 dt = 1/6, nbetas = None):
+    def __init__(self, *,
+                 setup_name,
+                 spatial_setup,
+                 nsim,
+                 ti,
+                 tf,
+                 npi_scenario=None,
+                 npi_config={},
+                 seeding_config={},
+                 interactive=True,
+                 write_csv=False,
+                 dt=1 / 6,
+                 nbetas=None):
         self.setup_name = setup_name
         self.nsim = nsim
         self.dt = dt
         self.ti = ti
         self.tf = tf
+        self.npi_scenario = npi_scenario
+        self.npi_config = npi_config
+        self.seeding_config = seeding_config
         self.interactive = interactive
         self.write_csv = write_csv
-        
+
         if nbetas is None:
             nbetas = nsim
         self.nbetas = nbetas
@@ -31,93 +57,89 @@ class Setup():
         self.spatset = spatial_setup
 
         self.build_setup()
-        self.dynfilter = - np.ones((self.t_span,self.nnodes))
+        self.dynfilter = -np.ones((self.t_span, self.nnodes))
+
+        if self.write_csv:
+            self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            self.datadir = f'model_output/{self.setup_name}/'
+            if not os.path.exists(self.datadir):
+                os.makedirs(self.datadir)
 
     def build_setup(self):
-        self.t_span = (self.tf -  self.ti).days
-        self.t_inter = np.arange(0, self.t_span+0.0001, self.dt)
+        self.t_span = (self.tf - self.ti).days
+        self.t_inter = np.arange(0, self.t_span + 0.0001, self.dt)
         self.nnodes = self.spatset.nnodes
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
 
-    def buildIC(self, seeding_places, seeding_amount):
-        self.y0 = np.zeros((ncomp, self.nnodes))#, dtype = 'int64')
-        self.y0[S,:] = self.popnodes
-        for i, pl in enumerate(seeding_places):
-            self.y0[S, pl] = self.popnodes[pl] - seeding_amount[i]
-            self.y0[I1, pl] = seeding_amount[i]
-        return self.y0
+    #def buildIC(self, seeding_places, seeding_amount):
+    #    self.y0 = np.zeros((ncomp, self.nnodes))
+    #    self.y0[S, :] = self.popnodes
+    #    for i, pl in enumerate(seeding_places):
+    #        self.y0[S, pl] = self.popnodes[pl] - seeding_amount[i]
+    #        self.y0[I1, pl] = seeding_amount[i]
+    #    return self.y0
 
-    
+    #def buildICfromfilter(self):
+    #    y0 = np.zeros((ncomp, self.nnodes))
+    #    draw = np.random.poisson(5 * self.dynfilter[31] + 0.1)
+    #    y0[S, :] = self.popnodes - draw
+    #    y0[E, :] = (draw / 4).astype(np.int)
+    #    y0[I1, :] = (draw / 4).astype(np.int)
+    #    y0[I2, :] = (draw / 4).astype(np.int)
+    #    y0[I3, :] = (draw / 4).astype(np.int)
+    #    y0[cumI, :] = (3 * draw / 4).astype(np.int)
+    #    return y0
 
     def set_filter(self, dynfilter):
         self.dynfilter = dynfilter
 
-class COVID19Parameters():
-    """ Class to hold parameters for COVID19 transmission.
-        When temporal rates, unit is [d^-1]
-    """
-    def __init__(self, s):
-        self.s = s
-        # https://github.com/midas-network/COVID-19/tree/master/parameter_estimates/2019_novel_coronavirus
-        # incubation period 5.2 days based on an estimate from Lauer et al. 2020
-        self.sigma = 1/5.2
+    def load_filter(self, dynfilter_path):
+        self.set_filter(np.loadtxt(dynfilter_path))
 
-        # Number of infected compartiments
-        n_Icomp = 3
+def seeding_draw(s, uid):
+    importation = np.zeros((s.t_span+1, s.nnodes))
+    method = s.seeding_config["method"].as_str()
+    if (method == 'PoissonDistributed'):
+        seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
+                              converters={'place': lambda x: str(x)},
+                              parse_dates=['date'])
+        for  _, row in seeding.iterrows():
+            importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = \
+                np.random.poisson(row['amount'])
 
-        # time from symptom onset to recovery per compartiment
-        self.gamma = np.random.uniform(1/6, 1/2.6, s.nbetas) * n_Icomp  # range of serial from 8.2 to 6.5
-        
-        if 'low' in s.setup_name: self.R0s = np.random.uniform(1.5, 2, s.nbetas)   # np.random.uniform(1.5, 2, nbetas)
-        if 'mid' in s.setup_name: self.R0s = np.random.uniform(2, 3, s.nbetas)
-
-        self.betas = np.multiply(self.R0s, self.gamma) / n_Icomp
-
-        self.betas = np.vstack([self.betas]*len(s.t_inter))
-        self.gamma = np.vstack([self.gamma]*len(s.t_inter))
-        self.sigma = np.hstack([self.sigma]*len(s.t_inter))
-        
-        self.betas = np.dstack([self.betas]*s.nnodes)
-        self.gamma = np.dstack([self.gamma]*s.nnodes)
-        self.sigma = np.vstack([self.sigma]*s.nnodes)
-
-        print (f' >>> Added Parameters with values:')
-
-    def to_vector(self, beta_id):
-        """ for speed, to use with numba JIT compilation"""
-        return(np.array([self.betas[:,beta_id%self.s.nbetas], self.sigma.T, self.gamma[:,beta_id%self.s.nbetas]]))
-
-    def addNPIfromcsv(self, filename):
-        npi = pd.read_csv(filename).T
-        npi.columns = npi.iloc[0]
-        npi = npi.drop('Unnamed: 0')
-        npi.index = pd.to_datetime(npi.index)
-        npi = npi.resample(str(self.s.dt*24) + 'H').ffill()
-        for i in range(self.s.nbetas):
-            self.betas[:,i,:] =  np.multiply(self.betas[:,i,:], np.ones_like(self.betas[:,i,:]) - npi.to_numpy())
-
-        print (f'>>> Added NPI as specicied in file {filename}')
-    
-    def addNPIfromR(self, npi):
-        npi.index = pd.to_datetime(npi.index.astype(str))
-        npi = npi.resample(str(self.s.dt*24) + 'H').ffill()
-        for i in range(self.s.nbetas):
-            self.betas[:,i,:] =  np.multiply(self.betas[:,i,:], np.ones_like(self.betas[:,i,:]) - npi.to_numpy())
+    elif (method == 'FolderDraw'):
+        folder_path = s.seeding_config["folder_path"].as_str()
+        nfile = uid%len(os.listdir(folder_path)) + 1
+        seeding = pd.read_csv(f'{folder_path}importation_{nfile}.csv', 
+                              converters={'place': lambda x: str(x)},
+                              parse_dates=['date'])
+        for  _, row in seeding.iterrows():
+            importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
+    else:
+        raise NotImplementedError(f"unknown seeding method [got: {method}]")
+    return importation
 
 
-class CaliforniaSpatialSetup():
-    """
-        Setup for california at the county scale.
-    """
-    def __init__(self):
-        folder = 'california/'
-        self.data = pd.read_csv(f'data/{folder}geodata.csv')
-        self.mobility = np.loadtxt(f'data/{folder}mobility.txt')
-        self.popnodes = self.data['new_pop'].to_numpy()
-        self.nnodes = len(self.data)
-        self.counties_shp = gpd.read_file(f'data/{folder}california-counties-shp/california-counties.shp')
-        self.counties_shp.sort_values('GEOID', inplace=True)
+def parameters_quick_draw(s, npi):
+    n_Icomp = 3
 
+    sigma = config["seir"]["parameters"]["sigma"].as_evaled_expression()
+    gamma = config["seir"]["parameters"]["gamma"].as_random_distribution()() * n_Icomp
+    R0s = config["seir"]["parameters"]["R0s"].as_random_distribution()()
 
+    beta = np.multiply(R0s, gamma) / n_Icomp
 
+    beta = np.hstack([beta] * len(s.t_inter))
+    gamma = np.hstack([gamma] * len(s.t_inter))
+    sigma = np.hstack([sigma] * len(s.t_inter))
+
+    beta = np.vstack([beta] * s.nnodes)
+    gamma = np.vstack([gamma] * s.nnodes)
+    sigma = np.vstack([sigma] * s.nnodes)
+
+    npi.index = pd.to_datetime(npi.index.astype(str))
+    npi = npi.resample(str(s.dt * 24) + 'H').ffill()
+    beta = np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
+
+    return (np.array([beta.T, sigma.T, gamma.T]))
