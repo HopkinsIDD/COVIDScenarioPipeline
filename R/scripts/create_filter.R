@@ -5,12 +5,15 @@ library(tidyr)
 library(purrr)
 
 option_list = list(
-  optparse::make_option(c("-c", "--config"), action="store", default='config.yml', type='character', help="path to the config file")
+  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file")
 )
 
 opts = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
 config <- covidcommon::load_config(opts$c)
+if (is.na(config)) {
+  stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
+}
 
 
 incid_data_list <- covidImportation::get_incidence_data(
