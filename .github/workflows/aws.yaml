@@ -8,10 +8,13 @@
 on:
   push:
     branches:
+      - master
+      - dev
       - dataseed
     paths:
       - 'requirements.txt'
       - 'packages.R'
+      - 'packages-custom.R'
       - 'Dockerfile'
       - 'R/pkgs/**'
 
@@ -50,10 +53,23 @@ jobs:
         # push it to ECR so that it can
         # be deployed to ECS.
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA .
+
         # Add new tags
         docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$(git log -1 --pretty=%h)
         docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:${IMAGE_TAG_REF##*/}-r$IMAGE_TAG_RUN
-        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+        if [[ $IMAGE_TAG_REF == *master* ]]; then
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:latest-master
+        elif [[ $IMAGE_TAG_REF == *dev* ]]; then
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:latest-dev
+        elif [[ $IMAGE_TAG_REF == *dataseed* ]]; then
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:latest-dataseed
+        else
+          echo "Error, branch not recognized"
+          exit 1
+        fi
+
         docker push $ECR_REGISTRY/$ECR_REPOSITORY
         echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY"
 
