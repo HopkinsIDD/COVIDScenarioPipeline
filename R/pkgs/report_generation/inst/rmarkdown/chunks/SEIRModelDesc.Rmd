@@ -1,0 +1,61 @@
+The model is an stochastic spatial 'SEIR model' where the population of
+each node is divided in categories depending on their situation with
+regard to the diseases. The compartments are:
+
+-   $S$ Susceptible individuals that may contracts COVID-19.
+
+-   $E$ Exposed individuals that are incubating the disease, after being
+    in contact with another infected.
+
+-   $I$ Infected and infectious individuals.
+
+-   $R$ Recovered individuals with immunity to re-infection.
+
+In practice, this translate into $k = 3$ compartments of infected,
+$I1, I2, I3$ in order to have an infectious period shaped as Ehrlang
+distribution. Then the rates of the different compartments are given in
+the table below:
+
+  -------------------------- -------------------------------------- ----------
+          Transition                     rate parameter                Unit
+     $S\longrightarrow E$     $\beta = \frac{R_0 \cdot \gamma}{k}$   d$^{-1}$
+    $E\longrightarrow I_1$          $\sigma = \frac{1}{5.2}$         d$^{-1}$
+   $I_1\longrightarrow I_2$       $\gamma = \gamma_s \cdot k$        d$^{-1}$
+   $I_2\longrightarrow I_3$       $\gamma = \gamma_s \cdot k$        d$^{-1}$
+    $I_3\longrightarrow R$        $\gamma = \gamma_s \cdot k$        d$^{-1}$
+  -------------------------- -------------------------------------- ----------
+
+For such epidemiological model, two meta-parameters are important in
+reproducing the dynamics and final size of an epidemic: the serial
+interval $SI$, which is the interval between two subsequent infections,
+and the basic reproductive number $R_0$ representing the number of newly
+infected per infected, in a fully susceptible population.
+
+The serial interval of COVID-19 is currently estimated to be in range
+$6.5-8.2$. We draw uniformly from this range, and we solve
+$SI = \frac{1}{2}(\frac{1}{\gamma\cdot k})+\frac{1}{\sigma}$ for
+$\gamma$.
+
+The basic reproductive number, $R_0$, is drawn for each simulation in
+range $2-3$, and we obtain parameter beta from
+$\beta= \frac{R_0 \cdot \gamma}{k}$.
+
+The model is fixed time step, and the transitions at each time step
+$\Delta t$ are: $$\begin{aligned}
+p_{expose} &=&  1 - \exp(-\Delta t \cdot \beta \cdot \frac{I_1 + I_2 + I_3}{H}) \\
+p_{infect} &=&  1 - \exp(-\Delta t \cdot \sigma)\\
+p_{recover} &=& 1 - \exp(-\Delta t \cdot \gamma)\end{aligned}$$
+
+At each time step, we draw in a binomial distribution, e.g
+$$N_{I_1\longrightarrow I_2}(t) = \text{Binom}(I_1, 1 - \exp(-\delta t \cdot \gamma))$$
+
+Individuals moves from one node to another. A mobility matrix $M$ where
+$M(o,d)$ is the amount of individuals moving daily from origin $o$ to
+destination $d$. At each time step, and for each $(o,d)$ pair, we draw:
+$$N_{o\longrightarrow d} = \text{Binom}((S_o,E_o,I^1_o,I^2_o,I^3_o,R_o)^T, 1 - \exp(\frac{-\Delta t * M(o,d)}{H_o}))$$
+For each compartment, $N_{o\longrightarrow d}$ is the amount of
+individual we displace from $o$ to $d$. $H_o$ is the total population of
+node $o$
+
+The model is implemented in python, just in time compiled to machine
+code using Numba. It runs at the county level.

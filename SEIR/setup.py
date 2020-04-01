@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import datetime
 import os
+import scipy.sparse
 
 from .utils import config
 
@@ -13,7 +14,6 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
 class SpatialSetup:
-    # def __init__(self, *, setup_name, folder, geodata_file, mobility_file, popnodes_key):
     def __init__(self, *, setup_name, geodata_file, mobility_file, popnodes_key):
         self.setup_name = setup_name
         self.data = pd.read_csv(geodata_file) # geoids and populations
@@ -42,6 +42,7 @@ class Setup():
                  tf, # time to finish
                  npi_scenario=None,
                  npi_config={},
+                 seeding_config={},
                  interactive=True,
                  write_csv=False,
                  dt=1 / 6, # step size, in days
@@ -55,6 +56,7 @@ class Setup():
             raise ValueError("tf (time to finish) is less than or equal to ti (time to start)")
         self.npi_scenario = npi_scenario
         self.npi_config = npi_config
+        self.seeding_config = seeding_config
         self.interactive = interactive
         self.write_csv = write_csv
 
@@ -80,25 +82,24 @@ class Setup():
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
 
-    # build initial conditions
-    def buildIC(self, seeding_places, seeding_amount):
-        self.y0 = np.zeros((ncomp, self.nnodes))
-        self.y0[S, :] = self.popnodes
-        for i, pl in enumerate(seeding_places):
-            self.y0[S, pl] = self.popnodes[pl] - seeding_amount[i]
-            self.y0[I1, pl] = seeding_amount[i]
-        return self.y0
+    #def buildIC(self, seeding_places, seeding_amount):
+    #    self.y0 = np.zeros((ncomp, self.nnodes))
+    #    self.y0[S, :] = self.popnodes
+    #    for i, pl in enumerate(seeding_places):
+    #        self.y0[S, pl] = self.popnodes[pl] - seeding_amount[i]
+    #        self.y0[I1, pl] = seeding_amount[i]
+    #    return self.y0
 
-    def buildICfromfilter(self):
-        y0 = np.zeros((ncomp, self.nnodes))
-        draw = np.random.poisson(5 * self.dynfilter[31] + 0.1)
-        y0[S, :] = self.popnodes - draw
-        y0[E, :] = (draw / 4).astype(np.int)
-        y0[I1, :] = (draw / 4).astype(np.int)
-        y0[I2, :] = (draw / 4).astype(np.int)
-        y0[I3, :] = (draw / 4).astype(np.int)
-        y0[cumI, :] = (3 * draw / 4).astype(np.int)
-        return y0
+    #def buildICfromfilter(self):
+    #    y0 = np.zeros((ncomp, self.nnodes))
+    #    draw = np.random.poisson(5 * self.dynfilter[31] + 0.1)
+    #    y0[S, :] = self.popnodes - draw
+    #    y0[E, :] = (draw / 4).astype(np.int)
+    #    y0[I1, :] = (draw / 4).astype(np.int)
+    #    y0[I2, :] = (draw / 4).astype(np.int)
+    #    y0[I3, :] = (draw / 4).astype(np.int)
+    #    y0[cumI, :] = (3 * draw / 4).astype(np.int)
+    #    return y0
 
     def set_filter(self, dynfilter):
         if dynfilter.shape != (self.t_span, self.nnodes):
@@ -107,6 +108,29 @@ class Setup():
 
     def load_filter(self, dynfilter_path):
         self.set_filter(np.loadtxt(dynfilter_path))
+
+def seeding_draw(s, uid):
+    importation = np.zeros((s.t_span+1, s.nnodes))
+    method = s.seeding_config["method"].as_str()
+    if (method == 'PoissonDistributed'):
+        seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
+                              converters={'place': lambda x: str(x)},
+                              parse_dates=['date'])
+        for  _, row in seeding.iterrows():
+            importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = \
+                np.random.poisson(row['amount'])
+
+    elif (method == 'FolderDraw'):
+        folder_path = s.seeding_config["folder_path"].as_str()
+        nfile = uid%len(os.listdir(folder_path)) + 1
+        seeding = pd.read_csv(f'{folder_path}importation_{nfile}.csv',
+                              converters={'place': lambda x: str(x)},
+                              parse_dates=['date'])
+        for  _, row in seeding.iterrows():
+            importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
+    else:
+        raise NotImplementedError(f"unknown seeding method [got: {method}]")
+    return importation
 
 
 def parameters_quick_draw(s, npi):

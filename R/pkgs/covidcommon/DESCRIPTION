@@ -13,4 +13,5 @@ Authors@R:
 Description: Common R code shared across all local packages
 License: What license it uses
 Encoding: UTF-8
-RoxygenNote: 7.1.0
+Suggests: 
+    testthat (>= 2.1.0)
