@@ -21,13 +21,13 @@ class SpatialSetup:
 
         # popnodes_key is the name of the column in self.data that has populations
         if popnodes_key not in self.data:
-            raise KeyError(f"popnodes_key: {popnodes_key} does not correspond to column in geodata_file.");
+            raise ValueError(f"popnodes_key: {popnodes_key} does not correspond to a column in geodata_file.");
         self.popnodes = self.data[popnodes_key].to_numpy() # population
 
         self.nnodes = len(self.data) # K = # of locations
 
         if self.mobility.shape != (self.nnodes, self.nnodes):
-            raise ValueError(f"Mobility file should be of dimensions ({self.nnodes}, {self.nnodes})")
+            raise ValueError(f"Mobility file must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
 
 
 class Setup():
@@ -101,6 +101,8 @@ class Setup():
         return y0
 
     def set_filter(self, dynfilter):
+        if dynfilter.shape != (self.t_span, self.nnodes):
+            raise ValueError(f"Filter file must have dimensions ({self.t_span}, {self.nnodes}). Actual: ({dynfilter.shape})")
         self.dynfilter = dynfilter
 
     def load_filter(self, dynfilter_path):
