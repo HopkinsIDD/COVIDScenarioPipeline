@@ -64,7 +64,7 @@ create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
 
 build_hospdeath_par <- function(data, p_hosp, p_death, p_vent, p_ICU, p_hosp_type="gamma",
                                 time_hosp_pars = c(1.23, 0.79), 
-                                time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
+                                time_ICU_pars = c(log(8.25),log(2.22)), #c(log(10.5), log((10.5-7)/1.35)),
                                 time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
                                 time_death_pars = c(log(11.25), log(1.15)), 
                                 time_disch_pars = c(log(11.5), log(1.22)),
@@ -247,6 +247,16 @@ build_hospdeath_summarize <- function(res,
     filter(!is.na(time) & !is.na(metrop_labels)) %>% 
     mutate(time = as.Date(time)) %>%
     filter(time <= as.Date(end_date)) %>%
+    group_by(time, metrop_labels, sim_num) %>%
+    summarize(
+      incidH = sum(incidH),
+      incidICU = sum(incidICU),
+      incidVent = sum(incidVent),
+      incidD = sum(incidD),
+      hosp_curr = sum(hosp_curr),
+      icu_curr = sum(icu_curr),
+      vent_curr = sum(vent_curr)) %>%
+    ungroup() %>%
     group_by(metrop_labels, sim_num) %>% 
     summarize(
       # nInf = sum(incidI, na.rm = TRUE), 
@@ -297,6 +307,16 @@ build_hospdeath_summarize <- function(res,
   res_total <- res %>% 
     filter(!is.na(time)) %>% 
     filter(time <= as.Date(end_date)) %>%
+    group_by(time, sim_num) %>%
+    summarize(
+      incidH = sum(incidH),
+      incidICU = sum(incidICU),
+      incidVent = sum(incidVent),
+      incidD = sum(incidD),
+      hosp_curr = sum(hosp_curr),
+      icu_curr = sum(icu_curr),
+      vent_curr = sum(vent_curr)) %>%
+    ungroup() %>%
     group_by(sim_num) %>% 
     summarize(#nInf = sum(incidI, na.rm = TRUE), 
       nhosp = sum(incidH, na.rm = TRUE), 
@@ -483,7 +503,7 @@ build_hospdeath_summary_multiplePDeath_OLD <- function(data,
                                                    time_hosp_pars = c(1.23, 0.79), 
                                                    time_death_pars = c(log(11.25), log(1.15)), 
                                                    time_disch_pars = c(log(11.5), log(1.22)),
-                                                   time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
+                                                   time_ICU_pars = c(log(8.25),log(2.22)), #c(log(10.5), log((10.5-7)/1.35)),
                                                    time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
                                                    time_ICUdur_pars = c(log(17.46), log(4.044)),
                                                    end_date = "2020-04-01",

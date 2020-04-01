@@ -13,14 +13,14 @@ load_scenario_sims <- function(scenario_dir,
                                keep_compartments=NULL,
                                time_filter_low = -Inf,
                                time_filter_high = Inf) {
-
+    
     require(data.table)
-
+    
     files <- dir(sprintf("model_output/%s", scenario_dir),full.names = TRUE)
-
+    
     rc <- list()
-
-
+    
+    
     for (i in 1:length(files)) {
         file <- files[i]
         #print(i)
@@ -33,19 +33,19 @@ load_scenario_sims <- function(scenario_dir,
                     filter(comp%in%keep_compartments)
             )
         }
-
+        
         #colnames(tmp) <- tmp[1,]
         tmp <- #tmp[-1,] %>%
             tmp %>%
             filter(time <= time_filter_high & time >= time_filter_low) %>%
             pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>%
             mutate(sim_num = i)
-
+        
         rc[[i]] <- tmp
     }
-
+    
     rc<- rbindlist(rc)
-
+    
     return(rc)
 }
 
@@ -58,24 +58,24 @@ load_scenario_sims <- function(scenario_dir,
 ##'@return a long thin data frame with all of the simulations comined together for one model + p_death
 ##'
 load_hosp_sims <- function(scenario_dir, pdeath = "low") {
-
+    
     require(data.table)
-
+    
     files <- dir(sprintf("hospitalization/model_output/%s", scenario_dir),full.names = TRUE)
     files <- files[grepl(pdeath,files)]
-
+    
     rc <- list()
-
-
+    
+    
     for (i in 1:length(files)) {
         file <- files[i]
         suppressMessages(tmp <- read_csv(file))
-
+        
         rc[[i]] <- tmp
     }
-
+    
     rc<- rbindlist(rc)
-
+    
     return(rc)
 }
 
@@ -399,8 +399,8 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
         pivot_wider(id_cols=metrop_labels,
                     names_from=p_death,
                     values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
-
-
+    
+    
     tmp_total <- final_hosp_dat %>%
         mutate(hosp_est = paste0(conv_round(nhosp_final), " (", conv_round(nhosp_lo), "-", conv_round(nhosp_hi), ")"),
                peak_hosp = paste0(conv_round(phosp_final), " (", conv_round(phosp_lo), "-", conv_round(phosp_hi), ")"),
@@ -415,13 +415,13 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
         pivot_wider(id_cols=metrop_labels,
                     names_from=p_death,
                     values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
-
-    var_to_report <- c("hosp_est_", "peak_hosp_cap_", "ICU_est_", "peak_ICU_cap_", "vent_est_", "death_est_")
+    
+    var_to_report <- c("hosp_est_", "peak_hosp_cap_", "ICU_est_", "vent_est_", "death_est_")
     cnames <- paste0(var_to_report, rep(p_death, each=length(var_to_report)))
-
+    
     tab <- bind_rows(tmp_total[,c("metrop_labels", cnames)],
                      tmp_metro[,c("metrop_labels", cnames)])
-
+    
     return(tab)
 }
 
@@ -434,9 +434,9 @@ make_hosp_table <- function(final_hosp_dat, final_hosp_metrop_dat, p_death){
 ##'@param p_death IFRs used in this analysis
 ##'
 make_hosp_table_county <- function(final_hosp_dat, final_hosp_geoid_dat, county_dat, p_death){
-
+    
     final_hosp_geoid_dat <- final_hosp_geoid_dat %>% left_join(county_dat %>% select(geoid, geoid_label), by="geoid")
-
+    
     tmp_geoid <- final_hosp_geoid_dat %>%
         mutate(hosp_est = paste0(conv_round(nhosp_final), " (", conv_round(nhosp_lo), "-", conv_round(nhosp_hi), ")"),
                peak_hosp = paste0(conv_round(phosp_final), " (", conv_round(phosp_lo), "-", conv_round(phosp_hi), ")"),
@@ -452,8 +452,8 @@ make_hosp_table_county <- function(final_hosp_dat, final_hosp_geoid_dat, county_
         pivot_wider(id_cols=geoid_label,
                     names_from=p_death,
                     values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
-
-
+    
+    
     tmp_total <- final_hosp_dat %>%
         mutate(hosp_est = paste0(conv_round(nhosp_final), " (", conv_round(nhosp_lo), "-", conv_round(nhosp_hi), ")"),
                peak_hosp = paste0(conv_round(phosp_final), " (", conv_round(phosp_lo), "-", conv_round(phosp_hi), ")"),
@@ -468,13 +468,13 @@ make_hosp_table_county <- function(final_hosp_dat, final_hosp_geoid_dat, county_
         pivot_wider(id_cols=geoid_label,
                     names_from=p_death,
                     values_from = c(hosp_est, peak_hosp, peak_hosp_cap, ICU_est, peak_ICU, peak_ICU_cap, vent_est, death_est))
-
-    var_to_report <- c("hosp_est_", "peak_hosp_cap_", "ICU_est_", "peak_ICU_cap_", "vent_est_", "death_est_")
+    
+    var_to_report <- c("hosp_est_", "peak_hosp_cap_", "ICU_est_", "vent_est_", "death_est_")
     cnames <- paste0(var_to_report, rep(p_death, each=length(var_to_report)))
-
+    
     tab <- bind_rows(tmp_total[,c("geoid_label", cnames)],
                      tmp_geoid[,c("geoid_label", cnames)])
-
+    
     return(tab)
 }
 
@@ -506,13 +506,13 @@ make_final_plot <- function(ca_final_dat){
 ##'
 ##'@return ggplot object, CA map with fill prop to final size
 ##'
-make_final_map <- function(ca_final_dat, title="", legend){
-    ca_final_dat$fill <- ca_final_dat$ar / 100000
-
+make_final_map <- function(ca_final_dat, title="", legend, scale){
+    ca_final_dat$fill <- ca_final_dat$ar #/ 100000
+    
     p <- ggplot(ca_final_dat) +
         geom_sf(aes(fill=fill)) +
         theme_minimal() +
-        scale_fill_viridis(option="plasma", limits=c(0,1)) +
+        scale_fill_viridis(option=scale) +
         ggtitle(title) +
         theme(axis.title.x=element_blank(),
               axis.text.x=element_blank(),
@@ -523,9 +523,11 @@ make_final_map <- function(ca_final_dat, title="", legend){
               panel.grid.minor = element_blank(),
               panel.border = element_blank(),
               axis.ticks.y=element_blank(),
-              legend.position=legend)
+              legend.position = legend) + labs(fill = "Infections per 100k")
     return(p)
 }
+
+
 
 ##'Function to plot county arrival times
 ##'
@@ -574,6 +576,7 @@ make_arrvl_map <- function(ca_arrival_dat,
 make_state_inc_plot <- function(state_inc_dat){
     p <- ggplot(state_inc_dat, aes(x=time, y=meanInc)) +
         geom_bar(stat="identity", fill="red", alpha=.2) +
+        scale_y_continuous("Incident infections") +
         geom_pointrange(aes(ymin=pi_low, ymax=pi_high), color="red", fill="white", alpha=.75, shape=21)
     return(p)
 }
@@ -587,6 +590,7 @@ make_state_inc_plot <- function(state_inc_dat){
 ##'
 make_metro_inc_plot <- function(metro_inc_dat){
     p <- ggplot(metro_inc_dat, aes(x=time, y=mean)) +
+        scale_y_continuous("Incident infections") +
         facet_wrap(~metrop_labels, ncol=3) +
         geom_bar(stat="identity", fill="red", alpha=.2) +
         geom_pointrange(aes(ymin=pi_low, ymax=pi_high), color="red", fill="white", alpha=.75, shape=21)
@@ -627,11 +631,11 @@ make_hospdeath_table1 <- function(sim_hospdeath_dat){
                              est = conv_round(pICU_final),
                              lvl = paste0("peak ICU adm", p_death)) %>%
                       select(lvl, est, ci)) %>%
-        bind_rows(sim_hospdeath_dat$res_total %>%
-                      mutate(ci = make_CI(nicu_curr_lo, nicu_curr_hi),
-                             est = conv_round(nicu_curr_final),
-                             lvl = paste0("peak ICU cap", p_death)) %>%
-                      select(lvl, est, ci)) %>%
+        # bind_rows(sim_hospdeath_dat$res_total %>%
+        #               mutate(ci = make_CI(nicu_curr_lo, nicu_curr_hi),
+        #                      est = conv_round(nicu_curr_final),
+        #                      lvl = paste0("peak ICU cap", p_death)) %>%
+        #               select(lvl, est, ci)) %>%
         bind_rows(sim_hospdeath_dat$res_total %>%
                       mutate(ci = make_CI(nVent_lo, nVent_hi),
                              est = conv_round(nVent_final),
@@ -672,15 +676,15 @@ make_finalsize_table1 <- function(scenario_dat, final_date = "2020-04-01"){
 ##'@return county_dat with metrop_labels added
 ##'
 make_metrop_labels <- function(data=county_dat){
-
+    
     LA <- c('6037', '6059', '6065', '6071', '6111')
-    SF <- c('6001', '6013', '6075', '6081', '6041', '6085', '6069',
+    SF <- c('6001', '6013', '6075', '6081', '6041', '6085', '6069', 
             '6077', '6099', '6095', '6097', '6087', '6047', '6055')
     SD <- c('6073')
     FN <- c('6019','6031','6039')
     SC <- c('6067', '6061', '6113', '6017', '6101', '6115', '6057')
     RD <- c('6089', '6103')
-
+    
     data$new_metrop <- NA
     data$new_metrop[data$geoid %in% LA] <- "LA"
     data$new_metrop[data$geoid %in% SF] <- "SF"
@@ -688,7 +692,7 @@ make_metrop_labels <- function(data=county_dat){
     data$new_metrop[data$geoid %in% FN] <- "FN"
     data$new_metrop[data$geoid %in% SC] <- "SC"
     data$new_metrop[data$geoid %in% RD] <- "RD"
-
+    
     ##Update the labels
     data$metrop_labels <- NA
     data$metrop_labels[data$new_metrop=="LA"] <- "Los Angeles"
@@ -698,7 +702,7 @@ make_metrop_labels <- function(data=county_dat){
     data$metrop_labels[data$new_metrop=="SC"] <- "Sacremento"
     data$metrop_labels[data$new_metrop=="RD"] <- "Redding"
     data$metrop_labels <- as.factor(data$metrop_labels)
-
+    
     return(data)
 }
 
@@ -716,17 +720,6 @@ conv_round <- function(x){
     return(x)
 }
 
-##'Function to print formatted numbers
-##'
-##'@param x single number to round
-##'
-##'@return rounded x
-##'
-print_num <- function(x){
-    x <- as.numeric(x)
-    if(x>50){format(round(x, -2), scientific=FALSE, big.mark=",")}
-    if(x<50){format(round(x, -1), scientific=FALSE, big.mark=",")}
-}
 
 ##'Function to print formatted numbers
 ##'
@@ -739,3 +732,4 @@ print_num <- function(x){
     if(x>50){format(round(x, -2), scientific=FALSE, big.mark=",")}
     if(x<50){format(round(x, -1), scientific=FALSE, big.mark=",")}
 }
+

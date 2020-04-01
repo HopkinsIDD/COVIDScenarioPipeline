@@ -1,0 +1,27 @@
+
+This report would not be possible without the  work of the **COVID-19 Scenario Modeling Pipeline
+Working Group**:
+
+**EPFL**
+
+* Joseph C. Lemaitre
+
+**Johns Hopkins Infectious Disease Dynamics**
+
+* Qifang Bi
+* Kyra H. Grantz
+* Joshua Kaminsky
+* Stephen A. Lauer
+* Elizabeth C. Lee
+* Justin Lessler
+* Hannah R. Meredith
+* Shaun A. Truelove
+
+**University of Utah**
+
+* Lindsay T. Keegan
+
+**Developers Without Affiliation**
+
+* Sam Shah
+* Josh Wills
