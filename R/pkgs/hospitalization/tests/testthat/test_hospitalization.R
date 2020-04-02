@@ -1,5 +1,4 @@
 test_that("create_delay_frame works",{
-  require(data.table)
   X <- "input"
   varname <- "output"
   p_X <- 0.1

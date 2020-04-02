@@ -1,5 +1,6 @@
 
 hosp_create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
+    require(data.table) # FIXME
     X_ <- rbinom(length(data_[[X]]),data_[[X]],p_X)
     rc <- data.table(
       time = data_$time + round(exp(X_pars[1] + X_pars[2]^2 / 2)),
