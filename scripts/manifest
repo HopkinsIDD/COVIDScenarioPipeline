@@ -1,0 +1,117 @@
+#!/usr/bin/env python
+import concurrent.futures
+import csv
+import hashlib
+import itertools
+import pathlib
+import sys
+
+import click
+import sh
+import yaml
+
+
+def sha1sum(path):
+    h = hashlib.sha1()
+    with open(path, "rb") as fp:
+        while True:
+            block = fp.read(2**16)
+            if not block:
+                break
+            h.update(block)
+    return "sha1:" + h.hexdigest()
+
+
+def paths_to_dict(item, existing_dict, fullpath=None, value=None):
+    if len(item) == 1:
+        existing_dict[item[0]] = value
+    else:
+        head, tail = item[0], item[1:]
+        existing_dict.setdefault(head, {})
+        paths_to_dict(
+            tail,
+            existing_dict[head],
+            fullpath="/".join([x for x in (fullpath, head) if x is not None]),
+            value=value)
+
+
+def file_hash_path(root_path, *, ignore_paths=[]):
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        paths = (path for path in pathlib.Path(root_path).glob("**/*") if path.is_file() and
+                 not any(p.startswith(".") for p in path.parts) and
+                 not any(p in path.parts for p in ignore_paths))
+        p1, p2 = itertools.tee(paths)
+
+        tree = {}
+        for path, digest in zip(p1, executor.map(sha1sum, p2)):
+            paths_to_dict(str(path).split("/"), tree, value=digest)
+        return tree
+
+
+def git_repo_paths(root_path):
+    return (str(repo.parent) for repo in pathlib.Path(root_path).glob("**/.git"))
+
+
+def git_remote_origin_url(path):
+    return sh.git.config("--get", "remote.origin.url", _cwd=path).strip()
+
+
+def git_head_commit_id(path):
+    return sh.git("rev-parse", "HEAD", _cwd=path).strip()
+
+
+def inside_docker_image_id():
+    return sh.head("-1", "/proc/self/cgroup").split("/")[2]
+
+
+def r_version():
+    return sh.Rscript("-e", "R.version[['version.string']]").strip()
+
+
+def r_package_versions():
+    packages_csv = sh.Rscript("-e", "write.csv(installed.packages()[,c(1,3)])")
+    return {row["Package"]: row["Version"] for row in csv.DictReader(packages_csv)}
+
+
+def python_version():
+    return sh.python("--version").strip()
+
+
+def python_package_versions():
+    def _versions():
+        for line in sh.pip.freeze():
+            yield line.strip().split("==")
+    return {package: version for package, version in _versions()}
+
+
+@click.command()
+@click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
+              help="configuration file for this simulation")
+@click.option("-o", "--output", "output_file", type=click.File("w"), default=sys.stdout,
+              help="write output to this file [default: stdout]")
+def manifest(config_file, output_file):
+    """
+    generates a yaml manifest of the current execution environment, which is useful
+    in debugging and maintaining provenance
+
+    \b
+    e.g.,
+    $ scripts/manifest -c config.yml -o output/manifest.yml
+    """
+    info = {}
+
+    with open(config_file) as config_fp:
+        info["config_file"] = yaml.safe_load(config_fp.read())
+
+    info["git"] = \
+        [{"last_commit_id": git_head_commit_id(git_repo),
+          "remote": git_remote_origin_url(git_repo)} for git_repo in git_repo_paths(sh.HOME)]
+    info["python"] = {"base_version": python_version(), "packages": python_package_versions()}
+    info["r"] = {"base_version": r_version(), "packages": r_package_versions()}
+    info["file_manifest"] = file_hash_path(sh.HOME, ignore_paths=["python_venv", "model_output", "hospitalization"])
+
+    yaml.dump(info, output_file, default_flow_style=False)
+
+
+if __name__ == "__main__":
+    manifest()
