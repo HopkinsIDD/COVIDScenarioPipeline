@@ -70,7 +70,6 @@ def run_parallel(s, *, n_jobs=1):
     start = time.monotonic()
     uids = np.arange(s.nsim)
 
-    n_jobs = 1
     if n_jobs == 1:          # run single process for debugging/profiling purposes
         for uid in tqdm.tqdm(uids):
             onerun_SEIR(uid, s)
