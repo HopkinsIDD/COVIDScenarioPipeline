@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import concurrent.futures
 import csv
+import functools
 import hashlib
 import itertools
 import pathlib
@@ -31,7 +32,7 @@ def paths_to_dict(item, existing_dict, fullpath=None, value=None):
         paths_to_dict(
             tail,
             existing_dict[head],
-            fullpath="/".join([x for x in (fullpath, head) if x is not None]),
+            fullpath="/".join(x for x in (fullpath, head) if x is not None),
             value=value)
 
 
@@ -48,35 +49,54 @@ def file_hash_path(root_path, *, ignore_paths=[]):
         return tree
 
 
+def silently_fail(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except (sh.ErrorReturnCode, sh.CommandNotFound) as e:
+            click.echo(f"{f.__name__} failure: {e}", err=True)
+            return None
+    return wrapper
+
+
+@silently_fail
 def git_repo_paths(root_path):
     return (str(repo.parent) for repo in pathlib.Path(root_path).glob("**/.git"))
 
 
+@silently_fail
 def git_remote_origin_url(path):
     return sh.git.config("--get", "remote.origin.url", _cwd=path).strip()
 
 
+@silently_fail
 def git_head_commit_id(path):
     return sh.git("rev-parse", "HEAD", _cwd=path).strip()
 
 
+@silently_fail
 def inside_docker_image_id():
-    return sh.head("-1", "/proc/self/cgroup").split("/")[2]
+    return sh.head("-1", "/proc/self/cgroup").split("/")[2].strip()
 
 
+@silently_fail
 def r_version():
     return sh.Rscript("-e", "R.version[['version.string']]").strip()
 
 
+@silently_fail
 def r_package_versions():
     packages_csv = sh.Rscript("-e", "write.csv(installed.packages()[,c(1,3)])")
     return {row["Package"]: row["Version"] for row in csv.DictReader(packages_csv)}
 
 
+@silently_fail
 def python_version():
     return sh.python("--version").strip()
 
 
+@silently_fail
 def python_package_versions():
     def _versions():
         for line in sh.pip.freeze():
@@ -106,6 +126,7 @@ def manifest(config_file, output_file):
     info["git"] = \
         [{"last_commit_id": git_head_commit_id(git_repo),
           "remote": git_remote_origin_url(git_repo)} for git_repo in git_repo_paths(sh.HOME)]
+    info["docker"] = [{"image_id": inside_docker_image_id()}]
     info["python"] = {"base_version": python_version(), "packages": python_package_versions()}
     info["r"] = {"base_version": r_version(), "packages": r_package_versions()}
     info["file_manifest"] = file_hash_path(sh.HOME, ignore_paths=["python_venv", "model_output", "hospitalization"])
