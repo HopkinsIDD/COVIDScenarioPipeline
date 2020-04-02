@@ -44,10 +44,12 @@ test_that("as_random_distribution works", {
 
   expect_error({
     rn <- as_random_distribution(list(distribution = "poisson", high = "0.9", low = .3))
+    rn(100)
   })
 
   expect_error({
     rn <- as_random_distribution(list(distribution = "binomial", high = "0.9", low = .3))
+    rn(100)
   })
 
   expect_true({
@@ -57,10 +59,12 @@ test_that("as_random_distribution works", {
 
   expect_error({
     rn <- as_random_distribution(list(distribution = "uniform",n=5,p="1/10"))
+    rn(100)
   })
 
   expect_error({
     rn <- as_random_distribution(list(distribution = "poisson",n=5,p="1/10"))
+    rn(100)
   })
 
   expect_true({
@@ -70,10 +74,12 @@ test_that("as_random_distribution works", {
 
   expect_error({
     rn <- as_random_distribution(list(distribution = "binomial",lam="5"))
+    rn(100)
   })
 
   expect_error({
-    rn <- as_random_distribution(list(distribution = "poisson",lam="5"))
+    rn <- as_random_distribution(list(distribution = "uniform",lam="5"))
+    rn(100)
   })
 
   expect_error({
