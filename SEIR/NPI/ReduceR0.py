@@ -25,21 +25,19 @@ class ReduceR0(NPIBase):
         # Optional "affected_geoids" config field.
         # If values of "affected_geoids" is "all" or unspecified, run on all geoids.
         # Otherwise, run only on geoids specified.
-        select_mask = None
+        affected = geoids
         if "affected_geoids" in npi_config and npi_config["affected_geoids"].get() != "all":
-            select_mask = pd.Series(0, index=geoids)
+            affected = []
             for n in npi_config["affected_geoids"]:
-                node = str(n.get())
+                node = str(n.get()) # because confuse may read as an int
                 if node not in geoids:
                     raise ValueError(f"Invalid config value {n.name} ({node}) not in geoids")
-                select_mask[str(n.get())] = 1
+                affected.append(node)
 
         self.npi = pd.DataFrame(0.0, index=geoids,
                                 columns=pd.date_range(self.start_date, self.end_date))
-        for dt in pd.date_range(self.period_start_date, self.period_end_date):
-            self.npi[dt] = self.dist(size=len(self.npi))
-            if select_mask is not None:
-                self.npi[dt] *= select_mask
+        period_range = pd.date_range(self.period_start_date, self.period_end_date)
+        self.npi.loc[affected, period_range] = self.dist(size=(len(affected), len(period_range)))
 
         if self.npi.to_numpy(copy=True).nonzero()[0].size == 0:
             print(f"Warning: The intervention in config: {npi_config.name} does nothing.")
