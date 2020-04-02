@@ -1,9 +1,10 @@
 test_that("create_delay_frame works",{
+  require(data.table)
   X <- "input"
   varname <- "output"
   p_X <- 0.1
   X_pars <- c(10,1)
-  data_ <- data.frame(
+  data_ <- data.table(
     input = 1:1e6,
     time = lubridate::ymd('2020-01-01') + 1:1e6,
     uid = 1:1e6
