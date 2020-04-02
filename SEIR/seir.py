@@ -70,6 +70,7 @@ def run_parallel(s, *, n_jobs=1):
     start = time.monotonic()
     uids = np.arange(s.nsim)
 
+    n_jobs = 1
     if n_jobs == 1:          # run single process for debugging/profiling purposes
         for uid in tqdm.tqdm(uids):
             onerun_SEIR(uid, s)
@@ -98,7 +99,8 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     y[S, :] = popnodes
     states = np.zeros((ncomp, nnodes, len(t_inter)))
 
-    mv = np.empty(ncomp - 1)
+    mv_one = np.empty(ncomp - 1)
+    mv = np.zeros((ncomp - 1, nnodes))
     exposeCases = np.empty(nnodes)
     incidentCases = np.empty(nnodes)
     incident2Cases = np.empty(nnodes)
@@ -109,17 +111,23 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     p_recover = 1 - np.exp(-dt * p_vec[2][0][0])
 
     for it, t in enumerate(t_inter):
+        begin = y[:-1]
         if (it % int(1 / dt) == 0):
             y[I1] = y[I1] + seeding[int(t)]
             y[cumI] = y[cumI] + seeding[int(t)]
+
+        # calculate matrix of mv's
+        # TODO: add all probabilities and do a binomial of that
         for i in range(mobility_len):
             ori = mobility_ori[i]
             dest = mobility_dest[i]
             prob = mobility_prob[i]
             for c in range(ncomp - 1):
-                mv[c] = np.random.binomial(y[c, ori], prob)
-            y[:-1, dest] += mv
-            y[:-1, ori] -= mv
+                mv_one[c] = np.random.binomial(y[c, ori], prob)
+            mv[:, ori] -= mv_one
+            mv[:, dest] += mv_one
+
+        y[:-1] += mv
 
         p_expose = 1 - np.exp(-dt * p_vec[0][it] *
                               (y[I1] + y[I2] + y[I3]) / popnodes)  # vector
