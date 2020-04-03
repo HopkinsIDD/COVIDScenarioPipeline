@@ -886,15 +886,13 @@ flextable::flextable(tmp[,nlabels]) %>%
 ##' @param period_breas the dates to break up the display periods.
 ##' @param pi_low low side of the prediction interval
 ##' @param pi_high high side of the prediction interval
-##' @param round_digit what level to round to
 ##' 
 ##' @export
 ##'
 make_scn_time_summary_table <- function(hosp_state_totals,
                                         period_breaks,
                                         pi_low = 0.025,
-                                        pi_high = 0.975,
-                                        round_digit=-2) {
+                                        pi_high = 0.975) {
     ##Make the period ranges and labels 
     period_breaks <- c(min(hosp_state_totals$time)-1, as.Date(period_breaks), max(hosp_state_totals$time)+1)
     len <- length(period_breaks)
@@ -911,18 +909,18 @@ make_scn_time_summary_table <- function(hosp_state_totals,
                 PeriodPkHosp=max(NhospCurr)) %>% 
     tbl_df%>%ungroup %>%
       group_by(period, scenario_name) %>%  #now get means and prediction intervals
-      summarize(PeriodInfPILow = round(quantile(PeriodInf, probs = c(pi_low)),digits = round_digit),
-                PeriodDeathPILow = round(quantile(PeriodDeath, probs = c(pi_low)),digits = round_digit),
-                PeriodHospPILow = round(quantile(PeriodHosp, probs = c(pi_low)),digits = round_digit),
-                PeriodPkHospPILow = round(quantile(PeriodPkHosp, probs = c(pi_low)),digits = round_digit),
-                PeriodInfPIHigh = round(quantile(PeriodInf, probs = c(pi_high)),digits = round_digit),
-                PeriodDeathPIHigh = round(quantile(PeriodDeath, probs = c(pi_high)),digits = round_digit),
-                PeriodHospPIHigh = round(quantile(PeriodHosp, probs = c(pi_high)),digits = round_digit),
-                PeriodPkHospPIHigh = round(quantile(PeriodPkHosp, probs = c(pi_high)),digits = round_digit),
-                PeriodInf = round(mean(PeriodInf),digits = round_digit),
-                PeriodDeath = round(mean(PeriodDeath),digits = round_digit),
-                PeriodHosp = round(mean(PeriodHosp),digits = round_digit),
-                PeriodPkHosp = round(mean(PeriodPkHosp),digits = round_digit)) %>%
+      summarize(PeriodInfPILow = conv_round(quantile(PeriodInf, probs = c(pi_low))),
+                PeriodDeathPILow = conv_round(quantile(PeriodDeath, probs = c(pi_low))),
+                PeriodHospPILow = conv_round(quantile(PeriodHosp, probs = c(pi_low))),
+                PeriodPkHospPILow = conv_round(quantile(PeriodPkHosp, probs = c(pi_low))),
+                PeriodInfPIHigh = conv_round(quantile(PeriodInf, probs = c(pi_high))),
+                PeriodDeathPIHigh = conv_round(quantile(PeriodDeath, probs = c(pi_high))),
+                PeriodHospPIHigh = conv_round(quantile(PeriodHosp, probs = c(pi_high))),
+                PeriodPkHospPIHigh = conv_round(quantile(PeriodPkHosp, probs = c(pi_high))),
+                PeriodInf = conv_round(mean(PeriodInf)),
+                PeriodDeath = conv_round(mean(PeriodDeath)),
+                PeriodHosp = conv_round(mean(PeriodHosp)),
+                PeriodPkHosp = conv_round(mean(PeriodPkHosp))) %>%
       ungroup() %>% ##make hi/low into CIs
       mutate(PeriodInfPI = paste(format(PeriodInfPILow,big.mark=","), format(PeriodInfPIHigh,big.mark=","), sep="-"),
              PeriodDeathPI = paste(format(PeriodDeathPILow,big.mark=","), format(PeriodDeathPIHigh,big.mark=","), sep="-"),
@@ -1054,6 +1052,7 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
     group_by(geoid, scenario_label) %>%
     dplyr::summarise(mean_time = mean(time),
                      median_time = median(time),
+                     uq_median_time = jitter(as.numeric(median_time-start_date), amount = .1),
                      low_time = quantile(time, probs=.25, type=1),
                      hi_time = quantile(time, probs=.75, type=1),
                      value = round(mean(!!value_name,na.rm=T),0)) %>%
@@ -1063,8 +1062,10 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
                                          labels = scenario_labels)) %>%
     dplyr::inner_join(shapefile, by = c("geoid")) %>%
     mutate(
-      name = reorder(name, -as.numeric(median_time)),
+      name = reorder(name, -as.numeric(uq_median_time))
     )
+  values_in_plt <- as.character(to_plt$value[order(-as.numeric(to_plt$uq_median_time))])
+  names(values_in_plt) <- to_plt$name[order(-as.numeric(to_plt$uq_median_time))]
 
   if(length(scenario_labels)==1){
     rc <- ggplot(data=to_plt,
@@ -1074,15 +1075,16 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
       scale_x_continuous(
         labels=levels(to_plt$name),
         breaks=seq_len(nrow(to_plt)),
-        sec.axis = sec_axis(~.,labels = to_plt$value[rank(levels(to_plt$name))], breaks = seq_len(nrow(to_plt)), name = value_label)
+        sec.axis = sec_axis(~.,labels = values_in_plt, breaks = seq_len(nrow(to_plt)), name = value_label)
       ) +
       scale_y_date(time_caption,
-                   date_breaks = "1 week",
+                   limits = c(start_date, end_date),
+                   date_breaks = "2 weeks",
                    date_labels = "%b %d"
                    ) +
       xlab(geoid_caption) +
       theme_bw() +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "bottom")  +
+      theme(axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0), legend.position = "bottom", panel.grid.minor = element_blank())  +
       coord_flip()
   } else{
     rc <- ggplot(data=to_plt,
@@ -1091,7 +1093,8 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
                      color = scenario_label)) +
       geom_pointrange() +
       scale_y_date(time_caption,
-                   date_breaks = "1 week",
+                   limits = c(start_date, end_date),
+                   date_breaks = "2 weeks",
                    date_labels = "%b %d"
                    ) +
       xlab(geoid_caption) +
@@ -1099,7 +1102,7 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
                          labels = scenario_labels,
                          values = scenario_colors) +
       theme_bw() +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "bottom")  +
+      theme(axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0), legend.position = "bottom", panel.grid.minor = element_blank())  +
       coord_flip()
   }
 
