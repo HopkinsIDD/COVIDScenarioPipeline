@@ -1,11 +1,22 @@
 library(dplyr)
 library(tidyr)
 
-outdir <- '../../data/'
-filterUSPS <- c('MD', 'DC', 'VA', 'DE', 'PA', 'NJ')
+option_list = list(
+  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
+  optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory")
+)
+opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
-commute_data <- readr::read_csv("united-states-commutes/commute_data.csv")
-census_data <- readr::read_csv("united-states-commutes/census_tracts_2010.csv")
+config <- covidcommon::load_config(opt$c)
+if (is.na(config)) {
+  stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
+}
+
+outdir <- config$spatial_setup$base_path
+filterUSPS <- config$spatial_setup$modeled_states
+
+commute_data <- readr::read_csv(paste(opt$p,"data","united-states-commutes","commute_data.csv",sep='/'))
+census_data <- readr::read_csv(paste(opt$p,"data","united-states-commutes","census_tracts_2010.csv", sep = '/'))
 
 census_data <- census_data %>%
   filter(USPS %in% filterUSPS) %>%
@@ -41,5 +52,6 @@ if(!isTRUE(all(rc$OFIPS == census_data$GEOID))){
   stop("There was a problem generating the mobility matrix")
 }
 
+print(outdir)
 write.table(file = file.path(outdir,'mobility.txt'), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
 write.csv(file = file.path(outdir,'geodata.csv'), census_data)
