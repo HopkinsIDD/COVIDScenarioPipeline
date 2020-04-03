@@ -12,7 +12,7 @@ regard to the diseases. The compartments are:
 -   $R$ Recovered individuals with immunity to re-infection.
 
 In practice, this translate into $k = 3$ compartments of infected,
-$I1, I2, I3$ in order to have an infectious period shaped as Ehrlang
+$I1, I2, I3$ in order to have an infectious period shaped as Erlang
 distribution. Then the rates of the different compartments are given in
 the table below:
 
@@ -36,8 +36,7 @@ $6.5-8.2$. We draw uniformly from this range, and we solve
 $SI = \frac{1}{2}(\frac{1}{\gamma\cdot k})+\frac{1}{\sigma}$ for
 $\gamma$.
 
-The basic reproductive number, $R_0$, is drawn for each simulation in
-range $2-3$, and we obtain parameter beta from
+The basic reproductive number, $R_0$, is drawn for each simulation, and we obtain parameter beta from
 $\beta= \frac{R_0 \cdot \gamma}{k}$.
 
 The model is fixed time step, and the transitions at each time step
