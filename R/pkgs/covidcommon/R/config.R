@@ -1,19 +1,12 @@
 ##'
 ##'Map of configuration values, constructed via a call to `load_config`
-##'when package is loaded
 ##'
 config <- NA
 
-##'Parse a config YAML
 ##'
-##'@param fname The path to the config YAML.
-##'  If empty, uses CONFIG_PATH environment variable
-##'@return A map of configuration loaded from the config YAML
-##'
-##'@examples
-##'config$parameters_seir$gamma
-##'load_config()
-##'@export
+##'Returns a map of configuration loaded from the config YAML
+##'@param fname Load configuration from fname (optional, otherwise loads from CONFIG_PATH env var)
+##'@example config$parameters_seir$gamma
 ##'
 load_config <- function(fname) {
   require(yaml)
@@ -28,13 +21,12 @@ load_config <- function(fname) {
   }
 }
 
+##'
 ##'Evaluates an expression, returning a numeric value
+##'@example as_evaled_expression(c("2+2", "9*9")) -> (4, 81)
 ##'
-##'@param l The scalar or vector to evaluate
-##'@return A float evaluation of the expression
-##'
-##'@examples
-##'as_evaled_expression(c("2+2", "9*9")) -> (4, 81)
+##'@param l the object (scalar or vector) to evaluate
+##'@return a float evaluation of the expression
 ##'
 as_evaled_expression <- function(l) {
   if (is.null(l)) {
@@ -54,15 +46,13 @@ as_evaled_expression <- function(l) {
   return(unlist(lapply(l, .as_evaled_expression)))
 }
 
-##'Returns distribution function parameters
 ##'
-##'@param obj An object with distribution attribute of either (uniform|poisson|binomial)
-##'@return A uniform, poisson, or binomial distribution function
+##'Evaluates an expression, returning a numeric value
+##'@example as_evaled_expression("2+2") -> 4
 ##'
-##'@examples
-##'obj$distribution = "uniform". as_random_distribution(obj)
+##'@param obj the string to evaluate
+##'@return a float evaluation of the expression
 ##'
-##'@export
 as_random_distribution <- function(obj) {
   require(purrr)
 
