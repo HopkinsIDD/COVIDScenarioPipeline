@@ -27,12 +27,13 @@ load_scenario_sims_filtered <- function(scenario_dir,
   files <- dir(sprintf("model_output/%s", scenario_dir),full.names = TRUE)
   if(length(files) == 0){stop(paste0("There were no files in ",getwd(),"/",sprintf("model_output/%s", scenario_dir)))}
 
-  if(is.na(num_files) ){
+  if(is.na(num_files)) {
     num_files <- length(files)
-  }
-  if ( num_files <= length(files) ){
+  } else if (num_files < length(files)) {
+    warning(paste("You are only reading in", num_files, "out of", length(files), "files. Check the num_files argument if this is unexpected.\n"))
     files <- files[seq_len(num_files)]
-    warning(paste("You are only reading in", num_files, "files. Check the num_files argument if this is unexpected."))
+  } else {
+    stop(paste0("There were only ", length(files), " in the scenario_dir, but num_files is ", num_files, "."))
   }
   
   rc <- list()
