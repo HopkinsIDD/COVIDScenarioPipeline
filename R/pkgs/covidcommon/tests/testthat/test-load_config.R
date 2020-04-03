@@ -16,6 +16,11 @@ test_that("load_config works", {
     load_config(fname)$badkey,
     "badkey"
   )
+
+  expect_error(
+    load_config(fname)$missing$badkey,
+    "missing"
+  )
 })
 
 test_that("as_evaled_expression works", {
