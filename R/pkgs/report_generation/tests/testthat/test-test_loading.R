@@ -33,7 +33,7 @@ test_that("Simulation loading works", {
   expect_error({
     load_scenario_sims_filtered(
       scenario_dir = 'a_b',
-      num_files <- 1
+      num_files = 1
     )
   }, NA)
 
@@ -46,14 +46,14 @@ test_that("Simulation loading works", {
   expect_error({
     load_scenario_sims_filtered(
       scenario_dir = 'a_b',
-      num_files <- 15
+      num_files = 15
     )
   }, NULL)
 
   expect_error({
     load_scenario_sims_filtered(
       scenario_dir = 'a_d',
-      num_files <- 15
+      num_files = 15
     )
   }, NULL)
 
@@ -97,7 +97,8 @@ test_that("Simulation loading works", {
       post_process = function(x){x[x$geoid == "g10001",]}
     )
   )
-  
+
+  unlink(dir, recursive=TRUE)  
 })
 
 test_that("Simulation loading loads the correct number of simulations", {
@@ -133,4 +134,6 @@ test_that("Simulation loading loads the correct number of simulations", {
     )
     nrow(rc)
   }, 10 * 10 * 1 * 1)
+
+  unlink(dir, recursive = TRUE)
 })
