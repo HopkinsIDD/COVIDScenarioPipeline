@@ -14,12 +14,10 @@ from .utils import config
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
-def onerun_SEIR(uid, s):
-    """
-    Performs one simulation
+#def getimportation(uid, s):
 
-    s is setup.Setup()
-    """
+
+def onerun_SEIR(uid, s):
     scipy.random.seed()
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
@@ -33,7 +31,7 @@ def onerun_SEIR(uid, s):
                            seeding, uid, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_ori, mobility_dest, mobility_prob, s.dynfilter)
 
-    # Tidyup data for R, to save it:
+    # Tidyup data for  R, to save it:
     if s.write_csv:
         a = states.copy()[:, :, ::int(1 / s.dt)]
         a = np.moveaxis(a, 1, 2)
