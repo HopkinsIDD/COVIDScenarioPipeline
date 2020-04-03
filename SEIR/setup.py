@@ -106,25 +106,6 @@ class Setup():
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
 
-    #def buildIC(self, seeding_places, seeding_amount):
-    #    self.y0 = np.zeros((ncomp, self.nnodes))
-    #    self.y0[S, :] = self.popnodes
-    #    for i, pl in enumerate(seeding_places):
-    #        self.y0[S, pl] = self.popnodes[pl] - seeding_amount[i]
-    #        self.y0[I1, pl] = seeding_amount[i]
-    #    return self.y0
-
-    #def buildICfromfilter(self):
-    #    y0 = np.zeros((ncomp, self.nnodes))
-    #    draw = np.random.poisson(5 * self.dynfilter[31] + 0.1)
-    #    y0[S, :] = self.popnodes - draw
-    #    y0[E, :] = (draw / 4).astype(np.int)
-    #    y0[I1, :] = (draw / 4).astype(np.int)
-    #    y0[I2, :] = (draw / 4).astype(np.int)
-    #    y0[I3, :] = (draw / 4).astype(np.int)
-    #    y0[cumI, :] = (3 * draw / 4).astype(np.int)
-    #    return y0
-
     def set_filter(self, dynfilter):
         if dynfilter.shape != (self.t_span, self.nnodes):
             raise ValueError(f"Filter file must have dimensions ({self.t_span}, {self.nnodes}). Actual: ({dynfilter.shape})")

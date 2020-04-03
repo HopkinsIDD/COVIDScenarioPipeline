@@ -14,8 +14,6 @@ from .utils import config
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
-#def getimportation(uid, s):
-
 
 def onerun_SEIR(uid, s):
     scipy.random.seed()
@@ -146,8 +144,6 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
         y[R] += recoveredCases
         y[cumI] += incidentCases
         states[:, :, it] = y
-        #if (it % int(1 / dt) == 0):
-        #    y[cumI] += importation[int(t)]
         if (it%(1/dt) == 0 and (y[cumI] < dynfilter[int(it%(1/dt))]).any()):
                 return -np.ones((ncomp, nnodes, len(t_inter)))
 
