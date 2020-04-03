@@ -125,7 +125,7 @@ test_that("Simulation loading loads the correct number of simulations", {
       num_files = 1
     )
     nrow(a)
-  }, 1 * 10 * 2 * 1)
+  }, 1 * 10 * 2 * 2)
 
   expect_equal({
     rc <- load_scenario_sims_filtered(
