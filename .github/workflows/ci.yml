@@ -1,0 +1,33 @@
+name: unit-tests
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+      - dataseed
+  pull_request:
+    branches:
+      - master
+      - dev
+      - dataseed
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-18.04
+    container:
+      image: docker://hopkinsidd/covidscenariopipeline:latest-dataseed
+      options: --user root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run covidcommon tests
+        run: |
+          setwd("R/pkgs/covidcommon")
+          devtools::test(stop_on_failure=TRUE)
+        shell: Rscript {0}
+      - name: Run hospitalization tests
+        run: |
+          setwd("R/pkgs/hospitalization")
+          devtools::test(stop_on_failure=TRUE)
+        shell: Rscript {0}
