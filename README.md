@@ -43,12 +43,12 @@ Curriculum](https://docker-curriculum.com/) is a good starting point.
 
 A pre-built container can be pulled from Docker Hub via:
 ```
-docker pull shahsam/covidscenariopipeline:latest
+docker pull hopkinsidd/covidscenariopipeline:latest
 ```
 
 To start the container:
 ```
-docker run -v ~/mysrcdir:/home/app/src -it shahsam/covidscenariopipeline:latest
+docker run -v ~/mysrcdir:/home/app/src -it hopkinsidd/covidscenariopipeline:latest
 ```
 
 Replace `mysrcdir` with where the code is mounted on your machine; it will
@@ -59,8 +59,7 @@ R scripts (with dependencies already installed).
 
 ## Building the container
 
-Run `docker build` if you ever need to rebuild the container.
-
+Run `docker build .` if you ever need to rebuild the container.
 
 # Configuration files
 
