@@ -16,7 +16,7 @@
 ##' 
 ##' @export
 load_scenario_sims_filtered <- function(scenario_dir, 
-                                        num_files = NULL,
+                                        num_files = NA,
                                         post_process = function(x) {x},
                                         pre_process = function(x){x},
                                         geoid_len = 0,
@@ -27,7 +27,10 @@ load_scenario_sims_filtered <- function(scenario_dir,
   files <- dir(sprintf("model_output/%s", scenario_dir),full.names = TRUE)
   if(length(files) == 0){stop(paste0("There were no files in ",getwd(),"/",sprintf("model_output/%s", scenario_dir)))}
 
-  if (!is.null(num_files) & num_files <= length(files)){
+  if(is.na(num_files) ){
+    num_files <- length(files)
+  }
+  if ( num_files <= length(files) ){
     files <- files[seq_len(num_files)]
     warning(paste("You are only reading in", num_files, "files. Check the num_files argument if this is unexpected."))
   }
@@ -82,7 +85,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
 ##'@export
 load_hosp_sims_filtered <- function(scenario_dir,
                                     name_filter,
-                                    num_files = NULL,
+                                    num_files = NA,
                                     post_process=function(x) {x},
                                     geoid_len = 0,
                                     padding_char = "0") {
@@ -93,7 +96,10 @@ load_hosp_sims_filtered <- function(scenario_dir,
   files <- files[grepl(name_filter,files)]
   if(length(files) == 0){stop(paste0("There were no files in ",getwd(),"/",sprintf("hospitalization/model_output/%s", scenario_dir)," matching name filter |",name_filter,"|"))}
 
-  if (!is.null(num_files) & num_files <= length(files)){
+  if(is.na(num_files) ){
+    num_files <- length(files)
+  }
+  if ( num_files <= length(files) ){
     files <- files[seq_len(num_files)]
     warning(paste("You are only reading in", num_files, "files. Check the num_files argument if this is unexpected."))
   }
