@@ -1,17 +1,4 @@
-##' Find the number of people who become Y at a given time, estimated using X
-##'
-##' @param X The name of the variable that defines the size of the binomial distribution
-##' @param p_X The probability of varname given X
-##' @param data_ A dataframe with columns: X, "time", and "uid"
-##' @param X_pars Numeric 2 with first element log mean and second element log standard deviation of the time to X from infection
-##' @param varname The name of the outcome variable (Y)
-##'
-##' @return Data table where time = date, uid = simulation ID, and count = the number of people who become varname at given time
-##'
-##' @examples
-##' dat = data.frame(time=lubridate::ymd("2020-01-01"),incidI=5,uid=1)
-##' hosp_create_delay_frame('incidI', 0.1, dat, c(1.23, 0.79), "H")
-##'
+
 hosp_create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
     X_ <- rbinom(length(data_[[X]]),data_[[X]],p_X)
     rc <- data.table::data.table(
@@ -25,7 +12,6 @@ hosp_create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
 
 ##'
 ##' Data loading utility function for this package.
-##'
 ##'
 hosp_load_scenario_sim <- function(scenario_dir,
                                    sim_id,
@@ -70,7 +56,6 @@ hosp_load_scenario_sim <- function(scenario_dir,
 ##' @param cores The number of CPU cores to run this model on in parallel
 ##' @param root_out_dir Path to the directory to write the outputs of this analysis
 ##'
-##' @export
 build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, scenario_name,
                                 time_hosp_pars = c(1.23, 0.79), 
                                 time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
