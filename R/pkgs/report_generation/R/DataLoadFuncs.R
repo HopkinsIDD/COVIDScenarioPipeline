@@ -24,19 +24,29 @@ load_scenario_sims_filtered <- function(scenario_dir,
   
   require(tidyverse)
   
-  files <- dir(sprintf("model_output/%s", scenario_dir),full.names = TRUE)
-  if(length(files) == 0){stop(paste0("There were no files in ",getwd(),"/",sprintf("model_output/%s", scenario_dir)))}
 
-  if(is.na(num_files) ){
-    num_files <- length(files)
+  if (is.na(num_files)) {
+    files <- dir(sprintf("model_output/%s", scenario_dir), full.names = TRUE)
+  } else {
+    files <- c()
+    for (scenario in scenario_dir) {
+      all_files <- dir(sprintf("model_output/%s", scenario), full.names = TRUE)
+      if (length(all_files) == num_files) {
+        files <- c(files, all_files) 
+      } else if (num_files < length(all_files)) {
+        warning(paste0("You are only reading in ", num_files, " out of ", length(all_files), " files in ", scenario,
+                       ". Check the num_files argument if this is unexpected.\n"))
+        files <- c(files, all_files[seq_len(num_files)])
+      } else {
+        stop(paste0("There were ", length(all_files), " files in ", scenario, " but num_files is ", num_files, "."))
+      }
+    }
   }
-  if ( num_files <= length(files) ){
-    files <- files[seq_len(num_files)]
-    warning(paste("You are only reading in", num_files, "files. Check the num_files argument if this is unexpected."))
+  if (length(files) == 0) {
+    stop(paste0("There were no files in ",getwd(), "/", sprintf("model_output/%s", scenario_dir)))
   }
-  
+
   rc <- list()
-  
   
   if (geoid_len > 0) {
     padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width =geoid_len,pad=padding_char))}
@@ -53,17 +63,14 @@ load_scenario_sims_filtered <- function(scenario_dir,
                                                   comp=col_character()))  %>%
       pre_process %>%
       pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>% 
-      padfn%>%
+      padfn %>%
       post_process %>%
       mutate(sim_num = i)
     
     rc[[i]] <- tmp
   }
   
-  rc<- dplyr::bind_rows(rc)
-  
-
-  
+  rc <- dplyr::bind_rows(rc)
   return(rc)
 }
 
