@@ -127,7 +127,7 @@ class Setup():
 
     def set_filter(self, dynfilter):
         if dynfilter.shape != (self.t_span, self.nnodes):
-            raise ValueError(f"Filter file must have dimensions ({self.t_span}, {self.nnodes}). Actual: ({dynfilter.shape})")
+            raise ValueError(f"Filter must have dimensions ({self.t_span}, {self.nnodes}). Actual: ({dynfilter.shape})")
         self.dynfilter = dynfilter
 
     def load_filter(self, dynfilter_path):
