@@ -59,7 +59,7 @@ class Setup():
     """
     def __init__(self, *,
                  setup_name,
-                 spatial_setup, # SpatialSetup
+                 spatial_setup,
                  nsim,
                  ti, # time to start
                  tf, # time to finish
@@ -90,7 +90,7 @@ class Setup():
         self.spatset = spatial_setup
 
         self.build_setup()
-        self.dynfilter = -np.ones((self.t_span, self.nnodes)) # time x location matrix. Stores minimum # of infections so that infection matches reality
+        self.dynfilter = -np.ones((self.t_span, self.nnodes))
 
         if self.write_csv:
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
