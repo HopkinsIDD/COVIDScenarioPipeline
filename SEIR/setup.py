@@ -6,6 +6,7 @@ import scipy.sparse
 
 from .utils import config
 
+
 # Number of components
 ncomp = 7
 # Number of infection components
@@ -14,20 +15,43 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
 class SpatialSetup:
-    def __init__(self, *, setup_name, geodata_file, mobility_file, popnodes_key):
+    def __init__(self, *, setup_name, geodata_file, mobility_file, popnodes_key, nodenames_key):
         self.setup_name = setup_name
-        self.data = pd.read_csv(geodata_file) # geoids and populations
-        self.mobility = np.loadtxt(mobility_file) # K x K matrix of people moving
-
-        # popnodes_key is the name of the column in self.data that has populations
-        if popnodes_key not in self.data:
-            raise ValueError(f"popnodes_key: {popnodes_key} does not correspond to a column in geodata_file.");
-        self.popnodes = self.data[popnodes_key].to_numpy() # population
-
+        self.data = pd.read_csv(geodata_file, converters={nodenames_key: lambda x: str(x)}) # geoids and populations
         self.nnodes = len(self.data) # K = # of locations
 
+        # popnodes_key is the name of the column in geodata_file with populations
+        if popnodes_key not in self.data:
+            raise ValueError(f"popnodes_key: {popnodes_key} does not correspond to a column in geodata.");
+        self.popnodes = self.data[popnodes_key].to_numpy() # population
+
+        # nodenames_key is the name of the column in geodata_file with geoids
+        if nodenames_key not in self.data:
+            raise ValueError(f"nodenames_key: {nodenames_key} does not correspond to a column in geodata.");
+        self.nodenames = self.data[nodenames_key].tolist()
+        if len(self.nodenames) != len(set(self.nodenames)):
+            raise ValueError(f"There are duplicate nodenames in geodata.")
+
+        self.mobility = scipy.sparse.coo_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
+
+        # Validate mobility data
         if self.mobility.shape != (self.nnodes, self.nnodes):
-            raise ValueError(f"Mobility file must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
+            raise ValueError(f"Mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
+
+        if (self.mobility - self.mobility.T).nnz != 0:
+            raise ValueError(f"Mobility data is not symmetric.")
+
+        # Make sure mobility values <= the population of corresponding nodes
+        tmp = self.mobility - self.popnodes
+        tmp[tmp < 0] = 0
+        if tmp.any():
+            rows, cols, values = scipy.sparse.find(tmp)
+            errmsg = ""
+            mobility_dense = self.mobility.todense()
+            for r,c,v in zip(rows, cols, values):
+                errmsg += f"\n({r}, {c}) = {mobility_dense[r,c]} > population of one of these nodes {set([self.nodenames[r], self.nodenames[c]])}"
+
+            raise ValueError(f"The following entries in the mobility data exceed the populations in geodata:{errmsg}")
 
 
 class Setup():
@@ -116,7 +140,15 @@ def seeding_draw(s, uid):
         seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
                               converters={'place': lambda x: str(x)},
                               parse_dates=['date'])
+
+        dupes = seeding[seeding.duplicated(['place', 'date'])].index + 1
+        if not dupes.empty:
+            raise ValueError(f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file.")
+
         for  _, row in seeding.iterrows():
+            if row['place'] not in s.spatset.nodenames:
+                raise ValueError(f"Invalid place '{row['place']}' in row {_ + 1} of seeding::lambda_file. Not found in geodata.")
+
             importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = \
                 np.random.poisson(row['amount'])
 
