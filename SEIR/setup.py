@@ -36,10 +36,10 @@ class SpatialSetup:
 
         # Validate mobility data
         if self.mobility.shape != (self.nnodes, self.nnodes):
-            raise ValueError(f"Mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
+            raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
 
         if (self.mobility - self.mobility.T).nnz != 0:
-            raise ValueError(f"Mobility data is not symmetric.")
+            raise ValueError(f"mobility data is not symmetric.")
 
         # Make sure mobility values <= the population of corresponding nodes
         tmp = self.mobility - self.popnodes
@@ -47,9 +47,8 @@ class SpatialSetup:
         if tmp.any():
             rows, cols, values = scipy.sparse.find(tmp)
             errmsg = ""
-            mobility_dense = self.mobility.todense()
             for r,c,v in zip(rows, cols, values):
-                errmsg += f"\n({r}, {c}) = {mobility_dense[r,c]} > population of one of these nodes {set([self.nodenames[r], self.nodenames[c]])}"
+                errmsg += f"\n({r}, {c}) = {v} > population of one of these nodes {set([self.nodenames[r], self.nodenames[c]])}"
 
             raise ValueError(f"The following entries in the mobility data exceed the populations in geodata:{errmsg}")
 
@@ -106,28 +105,9 @@ class Setup():
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
 
-    #def buildIC(self, seeding_places, seeding_amount):
-    #    self.y0 = np.zeros((ncomp, self.nnodes))
-    #    self.y0[S, :] = self.popnodes
-    #    for i, pl in enumerate(seeding_places):
-    #        self.y0[S, pl] = self.popnodes[pl] - seeding_amount[i]
-    #        self.y0[I1, pl] = seeding_amount[i]
-    #    return self.y0
-
-    #def buildICfromfilter(self):
-    #    y0 = np.zeros((ncomp, self.nnodes))
-    #    draw = np.random.poisson(5 * self.dynfilter[31] + 0.1)
-    #    y0[S, :] = self.popnodes - draw
-    #    y0[E, :] = (draw / 4).astype(np.int)
-    #    y0[I1, :] = (draw / 4).astype(np.int)
-    #    y0[I2, :] = (draw / 4).astype(np.int)
-    #    y0[I3, :] = (draw / 4).astype(np.int)
-    #    y0[cumI, :] = (3 * draw / 4).astype(np.int)
-    #    return y0
-
     def set_filter(self, dynfilter):
         if dynfilter.shape != (self.t_span, self.nnodes):
-            raise ValueError(f"Filter file must have dimensions ({self.t_span}, {self.nnodes}). Actual: ({dynfilter.shape})")
+            raise ValueError(f"Filter must have dimensions ({self.t_span}, {self.nnodes}). Actual: ({dynfilter.shape})")
         self.dynfilter = dynfilter
 
     def load_filter(self, dynfilter_path):

@@ -21,6 +21,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Run pytest SEIR
+        run: |
+          /home/app/python_venv/bin/pytest SEIR/
+        shell: bash
       - name: Run covidcommon tests
         run: |
           setwd("R/pkgs/covidcommon")
@@ -29,5 +33,10 @@ jobs:
       - name: Run hospitalization tests
         run: |
           setwd("R/pkgs/hospitalization")
+          devtools::test(stop_on_failure=TRUE)
+        shell: Rscript {0}
+      - name: Run report_generation tests
+        run: |
+          setwd("R/pkgs/report_generation")
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
