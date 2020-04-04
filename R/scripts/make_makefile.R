@@ -1,14 +1,15 @@
-
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) != 2) {
+if (length(args) != 3) {
   stop(paste(
-    "Please specify two arguments:
-      Rscript make_makefile.R <config YAML file> <COVIDScenarioPipeline folder>"
+    "Please specify three arguments:
+      Rscript make_makefile.R <config YAML file> <COVIDScenarioPipeline folder> <Number of CPUs/jobs for pipeline>
+      Example) Rscript make_makefile.R config.yml COVIDScenarioPipeline 1"
   ))
 }
 
 config_file <- args[1]
 pipeline <- args[2]
+ncoreper <- args[3]
 
 config = covidcommon::load_config(config_file)
 if(isTRUE(config$this_file_is_unedited)){
@@ -29,15 +30,8 @@ cat("\n")
 cat(deathrates)
 cat("\n")
 
-using_importation <- FALSE
-if("importation" %in% names(config)){
-  using_importation <- TRUE
-}
-
-generating_report <- FALSE
-if("report" %in% names(config)){
-  generating_report <- TRUE
-}
+using_importation <- ("importation" %in% names(config))
+generating_report <- ("report" %in% names(config))
 
 importation_target_name <- function(simulation, prefix = ""){
   paste0(".files/",prefix,simulation,"_importation")
@@ -121,13 +115,13 @@ sink("Makefile")
 cat("
 .PHONY: rerun rerun_simulations rerun_hospitalization clean_hospitalization clean clean_simulations
 
-NCOREPER=1
 RSCRIPT=Rscript
 PYTHON=python3
 ")
 
+cat(paste0("NCOREPER=",ncoreper,"\n"))
 cat(paste0("PIPELINE=",pipeline,"\n"))
-cat(paste0("CONFIG=",config_file,"\n"))
+cat(paste0("CONFIG=",config_file,"\n\n"))
 
 if(generating_report){
   cat("report:")
