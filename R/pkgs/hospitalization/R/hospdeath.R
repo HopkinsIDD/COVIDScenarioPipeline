@@ -76,9 +76,8 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
 
   print(paste("Running over",n_sim,"simulations"))
 
-  pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
-  dat_final <- foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-  # for(s in seq_len(n_sim)){
+  pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hosp_load_scenario_sim", "hosp_create_delay_frame")
+  foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_ <- hosp_load_scenario_sim(data_filename,s,keep_compartments = c("diffI","cumI"))
     dat_ <- dat_ %>% dplyr::filter(comp == "diffI") 
     dat_ <- dat_ %>% mutate(hosp_curr = 0, icu_curr = 0, vent_curr = 0, uid = paste0(geoid, "-",sim_num))
