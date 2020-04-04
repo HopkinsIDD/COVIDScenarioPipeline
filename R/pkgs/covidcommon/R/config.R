@@ -19,6 +19,7 @@ config <- NA
 ##'@param fname Load configuration from fname (optional, otherwise loads from CONFIG_PATH env var)
 ##'@example config$parameters_seir$gamma
 ##'
+##'@export
 load_config <- function(fname) {
   require(yaml)
 
