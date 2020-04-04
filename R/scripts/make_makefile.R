@@ -73,12 +73,12 @@ filter_make_command <- function(simulation,prefix=""){
   ))
 }
 
-hospitalizaiton_target_name <- function(simulation,scenario,deathrate, prefix = ''){
+hospitalization_target_name <- function(simulation,scenario,deathrate, prefix = ''){
   paste0(".files/",prefix,simulation,"_hospitalization_",scenario,"_",deathrate)
 }
 
-hospitalizaiton_make_command <- function(simulation,scenario,deathrate, prefix = ''){
-  target_name <- hospitalizaiton_target_name(simulation,scenario,deathrate, prefix = prefix)
+hospitalization_make_command <- function(simulation,scenario,deathrate, prefix = ''){
+  target_name <- hospitalization_target_name(simulation,scenario,deathrate, prefix = prefix)
   dependency_name <- simulation_target_name(simulation,scenario, prefix = prefix)
   command_name <- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s ",scenario," -d ",deathrate, " -j $(NCOREPER) -c $(CONFIG)")
   touch_name <- paste0("touch ",target_name)
@@ -136,7 +136,7 @@ if(generating_report){
     cat(simulation_target_name(simulations,scenario))
     for(deathrate in deathrates){
       cat(" ")
-      cat(hospitalizaiton_target_name(simulations,scenario,deathrate))
+      cat(hospitalization_target_name(simulations,scenario,deathrate))
     }
   }
   cat("\n\tRscript compile_Rmd.R\n")
@@ -156,7 +156,7 @@ for(sim_idx in seq_len(length(simulations))){
   for(scenario in scenarios){
     cat(simulation_make_command(sim,scenario,prev_sim))
     for(deathrate in deathrates){
-      cat(hospitalizaiton_make_command(sim,scenario,deathrate))
+      cat(hospitalization_make_command(sim,scenario,deathrate))
     }
   }
 }
