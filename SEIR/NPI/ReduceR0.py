@@ -13,12 +13,12 @@ class ReduceR0(NPIBase):
         self.period_end_date = npi_config["period_end_date"].as_date() \
             if npi_config["period_end_date"].exists() else self.end_date
 
-        if not (self.start_date <= self.period_start_date < self.end_date):
-            raise ValueError(f"period_start_date ({self.period_start_date}) is not between global dates [{self.start_date}, {self.end_date})")
-        if not (self.start_date < self.period_end_date <= self.end_date):
-            raise ValueError(f"period_end_date ({self.period_end_date}) is not between global dates ({self.start_date}, {self.end_date}]")
-        if self.period_end_date <= self.start_date:
-            raise ValueError(f"period_end_date  ({self.period_end_date}) is not greater than period_start_date ({self.period_start_date})")
+        if not (self.start_date <= self.period_start_date <= self.end_date):
+            raise ValueError(f"period_start_date ({self.period_start_date}) is not between global dates [{self.start_date}, {self.end_date}]")
+        if not (self.start_date <= self.period_end_date <= self.end_date):
+            raise ValueError(f"period_end_date ({self.period_end_date}) is not between global dates [{self.start_date}, {self.end_date}]")
+        if self.period_end_date < self.start_date:
+            raise ValueError(f"period_end_date  ({self.period_end_date}) is less than period_start_date ({self.period_start_date})")
 
         self.dist = npi_config["value"].as_random_distribution()
 

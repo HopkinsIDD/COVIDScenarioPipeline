@@ -6,6 +6,21 @@ test_that("load_config works", {
     load_config(fname)$yaml,
     TRUE
   )
+
+  expect_error(
+    load_config(";lkdjaoijdsfjoasidjfaoiwerfj q2fu8ja8erfasdiofj aewr;fj aff409a urfa8rf a';j 38i a0fuadf "),
+    "file"
+  )
+
+  expect_error(
+    load_config(fname)$badkey,
+    "badkey"
+  )
+
+  expect_error(
+    load_config(fname)$missing$badkey,
+    "missing"
+  )
 })
 
 test_that("as_evaled_expression works", {
