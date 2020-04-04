@@ -108,6 +108,7 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     p_recover = 1 - np.exp(-dt * p_vec[2][0][0])
 
     for it, t in enumerate(t_inter):
+        mv[:] = 0
         begin = y[:-1]
         if (it % int(1 / dt) == 0):
             y[I1] = y[I1] + seeding[int(t)]
