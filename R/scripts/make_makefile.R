@@ -1,9 +1,14 @@
-config_file = ("config.yml")
 
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) == 1) {
-  config_file <- args[1]
+if (length(args) != 2) {
+  stop(paste(
+    "Please specify two arguments:
+      Rscript make_makefile.R <config YAML file> <COVIDScenarioPipeline folder>"
+  ))
 }
+
+config_file <- args[1]
+pipeline <- args[2]
 
 config = covidcommon::load_config(config_file)
 if(isTRUE(config$this_file_is_unedited)){
@@ -27,6 +32,11 @@ cat("\n")
 using_importation <- FALSE
 if("importation" %in% names(config)){
   using_importation <- TRUE
+}
+
+generating_report <- FALSE
+if("report" %in% names(config)){
+  generating_report <- TRUE
 }
 
 importation_target_name <- function(simulation, prefix = ""){
@@ -114,22 +124,23 @@ cat("
 NCOREPER=1
 RSCRIPT=Rscript
 PYTHON=python3
-PIPELINE=COVIDScenarioPipeline/
 ")
 
-cat(paste0("CONFIG=",config_file),"\n")
-cat(paste0("OUTPUTBASE=",config$name),"\n")
+cat(paste0("PIPELINE=",pipeline,"\n"))
+cat(paste0("CONFIG=",config_file,"\n"))
 
-cat("report:")
-for(scenario in scenarios){
-  cat(" ")
-  cat(simulation_target_name(simulations,scenario))
-  for(deathrate in deathrates){
+if(generating_report){
+  cat("report:")
+  for(scenario in scenarios){
     cat(" ")
-    cat(hospitalizaiton_target_name(simulations,scenario,deathrate))
+    cat(simulation_target_name(simulations,scenario))
+    for(deathrate in deathrates){
+      cat(" ")
+      cat(hospitalizaiton_target_name(simulations,scenario,deathrate))
+    }
   }
+  cat("\n\tRscript compile_Rmd.R\n")
 }
-cat("\n\tRscript compile_Rmd.R\n")
 
 if(using_importation){
   for(sim_idx in seq_len(length(simulations))){
