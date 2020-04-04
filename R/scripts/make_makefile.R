@@ -1,17 +1,11 @@
-args <- commandArgs(trailingOnly = TRUE)
-if (length(args) != 3) {
-  stop(paste(
-    "Please specify three arguments:
-      Rscript make_makefile.R <config YAML file> <COVIDScenarioPipeline folder> <Number of CPUs/jobs for pipeline>
-      Example) Rscript make_makefile.R config.yml COVIDScenarioPipeline 1"
-  ))
-}
+option_list = list(
+  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
+  optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory"),
+  optparse::make_option(c("-n", "--ncoreper"), action="store", default="1", type='character', help="Number of CPUS/jobs for pipeline")
+)
+opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
-config_file <- args[1]
-pipeline <- args[2]
-ncoreper <- args[3]
-
-config = covidcommon::load_config(config_file)
+config = covidcommon::load_config(opt$c)
 if(isTRUE(config$this_file_is_unedited)){
   stop(paste(
     "Please make minimal edits to the config file before running this script.
@@ -119,9 +113,9 @@ RSCRIPT=Rscript
 PYTHON=python3
 ")
 
-cat(paste0("NCOREPER=",ncoreper,"\n"))
-cat(paste0("PIPELINE=",pipeline,"\n"))
-cat(paste0("CONFIG=",config_file,"\n\n"))
+cat(paste0("NCOREPER=",opt$n,"\n"))
+cat(paste0("PIPELINE=",opt$p,"\n"))
+cat(paste0("CONFIG=",opt$c,"\n\n"))
 
 if(generating_report){
   cat("report:")
