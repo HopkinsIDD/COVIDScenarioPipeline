@@ -4,6 +4,17 @@
 config <- NA
 
 ##'
+##'Overrides the $ operator for S3 'config' objects to ensure that named args exist.
+##'
+'$.config' <- function(x, name) {
+  if (name %in% names(x)) {
+    return(x[[name]])
+  } else {
+    stop(paste("Key", name, "not found in config object"))
+  }
+}
+
+##'
 ##'Returns a map of configuration loaded from the config YAML
 ##'@param fname Load configuration from fname (optional, otherwise loads from CONFIG_PATH env var)
 ##'@example config$parameters_seir$gamma
@@ -14,8 +25,9 @@ load_config <- function(fname) {
   if (missing(fname)) {
     fname <- Sys.getenv("CONFIG_PATH")
   }
-  if (file.exists(fname)) {
-    return(yaml.load_file(fname))
+  if (!missing(fname)) {
+    handlers <- list(map=function(x) { class(x) <- "config"; return(x) })
+    return(tryCatch(yaml.load_file(fname, handlers=handlers), error = function(e) { stop(paste("Could not find file: ", fname)) }))
   } else {
     return(NA)
   }
