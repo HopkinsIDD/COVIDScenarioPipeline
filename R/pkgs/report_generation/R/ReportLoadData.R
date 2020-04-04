@@ -546,6 +546,8 @@ load_shape_file<- function(
   }
   if(!('geoid' %in% names(shp))){stop(paste(filename,"does not have a column named geoid"))}
   if(geoid_len > 0){
+
+    if(is.na(geoid_pad) | nchar(geoid_pad)>1){stop(paste("Invalid geoid_pad value. Please provide a character or numeric value"))}
     shp$geoid <- stringr::str_pad(shp$geoid,geoid_len, pad = geoid_pad)
   }
   return(shp)
