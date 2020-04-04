@@ -17,17 +17,25 @@ if (is.na(config)) {
 }
 
 dest <- sort(config$spatial_setup$modeled_states)
+print(dest)
+
 outdir <- file.path('importation',config$spatial_setup$setup_name)
+print(outdir)
+
+setup_name <- config$spatial_setup$setup_name
+
 if(!dir.exists(outdir)){
   dir.create(outdir,recursive=TRUE)
 }
-if(!dir.exists(file.path(outdir,paste(dest,collapse='-')))){
-  dir.create(file.path(outdir,paste(dest,collapse='-')),recursive=TRUE)
-}
-case_data_dir <- file.path('importation',config$spatial_setup$setup_name,"case_data")
-if(!dir.exists(case_data_dir)){
-  dir.create(case_data_dir,recursive=TRUE)
-}
+## SHOULD REMOVE THIS
+# if(!dir.exists(file.path(outdir,paste(dest,collapse='-')))){
+#   dir.create(file.path(outdir,paste(dest,collapse='-')),recursive=TRUE)
+# }
+# ## SHOULD REMOVE THIS
+# case_data_dir <- file.path('importation',config$spatial_setup$setup_name,"case_data")
+# if(!dir.exists(case_data_dir)){
+#   dir.create(case_data_dir,recursive=TRUE)
+# }
 if(!dir.exists(file.path(config$spatial_setup$base_path,paste(dest,collapse='-')))){
   dir.create(file.path(config$spatial_setup$base_path,paste(dest,collapse='-')),recursive=TRUE)
 }
@@ -37,8 +45,11 @@ tidycensus::census_api_key(key = config$importation$census_api_key)
 
 case_data_dir <- "data/case_data"
 
-shapefile_path = file.path(config$spatial_setup$base_path,config$spatial_setup$shapefile)
+# dont need this anymore #
+#shapefile_path = file.path(config$spatial_setup$base_path,config$spatial_setup$shapefile)
 
+
+print("IMPORT 1: SETUP")
 setup_importations(
   dest=dest,
   dest_type = config$importation$dest_type,
@@ -57,7 +68,9 @@ setup_importations(
   param_list=config$importation$param_list
 )
 
-sim_res <- covidImportation::run_importations(
+
+print("IMPORT 2: RUN MODEL")
+run_importations(
   n_sim=config$nsimulations,
   cores=opts$j,
   get_detection_time=FALSE, # NOT CURRENTLY USED FOR THIS PURPOSE
@@ -68,9 +81,11 @@ sim_res <- covidImportation::run_importations(
   param_list = config$importation$param_list
 )
 
+
+print("IMPORT 3: DISTRIBUTE")
 run_full_distrib_imports(
   states_of_interest=dest,
-  regioncode=paste(dest,collapse='-'),
+  regioncode=setup_name,
   yr=config$spatial_setup$census_year,
   mean_travel_file = file.path(
     outdir,
@@ -78,7 +93,7 @@ run_full_distrib_imports(
   ),
   travelers_threshold=config$importation$travelers_threshold,
   airport_cluster_threshold=config$importation$airport_cluster_distance,
-  shapefile_path = file.path(config$spatial_setup$base_path,config$spatial_setup$shapefile),
+  shapefile_path = NULL,
   model_output_dir = outdir,
   local_dir=paste0(config$spatial_setup$base_path,'/'),
   plot=FALSE,
