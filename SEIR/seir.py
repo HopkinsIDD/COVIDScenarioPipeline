@@ -93,59 +93,61 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     mobility_len = len(mobility_ori)
 
     y = np.zeros((ncomp, nnodes))
+    mv = np.zeros((ncomp - 1, nnodes))
     y[S, :] = popnodes
     states = np.zeros((ncomp, nnodes, len(t_inter)))
-
-    mv_one = np.empty(ncomp - 1)
-    mv = np.zeros((ncomp - 1, nnodes))
-    exposeCases = np.empty(nnodes)
-    incidentCases = np.empty(nnodes)
-    incident2Cases = np.empty(nnodes)
-    incident3Cases = np.empty(nnodes)
-    recoveredCases = np.empty(nnodes)
 
     p_infect = 1 - np.exp(-dt * p_vec[1][0][0])
     p_recover = 1 - np.exp(-dt * p_vec[2][0][0])
 
     for it, t in enumerate(t_inter):
-        mv[:] = 0
-        begin = y[:-1]
-        if (it % int(1 / dt) == 0):
-            y[I1] = y[I1] + seeding[int(t)]
-            y[cumI] = y[cumI] + seeding[int(t)]
+        is_check_loop = (it % int(1 / dt) == 0)
+        if is_check_loop:
+            y[I1] += seeding[int(t)]
+            y[cumI] += seeding[int(t)]
 
         # calculate matrix of mv's
         # TODO: add all probabilities and do a binomial of that
         for i in range(mobility_len):
-            ori = mobility_ori[i]
-            dest = mobility_dest[i]
-            prob = mobility_prob[i]
             for c in range(ncomp - 1):
-                mv_one[c] = np.random.binomial(y[c, ori], prob)
-            mv[:, ori] -= mv_one
-            mv[:, dest] += mv_one
-
-        y[:-1] += mv
-
-        p_expose = 1 - np.exp(-dt * p_vec[0][it] *
-                              (y[I1] + y[I2] + y[I3]) / popnodes)  # vector
+                delta = np.random.binomial(y[c, mobility_ori[i]], mobility_prob[i])
+                mv[c, mobility_ori[i]] -= delta
+                mv[c, mobility_dest[i]] += delta
 
         for i in range(nnodes):
-            exposeCases[i] = np.random.binomial(y[S][i], p_expose[i])
-            incidentCases[i] = np.random.binomial(y[E][i], p_infect)
-            incident2Cases[i] = np.random.binomial(y[I1][i], p_recover)
-            incident3Cases[i] = np.random.binomial(y[I2][i], p_recover)
-            recoveredCases[i] = np.random.binomial(y[I3][i], p_recover)
 
-        y[S] += -exposeCases
-        y[E] += exposeCases - incidentCases
-        y[I1] += incidentCases - incident2Cases
-        y[I2] += incident2Cases - incident3Cases
-        y[I3] += incident3Cases - recoveredCases
-        y[R] += recoveredCases
-        y[cumI] += incidentCases
-        states[:, :, it] = y
-        if (it%(1/dt) == 0 and (y[cumI] < dynfilter[int(it%(1/dt))]).any()):
+            # update the compartments with the contents of the move matrix and
+            # reset the move matrix to zero for the next loop.
+            for c in range(ncomp - 1):
+                y[c][i] += mv[c, i]
+                mv[c, i] = 0
+
+            p_expose = 1.0 - np.exp(-dt * p_vec[0][it][i] *
+                                    (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i])
+
+            exposeCases = np.random.binomial(y[S][i], p_expose)
+            incidentCases = np.random.binomial(y[E][i], p_infect)
+            incident2Cases = np.random.binomial(y[I1][i], p_recover)
+            incident3Cases = np.random.binomial(y[I2][i], p_recover)
+            recoveredCases = np.random.binomial(y[I3][i], p_recover)
+
+            y[S][i] += -exposeCases
+            y[E][i] += exposeCases - incidentCases
+            y[I1][i] += incidentCases - incident2Cases
+            y[I2][i] += incident2Cases - incident3Cases
+            y[I3][i] += incident3Cases - recoveredCases
+            y[R][i] += recoveredCases
+            y[cumI][i] += incidentCases
+
+            if is_check_loop and y[cumI][i] < dynfilter[int(it % (1 / dt))][i]:
                 return -np.ones((ncomp, nnodes, len(t_inter)))
+
+            states[S, i, it] = y[S][i]
+            states[E, i, it] = y[E][i]
+            states[I1, i, it] = y[I1][i]
+            states[I2, i, it] = y[I2][i]
+            states[I3, i, it] = y[I3][i]
+            states[R, i, it] = y[R][i]
+            states[cumI, i, it] = y[cumI][i]
 
     return states
