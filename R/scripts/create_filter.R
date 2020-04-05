@@ -26,10 +26,13 @@ incid_data_list <- covidImportation::get_incidence_data(
 )
 jhucsse <- incid_data_list$jhucsse_case_data
 
+
+print("Successfully pulled JHU CSSE data for filtering.")
+
 all_times <- lubridate::ymd(config$start_date) +
   seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
 
-geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path,config$spatial_setup$geodata),5,'0',TRUE)
+geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),5,'0',TRUE)
 
 all_geoids <- geodata[[config$spatial_setup$nodenames]]
 
