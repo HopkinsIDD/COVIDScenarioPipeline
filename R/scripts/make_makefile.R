@@ -54,7 +54,7 @@ filter_make_command <- function(simulation,prefix=""){
   command_name<- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/create_filter.R -c $(CONFIG)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
-    target_name, ": ",
+    target_name, ": .files ",
     dependency_name, "\n", 
     "\t",command_name, "\n",
     "\t",touch_name, "\n"
@@ -71,7 +71,7 @@ hospitalization_make_command <- function(simulation,scenario,deathrate, prefix =
   command_name <- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s ",scenario," -d ",deathrate, " -j $(NCOREPER) -c $(CONFIG)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
-    target_name, ": ",
+    target_name, ": .files ",
     dependency_name, "\n", 
     "\t",command_name, "\n",
     "\t",touch_name, "\n"
@@ -96,7 +96,7 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   command_name <- paste0("$(PYTHON) $(PIPELINE)/simulate.py -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
-    target_name, ": ",
+    target_name, ": .files ",
     dependency_name, "\n", 
     "\t",command_name, "\n",
     "\t",touch_name, "\n"
@@ -117,17 +117,28 @@ cat(paste0("NCOREPER=",opt$n,"\n"))
 cat(paste0("PIPELINE=",opt$p,"\n"))
 cat(paste0("CONFIG=",opt$c,"\n\n"))
 
+cat("
+.files:
+\tmkdir $@
+")
+
 if(generating_report){
   cat("report:")
-  for(scenario in scenarios){
+} else {
+  cat("run:")
+}
+for(scenario in scenarios){
+  cat(" ")
+  cat(simulation_target_name(simulations,scenario))
+  for(deathrate in deathrates){
     cat(" ")
-    cat(simulation_target_name(simulations,scenario))
-    for(deathrate in deathrates){
-      cat(" ")
-      cat(hospitalization_target_name(simulations,scenario,deathrate))
-    }
+    cat(hospitalization_target_name(simulations,scenario,deathrate))
   }
-  cat("\n\tRscript compile_Rmd.R\n")
+}
+cat("\n")
+
+if(generating_report){
+  cat("\tRscript compile_Rmd.R\n")
 }
 
 if(using_importation){
@@ -171,7 +182,8 @@ rerun_simulations: clean_simulations
 \trm -f .files/1*_simulation*
 rerun_hospitalization:
 \trm -f .files/1*_hospitalization*
-clean: clean_simulations clean_hospitalization clean_reports"
+clean: clean_simulations clean_hospitalization clean_reports
+\trm -rf .files"
 ))
 if(using_importation){
   cat(" clean_importation clean_filter")
