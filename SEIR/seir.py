@@ -122,7 +122,7 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
                 y[c][i] += mv[c, i]
                 mv[c, i] = 0
 
-            p_expose = 1.0 - np.exp(-dt * p_vec[0][it] *
+            p_expose = 1.0 - np.exp(-dt * p_vec[0][it][i] *
                                     (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i])
 
             exposeCases = np.random.binomial(y[S][i], p_expose)
