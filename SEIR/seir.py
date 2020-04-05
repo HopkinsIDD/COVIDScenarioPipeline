@@ -93,6 +93,7 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     mobility_len = len(mobility_ori)
 
     y = np.zeros((ncomp, nnodes))
+    mv = np.zeros((ncomp - 1, nnodes))
     y[S, :] = popnodes
     states = np.zeros((ncomp, nnodes, len(t_inter)))
 
@@ -100,7 +101,8 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     p_recover = 1 - np.exp(-dt * p_vec[2][0][0])
 
     for it, t in enumerate(t_inter):
-        if (it % int(1 / dt) == 0):
+        is_check_loop = (it % int(1 / dt) == 0)
+        if is_check_loop:
             y[I1] += seeding[int(t)]
             y[cumI] += seeding[int(t)]
 
@@ -109,10 +111,17 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
         for i in range(mobility_len):
             for c in range(ncomp - 1):
                 delta = np.random.binomial(y[c, mobility_ori[i]], mobility_prob[i])
-                y[c, mobility_ori[i]] -= delta
-                y[c, mobility_dest[i]] += delta
+                mv[c, mobility_ori[i]] -= delta
+                mv[c, mobility_dest[i]] += delta
 
         for i in range(nnodes):
+
+            # update the compartments with the contents of the move matrix and
+            # reset the move matrix to zero for the next loop.
+            for c in range(ncomp - 1):
+                y[c][i] += mv[c, i]
+                mv[c, i] = 0
+
             p_expose = 1.0 - np.exp(-dt * p_vec[0][it] *
                                     (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i])
 
@@ -130,6 +139,9 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
             y[R][i] += recoveredCases
             y[cumI][i] += incidentCases
 
+            if is_check_loop and y[cumI][i] < dynfilter[int(it % (1 / dt))][i]:
+                return -np.ones((ncomp, nnodes, len(t_inter)))
+
             states[S, i, it] = y[S][i]
             states[E, i, it] = y[E][i]
             states[I1, i, it] = y[I1][i]
@@ -137,8 +149,5 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
             states[I3, i, it] = y[I3][i]
             states[R, i, it] = y[R][i]
             states[cumI, i, it] = y[cumI][i]
-
-        if (it%(1/dt) == 0 and (y[cumI] < dynfilter[int(it%(1/dt))]).any()):
-                return -np.ones((ncomp, nnodes, len(t_inter)))
 
     return states
