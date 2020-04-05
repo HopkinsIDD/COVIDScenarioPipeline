@@ -96,10 +96,8 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     """
     #np.random.seed(uid)
     t = 0
-    # mobility_len = len(mobility_ori)
 
     y = np.zeros((ncomp, nnodes))
-    mv = np.zeros((ncomp - 1, nnodes))
     y[S, :] = popnodes
     states = np.zeros((ncomp, nnodes, len(t_inter)))
 
@@ -116,22 +114,7 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
             y[I1] += seeding[int(t)]
             y[cumI] += seeding[int(t)]
 
-        # calculate matrix of mv's
-        # TODO: add all probabilities and do a binomial of that
-        # for i in range(mobility_len):
-        #     for c in range(ncomp - 1):
-        #         delta = np.random.binomial(y[c, mobility_ori[i]], mobility_prob[i])
-        #         mv[c, mobility_ori[i]] -= delta
-        #         mv[c, mobility_dest[i]] += delta
-        
-
         for i in range(nnodes):
-
-            # update the compartments with the contents of the move matrix and
-            # reset the move matrix to zero for the next loop.
-            for c in range(ncomp - 1):
-                y[c][i] += mv[c, i]
-                mv[c, i] = 0
 
             p_expose = 1.0 - np.exp(-dt * (
                 (1 - percent_who_move[i] ) * p_vec[0][it][i] * (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i] + 
