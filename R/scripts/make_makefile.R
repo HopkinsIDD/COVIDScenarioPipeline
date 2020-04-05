@@ -124,15 +124,21 @@ cat("
 
 if(generating_report){
   cat("report:")
-  for(scenario in scenarios){
+} else {
+  cat("run:")
+}
+for(scenario in scenarios){
+  cat(" ")
+  cat(simulation_target_name(simulations,scenario))
+  for(deathrate in deathrates){
     cat(" ")
-    cat(simulation_target_name(simulations,scenario))
-    for(deathrate in deathrates){
-      cat(" ")
-      cat(hospitalization_target_name(simulations,scenario,deathrate))
-    }
+    cat(hospitalization_target_name(simulations,scenario,deathrate))
   }
-  cat("\n\tRscript compile_Rmd.R\n")
+}
+cat("\n")
+
+if(generating_report){
+  cat("\tRscript compile_Rmd.R\n")
 }
 
 if(using_importation){
