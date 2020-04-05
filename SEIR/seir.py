@@ -23,17 +23,11 @@ def onerun_SEIR(uid, s):
 
     seeding = setup.seeding_draw(s, uid)
 
-    mobility_geoid_indices = s.mobility.indices
-    mobility_data_indices = s.mobility.indptr
-    mobility_data = s.mobility.data
-    # mobility_ori, mobility_dest = s.mobility.row, s.mobility.col
-    # mobility_prob = 1.0 - np.exp(-s.dt * s.mobility.data / s.popnodes[mobility_ori])
-    # states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
-    #                        seeding, uid, s.dt, s.t_inter, s.nnodes, s.popnodes,
-    #                        mobility_ori, mobility_dest, mobility_prob, s.dynfilter)
+    mobility_ori, mobility_dest = s.mobility.row, s.mobility.col
+    mobility_prob = 1.0 - np.exp(-s.dt * s.mobility.data / s.popnodes[mobility_ori])
     states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
                            seeding, uid, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
+                           mobility_ori, mobility_dest, mobility_prob, s.dynfilter)
 
     # Tidyup data for  R, to save it:
     if s.write_csv:
@@ -88,7 +82,7 @@ def run_parallel(s, *, n_jobs=1):
 
 @jit(nopython=True)
 def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
-                  mobility_row_indices, mobility_data_indices, mobility_data, dynfilter):
+                  mobility_ori, mobility_dest, mobility_prob, dynfilter):
     """
         Made to run just-in-time-compiled by numba, hence very descriptive and using loop,
         because loops are expanded by the compiler hence not a problem.
@@ -96,7 +90,7 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     """
     #np.random.seed(uid)
     t = 0
-    # mobility_len = len(mobility_ori)
+    mobility_len = len(mobility_ori)
 
     y = np.zeros((ncomp, nnodes))
     mv = np.zeros((ncomp - 1, nnodes))
@@ -106,10 +100,6 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     p_infect = 1 - np.exp(-dt * p_vec[1][0][0])
     p_recover = 1 - np.exp(-dt * p_vec[2][0][0])
 
-    percent_who_move = np.zeros(nnodes)
-    for j in range(nnodes):
-      percent_who_move[j] = mobility_data[mobility_data_indices[j]:mobility_data_indices[j+1] ].sum() / popnodes[j]
-
     for it, t in enumerate(t_inter):
         is_check_loop = (it % int(1 / dt) == 0)
         if is_check_loop:
@@ -118,12 +108,11 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
 
         # calculate matrix of mv's
         # TODO: add all probabilities and do a binomial of that
-        # for i in range(mobility_len):
-        #     for c in range(ncomp - 1):
-        #         delta = np.random.binomial(y[c, mobility_ori[i]], mobility_prob[i])
-        #         mv[c, mobility_ori[i]] -= delta
-        #         mv[c, mobility_dest[i]] += delta
-        
+        for i in range(mobility_len):
+            for c in range(ncomp - 1):
+                delta = np.random.binomial(y[c, mobility_ori[i]], mobility_prob[i])
+                mv[c, mobility_ori[i]] -= delta
+                mv[c, mobility_dest[i]] += delta
 
         for i in range(nnodes):
 
@@ -133,19 +122,8 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
                 y[c][i] += mv[c, i]
                 mv[c, i] = 0
 
-            p_expose = 1.0 - np.exp(-dt * (
-                (1 - percent_who_move[i] ) * p_vec[0][it][i] * (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i] + 
-                (    percent_who_move[i] ) * (
-                  mobility_data[mobility_data_indices[i]:mobility_data_indices[i+1] ] *
-                  p_vec[0][it][mobility_row_indices[i] ] *
-                  (
-                    y[I1][mobility_row_indices[i] ] +
-                    y[I2][mobility_row_indices[i] ] +
-                    y[I3][mobility_row_indices[i] ]
-                  ) / popnodes[mobility_row_indices[i] ]
-                ).sum()
-              )
-            )
+            p_expose = 1.0 - np.exp(-dt * p_vec[0][it][i] *
+                                    (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i])
 
             exposeCases = np.random.binomial(y[S][i], p_expose)
             incidentCases = np.random.binomial(y[E][i], p_infect)
