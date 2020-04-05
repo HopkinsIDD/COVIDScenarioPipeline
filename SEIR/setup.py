@@ -32,7 +32,7 @@ class SpatialSetup:
         if len(self.nodenames) != len(set(self.nodenames)):
             raise ValueError(f"There are duplicate nodenames in geodata.")
 
-        self.mobility = scipy.sparse.coo_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
+        self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
 
         # Validate mobility data
         if self.mobility.shape != (self.nnodes, self.nnodes):
