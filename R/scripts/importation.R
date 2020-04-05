@@ -36,9 +36,9 @@ if(!dir.exists(outdir)){
 # if(!dir.exists(case_data_dir)){
 #   dir.create(case_data_dir,recursive=TRUE)
 # }
-if(!dir.exists(file.path(config$spatial_setup$base_path,paste(dest,collapse='-')))){
-  dir.create(file.path(config$spatial_setup$base_path,paste(dest,collapse='-')),recursive=TRUE)
-}
+# if(!dir.exists(file.path(config$spatial_setup$base_path,paste(dest,collapse='-')))){
+#   dir.create(file.path(config$spatial_setup$base_path,paste(dest,collapse='-')),recursive=TRUE)
+# }
 param_list <- config$param_list
 
 tidycensus::census_api_key(key = config$importation$census_api_key)
