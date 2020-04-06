@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 from .base import NPIBase
 
@@ -37,7 +38,7 @@ class ReduceR0(NPIBase):
         self.npi = pd.DataFrame(0.0, index=geoids,
                                 columns=pd.date_range(self.start_date, self.end_date))
         period_range = pd.date_range(self.period_start_date, self.period_end_date)
-        self.npi.loc[affected, period_range] = self.dist(size=(len(affected), len(period_range)))
+        self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T
 
         if self.npi.to_numpy(copy=True).nonzero()[0].size == 0:
             print(f"Warning: The intervention in config: {npi_config.name} does nothing.")
