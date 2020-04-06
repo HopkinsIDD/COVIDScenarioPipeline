@@ -145,7 +145,7 @@ def seeding_draw(s, uid):
     return importation
 
 # Returns beta, sigma, and gamma parameters in a tuple
-# beta is an array of shape (nnodes, nt_inter)
+# beta is an array of shape (nt_inter, nnodes)
 # sigma and gamma are scalars
 def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
     if nnodes <= 0 or nt_inter <= 0:
