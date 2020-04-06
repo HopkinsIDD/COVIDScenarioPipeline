@@ -38,8 +38,8 @@ class SpatialSetup:
         if self.mobility.shape != (self.nnodes, self.nnodes):
             raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
 
-        if (self.mobility - self.mobility.T).nnz != 0:
-            raise ValueError(f"mobility data is not symmetric.")
+        # if (self.mobility - self.mobility.T).nnz != 0:
+        #     raise ValueError(f"mobility data is not symmetric.")
 
         # Make sure mobility values <= the population of corresponding nodes
         tmp = self.mobility - self.popnodes
