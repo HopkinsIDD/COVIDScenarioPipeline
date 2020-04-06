@@ -883,7 +883,7 @@ flextable::flextable(tmp[,nlabels]) %>%
 ##' Function makes a summary table for an entire state.
 ##'
 ##' @param hosp_state_totals contains the relevant hospital data
-##' @param period_breas the dates to break up the display periods.
+##' @param period_breaks the dates to break up the display periods.
 ##' @param pi_low low side of the prediction interval
 ##' @param pi_high high side of the prediction interval
 ##' @param round_digit what level to round to
@@ -1106,4 +1106,57 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
 
   return(rc)
 
+}
+
+
+##'
+##' Returns a ggplot object giving a boxplot of the range of N 
+##' within each time period. 
+##' 
+##' @param hosp_state_totals,
+##' 
+##' @param df a data frame with columns time, sim_num, scenario_name and N
+##' @param period_breaks the dates to break up the display periods.
+##' @param stat  either "identity" or "peak" [TODO:extend options]
+##' 
+##' @export
+boxplot_by_timeperiod <- function(df,
+                                  period_breaks,
+                                  stat="identity",
+                                  scenario_labels, # TODO provide default arguments
+                                  scenario_colors # TODO provide default arguments
+                                  ) {
+  
+  period_breaks <- c(min(df$time)-1, as.Date(period_breaks), max(df$time)+1)
+  len <- length(period_breaks)
+  lbls <- sprintf("%s-%s", format(period_breaks[1:(len-1)], "%b %d"),
+                  format(period_breaks[2:len], "%b %d"))
+  
+  if(stat=="identity") {
+    sum_func <- function(x){x}
+  } else if(stat=="peak") {
+    sum_func <- function (x) {
+      x %>% 
+        group_by(sim_num, scenario_name, period) %>% 
+        summarize(N=max(N)) %>% 
+        ungroup()
+    }
+  } else {
+    stop("Unknown statistic")
+  }
+  
+
+  rc <- df %>%
+    mutate(period = cut(time, period_breaks, labels=lbls)) %>%
+    sum_func %>% 
+    ggplot(aes(x=reorder(period, desc(period)), y=N, fill=scenario_name)) +
+      geom_boxplot(outlier.alpha = .1, outlier.size=.2) +
+      facet_wrap(~scenario_name,ncol=1)+
+      scale_fill_manual("Scenario",
+                         labels = scenario_labels,
+                         values = scenario_colors) +
+    coord_flip()
+  
+  return(rc)
+    
 }
