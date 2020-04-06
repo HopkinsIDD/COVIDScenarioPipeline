@@ -6,9 +6,6 @@ from SEIR import setup, seir, NPI
 
 from ..utils import config
 
-ncomp = 7
-S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
-
 DATA_DIR = os.path.dirname(__file__) + "/data"
 
 def test_constant_population():
