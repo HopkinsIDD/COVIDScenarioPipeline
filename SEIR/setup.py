@@ -144,7 +144,9 @@ def seeding_draw(s, uid):
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
     return importation
 
-
+# Returns beta, sigma, and gamma parameters in a tuple
+# beta is an array of shape (nnodes, nt_inter)
+# sigma and gamma are scalars
 def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
     if nnodes <= 0 or nt_inter <= 0:
         raise ValueError("Invalid nt_inter or nnodes")
@@ -156,11 +158,9 @@ def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
     beta = R0s * gamma / n_Icomp
 
     beta = np.full((nnodes, nt_inter), beta)
-    gamma = np.full((nnodes, nt_inter), gamma)
-    sigma = np.full((nnodes, nt_inter), sigma)
 
     npi.index = pd.to_datetime(npi.index.astype(str))
     npi = npi.resample(str(dt * 24) + 'H').ffill()
     beta = np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
 
-    return (np.array([beta.T, sigma.T, gamma.T]))
+    return (beta.T, sigma, gamma)

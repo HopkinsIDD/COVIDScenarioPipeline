@@ -95,17 +95,12 @@ def test_parameters_quick_draw():
     npi = pd.DataFrame(0.0, index=date_range,
                             columns=range(nnodes))
 
-    parameters = setup.parameters_quick_draw(config, nt_inter, nnodes, dt, npi)
+    beta, sigma, gamma = setup.parameters_quick_draw(config, nt_inter, nnodes, dt, npi)
 
-    beta = parameters[0]
     assert beta.shape == (nt_inter, nnodes)
     assert (((1/6. * 2) <= beta)  & (beta <= (1./2.6 * 3))).all()
     assert (beta == beta[0][0]).all()
-    sigma = parameters[1]
-    assert sigma.shape == (nt_inter, nnodes)
-    assert (sigma == config["sigma"].as_evaled_expression()).all()
-    assert (sigma == sigma[0][0]).all()
-    gamma = parameters[2]
-    assert gamma.shape == (nt_inter, nnodes)
-    assert ((setup.n_Icomp * (1./6) <= gamma) & (gamma <= setup.n_Icomp * (1/2.6))).all()
-    assert (gamma == gamma[0][0]).all()
+
+    assert (sigma == config["sigma"].as_evaled_expression())
+
+    assert (setup.n_Icomp * (1./6)) <= gamma <= (setup.n_Icomp * (1/2.6))

@@ -96,14 +96,15 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
         as there is very few authorized function. Needs the nopython option to be fast.
     """
     #np.random.seed(uid)
+    beta, sigma, gamma = p_vec
     t = 0
 
     y = np.zeros((ncomp, nnodes))
     y[S, :] = popnodes
     states = np.zeros((ncomp, nnodes, len(t_inter)))
 
-    p_infect = 1 - np.exp(-dt * p_vec[1][0][0])
-    p_recover = 1 - np.exp(-dt * p_vec[2][0][0])
+    p_infect = 1 - np.exp(-dt * sigma)
+    p_recover = 1 - np.exp(-dt * gamma)
 
     percent_who_move = np.zeros(nnodes)
     for j in range(nnodes):
@@ -118,10 +119,10 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
         for i in range(nnodes):
 
             p_expose = 1.0 - np.exp(-dt * (
-                (1 - percent_who_move[i] ) * p_vec[0][it][i] * (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i] +
+                (1 - percent_who_move[i] ) * beta[it][i] * (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i] +
                 (    percent_who_move[i] ) * (
                   mobility_data[mobility_data_indices[i]:mobility_data_indices[i+1] ] *
-                  p_vec[0][it][mobility_row_indices[i] ] *
+                  beta[it][mobility_row_indices[i] ] *
                   (
                     y[I1][mobility_row_indices[i] ] +
                     y[I2][mobility_row_indices[i] ] +
