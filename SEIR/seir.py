@@ -31,7 +31,8 @@ def onerun_SEIR(uid, s):
     # states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
     #                        seeding, uid, s.dt, s.t_inter, s.nnodes, s.popnodes,
     #                        mobility_ori, mobility_dest, mobility_prob, s.dynfilter)
-    states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
+    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes, s.dt, npi)
+    states = steps_SEIR_nb(parameters,
                            seeding, uid, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
@@ -117,7 +118,7 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
         for i in range(nnodes):
 
             p_expose = 1.0 - np.exp(-dt * (
-                (1 - percent_who_move[i] ) * p_vec[0][it][i] * (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i] + 
+                (1 - percent_who_move[i] ) * p_vec[0][it][i] * (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i] +
                 (    percent_who_move[i] ) * (
                   mobility_data[mobility_data_indices[i]:mobility_data_indices[i+1] ] *
                   p_vec[0][it][mobility_row_indices[i] ] *

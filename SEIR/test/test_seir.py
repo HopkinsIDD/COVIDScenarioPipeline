@@ -38,8 +38,10 @@ def test_steps_SEIR_no_spread():
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
     npi = npi.get().T
 
+    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes, s.dt, npi)
+
     for i in range(100):
-        states = seir.steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
+        states = seir.steps_SEIR_nb(parameters,
                            seeding, 1234, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
