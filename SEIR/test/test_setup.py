@@ -1,6 +1,7 @@
 import datetime
 import numpy as np
 import os
+import pandas as pd
 import pytest
 import confuse
 
@@ -84,3 +85,27 @@ def test_Setup_set_filter():
     with pytest.raises(ValueError):
         s.set_filter(np.zeros((1,1)))
 
+def test_parameters_quick_draw():
+    config.set_file(f"{DATA_DIR}/parameters_only.yml")
+
+    date_range = pd.date_range("2020-01-30", "2020-02-01")
+    dt = 0.25
+    nt_inter = int((len(date_range) - 1) * (1/dt)) + 1
+    nnodes = 200
+    npi = pd.DataFrame(0.0, index=date_range,
+                            columns=range(nnodes))
+
+    parameters = setup.parameters_quick_draw(config, nt_inter, nnodes, dt, npi)
+
+    beta = parameters[0]
+    assert beta.shape == (nt_inter, nnodes)
+    assert (((1/6. * 2) <= beta)  & (beta <= (1./2.6 * 3))).all()
+    assert (beta == beta[0][0]).all()
+    sigma = parameters[1]
+    assert sigma.shape == (nt_inter, nnodes)
+    assert (sigma == config["sigma"].as_evaled_expression()).all()
+    assert (sigma == sigma[0][0]).all()
+    gamma = parameters[2]
+    assert gamma.shape == (nt_inter, nnodes)
+    assert ((setup.n_Icomp * (1./6) <= gamma) & (gamma <= setup.n_Icomp * (1/2.6))).all()
+    assert (gamma == gamma[0][0]).all()
