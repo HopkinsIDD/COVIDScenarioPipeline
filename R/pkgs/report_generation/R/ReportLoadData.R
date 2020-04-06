@@ -20,6 +20,7 @@
 ##' @export
 load_cum_inf_geounit_dates <- function(scn_dirs,
                                       display_dates=config$report$formatting$display_dates,
+                                      num_files=NULL,
                                       scenariolabels=NULL,
                                       incl_geoids=NULL,
                                       geoid_len = 0,
@@ -53,6 +54,7 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
   rc <- list()
   for (i in 1:length(scn_dirs)) {
       rc[[i]] <- load_scenario_sims_filtered(scn_dirs[i],
+                                             num_files = num_files,
                                              pre_process = inf_pre_process,
                                              post_process = inf_post_process,
                                              geoid_len = geoid_len,
@@ -87,6 +89,7 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
 ##'
 ##' @export
 load_cum_hosp_geounit_date <- function(scn_dirs,
+                                    num_files = NULL,
                                     scenariolabels = NULL,
                                     name_filter,
                                     display_date=config$end_date,
@@ -128,6 +131,7 @@ load_cum_hosp_geounit_date <- function(scn_dirs,
     rc <- list(length=length(scn_dirs))
     for (i in 1:length(scn_dirs)) {
         rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
+                                           num_files = num_files,
                                            name_filter = name_filter,
                                            post_process = hosp_post_process,
                                            geoid_len = geoid_len,
@@ -164,6 +168,7 @@ load_cum_hosp_geounit_date <- function(scn_dirs,
 ##' @export
 ##'
 load_hosp_geocombined_totals <- function(scn_dirs,
+                                        num_files = NULL,
                                         scenariolabels = NULL,
                                         name_filter,
                                         incl_geoids = NULL,
@@ -207,6 +212,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
     for (i in 1:length(scn_dirs)) {
         rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
                                            name_filter = name_filter,
+                                           num_files = num_files,
                                            post_process = hosp_post_process,
                                            geoid_len = geoid_len,
                                            padding_char = padding_char) 
@@ -243,6 +249,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
 ##' @export 
 load_inf_geounit_peaks_date <- function(scn_dirs,
                                         display_date=config$end_date,
+                                        num_files = NULL,
                                         scenariolabels=NULL,
                                         incl_geoids=NULL,
                                         geoid_len = 0,
@@ -282,6 +289,7 @@ load_inf_geounit_peaks_date <- function(scn_dirs,
   rc <- list()
   for (i in 1:length(scn_dirs)) {
       rc[[i]] <- load_scenario_sims_filtered(scn_dirs[i],
+                                            num_files = num_files,
                                             pre_process = inf_pre_process,
                                             post_process = inf_post_process,
                                             geoid_len = geoid_len,
@@ -321,6 +329,7 @@ load_hosp_geounit_peak_date <- function(scn_dirs,
                                   max_var,
                                   display_date = config$end_date,
                                   name_filter,
+                                  num_files = NULL,
                                   incl_geoids = NULL,
                                   scenariolabels = NULL,
                                   geoid_len = 0,
@@ -353,6 +362,7 @@ load_hosp_geounit_peak_date <- function(scn_dirs,
     rc <- list(length=length(scn_dirs))
     for (i in 1:length(scn_dirs)) {
         rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
+                                           num_files = num_files,
                                            name_filter = name_filter,
                                            post_process = hosp_post_process,
                                            geoid_len = geoid_len,
@@ -394,6 +404,7 @@ load_hosp_geounit_threshold <- function(
   variable,
   end_date = config$end_date,
   name_filter,
+  num_files = NULL,
   incl_geoids = NULL,
   scenario_labels = NULL,
   geoid_len = 0,
@@ -456,6 +467,7 @@ load_hosp_geounit_threshold <- function(
     rc <- list(length=length(scn_dirs))
     for (i in 1:length(scn_dirs)) {
         rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
+                                           num_files = num_files,
                                            name_filter = name_filter,
                                            post_process = hosp_post_process,
                                            geoid_len = geoid_len,
@@ -534,6 +546,8 @@ load_shape_file<- function(
   }
   if(!('geoid' %in% names(shp))){stop(paste(filename,"does not have a column named geoid"))}
   if(geoid_len > 0){
+
+    if(is.na(geoid_pad) | nchar(geoid_pad)>1){stop(paste("Invalid geoid_pad value. Please provide a character or numeric value"))}
     shp$geoid <- stringr::str_pad(shp$geoid,geoid_len, pad = geoid_pad)
   }
   return(shp)

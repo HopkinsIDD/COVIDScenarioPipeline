@@ -1,0 +1,20 @@
+trivial:
+  start_date: 2020-01-01
+  end_date: 2020-01-01
+  interventions:
+   settings:
+      Test:
+        template: ReduceR0
+        value:
+          distribution: fixed
+          value: 1
+daterange:
+  start_date: 2020-01-01
+  end_date: 2020-01-31
+  interventions:
+    settings:
+      Test:
+        template: ReduceR0
+        value:
+          distribution: fixed
+          value: 1
