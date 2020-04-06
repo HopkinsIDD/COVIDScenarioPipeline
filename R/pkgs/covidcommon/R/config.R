@@ -4,18 +4,31 @@
 config <- NA
 
 ##'
+##'Overrides the $ operator for S3 'config' objects to ensure that named args exist.
+##'
+'$.config' <- function(x, name) {
+  if (name %in% names(x)) {
+    return(x[[name]])
+  } else {
+    stop(paste("Key", name, "not found in config object"))
+  }
+}
+
+##'
 ##'Returns a map of configuration loaded from the config YAML
 ##'@param fname Load configuration from fname (optional, otherwise loads from CONFIG_PATH env var)
 ##'@example config$parameters_seir$gamma
 ##'
+##'@export
 load_config <- function(fname) {
   require(yaml)
 
   if (missing(fname)) {
     fname <- Sys.getenv("CONFIG_PATH")
   }
-  if (file.exists(fname)) {
-    return(yaml.load_file(fname))
+  if (!missing(fname)) {
+    handlers <- list(map=function(x) { class(x) <- "config"; return(x) })
+    return(tryCatch(yaml.load_file(fname, handlers=handlers), error = function(e) { stop(paste("Could not find file: ", fname)) }))
   } else {
     return(NA)
   }
@@ -29,6 +42,10 @@ load_config <- function(fname) {
 ##'@return a float evaluation of the expression
 ##'
 as_evaled_expression <- function(l) {
+  if (is.null(l)) {
+    stop("Cannot evaluate a NULL expression")
+  }
+
   .as_evaled_expression <- function(obj) {
     if (is.numeric(obj)) {
       return(obj)
@@ -53,11 +70,11 @@ as_random_distribution <- function(obj) {
   require(purrr)
 
   if (obj$distribution == "uniform") {
-    return(purr::partial(runif, min=as_evaled_expression(obj$low), max=as_evaled_expression(obj$high)))
+    return(purrr::partial(runif, min=as_evaled_expression(obj$low), max=as_evaled_expression(obj$high)))
   } else if (obj$distribution == "poisson") {
     return(purrr::partial(rpois, lambda=as_evaled_expression(obj$lam)))
   } else if (obj$distribution == "binomial") {
-    return(purr::partial(rbinom, size=as_evaled_expression(obj$n), prob=as_evaled_expression(obj$p)))
+    return(purrr::partial(rbinom, size=as_evaled_expression(obj$n), prob=as_evaled_expression(obj$p)))
   } else {
       stop("unknown distribution")
   }

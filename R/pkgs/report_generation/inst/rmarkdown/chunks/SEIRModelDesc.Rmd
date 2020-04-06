@@ -1,3 +1,4 @@
+
 The model is an stochastic spatial 'SEIR model' where the population of
 each node is divided in categories depending on their situation with
 regard to the diseases. The compartments are:
@@ -12,7 +13,7 @@ regard to the diseases. The compartments are:
 -   $R$ Recovered individuals with immunity to re-infection.
 
 In practice, this translate into $k = 3$ compartments of infected,
-$I1, I2, I3$ in order to have an infectious period shaped as Ehrlang
+$I1, I2, I3$ in order to have an infectious period shaped as Erlang
 distribution. Then the rates of the different compartments are given in
 the table below:
 
@@ -58,3 +59,4 @@ node $o$
 
 The model is implemented in python, just in time compiled to machine
 code using Numba. It runs at the county level.
+

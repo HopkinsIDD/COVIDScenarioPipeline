@@ -6,6 +6,21 @@ test_that("load_config works", {
     load_config(fname)$yaml,
     TRUE
   )
+
+  expect_error(
+    load_config(";lkdjaoijdsfjoasidjfaoiwerfj q2fu8ja8erfasdiofj aewr;fj aff409a urfa8rf a';j 38i a0fuadf "),
+    "file"
+  )
+
+  expect_error(
+    load_config(fname)$badkey,
+    "badkey"
+  )
+
+  expect_error(
+    load_config(fname)$missing$badkey,
+    "missing"
+  )
 })
 
 test_that("as_evaled_expression works", {
@@ -44,10 +59,12 @@ test_that("as_random_distribution works", {
 
   expect_error({
     rn <- as_random_distribution(list(distribution = "poisson", high = "0.9", low = .3))
+    rn(100)
   })
 
   expect_error({
     rn <- as_random_distribution(list(distribution = "binomial", high = "0.9", low = .3))
+    rn(100)
   })
 
   expect_true({
@@ -57,10 +74,12 @@ test_that("as_random_distribution works", {
 
   expect_error({
     rn <- as_random_distribution(list(distribution = "uniform",n=5,p="1/10"))
+    rn(100)
   })
 
   expect_error({
     rn <- as_random_distribution(list(distribution = "poisson",n=5,p="1/10"))
+    rn(100)
   })
 
   expect_true({
@@ -70,10 +89,12 @@ test_that("as_random_distribution works", {
 
   expect_error({
     rn <- as_random_distribution(list(distribution = "binomial",lam="5"))
+    rn(100)
   })
 
   expect_error({
-    rn <- as_random_distribution(list(distribution = "poisson",lam="5"))
+    rn <- as_random_distribution(list(distribution = "uniform",lam="5"))
+    rn(100)
   })
 
   expect_error({
