@@ -122,6 +122,9 @@ interventions:
 seir:
   parameters:
     sigma: 1 / 5.2
+    alpha:
+      distribution: fixed
+      value: 1
     gamma:
       distribution: uniform
       low: 1 / 6

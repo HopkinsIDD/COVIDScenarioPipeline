@@ -106,7 +106,7 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     p_recover = 1 - np.exp(-dt * p_vec[2][0][0])
 
     percent_who_move = np.zeros(nnodes)
-    alpha = .5 # Percentage of day spent commuting
+    commute_frct = .5 # Percentage of day spent commuting
     for j in range(nnodes):
       percent_who_move[j] = mobility_data[mobility_data_indices[j]:mobility_data_indices[j+1] ].sum() / popnodes[j]
 
@@ -117,15 +117,15 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
 
         for i in range(nnodes):
             p_expose = 1.0 - np.exp(-dt * (
-              ((1 - alpha * percent_who_move[i] ) * p_vec[0][it][i] * (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i] ) +  # Staying at home FoI
+              ((1 - commute_frct * percent_who_move[i] ) * p_vec[0][it][i] * (y[I1][i] + y[I2][i] + y[I3][i])**p_vec[3][0][0]/ popnodes[i] ) +  # Staying at home FoI
               (
-                alpha * mobility_data[mobility_data_indices[i]:mobility_data_indices[i+1] ] / popnodes[i] * # Probability of going there
+                commute_frct * mobility_data[mobility_data_indices[i]:mobility_data_indices[i+1] ] / popnodes[i] * # Probability of going there
                 p_vec[0][it][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] * # The beta for there
                 ( # num infected tehre
                   y[I1][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] +
                   y[I2][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] +
                   y[I3][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ]
-                ) / popnodes[mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] # population there
+                )**p_vec[3][0][0] / popnodes[mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] # population there
               ).sum()
             ))
 
