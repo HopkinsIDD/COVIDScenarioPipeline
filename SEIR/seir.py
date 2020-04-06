@@ -26,11 +26,6 @@ def onerun_SEIR(uid, s):
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
-    # mobility_ori, mobility_dest = s.mobility.row, s.mobility.col
-    # mobility_prob = 1.0 - np.exp(-s.dt * s.mobility.data / s.popnodes[mobility_ori])
-    # states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
-    #                        seeding, uid, s.dt, s.t_inter, s.nnodes, s.popnodes,
-    #                        mobility_ori, mobility_dest, mobility_prob, s.dynfilter)
     states = steps_SEIR_nb(setup.parameters_quick_draw(s, npi),
                            seeding, uid, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
@@ -101,58 +96,54 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     y[S, :] = popnodes
     states = np.zeros((ncomp, nnodes, len(t_inter)))
 
+    exposeCases = np.empty(nnodes)
+    incidentCases = np.empty(nnodes)
+    incident2Cases = np.empty(nnodes)
+    incident3Cases = np.empty(nnodes)
+    recoveredCases = np.empty(nnodes)
+
     p_infect = 1 - np.exp(-dt * p_vec[1][0][0])
     p_recover = 1 - np.exp(-dt * p_vec[2][0][0])
 
     percent_who_move = np.zeros(nnodes)
+    alpha = .5 # Percentage of day spent commuting
     for j in range(nnodes):
       percent_who_move[j] = mobility_data[mobility_data_indices[j]:mobility_data_indices[j+1] ].sum() / popnodes[j]
 
     for it, t in enumerate(t_inter):
-        is_check_loop = (it % int(1 / dt) == 0)
-        if is_check_loop:
-            y[I1] += seeding[int(t)]
-            y[cumI] += seeding[int(t)]
+        if (it % int(1 / dt) == 0):
+            y[I1] = y[I1] + seeding[int(t)]
+            y[cumI] = y[cumI] + seeding[int(t)]
 
         for i in range(nnodes):
-
             p_expose = 1.0 - np.exp(-dt * (
-                (1 - percent_who_move[i] ) * p_vec[0][it][i] * (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i] + 
-                (    percent_who_move[i] ) * (
-                  mobility_data[mobility_data_indices[i]:mobility_data_indices[i+1] ] *
-                  p_vec[0][it][mobility_row_indices[i] ] *
-                  (
-                    y[I1][mobility_row_indices[i] ] +
-                    y[I2][mobility_row_indices[i] ] +
-                    y[I3][mobility_row_indices[i] ]
-                  ) / popnodes[mobility_row_indices[i] ]
-                ).sum()
-              )
-            )
+              ((1 - alpha * percent_who_move[i] ) * p_vec[0][it][i] * (y[I1][i] + y[I2][i] + y[I3][i]) / popnodes[i] ) +  # Staying at home FoI
+              (
+                alpha * mobility_data[mobility_data_indices[i]:mobility_data_indices[i+1] ] / popnodes[i] * # Probability of going there
+                p_vec[0][it][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] * # The beta for there
+                ( # num infected tehre
+                  y[I1][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] +
+                  y[I2][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] +
+                  y[I3][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ]
+                ) / popnodes[mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] # population there
+              ).sum()
+            ))
 
-            exposeCases = np.random.binomial(y[S][i], p_expose)
-            incidentCases = np.random.binomial(y[E][i], p_infect)
-            incident2Cases = np.random.binomial(y[I1][i], p_recover)
-            incident3Cases = np.random.binomial(y[I2][i], p_recover)
-            recoveredCases = np.random.binomial(y[I3][i], p_recover)
+            exposeCases[i] = np.random.binomial(y[S][i], p_expose)
+            incidentCases[i] = np.random.binomial(y[E][i], p_infect)
+            incident2Cases[i] = np.random.binomial(y[I1][i], p_recover)
+            incident3Cases[i] = np.random.binomial(y[I2][i], p_recover)
+            recoveredCases[i] = np.random.binomial(y[I3][i], p_recover)
 
-            y[S][i] += -exposeCases
-            y[E][i] += exposeCases - incidentCases
-            y[I1][i] += incidentCases - incident2Cases
-            y[I2][i] += incident2Cases - incident3Cases
-            y[I3][i] += incident3Cases - recoveredCases
-            y[R][i] += recoveredCases
-            y[cumI][i] += incidentCases
-
-            if is_check_loop and y[cumI][i] < dynfilter[int(it % (1 / dt))][i]:
+        y[S] += -exposeCases
+        y[E] += exposeCases - incidentCases
+        y[I1] += incidentCases - incident2Cases
+        y[I2] += incident2Cases - incident3Cases
+        y[I3] += incident3Cases - recoveredCases
+        y[R] += recoveredCases
+        y[cumI] += incidentCases
+        states[:, :, it] = y
+        if (it%(1/dt) == 0 and (y[cumI] < dynfilter[int(it%(1/dt))]).any()):
                 return -np.ones((ncomp, nnodes, len(t_inter)))
-
-            states[S, i, it] = y[S][i]
-            states[E, i, it] = y[E][i]
-            states[I1, i, it] = y[I1][i]
-            states[I2, i, it] = y[I2][i]
-            states[I3, i, it] = y[I3][i]
-            states[R, i, it] = y[R][i]
-            states[cumI, i, it] = y[cumI][i]
 
     return states
