@@ -35,24 +35,24 @@ class SpatialSetup:
         self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
 
         # Validate mobility data
-        # if self.mobility.shape != (self.nnodes, self.nnodes):
-        #     raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
+         if self.mobility.shape != (self.nnodes, self.nnodes):
+             raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
 
         # if (self.mobility - self.mobility.T).nnz != 0:
         #     raise ValueError(f"mobility data is not symmetric.")
 
         # Make sure mobility values <= the population of corresponding nodes
         # tmp = self.mobility - self.popnodes.T
-        tmp = (self.mobility.T - self.popnodes).T
-        tmp[tmp < 0] = 0
-        if tmp.any():
-            rows, cols, values = scipy.sparse.find(tmp)
-            errmsg = ""
-            for r,c,v in zip(rows, cols, values):
-                errmsg += f"\n({r}, {c}) = {v} > population of one of these nodes {set([self.nodenames[r], self.popnodes[r]])}"
-
-            raise ValueError(f"The following entries in the mobility data exceed the populations in geodata:{errmsg}")
-        print("HERE")
+        # tmp = (self.mobility.T - self.popnodes).T
+        # tmp[tmp < 0] = 0
+        # if tmp.any():
+        #     rows, cols, values = scipy.sparse.find(tmp)
+        #     errmsg = ""
+        #     for r,c,v in zip(rows, cols, values):
+        #         errmsg += f"\n({r}, {c}) = {v} > population of one of these nodes {set([self.nodenames[r], self.popnodes[r]])}"
+        # 
+        #     raise ValueError(f"The following entries in the mobility data exceed the populations in geodata:{errmsg}")
+        # print("HERE")
 
 
 class Setup():
