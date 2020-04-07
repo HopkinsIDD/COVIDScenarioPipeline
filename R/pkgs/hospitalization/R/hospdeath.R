@@ -151,8 +151,7 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
 ##' Use GEOID-specific, age-adjust probabilities of hospitalization,
 ##' death, and ICU admission
 ##'
-##' @param prob_dat df of p_hosp, p_death, p_ICU, GEOID
-##' @param p_vent probability of needing a ventilator among ICU patients
+##' @param prob_dat df of p_hosp, p_death, p_ICU, p_vent, GEOID
 ##' @param scl_fac scaling factor for the probability symptomatic infection
 ##' @param data_filename Path to the directory that contains the CSV output of the simulation model
 ##' @param scenario_name The name of the scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
@@ -165,15 +164,16 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
 ##' @param cores The number of CPU cores to run this model on in parallel
 ##' @param root_out_dir Path to the directory to write the outputs of this analysis
 ##'
-build_hospdeath_geoid_par <- function(prob_dat, p_vent, scl_fac, data_filename, scenario_name,
-                                time_hosp_pars = c(1.23, 0.79), 
-                                time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
-                                time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
-                                time_death_pars = c(log(11.25), log(1.15)), 
-                                time_disch_pars = c(log(11.5), log(1.22)),
-                                time_ICUdur_pars = c(log(17.46), log(4.044)),
-                                cores=8,
-                                root_out_dir='hospitalization') {
+build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario_name,
+                                      time_symp_pars = c(log(5.2), log(1.74)),
+                                      time_hosp_pars = c(1.23, 0.79), 
+                                      time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
+                                      time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
+                                      time_death_pars = c(log(11.25), log(1.15)), 
+                                      time_disch_pars = c(log(11.5), log(1.22)),
+                                      time_ICUdur_pars = c(log(17.46), log(4.044)),
+                                      cores=8,
+                                      root_out_dir='hospitalization') {
   
   ## add in scaling factor to p_symp_inf
   prob_dat$p_symp_inf_scaled <- prob_dat$p_symp_inf * scl_fac
@@ -199,18 +199,17 @@ build_hospdeath_geoid_par <- function(prob_dat, p_vent, scl_fac, data_filename, 
     dates_ <- as.Date(dat_$time)
     
     # Add time things
-    ## TO DO: change delay frame arguments to dat_$p_hosp
-    dat_symp <- hosp_create_delay_frame('incidI', dat_$p_symp_inf_scaled, dat_, "Sym")
+    dat_symp <- hosp_create_delay_frame('incidI', dat_$p_symp_inf_scaled, dat_, time_symp_pars, "Sym")
     dat_H <- hosp_create_delay_frame('incidSym',dat_$p_hosp_symp,dat_symp,time_hosp_pars,"H")
     data_ICU <- hosp_create_delay_frame('incidH',dat_$p_icu_hosp,dat_H,time_ICU_pars,"ICU")
-    data_Vent <- hosp_create_delay_frame('incidICU',p_vent,data_ICU,time_vent_pars,"Vent")
+    data_Vent <- hosp_create_delay_frame('incidICU',dat_$p_vent_icu,data_ICU,time_vent_pars,"Vent")
     data_D <- hosp_create_delay_frame('incidSym',dat_$p_death_symp,dat_symp,time_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
     
     # Using `merge` instead of full_join for performance reasons    
     res <- merge(dat_symp %>% mutate(uid = as.character(uid)), 
-                 data_H %>% mutate(uid = as.character(uid)), all=TRUE)
+                 dat_H %>% mutate(uid = as.character(uid)), all=TRUE)
     res <- merge(res, data_ICU %>% mutate(uid = as.character(uid)), all=TRUE)
     res <- merge(res, data_Vent %>% mutate(uid = as.character(uid)), all=TRUE)
     res <- merge(res, data_D %>% mutate(uid = as.character(uid)), all=TRUE)
