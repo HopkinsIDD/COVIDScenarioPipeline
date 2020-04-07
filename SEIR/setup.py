@@ -144,12 +144,17 @@ def seeding_draw(s, uid):
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
     return importation
 
-# Returns beta, sigma, and gamma parameters in a tuple
+# Returns alpha, beta, sigma, and gamma parameters in a tuple
+# alpha, sigma and gamma are scalars
+# alpha is percentage of day spent commuting
 # beta is an array of shape (nt_inter, nnodes)
-# sigma and gamma are scalars
 def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
     if nnodes <= 0 or nt_inter <= 0:
         raise ValueError("Invalid nt_inter or nnodes")
+
+    alpha = 1.0
+    if "alpha" in p_config:
+        alpha = p_config["alpha"].as_evaled_expression()
 
     sigma = p_config["sigma"].as_evaled_expression()
     gamma = p_config["gamma"].as_random_distribution()() * n_Icomp
@@ -163,4 +168,4 @@ def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
     npi = npi.resample(str(dt * 24) + 'H').ffill()
     beta = np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
 
-    return (beta.T, sigma, gamma)
+    return (alpha, beta.T, sigma, gamma)

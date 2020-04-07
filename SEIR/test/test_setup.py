@@ -96,7 +96,9 @@ def test_parameters_quick_draw():
     npi = pd.DataFrame(0.0, index=date_range,
                             columns=range(nnodes))
 
-    beta, sigma, gamma = setup.parameters_quick_draw(config, nt_inter, nnodes, dt, npi)
+    alpha, beta, sigma, gamma = setup.parameters_quick_draw(config, nt_inter, nnodes, dt, npi)
+
+    assert alpha == 0.5
 
     assert beta.shape == (nt_inter, nnodes)
     assert (((1/6. * 2) <= beta)  & (beta <= (1./2.6 * 3))).all()
