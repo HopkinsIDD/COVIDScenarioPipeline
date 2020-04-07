@@ -34,4 +34,4 @@ install_version("splines2", version = "0.2.8", repos = repo_url)
 install_version("nnls", version = "1.4", repos = repo_url)
 
 install_github("HopkinsIDD/globaltoolboxlite")
-install_github("HopkinsIDD/covidImportation", ref = "v1.2")
+install_github("HopkinsIDD/covidImportation", ref = "v1.5")
