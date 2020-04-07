@@ -35,7 +35,7 @@ class SpatialSetup:
         self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
 
         # Validate mobility data
-         if self.mobility.shape != (self.nnodes, self.nnodes):
+        if self.mobility.shape != (self.nnodes, self.nnodes):
              raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
 
         # if (self.mobility - self.mobility.T).nnz != 0:
