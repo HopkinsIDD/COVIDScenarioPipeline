@@ -12,7 +12,7 @@ set.seed(123456789)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
-  optparse::make_option(c("-f", "--scalingfactor"), action="store", default='all', type='character', help="name of the scaling factor to run, or 'all' to run all of them"),
+  optparse::make_option(c("-f", "--factor"), action="store", default='all', type='character', help="name of the scaling factor to run, or 'all' to run all of them"),
   optparse::make_option(c("-s", "--scenario"), action="store", default='all', type='character', help="name of the intervention to run, or 'all' to run all of them"),
   optparse::make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used"),
   optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory")
@@ -25,19 +25,17 @@ if (is.na(config)) {
 }
 
 # set parameters for time to hospitalization, time to death, time to discharge
+time_symp_pars <- as_evaled_expression(config$hospitalization$parameters$time_symp)
 time_hosp_pars <- as_evaled_expression(config$hospitalization$parameters$time_hosp)
 time_disch_pars <- as_evaled_expression(config$hospitalization$parameters$time_disch)
 time_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_death)
 time_ICU_pars <- as_evaled_expression(config$hospitalization$parameters$time_ICU)
 time_ICUdur_pars <- as_evaled_expression(config$hospitalization$parameters$time_ICUdur)
 time_vent_pars <- as_evaled_expression(config$hospitalization$parameters$time_vent)
-dur_inf_shape <- as_evaled_expression(config$hospitalization$parameters$inf_shape)
-dur_inf_scale <- as_evaled_expression(config$hospitalization$parameters$inf_scale)
 
 # set death + hospitalization parameters
 # read in file
-prob_data <- readr::read_csv(paste(opt$p,"data","hosp_prob_ageadjusted.csv",sep='/'))
-p_vent <- as_evaled_expression(config$hospitalization$parameters$p_vent)
+prob_dat <- readr::read_csv(paste(opt$p,"data","geoid-params.csv",sep='/'))
 scl_fac <- as_evaled_expression(config$hospitalization$parameters$scaling_factor)
 names(scl_fac) = config$hospitalization$parameters$scaling_factor_names
 
@@ -75,6 +73,7 @@ for (scn0 in scenario) {
     res_npi3 <- build_hospdeath_geoid_par(prob_dat=prob_dat,
                                           p_vent = p_vent,
                                           scl_fac = scl_fac[cmd0],
+                                          time_symp_pars=time_symp_pars,
                                           time_hosp_pars=time_hosp_pars,
                                           time_death_pars=time_death_pars,
                                           time_disch_pars=time_disch_pars,
