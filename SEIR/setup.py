@@ -148,23 +148,20 @@ def seeding_draw(s, uid):
 def parameters_quick_draw(s, npi):
     sigma = config["seir"]["parameters"]["sigma"].as_evaled_expression()
     gamma = config["seir"]["parameters"]["gamma"].as_random_distribution()() * n_Icomp
-    alpha = config["seir"]["parameters"]["alpha"].as_random_distribution()()
     R0s = config["seir"]["parameters"]["R0s"].as_random_distribution()()
 
     beta = np.multiply(R0s, gamma) / n_Icomp
 
     beta = np.hstack([beta] * len(s.t_inter))
     gamma = np.hstack([gamma] * len(s.t_inter))
-    alpha = np.hstack([alpha] * len(s.t_inter))
     sigma = np.hstack([sigma] * len(s.t_inter))
 
     beta = np.vstack([beta] * s.nnodes)
     gamma = np.vstack([gamma] * s.nnodes)
-    alpha = np.vstack([alpha] * s.nnodes)
     sigma = np.vstack([sigma] * s.nnodes)
 
     npi.index = pd.to_datetime(npi.index.astype(str))
     npi = npi.resample(str(s.dt * 24) + 'H').ffill()
     beta = np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
 
-    return (np.array([beta.T, sigma.T, gamma.T, alpha.T]))
+    return (np.array([beta.T, sigma.T, gamma.T]))
