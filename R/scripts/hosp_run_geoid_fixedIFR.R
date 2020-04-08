@@ -37,6 +37,9 @@ time_vent_pars <- as_evaled_expression(config$hospitalization$parameters$time_ve
 # read in file
 prob_dat <- readr::read_csv(paste(opt$p,"data","geoid-params.csv",sep='/'))
 
+#removing leading 0s for merge with simulation data (this is hacky...)
+prob_dat$geoid <- ifelse(substr(prob_dat$geoid, 1, 1)=="0", substr(prob_dat$geoid, 2, 5), prob_dat$geoid)
+
 p_death <- as_evaled_expression(config$hospitalization$parameters$p_death)
 names(p_death) = config$hospitalization$parameters$p_death_names
 p_hosp_inf <- as_evaled_expression(config$hospitalization$parameters$p_hosp_inf)
@@ -80,7 +83,6 @@ for (scn0 in scenario) {
     res_npi3 <- build_hospdeath_geoid_fixedIFR_par(prob_dat=prob_dat,
                                                    p_death= p_death[cmd0],
                                                    p_hosp_inf = p_hosp_inf[cmd0],
-                                                   time_symp_pars=time_symp_pars,
                                                    time_hosp_pars=time_hosp_pars,
                                                    time_death_pars=time_death_pars,
                                                    time_disch_pars=time_disch_pars,
