@@ -40,8 +40,16 @@ if(!dir.exists(outdir)){
 #   dir.create(file.path(config$spatial_setup$base_path,paste(dest,collapse='-')),recursive=TRUE)
 # }
 param_list <- config$param_list
-
-tidycensus::census_api_key(key = config$importation$census_api_key)
+census_key = Sys.getenv("CENSUS_API_KEY")
+if(length(config$importation$census_api_key) != 0)
+{
+  census_key = config$importation$census_api_key
+}
+if(census_key == "")
+{
+  stop("no census key found -- please set CENSUS_API_KEY environment variable or specify importation::census_api_key in config file")
+}
+tidycensus::census_api_key(key = census_key)
 
 case_data_dir <- "data/case_data"
 
