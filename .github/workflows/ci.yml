@@ -43,7 +43,9 @@ jobs:
       - name: Run integration tests
         env: 
           CENSUS_API_KEY: ${{ secrets.CensusApiKey }}
+          PRINTING_SECRET: ${{ secrets.PRINTING_SECRET }}
         run: |
+          echo Fake secret $PRINTING_SECRET
           Rscript local_install.R
           cd test
           /home/app/python_venv/bin/pytest run_tests.py
