@@ -139,7 +139,7 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    write.csv(res,outfile)
+    data.table::fwrite(res,outfile)
   }
   doParallel::stopImplicitCluster()
 }

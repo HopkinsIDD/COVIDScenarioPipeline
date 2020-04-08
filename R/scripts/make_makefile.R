@@ -1,8 +1,10 @@
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
-  optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory"),
-  optparse::make_option(c("-n", "--ncoreper"), action="store", default="1", type='character', help="Number of CPUS/jobs for pipeline")
+  optparse::make_option(c("-p", "--pipepath"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory"),
+  optparse::make_option(c("-n", "--ncoreper"), action="store", default="1", type='character', help="Number of CPUS/jobs for pipeline"),
+  optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable")
 )
+
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
 config = covidcommon::load_config(opt$c)
@@ -110,12 +112,11 @@ cat("
 .PHONY: rerun rerun_simulations rerun_hospitalization clean_hospitalization clean clean_simulations
 
 RSCRIPT=Rscript
-PYTHON=python3
 ")
-
-cat(paste0("NCOREPER=",opt$n,"\n"))
-cat(paste0("PIPELINE=",opt$p,"\n"))
-cat(paste0("CONFIG=",opt$c,"\n\n"))
+cat(paste0("PYTHON=",opt$python,"\n"))
+cat(paste0("NCOREPER=",opt$ncoreper,"\n"))
+cat(paste0("PIPELINE=",opt$pipepath,"\n"))
+cat(paste0("CONFIG=",opt$config,"\n\n"))
 
 cat("
 .files:
