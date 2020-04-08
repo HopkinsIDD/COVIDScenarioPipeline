@@ -34,6 +34,7 @@ PyYAML==5.3.1
 rpy2==3.2.6
 scipy==1.4.1
 seaborn==0.10.0
+sh==1.12.14
 Shapely==1.7.0
 simplegeneric==0.8.1
 six==1.14.0
