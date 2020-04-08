@@ -191,7 +191,7 @@ build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario
   
   print(paste("Running over",n_sim,"simulations"))
   
-  pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hosp_load_scenario_sim", "hosp_create_delay_frame")
+  pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_ <- hosp_load_scenario_sim(data_filename,s,keep_compartments = c("diffI","cumI"))
     dat_ <- dat_ %>% dplyr::filter(comp == "diffI") 
@@ -308,7 +308,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(prob_dat, p_death, p_hosp_inf, da
     
   print(paste("Running over",n_sim,"simulations"))
   
-  pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hosp_load_scenario_sim", "hosp_create_delay_frame")
+  pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_ <- hosp_load_scenario_sim(data_filename,s,keep_compartments = c("diffI","cumI"))
     dat_ <- dat_ %>% dplyr::filter(comp == "diffI") 
