@@ -55,6 +55,7 @@ RUN apt-get update && \
     gfortran \
     unzip \
     zip \
+    pbzip2 \
     vim-nox \
     nano \
     libbz2-dev \
