@@ -58,19 +58,19 @@ hosp_load_scenario_sim <- function(scenario_dir,
 ##'
 ##' @export
 build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, scenario_name,
-                                time_hosp_pars = c(1.23, 0.79), 
+                                time_hosp_pars = c(1.23, 0.79),
                                 time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
                                 time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
-                                time_death_pars = c(log(11.25), log(1.15)), 
+                                time_death_pars = c(log(11.25), log(1.15)),
                                 time_disch_pars = c(log(11.5), log(1.22)),
                                 time_ICUdur_pars = c(log(17.46), log(4.044)),
                                 cores=8,
                                 root_out_dir='hospitalization') {
-  
+
   n_sim <- length(list.files(data_filename))
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
-  
+
   if(n_sim == 0){
     stop("No simulations selected to run")
   }
@@ -80,11 +80,11 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_ <- hosp_load_scenario_sim(data_filename,s,keep_compartments = c("diffI","cumI"))
-    dat_ <- dat_ %>% dplyr::filter(comp == "diffI") 
+    dat_ <- dat_ %>% dplyr::filter(comp == "diffI")
     dat_ <- dat_ %>% mutate(hosp_curr = 0, icu_curr = 0, vent_curr = 0, uid = paste0(geoid, "-",sim_num))
     dat_ <- dat_ %>% rename(incidI = N)
     dates_ <- as.Date(dat_$time)
-    
+
     # Add time things
     dat_H <- hosp_create_delay_frame('incidI',p_hosp,dat_,time_hosp_pars,"H")
     data_ICU <- hosp_create_delay_frame('incidH',p_ICU,dat_H,time_ICU_pars,"ICU")
@@ -92,17 +92,17 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
     data_D <- hosp_create_delay_frame('incidH',p_death,dat_H,time_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
-    
-    # Using `merge` instead of full_join for performance reasons    
-    res <- merge(dat_H %>% mutate(uid = as.character(uid)), 
+
+    # Using `merge` instead of full_join for performance reasons
+    res <- merge(dat_H %>% mutate(uid = as.character(uid)),
                  data_ICU %>% mutate(uid = as.character(uid)), all=TRUE)
     res <- merge(res, data_Vent %>% mutate(uid = as.character(uid)), all=TRUE)
     res <- merge(res, data_D %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(dat_ %>% mutate(uid = as.character(uid)), 
+    res <- merge(dat_ %>% mutate(uid = as.character(uid)),
                  res %>% mutate(uid = as.character(uid)), all=TRUE)
-    
-    
-    res <- res %>% 
+
+
+    res <- res %>%
       replace_na(
         list(incidI = 0,
              incidH = 0,
@@ -111,16 +111,13 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
              incidD = 0,
              vent_curr = 0,
              hosp_curr = 0))
-    
+
     # get sim nums
     res <- res %>% select(-geoid, -sim_num) %>%
       separate(uid, c("geoid", "sim_num"), sep="-", remove=FALSE)
-    
+
     res <- res %>% mutate(date_inds = as.integer(time - min(time) + 1))
-    n_sim <- length(unique(res$sim_num))
-    res$sim_num_good <- as.numeric(res$sim_num) 
-    res$sim_num_good <- res$sim_num_good - min(res$sim_num_good) +1
-    
+
     res$geo_ind <- as.numeric(as.factor(res$geoid))
 
      res <- res %>%
@@ -140,7 +137,7 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    write.csv(res,outfile)
+    fwrite(res,outfile)
   }
   doParallel::stopImplicitCluster()
 }
@@ -168,38 +165,38 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
 ##' @export
 build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario_name,
                                       time_symp_pars = c(log(5.2), log(1.74)),
-                                      time_hosp_pars = c(1.23, 0.79), 
+                                      time_hosp_pars = c(1.23, 0.79),
                                       time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
                                       time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
-                                      time_death_pars = c(log(11.25), log(1.15)), 
+                                      time_death_pars = c(log(11.25), log(1.15)),
                                       time_disch_pars = c(log(11.5), log(1.22)),
                                       time_ICUdur_pars = c(log(17.46), log(4.044)),
                                       cores=8,
                                       root_out_dir='hospitalization') {
-  
+
   ## add in scaling factor to p_symp_inf
   prob_dat$p_symp_inf_scaled <- prob_dat$p_symp_inf * scl_fac
   prob_dat$p_symp_inf_scaled[prob_dat$p_symp_inf_scaled>1] <- 1
-  
+
   n_sim <- length(list.files(data_filename))
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
-  
+
   if(n_sim == 0){
     stop("No simulations selected to run")
   }
-  
+
   print(paste("Running over",n_sim,"simulations"))
-  
+
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_ <- hosp_load_scenario_sim(data_filename,s,keep_compartments = c("diffI","cumI"))
-    dat_ <- dat_ %>% dplyr::filter(comp == "diffI") 
+    dat_ <- dat_ %>% dplyr::filter(comp == "diffI")
     dat_ <- dat_ %>% mutate(hosp_curr = 0, icu_curr = 0, vent_curr = 0, uid = paste0(geoid, "-",sim_num))
     dat_ <- dat_ %>% rename(incidI = N)
     dat_ <- dat_ %>% left_join(prob_dat, by="geoid")
     dates_ <- as.Date(dat_$time)
-    
+
     # Add time things
     dat_symp <- hosp_create_delay_frame('incidI', dat_$p_symp_inf_scaled, dat_, time_symp_pars, "Sym")
     dat_H <- hosp_create_delay_frame('incidSym',dat_$p_hosp_symp,dat_symp,time_hosp_pars,"H")
@@ -208,18 +205,18 @@ build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario
     data_D <- hosp_create_delay_frame('incidSym',dat_$p_death_symp,dat_symp,time_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
-    
-    # Using `merge` instead of full_join for performance reasons    
-    res <- merge(dat_symp %>% mutate(uid = as.character(uid)), 
+
+    # Using `merge` instead of full_join for performance reasons
+    res <- merge(dat_symp %>% mutate(uid = as.character(uid)),
                  dat_H %>% mutate(uid = as.character(uid)), all=TRUE)
     res <- merge(res, data_ICU %>% mutate(uid = as.character(uid)), all=TRUE)
     res <- merge(res, data_Vent %>% mutate(uid = as.character(uid)), all=TRUE)
     res <- merge(res, data_D %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(dat_ %>% mutate(uid = as.character(uid)), 
+    res <- merge(dat_ %>% mutate(uid = as.character(uid)),
                  res %>% mutate(uid = as.character(uid)), all=TRUE)
-    
-    
-    res <- res %>% 
+
+
+    res <- res %>%
       replace_na(
         list(incidSym = 0,
              incidI = 0,
@@ -229,18 +226,15 @@ build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario
              incidD = 0,
              vent_curr = 0,
              hosp_curr = 0))
-    
+
     # get sim nums
     res <- res %>% select(-geoid, -sim_num) %>%
       separate(uid, c("geoid", "sim_num"), sep="-", remove=FALSE)
-    
+
     res <- res %>% mutate(date_inds = as.integer(time - min(time) + 1))
-    n_sim <- length(unique(res$sim_num))
-    res$sim_num_good <- as.numeric(res$sim_num) 
-    res$sim_num_good <- res$sim_num_good - min(res$sim_num_good) +1
-    
+
     res$geo_ind <- as.numeric(as.factor(res$geoid))
-    
+
     res <- res %>%
       arrange(geo_ind, date_inds) %>%
       group_by(geo_ind) %>%
@@ -252,13 +246,13 @@ build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario
       }) %>%
       do.call(what=rbind) %>%
       arrange(date_inds, geo_ind)
-    
+
     outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
     outdir <- gsub('/[^/]*$','',outfile)
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    write.csv(res,outfile)
+    fwrite(res,outfile)
   }
   doParallel::stopImplicitCluster()
 }
@@ -283,59 +277,74 @@ build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario
 ##' @param root_out_dir Path to the directory to write the outputs of this analysis
 ##'
 ##' @export
-build_hospdeath_geoid_fixedIFR_par <- function(prob_dat, p_death, p_hosp_inf, data_filename, scenario_name,
-                                time_hosp_pars = c(1.23, 0.79), 
-                                time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
-                                time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
-                                time_death_pars = c(log(11.25), log(1.15)), 
-                                time_disch_pars = c(log(11.5), log(1.22)),
-                                time_ICUdur_pars = c(log(17.46), log(4.044)),
-                                cores=8,
-                                root_out_dir='hospitalization') {
-  
+build_hospdeath_geoid_fixedIFR_par <- function(
+  prob_dat,
+  p_death,
+  p_hosp_inf,
+  data_filename,
+  scenario_name,
+  time_hosp_pars = c(1.23, 0.79),
+  time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
+  time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
+  time_death_pars = c(log(11.25), log(1.15)),
+  time_disch_pars = c(log(11.5), log(1.22)),
+  time_ICUdur_pars = c(log(17.46), log(4.044)),
+  cores=8,
+  root_out_dir='hospitalization'
+) {
   n_sim <- length(list.files(data_filename))
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
-  
+
   if(n_sim == 0){
     stop("No simulations selected to run")
   }
-  
+
   ## scale prob_dat to match defined IFR, p_hosp_inf
   prob_dat$p_death_inf_scaled <- prob_dat$rr_death_inf * p_death
   prob_dat$p_hosp_inf_scaled <- prob_dat$rr_hosp_inf * p_hosp_inf
-  
-    
+
+
   print(paste("Running over",n_sim,"simulations"))
-  
+
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    dat_ <- hosp_load_scenario_sim(data_filename,s,keep_compartments = c("diffI","cumI"))
-    dat_ <- dat_ %>% dplyr::filter(comp == "diffI") 
-    dat_ <- dat_ %>% mutate(hosp_curr = 0, icu_curr = 0, vent_curr = 0, uid = paste0(geoid, "-",sim_num))
-    dat_ <- dat_ %>% rename(incidI = N)
-    dat_ <- dat_ %>% left_join(prob_dat, by="geoid")
-    dates_ <- as.Date(dat_$time)
-    
+    dat_I <- hosp_load_scenario_sim(data_filename,s,
+                                   keep_compartments = "diffI") %>%
+      mutate(hosp_curr = 0,
+             icu_curr = 0,
+             vent_curr = 0,
+             uid = paste0(geoid, "-",sim_num)) %>%
+      rename(incidI = N)
+    dat_ <- dat_I %>%
+      left_join(prob_dat, by="geoid")
+
     # Add time things
-    dat_H <- hosp_create_delay_frame('incidI',dat_$p_hosp_inf_scaled, dat_,time_hosp_pars,"H")
-    data_ICU <- hosp_create_delay_frame('incidH',dat_$p_icu_hosp,dat_H,time_ICU_pars,"ICU")
-    data_Vent <- hosp_create_delay_frame('incidICU',dat_$p_vent_icu,data_ICU,time_vent_pars,"Vent")
-    data_D <- hosp_create_delay_frame('incidI',dat_$p_death_inf_scaled,dat_,time_death_pars,"D")
+    dat_H <- hosp_create_delay_frame('incidI',
+                                     dat_$p_hosp_inf_scaled,
+                                     dat_,
+                                     time_hosp_pars,"H")
+    data_ICU <- hosp_create_delay_frame('incidH',
+                                        dat_$p_icu_hosp,
+                                        dat_H,
+                                        time_ICU_pars,"ICU")
+    data_Vent <- hosp_create_delay_frame('incidICU',
+                                         dat_$p_vent_icu,
+                                         data_ICU,
+                                         time_vent_pars,"Vent")
+    data_D <- hosp_create_delay_frame('incidI',
+                                      dat_$p_death_inf_scaled,
+                                      dat_,
+                                      time_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
-    
-    
-    # Using `merge` instead of full_join for performance reasons    
-    res <- merge(dat_H %>% mutate(uid = as.character(uid)), 
-                 data_ICU %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(res, data_Vent %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(res, data_D %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(dat_ %>% mutate(uid = as.character(uid)), 
-                 res %>% mutate(uid = as.character(uid)), all=TRUE)
-    
-    
-    res <- res %>% 
+
+
+    # Using `merge` instead of full_join for performance reasons
+    res <- merge(dat_I, dat_H, all=TRUE) %>%
+      merge(data_ICU, all=TRUE) %>%
+      merge(data_Vent, all=TRUE) %>%
+      merge(data_D, all=TRUE) %>%
       replace_na(
         list(incidI = 0,
              incidH = 0,
@@ -343,20 +352,12 @@ build_hospdeath_geoid_fixedIFR_par <- function(prob_dat, p_death, p_hosp_inf, da
              incidVent = 0,
              incidD = 0,
              vent_curr = 0,
-             hosp_curr = 0))
-    
+             hosp_curr = 0)) %>%
     # get sim nums
-    res <- res %>% select(-geoid, -sim_num) %>%
-      separate(uid, c("geoid", "sim_num"), sep="-", remove=FALSE)
-    
-    res <- res %>% mutate(date_inds = as.integer(time - min(time) + 1))
-    n_sim <- length(unique(res$sim_num))
-    res$sim_num_good <- as.numeric(res$sim_num) 
-    res$sim_num_good <- res$sim_num_good - min(res$sim_num_good) +1
-    
-    res$geo_ind <- as.numeric(as.factor(res$geoid))
-    
-    res <- res %>%
+      select(-geoid, -sim_num) %>%
+      separate(uid, c("geoid", "sim_num"), sep="-", remove=FALSE) %>%
+      mutate(date_inds = as.integer(time - min(time) + 1),
+             geo_ind = as.numeric(as.factor(geoid))) %>%
       arrange(geo_ind, date_inds) %>%
       group_by(geo_ind) %>%
       group_map(function(.x,.y){
@@ -367,13 +368,13 @@ build_hospdeath_geoid_fixedIFR_par <- function(prob_dat, p_death, p_hosp_inf, da
       }) %>%
       do.call(what=rbind) %>%
       arrange(date_inds, geo_ind)
-    
+
     outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
     outdir <- gsub('/[^/]*$','',outfile)
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    write.csv(res,outfile)
+    fwrite(res,outfile)
   }
   doParallel::stopImplicitCluster()
 }
