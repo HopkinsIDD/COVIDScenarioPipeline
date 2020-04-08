@@ -42,7 +42,7 @@ jobs:
         shell: Rscript {0}
       - name: Run integration tests
         env: 
-          census_api_key: ${{ secrets.CensusApiKey }}
+          CENSUS_API_KEY: ${{ secrets.CensusApiKey }}
         run: |
           Rscript local_install.R
           cd test
