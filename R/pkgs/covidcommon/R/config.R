@@ -67,6 +67,7 @@ as_evaled_expression <- function(l) {
 ##'@param obj the string to evaluate
 ##'@return a float evaluation of the expression
 ##'
+##'@export
 as_random_distribution <- function(obj) {
   require(purrr)
 
