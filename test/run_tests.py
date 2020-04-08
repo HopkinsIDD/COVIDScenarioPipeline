@@ -2,6 +2,7 @@ import pytest
 import os
 from pathlib import Path
 import subprocess
+import sys
 import multiprocessing
 
 
@@ -21,7 +22,8 @@ def _success(test_dir):
     cmd = ["Rscript", "../../R/scripts/make_makefile.R",
             "-c", f"config.yml",
             "-p", "../..",
-            "-n", str(multiprocessing.cpu_count())]
+            "-n", str(multiprocessing.cpu_count()),
+            "-y", sys.executable]
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"make_makefile.R failed with code {complete.returncode}"
 
