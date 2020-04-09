@@ -1,4 +1,5 @@
 library(covidImportation)
+library(parallel)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
