@@ -66,6 +66,7 @@ RUN apt-get update && \
     libncurses-dev \
     libreadline-dev \
     supervisor \
+    awscli \
     r-base-dev=$R_VERSION \
     # make sure we have up-to-date CA certs or curling some https endpoints (like python.org) may fail
     ca-certificates \
