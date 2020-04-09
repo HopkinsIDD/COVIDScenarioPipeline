@@ -91,16 +91,12 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
     data_D <- hosp_create_delay_frame('incidH',p_death,dat_H,time_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
-    
-    # Using `merge` instead of full_join for performance reasons    
-    res <- merge(dat_H %>% mutate(uid = as.character(uid)), 
-                 data_ICU %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(res, data_Vent %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(res, data_D %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(dat_ %>% mutate(uid = as.character(uid)), 
-                 res %>% mutate(uid = as.character(uid)), all=TRUE)
-    
-    
+
+    stopifnot(is.character(dat_H$uid) && is.character(data_ICU$uid) &&
+              is.character(data_Vent$uid) && is.character(data_D$uid) &&
+              is.character(dat_$uid))
+    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...), list(dat_H, data_ICU, data_Vent, data_D, dat_))
+
     res <- res %>% 
       replace_na(
         list(incidI = 0,
