@@ -125,7 +125,7 @@ if(run_age_adjust){
     for (cmd0 in cmd) {
       data_filename <- paste0("model_output/",config$name,"_",scn0)
       cat(paste(data_filename, "\n"))
-      p_hosp <- p_death[cmd0]*10
+      p_hosp <- p_death[cmd0]/p_death_rate
       cat(paste("Running hospitalization scenario: ", cmd0, "with p_hosp", p_hosp, "\n"))
       res_npi3 <- build_hospdeath_par(p_hosp = p_hosp,
                                       p_death = p_death_rate,
