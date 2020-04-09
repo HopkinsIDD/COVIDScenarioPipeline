@@ -41,6 +41,7 @@ load_config <- function(fname) {
 ##'@param l the object (scalar or vector) to evaluate
 ##'@return a float evaluation of the expression
 ##'
+##'@export
 as_evaled_expression <- function(l) {
   if (is.null(l)) {
     stop("Cannot evaluate a NULL expression")
@@ -66,6 +67,7 @@ as_evaled_expression <- function(l) {
 ##'@param obj the string to evaluate
 ##'@return a float evaluation of the expression
 ##'
+##'@export
 as_random_distribution <- function(obj) {
   require(purrr)
 

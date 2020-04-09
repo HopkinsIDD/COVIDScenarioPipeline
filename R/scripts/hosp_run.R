@@ -31,8 +31,6 @@ time_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_d
 time_ICU_pars <- as_evaled_expression(config$hospitalization$parameters$time_ICU)
 time_ICUdur_pars <- as_evaled_expression(config$hospitalization$parameters$time_ICUdur)
 time_vent_pars <- as_evaled_expression(config$hospitalization$parameters$time_vent)
-dur_inf_shape <- as_evaled_expression(config$hospitalization$parameters$inf_shape)
-dur_inf_scale <- as_evaled_expression(config$hospitalization$parameters$inf_scale)
 
 # set death + hospitalization parameters
 p_death <- as_evaled_expression(config$hospitalization$parameters$p_death)
