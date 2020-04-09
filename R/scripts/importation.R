@@ -50,7 +50,7 @@ if (!file.exists(file.path(outdir, "input_data.csv"))) {
     get_travel=TRUE, # FUTURE FUNCTIONALITY
     n_top_dests=config$importation$maximum_destinations,
     travel_dispersion=config$importation$travel_dispersion,
-    param_list=lapply(config$importation$param_list,covidcommon::as_evaled_expression)
+    param_list=lapply(config$importation$param_list,covidcommon::as_evaled_expression),
     check_error = FALSE
   )
 }
