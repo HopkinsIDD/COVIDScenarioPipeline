@@ -30,7 +30,9 @@ For such epidemiological model, two meta-parameters are important in
 reproducing the dynamics and final size of an epidemic: the serial
 interval $SI$, which is the interval between two subsequent infections,
 and the basic reproductive number $R_0$ representing the number of newly
-infected per infected, in a fully susceptible population.
+infected per infected, in a fully susceptible population. For our model, we
+assume that the serial interval is the sum of the incubation period
+and half of the infectious period.
 
 The serial interval of COVID-19 is currently estimated to be in range
 $6.5-8.2$. We draw uniformly from this range, and we solve
