@@ -1,3 +1,4 @@
+
 The model is an stochastic spatial 'SEIR model' where the population of
 each node is divided in categories depending on their situation with
 regard to the diseases. The compartments are:
@@ -29,14 +30,16 @@ For such epidemiological model, two meta-parameters are important in
 reproducing the dynamics and final size of an epidemic: the serial
 interval $SI$, which is the interval between two subsequent infections,
 and the basic reproductive number $R_0$ representing the number of newly
-infected per infected, in a fully susceptible population.
+infected per infected, in a fully susceptible population. For our model, we
+assume that the serial interval is the sum of the incubation period
+and half of the infectious period.
 
 The serial interval of COVID-19 is currently estimated to be in range
 $6.5-8.2$. We draw uniformly from this range, and we solve
 $SI = \frac{1}{2}(\frac{1}{\gamma\cdot k})+\frac{1}{\sigma}$ for
 $\gamma$.
 
-The basic reproductive number, $R_0$, is drawn for each simulation, and we obtain parameter beta from
+The basic reproductive number, $R_0$, is drawn for each simulation and we obtain parameter beta from
 $\beta= \frac{R_0 \cdot \gamma}{k}$.
 
 The model is fixed time step, and the transitions at each time step
@@ -58,3 +61,4 @@ node $o$
 
 The model is implemented in python, just in time compiled to machine
 code using Numba. It runs at the county level.
+
