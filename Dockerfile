@@ -92,7 +92,7 @@ RUN Rscript packages.R
 # install custom packages from R/pkgs/**
 COPY local_install.R $HOME
 COPY R/pkgs $HOME/pkgs
-RUN Rscript local_install.R.R
+RUN Rscript local_install.R
 
 
 #####
