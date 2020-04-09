@@ -15,7 +15,8 @@ option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
   optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenario to run, or 'all' to run all of them"),
   optparse::make_option(c("-s", "--scenario"), action="store", default='all', type='character', help="name of the intervention to run, or 'all' to run all of them"),
-  optparse::make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used")
+  optparse::make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used"),
+  optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory")
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
@@ -35,7 +36,6 @@ if(is.null(run_age_adjust)){
 # set parameters for time to hospitalization, time to death, time to discharge
 time_hosp_pars <- as_evaled_expression(config$hospitalization$parameters$time_hosp)
 time_disch_pars <- as_evaled_expression(config$hospitalization$parameters$time_disch)
-time_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_death)
 time_ICU_pars <- as_evaled_expression(config$hospitalization$parameters$time_ICU)
 time_ICUdur_pars <- as_evaled_expression(config$hospitalization$parameters$time_ICUdur)
 time_vent_pars <- as_evaled_expression(config$hospitalization$parameters$time_vent)
@@ -81,6 +81,7 @@ if(run_age_adjust){
   #removing leading 0s for merge with simulation data (this is hacky...)
   prob_dat$geoid <- ifelse(substr(prob_dat$geoid, 1, 1)=="0", substr(prob_dat$geoid, 2, 5), prob_dat$geoid)
 
+  time_onset_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_onset_death)
   p_hosp_inf <- as_evaled_expression(config$hospitalization$parameters$p_hosp_inf)
   names(p_hosp_inf) = config$hospitalization$parameters$p_death_names
   if (length(p_death)!=length(p_hosp_inf)) {
@@ -96,7 +97,7 @@ if(run_age_adjust){
                                                      p_death= p_death[cmd0],
                                                      p_hosp_inf = p_hosp_inf[cmd0],
                                                      time_hosp_pars=time_hosp_pars,
-                                                     time_death_pars=time_death_pars,
+                                                     time_onset_death_pars=time_onset_death_pars,
                                                      time_disch_pars=time_disch_pars,
                                                      time_ICU_pars = time_ICU_pars,
                                                      time_vent_pars = time_vent_pars,
@@ -109,8 +110,16 @@ if(run_age_adjust){
   }
 } else{
   
+  p_death_rate <- as_evaled_expression(config$hospitalization$parameters$p_death_rate)
   p_ICU <- as_evaled_expression(config$hospitalization$parameters$p_ICU)
   p_vent <- as_evaled_expression(config$hospitalization$parameters$p_vent)
+  
+  if(is.null(config$hospitalization$parameters$time_hosp_death)){
+    warning("Please specify time_hosp_death instead of time_death")
+    time_hosp_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_death)
+  }else{
+  time_hosp_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_hosp_death)
+  }
   
   for (scn0 in scenario) {
     for (cmd0 in cmd) {
@@ -123,7 +132,7 @@ if(run_age_adjust){
                                       p_vent = p_vent,
                                       p_ICU = p_ICU,
                                       time_hosp_pars=time_hosp_pars,
-                                      time_death_pars=time_death_pars,
+                                      time_hosp_death_pars=time_hosp_death_pars,
                                       time_disch_pars=time_disch_pars,
                                       time_ICU_pars = time_ICU_pars,
                                       time_vent_pars = time_vent_pars,
