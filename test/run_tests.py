@@ -55,4 +55,8 @@ def test_importation():
     assert_dir("data/shp")
     assert_dir("importation")
 
+def test_report():
+    _success("test_report")
 
+    assert_dir("report")
+    assert_file("report/test_report_report.html")
