@@ -13,7 +13,7 @@ DATA_DIR = os.path.dirname(__file__) + "/data"
 
 
 def test_check_values():
-    config.set_file(f"{DATA_DIR}/config.yml")
+    config.set_file(f"{DATA_DIR}/config_empty_seed.yml")
 
     ss = setup.SpatialSetup(setup_name="test_values",
                             geodata_file=f"{DATA_DIR}/geodata.csv",
@@ -30,28 +30,15 @@ def test_check_values():
                         tf=config["end_date"].as_date(),
                         interactive=True,
                         write_csv=False,
-                        dt=0.25)
+                        dt=0.25,
+                        seeding_config=config["seeding"])
 
     with warnings.catch_warnings(record=True) as w:
-
-        seeding = np.zeros((len(s.t_inter), s.nnodes))
-
-        if np.all(seeding == 0):
-            warnings.warn("provided seeding has only value 0", UserWarning)
-
-        seeding[0,0] = 1
-
-        if np.all(seeding == 0):
-            warnings.warn("provided seeding has only value 0", UserWarning)
-
-        if(np.all(s.mobility.data < 1)):
-            warnings.warn("highest mobility value is less than 1", UserWarning)
 
         s.mobility.data[0] = 0.8
         s.mobility.data[1] = 0.5
 
-        if(np.all(s.mobility.data < 1)):
-            warnings.warn("highest mobility value is less than 1", UserWarning)
+        seir.onerun_SEIR(1234, s)
 
         assert(len(w) == 2)
         assert(issubclass(w[0].category, UserWarning))

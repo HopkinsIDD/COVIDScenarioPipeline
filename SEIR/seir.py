@@ -1,6 +1,7 @@
 import itertools
 import time
 import uuid
+import warnings
 
 from numba import jit
 import numpy as np
@@ -26,6 +27,13 @@ def onerun_SEIR(uid, s):
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
+
+    if np.all(seeding == 0):
+        warnings.warn("provided seeding has only value 0", UserWarning)
+
+    if(np.all(s.mobility.data < 1)):
+        warnings.warn("highest mobility value is less than 1", UserWarning)
+
     parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes, s.dt, npi)
 
     states = steps_SEIR_nb(parameters,
