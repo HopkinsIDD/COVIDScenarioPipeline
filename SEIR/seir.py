@@ -8,6 +8,21 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
+from rpy2 import robjects
+from rpy2.robjects import pandas2ri
+pandas2ri.activate()
+import pandas as pd
+import warnings, random
+from rpy2.rinterface import RRuntimeWarning
+warnings.filterwarnings("ignore", category=RRuntimeWarning)
+import rpy2.robjects as ro
+from rpy2.robjects.conversion import localconverter
+r_source = robjects.r['source']
+r_assign = robjects.r['assign']
+r_options = robjects.r['options']
+r_options(warn=-1)
+from rpy2.rinterface_lib.callbacks import logger as rpy2_logger
+
 from . import NPI, setup
 from .utils import config
 
@@ -20,13 +35,21 @@ def onerun_SEIR(uid, s):
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
     npi = npi.get().T
+    print(s.npi_config)
+    r_assign('ti_str', str(s.ti))
+    r_assign('tf_str', str(s.tf))
+    r_assign('foldername', '../data/ch/')
+    r_assign('setupname', s.setup_name)
+    r_source('NPI/NPI_for_baseline.R')
+    R0 = robjects.r['NPI'].T
 
     seeding = setup.seeding_draw(s, uid)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
-    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes, s.dt, npi)
+    parameters = setup.parameters_quick_draw(config["seir"]["parameters"],
+                     config, len(s.t_inter), s.nnodes, s.dt, R0, s.setup_name)
 
     states = steps_SEIR_nb(parameters,
                            seeding, uid, s.dt, s.t_inter, s.nnodes, s.popnodes,
@@ -106,7 +129,7 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     recoveredCases = np.empty(nnodes)
 
     p_infect = 1 - np.exp(-dt * sigma)
-    p_recover = 1 - np.exp(-dt * gamma)
+    
 
     percent_who_move = np.zeros(nnodes)
     for j in range(nnodes):
@@ -130,6 +153,7 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
                 ) / popnodes[mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] # population there
               ).sum()
             ))
+            p_recover = 1 - np.exp(-dt * gamma[it][i])
 
             exposeCases[i] = np.random.binomial(y[S][i], p_expose)
             incidentCases[i] = np.random.binomial(y[E][i], p_infect)

@@ -147,7 +147,7 @@ def seeding_draw(s, uid):
 # alpha, sigma and gamma are scalars
 # alpha is percentage of day spent commuting
 # beta is an array of shape (nt_inter, nnodes)
-def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
+def parameters_quick_draw(p_config, global_config, nt_inter, nnodes, dt, R0s, setupname):
     if nnodes <= 0 or nt_inter <= 0:
         raise ValueError("Invalid nt_inter or nnodes")
 
@@ -156,15 +156,24 @@ def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
         alpha = p_config["alpha"].as_evaled_expression()
 
     sigma = p_config["sigma"].as_evaled_expression()
-    gamma = p_config["gamma"].as_random_distribution()() * n_Icomp
-    R0s = p_config["R0s"].as_random_distribution()()
+    gamma_val = p_config["gamma"].as_random_distribution()() * n_Icomp
+    gamma = gamma_val*np.ones((nt_inter, nnodes))
+    if ('Test' in setupname):
+        ds = datetime.date(2020, 4, 19)
+        nday = (ds - global_config["start_date"].as_date()).days
+        idx = nday/dt
+        gamma[int(idx):,:] = 0.5*(2*gamma_val) + 0.5*gamma_val
 
-    beta = R0s * gamma / n_Icomp
+    #R0s = p_config["R0s"].as_random_distribution()()
+    beta = R0s * gamma_val / n_Icomp
 
-    beta = np.full((nnodes, nt_inter), beta)
+    #beta = np.full((nnodes, nt_inter), beta)
 
-    npi.index = pd.to_datetime(npi.index.astype(str))
-    npi = npi.resample(str(dt * 24) + 'H').ffill()
-    beta = np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
+    #beta = pd.DataFrame(beta, columns=np.arange(nnodes),
+    #                        index=pd.date_range(start_date,end_date))
 
-    return (alpha, beta.T, sigma, gamma)
+    beta.index = pd.to_datetime(beta.index.astype(str))
+    beta = np.array(beta.resample(str(dt * 24) + 'H').ffill())
+    #beta = np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
+    #print('betaMean', np.mean(beta), beta[-1][:])
+    return (alpha, beta, sigma, gamma)
