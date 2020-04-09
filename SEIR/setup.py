@@ -41,18 +41,15 @@ class SpatialSetup:
         # if (self.mobility - self.mobility.T).nnz != 0:
         #     raise ValueError(f"mobility data is not symmetric.")
 
-        # Make sure mobility values <= the population of corresponding nodes
-        # tmp = self.mobility - self.popnodes.T
-        # tmp = (self.mobility.T - self.popnodes).T
-        # tmp[tmp < 0] = 0
-        # if tmp.any():
-        #     rows, cols, values = scipy.sparse.find(tmp)
-        #     errmsg = ""
-        #     for r,c,v in zip(rows, cols, values):
-        #         errmsg += f"\n({r}, {c}) = {v} > population of one of these nodes {set([self.nodenames[r], self.popnodes[r]])}"
-        # 
-        #     raise ValueError(f"The following entries in the mobility data exceed the populations in geodata:{errmsg}")
-        # print("HERE")
+        # Make sure mobility values <= the population of src node
+        tmp = (self.mobility.T - self.popnodes).T
+        tmp[tmp < 0] = 0
+        if tmp.any():
+            rows, cols, values = scipy.sparse.find(tmp)
+            errmsg = ""
+            for r,c,v in zip(rows, cols, values):
+                errmsg += f"\n({r}, {c}) = {self.mobility[r,c]} > population of '{self.nodenames[r]}' = {self.popnodes[r]}"
+            raise ValueError(f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}")
 
 
 class Setup():
@@ -146,24 +143,28 @@ def seeding_draw(s, uid):
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
     return importation
 
+# Returns alpha, beta, sigma, and gamma parameters in a tuple
+# alpha, sigma and gamma are scalars
+# alpha is percentage of day spent commuting
+# beta is an array of shape (nt_inter, nnodes)
+def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
+    if nnodes <= 0 or nt_inter <= 0:
+        raise ValueError("Invalid nt_inter or nnodes")
 
-def parameters_quick_draw(s, npi):
-    sigma = config["seir"]["parameters"]["sigma"].as_evaled_expression()
-    gamma = config["seir"]["parameters"]["gamma"].as_random_distribution()() * n_Icomp
-    R0s = config["seir"]["parameters"]["R0s"].as_random_distribution()()
+    alpha = 1.0
+    if "alpha" in p_config:
+        alpha = p_config["alpha"].as_evaled_expression()
 
-    beta = np.multiply(R0s, gamma) / n_Icomp
+    sigma = p_config["sigma"].as_evaled_expression()
+    gamma = p_config["gamma"].as_random_distribution()() * n_Icomp
+    R0s = p_config["R0s"].as_random_distribution()()
 
-    beta = np.hstack([beta] * len(s.t_inter))
-    gamma = np.hstack([gamma] * len(s.t_inter))
-    sigma = np.hstack([sigma] * len(s.t_inter))
+    beta = R0s * gamma / n_Icomp
 
-    beta = np.vstack([beta] * s.nnodes)
-    gamma = np.vstack([gamma] * s.nnodes)
-    sigma = np.vstack([sigma] * s.nnodes)
+    beta = np.full((nnodes, nt_inter), beta)
 
     npi.index = pd.to_datetime(npi.index.astype(str))
-    npi = npi.resample(str(s.dt * 24) + 'H').ffill()
+    npi = npi.resample(str(dt * 24) + 'H').ffill()
     beta = np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
 
-    return (np.array([beta.T, sigma.T, gamma.T]))
+    return (alpha, beta.T, sigma, gamma)
