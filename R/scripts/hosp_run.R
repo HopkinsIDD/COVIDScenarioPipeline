@@ -69,7 +69,7 @@ for (scn0 in scenario) {
   for (cmd0 in cmd) {
     data_filename <- paste0("model_output/",config$name,"_",scn0)
     cat(paste(data_filename, "\n"))
-    p_hosp <- p_death[cmd0]*10
+    p_hosp <- .05#p_death[cmd0]*10
     cat(paste("Running hospitalization scenario: ", cmd0, "with p_hosp", p_hosp, "\n"))
     res_npi3 <- build_hospdeath_par(p_hosp = p_hosp,
                                     p_death = p_death_rate,
