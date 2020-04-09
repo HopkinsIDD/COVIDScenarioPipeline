@@ -5,9 +5,17 @@ option_list = list(
   optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable")
 )
 
-opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
+parser=optparse::OptionParser(option_list=option_list)
+opt = optparse::parse_args(parser)
 
-config = covidcommon::load_config(opt$c)
+if(opt$config == ""){
+  optparse::print_help(parser)
+  stop(paste(
+    "Please specify a config YAML file with either -c option or CONFIG_PATH environment variable."
+  ))
+}
+
+config = covidcommon::load_config(opt$config)
 if(isTRUE(config$this_file_is_unedited)){
   stop(paste(
     "Please make minimal edits to the config file before running this script.
