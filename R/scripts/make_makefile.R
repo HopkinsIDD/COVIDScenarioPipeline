@@ -164,11 +164,12 @@ if(generating_report){
   cat(sprintf(" %s\n", rmd_file))
 
   renderCmd = sprintf("\t$(RSCRIPT) -e 'rmarkdown::render(\"%s\"", rmd_file)
+  renderCmd = paste0(renderCmd, sprintf(", params=list(state_usps=\"%s\"", config$report$USPS))
   if(length(config$report$continue_on_error) != 0){
     renderCmd = paste0(renderCmd, 
-                      sprintf(", params=list(continue_on_error=%s)", config$report$continue_on_error))
+                      sprintf(", continue_on_error=%s", config$report$continue_on_error))
   }
-  renderCmd = paste0(renderCmd, ")'")
+  renderCmd = paste0(renderCmd, "))'")
   cat(renderCmd)
 
   rmd_target = sprintf("

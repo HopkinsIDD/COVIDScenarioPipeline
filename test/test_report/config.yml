@@ -103,6 +103,7 @@ hospitalization:
     p_vent: 0.15
 
 report:
+  state_usps: HI
   data_settings:
     pop_year: 2018
   plot_settings:
