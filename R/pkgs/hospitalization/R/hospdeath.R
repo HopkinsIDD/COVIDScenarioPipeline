@@ -50,7 +50,7 @@ hosp_load_scenario_sim <- function(scenario_dir,
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_ICU_pars parameters for time from hospitalization to ICU
 ##' @param time_vent_pars parameters for time from ICU to time on ventilator
-##' @param time_death_pars parameters for time from hospitalization to death distribution
+##' @param time_hosp_death_pars parameters for time from hospitalization to death distribution
 ##' @param time_disch_pars parameters for time from hospitalization to discharge parameters
 ##' @param time_ICUdur_pars parameetrs for time of ICU duration
 ##' @param cores The number of CPU cores to run this model on in parallel
@@ -61,7 +61,7 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
                                 time_hosp_pars = c(1.23, 0.79),
                                 time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
                                 time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
-                                time_death_pars = c(log(11.25), log(1.15)),
+                                time_hosp_death_pars = c(log(11.25), log(1.15)),
                                 time_disch_pars = c(log(11.5), log(1.22)),
                                 time_ICUdur_pars = c(log(17.46), log(4.044)),
                                 cores=8,
@@ -89,7 +89,7 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
     dat_H <- hosp_create_delay_frame('incidI',p_hosp,dat_,time_hosp_pars,"H")
     data_ICU <- hosp_create_delay_frame('incidH',p_ICU,dat_H,time_ICU_pars,"ICU")
     data_Vent <- hosp_create_delay_frame('incidICU',p_vent,data_ICU,time_vent_pars,"Vent")
-    data_D <- hosp_create_delay_frame('incidH',p_death,dat_H,time_death_pars,"D")
+    data_D <- hosp_create_delay_frame('incidH',p_death,dat_H,time_hosp_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
 
@@ -156,7 +156,7 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_ICU_pars parameters for time from hospitalization to ICU
 ##' @param time_vent_pars parameters for time from ICU to time on ventilator
-##' @param time_death_pars parameters for time from hospitalization to death distribution
+##' @param time_onset_death_pars parameters for time from onset to death distribution
 ##' @param time_disch_pars parameters for time from hospitalization to discharge parameters
 ##' @param time_ICUdur_pars parameetrs for time of ICU duration
 ##' @param cores The number of CPU cores to run this model on in parallel
@@ -168,7 +168,7 @@ build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario
                                       time_hosp_pars = c(1.23, 0.79),
                                       time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
                                       time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
-                                      time_death_pars = c(log(11.25), log(1.15)),
+                                      time_onset_death_pars = c(log(11.25), log(1.15)),
                                       time_disch_pars = c(log(11.5), log(1.22)),
                                       time_ICUdur_pars = c(log(17.46), log(4.044)),
                                       cores=8,
@@ -202,7 +202,7 @@ build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario
     dat_H <- hosp_create_delay_frame('incidSym',dat_$p_hosp_symp,dat_symp,time_hosp_pars,"H")
     data_ICU <- hosp_create_delay_frame('incidH',dat_$p_icu_hosp,dat_H,time_ICU_pars,"ICU")
     data_Vent <- hosp_create_delay_frame('incidICU',dat_$p_vent_icu,data_ICU,time_vent_pars,"Vent")
-    data_D <- hosp_create_delay_frame('incidSym',dat_$p_death_symp,dat_symp,time_death_pars,"D")
+    data_D <- hosp_create_delay_frame('incidSym',dat_$p_death_symp,dat_symp,time_onset_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
 
@@ -270,7 +270,7 @@ build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_ICU_pars parameters for time from hospitalization to ICU
 ##' @param time_vent_pars parameters for time from ICU to time on ventilator
-##' @param time_death_pars parameters for time from hospitalization to death distribution
+##' @param time_onset_death_pars parameters for time from onset to death distribution
 ##' @param time_disch_pars parameters for time from hospitalization to discharge parameters
 ##' @param time_ICUdur_pars parameetrs for time of ICU duration
 ##' @param cores The number of CPU cores to run this model on in parallel
@@ -286,7 +286,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   time_hosp_pars = c(1.23, 0.79),
   time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
   time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
-  time_death_pars = c(log(11.25), log(1.15)),
+  time_onset_death_pars = c(log(11.25), log(1.15)),
   time_disch_pars = c(log(11.5), log(1.22)),
   time_ICUdur_pars = c(log(17.46), log(4.044)),
   cores=8,
@@ -335,7 +335,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
     data_D <- hosp_create_delay_frame('incidI',
                                       dat_$p_death_inf_scaled,
                                       dat_,
-                                      time_death_pars,"D")
+                                      time_onset_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
 

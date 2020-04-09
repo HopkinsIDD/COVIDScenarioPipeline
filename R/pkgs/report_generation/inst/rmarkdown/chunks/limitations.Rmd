@@ -1,6 +1,6 @@
 We note several limitations to our work:
 
-(1) We truncated the initial run of these simulations on December 31, 2020. Our estimates therefore do not necesarily represent a total or final outbreak size in all scenarios. This truncation also has implications for the estimated number of hospitalizations and deaths, as many individuals have yet to reach their final outcome by December 31, 2020.
+(1) We truncated the initial run of these simulations on `r print_pretty_date(sim_end_date)`. Our estimates therefore do not necesarily represent a total or final outbreak size in all scenarios. This truncation also has implications for the estimated number of hospitalizations and deaths, as many individuals have yet to reach their final outcome by `r print_pretty_date(sim_end_date)`.
 
 (2) There remains considerable uncertainty around some of the key epidemiologic features of COVID-19, including the average duration of infectiousness and time to recovery or death. We have used commonly accepted and well supported estimates, in line with those recommended by the CDC, of these parameters and believe that they are appropriate for planning purposes.
 
