@@ -3,20 +3,50 @@ start_date: 2020-01-31
 end_date: 2020-05-31
 nsimulations: 1
 dt: 0.25
-report_location_name: Maryland
+report_location_name: Hawaii
+dynfilter_path: data/filter.txt
 
 spatial_setup:
   base_path: data
   setup_name: test_report
   geodata: geodata.csv
   mobility: mobility.txt
-  popnodes: population
+  popnodes: pop2010
   nodenames: geoid
+  census_year: 2018
+  modeled_states: 
+    - HI
   include_in_report: include_in_report
+  shapefile_name: shp/counties_2018_test_report.shp
+
+importation:
+  travel_dispersion: 3
+  maximum_destinations: Inf
+  dest_type : state
+  dest_country : USA
+  aggregate_to: airport
+  cache_work: TRUE
+  update_case_data: TRUE
+  draw_travel_from_distribution: FALSE
+  print_progress: FALSE
+  travelers_threshold: 10000
+  airport_cluster_distance: 80
+  param_list:
+    incub_mean_log: log(5.89)
+    incub_sd_log: log(1.74)
+    inf_period_nohosp_mean: 15
+    inf_period_nohosp_sd: 5
+    inf_period_hosp_mean_log: 1.23
+    inf_period_hosp_sd_log: 0.79
+    inf_period_hosp_shape: 0.75
+    inf_period_hosp_scale: 5.367
+    p_report_source: [0.05, 0.25]
+    shift_incid_days: -10
+    delta: 1
 
 seeding:
-  method: PoissonDistributed
-  lambda_file: data/seeding.csv
+ method: FolderDraw
+ folder_path: importation/test_report/
 
 seir:
   parameters:
@@ -86,3 +116,4 @@ report:
     pdeath_labels: ["0.25% IFR", "0.5% IFR"]
     display_dates: ["2020-04-01", "2020-05-01"]
     display_dates2: ["2020-05-01"]
+  continue_on_error: FALSE

@@ -58,5 +58,8 @@ def test_importation():
 def test_report():
     _success("test_report")
 
-    assert_dir("report")
-    assert_file("report/test_report_report.html")
+    assert_file("data/filter.txt")
+    assert_dir("data/shp")
+    assert_dir("importation")
+    assert_dir("notebooks")
+    assert_file("notebooks/Maryland/Maryland.html")
