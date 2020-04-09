@@ -18,10 +18,18 @@ if(isTRUE(config$this_file_is_unedited)){
 simulations = config$nsimulations
 scenarios = config$interventions$scenarios
 deathrates = config$hospitalization$parameters$p_death_names
+hospscript = config$hospitalization$paths$script
 
 cat(simulations)
 cat("\n")
 cat(scenarios)
+cat("\n")
+if(is.null(hospscript)){
+  warning("No hospital script specified. Will default to hosp_run.R, but updated 
+          hosp_run_geoid_fixedIFR.R for age-standardized rates is preferred")
+  hospscript <- "hosp_run.R"
+}
+cat(hospscript)
 cat("\n")
 cat(deathrates)
 cat("\n")
@@ -67,10 +75,10 @@ hospitalization_target_name <- function(simulation,scenario,deathrate, prefix = 
   paste0(".files/",prefix,simulation,"_hospitalization_",scenario,"_",deathrate)
 }
 
-hospitalization_make_command <- function(simulation,scenario,deathrate, prefix = ''){
+hospitalization_make_command <- function(simulation,scenario,deathrate,hospscript, prefix = ''){
   target_name <- hospitalization_target_name(simulation,scenario,deathrate, prefix = prefix)
   dependency_name <- simulation_target_name(simulation,scenario, prefix = prefix)
-  command_name <- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s ",scenario," -d ",deathrate, " -j $(NCOREPER) -c $(CONFIG)")
+  command_name <- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/", hospscript, " -s ",scenario," -d ",deathrate, " -j $(NCOREPER) -c $(CONFIG)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files ",
@@ -156,7 +164,7 @@ for(sim_idx in seq_len(length(simulations))){
   for(scenario in scenarios){
     cat(simulation_make_command(sim,scenario,prev_sim))
     for(deathrate in deathrates){
-      cat(hospitalization_make_command(sim,scenario,deathrate))
+      cat(hospitalization_make_command(sim,scenario,deathrate,hospscript))
     }
   }
 }
