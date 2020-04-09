@@ -1,3 +1,4 @@
+# Parse command-line
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
   optparse::make_option(c("-p", "--pipepath"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory"),
@@ -15,12 +16,20 @@ if(opt$config == ""){
   ))
 }
 
+# Parse config
 config = covidcommon::load_config(opt$config)
 if(isTRUE(config$this_file_is_unedited)){
   stop(paste(
     "Please make minimal edits to the config file before running this script.
     The config file details which edits to make in it's comments."
   ))
+}
+
+report_name = ""
+if(length(config$report$name) != 0){
+  report_name = config$report$name
+} else if(length(config$name) != 0){
+  report_name = config$name
 }
 
 simulations = config$nsimulations
@@ -131,8 +140,11 @@ cat("
 \tmkdir $@
 ")
 
+# Generate first target
+# If generating report, it is the html file. Otherwise, it's run.
 if(generating_report){
-  cat("report:")
+  rmd_file = sprintf("report/%s_report.Rmd", report_name)
+  cat(sprintf("report/%s_report.html:", report_name))
 } else {
   cat("run:")
 }
@@ -144,11 +156,17 @@ for(scenario in scenarios){
     cat(hospitalization_target_name(simulations,scenario,deathrate))
   }
 }
-cat("\n")
 
 if(generating_report){
-  cat("\tRscript compile_Rmd.R\n")
+  report_generating_stuff = sprintf(" %s
+\tRscript -e 'rmarkdown::render(\"%s\")'
+%s:
+\tmkdir -p report
+\tRscript -e 'rmarkdown::draft(\"$@\",template=\"state_report\",package=\"report.generation\",edit=FALSE)'", 
+rmd_file, rmd_file, rmd_file)
+  cat(report_generating_stuff)
 }
+cat("\n")
 
 if(using_importation){
   for(sim_idx in seq_len(length(simulations))){
@@ -199,7 +217,7 @@ if(using_importation){
 }
 cat(paste0("
 clean_reports:
-\trm -f notebooks/*.html
+\trm -f report/*.html
 clean_simulations: rerun_simulations
 \trm -rf model_output
 clean_hospitalization: rerun_hospitalization
