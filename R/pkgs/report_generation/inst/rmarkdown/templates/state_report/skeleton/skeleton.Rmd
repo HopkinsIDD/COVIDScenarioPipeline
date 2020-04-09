@@ -8,6 +8,7 @@ output:
     theme: journal
 bibliography: ReportReferences.bib
 params:
+  continue_on_error: TRUE
   config_file: "config.yml"
     
 ---
@@ -25,7 +26,7 @@ knitr::opts_chunk$set(
     fig.align = "center",
     message = FALSE,
     warning = FALSE,
-    error = TRUE,
+    error = params$continue_on_error,
     cache.lazy = FALSE,
     bitmapType = "cairo"
     )

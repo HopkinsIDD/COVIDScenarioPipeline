@@ -25,13 +25,6 @@ if(isTRUE(config$this_file_is_unedited)){
   ))
 }
 
-report_name = ""
-if(length(config$report$name) != 0){
-  report_name = config$report$name
-} else if(length(config$name) != 0){
-  report_name = config$name
-}
-
 simulations = config$nsimulations
 scenarios = config$interventions$scenarios
 deathrates = config$hospitalization$parameters$p_death_names
@@ -45,6 +38,15 @@ cat("\n")
 
 using_importation <- ("importation" %in% names(config))
 generating_report <- ("report" %in% names(config))
+
+if(generating_report){
+  report_name = ""
+  if(length(config$report_location_name) != 0){
+    report_name = paste0(config$report_location_name, "_", format(Sys.Date(), format="%Y%m%d"))
+  } else if(length(config$name) != 0){
+    report_name = paste0(config$name, "_",  format(Sys.Date(), format="%Y%m%d"))
+  }
+}
 
 importation_target_name <- function(simulation, prefix = ""){
   paste0(".files/",prefix,simulation,"_importation")
@@ -143,8 +145,8 @@ cat("
 # Generate first target
 # If generating report, it is the html file. Otherwise, it's run.
 if(generating_report){
-  rmd_file = sprintf("report/%s_report.Rmd", report_name)
-  cat(sprintf("report/%s_report.html:", report_name))
+  rmd_file = sprintf("notebooks/%s/%s_report.Rmd", report_name, report_name)
+  cat(sprintf("notebooks/%s/%s_report.html:", report_name, report_name))
 } else {
   cat("run:")
 }
@@ -158,13 +160,23 @@ for(scenario in scenarios){
 }
 
 if(generating_report){
-  report_generating_stuff = sprintf(" %s
-\tRscript -e 'rmarkdown::render(\"%s\")'
+  # final target dependency for .html is the Rmd
+  cat(sprintf(" %s\n", rmd_file))
+
+  renderCmd = sprintf("\t$(RSCRIPT) -e 'rmarkdown::render(\"%s\"", rmd_file)
+  if(length(config$report$continue_on_error) != 0){
+    renderCmd = paste0(renderCmd, 
+                      sprintf(", params=list(continue_on_error=%s)", config$report$continue_on_error))
+  }
+  renderCmd = paste0(renderCmd, ")'")
+  cat(renderCmd)
+
+  rmd_target = sprintf("
 %s:
-\tmkdir -p report
-\tRscript -e 'rmarkdown::draft(\"$@\",template=\"state_report\",package=\"report.generation\",edit=FALSE)'", 
-rmd_file, rmd_file, rmd_file)
-  cat(report_generating_stuff)
+\tmkdir -p notebooks/%s
+\t$(RSCRIPT) -e 'rmarkdown::draft(\"$@\",template=\"state_report\",package=\"report.generation\",edit=FALSE)'", 
+rmd_file, report_name)
+  cat(rmd_target)
 }
 cat("\n")
 
@@ -217,7 +229,7 @@ if(using_importation){
 }
 cat(paste0("
 clean_reports:
-\trm -f report/*.html
+\trm -f notebooks/*.html
 clean_simulations: rerun_simulations
 \trm -rf model_output
 clean_hospitalization: rerun_hospitalization
