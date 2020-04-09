@@ -32,7 +32,7 @@ case_data_dir <- "data/case_data"
 #shapefile_path = file.path(config$spatial_setup$base_path,config$spatial_setup$shapefile)
 
 
-if (file.exists(file.path(outdir, "input_data.csv"))) {
+if (!file.exists(file.path(outdir, "input_data.csv"))) {
   print("IMPORT 1: SETUP")
   setup_importations(
     dest=dest,
@@ -55,7 +55,7 @@ if (file.exists(file.path(outdir, "input_data.csv"))) {
 }
 
 
-if (file.exists(file.path(outdir, paste0("imports_sim",config$nsimulations,".csv")))) {
+if (!file.exists(file.path(outdir, paste0("imports_sim",config$nsimulations,".csv")))) {
   print("IMPORT 2: RUN MODEL")
   run_importations(
     n_sim=config$nsimulations,
@@ -70,7 +70,7 @@ if (file.exists(file.path(outdir, paste0("imports_sim",config$nsimulations,".csv
 }
 
 
-if (file.exists(file.path(outdir, paste0("importation_",config$nsimulations,".csv")))) {
+if (!file.exists(file.path(outdir, paste0("importation_",config$nsimulations,".csv")))) {
   print("IMPORT 3: DISTRIBUTE")
   run_full_distrib_imports(
     states_of_interest=dest,
