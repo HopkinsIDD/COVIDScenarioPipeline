@@ -38,10 +38,6 @@ tidycensus::census_api_key(key = census_key)
 
 case_data_dir <- "data/case_data"
 
-# dont need this anymore #
-#shapefile_path = file.path(config$spatial_setup$base_path,config$spatial_setup$shapefile)
-
-
 if (!file.exists(file.path(outdir, "input_data.csv"))) {
   print("IMPORT 1: SETUP")
   setup_importations(
