@@ -813,6 +813,7 @@ make_scn_time_summary_table <- function(hosp_state_totals,
                                         pi_high = 0.975,
                                         round_digit=-2) {
     ##Make the period ranges and labels 
+    period_breaks <- sort(as.Date(period_breaks)) #out of order leads to bad things....
     period_breaks <- c(min(hosp_state_totals$time)-1, as.Date(period_breaks), max(hosp_state_totals$time)+1)
     len <- length(period_breaks)
     lbls <- sprintf("%s-%s", format(period_breaks[1:(len-1)], "%b %d"),

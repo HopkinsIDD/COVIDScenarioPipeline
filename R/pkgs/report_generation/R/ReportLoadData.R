@@ -111,7 +111,8 @@ load_cum_hosp_geounit_date <- function(scn_dirs,
                 dplyr::summarize(NincidDeath = sum(incidD),
                                  NincidInf = sum(incidI),
                                  NincidICU=sum(incidICU),
-                                 NincidHosp=sum(incidH)) %>%
+                                 NincidHosp=sum(incidH),
+                                 NincidVent = sum(incidVent)) %>%
                 ungroup()
         }
     } else {
@@ -122,7 +123,8 @@ load_cum_hosp_geounit_date <- function(scn_dirs,
                 dplyr::summarize(NincidDeath = sum(incidD),
                                  NincidInf = sum(incidI),
                                  NincidICU=sum(incidICU),
-                                 NincidHosp=sum(incidH)) %>%
+                                 NincidHosp=sum(incidH),
+                                 NincidVent = sum(incidVent)) %>%
                 ungroup()
         }
     }
@@ -191,8 +193,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NincidInf = sum(incidI),
                                  NincidICU = sum(incidICU),
                                  NincidHosp = sum(incidH),
-                                 NincidVent = sum(incidVent),
-                                 NventCurr = sum(vent_curr)) %>%
+                                 NincidVent = sum(incidVent)) %>%
                 ungroup()
         }
     } else {
@@ -206,8 +207,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NincidInf = sum(incidI),
                                  NincidICU=sum(incidICU),
                                  NincidHosp=sum(incidH),
-                                 NincidVent = sum(incidVent),
-                                 NventCurr = sum(vent_curr)) %>%
+                                 NincidVent = sum(incidVent)) %>%
                 ungroup()
         }
     }
@@ -487,7 +487,8 @@ load_hosp_geounit_threshold <- function(
                     NincidDeath = incidD,
                     NincidInf = incidI,
                     NincidICU = incidICU,
-                    NincidHosp = incidH) %>%
+                    NincidHosp = incidH,
+                    NincidVent = incidVent) %>%
       return()
 }
 
