@@ -137,6 +137,10 @@ build_hospdeath_par <- function(p_hosp,
         .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
+      replace_na(
+        list(vent_curr = 0,
+             icu_curr = 0,
+             hosp_curr = 0)) %>%
       do.call(what=rbind) %>%
       arrange(date_inds, geo_ind)
 
@@ -259,6 +263,10 @@ build_hospdeath_geoid_par <- function(
         .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
+      replace_na(
+        list(vent_curr = 0,
+             icu_curr = 0,
+             hosp_curr = 0)) %>%
       do.call(what=rbind) %>%
       arrange(date_inds, geo_ind)
 
@@ -387,6 +395,10 @@ build_hospdeath_geoid_fixedIFR_par <- function(
         .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
+      replace_na(
+        list(vent_curr = 0,
+             icu_curr = 0,
+             hosp_curr = 0)) %>%
       do.call(what=rbind) %>%
       arrange(date_inds, geo_ind)
 
