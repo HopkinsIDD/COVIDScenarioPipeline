@@ -14,7 +14,7 @@ on:
     paths:
       - 'requirements.txt'
       - 'packages.R'
-      - 'packages-custom.R'
+      - 'local_install.R'
       - 'Dockerfile'
       - 'R/pkgs/**'
 

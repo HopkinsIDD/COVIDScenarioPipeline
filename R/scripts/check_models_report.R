@@ -4,9 +4,16 @@ library(report.generation)
 library(covidcommon)
 library(tidyverse)
 
+option_list = list(
+  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
+  optparse::make_option(c("-s", "--scenario"), action="store", default='all', type='character', help="name of the intervention to check, or 'all' to check all of them"),
+)
+opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
-config <- covidcommon:::load_config("config.yml")
-scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
+config <- covidcommon:::load_config(opt$c)
+scenarios <- ifelse(opt$s == "all", config$interventions$scenarios, opt$s)
+
+scn_dirs <- paste(config$name, scenarios, sep='_')
 geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
                              geoid_len=5)
 included_geoids <- sort(unique(geodata$geoid))

@@ -11,7 +11,7 @@ option_list = list(
 opts = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
 config <- covidcommon::load_config(opts$c)
-if (is.na(config)) {
+if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
