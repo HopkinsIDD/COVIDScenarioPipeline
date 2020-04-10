@@ -93,14 +93,10 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
 
-    # Using `merge` instead of full_join for performance reasons
-    res <- merge(dat_H %>% mutate(uid = as.character(uid)),
-                 data_ICU %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(res, data_Vent %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(res, data_D %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(dat_ %>% mutate(uid = as.character(uid)),
-                 res %>% mutate(uid = as.character(uid)), all=TRUE)
-
+    stopifnot(is.character(dat_H$uid) && is.character(data_ICU$uid) &&
+              is.character(data_Vent$uid) && is.character(data_D$uid) &&
+              is.character(dat_$uid))
+    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...), list(dat_H, data_ICU, data_Vent, data_D, dat_))
 
     res <- res %>%
       replace_na(
@@ -315,7 +311,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
              icu_curr = 0,
              vent_curr = 0,
              uid = paste0(geoid, "-",sim_num)) %>%
-      rename(incidI = N)
+      rename(incidI = N) %>%
+      as.data.table()
     dat_ <- dat_I %>%
       left_join(prob_dat, by="geoid")
 
@@ -339,12 +336,10 @@ build_hospdeath_geoid_fixedIFR_par <- function(
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
 
+    stopifnot(is.data.table(dat_I) && is.data.table(dat_H) && is.data.table(data_ICU) && is.data.table(data_Vent) && is.data.table(data_D))
 
     # Using `merge` instead of full_join for performance reasons
-    res <- merge(dat_I, dat_H, all=TRUE) %>%
-      merge(data_ICU, all=TRUE) %>%
-      merge(data_Vent, all=TRUE) %>%
-      merge(data_D, all=TRUE) %>%
+    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...), list(dat_I, dat_H, data_ICU, data_Vent, data_D)) %>%
       replace_na(
         list(incidI = 0,
              incidH = 0,
