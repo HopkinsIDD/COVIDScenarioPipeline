@@ -6,7 +6,7 @@ library(tidyverse)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
-  optparse::make_option(c("-s", "--scenario"), action="store", default='all', type='character', help="name of the intervention to check, or 'all' to check all of them"),
+  optparse::make_option(c("-s", "--scenario"), action="store", default='all', type='character', help="name of the intervention to check, or 'all' to check all of them")
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
@@ -127,13 +127,13 @@ ggplot(hosp_plt, aes(x = time, y = NincidICU, group = sim_num)) +
   guides(colour = "none") +
   facet_wrap(~scenario_name, ncol=1)
 
-# ggplot(hosp_plt, aes(x = time, y = NincidVent, group = sim_num)) +
-#   geom_line(aes(colour = sim_num)) +
-#   scale_x_date(date_breaks = "1 month",
-#                date_labels = "%b") +
-#   scale_y_continuous("Total vent admissions", labels = scales::comma) +
-#   guides(colour = "none") +
-#   facet_wrap(~scenario_name, ncol=1)
+ggplot(hosp_plt, aes(x = time, y = NincidVent, group = sim_num)) +
+  geom_line(aes(colour = sim_num)) +
+  scale_x_date(date_breaks = "1 month",
+               date_labels = "%b") +
+  scale_y_continuous("Total vent admissions", labels = scales::comma) +
+  guides(colour = "none") +
+  facet_wrap(~scenario_name, ncol=1)
 
 # ggplot(hosp_plt, aes(x = time, y = NventCurr, group = sim_num)) +
 #   geom_line(aes(colour = sim_num)) +
