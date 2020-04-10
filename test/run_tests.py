@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import sys
 import multiprocessing
+import datetime
 
 
 # assert helpers
@@ -55,4 +56,12 @@ def test_importation():
     assert_dir("data/shp")
     assert_dir("importation")
 
+def test_report():
+    _success("test_report")
 
+    assert_file("data/filter.txt")
+    assert_dir("data/shp")
+    assert_dir("importation")
+    assert_dir("notebooks")
+    today_str = datetime.date.today().strftime("%Y%m%d")
+    assert_file(f"notebooks/Hawaii_{today_str}/Hawaii_{today_str}_report.html")
