@@ -20,7 +20,7 @@ option_list = list(
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
 config <- covidcommon::load_config(opt$c)
-if (is.na(config)) {
+if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
@@ -122,6 +122,13 @@ if(run_age_adjust){
   time_hosp_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_hosp_death)
   }
 
+  if(is.null(config$hospitalization$parameters$time_ventdur)){
+    warning("No ventilation duration specified. Using ICU duration as a default")
+    time_ventdur_pars <- as_evaled_expression(config$hospitalization$parameters$time_ICUdur)
+  }else{
+    time_ventdur_pars <- as_evaled_expression(config$hospitalization$parameters$time_ventdur)
+  }
+  
   for (scn0 in scenario) {
     for (cmd0 in cmd) {
       data_filename <- paste0("model_output/",config$name,"_",scn0)
@@ -138,6 +145,7 @@ if(run_age_adjust){
                                       time_ICU_pars = time_ICU_pars,
                                       time_vent_pars = time_vent_pars,
                                       time_ICUdur_pars = time_ICUdur_pars,
+                                      time_ventdur_pars = time_ventdur_pars,
                                       cores = ncore,
                                       data_filename = data_filename,
                                       scenario_name = paste(cmd0,"death",sep="_")
