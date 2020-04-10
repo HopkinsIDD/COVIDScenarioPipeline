@@ -11,8 +11,7 @@ from ..utils import config
 DATA_DIR = os.path.dirname(__file__) + "/data"
 
 
-
-def test_check_values():
+def test_check_values_with_poisson_distribution():
     config.set_file(f"{DATA_DIR}/config_empty_seed.yml")
 
     ss = setup.SpatialSetup(setup_name="test_values",
