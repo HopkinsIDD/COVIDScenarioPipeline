@@ -189,8 +189,10 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NICUCurr = sum(icu_curr),
                                  NincidDeath = sum(incidD),
                                  NincidInf = sum(incidI),
-                                 NincidICU=sum(incidICU),
-                                 NincidHosp=sum(incidH)) %>%
+                                 NincidICU = sum(incidICU),
+                                 NincidHosp = sum(incidH),
+                                 NincidVent = sum(incidVent),
+                                 NventCurr = sum(vent_curr)) %>%
                 ungroup()
         }
     } else {
@@ -203,7 +205,9 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NincidDeath = sum(incidD),
                                  NincidInf = sum(incidI),
                                  NincidICU=sum(incidICU),
-                                 NincidHosp=sum(incidH)) %>%
+                                 NincidHosp=sum(incidH),
+                                 NincidVent = sum(incidVent),
+                                 NventCurr = sum(vent_curr)) %>%
                 ungroup()
         }
     }
