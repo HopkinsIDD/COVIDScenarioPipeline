@@ -106,12 +106,11 @@ build_hospdeath_par <- function(p_hosp,
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
     Vent_dur_ <- round(exp(time_ventdur_pars[1]))
 
-    # Using `merge` instead of full_join for performance reasons
-    res <- dat_ %>% mutate(uid = as.character(uid)) %>%
-      merge(dat_H %>% mutate(uid = as.character(uid)), all=TRUE) %>%
-      merge(data_ICU %>% mutate(uid = as.character(uid)), all=TRUE) %>%
-      merge(data_Vent %>% mutate(uid = as.character(uid)), all=TRUE) %>%
-      merge(data_D %>% mutate(uid = as.character(uid)), all=TRUE) %>%
+    stopifnot(is.character(dat_H$uid) && is.character(data_ICU$uid) &&
+              is.character(data_Vent$uid) && is.character(data_D$uid) &&
+              is.character(dat_$uid))
+    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...),
+                  list(dat_, dat_H, data_ICU, data_Vent, data_D)) %>%
       replace_na(
         list(incidI = 0,
              incidH = 0,
@@ -137,11 +136,11 @@ build_hospdeath_par <- function(p_hosp,
         .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
+      do.call(what=rbind) %>%
       replace_na(
         list(vent_curr = 0,
              icu_curr = 0,
              hosp_curr = 0)) %>%
-      do.call(what=rbind) %>%
       arrange(date_inds, geo_ind)
 
     outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
@@ -214,7 +213,7 @@ build_hospdeath_geoid_par <- function(
              vent_curr = 0,
              uid = paste0(geoid, "-",sim_num)) %>%
       rename(incidI = N)
-    dat_left_join(dat_I, prob_dat, by="geoid")
+    dat_ <- left_join(dat_I, prob_dat, by="geoid")
 
     # Add time things
     dat_symp <- hosp_create_delay_frame('incidI', dat_$p_symp_inf_scaled, dat_,
@@ -231,13 +230,11 @@ build_hospdeath_geoid_par <- function(
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
     Vent_dur_ <- round(exp(time_ventdur_pars[1]))
 
+    stopifnot(is.data.table(dat_I) && is.data.table(dat_H) && is.data.table(data_ICU) && is.data.table(data_Vent) && is.data.table(data_D))
+
     # Using `merge` instead of full_join for performance reasons
-    res <- dat_I %>% mutate(uid = as.character(uid)) %>%
-      merge(dat_symp %>% mutate(uid = as.character(uid)), all=TRUE) %>%
-      merge(dat_H %>% mutate(uid = as.character(uid)), all=TRUE) %>%
-      merge(data_ICU %>% mutate(uid = as.character(uid)), all=TRUE) %>%
-      merge(data_Vent %>% mutate(uid = as.character(uid)), all=TRUE) %>%
-      merge(data_D %>% mutate(uid = as.character(uid)), all=TRUE) %>%
+    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...),
+                  list(dat_I, dat_H, data_ICU, data_Vent, data_D)) %>%
       replace_na(
         list(incidSym = 0,
              incidI = 0,
@@ -263,11 +260,11 @@ build_hospdeath_geoid_par <- function(
         .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
+      do.call(what=rbind) %>%
       replace_na(
         list(vent_curr = 0,
              icu_curr = 0,
              hosp_curr = 0)) %>%
-      do.call(what=rbind) %>%
       arrange(date_inds, geo_ind)
 
     outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
@@ -339,7 +336,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
              icu_curr = 0,
              vent_curr = 0,
              uid = paste0(geoid, "-",sim_num)) %>%
-      rename(incidI = N)
+      rename(incidI = N) %>%
+      as.data.table()
     dat_ <- dat_I %>%
       left_join(prob_dat, by="geoid")
 
@@ -364,12 +362,11 @@ build_hospdeath_geoid_fixedIFR_par <- function(
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
     Vent_dur_ <- round(exp(time_ventdur_pars[1]))
 
+    stopifnot(is.data.table(dat_I) && is.data.table(dat_H) && is.data.table(data_ICU) && is.data.table(data_Vent) && is.data.table(data_D))
+
     # Using `merge` instead of full_join for performance reasons
-    res <- dat_I %>% mutate(uid = as.character(uid)) %>%
-      merge(dat_H %>% mutate(uid = as.character(uid)), all=TRUE) %>%
-      merge(data_ICU %>% mutate(uid = as.character(uid)), all=TRUE) %>%
-      merge(data_Vent %>% mutate(uid = as.character(uid)), all=TRUE) %>%
-      merge(data_D %>% mutate(uid = as.character(uid)), all=TRUE) %>%
+    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...),
+                  list(dat_I, dat_H, data_ICU, data_Vent, data_D)) %>%
       replace_na(
         list(incidI = 0,
              incidH = 0,
@@ -395,11 +392,11 @@ build_hospdeath_geoid_fixedIFR_par <- function(
         .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
+      do.call(what=rbind) %>%
       replace_na(
         list(vent_curr = 0,
              icu_curr = 0,
              hosp_curr = 0)) %>%
-      do.call(what=rbind) %>%
       arrange(date_inds, geo_ind)
 
     outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
