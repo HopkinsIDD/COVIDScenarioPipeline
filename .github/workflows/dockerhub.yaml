@@ -12,7 +12,7 @@ on:
     paths:
       - 'requirements.txt'
       - 'packages.R'
-      - 'packages-custom.R'
+      - 'local_install.R'
       - 'Dockerfile'
       - 'R/pkgs/**'
 
@@ -38,7 +38,7 @@ jobs:
 
     - name: Build Push Master
       uses: docker/build-push-action@v1
-      if: contains( ${{ github.ref }}, 'master')
+      if: contains( github.ref, 'master') || contains( github.base_ref, 'master' )
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
@@ -47,19 +47,19 @@ jobs:
 
     - name: Build Push Dev
       uses: docker/build-push-action@v1
-      if: contains( ${{ github.ref }}, 'dev')
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: hopkinsidd/covidscenariopipeline
         tags: latest-dev,${{steps.tags.outputs.shashort}},${{steps.tags.outputs.reftag}},${{ github.sha }}
+      if: contains( github.ref , 'dev') || contains( github.base_ref, 'dev' )
 
 
     - name: Build Push Dataseed
       uses: docker/build-push-action@v1
-      if: contains( ${{ github.ref }}, 'dataseed')
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: hopkinsidd/covidscenariopipeline
         tags: latest-dataseed,${{steps.tags.outputs.shashort}},${{steps.tags.outputs.reftag}},${{ github.sha }}
+      if: contains( github.ref , 'dataseed') || contains( github.base_ref, 'dataseed' )
