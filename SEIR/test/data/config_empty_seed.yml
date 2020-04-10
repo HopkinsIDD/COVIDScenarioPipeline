@@ -53,7 +53,7 @@ importation: ## You can seed the SEIR model directly instead of using importatio
 
 seeding: ## If removing the importation, comment out this seeding block
   method: PoissonDistributed
-  lambda_file: ./test/data/empty_seed.csv
+  lambda_file: SEIR/test/data/empty_seed.csv
 
 # seeding: ## If removing importation, uncomment this seeding block
 #   method: PoissonDistributed
