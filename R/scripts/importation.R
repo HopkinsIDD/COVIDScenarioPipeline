@@ -14,7 +14,7 @@ if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
-num_simulations <- ifelse(opt$n > 0, opt$n, config$nsimulations)
+num_simulations <- ifelse(opts$n > 0, opts$n, config$nsimulations)
 
 dest <- sort(config$spatial_setup$modeled_states)
 print(dest)
