@@ -5,7 +5,6 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(magrittr)
-library(hospitalization)
 library(data.table)
 library(parallel)
 
@@ -28,7 +27,7 @@ if (length(config) == 0) {
 # toggle for running legacy script vs age adjusted script
 run_age_adjust <- config$hospitalization$paths$run_age_adjust
 if(is.null(run_age_adjust)){
-  warning("Not specified whether to run age adjusted hospitalization script. 
+  warning("Not specified whether to run age adjusted hospitalization script.
           Defaults to running legacy script")
   run_age_adjust <- FALSE
 }
@@ -74,7 +73,7 @@ county_dat$new_pop <- county_dat[[config$spatial_setup$popnodes]]
 
 ## Running age-adjusted script
 if(run_age_adjust){
-  
+
   # read in probability file
   prob_dat <- readr::read_csv(paste(opt$p,"data","geoid-params.csv",sep='/'))
 
@@ -83,6 +82,7 @@ if(run_age_adjust){
 
   time_onset_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_onset_death)
   p_hosp_inf <- as_evaled_expression(config$hospitalization$parameters$p_hosp_inf)
+  time_ventdur_pars <- as_evaled_expression(config$hospitalization$parameters$time_ventdur)
   names(p_hosp_inf) = config$hospitalization$parameters$p_death_names
   if (length(p_death)!=length(p_hosp_inf)) {
     stop("Number of IFR and p_hosp_inf values do not match")
@@ -101,6 +101,7 @@ if(run_age_adjust){
                                                      time_disch_pars=time_disch_pars,
                                                      time_ICU_pars = time_ICU_pars,
                                                      time_vent_pars = time_vent_pars,
+                                                     time_ventdur_pars = time_ventdur_pars,
                                                      time_ICUdur_pars = time_ICUdur_pars,
                                                      cores = ncore,
                                                      data_filename = data_filename,
@@ -109,16 +110,23 @@ if(run_age_adjust){
     }
   }
 } else{
-  
+
   p_death_rate <- as_evaled_expression(config$hospitalization$parameters$p_death_rate)
   p_ICU <- as_evaled_expression(config$hospitalization$parameters$p_ICU)
   p_vent <- as_evaled_expression(config$hospitalization$parameters$p_vent)
-  
+
   if(is.null(config$hospitalization$parameters$time_hosp_death)){
     warning("Please specify time_hosp_death instead of time_death")
     time_hosp_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_death)
   }else{
   time_hosp_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_hosp_death)
+  }
+
+  if(is.null(config$hospitalization$parameters$time_ventdur)){
+    warning("No ventilation duration specified. Using ICU duration as a default")
+    time_ventdur_pars <- as_evaled_expression(config$hospitalization$parameters$time_ICUdur)
+  }else{
+    time_ventdur_pars <- as_evaled_expression(config$hospitalization$parameters$time_ventdur)
   }
   
   for (scn0 in scenario) {
@@ -137,6 +145,7 @@ if(run_age_adjust){
                                       time_ICU_pars = time_ICU_pars,
                                       time_vent_pars = time_vent_pars,
                                       time_ICUdur_pars = time_ICUdur_pars,
+                                      time_ventdur_pars = time_ventdur_pars,
                                       cores = ncore,
                                       data_filename = data_filename,
                                       scenario_name = paste(cmd0,"death",sep="_")
