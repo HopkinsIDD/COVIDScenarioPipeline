@@ -1,11 +1,7 @@
 name: unit-tests
 
 on:
-  push:
-    branches:
-      - master
-      - dev
-      - dataseed
+  push
   pull_request:
     branches:
       - master
