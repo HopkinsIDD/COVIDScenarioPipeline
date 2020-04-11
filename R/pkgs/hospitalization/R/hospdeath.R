@@ -17,8 +17,18 @@ hosp_load_scenario_sim <- function(scenario_dir,
                                    sim_id,
                                    keep_compartments=NULL,
                                    time_filter_low = -Inf,
-                                   time_filter_high = Inf
+                                   time_filter_high = Inf,
+                                   geoid_len = 0,
+                                   padding_char = "0"
     ) {
+  
+    if (geoid_len > 0) {
+      padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width=geoid_len,pad=padding_char))}
+    } else {
+      padfn <- function(x) {x}
+    }
+  
+  
     files <- dir(scenario_dir,full.names = TRUE)
     rc <- list()
     i <- sim_id
@@ -33,7 +43,8 @@ hosp_load_scenario_sim <- function(scenario_dir,
         tmp %>%
         filter(time <= time_filter_high & time >= time_filter_low) %>%
         pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>%
-        mutate(sim_num = i)
+        mutate(sim_num = i) %>%
+        padfn
     return(tmp)
 }
 
@@ -57,13 +68,19 @@ hosp_load_scenario_sim <- function(scenario_dir,
 ##' @param root_out_dir Path to the directory to write the outputs of this analysis
 ##'
 ##' @export
-build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, scenario_name,
+build_hospdeath_par <- function(p_hosp,
+                                p_death,
+                                p_ICU,
+                                p_vent,
+                                data_filename,
+                                scenario_name,
                                 time_hosp_pars = c(1.23, 0.79),
                                 time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
                                 time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
                                 time_hosp_death_pars = c(log(11.25), log(1.15)),
                                 time_disch_pars = c(log(11.5), log(1.22)),
                                 time_ICUdur_pars = c(log(17.46), log(4.044)),
+                                time_ventdur_pars = log(17),
                                 cores=8,
                                 root_out_dir='hospitalization') {
 
@@ -79,26 +96,33 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    dat_ <- hosp_load_scenario_sim(data_filename,s,keep_compartments = c("diffI","cumI"))
-    dat_ <- dat_ %>% dplyr::filter(comp == "diffI")
-    dat_ <- dat_ %>% mutate(hosp_curr = 0, icu_curr = 0, vent_curr = 0, uid = paste0(geoid, "-",sim_num))
-    dat_ <- dat_ %>% rename(incidI = N)
-    dates_ <- as.Date(dat_$time)
+    dat_ <- hosp_load_scenario_sim(data_filename,s,
+                                   keep_compartments = "diffI", 
+                                   geoid_len = 5) %>%
+      mutate(hosp_curr = 0,
+             icu_curr = 0,
+             vent_curr = 0,
+             uid = paste0(geoid, "-",sim_num)) %>%
+      rename(incidI = N)
 
     # Add time things
-    dat_H <- hosp_create_delay_frame('incidI',p_hosp,dat_,time_hosp_pars,"H")
-    data_ICU <- hosp_create_delay_frame('incidH',p_ICU,dat_H,time_ICU_pars,"ICU")
-    data_Vent <- hosp_create_delay_frame('incidICU',p_vent,data_ICU,time_vent_pars,"Vent")
-    data_D <- hosp_create_delay_frame('incidH',p_death,dat_H,time_hosp_death_pars,"D")
+    dat_H <- hosp_create_delay_frame('incidI',p_hosp,dat_,
+                                     time_hosp_pars,"H")
+    data_ICU <- hosp_create_delay_frame('incidH',p_ICU,dat_H,
+                                        time_ICU_pars,"ICU")
+    data_Vent <- hosp_create_delay_frame('incidICU',p_vent,data_ICU,
+                                         time_vent_pars,"Vent")
+    data_D <- hosp_create_delay_frame('incidH',p_death,dat_H,
+                                      time_hosp_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
+    Vent_dur_ <- round(exp(time_ventdur_pars[1]))
 
     stopifnot(is.character(dat_H$uid) && is.character(data_ICU$uid) &&
               is.character(data_Vent$uid) && is.character(data_D$uid) &&
               is.character(dat_$uid))
-    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...), list(dat_H, data_ICU, data_Vent, data_D, dat_))
-
-    res <- res %>%
+    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...),
+                  list(dat_, dat_H, data_ICU, data_Vent, data_D)) %>%
       replace_na(
         list(incidI = 0,
              incidH = 0,
@@ -106,27 +130,30 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
              incidVent = 0,
              incidD = 0,
              vent_curr = 0,
-             hosp_curr = 0))
-
-    # get sim nums
-    res <- res %>% select(-geoid, -sim_num) %>%
-      separate(uid, c("geoid", "sim_num"), sep="-", remove=FALSE)
-
-    res <- res %>% mutate(date_inds = as.integer(time - min(time) + 1))
-
-    res$geo_ind <- as.numeric(as.factor(res$geoid))
-
-     res <- res %>%
-       arrange(geo_ind, date_inds) %>%
-       group_by(geo_ind) %>%
-       group_map(function(.x,.y){
-         .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),n=R_delay_,default=0)
-         .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),n=ICU_dur_,default=0)
-         .x$geo_ind <- .y$geo_ind
-         return(.x)
-       }) %>%
-       do.call(what=rbind) %>%
-       arrange(date_inds, geo_ind)
+             hosp_curr = 0)) %>%
+      # get sim nums
+      select(-geoid, -sim_num) %>%
+      separate(uid, c("geoid", "sim_num"), sep="-", remove=FALSE) %>%
+      mutate(date_inds = as.integer(time - min(time) + 1),
+             geo_ind = as.numeric(as.factor(geoid))) %>%
+      arrange(geo_ind, date_inds) %>%
+      group_by(geo_ind) %>%
+      group_map(function(.x,.y){
+        .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),
+                                                n=R_delay_,default=0)
+        .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),
+                                                 n=ICU_dur_,default=0)
+        .x$vent_curr <- cumsum(.x$incidVent) - lag(cumsum(.x$incidVent),
+                                                   n=Vent_dur_)
+        .x$geo_ind <- .y$geo_ind
+        return(.x)
+      }) %>%
+      do.call(what=rbind) %>%
+      replace_na(
+        list(vent_curr = 0,
+             icu_curr = 0,
+             hosp_curr = 0)) %>%
+      arrange(date_inds, geo_ind)
 
     outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
     outdir <- gsub('/[^/]*$','',outfile)
@@ -159,16 +186,21 @@ build_hospdeath_par <- function(p_hosp, p_death, p_ICU, p_vent, data_filename, s
 ##' @param root_out_dir Path to the directory to write the outputs of this analysis
 ##'
 ##' @export
-build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario_name,
-                                      time_symp_pars = c(log(5.2), log(1.74)),
-                                      time_hosp_pars = c(1.23, 0.79),
-                                      time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
-                                      time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
-                                      time_onset_death_pars = c(log(11.25), log(1.15)),
-                                      time_disch_pars = c(log(11.5), log(1.22)),
-                                      time_ICUdur_pars = c(log(17.46), log(4.044)),
-                                      cores=8,
-                                      root_out_dir='hospitalization') {
+build_hospdeath_geoid_par <- function(
+  prob_dat,
+  scl_fac,
+  data_filename,
+  scenario_name,
+  time_symp_pars = c(log(5.2), log(1.74)),
+  time_hosp_pars = c(1.23, 0.79),
+  time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
+  time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
+  time_onset_death_pars = c(log(11.25), log(1.15)),
+  time_disch_pars = c(log(11.5), log(1.22)),
+  time_ICUdur_pars = c(log(17.46), log(4.044)),
+  time_ventdur_pars = log(17),
+  cores=8,
+  root_out_dir='hospitalization') {
 
   ## add in scaling factor to p_symp_inf
   prob_dat$p_symp_inf_scaled <- prob_dat$p_symp_inf * scl_fac
@@ -186,33 +218,36 @@ build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    dat_ <- hosp_load_scenario_sim(data_filename,s,keep_compartments = c("diffI","cumI"))
-    dat_ <- dat_ %>% dplyr::filter(comp == "diffI")
-    dat_ <- dat_ %>% mutate(hosp_curr = 0, icu_curr = 0, vent_curr = 0, uid = paste0(geoid, "-",sim_num))
-    dat_ <- dat_ %>% rename(incidI = N)
-    dat_ <- dat_ %>% left_join(prob_dat, by="geoid")
-    dates_ <- as.Date(dat_$time)
+    dat_I <- hosp_load_scenario_sim(data_filename,s,
+                                    keep_compartments = "diffI",
+                                    geoid_len=5) %>%
+      mutate(hosp_curr = 0,
+             icu_curr = 0,
+             vent_curr = 0,
+             uid = paste0(geoid, "-",sim_num)) %>%
+      rename(incidI = N)
+    dat_ <- left_join(dat_I, prob_dat, by="geoid")
 
     # Add time things
-    dat_symp <- hosp_create_delay_frame('incidI', dat_$p_symp_inf_scaled, dat_, time_symp_pars, "Sym")
-    dat_H <- hosp_create_delay_frame('incidSym',dat_$p_hosp_symp,dat_symp,time_hosp_pars,"H")
-    data_ICU <- hosp_create_delay_frame('incidH',dat_$p_icu_hosp,dat_H,time_ICU_pars,"ICU")
-    data_Vent <- hosp_create_delay_frame('incidICU',dat_$p_vent_icu,data_ICU,time_vent_pars,"Vent")
-    data_D <- hosp_create_delay_frame('incidSym',dat_$p_death_symp,dat_symp,time_onset_death_pars,"D")
+    dat_symp <- hosp_create_delay_frame('incidI', dat_$p_symp_inf_scaled, dat_,
+                                        time_symp_pars, "Sym")
+    dat_H <- hosp_create_delay_frame('incidSym',dat_$p_hosp_symp,dat_symp,
+                                     time_hosp_pars,"H")
+    data_ICU <- hosp_create_delay_frame('incidH',dat_$p_icu_hosp,dat_H,
+                                        time_ICU_pars,"ICU")
+    data_Vent <- hosp_create_delay_frame('incidICU',dat_$p_vent_icu,data_ICU,
+                                         time_vent_pars,"Vent")
+    data_D <- hosp_create_delay_frame('incidSym',dat_$p_death_symp,dat_symp,
+                                      time_onset_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
+    Vent_dur_ <- round(exp(time_ventdur_pars[1]))
+
+    stopifnot(is.data.table(dat_I) && is.data.table(dat_H) && is.data.table(data_ICU) && is.data.table(data_Vent) && is.data.table(data_D))
 
     # Using `merge` instead of full_join for performance reasons
-    res <- merge(dat_symp %>% mutate(uid = as.character(uid)),
-                 dat_H %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(res, data_ICU %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(res, data_Vent %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(res, data_D %>% mutate(uid = as.character(uid)), all=TRUE)
-    res <- merge(dat_ %>% mutate(uid = as.character(uid)),
-                 res %>% mutate(uid = as.character(uid)), all=TRUE)
-
-
-    res <- res %>%
+    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...),
+                  list(dat_I, dat_H, data_ICU, data_Vent, data_D)) %>%
       replace_na(
         list(incidSym = 0,
              incidI = 0,
@@ -221,26 +256,28 @@ build_hospdeath_geoid_par <- function(prob_dat, scl_fac, data_filename, scenario
              incidVent = 0,
              incidD = 0,
              vent_curr = 0,
-             hosp_curr = 0))
-
-    # get sim nums
-    res <- res %>% select(-geoid, -sim_num) %>%
-      separate(uid, c("geoid", "sim_num"), sep="-", remove=FALSE)
-
-    res <- res %>% mutate(date_inds = as.integer(time - min(time) + 1))
-
-    res$geo_ind <- as.numeric(as.factor(res$geoid))
-
-    res <- res %>%
+             hosp_curr = 0)) %>%
+      select(-geoid, -sim_num) %>%
+      separate(uid, c("geoid", "sim_num"), sep="-", remove=FALSE) %>%
+      mutate(date_inds = as.integer(time - min(time) + 1),
+             geo_ind = as.numeric(as.factor(geoid))) %>%
       arrange(geo_ind, date_inds) %>%
       group_by(geo_ind) %>%
       group_map(function(.x,.y){
-        .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),n=R_delay_,default=0)
-        .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),n=ICU_dur_,default=0)
+        .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),
+                                                n=R_delay_,default=0)
+        .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),
+                                                 n=ICU_dur_,default=0)
+        .x$vent_curr <- cumsum(.x$incidVent) - lag(cumsum(.x$incidVent),
+                                                   n=Vent_dur_,default=0)
         .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
       do.call(what=rbind) %>%
+      replace_na(
+        list(vent_curr = 0,
+             icu_curr = 0,
+             hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
     outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
@@ -285,6 +322,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   time_onset_death_pars = c(log(11.25), log(1.15)),
   time_disch_pars = c(log(11.5), log(1.22)),
   time_ICUdur_pars = c(log(17.46), log(4.044)),
+  time_ventdur_pars = log(17),
   cores=8,
   root_out_dir='hospitalization'
 ) {
@@ -306,7 +344,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_I <- hosp_load_scenario_sim(data_filename,s,
-                                   keep_compartments = "diffI") %>%
+                                   keep_compartments = "diffI",
+                                   geoid_len=5) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -335,11 +374,13 @@ build_hospdeath_geoid_fixedIFR_par <- function(
                                       time_onset_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
+    Vent_dur_ <- round(exp(time_ventdur_pars[1]))
 
     stopifnot(is.data.table(dat_I) && is.data.table(dat_H) && is.data.table(data_ICU) && is.data.table(data_Vent) && is.data.table(data_D))
 
     # Using `merge` instead of full_join for performance reasons
-    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...), list(dat_I, dat_H, data_ICU, data_Vent, data_D)) %>%
+    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...),
+                  list(dat_I, dat_H, data_ICU, data_Vent, data_D)) %>%
       replace_na(
         list(incidI = 0,
              incidH = 0,
@@ -348,7 +389,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
              incidD = 0,
              vent_curr = 0,
              hosp_curr = 0)) %>%
-    # get sim nums
+      # get sim nums
       select(-geoid, -sim_num) %>%
       separate(uid, c("geoid", "sim_num"), sep="-", remove=FALSE) %>%
       mutate(date_inds = as.integer(time - min(time) + 1),
@@ -356,12 +397,20 @@ build_hospdeath_geoid_fixedIFR_par <- function(
       arrange(geo_ind, date_inds) %>%
       group_by(geo_ind) %>%
       group_map(function(.x,.y){
-        .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),n=R_delay_,default=0)
-        .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),n=ICU_dur_,default=0)
+        .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),
+                                                n=R_delay_,default=0)
+        .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),
+                                                 n=ICU_dur_,default=0)
+        .x$vent_curr <- cumsum(.x$incidVent) - lag(cumsum(.x$incidVent),
+                                                   n=Vent_dur_)
         .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
       do.call(what=rbind) %>%
+      replace_na(
+        list(vent_curr = 0,
+             icu_curr = 0,
+             hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
     outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
