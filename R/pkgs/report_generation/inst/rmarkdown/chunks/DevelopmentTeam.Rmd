@@ -25,3 +25,4 @@ Working Group**:
 
 * Sam Shah
 * Josh Wills
+* Kathryn Kintaro
