@@ -3,7 +3,8 @@ library(parallel)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
-  optparse::make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used")
+  optparse::make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used"),
+  optparse::make_option(c("-n", "--num_simulations"), action="store", default=-1, type='numeric', help="number of simulations to run, overrides config file value")
 )
 
 opts = optparse::parse_args(optparse::OptionParser(option_list=option_list))
@@ -12,6 +13,8 @@ config <- covidcommon::load_config(opts$c)
 if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
+
+num_simulations <- ifelse(opts$n > 0, opts$n, config$nsimulations)
 
 dest <- sort(config$spatial_setup$modeled_states)
 print(dest)
@@ -61,10 +64,10 @@ if (!file.exists(file.path(outdir, "input_data.csv"))) {
 }
 
 
-if (!file.exists(file.path(outdir, paste0("imports_sim",config$nsimulations,".csv")))) {
+if (!file.exists(file.path(outdir, paste0("imports_sim", num_simulations, ".csv")))) {
   print("IMPORT 2: RUN MODEL")
   run_importations(
-    n_sim=config$nsimulations,
+    n_sim=num_simulations,
     cores=opts$j,
     get_detection_time=FALSE, # NOT CURRENTLY USED FOR THIS PURPOSE
     travel_dispersion=config$importation$travel_dispersion,
@@ -76,7 +79,7 @@ if (!file.exists(file.path(outdir, paste0("imports_sim",config$nsimulations,".cs
 }
 
 
-if (!file.exists(file.path(outdir, paste0("importation_",config$nsimulations,".csv")))) {
+if (!file.exists(file.path(outdir, paste0("importation_", num_simulations, ".csv")))) {
   print("IMPORT 3: DISTRIBUTE")
   run_full_distrib_imports(
     states_of_interest=dest,
@@ -93,6 +96,6 @@ if (!file.exists(file.path(outdir, paste0("importation_",config$nsimulations,".c
     local_dir=paste0(config$spatial_setup$base_path,'/'),
     plot=FALSE,
     cores=opts$j,
-    n_sim=config$nsimulations
+    n_sim=num_simulations
   )
  } 
