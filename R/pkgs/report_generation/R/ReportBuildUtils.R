@@ -1096,7 +1096,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
                               obs_data_col = "black",
                               ci.L = 0,
                               ci.U = 1,
-                              date_breaks = "2 months",
+                              date_breaks = "1 month",
                               sim_start_date,
                               sim_end_date) {
   state_hosp_totals <-
@@ -1125,7 +1125,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
     #ylab("Incident Cases") +
     #theme(legend.position = "bottom") +
     scale_x_date(date_breaks = date_breaks,
-                 date_labels = "%b",
+                 date_labels = "%b %y",
                  limits = c(lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date))) +
     scale_y_continuous("Incident Cases", labels = scales::comma) +
     scale_color_manual("Scenario",
@@ -1154,7 +1154,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
     #ylab("Incident Cases") +
     #theme(legend.position = "bottom") +
     scale_x_date(date_breaks = date_breaks,
-                 date_labels = "%b",
+                 date_labels = "%b %y",
                  limits = c(lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date))) +
     scale_y_continuous("Incident Deaths", labels = scales::comma) +
     scale_color_manual("Scenario",
