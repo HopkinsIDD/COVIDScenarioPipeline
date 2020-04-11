@@ -17,8 +17,18 @@ hosp_load_scenario_sim <- function(scenario_dir,
                                    sim_id,
                                    keep_compartments=NULL,
                                    time_filter_low = -Inf,
-                                   time_filter_high = Inf
+                                   time_filter_high = Inf,
+                                   geoid_len = 0,
+                                   padding_char = "0"
     ) {
+  
+    if (geoid_len > 0) {
+      padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width=geoid_len,pad=padding_char))}
+    } else {
+      padfn <- function(x) {x}
+    }
+  
+  
     files <- dir(scenario_dir,full.names = TRUE)
     rc <- list()
     i <- sim_id
@@ -33,7 +43,8 @@ hosp_load_scenario_sim <- function(scenario_dir,
         tmp %>%
         filter(time <= time_filter_high & time >= time_filter_low) %>%
         pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>%
-        mutate(sim_num = i)
+        mutate(sim_num = i) %>%
+        padfn
     return(tmp)
 }
 
@@ -86,7 +97,8 @@ build_hospdeath_par <- function(p_hosp,
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_ <- hosp_load_scenario_sim(data_filename,s,
-                                   keep_compartments = "diffI") %>%
+                                   keep_compartments = "diffI", 
+                                   geoid_len = 5) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -207,7 +219,8 @@ build_hospdeath_geoid_par <- function(
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_I <- hosp_load_scenario_sim(data_filename,s,
-                                    keep_compartments = "diffI") %>%
+                                    keep_compartments = "diffI",
+                                    geoid_len=5) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -331,7 +344,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_I <- hosp_load_scenario_sim(data_filename,s,
-                                   keep_compartments = "diffI") %>%
+                                   keep_compartments = "diffI",
+                                   geoid_len=5) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,

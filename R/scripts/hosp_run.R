@@ -7,6 +7,7 @@ library(tidyr)
 library(magrittr)
 library(data.table)
 library(parallel)
+library(stringr)
 
 set.seed(123456789)
 
@@ -76,9 +77,6 @@ if(run_age_adjust){
 
   # read in probability file
   prob_dat <- readr::read_csv(paste(opt$p,"data","geoid-params.csv",sep='/'))
-
-  #removing leading 0s for merge with simulation data (this is hacky...)
-  prob_dat$geoid <- ifelse(substr(prob_dat$geoid, 1, 1)=="0", substr(prob_dat$geoid, 2, 5), prob_dat$geoid)
 
   time_onset_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_onset_death)
   p_hosp_inf <- as_evaled_expression(config$hospitalization$parameters$p_hosp_inf)
