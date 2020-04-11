@@ -7,6 +7,7 @@
 ##' @param post_process function that does processing after 
 ##' @param geoid_len in defined, this we want to make geoids all the same length
 ##' @param padding_char character to add to the front of geoids if fixed length
+##' @param ... additional parameters to pass to pre and/or post process
 ##' 
 ##' 
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
@@ -63,10 +64,10 @@ load_scenario_sims_filtered <- function(scenario_dir,
     tmp <- readr::read_csv(file, col_types = cols(.default = col_double(),
                                                   time=col_date(),
                                                   comp=col_character()))  %>%
-      pre_process %>%
+      pre_process(...) %>%
       pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>% 
       padfn %>%
-      post_process %>%
+      post_process(...) %>%
       mutate(sim_num = i)
     
     tmp
@@ -85,6 +86,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
 ##' @param post_process function that does processing after 
 ##' @param geoid_len in defined, this we want to make geoids all the same length
 ##' @param padding_char character to add to the front of geoids if fixed length
+##' @param ... additional parameters to post process function
 ##' 
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
 ##' 
@@ -97,7 +99,8 @@ load_hosp_sims_filtered <- function(scenario_dir,
                                     num_files = NA,
                                     post_process=function(x) {x},
                                     geoid_len = 0,
-                                    padding_char = "0") {
+                                    padding_char = "0",
+                                    ...) {
   
   require(tidyverse)
   require(foreach)
@@ -134,7 +137,7 @@ load_hosp_sims_filtered <- function(scenario_dir,
       geoid=col_character()
     )) %>% 
       padfn%>%
-      post_process %>%
+      post_process(...) %>%
       mutate(sim_num = i)
     
     tmp
