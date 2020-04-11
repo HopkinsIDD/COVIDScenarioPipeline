@@ -23,6 +23,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
                                         padding_char = "0") {
   
   require(tidyverse)
+  require(foreach)
   
 
   if (is.na(num_files)) {
@@ -46,7 +47,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
     stop(paste0("There were no files in ",getwd(), "/", sprintf("model_output/%s", scenario_dir)))
   }
 
-  rc <- list()
+  
   
   if (geoid_len > 0) {
     padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width =geoid_len,pad=padding_char))}
@@ -54,7 +55,8 @@ load_scenario_sims_filtered <- function(scenario_dir,
     padfn <- function(x) {x}
   }
   
-  for (i in 1:length(files)) {
+  rc <- foreach(i = 1:length(files)) %dopar% {
+    require(tidyverse)
     
     file <- files[i]
     
@@ -67,7 +69,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
       post_process %>%
       mutate(sim_num = i)
     
-    rc[[i]] <- tmp
+    tmp
   }
   
   rc <- dplyr::bind_rows(rc)
@@ -98,6 +100,9 @@ load_hosp_sims_filtered <- function(scenario_dir,
                                     padding_char = "0") {
   
   require(tidyverse)
+  require(foreach)
+  
+
   
   files <- dir(sprintf("hospitalization/model_output/%s", scenario_dir),full.names = TRUE)
   files <- files[grepl(name_filter,files)]
@@ -111,16 +116,15 @@ load_hosp_sims_filtered <- function(scenario_dir,
     warning(paste("You are only reading in", num_files, "files. Check the num_files argument if this is unexpected."))
   }
 
-  rc <- list()
-  
-  
+
   if (geoid_len > 0) {
     padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width=geoid_len,pad=padding_char))}
   } else {
     padfn <- function(x) {x}
   }
   
-  for (i in 1:length(files)) {
+  rc<- foreach (i = 1:length(files)) %dopar% {
+    require(tidyverse)
     file <- files[i]
     tmp <- readr::read_csv(file, col_types = cols(
       .default = col_double(),
@@ -133,7 +137,7 @@ load_hosp_sims_filtered <- function(scenario_dir,
       post_process %>%
       mutate(sim_num = i)
     
-    rc[[i]] <- tmp
+    tmp
   }
   
   rc<- dplyr::bind_rows(rc)
