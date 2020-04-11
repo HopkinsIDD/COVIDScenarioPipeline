@@ -21,7 +21,8 @@ load_scenario_sims_filtered <- function(scenario_dir,
                                         post_process = function(x) {x},
                                         pre_process = function(x){x},
                                         geoid_len = 0,
-                                        padding_char = "0") {
+                                        padding_char = "0",
+                                        ...) {
   
   require(tidyverse)
   require(foreach)
