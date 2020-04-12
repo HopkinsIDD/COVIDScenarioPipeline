@@ -1,4 +1,125 @@
 
+#' @name create_delay_frame
+#' Append one (or two) column(s) to a data frame with the incident (and optionally current) counts for the number of people in a compartment if the incident count, time (and duration) are derived from distributions of columns of `data`.
+#' @param data A data frame with columns geoid, time, and others as specified in `local_config`.  The geoid column should contain unique identifiers for time series.  The time should be a lubridate date.  The distributions in the config can have their values substituted with other columns of data, so any such columns must also be included.
+#' @param name character() The name of the compartment we are appending to `data`.  This is used to create the names of the new columns (e.g., hospitalization).
+#' @param local_config A list with two or three sub-lists.  incidence, delay, duration.  Each should be able to be passed to covidcommon::as_random_distribution after substituting in columns from `data`.  The incidence element should generate the number of people who enter the `name` compartment based on the state at the current time.  The delay element delay should keep track of how much time will pass from the current time until they enter `name`.  The duration element should keep track of how long they will stay in `name` before leaving.  The duration element is optional.
+#' @return A data frame that is identical to data with one or two new columns.  The first new column `name`_incident is the number of people entering `name` at that time for that time series.  The second column `name`_current is the number of people currently in that compartment.
+#' @export
+create_delay_frame <- function(data, name, local_config){
+  library(foreach)
+
+  all_dates <- unique(data$time)
+  all_geoids <- sort(unique(data$geoid))
+  
+  for(i in which(local_config$incidence %in% names(data))){
+    local_config$incidence[[i]] <- data[[local_config$incidence[[i]]]] 
+  }
+
+  for(i in which(local_config$delay %in% names(data))){
+    local_config$delay[[i]] <- data[[local_config$delay[[i]]]]
+  }
+
+  for(i in which(local_config$duration %in% names(data))){
+    local_config$duration[[i]] <- data[[local_config$duration[[i]]]]
+  }
+
+  incidence_draw <- covidcommon::as_random_distribution(local_config$incidence)(n=nrow(data))
+
+  incident_time <- foreach(time = seq_len(length(incidence_draw))) %do% {
+    if(time %% 100 == 0){print(time / length(incidence_draw))}
+    if(incidence_draw[time] > 0){
+      data.frame(
+        geoid = data$geoid[[time]],
+        time = data$time[[time]] + lubridate::days(round(
+          covidcommon::as_random_distribution(local_config$delay)(incidence_draw[time])
+        ))
+      ) %>%
+        dplyr::group_by(geoid,time) %>%
+        dplyr::summarize(count = length(time)) %>%
+        ungroup()
+    } else {
+      NULL
+    }
+  }
+  incident_time <- do.call(dplyr::bind_rows,incident_time) %>%
+    dplyr::filter(count > 0) %>%
+    dplyr::group_by(geoid,time) %>%
+    dplyr::summarize(count = sum(count))
+
+  using_release <- "duration" %in% names(local_config)
+  if(using_release){ #only set up current value for things that have durations
+    release_time <- incident_time %>%
+      dplyr::group_by(geoid,time) %>%
+      dplyr::group_map(function(.x,.y){
+        if(.x$count > 0){
+          data.frame(
+            geoid= .y$geoid,
+            time = .y$time + lubridate::days(round(
+              covidcommon::as_random_distribution(local_config$duration)(.x$count)
+            ))
+          ) %>%
+            dplyr::group_by(geoid,time) %>%
+            dplyr::summarize(count = length(time)) %>%
+            dplyr::ungroup() %>%
+            return
+        } else {
+          return(data.frame(
+            geoid= .y$geoid,
+            time = .y$time,
+            count = 0
+          ))
+        }
+      }) %>%
+      do.call(what=rbind) %>%
+      dplyr::group_by(geoid,time) %>%
+      dplyr::summarize(count = sum(count))
+  }
+
+  all_geoid_dates_frame <- tidyr::expand_grid(data.frame(geoid = all_geoids),data.frame(time = all_dates))
+  
+  if(!using_release){
+    release_time <- all_geoid_dates_frame[1,]
+  }
+  
+  release_time$type <- "release"
+  incident_time$type <- "incident"
+  all_geoid_dates_frame$type <- "test"
+  current_time <- dplyr::bind_rows(
+    release_time,
+    incident_time,
+    all_geoid_dates_frame
+  ) %>% 
+    dplyr::group_by(geoid,time) %>%
+    tidyr::pivot_wider(
+      c('geoid','time'),names_from=type,values_from=count,values_fn = list(count=sum), values_fill=c(count=0)
+    ) %>%
+    dplyr::mutate(
+      change = incident - release
+    ) %>% 
+    dplyr::group_by(geoid) %>%
+    dplyr::arrange(time) %>%
+    dplyr::group_modify(function(.x,.y){
+      .x$current = cumsum(.x$change)
+      return(.x[,c('time','current','incident')])
+    }) %>%
+    dplyr::filter(
+      time %in% all_dates,
+      geoid %in% all_geoids
+    ) %>%
+    dplyr::arrange(geoid,time) %>%
+    ungroup()
+  
+  data <- dplyr::arrange(data,geoid,time)
+
+  data[[paste(name,"incident",sep='_')]] <- current_time$incident
+  if(using_release){
+    data[[paste(name,"current",sep='_')]] <- current_time$current
+  }
+
+  return(data)
+}
+
 hosp_create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
     X_ <- rbinom(length(data_[[X]]),data_[[X]],p_X)
     rc <- data.table::data.table(
