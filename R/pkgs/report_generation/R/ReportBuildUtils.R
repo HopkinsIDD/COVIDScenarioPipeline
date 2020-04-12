@@ -796,6 +796,185 @@ flextable::flextable(tmp[,nlabels]) %>%
 }
 
 
+
+##'
+##' Make statewide table of infections, hosp, ICU, deaths, vents for given scenario
+##'
+##' @param current_scenario text string of scenario label for which to build table
+##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
+##' @param table_dates formatted table_dates object
+##' @param pdeath_labels pdeath formatted labels
+##' @param pdeath_filecode pdeath file column codes
+##'
+##' @return state scenario table
+##'
+##' @export
+##'
+make_scn_state_table_withVent <- function(current_scenario,
+                                 hosp_state_totals,
+                                 table_dates,
+                                 pdeath_labels,
+                                 pdeath_filecode){
+  
+  ci_lo = 0.025
+  ci_hi = 0.975
+  
+  if (length(pdeath_filecode)==1) {
+    stop("Currently does not support single values of pdeath")
+  }
+  
+  tmp <- data.frame(name=c("INFECTIONS",
+                           "HOSPITALIZATIONS\n  total", "", "",
+                           "  daily peak admissions", "", "",
+                           "  daily peak capacity", "", "",
+                           "ICU \n  total", "", "",
+                           "  daily peak admissions", "", "",
+                           "  daily peak capacity", "", "",
+                           "Ventilations \n total", "", "",
+                           "   daily peak incident ventilations", "", "",
+                           "   daily peak currently ventilated", "", "",
+                           "DEATHS\n  total", "", ""))
+  tmp$name <- as.character(tmp$name)
+  table_dates <- as.Date(table_dates)
+  
+  for(i in 1:length(table_dates)){
+    xx <- hosp_state_totals %>%
+      filter(!is.na(time) & scenario_name==current_scenario) %>%
+      filter(time <= table_dates[i]) %>%
+      group_by(scenario_name, pdeath, sim_num) %>%
+      summarize(
+        TotalIncidInf = sum(NincidInf, na.rm = TRUE),
+        TotalIncidHosp = sum(NincidHosp, na.rm = TRUE),
+        TotalIncidICU = sum(NincidICU, na.rm = TRUE),
+        TotalIncidVent = sum(NincidVent, na.rm=TRUE),
+        TotalIncidDeath = sum(NincidDeath, na.rm = TRUE),
+        maxHospAdm = max(NincidHosp, na.rm=TRUE),
+        maxICUAdm = max(NincidICU, na.rm=TRUE),
+        maxVentAdm = max(NincidVent, na.rm=TRUE),
+        maxHospCap = max(NhospCurr, na.rm = TRUE),
+        maxICUCap = max(NICUCurr, na.rm=TRUE),
+        maxVentCap = max(NVentCurr, na.rm=TRUE)
+      ) %>%
+      ungroup() %>%
+      group_by(scenario_name, pdeath) %>%
+      summarize(
+        nIncidInf_final = mean(TotalIncidInf),
+        nIncidInf_lo = quantile(TotalIncidInf, ci_lo),
+        nIncidInf_hi = quantile(TotalIncidInf, ci_hi),
+        nIncidHosp_final = mean(TotalIncidHosp),
+        nIncidHosp_lo = quantile(TotalIncidHosp, ci_lo),
+        nIncidHosp_hi = quantile(TotalIncidHosp, ci_hi),
+        pIncidHosp_final = mean(maxHospAdm),
+        pIncidHosp_lo = quantile(maxHospAdm, ci_lo),
+        pIncidHosp_hi = quantile(maxHospAdm, ci_hi),
+        nIncidICU_final = mean(TotalIncidICU),
+        nIncidICU_lo = quantile(TotalIncidICU, ci_lo),
+        nIncidICU_hi = quantile(TotalIncidICU, ci_hi),
+        pIncidICU_final = mean(maxICUAdm),
+        pIncidICU_lo = quantile(maxICUAdm, ci_lo),
+        pIncidICU_hi = quantile(maxICUAdm, ci_hi),
+        nIncidVent_final = mean(TotalIncidVent),
+        nIncidVent_lo = quantile(TotalIncidVent, ci_lo),
+        nIncidVent_hi = quantile(TotalIncidVent, ci_hi),
+        pIncidVent_final = mean(maxVentAdm),
+        pIncidVent_lo = quantile(maxVentAdm, ci_lo),
+        pIncidVent_hi = quantile(maxVentAdm, ci_hi),
+        nIncidDeath_final = mean(TotalIncidDeath),
+        nIncidDeath_lo = quantile(TotalIncidDeath, ci_lo),
+        nIncidDeath_hi = quantile(TotalIncidDeath, ci_hi),
+        nCurrHosp_final = mean(maxHospCap),
+        nCurrHosp_lo = quantile(maxHospCap, ci_lo),
+        nCurrHosp_hi = quantile(maxHospCap, ci_hi),
+        nCurrICU_final = mean(maxICUCap),
+        nCurrICU_lo = quantile(maxICUCap, ci_lo),
+        nCurrICU_hi = quantile(maxICUCap, ci_hi),
+        nCurrVent_final = mean(maxVentCap),
+        nCurrVent_lo = quantile(maxVentCap, ci_lo),
+        nCurrVent_hi = quantile(maxVentCap, ci_hi)) %>%
+      ungroup() %>%
+      mutate(pdeath = pdeath_labels[match(pdeath, pdeath_filecode)])
+    
+    
+    tmp <- bind_cols(tmp,
+                     xx %>% filter(pdeath==pdeath_labels[1]) %>%
+                       mutate(ci = make_CI(nIncidInf_lo, nIncidInf_hi),
+                              est = conv_round(nIncidInf_final),
+                              lvl = paste0("total inc infections"),
+                              pdeath = "") %>% ## infections have no pdeath
+                       select(lvl, est, ci, pdeath) %>%
+                       bind_rows(xx %>%
+                                   mutate(ci = make_CI(nIncidHosp_lo, nIncidHosp_hi),
+                                          est = conv_round(nIncidHosp_final),
+                                          lvl = paste0("total inc hosp", pdeath)) %>%
+                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                       bind_rows(xx %>%
+                                   mutate(ci = make_CI(pIncidHosp_lo, pIncidHosp_hi),
+                                          est = conv_round(pIncidHosp_final),
+                                          lvl = paste0("peak inc hosp", pdeath)) %>%
+                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                       bind_rows(xx %>%
+                                   mutate(ci = make_CI(nCurrHosp_lo, nCurrHosp_hi),
+                                          est = conv_round(nCurrHosp_final),
+                                          lvl = paste0("peak hosp cap", pdeath)) %>%
+                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                       bind_rows(xx %>%
+                                   mutate(ci = make_CI(nIncidICU_lo, nIncidICU_hi),
+                                          est = conv_round(nIncidICU_final),
+                                          lvl = paste0("total inc ICU", pdeath)) %>%
+                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                       bind_rows(xx %>%
+                                   mutate(ci = make_CI(pIncidICU_lo, pIncidICU_hi),
+                                          est = conv_round(pIncidICU_final),
+                                          lvl = paste0("peak inc ICU", pdeath)) %>%
+                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                       bind_rows(xx %>%
+                                   mutate(ci = make_CI(nCurrICU_lo, nCurrICU_hi),
+                                          est = conv_round(nCurrICU_final),
+                                          lvl = paste0("peak ICU cap", pdeath)) %>%
+                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                       bind_rows(xx %>%
+                                   mutate(ci = make_CI(nIncidVent_lo, nIncidVent_hi),
+                                          est = conv_round(nIncidVent_final),
+                                          lvl = paste0("total inc Vent", pdeath)) %>%
+                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                       bind_rows(xx %>%
+                                   mutate(ci = make_CI(pIncidVent_lo, pIncidVent_hi),
+                                          est = conv_round(pIncidVent_final),
+                                          lvl = paste0("peak inc Vent", pdeath)) %>%
+                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                       bind_rows(xx %>%
+                                   mutate(ci = make_CI(nCurrVent_lo, nCurrVent_hi),
+                                          est = conv_round(nCurrVent_final),
+                                          lvl = paste0("peak Vent cap", pdeath)) %>%
+                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                       bind_rows(xx %>%
+                                   mutate(ci = make_CI(nIncidDeath_lo, nIncidDeath_hi),
+                                          est = conv_round(nIncidDeath_final),
+                                          lvl = paste0("total inc death", pdeath)) %>%
+                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath))
+    )
+  }
+  
+  
+  tlabels <- c(" ", "IFR")
+  nlabels <- c("name", "pdeath", "est", "ci")
+  
+  for(i in 1:length(table_dates)){
+    tlabels <- c(tlabels,
+                 paste0(print_pretty_date_short(table_dates[i]), "\nmean    "),
+                 "\n    95% PI")
+    if(i>1){nlabels <- c(nlabels, paste0("est", i-1), paste0("ci", i-1))}
+  }
+  names(tlabels) <- nlabels
+  
+  flextable::flextable(tmp[,nlabels]) %>%
+    flextable::set_header_labels(values=tlabels) %>%
+    flextable::valign(valign="bottom") %>%
+    flextable::colformat_num(digits=0) %>%
+    flextable::autofit()
+  
+}
+
 ##'
 ##' Function makes a summary table for an entire state.
 ##'
