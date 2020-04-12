@@ -829,7 +829,7 @@ make_scn_time_summary_table <- function(hosp_state_totals,
                 PeriodHosp = sum(NincidHosp),
                 PeriodPkHosp = max(NhospCurr),
                 PeriodICU = sum(NincidICU),
-                PeriodPkICU = sum(NICUCurr)) %>%
+                PeriodPkICU = max(NICUCurr)) %>%
       ungroup %>%
       group_by(period, scenario_name) %>%  #now get means and prediction intervals
       summarize(PeriodInfPILow = round(quantile(PeriodInf, probs = c(pi_low)),digits = round_digit),
@@ -918,7 +918,142 @@ make_scn_time_summary_table <- function(hosp_state_totals,
 }
 
 
-
+##'
+##' Function makes a summary table for an entire state.
+##'
+##' @param hosp_state_totals contains the relevant hospital data
+##' @param period_breaks the dates to break up the display periods.
+##' @param pi_low low side of the prediction interval
+##' @param pi_high high side of the prediction interval
+##' @param round_digit what level to round to
+##' 
+##' @export
+##'
+make_scn_time_summary_table_withVent <- function(hosp_state_totals,
+                                                 period_breaks,
+                                                 pi_low = 0.025,
+                                                 pi_high = 0.975,
+                                                 round_digit=-2) {
+  ##Make the period ranges and labels 
+  period_breaks <- sort(as.Date(period_breaks)) #out of order leads to bad things....
+  period_breaks <- c(min(hosp_state_totals$time)-1, as.Date(period_breaks), max(hosp_state_totals$time)+1)
+  
+  len <- length(period_breaks)
+  lbls <- sprintf("%s-%s", format(period_breaks[1:(len-1)], "%b %d"),
+                  format(period_breaks[2:len], "%b %d"))
+  
+  ## Build the table with summaries of all of the periods in it. 
+  tbl_df <- hosp_state_totals %>% 
+    mutate(period = cut(time, period_breaks, labels=lbls)) %>%
+    group_by(period, scenario_name, sim_num) %>% #summarize totals in periods by scenario
+    summarize(PeriodInf = sum(NincidInf),
+              PeriodDeath = sum(NincidDeath),
+              PeriodHosp = sum(NincidHosp),
+              PeriodPkHosp = max(NhospCurr),
+              PeriodICU = sum(NincidICU),
+              PeriodPkICU = max(NICUCurr),
+              PeriodVent = sum(NincidVent),
+              PeriodPkVent = max(NVentCurr)) %>%
+    ungroup %>%
+    group_by(period, scenario_name) %>%  #now get means and prediction intervals
+    summarize(PeriodInfPILow = round(quantile(PeriodInf, probs = c(pi_low)),digits = round_digit),
+              PeriodDeathPILow = round(quantile(PeriodDeath, probs = c(pi_low)),digits = round_digit),
+              PeriodHospPILow = round(quantile(PeriodHosp, probs = c(pi_low)),digits = round_digit),
+              PeriodPkHospPILow = round(quantile(PeriodPkHosp, probs = c(pi_low)),digits = round_digit),
+              PeriodICUPILow = round(quantile(PeriodICU, probs = c(pi_low)),digits = round_digit),
+              PeriodPkICUPILow = round(quantile(PeriodPkICU, probs = c(pi_low)),digits = round_digit),
+              PeriodVentPILow = round(quantile(PeriodVent, probs = c(pi_low)),digits = round_digit),
+              PeriodPkVentPILow = round(quantile(PeriodPkVent, probs = c(pi_low)),digits = round_digit),
+              PeriodInfPIHigh = round(quantile(PeriodInf, probs = c(pi_high)),digits = round_digit),
+              PeriodDeathPIHigh = round(quantile(PeriodDeath, probs = c(pi_high)),digits = round_digit),
+              PeriodHospPIHigh = round(quantile(PeriodHosp, probs = c(pi_high)),digits = round_digit),
+              PeriodPkHospPIHigh = round(quantile(PeriodPkHosp, probs = c(pi_high)),digits = round_digit),
+              PeriodICUPIHigh = round(quantile(PeriodICU, probs = c(pi_high)),digits = round_digit),
+              PeriodPkICUPIHigh = round(quantile(PeriodPkICU, probs = c(pi_high)),digits = round_digit),
+              PeriodVentPIHigh = round(quantile(PeriodICU, probs = c(pi_high)),digits = round_digit),
+              PeriodPkVentPIHigh = round(quantile(PeriodPkVent, probs = c(pi_high)),digits = round_digit),              
+              PeriodInf = round(mean(PeriodInf),digits = round_digit),
+              PeriodDeath = round(mean(PeriodDeath),digits = round_digit),
+              PeriodHosp = round(mean(PeriodHosp),digits = round_digit),
+              PeriodPkHosp = round(mean(PeriodPkHosp),digits = round_digit),
+              PeriodICU = round(mean(PeriodICU),digits = round_digit),
+              PeriodPkICU = round(mean(PeriodPkICU), digits = round_digit),
+              PeriodVent = round(mean(PeriodVent),digits = round_digit),
+              PeriodPkVent = round(mean(PeriodPkVent), digits = round_digit)) %>%
+    ungroup() %>% ##make hi/low into CIs
+    mutate(PeriodInfPI = paste(format(PeriodInfPILow,big.mark=","), format(PeriodInfPIHigh,big.mark=","), sep="-"),
+           PeriodDeathPI = paste(format(PeriodDeathPILow,big.mark=","), format(PeriodDeathPIHigh,big.mark=","), sep="-"),
+           PeriodHospPI = paste(format(PeriodHospPILow,big.mark=","), format(PeriodHospPIHigh,big.mark=","), sep="-"),
+           PeriodPkHospPI = paste(format(PeriodPkHospPILow,big.mark=","), format(PeriodPkHospPIHigh,big.mark=","), sep="-"),
+           PeriodICUPI = paste(format(PeriodICUPILow,big.mark=","), format(PeriodICUPIHigh,big.mark=","), sep="-"),
+           PeriodPkICUPI = paste(format(PeriodPkICUPILow,big.mark=","), format(PeriodPkICUPIHigh,big.mark=","), sep="-"),
+           PeriodVentPI = paste(format(PeriodVentPILow,big.mark=","), format(PeriodVentPIHigh,big.mark=","), sep="-"),
+           PeriodPkVentPI = paste(format(PeriodPkVentPILow,big.mark=","), format(PeriodPkVentPIHigh,big.mark=","), sep="-")) %>%
+    select(-PeriodInfPILow, -PeriodInfPIHigh,
+           -PeriodDeathPILow, -PeriodDeathPIHigh,
+           -PeriodHospPILow, -PeriodHospPIHigh,
+           -PeriodPkHospPILow, -PeriodPkHospPIHigh,
+           -PeriodICUPILow, -PeriodICUPIHigh,
+           -PeriodPkICUPILow, -PeriodPkICUPIHigh,
+           -PeriodVentPILow, -PeriodVentPIHigh,
+           -PeriodPkVentPILow, -PeriodPkVentPIHigh,) 
+  
+  
+  tmp<-sprintf("%s_%s", rep(lbls, each=2),c("mean","95% PI"))
+  
+  
+  ##inellegant but should work
+  tbl_df <- 
+    bind_rows(tbl_df%>%select(period,scenario_name, PeriodInf, PeriodInfPI)%>%mutate(outcome="Infections in Period")%>%
+                rename(mean=PeriodInf,`95% PI`=PeriodInfPI),
+              tbl_df%>%select(period,scenario_name, PeriodDeath, PeriodDeathPI)%>%mutate(outcome="Deaths in Period")%>%
+                rename(mean=PeriodDeath,`95% PI`=PeriodDeathPI),
+              tbl_df%>%select(period,scenario_name, PeriodHosp, PeriodHospPI)%>%mutate(outcome="Hospital Admissions in Period")%>%
+                rename(mean=PeriodHosp,`95% PI`=PeriodHospPI),
+              tbl_df%>%select(period,scenario_name, PeriodPkHosp, PeriodPkHospPI)%>%mutate(outcome="Peak Hospital Occupancy in Period")%>%
+                rename(mean=PeriodPkHosp,`95% PI`=PeriodPkHospPI),
+              tbl_df%>%select(period,scenario_name, PeriodICU, PeriodICUPI)%>%mutate(outcome="ICU Admissions in Period")%>%
+                rename(mean=PeriodICU,`95% PI`=PeriodICUPI),
+              tbl_df%>%select(period,scenario_name, PeriodPkICU, PeriodPkICUPI)%>%mutate(outcome="Peak ICU Occupancy in Period")%>%
+                rename(mean=PeriodPkICU,`95% PI`=PeriodPkICUPI),
+              tbl_df%>%select(period,scenario_name, PeriodVent, PeriodVentPI)%>%mutate(outcome="Incident Ventilations in Period")%>%
+                rename(mean=PeriodVent,`95% PI`=PeriodVentPI),
+              tbl_df%>%select(period,scenario_name, PeriodPkVent, PeriodPkVentPI)%>%mutate(outcome="Peak Ventilators in Use in Period")%>%
+                rename(mean=PeriodPkVent,`95% PI`=PeriodPkVentPI)) %>%
+    mutate(period=as.character(period)) %>%
+    pivot_wider(names_from=period, values_from = c(mean,`95% PI`), names_sep=".")%>%
+    setNames(nm = sub("(.*)\\.(.*)", "\\2_\\1", names(.)))%>%
+    select(outcome,scenario_name,all_of(tmp))
+  
+  #tells how to group columns
+  tbl_df <- flextable::as_grouped_data(tbl_df,groups="outcome")
+  tmp <- is.na(tbl_df$scenario_name)
+  tbl_df$scenario_name[tmp] <-tbl_df$outcome[tmp]
+  tbl_df <- tbl_df%>%select(-outcome)
+  typology<-data_frame(col_keys=colnames(tbl_df),
+                       colA=c("",rep(lbls,each=2)),
+                       colB=c("",rep(c("mean","95% PI"),length(lbls))))
+  
+  
+  flx <- flextable::flextable(tbl_df)  %>%
+    flextable::colformat_num(digits=0)%>%
+    #flextable::merge_v(j="outcome")%>%
+    flextable::autofit(add_w=.05)%>%
+    flextable::valign(valign="top") %>%
+    flextable::set_header_df(mapping = typology, key = "col_keys" )%>%
+    #flextable::merge_h(part="header")%>%
+    flextable::bold(j=sprintf("%s_mean",lbls))%>%
+    flextable::bold(part="header",bold=TRUE)%>%
+    flextable::bold(j = 1, i =which(tmp), bold = TRUE, part = "body" )%>%
+    flextable::align(i=1,align = "center", part="header") %>% 
+    flextable::align(i=2,j=which(typology$colB=="mean"), align = "right", part="header") %>%
+    flextable::hline(i=2, part="header",  border = officer::fp_border())%>%
+    flextable::hline_top(part="header",  border = officer::fp_border(width=2))%>%
+    flextable::border(i=which(tmp),  border.top = officer::fp_border(col="grey"))
+  
+  return(flx)
+  
+}
 
 ##'
 ##' Plot figure showing when event time by geoid
