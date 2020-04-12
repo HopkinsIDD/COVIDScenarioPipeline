@@ -359,7 +359,7 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
 
   rc <- ggplot(data=to_plt,
                aes(x = pltVar, fill = scenario_name, color = scenario_name)) +
-    geom_histogram(binwidth = 1000) +
+    geom_histogram(binwidth = 2000) +
     facet_wrap(scenario_name~., ncol = 1) +
     scale_fill_manual(values = scenario_cols,
                       labels = scenario_labels,
@@ -1197,8 +1197,9 @@ make_scn_time_summary_table_withVent <- function(hosp_state_totals,
                 rename(mean=PeriodPkICU,`95% PI`=PeriodPkICUPI),
               tbl_df%>%select(period,scenario_name, PeriodVent, PeriodVentPI)%>%mutate(outcome="Incident Ventilations in Period")%>%
                 rename(mean=PeriodVent,`95% PI`=PeriodVentPI),
-              tbl_df%>%select(period,scenario_name, PeriodPkVent, PeriodPkVentPI)%>%mutate(outcome="Peak Ventilators in Use in Period")%>%
-                rename(mean=PeriodPkVent,`95% PI`=PeriodPkVentPI)) %>%
+              # tbl_df%>%select(period,scenario_name, PeriodPkVent, PeriodPkVentPI)%>%mutate(outcome="Peak Ventilators in Use in Period")%>%
+                # rename(mean=PeriodPkVent,`95% PI`=PeriodPkVentPI)
+              ) %>%
     mutate(period=as.character(period)) %>%
     pivot_wider(names_from=period, values_from = c(mean,`95% PI`), names_sep=".")%>%
     setNames(nm = sub("(.*)\\.(.*)", "\\2_\\1", names(.)))%>%
@@ -1395,6 +1396,7 @@ boxplot_by_timeperiod <- function(df,
 ##' @param jhu_obs_dat dataframe with CSSE data
 ##' @param scenario_labels character vector with scenario labels
 ##' @param scenario_cols character vector with scenario colors
+##' @param pdeath_level IFR level assumption
 ##' @param obs_data_col character string of observed data color
 ##' @param ci.L lower bound confidence interval
 ##' @param ci.U upper bound confidence interval
@@ -1407,6 +1409,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
                               jhu_obs_dat,
                               scenario_labels,
                               scenario_cols,
+                              pdeath_level,
                               obs_data_col = "black",
                               ci.L = 0,
                               ci.U = 1,
@@ -1415,6 +1418,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
                               sim_end_date) {
   state_hosp_totals <-
     state_hosp_totals %>%
+    dplyr::filter(pdeath == pdeath_level) %>%
     dplyr::mutate(scenario_name = factor(scenario_name,
                                          levels = scenario_labels,
                                          labels = scenario_labels),
@@ -1422,24 +1426,27 @@ plot_model_vs_obs <- function(state_hosp_totals,
     dplyr::rename(date = time) %>%
     dplyr::filter(!is.na(date)) %>%
     dplyr::filter(between(date, lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date)))
+  
   jhu_obs_dat <- dplyr::filter(jhu_obs_dat, between(date, lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date)))
+  
   state_inf_summary <-
     state_hosp_totals %>%
     group_by(date, scenario_name) %>%
     dplyr::summarize(ci_lower_incid_inf = quantile(NincidInf, ci.L),
                      ci_upper_incid_inf = quantile(NincidInf, ci.U),
-                     mean_incid_inf = mean(NincidInf))
+                     mean_incid_inf = mean(NincidInf),
+                     median_incid_inf = median(NincidInf))
   
   ### Incidence of infections plot
   incid_infections_plot <-
     ggplot(state_inf_summary, aes(x = date)) +
-    geom_line(aes(y = mean_incid_inf, color = scenario_name)) +
+    geom_line(aes(y = median_incid_inf, color = scenario_name)) +
     geom_ribbon(aes(ymin=ci_lower_incid_inf, ymax=ci_upper_incid_inf, fill = scenario_name), linetype = 0, alpha=0.2) +
     geom_point(data = jhu_obs_dat, aes(x = date, y = NincidConfirmed), color = obs_data_col) +
     #ylab("Incident Cases") +
     #theme(legend.position = "bottom") +
     scale_x_date(date_breaks = date_breaks,
-                 date_labels = "%b %y",
+                 date_labels = "%b %Y",
                  limits = c(lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date))) +
     scale_y_continuous("Incident Cases", labels = scales::comma) +
     scale_color_manual("Scenario",
@@ -1455,20 +1462,20 @@ plot_model_vs_obs <- function(state_hosp_totals,
   
   state_death_summary <-
     state_hosp_totals %>%
-    # dplyr::filter(date %in% jhu_obs_dat$date) %>%
     group_by(date, scenario_name) %>%
     dplyr::summarize(ci_lower_incid_death = quantile(NincidDeath, ci.L),
                      ci_upper_incid_death = quantile(NincidDeath, ci.U),
-                     mean_incid_death = mean(NincidDeath))
+                     mean_incid_death = mean(NincidDeath),
+                     median_incid_death = median(NincidDeath))
   incid_deaths_plot <-
     ggplot(state_death_summary, aes(x = date)) +
-    geom_line(aes(y = mean_incid_death, color = scenario_name)) +
+    geom_line(aes(y = median_incid_death, color = scenario_name)) +
     geom_ribbon(aes(ymin=ci_lower_incid_death, ymax=ci_upper_incid_death, fill = scenario_name), linetype = 0, alpha=0.2) +
     geom_point(data = jhu_obs_dat, aes(x = date, y = NincidDeathsObs), color = obs_data_col) +
     #ylab("Incident Cases") +
     #theme(legend.position = "bottom") +
     scale_x_date(date_breaks = date_breaks,
-                 date_labels = "%b %y",
+                 date_labels = "%b %Y",
                  limits = c(lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date))) +
     scale_y_continuous("Incident Deaths", labels = scales::comma) +
     scale_color_manual("Scenario",
