@@ -146,6 +146,105 @@ load_cum_hosp_geounit_date <- function(scn_dirs,
 }
 
 
+##' Convenience function to load timeseries current hospital outcomes
+##'
+##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
+##' @param scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
+##' @param name_filter character string that filenames should match
+##' @param end_date last date to include in timeseries
+##' @param incl_geoids character vector of geoids that are included in the report
+##' @param geoid_len in defined, this we want to make geoids all the same length
+##' @param padding_char character to add to the front of geoids if fixed length
+##'
+##' @return a data frame with columns
+##'          - time
+##'          - geoid
+##'          - NHospCurr, NICUCurr, NVentCurr
+##'          - sim_num
+##'          - scenario_num
+##'          - scenario_name
+##'
+##' @export
+load_ts_current_hosp_geounit <- function(scn_dirs,
+                                         num_files = NULL,
+                                         scenariolabels = NULL,
+                                         name_filter,
+                                         end_date,
+                                         incl_geoids=NULL,
+                                         geoid_len = 0,
+                                         padding_char = "0",
+                                         qlo = 0.025,
+                                         qhi= 0.975){
+  
+  if(is.null(scenariolabels)){
+    warning("You have not specified scenario labels for this function. You may encounter future errors.")
+  }
+  
+  
+  ## currently too slow including the quantiles... ##
+  end_date <- as.Date(end_date)
+  ##filter to munge the data at the scenario level
+  if (!is.null(incl_geoids)) {
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::filter(!is.na(time) & geoid %in% incl_geoids, time <= end_date) %>%
+        dplyr::select(time,
+                      geoid,
+                      sim_num,
+                      NHospCurr = hosp_curr,
+                      NICUCurr = icu_curr,
+                      NVentCurr = vent_curr) %>%
+        group_by(sim_num, time, geoid) %>%
+        mutate(#NHospCurrlo = quantile(NHospCurr, qlo),
+               #NHospCurrhi = quantile(NHospCurr, qhi),
+               NHospCurr = mean(NHospCurr),
+               #NICUCurrlo = quantile(NICUCurr, qlo),
+               #NICUCurrhi = quantile(NICUCurr, qhi),
+               NICUCurr = mean(NICUCurr),
+               #NVentCurrlo = quantile(NVentCurr, qlo),
+               #NVentCurrhi = quantile(NVentCurr, qhi),
+               NVentCurr = mean(NVentCurr)) %>%
+        ungroup()
+    }
+  } else {
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::filter(!is.na(time) & geoid %in% incl_geoids, time <= end_date) %>%
+        dplyr::select(time,
+                      geoid,
+                      sim_num,
+                      NHospCurr = hosp_curr,
+                      NICUCurr = icu_curr,
+                      NVentCurr = vent_curr) %>%
+        group_by(sim_num, time, geoid) %>%
+        mutate(#NHospCurrlo = quantile(NHospCurr, qlo),
+               #NHospCurrhi = quantile(NHospCurr, qhi),
+               NHospCurr = mean(NHospCurr),
+               #NICUCurrlo = quantile(NICUCurr, qlo),
+               #NICUCurrhi = quantile(NICUCurr, qhi),
+               NICUCurr = mean(NICUCurr),
+               #NVentCurrlo = quantile(NVentCurr, qlo),
+               #NVentCurrhi = quantile(NVentCurr, qhi),
+               NVentCurr = mean(NVentCurr)) %>%
+        ungroup()
+    }
+  }
+  
+  
+  rc <- list(length=length(scn_dirs))
+  for (i in 1:length(scn_dirs)) {
+    rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
+                                       num_files = num_files,
+                                       name_filter = name_filter,
+                                       post_process = hosp_post_process,
+                                       geoid_len = geoid_len,
+                                       padding_char = padding_char) 
+    rc[[i]]$scenario_num <- i
+    rc[[i]]$scenario_name <- scenariolabels[[i]]
+  }
+  
+  return(dplyr::bind_rows(rc))
+}
 
 ##'
 ##' Convenience function to allow us to load hospital totals for the combined geounits quickly for
