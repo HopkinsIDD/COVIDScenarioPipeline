@@ -1121,7 +1121,7 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
       scale_x_continuous(
         labels=levels(to_plt$name),
         breaks=seq_len(nrow(to_plt)),
-        sec.axis = sec_axis(~.,labels = to_plt$value[rank(levels(to_plt$name))], breaks = seq_len(nrow(to_plt)), name = value_label)
+        sec.axis = sec_axis(~.,labels = to_plt$value[order(as.numeric(to_plt$name))], breaks = seq_len(nrow(to_plt)), name = value_label)
       ) +
       scale_y_date(time_caption,
                    date_breaks = "1 week",
