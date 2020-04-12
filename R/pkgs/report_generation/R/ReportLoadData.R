@@ -193,7 +193,8 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NincidInf = sum(incidI),
                                  NincidICU = sum(incidICU),
                                  NincidHosp = sum(incidH),
-                                 NincidVent = sum(incidVent)) %>%
+                                 NincidVent = sum(incidVent),
+                                 NVentCurr = sum(vent_curr)) %>%
                 ungroup()
         }
     } else {
@@ -207,7 +208,8 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NincidInf = sum(incidI),
                                  NincidICU=sum(incidICU),
                                  NincidHosp=sum(incidH),
-                                 NincidVent = sum(incidVent)) %>%
+                                 NincidVent = sum(incidVent),
+                                 NVentCurr = sim(vent_curr)) %>%
                 ungroup()
         }
     }
