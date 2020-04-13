@@ -41,7 +41,6 @@
 #'     inf_period_hosp_sd_log:
 #'     inf_period_nohosp_mean:
 #'     inf_period_nohosp_sd:
-#'
 #' ```
 #'
 #' ## Input Data
