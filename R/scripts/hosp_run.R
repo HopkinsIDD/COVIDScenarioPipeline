@@ -192,7 +192,7 @@ if(run_age_adjust){
                                                      time_ventdur_pars = time_ventdur_pars,
                                                      time_ICUdur_pars = time_ICUdur_pars,
                                                      cores = ncore,
-                                                     data_dir = data_dir,
+                                                     data_filename = data_dir,
                                                      scenario_name = paste(cmd0,"death",sep="_")
       )
     }
@@ -235,7 +235,7 @@ if(run_age_adjust){
                                       time_ICUdur_pars = time_ICUdur_pars,
                                       time_ventdur_pars = time_ventdur_pars,
                                       cores = ncore,
-                                      data_dir = data_dir,
+                                      data_filename = data_dir,
                                       scenario_name = paste(cmd0,"death",sep="_")
       )
     }
