@@ -48,6 +48,10 @@ geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$sp
                              geoid_len=5)
 included_geoids <- params$included_geoids
 
+
+## don't love this but putting it just to get things working -JL
+sim_end_date <- config$end_date
+
 ```
 
 ```{r load_shapefile}
@@ -63,6 +67,11 @@ shp <- load_shape_file(filename = file.path(config$spatial_setup$base_path, conf
 
 
 ```{r load_hosp_data}
+
+##UNCOMMENT TO RUN PARALLEL (ALSO DEREGIASTER AT END)
+##doParallel::registerDoParallel(6)
+
+
 ###Load state totalsk for the hospital.
 scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 
@@ -76,6 +85,9 @@ for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
                                                geoid_len=5) %>%
         mutate(pdeath=config$hospitalization$parameters$p_death[i])
 }
+
+##UNCOMMENT TO RUN PARALLEL
+##doParallel::stopImplicitCluster()
 
 state_hosp_totals <- dplyr::bind_rows(state_hosp_totals)
 ```
@@ -117,6 +129,10 @@ cap <- "**Fig. 1**: Peak hospitalization and ICU useage during time periods accr
 ```
 
 ```{r}
+##UNCOMMENT TO RUN PARALLEL (ALSO DEREGIASTER AT END)
+##doParallel::registerDoParallel(6)
+
+
 ## Load peak infections by specific date
 
 inf_geounit_peaks <- load_inf_geounit_peaks_date(scn_dirs,
@@ -124,9 +140,17 @@ inf_geounit_peaks <- load_inf_geounit_peaks_date(scn_dirs,
                            scenariolabels = config$report$formatting$scenario_labels,
                            incl_geoids = included_geoids,
                            geoid_len = 5)
+
+##UNCOMMENT TO RUN PARALLEL
+##doParallel::stopImplicitCluster()
+
 ```
 
 ```{r}
+##UNCOMMENT TO RUN PARALLEL (ALSO DEREGIASTER AT END)
+##doParallel::registerDoParallel(6)
+
+
 ###Load cumulative infections on specific dates
 scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 
@@ -136,10 +160,16 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
                            incl_geoids=included_geoids,
                            geoid_len=5)
 
+##UNCOMMENT TO RUN PARALLEL
+##doParallel::stopImplicitCluster()
 ```
 
 
 ```{r}
+##UNCOMMENT TO RUN PARALLEL (ALSO DEREGIASTER AT END)
+##doParallel::registerDoParallel(6)
+
+
 ###Load cumulative hospitalizations on specific dates
 scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 
@@ -153,9 +183,15 @@ for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
         mutate(pdeath=config$hospitalization$parameters$p_death[i])
 }
 
+##UNCOMMENT TO RUN PARALLEL
+##doParallel::stopImplicitCluster()
 ```
 
 ```{r}
+
+##UNCOMMENT TO RUN PARALLEL (ALSO DEREGIASTER AT END)
+##doParallel::registerDoParallel(6)
+
 ## Load peak hosp_curr by specific date
 for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
   hosp_geounit_peaks <- load_hosp_geounit_peak_date(scn_dirs,
@@ -167,6 +203,9 @@ for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
                           geoid_len = 5) %>%
         mutate(pdeath=config$hospitalization$parameters$p_death[i])
 }
+
+##UNCOMMENT TO RUN PARALLEL
+##doParallel::stopImplicitCluster()
 ```
 
 ## State Level Results
@@ -189,6 +228,7 @@ hist_plts <- list()
 
 for (i in 1:length(show_dates)) {
     hist_plts[[i]] <- plot_hist_incidHosp_state(state_hosp_totals,
+                                                var_name = "NincidHosp",
                                            scenario_labels =  config$report$formatting$scenario_labels,
                                            scenario_cols =  config$report$formatting$scenario_colors,
                                            sim_start_date = config$start_date,
