@@ -209,7 +209,7 @@ load_ts_current_hosp_geounit <- function(scn_dirs,
   } else {
     hosp_post_process <- function(x) {
       x %>%
-        dplyr::filter(!is.na(time) & geoid %in% incl_geoids, time <= end_date) %>%
+        dplyr::filter(!is.na(time) & time <= end_date) %>%
         dplyr::select(time,
                       geoid,
                       sim_num,
