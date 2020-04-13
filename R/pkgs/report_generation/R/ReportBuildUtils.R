@@ -1447,8 +1447,8 @@ plot_model_vs_obs <- function(state_hosp_totals,
   ### Incidence of infections plot
   incid_infections_plot <-
     ggplot(state_inf_summary, aes(x = date)) +
-    geom_line(aes(y = median_incid_inf, color = scenario_name)) +
-    geom_ribbon(aes(ymin=ci_lower_incid_inf, ymax=ci_upper_incid_inf, fill = scenario_name), linetype = 0, alpha=0.2) +
+    geom_line(aes(y = mean_incid_cas, color = scenario_name)) +
+    geom_ribbon(aes(ymin=ci_lower_incid_cas, ymax=ci_upper_incid_cas, fill = scenario_name), linetype = 0, alpha=0.2) +
     geom_point(data = jhu_obs_dat, aes(x = date, y = NincidConfirmed), color = obs_data_col) +
     #ylab("Incident Cases") +
     #theme(legend.position = "bottom") +
