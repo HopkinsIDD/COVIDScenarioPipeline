@@ -293,7 +293,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NincidICU = sum(incidICU),
                                  NincidHosp = sum(incidH),
                                  NincidVent = sum(incidVent),
-                                 NventCurr = sum(vent_curr)) %>%
+                                 NVentCurr = sum(vent_curr)) %>%
                 ungroup()
         }
     } else {
@@ -308,7 +308,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NincidICU=sum(incidICU),
                                  NincidHosp=sum(incidH),
                                  NincidVent = sum(incidVent),
-                                 NventCurr = sum(vent_curr)) %>%
+                                 NVentCurr = sum(vent_curr)) %>%
                 ungroup()
         }
     }
@@ -590,7 +590,7 @@ load_hosp_geounit_threshold <- function(
                     NincidICU = incidICU,
                     NincidHosp = incidH,
                     NincidVent = incidVent,
-                    NventCurr = vent_curr) %>%
+                    NVentCurr = vent_curr) %>%
       return()
 }
 
