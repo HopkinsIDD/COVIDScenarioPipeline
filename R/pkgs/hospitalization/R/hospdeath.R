@@ -140,7 +140,8 @@ hosp_load_scenario_sim <- function(scenario_dir,
                                    time_filter_low = -Inf,
                                    time_filter_high = Inf,
                                    geoid_len = 0,
-                                   padding_char = "0"
+                                   padding_char = "0",
+                                   use_feather = FALSE
     ) {
   
     if (geoid_len > 0) {
@@ -154,10 +155,16 @@ hosp_load_scenario_sim <- function(scenario_dir,
     rc <- list()
     i <- sim_id
     file <- files[i]
-    if (is.null(keep_compartments)) {
-      suppressMessages(tmp <- read_csv(file))
+    if(use_feather){
+      tmp <- arrow::read_parquet(file)
+      if("POSIXct" %in% class(tmp$time)){
+        tmp$time <- lubridate::as_date(tz="GMT",tmp$time)
+      }
     } else {
-      suppressMessages(tmp <- read_csv(file) %>% filter(comp %in% keep_compartments))
+      suppressMessages(tmp <- read_csv(file))
+    }
+    if (!is.null(keep_compartments)) {
+      suppressMessages(tmp <- tmp %>% filter(comp %in% keep_compartments))
     }
 
     tmp <- #tmp[-1,] %>%
@@ -203,7 +210,8 @@ build_hospdeath_par <- function(p_hosp,
                                 time_ICUdur_pars = c(log(17.46), log(4.044)),
                                 time_ventdur_pars = log(17),
                                 cores=8,
-                                root_out_dir='hospitalization') {
+                                root_out_dir='hospitalization',
+                                use_feather = FALSE) {
 
   n_sim <- length(list.files(data_filename))
   print(paste("Creating cluster with",cores,"cores"))
@@ -216,10 +224,12 @@ build_hospdeath_par <- function(p_hosp,
   print(paste("Running over",n_sim,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
-  foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
+  # foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
+  for(s in seq_len(n_sim)){
     dat_ <- hosp_load_scenario_sim(data_filename,s,
                                    keep_compartments = "diffI", 
-                                   geoid_len = 5) %>%
+                                   geoid_len = 5,
+                                   use_feather = use_feather) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -276,12 +286,17 @@ build_hospdeath_par <- function(p_hosp,
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
-    outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
-    outdir <- gsub('/[^/]*$','',outfile)
+    outdir <- paste0(root_out_dir,'/', data_filename,'/')
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    data.table::fwrite(res,outfile)
+    if(use_feather){
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.feather')
+      arrow::write_parquet(res,outfile)
+    } else {
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
+      data.table::fwrite(res,outfile)
+    }
   }
   doParallel::stopImplicitCluster()
 }
@@ -321,7 +336,8 @@ build_hospdeath_geoid_par <- function(
   time_ICUdur_pars = c(log(17.46), log(4.044)),
   time_ventdur_pars = log(17),
   cores=8,
-  root_out_dir='hospitalization') {
+  root_out_dir='hospitalization',
+  use_feather = FALSE) {
 
   ## add in scaling factor to p_symp_inf
   prob_dat$p_symp_inf_scaled <- prob_dat$p_symp_inf * scl_fac
@@ -341,7 +357,8 @@ build_hospdeath_geoid_par <- function(
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_I <- hosp_load_scenario_sim(data_filename,s,
                                     keep_compartments = "diffI",
-                                    geoid_len=5) %>%
+                                    geoid_len=5,
+                                    use_feather = use_feather) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -401,12 +418,17 @@ build_hospdeath_geoid_par <- function(
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
-    outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
-    outdir <- gsub('/[^/]*$','',outfile)
+    outdir <- paste0(root_out_dir,'/', data_filename,'/')
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    fwrite(res,outfile)
+    if(use_feather){
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.feather')
+      arrow::write_parquet(res,outfile)
+    } else {
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
+      data.table::fwrite(res,outfile)
+    }
   }
   doParallel::stopImplicitCluster()
 }
@@ -445,7 +467,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   time_ICUdur_pars = c(log(17.46), log(4.044)),
   time_ventdur_pars = log(17),
   cores=8,
-  root_out_dir='hospitalization'
+  root_out_dir='hospitalization',
+  use_feather = FALSE
 ) {
   n_sim <- length(list.files(data_filename))
   print(paste("Creating cluster with",cores,"cores"))
@@ -466,7 +489,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_I <- hosp_load_scenario_sim(data_filename,s,
                                    keep_compartments = "diffI",
-                                   geoid_len=5) %>%
+                                   geoid_len=5,
+                                   use_feather = use_feather) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -534,12 +558,17 @@ build_hospdeath_geoid_fixedIFR_par <- function(
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
-    outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
-    outdir <- gsub('/[^/]*$','',outfile)
+    outdir <- paste0(root_out_dir,'/', data_filename,'/')
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    fwrite(res,outfile)
+    if(use_feather){
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.feather')
+      arrow::write_parquet(res,outfile)
+    } else {
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
+      data.table::fwrite(res,outfile)
+    }
   }
   doParallel::stopImplicitCluster()
 }

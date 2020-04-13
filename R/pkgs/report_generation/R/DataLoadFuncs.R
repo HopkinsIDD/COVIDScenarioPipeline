@@ -20,7 +20,8 @@ load_scenario_sims_filtered <- function(scenario_dir,
                                         post_process = function(x) {x},
                                         pre_process = function(x){x},
                                         geoid_len = 0,
-                                        padding_char = "0") {
+                                        padding_char = "0",
+                                        use_feather = FALSE) {
   
   require(tidyverse)
   
@@ -58,9 +59,15 @@ load_scenario_sims_filtered <- function(scenario_dir,
     
     file <- files[i]
     
-    tmp <- readr::read_csv(file, col_types = cols(.default = col_double(),
-                                                  time=col_date(),
-                                                  comp=col_character()))  %>%
+    tmp <- data.frame()
+    if(use_feather){
+      tmp <- arrow::read_parquet(file)
+    } else {
+      tmp <- readr::read_csv(file, col_types = cols(.default = col_double(),
+                                                    time=col_date(),
+                                                    comp=col_character()))
+    }
+    tmp <- tmp  %>%
       pre_process %>%
       pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>% 
       padfn %>%
@@ -95,7 +102,8 @@ load_hosp_sims_filtered <- function(scenario_dir,
                                     num_files = NA,
                                     post_process=function(x) {x},
                                     geoid_len = 0,
-                                    padding_char = "0") {
+                                    padding_char = "0",
+                                    use_feather = FALSE) {
   
   require(tidyverse)
   
@@ -122,13 +130,21 @@ load_hosp_sims_filtered <- function(scenario_dir,
   
   for (i in 1:length(files)) {
     file <- files[i]
-    tmp <- readr::read_csv(file, col_types = cols(
-      .default = col_double(),
-      time=col_date(),
-      uid=col_character(),
-      comp=col_character(),
-      geoid=col_character()
-    )) %>% 
+
+    tmp <- data.frame()
+    if(use_feather){
+      tmp <- arrow::read_parquet(file)
+    } else {
+      tmp <- readr::read_csv(file, col_types = cols(
+        .default = col_double(),
+        time=col_date(),
+        uid=col_character(),
+        comp=col_character(),
+        geoid=col_character()
+      ))
+    }
+    warning(paste("use_feather is",use_feather,"tmp is a",paste(class(tmp), collapse = ', ' ),"with size",paste(dim(tmp),collapse=', ')))
+    tmp <- tmp %>%
       padfn%>%
       post_process %>%
       mutate(sim_num = i)
@@ -138,6 +154,7 @@ load_hosp_sims_filtered <- function(scenario_dir,
   
   rc<- dplyr::bind_rows(rc)
   
+  warning("Finished loading")
   return(rc)
   
 }

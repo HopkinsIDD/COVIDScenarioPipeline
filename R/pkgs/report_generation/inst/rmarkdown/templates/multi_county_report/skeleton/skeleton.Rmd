@@ -73,7 +73,8 @@ for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
                                                config$report$formatting$scenario_labels,
                                                name_filter= config$hospitalization$parameters$p_death_names[i],
                                                incl_geoids=included_geoids,
-                                               geoid_len=5) %>%
+                                               geoid_len=5,
+                                               use_feather=TRUE) %>%
         mutate(pdeath=config$hospitalization$parameters$p_death[i])
 }
 
@@ -123,7 +124,7 @@ inf_geounit_peaks <- load_inf_geounit_peaks_date(scn_dirs,
                            display_date = config$report$formatting$display_dates[1],
                            scenariolabels = config$report$formatting$scenario_labels,
                            incl_geoids = included_geoids,
-                           geoid_len = 5)
+                           geoid_len = 5,use_feather=TRUE)
 ```
 
 ```{r}
@@ -134,7 +135,7 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
                            display_dates = config$report$formatting$display_dates,
                            scenariolabels = config$report$formatting$scenario_labels,
                            incl_geoids=included_geoids,
-                           geoid_len=5)
+                           geoid_len=5,use_feather=TRUE)
 
 ```
 
@@ -149,7 +150,7 @@ for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
                               display_date = config$report$formatting$display_dates,
                               scenariolabels = config$report$formatting$scenario_labels,
                               incl_geoids=included_geoids,
-                              geoid_len=5) %>%
+                              geoid_len=5,use_feather=TRUE) %>%
         mutate(pdeath=config$hospitalization$parameters$p_death[i])
 }
 
@@ -164,7 +165,7 @@ for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
                           display_date = config$report$formatting$display_dates[1],
                           scenariolabels = config$report$formatting$scenario_labels,
                           incl_geoids = included_geoids,
-                          geoid_len = 5) %>%
+                          geoid_len = 5,use_feather=TRUE) %>%
         mutate(pdeath=config$hospitalization$parameters$p_death[i])
 }
 ```

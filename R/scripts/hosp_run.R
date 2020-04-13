@@ -11,15 +11,30 @@ library(stringr)
 
 set.seed(123456789)
 
+#' @section Command Line arguments
+#' @name Command Line arguments to this script
+#' @description This script takes several arguments when run from the command line.
 option_list = list(
+
+  #' @param -c The location of the config file
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
+
+  #' @param -d The death rate
   optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenario to run, or 'all' to run all of them"),
+
+  #' @param -s The intervention scenario
   optparse::make_option(c("-s", "--scenario"), action="store", default='all', type='character', help="name of the intervention to run, or 'all' to run all of them"),
+
+  #' @param -j The number of tasks to run in parallel
   optparse::make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used"),
+
+  #' @param -p The path to COVIDScenarioPipeline
   optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory")
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
+#' @description Run the hospitalization results.
+#' @importFrom covidcommon load_config
 config <- covidcommon::load_config(opt$c)
 if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
@@ -34,10 +49,17 @@ if(is.null(run_age_adjust)){
 }
 
 # set parameters for time to hospitalization, time to death, time to discharge
+#' @importFrom covidcommon as_evaled_expression
+#' @param hospitalization::parameters::time_hosp The time to hospitalization
 time_hosp_pars <- as_evaled_expression(config$hospitalization$parameters$time_hosp)
+#' @importFrom covidcommon as_evaled_expression
+#' @param hospitalization::parameters::time_hosp The time to hospitalization
 time_disch_pars <- as_evaled_expression(config$hospitalization$parameters$time_disch)
+#' @importFrom covidcommon as_evaled_expression
 time_ICU_pars <- as_evaled_expression(config$hospitalization$parameters$time_ICU)
+#' @importFrom covidcommon as_evaled_expression
 time_ICUdur_pars <- as_evaled_expression(config$hospitalization$parameters$time_ICUdur)
+#' @importFrom covidcommon as_evaled_expression
 time_vent_pars <- as_evaled_expression(config$hospitalization$parameters$time_vent)
 
 # set death rates
@@ -146,11 +168,9 @@ if(run_age_adjust){
                                       time_ventdur_pars = time_ventdur_pars,
                                       cores = ncore,
                                       data_filename = data_filename,
-                                      scenario_name = paste(cmd0,"death",sep="_")
+                                      scenario_name = paste(cmd0,"death",sep="_"),
+                                      use_feather = TRUE
       )
     }
   }
 }
-
-
-

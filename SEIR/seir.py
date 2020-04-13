@@ -10,6 +10,8 @@ import tqdm.contrib.concurrent
 
 from . import NPI, setup
 from .utils import config
+import pyarrow.parquet as pq
+import pyarrow as pa
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
@@ -33,7 +35,7 @@ def onerun_SEIR(uid, s):
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
     # Tidyup data for  R, to save it:
-    if s.write_csv:
+    if (s.write_csv or s.write_feather):
         a = states.copy()[:, :, ::int(1 / s.dt)]
         a = np.moveaxis(a, 1, 2)
         a = np.moveaxis(a, 0, 1)
@@ -59,11 +61,15 @@ def onerun_SEIR(uid, s):
         out_df['comp'].replace(cumI, 'cumI', inplace=True)
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
         str(uuid.uuid4())[:2]
-        out_df.to_csv(
-            f"{s.datadir}{s.timestamp}_{s.setup_name}_{str(uuid.uuid4())}.csv",
-            index='time',
-            index_label='time')
-
+        if s.write_csv:
+            out_df.to_csv(
+                f"{s.datadir}{s.timestamp}_{s.setup_name}_{str(uuid.uuid4())}.csv",
+                index='time',
+                index_label='time')
+        if s.write_feather:
+            out_df['time'] = out_df.index
+            pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
+            pa.parquet.write_table(pa_df,f"{s.datadir}{s.timestamp}_{s.setup_name}_{str(uuid.uuid4())}.feather")
     return 1
 
 
