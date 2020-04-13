@@ -66,6 +66,7 @@ RUN apt-get update && \
     libncurses-dev \
     libreadline-dev \
     supervisor \
+    awscli \
     r-base-dev=$R_VERSION \
     # make sure we have up-to-date CA certs or curling some https endpoints (like python.org) may fail
     ca-certificates \
@@ -90,9 +91,9 @@ COPY packages.R $HOME
 RUN Rscript packages.R
 
 # install custom packages from R/pkgs/**
-COPY packages-custom.R $HOME
+COPY local_install.R $HOME
 COPY R/pkgs $HOME/pkgs
-RUN Rscript packages-custom.R
+RUN Rscript local_install.R
 
 
 #####
