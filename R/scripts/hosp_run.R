@@ -57,14 +57,14 @@
 #'
 #' ## Input Data
 #'
-#' * `spatial_setup::base_path`/`spatial_setup::geodata` is a path to a csv with columns "geoid" and `spatial_setup::popnodes`
-#' * model\_output/`name`\_[scenario] is a directory of csv's. 
+#' * **{spatial_setup::base_path}/{spatial_setup::geodata}** is a path to a csv with columns "geoid" and {spatial_setup::popnodes}
+#' * **model\_output/{name}\_[scenario]** is a directory of csv's. 
 #'    + Each csv must have columns: "time", "comp", and each geoid of interest.
 #'    + The "comp" column must have a value of "diffI" in at least one row. 
 #'
 #' ## Output Data
 #'
-#' * hospitalization/model\_output/`name`\_[scenario]/[deathrate]\_death-*.csv: A csv is created for each csv in input data model\_output/`name`\_[scenario]. The columns in the output csv's are:
+#' * **hospitalization/model\_output/{name}\_[scenario]/[deathrate]\_death-*.csv**: A csv is created for each csv in input data model\_output/{name}\_[scenario]. The columns in the output csv's are:
 #' 
 #'    + time
 #'    + uid

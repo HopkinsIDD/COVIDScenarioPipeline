@@ -18,11 +18,11 @@
 #'
 #' ## Input Data
 #'
-#' * {spatial_setup::base_path}/{spatial_setup::geodata} is a path to a csv with column `spatial_setup::nodenames` that denotes the geoids
+#' * **{spatial_setup::base_path}/{spatial_setup::geodata}** is a csv with column {spatial_setup::nodenames} that denotes the geoids
 #'
 #' ## Output Data
 #'
-#' * **importation/{spatial_setup::setup_name}/case_data/jhucsse_case_data.csv**: case data freshly pulled from JHU CSSE
+#' * **importation/{spatial_setup::setup_name}/case_data/jhucsse_case_data.csv** is a csv with case data from JHU CSSE
 #' * **{dynfilter_path}**: filter file
 
 #+ echo=FALSE, eval=FALSE
