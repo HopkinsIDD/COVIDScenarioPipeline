@@ -1458,7 +1458,8 @@ plot_model_vs_obs <- function(state_hosp_totals,
           legend.position = "bottom",
           legend.title = element_blank()) +
     guides(color = guide_legend(nrow = 2, override.aes = list(alpha=1)),
-           fill = FALSE)
+           fill = FALSE) +
+    coord_cartesian(ylim = c(0, 2.5*max(jhu_obs_dat$NincidConfirmed)))
   
   state_death_summary <-
     state_hosp_totals %>%
@@ -1487,7 +1488,9 @@ plot_model_vs_obs <- function(state_hosp_totals,
           legend.position = "bottom",
           legend.title = element_blank()) +
     guides(color = guide_legend(nrow = 2, override.aes = list(alpha=1)),
-           fill = FALSE)
+           fill = FALSE) +
+    coord_cartesian(ylim = c(0, 2.5*max(jhu_obs_dat$NincidDeathsObs)))
+  
   output <- list(incid_infections_plot, incid_deaths_plot)
   return(output)
 }
