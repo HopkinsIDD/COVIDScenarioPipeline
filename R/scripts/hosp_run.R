@@ -84,6 +84,8 @@
 #'
 #+ echo=FALSE, eval=FALSE
 
+# Please do not put special R comments below this line.
+
 library(devtools)
 library(covidcommon)
 library(hospitalization)

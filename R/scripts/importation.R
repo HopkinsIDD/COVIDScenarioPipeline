@@ -1,6 +1,10 @@
 #'
 #' # Calculate Importation
 #'
+#' ## Overview
+#'
+#' Write me!
+#' 
 #' ## Configuration Options
 #' 
 #' ```
@@ -13,7 +17,7 @@
 #'   modeled_states: <list of state postal codes> e.g. MD, CA, NY
 #'   setup_name: <string>
 #'   census_year: <4-digit year>
-#'   census_api_key: <string, optional> default is environment variable CENSUS_API_KEY
+#'   census_api_key: <string, optional> default is environment variable CENSUS_API_KEY. Environment variable is preferred so you don't accidentally commit your key.
 #'
 #' importation:
 #'   dest_type: <choose one: "airport", "city", "state", "country">
@@ -40,6 +44,9 @@
 #'
 #' ```
 #'
+#' ## Input Data
+#' None
+#'
 #' ## Output Data
 #'
 #' * data/case\_data/jhucsse\_case\_data.csv: case data freshly pulled from JHU CSSE
@@ -55,6 +62,8 @@
 #'
 #'
 #+ echo=FALSE, eval=FALSE
+
+# Please do not put special R comments below this line.
 
 library(covidImportation)
 library(parallel)
