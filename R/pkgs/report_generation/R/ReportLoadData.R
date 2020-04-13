@@ -308,7 +308,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NincidICU=sum(incidICU),
                                  NincidHosp=sum(incidH),
                                  NincidVent = sum(incidVent),
-                                 NVentCurr = sim(vent_curr)) %>%
+                                 NVentCurr = sum(vent_curr)) %>%
                 ungroup()
         }
     }
