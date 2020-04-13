@@ -1,3 +1,32 @@
+#'
+#' # Create Filter
+#'
+#' 
+#' ## Configuration Options
+#' 
+#' ```
+#' dynfilter_path: <path to file>
+#' start_date: <date>
+#' end_date: <date>
+#'
+#' spatial_setup:
+#'   setup_name: <string>
+#'   base_path: <path to directory>
+#'   geodata: <path to file>
+#'   nodenames: <string>
+#' ```
+#'
+#' ## Input Data
+#'
+#' * {spatial_setup::base_path}/{spatial_setup::geodata} is a path to a csv with column `spatial_setup::nodenames` that denotes the geoids
+#'
+#' ## Output Data
+#'
+#' * **importation/{spatial_setup::setup_name}/case_data/jhucsse_case_data.csv**: case data freshly pulled from JHU CSSE
+#' * **{dynfilter_path}**: filter file
+
+#+ echo=FALSE, eval=FALSE
+
 library(magrittr)
 library(dplyr)
 library(readr)
@@ -14,7 +43,6 @@ config <- covidcommon::load_config(opts$c)
 if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
-
 
 incid_data_list <- covidImportation::get_incidence_data(
   first_date = ISOdate(2019,12,1),
@@ -34,6 +62,7 @@ all_times <- lubridate::ymd(config$start_date) +
 
 geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),5,'0',TRUE)
 
+#' @param `spatial_setup::nodenames` The column name of the geodata file with the unique identifiers.
 all_geoids <- geodata[[config$spatial_setup$nodenames]]
 
 all_loc_df <- dplyr::tibble(
@@ -71,4 +100,3 @@ all_data <- all_data %>% dplyr::filter(
 )
 
 write.table(all_data[,-1],file=file.path(config$dynfilter_path),row.names=FALSE,col.names=FALSE)
-
