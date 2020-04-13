@@ -84,6 +84,6 @@ as_random_distribution <- function(obj) {
   }
 }
 
-.onLoad <- function(libname, pkgname) {
-  config <<- load_config()
-}
+# .onLoad <- function(libname, pkgname) {
+#   config <<- load_config()
+# }

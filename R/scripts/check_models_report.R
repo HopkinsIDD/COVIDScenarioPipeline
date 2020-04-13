@@ -55,7 +55,8 @@ state_hosp_totals[[i]] <- load_hosp_geocombined_totals(scn_dirs,
                                                        scenariolabels = scn_dirs,
                                                        name_filter= pdeathnames[i],
                                                        incl_geoids = included_geoids,
-                                                       geoid_len = 5) %>%
+                                                       geoid_len = 5,
+                                                       use_feather = TRUE) %>%
   dplyr::mutate(pdeath=pdeathnames[i])
 
 state_hosp_totals <- dplyr::bind_rows(state_hosp_totals)
@@ -66,7 +67,7 @@ hosp_plt <- state_hosp_totals %>%
 
 ###########################################
 ## load pop data
-pop <- load_scenario_sims_filtered(scn_dirs, num_files = 15, post_process = post, pre_process = pre, geoid_len = 5)
+pop <- load_scenario_sims_filtered(scn_dirs, num_files = 15, post_process = post, pre_process = pre, geoid_len = 5, use_feather=TRUE)
 pop_toplt <- pop %>%
   dplyr::mutate(sim_num = as.factor(sim_num))
 
@@ -77,7 +78,7 @@ pop_toplt <- pop %>%
 sim_diffI <- list()
 for (i in 1:length(scn_dirs)){
   
-  sim_diffI[[i]] <- load_scenario_sims_filtered(scn_dirs[i], num_files = 15, post_process = post, pre_process = pre2, geoid_len = 5)
+  sim_diffI[[i]] <- load_scenario_sims_filtered(scn_dirs[i], num_files = 15, post_process = post, pre_process = pre2, geoid_len = 5, use_feather=TRUE)
   sim_diffI[[i]]$scenario_num <- i
   sim_diffI[[i]]$scenario_name <- scn_dirs[i]  
 }
