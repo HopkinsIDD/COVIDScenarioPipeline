@@ -39,13 +39,18 @@ cat("\n")
 using_importation <- ("importation" %in% names(config))
 generating_report <- ("report" %in% names(config))
 
-if(generating_report){
+if(generating_report)
+{
+  # Create report name (no suffix) for the .Rmd and .html
   report_name = ""
   if(length(config$report_location_name) != 0){
-    report_name = paste0(config$report_location_name, "_", format(Sys.Date(), format="%Y%m%d"))
+    report_name = config$report_location_name
   } else if(length(config$name) != 0){
-    report_name = paste0(config$name, "_",  format(Sys.Date(), format="%Y%m%d"))
+    report_name = config$name
+  } else {
+    stop(paste("Please specify report_location_name or name in the config"))
   }
+  report_name = paste0(report_name, "_",  format(Sys.Date(), format="%Y%m%d"))
 }
 
 importation_target_name <- function(simulation, prefix = ""){
@@ -137,35 +142,39 @@ cat(paste0("NCOREPER=",opt$ncoreper,"\n"))
 cat(paste0("PIPELINE=",opt$pipepath,"\n"))
 cat(paste0("CONFIG=",opt$config,"\n\n"))
 
-cat("
-.files:
-\tmkdir $@
-")
-
 # Generate first target
-# If generating report, it is the html file. Otherwise, it's run.
-if(generating_report){
+# If generating report, first target is the html file.
+# Otherwise, first target is run.
+# For both, the dependencies include all the simulation targets.
+if(generating_report)
+{
   rmd_file = sprintf("notebooks/%s/%s_report.Rmd", report_name, report_name)
-  cat(sprintf("notebooks/%s/%s_report.html:", report_name, report_name))
+  report_html_target_name = sprintf("notebooks/%s/%s_report.html", report_name, report_name)
+  cat(paste0(report_html_target_name,":"))
 } else {
   cat("run:")
 }
-for(scenario in scenarios){
+
+for(scenario in scenarios)
+{
   cat(" ")
   cat(simulation_target_name(simulations,scenario))
-  for(deathrate in deathrates){
+  for(deathrate in deathrates)
+  {
     cat(" ")
     cat(hospitalization_target_name(simulations,scenario,deathrate))
   }
 }
 
-if(generating_report){
+if(generating_report)
+{
   # final target dependency for .html is the Rmd
   cat(sprintf(" %s\n", rmd_file))
 
   renderCmd = sprintf("\t$(RSCRIPT) -e 'rmarkdown::render(\"%s\"", rmd_file)
   renderCmd = paste0(renderCmd, sprintf(", params=list(state_usps=\"%s\"", config$report$state_usps))
-  if(length(config$report$continue_on_error) != 0){
+  if(length(config$report$continue_on_error) != 0)
+  {
     renderCmd = paste0(renderCmd, 
                       sprintf(", continue_on_error=%s", config$report$continue_on_error))
   }
@@ -200,6 +209,12 @@ for(sim_idx in seq_len(length(simulations))){
   }
 }
 
+cat("
+.files:
+\tmkdir $@
+")
+
+
 cat(paste0("
 
 rerun: rerun_simulations rerun_hospitalization"
@@ -222,19 +237,27 @@ rerun_simulations: clean_simulations
 \trm -f .files/1*_simulation*
 rerun_hospitalization:
 \trm -f .files/1*_hospitalization*
-clean: clean_simulations clean_hospitalization clean_reports
-\trm -rf .files"
-))
+clean: clean_simulations clean_hospitalization"))
 if(using_importation){
   cat(" clean_importation clean_filter")
 }
-cat(paste0("
-clean_reports:
-\trm -f notebooks/*.html
+if(generating_report)
+{
+  cat(" clean_reports")
+}
+cat("
+\trm -rf .files
 clean_simulations: rerun_simulations
 \trm -rf model_output
 clean_hospitalization: rerun_hospitalization
 \trm -rf hospitalization
-"))
+")
+if(generating_report)
+{
+  cat(paste0("
+clean_reports:
+\trm -f ",report_html_target_name))
+}
+
 
 sink(NULL)
