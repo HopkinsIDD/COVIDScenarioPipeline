@@ -1416,6 +1416,9 @@ plot_model_vs_obs <- function(state_hosp_totals,
                               date_breaks = "1 month",
                               sim_start_date,
                               sim_end_date) {
+
+  assumed_reporting_rate <- 0.2
+
   state_hosp_totals <-
     state_hosp_totals %>%
     dplyr::filter(pdeath == pdeath_level) %>%
@@ -1435,7 +1438,11 @@ plot_model_vs_obs <- function(state_hosp_totals,
     dplyr::summarize(ci_lower_incid_inf = quantile(NincidInf, ci.L),
                      ci_upper_incid_inf = quantile(NincidInf, ci.U),
                      mean_incid_inf = mean(NincidInf),
-                     median_incid_inf = median(NincidInf))
+                     median_incid_inf = median(NincidInf),
+                     ci_lower_incid_cas = quantile(assumed_reporting_rate*NincidInf, ci.L),
+                     ci_upper_incid_cas = quantile(assumed_reporting_rate*NincidInf, ci.U),
+                     mean_incid_cas = mean(assumed_reporting_rate*NincidInf),
+                     median_incid_cas = median(assumed_reporting_rate*NincidInf)) 
   
   ### Incidence of infections plot
   incid_infections_plot <-
