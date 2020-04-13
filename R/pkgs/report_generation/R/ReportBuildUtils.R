@@ -1197,8 +1197,8 @@ make_scn_time_summary_table_withVent <- function(hosp_state_totals,
                 rename(mean=PeriodPkICU,`95% PI`=PeriodPkICUPI),
               tbl_df%>%select(period,scenario_name, PeriodVent, PeriodVentPI)%>%mutate(outcome="Incident Ventilations in Period")%>%
                 rename(mean=PeriodVent,`95% PI`=PeriodVentPI),
-              # tbl_df%>%select(period,scenario_name, PeriodPkVent, PeriodPkVentPI)%>%mutate(outcome="Peak Ventilators in Use in Period")%>%
-                # rename(mean=PeriodPkVent,`95% PI`=PeriodPkVentPI)
+              tbl_df%>%select(period,scenario_name, PeriodPkVent, PeriodPkVentPI)%>%mutate(outcome="Peak Ventilators in Use in Period")%>%
+                rename(mean=PeriodPkVent,`95% PI`=PeriodPkVentPI)
               ) %>%
     mutate(period=as.character(period)) %>%
     pivot_wider(names_from=period, values_from = c(mean,`95% PI`), names_sep=".")%>%
