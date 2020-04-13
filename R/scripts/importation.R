@@ -42,16 +42,16 @@
 #'
 #' ## Output Data
 #'
-#' * data/case_data/jhucsse_case_data.csv: case data freshly pulled from JHU CSSE
-#' * importation/{spatial_setup::setup_name}/input_data.csv
-#' * importation/{spatial_setup::setup_name}/travel_data_monthly.csv
-#' * importation/{spatial_setup::setup_name}/travel_mean.csv
-#' * importation/{spatial_setup::setup_name}/travel_data_daily.csv
-#' * importation/{spatial_setup::setup_name}/imports_sim[simulation-id].csv
-#' * importation/{spatial_setup::setup_name}/importation_[simulation-id].csv
-#' * {spatial_setup::base_path}/county_pops_{spatial_setup::census_year}
-#' * {spatial_setup::base_path}/shp/counties_{spatial_setup::census_year}_{spatial_setup::setup_name}.shp
-#' * {spatial_setup::base_path}/{spatial_setup::setup_name}/airport_attribution_{spatial_setup::census_year}.csv
+#' * data/case\_data/jhucsse\_case\_data.csv: case data freshly pulled from JHU CSSE
+#' * importation/{spatial\_setup::setup\_name}/input\_data.csv
+#' * importation/{spatial\_setup::setup\_name}/travel\_data\_monthly.csv
+#' * importation/{spatial\_setup::setup\_name}/travel\_mean.csv
+#' * importation/{spatial\_setup::setup\_name}/travel\_data_daily.csv
+#' * importation/{spatial\_setup::setup\_name}/imports\_sim[simulation-id].csv
+#' * importation/{spatial\_setup::setup\_name}/importation\_[simulation-id].csv
+#' * {spatial\_setup::base\_path}/county\_pops\_{spatial\_setup::census\_year}
+#' * {spatial\_setup::base\_path}/shp/counties\_{spatial\_setup::census\_year}\_{spatial\_setup::setup\_name}.shp
+#' * {spatial\_setup::base\_path}/{spatial\_setup::setup\_name}/airport\_attribution\_{spatial\_setup::census\_year}.csv
 #'
 #'
 #+ echo=FALSE, eval=FALSE
