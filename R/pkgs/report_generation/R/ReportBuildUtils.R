@@ -1477,7 +1477,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
                      median_incid_death = median(NincidDeath))
   incid_deaths_plot <-
     ggplot(state_death_summary, aes(x = date)) +
-    geom_line(aes(y = median_incid_death, color = scenario_name)) +
+    geom_line(aes(y = mean_incid_death, color = scenario_name)) +
     geom_ribbon(aes(ymin=ci_lower_incid_death, ymax=ci_upper_incid_death, fill = scenario_name), linetype = 0, alpha=0.2) +
     geom_point(data = jhu_obs_dat, aes(x = date, y = NincidDeathsObs), color = obs_data_col) +
     #ylab("Incident Cases") +
