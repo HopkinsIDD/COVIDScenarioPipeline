@@ -27,6 +27,8 @@
 
 #+ echo=FALSE, eval=FALSE
 
+# Please do not put special R comments below this line.
+
 library(magrittr)
 library(dplyr)
 library(readr)
@@ -54,7 +56,6 @@ incid_data_list <- covidImportation::get_incidence_data(
 )
 jhucsse <- incid_data_list$jhucsse_case_data
 
-
 print("Successfully pulled JHU CSSE data for filtering.")
 
 all_times <- lubridate::ymd(config$start_date) +
@@ -62,7 +63,6 @@ all_times <- lubridate::ymd(config$start_date) +
 
 geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),5,'0',TRUE)
 
-#' @param `spatial_setup::nodenames` The column name of the geodata file with the unique identifiers.
 all_geoids <- geodata[[config$spatial_setup$nodenames]]
 
 all_loc_df <- dplyr::tibble(
