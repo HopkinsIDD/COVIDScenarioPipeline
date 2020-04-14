@@ -1,90 +1,86 @@
-#'
-#' # Run Hospitalization
-#'
-#' ## Overview
-#'
-#' Write me!
-#' 
-#' ## Configuration Items
-#' 
-#' ```
-#' name
-#' spatial_setup:
-#'   setup_name: <string>
-#'   base_path: <path to directory>
-#'   geodata: <path to file>
-#'   popnodes: <string>
-#'
-#' interventions:
-#'   scenarios:
-#'     - <scenario 1 name>
-#'     - <scenario 2 name>
-#'     - ...
-#'
-#' hospitalization:
-#'   paths:
-#'     run_age_adjust: <logical> # presence is optional
-#'   parameters:
-#'     time_hosp: <list of floats>
-#'     time_hosp_death: <list of floats>
-#'     time_disch: <list of floats>
-#'     time_ICU: <list of floats>
-#'     time_ICUdur: <list of floats>
-#'     time_vent: <list of floats>
-#'     p_death: <list of probabilities>
-#'     p_death_names: <list of strings> # same length as p_death
-#' ```
-#'
-#' If `run_age_adjust` is TRUE,
-#' ```
-#' hospitalization:
-#'   parameters:
-#'     time_onset_death: <list of floats>
-#'     p_hosp_inf: <list of probabilties> # same length as p_death
-#'     time_ventdur: <list of floats>
-#' ```
-#'
-#' If `run_age_adjust` is not TRUE or absent,
-#' ```
-#' hospitalization:
-#'   parameters:
-#'     p_death_rate: <probability>
-#'     p_ICU: <probability>
-#'     p_vent: <probability>
-#'     time_hosp_death: <list of floats>
-#'     time_ventdur: <list of floats, optional, default is time_ICUdur>
-#' ```
-#'
-#' ## Input Data
-#'
-#' * **{spatial_setup::base_path}/{spatial_setup::geodata}** is a path to a csv with columns "geoid" and {spatial_setup::popnodes}
-#' * **model\_output/{name}\_[scenario]** is a directory of csv's. 
-#'    + Each csv must have columns: "time", "comp", and each geoid of interest.
-#'    + The "comp" column must have a value of "diffI" in at least one row. 
-#'
-#' ## Output Data
-#'
-#' * **hospitalization/model\_output/{name}\_[scenario]/[deathrate]\_death-*.csv**: A csv is created for each csv in input data model\_output/{name}\_[scenario]. The columns in the output csv's are:
-#' 
-#'    + time
-#'    + uid
-#'    + geoid
-#'    + sim_num
-#'    + comp
-#'    + incidI
-#'    + hosp_curr
-#'    + icu_curr
-#'    + vent_curr
-#'    + incidH
-#'    + incidICU
-#'    + incidVent
-#'    + incidD
-#'    + date_inds
-#'    + geo_ind
-#'
-#+ echo=FALSE, eval=FALSE
+##
+# @file
+# @brief Runs hospitalization model
+#
+# @details
+#
+# ## Configuration Items
+# 
+# ```yaml
+# name
+# spatial_setup:
+#   setup_name: <string>
+#   base_path: <path to directory>
+#   geodata: <path to file>
+#   popnodes: <string>
+#
+# interventions:
+#   scenarios:
+#     - <scenario 1 name>
+#     - <scenario 2 name>
+#     - ...
+#
+# hospitalization:
+#   paths:
+#     run_age_adjust: <logical> # presence is optional
+#   parameters:
+#     time_hosp: <list of floats>
+#     time_hosp_death: <list of floats>
+#     time_disch: <list of floats>
+#     time_ICU: <list of floats>
+#     time_ICUdur: <list of floats>
+#     time_vent: <list of floats>
+#     p_death: <list of probabilities>
+#     p_death_names: <list of strings> # same length as p_death
+# ```
+#
+# If `run_age_adjust` is TRUE,
+# ```yaml
+# hospitalization:
+#   parameters:
+#     time_onset_death: <list of floats>
+#     p_hosp_inf: <list of probabilties> # same length as p_death
+#     time_ventdur: <list of floats>
+# ```
+#
+# If `run_age_adjust` is not TRUE or absent,
+# ```yaml
+# hospitalization:
+#   parameters:
+#     p_death_rate: <probability>
+#     p_ICU: <probability>
+#     p_vent: <probability>
+#     time_hosp_death: <list of floats>
+#     time_ventdur: <list of floats, optional, default is time_ICUdur>
+# ```
+#
+# ## Input Data
+#
+# * <b>{spatial_setup::base_path}/{spatial_setup::geodata}</b> is a path to a csv with columns "geoid" and {spatial_setup::popnodes}
+# * <b>model\_output/{name}\_[scenario]</b> is a directory of csv's. 
+#    + Each csv must have columns: "time", "comp", and each geoid of interest.
+#    + The "comp" column must have a value of "diffI" in at least one row. 
+#
+# ## Output Data
+#
+# * <b>hospitalization/model\_output/{name}\_[scenario]/[deathrate]\_death-*.csv</b> A csv is created for each csv in input data model\_output/{name}\_[scenario]. The columns in the output csv's are:
+#    + time
+#    + uid
+#    + geoid
+#    + sim_num
+#    + comp
+#    + incidI
+#    + hosp_curr
+#    + icu_curr
+#    + vent_curr
+#    + incidH
+#    + incidICU
+#    + incidVent
+#    + incidD
+#    + date_inds
+#    + geo_ind
 
-# Please do not put special R comments below this line.
+## @cond
 
 library(devtools)
 library(covidcommon)
@@ -242,5 +238,5 @@ if(run_age_adjust){
   }
 }
 
-
+## @endcond
 
