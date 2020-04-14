@@ -87,3 +87,9 @@ outputting to `~/profile.output`.
 ```
 $ ./simulate.py -n 10 --profile --profile-output $HOME/profile.output -j 1
 ```
+
+# To generate the code documents
+
+```
+$ doxygen doc/Doxyfile
+```

@@ -1,3 +1,36 @@
+##
+# @file
+# @brief Creates a filter file
+#
+# @details
+#
+# 
+# ## Configuration Items
+# 
+# ```yaml
+# dynfilter_path: <path to file>
+# start_date: <date>
+# end_date: <date>
+#
+# spatial_setup:
+#   setup_name: <string>
+#   base_path: <path to directory>
+#   geodata: <path to file>
+#   nodenames: <string>
+# ```
+#
+# ## Input Data
+#
+# * <b>{spatial_setup::base_path}/{spatial_setup::geodata}</b> is a csv with column {spatial_setup::nodenames} that denotes the geoids
+#
+# ## Output Data
+#
+# * <b>importation/{spatial_setup::setup_name}/case_data/jhucsse_case_data.csv</b> is a csv with case data from JHU CSSE
+# * <b>{dynfilter_path}</b>: filter file
+#
+
+## @cond
+
 library(magrittr)
 library(dplyr)
 library(readr)
@@ -15,7 +48,6 @@ if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
-
 incid_data_list <- covidImportation::get_incidence_data(
   first_date = ISOdate(2019,12,1),
   last_date = as.POSIXct(lubridate::ymd(config$end_date)),
@@ -25,7 +57,6 @@ incid_data_list <- covidImportation::get_incidence_data(
   save_data=TRUE
 )
 jhucsse <- incid_data_list$jhucsse_case_data
-
 
 print("Successfully pulled JHU CSSE data for filtering.")
 
@@ -72,3 +103,4 @@ all_data <- all_data %>% dplyr::filter(
 
 write.table(all_data[,-1],file=file.path(config$dynfilter_path),row.names=FALSE,col.names=FALSE)
 
+## @endcond

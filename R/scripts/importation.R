@@ -1,3 +1,65 @@
+##
+# @file
+# @brief Generates importation data
+#
+# @details
+# 
+# ## Configuration Options
+# 
+# ```yaml
+# start_date: <date>
+# end_date: <date>
+# nsimulations: <integer, optional> overridden by command-line option -n
+#
+# spatial_setup:
+#   base_path: <path to directory>
+#   modeled_states: <list of state postal codes> e.g. MD, CA, NY
+#   setup_name: <string>
+#   census_year: <4-digit year>
+#   census_api_key: <string, optional> default is environment variable CENSUS_API_KEY. Environment variable is preferred so you don't accidentally commit your key.
+#
+# importation:
+#   dest_type: <choose one: "airport", "city", "state", "country">
+#   dest_country: <string>, e.g. USA
+#   aggregate_to: <choose one: "airport", "city", "state", "country", "metro"> "metro" is only available for CA
+#   update_case_data: <logical>
+#   cache_work: <logical>
+#   maximum_destinations: <integer or Inf>
+#   travel_dispersion: 
+#   travelers_threshold:
+#   airports_cluster_distance:
+#   draw_travel_from_distribution: <logical>
+#   print_progress: <logical>
+#   param_list:
+#     shift_incid_days: <integer, optional>
+#     p_report_source:
+#     delta:
+#     incub_mean_log:
+#     incub_sd_log:
+#     inf_period_hosp_mean_log:
+#     inf_period_hosp_sd_log:
+#     inf_period_nohosp_mean:
+#     inf_period_nohosp_sd:
+# ```
+#
+# ## Input Data
+# None
+#
+# ## Output Data
+#
+# * data/case\_data/jhucsse\_case\_data.csv: case data freshly pulled from JHU CSSE
+# * importation/{spatial\_setup::setup\_name}/input\_data.csv
+# * importation/{spatial\_setup::setup\_name}/travel\_data\_monthly.csv
+# * importation/{spatial\_setup::setup\_name}/travel\_mean.csv
+# * importation/{spatial\_setup::setup\_name}/travel\_data_daily.csv
+# * importation/{spatial\_setup::setup\_name}/imports\_sim[simulation-id].csv
+# * importation/{spatial\_setup::setup\_name}/importation\_[simulation-id].csv
+# * {spatial\_setup::base\_path}/county\_pops\_{spatial\_setup::census\_year}
+# * {spatial\_setup::base\_path}/shp/counties\_{spatial\_setup::census\_year}\_{spatial\_setup::setup\_name}.shp
+# * {spatial\_setup::base\_path}/{spatial\_setup::setup\_name}/airport\_attribution\_{spatial\_setup::census\_year}.csv
+#
+# @cond
+
 library(covidImportation)
 library(parallel)
 
@@ -21,8 +83,6 @@ print(dest)
 
 outdir <- file.path('importation',config$spatial_setup$setup_name)
 print(outdir)
-
-setup_name <- config$spatial_setup$setup_name
 
 if(!dir.exists(outdir)){
   dir.create(outdir,recursive=TRUE)
@@ -83,7 +143,7 @@ if (!file.exists(file.path(outdir, paste0("importation_", num_simulations, ".csv
   print("IMPORT 3: DISTRIBUTE")
   run_full_distrib_imports(
     states_of_interest=dest,
-    regioncode=setup_name,
+    regioncode=config$spatial_setup$setup_name,
     yr=config$spatial_setup$census_year,
     mean_travel_file = file.path(
       outdir,
@@ -99,3 +159,5 @@ if (!file.exists(file.path(outdir, paste0("importation_", num_simulations, ".csv
     n_sim=num_simulations
   )
  } 
+
+## @endcond
