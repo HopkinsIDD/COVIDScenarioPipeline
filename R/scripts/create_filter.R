@@ -1,33 +1,35 @@
-#'
-#' # Create Filter
-#'
-#' 
-#' ## Configuration Options
-#' 
-#' ```
-#' dynfilter_path: <path to file>
-#' start_date: <date>
-#' end_date: <date>
-#'
-#' spatial_setup:
-#'   setup_name: <string>
-#'   base_path: <path to directory>
-#'   geodata: <path to file>
-#'   nodenames: <string>
-#' ```
-#'
-#' ## Input Data
-#'
-#' * **{spatial_setup::base_path}/{spatial_setup::geodata}** is a csv with column {spatial_setup::nodenames} that denotes the geoids
-#'
-#' ## Output Data
-#'
-#' * **importation/{spatial_setup::setup_name}/case_data/jhucsse_case_data.csv** is a csv with case data from JHU CSSE
-#' * **{dynfilter_path}**: filter file
+##
+# @file
+# @brief Creates a filter file
+#
+# @details
+#
+# 
+# ## Configuration Items
+# 
+# ```yaml
+# dynfilter_path: <path to file>
+# start_date: <date>
+# end_date: <date>
+#
+# spatial_setup:
+#   setup_name: <string>
+#   base_path: <path to directory>
+#   geodata: <path to file>
+#   nodenames: <string>
+# ```
+#
+# ## Input Data
+#
+# * <b>{spatial_setup::base_path}/{spatial_setup::geodata}</b> is a csv with column {spatial_setup::nodenames} that denotes the geoids
+#
+# ## Output Data
+#
+# * <b>importation/{spatial_setup::setup_name}/case_data/jhucsse_case_data.csv</b> is a csv with case data from JHU CSSE
+# * <b>{dynfilter_path}</b>: filter file
+#
 
-#+ echo=FALSE, eval=FALSE
-
-# Please do not put special R comments below this line.
+## @cond
 
 library(magrittr)
 library(dplyr)
@@ -100,3 +102,5 @@ all_data <- all_data %>% dplyr::filter(
 )
 
 write.table(all_data[,-1],file=file.path(config$dynfilter_path),row.names=FALSE,col.names=FALSE)
+
+## @endcond
