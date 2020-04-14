@@ -6,6 +6,7 @@ from numba import jit
 import numpy as np
 import pandas as pd
 import scipy
+import os
 import tqdm.contrib.concurrent
 
 from . import NPI, setup
@@ -17,6 +18,10 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 def onerun_SEIR(uid, s):
     scipy.random.seed()
+
+    out_uuid = str(uuid.uuid4())
+
+    outfile_prefix = f"{s.timestamp}_{s.setup_name}_{out_uuid}"
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
     npi = npi.get().T
@@ -34,6 +39,11 @@ def onerun_SEIR(uid, s):
 
     # Tidyup data for  R, to save it:
     if s.write_csv:
+        # Write R0 reductions and parameters
+        npi.to_csv(f"{s.paramdir}{outfile_prefix}_npi.csv", index_label="time")
+        setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params.csv")
+
+        # Write output
         a = states.copy()[:, :, ::int(1 / s.dt)]
         a = np.moveaxis(a, 1, 2)
         a = np.moveaxis(a, 0, 1)
@@ -58,11 +68,11 @@ def onerun_SEIR(uid, s):
         out_df['comp'].replace(R, 'R', inplace=True)
         out_df['comp'].replace(cumI, 'cumI', inplace=True)
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
-        str(uuid.uuid4())[:2]
         out_df.to_csv(
-            f"{s.datadir}{s.timestamp}_{s.setup_name}_{str(uuid.uuid4())}.csv",
+            f"{s.datadir}{outfile_prefix}.csv",
             index='time',
             index_label='time')
+
 
     return 1
 
