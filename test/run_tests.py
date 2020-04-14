@@ -35,6 +35,7 @@ def _success(test_dir):
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"make failed with code {complete.returncode}"
 
+    assert_dir("model_parameters")
     assert_dir("model_output")
     assert_dir("hospitalization")
 
