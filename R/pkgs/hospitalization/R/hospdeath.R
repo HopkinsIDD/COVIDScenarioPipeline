@@ -141,7 +141,7 @@ hosp_load_scenario_sim <- function(scenario_dir,
                                    time_filter_high = Inf,
                                    geoid_len = 0,
                                    padding_char = "0",
-                                   use_feather = FALSE
+                                   use_parquet = FALSE
     ) {
   
     if (geoid_len > 0) {
@@ -155,7 +155,7 @@ hosp_load_scenario_sim <- function(scenario_dir,
     rc <- list()
     i <- sim_id
     file <- files[i]
-    if(use_feather){
+    if(use_parquet){
       tmp <- arrow::read_parquet(file)
       if("POSIXct" %in% class(tmp$time)){
         tmp$time <- lubridate::as_date(tz="GMT",tmp$time)
@@ -211,7 +211,7 @@ build_hospdeath_par <- function(p_hosp,
                                 time_ventdur_pars = log(17),
                                 cores=8,
                                 root_out_dir='hospitalization',
-                                use_feather = FALSE) {
+                                use_parquet = FALSE) {
 
   n_sim <- length(list.files(data_filename))
   print(paste("Creating cluster with",cores,"cores"))
@@ -229,7 +229,7 @@ build_hospdeath_par <- function(p_hosp,
     dat_ <- hosp_load_scenario_sim(data_filename,s,
                                    keep_compartments = "diffI", 
                                    geoid_len = 5,
-                                   use_feather = use_feather) %>%
+                                   use_parquet = use_parquet) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -290,8 +290,8 @@ build_hospdeath_par <- function(p_hosp,
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    if(use_feather){
-      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.feather')
+    if(use_parquet){
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.parquet')
       arrow::write_parquet(res,outfile)
     } else {
       outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
@@ -337,7 +337,7 @@ build_hospdeath_geoid_par <- function(
   time_ventdur_pars = log(17),
   cores=8,
   root_out_dir='hospitalization',
-  use_feather = FALSE) {
+  use_parquet = FALSE) {
 
   ## add in scaling factor to p_symp_inf
   prob_dat$p_symp_inf_scaled <- prob_dat$p_symp_inf * scl_fac
@@ -358,7 +358,7 @@ build_hospdeath_geoid_par <- function(
     dat_I <- hosp_load_scenario_sim(data_filename,s,
                                     keep_compartments = "diffI",
                                     geoid_len=5,
-                                    use_feather = use_feather) %>%
+                                    use_parquet = use_parquet) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -422,8 +422,8 @@ build_hospdeath_geoid_par <- function(
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    if(use_feather){
-      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.feather')
+    if(use_parquet){
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.parquet')
       arrow::write_parquet(res,outfile)
     } else {
       outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
@@ -468,7 +468,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   time_ventdur_pars = log(17),
   cores=8,
   root_out_dir='hospitalization',
-  use_feather = FALSE
+  use_parquet = FALSE
 ) {
   n_sim <- length(list.files(data_filename))
   print(paste("Creating cluster with",cores,"cores"))
@@ -490,7 +490,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
     dat_I <- hosp_load_scenario_sim(data_filename,s,
                                    keep_compartments = "diffI",
                                    geoid_len=5,
-                                   use_feather = use_feather) %>%
+                                   use_parquet = use_parquet) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -562,8 +562,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    if(use_feather){
-      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.feather')
+    if(use_parquet){
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.parquet')
       arrow::write_parquet(res,outfile)
     } else {
       outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
