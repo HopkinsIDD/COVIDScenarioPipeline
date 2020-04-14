@@ -80,7 +80,7 @@ for (scn0 in scenario) {
                                           cores = ncore,
                                           data_filename = data_filename,
                                           scenario_name = paste(cmd0,"scaling",sep="_"),
-                                          use_feather = TRUE
+                                          use_parquet = TRUE
     )
   }
 }

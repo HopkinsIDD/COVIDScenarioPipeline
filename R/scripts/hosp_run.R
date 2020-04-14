@@ -243,7 +243,7 @@ if(run_age_adjust){
                                       cores = ncore,
                                       data_filename = data_dir,
                                       scenario_name = paste(cmd0,"death",sep="_"),
-                                      use_feather = TRUE
+                                      use_parquet = TRUE
       )
     }
   }
