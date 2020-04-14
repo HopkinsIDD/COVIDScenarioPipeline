@@ -100,6 +100,9 @@
 # ## Output Data
 #
 # * model_output/{spatial_setup::setup_name}/[timestamp]_{spatial_setup::setup_name}_[random UUID].csv
+# * model_parameters/{spatial_setup::setup_name}/[timestamp]_{spatial_setup::setup_name}_[random UUID]_params.csv
+# * model_parameters/{spatial_setup::setup_name}/[timestamp]_{spatial_setup::setup_name}_[random UUID]_npi.csv
+
 
 ## @cond
 
