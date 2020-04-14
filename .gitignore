@@ -9,7 +9,9 @@ data/RAW/
 data/dataside/
 dev-versions/
 reports/
-doc/
+doc/html
+doc/latex
+
 # ^Joseph's stuff
 
 
