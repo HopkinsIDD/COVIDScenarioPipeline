@@ -94,8 +94,9 @@ class Setup():
         if self.write_csv:
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             self.datadir = f'model_output/{self.setup_name}/'
-            if not os.path.exists(self.datadir):
-                os.makedirs(self.datadir)
+            os.makedirs(self.datadir, exist_ok=True)
+            self.paramdir = f'model_parameters/{self.setup_name}/'
+            os.makedirs(self.paramdir, exist_ok=True)
 
     def build_setup(self):
         self.t_span = (self.tf - self.ti).days
@@ -168,3 +169,15 @@ def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
     beta = np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
 
     return (alpha, beta.T, sigma, gamma)
+
+def parameters_write(parameters, fname):
+    (alpha, beta, sigma, gamma) = parameters
+
+    out_dict = {}
+    out_dict["alpha"] = alpha
+    out_dict["beta"] = float(beta[0][0])
+    out_dict["sigma"] = sigma
+    out_dict["gamma"] = gamma
+
+    pd.Series(out_dict, name="value").to_csv(fname, index_label="parameter")
+
