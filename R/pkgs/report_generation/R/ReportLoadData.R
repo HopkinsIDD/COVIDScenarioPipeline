@@ -25,7 +25,7 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
                                       incl_geoids=NULL,
                                       geoid_len = 0,
                                       padding_char = "0",
-                                      use_feather = FALSE){
+                                      use_feather = NA){
 
   if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
@@ -98,7 +98,7 @@ load_cum_hosp_geounit_date <- function(scn_dirs,
                                     incl_geoids=NULL,
                                     geoid_len = 0,
                                     padding_char = "0",
-                                    use_feather = FALSE){
+                                    use_feather = NA){
 
     if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")
@@ -114,7 +114,8 @@ load_cum_hosp_geounit_date <- function(scn_dirs,
                 dplyr::summarize(NincidDeath = sum(incidD),
                                  NincidInf = sum(incidI),
                                  NincidICU=sum(incidICU),
-                                 NincidHosp=sum(incidH)) %>%
+                                 NincidHosp=sum(incidH),
+                                 NincidVent = sum(incidVent)) %>%
                 ungroup()
         }
     } else {
@@ -125,7 +126,8 @@ load_cum_hosp_geounit_date <- function(scn_dirs,
                 dplyr::summarize(NincidDeath = sum(incidD),
                                  NincidInf = sum(incidI),
                                  NincidICU=sum(incidICU),
-                                 NincidHosp=sum(incidH)) %>%
+                                 NincidHosp=sum(incidH),
+                                 NincidVent = sum(incidVent)) %>%
                 ungroup()
         }
     }
@@ -178,7 +180,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                         incl_geoids = NULL,
                                         geoid_len = 0,
                                         padding_char = "0",
-                                        use_feather = FALSE) {
+                                        use_feather = NA) {
 
     if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
@@ -194,8 +196,9 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NICUCurr = sum(icu_curr),
                                  NincidDeath = sum(incidD),
                                  NincidInf = sum(incidI),
-                                 NincidICU=sum(incidICU),
-                                 NincidHosp=sum(incidH)) %>%
+                                 NincidICU = sum(incidICU),
+                                 NincidHosp = sum(incidH),
+                                 NincidVent = sum(incidVent)) %>%
                 ungroup()
         }
     } else {
@@ -208,7 +211,8 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NincidDeath = sum(incidD),
                                  NincidInf = sum(incidI),
                                  NincidICU=sum(incidICU),
-                                 NincidHosp=sum(incidH)) %>%
+                                 NincidHosp=sum(incidH),
+                                 NincidVent = sum(incidVent)) %>%
                 ungroup()
         }
     }
@@ -260,7 +264,7 @@ load_inf_geounit_peaks_date <- function(scn_dirs,
                                         incl_geoids=NULL,
                                         geoid_len = 0,
                                         padding_char = "0",
-                                        use_feather = FALSE){
+                                        use_feather = NA){
 
   if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
@@ -342,7 +346,7 @@ load_hosp_geounit_peak_date <- function(scn_dirs,
                                   scenariolabels = NULL,
                                   geoid_len = 0,
                                   padding_char = "0",
-                                  use_feather = FALSE){
+                                  use_feather = NA){
     
     if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
@@ -419,7 +423,7 @@ load_hosp_geounit_threshold <- function(
   scenario_labels = NULL,
   geoid_len = 0,
   padding_char = "0",
-  use_feather = FALSE
+  use_feather = NA 
 ){
     if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
     catch_all_threshold <- Inf
@@ -495,7 +499,8 @@ load_hosp_geounit_threshold <- function(
                     NincidDeath = incidD,
                     NincidInf = incidI,
                     NincidICU = incidICU,
-                    NincidHosp = incidH) %>%
+                    NincidHosp = incidH,
+                    NincidVent = incidVent) %>%
       return()
 }
 
@@ -563,5 +568,50 @@ load_shape_file<- function(
     shp$geoid <- stringr::str_pad(shp$geoid,geoid_len, pad = geoid_pad)
   }
   return(shp)
+}
+
+
+##' Load JHU CSSE data
+##'
+##' @param jhu_data_dir data directory
+##' @param countries character vector of countries
+##' @param states character vector of states 
+##' @param updateJHUData logical on whether JHU data should be udpated
+##' 
+##' @return a data frame with columns
+##'         - 
+##' @export
+load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
+                                     countries = c("US"),
+                                     states,
+                                     updateJHUData = TRUE,
+                                     ...) {
+  if(!dir.exists(jhu_data_dir)) {
+    ### Download JHU data
+    pull_JHUCSSE_github_data(jhu_data_dir) 
+  } else {
+    ### Get updated version
+    if(updateJHUData) {
+      covidImportation:::update_JHUCSSE_github_data(jhu_data_dir) 
+    }
+  }
+  
+  ### Read in JHU data
+  jhu_dat <- read_JHUCSSE_cases(case_data_dir = jhu_data_dir, ...)
+  
+  
+  jhu_dat <- 
+    jhu_dat %>%
+    dplyr::mutate(date = as.Date(Update)) %>%
+    dplyr::filter(Country_Region %in% countries) %>%
+    dplyr::filter(Province_State %in% states) %>%
+    group_by(date) %>%
+    dplyr::summarize(NcumulConfirmed = sum(Confirmed), NcumulDeathsObs = sum(Deaths, na.rm = TRUE)) %>%
+    ungroup() %>%
+    dplyr::arrange(date) %>%
+    dplyr::mutate(NincidConfirmed  = NcumulConfirmed - dplyr::lag(NcumulConfirmed),
+                  NincidDeathsObs = NcumulDeathsObs - dplyr::lag(NcumulDeathsObs)) %>%
+    na.omit()
+  return(jhu_dat)
 }
 

@@ -8,8 +8,6 @@ library(magrittr)
 library(data.table)
 library(parallel)
 
-set.seed(123456789)
-
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
   optparse::make_option(c("-f", "--factor"), action="store", default='all', type='character', help="name of the scaling factor to run, or 'all' to run all of them"),
