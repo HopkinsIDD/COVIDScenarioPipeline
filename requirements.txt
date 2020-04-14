@@ -53,6 +53,7 @@ pathspec==0.8.0
 pluggy==0.13.1
 ply==3.11
 py==1.8.1
+pyarrow==0.16.0
 pyasn1==0.4.8
 pycparser==2.20
 pydot==1.4.1
