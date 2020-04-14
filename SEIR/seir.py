@@ -35,7 +35,7 @@ def onerun_SEIR(uid, s):
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
     # Tidyup data for  R, to save it:
-    if (s.write_csv or s.write_feather):
+    if (s.write_csv or s.write_parquet):
         a = states.copy()[:, :, ::int(1 / s.dt)]
         a = np.moveaxis(a, 1, 2)
         a = np.moveaxis(a, 0, 1)
@@ -66,10 +66,10 @@ def onerun_SEIR(uid, s):
                 f"{s.datadir}{s.timestamp}_{s.setup_name}_{str(uuid.uuid4())}.csv",
                 index='time',
                 index_label='time')
-        if s.write_feather:
+        if s.write_parquet:
             out_df['time'] = out_df.index
             pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
-            pa.parquet.write_table(pa_df,f"{s.datadir}{s.timestamp}_{s.setup_name}_{str(uuid.uuid4())}.feather")
+            pa.parquet.write_table(pa_df,f"{s.datadir}{s.timestamp}_{s.setup_name}_{str(uuid.uuid4())}.parquet")
     return 1
 
 

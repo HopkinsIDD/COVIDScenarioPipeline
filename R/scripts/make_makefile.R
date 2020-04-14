@@ -80,7 +80,7 @@ filter_make_command <- function(simulation,prefix=""){
   command_name<- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/create_filter.R -c $(CONFIG)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
-    target_name, ": .files ",
+    target_name, ": .files/directory_exists ",
     dependency_name, "\n", 
     "\t",command_name, "\n",
     "\t",touch_name, "\n"
@@ -97,7 +97,7 @@ hospitalization_make_command <- function(simulation,scenario,deathrate, prefix =
   command_name <- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s ",scenario," -d ",deathrate, " -j $(NCOREPER) -c $(CONFIG) -p $(PIPELINE)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
-    target_name, ": .files ",
+    target_name, ": .files/directory_exists ",
     dependency_name, "\n", 
     "\t",command_name, "\n",
     "\t",touch_name, "\n"
@@ -122,7 +122,7 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   command_name <- paste0("$(PYTHON) $(PIPELINE)/simulate.py -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
-    target_name, ": .files ",
+    target_name, ": .files/directory_exists ",
     dependency_name, "\n", 
     "\t",command_name, "\n",
     "\t",touch_name, "\n"
@@ -210,8 +210,9 @@ for(sim_idx in seq_len(length(simulations))){
 }
 
 cat("
-.files:
-\tmkdir $@
+.files/directory_exists:
+\tmkdir .files
+\ttouch .files/directory_exists
 ")
 
 
@@ -225,6 +226,7 @@ if(using_importation){
 clean_filter: rerun_filter
 \trm -rf ",config$dynfilter_path,"
 clean_importation: rerun_importation
+\trm -rf data/case_data
 \trm -rf importation
 "))
 }

@@ -130,7 +130,7 @@ load_hosp_sims_filtered <- function(scenario_dir,
                                     post_process=function(x) {x},
                                     geoid_len = 0,
                                     padding_char = "0",
-                                    use_feather = FALSE,
+                                    file_extension = 'auto',
                                     ...) {
   
   require(tidyverse)
