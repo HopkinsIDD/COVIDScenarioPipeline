@@ -94,7 +94,8 @@ hospitalization_target_name <- function(simulation,scenario,deathrate, prefix = 
 hospitalization_make_command <- function(simulation,scenario,deathrate, prefix = ''){
   target_name <- hospitalization_target_name(simulation,scenario,deathrate, prefix = prefix)
   dependency_name <- simulation_target_name(simulation,scenario, prefix = prefix)
-  command_name <- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s ",scenario," -d ",deathrate, " -j $(NCOREPER) -c $(CONFIG)")
+  command_name <- paste("$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s",scenario,
+                          "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) -p $(PIPELINE)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files ",
