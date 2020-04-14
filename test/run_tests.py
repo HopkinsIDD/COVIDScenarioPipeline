@@ -46,8 +46,8 @@ def teardown_function(self):
 
 # Test definitions
 
-def test_1():
-    _success("test1")
+def test_simple():
+    _success("test_simple")
 
 def test_importation():
     _success("test_importation")
@@ -65,3 +65,6 @@ def test_report():
     assert_dir("notebooks")
     today_str = datetime.date.today().strftime("%Y%m%d")
     assert_file(f"notebooks/Hawaii_{today_str}/Hawaii_{today_str}_report.html")
+
+def test_hosp_age_adjust():
+    _success("test_hosp_age_adjust")
