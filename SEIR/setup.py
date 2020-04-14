@@ -67,7 +67,7 @@ class Setup():
                  seeding_config={},
                  interactive=True,
                  write_csv=False,
-                 write_feather=False,
+                 write_parquet=False,
                  dt=1 / 6, # step size, in days
                  nbetas=None): # # of betas, which are rates of infection
         self.setup_name = setup_name
@@ -82,7 +82,7 @@ class Setup():
         self.seeding_config = seeding_config
         self.interactive = interactive
         self.write_csv = write_csv
-        self.write_feather = write_feather
+        self.write_parquet = write_parquet
 
         if nbetas is None:
             nbetas = nsim
@@ -93,7 +93,7 @@ class Setup():
         self.build_setup()
         self.dynfilter = -np.ones((self.t_span, self.nnodes))
 
-        if (self.write_csv or self.write_feather):
+        if (self.write_csv or self.write_parquet):
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             self.datadir = f'model_output/{self.setup_name}/'
             if not os.path.exists(self.datadir):
