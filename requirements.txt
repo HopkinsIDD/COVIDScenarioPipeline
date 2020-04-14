@@ -24,6 +24,7 @@ packaging==20.3
 pandas==1.0.2
 pluggy==0.13.1
 py==1.8.1
+pyarrow==0.16.0
 pycparser==2.20
 pyparsing==2.4.6
 pyproj==2.5.0
