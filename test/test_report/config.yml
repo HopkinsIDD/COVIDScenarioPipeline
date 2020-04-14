@@ -87,12 +87,10 @@ interventions:
         - None
         
 hospitalization:
-  paths:
-    output_path: hospitalization
   parameters:
     time_hosp: [1.23, 0.79]
     time_disch: [log(11.5), log(1.22)]
-    time_death: [log(11.25), log(1.15)]
+    time_hosp_death: [log(11.25), log(1.15)]
     time_ICU: [log(8.25), log(2.2)]
     time_ICUdur: [log(16), log(2.96)]
     time_vent: [log(10.5), log((10.5-8)/1.35)]

@@ -22,10 +22,9 @@
 #
 # hospitalization:
 #   paths:
-#     run_age_adjust: <logical> # presence is optional
+#     run_age_adjust: <logical, optional>
 #   parameters:
 #     time_hosp: <list of floats>
-#     time_hosp_death: <list of floats>
 #     time_disch: <list of floats>
 #     time_ICU: <list of floats>
 #     time_ICUdur: <list of floats>
