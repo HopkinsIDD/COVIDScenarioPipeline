@@ -1509,7 +1509,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
 ##' 
 ##' @param hosp_dat timeseries with incident and cumulative hospitalizations, ICU admissions, etc.
 ##' @param current_scenario text string of scenario label to plot
-##' @param type either "absolute:, for total number excess; "percent", for percent excess; or "per-capita" for number excess per 10,000 population
+##' @param type either "absolute", for total number excess; "percent", for percent excess; or "per-capita" for number excess per 10,000 population
 ##' @param threshold named vector of threshold value for given variable
 ##' @param shp shapefile with GEOID names
 ##' @param varname character string of variable name to plot from hosp data
@@ -1520,7 +1520,6 @@ plot_model_vs_obs <- function(state_hosp_totals,
 ##' 
 ##' @export
 ##' 
-
 make_excess_heatmap <- function(hosp_dat, 
                                 current_scenario,
                                 type,
@@ -1591,4 +1590,86 @@ make_excess_heatmap <- function(hosp_dat,
   
   return(rc)
 }
+
+
+##'
+##' Plot heatmap of needs relative to a threshold (e.g. bed needs)
+##'
+##' @param hosp_geounit_relative hosp_geounit_relative data
+##' @param shapefile object with geoid and name
+##' @param scenario_labels character vector of scenario labels from config
+##' @param scale_colors character vector of colors for low, mid, and high plot values
+##' @param legend_title label for legend
+##' @param value_name name of secondary axis value
+##' @param value_label secondary axis character label
+##' @param start_date start date as character string "2020-01-01"
+##' @param end_date end date as character string
+##'
+##' @return plot daily heatmap by geoid
+##'
+##' @export
+##'
+plot_needs_relative_to_threshold_heatmap <- function(
+    hosp_geounit_relative,
+    shapefile,
+    scenario_labels,
+    scale_colors = c("#066f6c", "#f8e6e7", "#ba0a0f"),
+    legend_title,
+    value_name,
+    value_label,
+    start_date,
+    end_date){
+
+  start_date <- lubridate::ymd(start_date)
+  end_date <- lubridate::ymd(end_date) 
+
+  shp <- shapefile %>%
+    sf::st_drop_geometry() %>%
+    dplyr::select(geoid, name) %>%
+    dplyr::arrange(name) %>%
+    dplyr::mutate(name_num = seq_along(name)) ## secondary axes only work with continuous values
+  
+  plt_dat <- left_join(hosp_geounit_relative, shp, by = c("geoid")) %>%
+    dplyr::rename(threshold = !!value_name) %>%
+    dplyr::filter(time >= start_date & time <= end_date) %>%
+    dplyr::filter(scenario_label %in% scenario_labels) %>%
+    dplyr::mutate(scenario_label = factor(scenario_label,
+                                         levels = scenario_labels,
+                                         labels = scenario_labels))
+
+  if(length(scenario_labels)==1){
+
+    rc <- ggplot(plt_dat, aes(x = time, y = name_num)) +
+      geom_tile(aes(fill = log_prop_needed)) +
+      scale_fill_gradient2(paste("Log", legend_title), low = scale_colors[1], mid = scale_colors[2], high = scale_colors[3], midpoint = 0, na.value = "grey 30", labels = scales::comma, limits = c(floor(min(plt_dat$log_prop_needed)), ceiling(max(plt_dat$log_prop_needed)))) +
+      scale_y_continuous("",
+        breaks = plt_dat$name_num,
+        labels = plt_dat$name,
+        sec.axis = dup_axis(name = value_label,
+                            breaks = plt_dat$name_num,
+                            labels = plt_dat$threshold)) +
+      scale_x_date(date_breaks = "2 weeks", date_labels = "%b %d") +
+      theme_bw() +
+      theme(legend.position = "bottom", axis.title.x = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+  } else{
+
+    rc <- ggplot(plt_dat, aes(x = time, y = name_num)) +
+      geom_tile(aes(fill = log_prop_needed)) +
+      scale_fill_gradient2(paste("Log", legend_title), low = scale_colors[1], mid = scale_colors[2], high = scale_colors[3], midpoint = 0, na.value = "grey 30", labels = scales::comma, limits = c(floor(min(plt_dat$log_prop_needed)), ceiling(max(plt_dat$log_prop_needed)))) +
+      scale_y_continuous("",
+        breaks = plt_dat$name_num,
+        labels = plt_dat$name,
+        sec.axis = dup_axis(name = value_label,
+                            breaks = plt_dat$name_num,
+                            labels = plt_dat$threshold)) +
+      scale_x_date(date_breaks = "2 weeks", date_labels = "%b %d") +
+      theme_bw() +
+      theme(legend.position = "bottom", axis.title.x = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+      facet_wrap(~scenario_label, nrow = 1)
+  }
+  
+  return(rc)
+}
+
 

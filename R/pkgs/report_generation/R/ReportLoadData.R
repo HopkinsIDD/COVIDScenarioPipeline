@@ -705,3 +705,100 @@ load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
   return(jhu_dat)
 }
 
+
+##' Convenience function to load hosp data and display log proportion
+##'
+##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
+##' @param threshold A named numeric vector where the names are geoids and values are thresholds
+##' @param variable character string of variable to which to compare threshold
+##' @param end_date simulation end date character string
+##' @param name_filter pdeath character string (high, med, low)
+##' @param num_files number of files to read in or NA
+##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
+##' @param scenario_labels config$report$formatting$scenario_labels character vector of scenario labels
+##' @param geoid_len required length of geoid
+##' @param padding_char padding
+##' 
+##' @return a data frame with columns
+##'         - scenario_name
+##'         - geoid
+##'         - time
+##'         - NhospCurr number of people in hospital on a day
+##'         - NICUCurr number of people in ICU on a day
+##'         - NVentCurr  number of ventilators used on a day
+##'         - threshold_value numeric values from threshold named vector
+##'         - prop_needed ratio of needed beds/ventilators relative to threshold value
+##'         - log_prop_needed log ratio of needed beds/ventilators with plotting edits on the borders
+##' @export
+load_hosp_geounit_relative_to_threshold <- function(
+                      scn_dirs,
+                      threshold,
+                      variable,
+                      end_date = config$end_date,
+                      name_filter,
+                      num_files = NA,
+                      incl_geoids = NULL,
+                      scenario_labels = NULL,
+                      geoid_len = 0,
+                      padding_char = "0"
+                      ){
+
+  if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
+    catch_all_threshold <- Inf
+  if(sum(names(threshold) == "") > 0){
+    catch_all_threshold <- threshold[names(threshold) == ""]
+  }
+  if(is.null(scenario_labels)){
+    warning("You have not specified scenario labels for this function. You may encounter future errors.")  
+  }
+
+  end_date <- lubridate::as_date(end_date)
+
+  if(!is.null(incl_geoids)){
+    hosp_post_process <- function(x){
+      x %>%
+        dplyr::filter(!is.na(time), geoid %in% incl_geoids) %>%
+        dplyr::filter(time <= end_date)  
+    }
+  } else{
+    hosp_post_process <- function(x){
+      x %>%
+        dplyr::filter(!is.na(time)) %>%
+        dplyr::filter(time <= end_date)  
+    }
+  }
+
+  rc <- list(length=length(scn_dirs))
+  for (i in 1:length(scn_dirs)) {
+      rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
+                                         num_files = num_files,
+                                         name_filter = name_filter,
+                                         post_process = hosp_post_process,
+                                         geoid_len = geoid_len,
+                                         padding_char = padding_char)
+      rc[[i]]$scenario_num <- i
+      rc[[i]]$scenario_label <- scenario_labels[[i]]
+  }
+
+  rc %>% 
+    dplyr::bind_rows() %>%
+    group_by(scenario_label, geoid, time) %>%
+    dplyr::summarise(NhospCurr = round(mean(hosp_curr)),
+                     NICUCurr = round(mean(icu_curr)),
+                     NVentCurr = round(mean(vent_curr))) %>%
+    ungroup %>%
+    left_join(data.frame(geoid = names(threshold), threshold_value = threshold), by = c("geoid")) %>%
+    dplyr::rename(pltVar = !!variable) %>%
+    dplyr::mutate(prop_needed = pltVar/threshold_value) %>%
+    dplyr::mutate(log_prop_needed = log(prop_needed)) %>%
+    dplyr::mutate(log_prop_needed = ifelse(pltVar == 0, 
+                                            floor(min(log_prop_needed[which(is.finite(log_prop_needed))])),
+                                            log_prop_needed)) %>% ## if numerator is 0, set the value to the floor of the min value among all other log values (for plotting purposes)
+    dplyr::mutate(log_prop_needed = ifelse(threshold_value == 0 & pltVar > 0, 
+                                          ceiling(max(log_prop_needed[which(is.finite(log_prop_needed))])),
+                                          log_prop_needed)) %>% ## if threshold is 0, set the value to the ceiling of the max value among all other logs values (for plotting purposes)
+    dplyr::rename(!!variable := pltVar) %>%
+    return()
+
+}
+
