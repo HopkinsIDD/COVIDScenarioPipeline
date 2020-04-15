@@ -3,6 +3,8 @@ import pandas as pd
 import datetime
 import os
 import scipy.sparse
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from .utils import config
 
@@ -67,6 +69,7 @@ class Setup():
                  seeding_config={},
                  interactive=True,
                  write_csv=False,
+                 write_parquet=False,
                  dt=1 / 6, # step size, in days
                  nbetas=None): # # of betas, which are rates of infection
         self.setup_name = setup_name
@@ -81,6 +84,7 @@ class Setup():
         self.seeding_config = seeding_config
         self.interactive = interactive
         self.write_csv = write_csv
+        self.write_parquet = write_parquet
 
         if nbetas is None:
             nbetas = nsim
@@ -91,7 +95,7 @@ class Setup():
         self.build_setup()
         self.dynfilter = -np.ones((self.t_span, self.nnodes))
 
-        if self.write_csv:
+        if (self.write_csv or self.write_parquet):
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             self.datadir = f'model_output/{self.setup_name}/'
             os.makedirs(self.datadir, exist_ok=True)
@@ -170,14 +174,12 @@ def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
 
     return (alpha, beta.T, sigma, gamma)
 
-def parameters_write(parameters, fname):
-    (alpha, beta, sigma, gamma) = parameters
-
-    out_dict = {}
-    out_dict["alpha"] = alpha
-    out_dict["beta"] = float(beta[0][0])
-    out_dict["sigma"] = sigma
-    out_dict["gamma"] = gamma
-
-    pd.Series(out_dict, name="value").to_csv(fname, index_label="parameter")
+def parameters_write(parameters, fname, extension):
+    out_df = pd.DataFrame([parameters[0], parameters[1][0][0]*n_Icomp / parameters[3], parameters[2], parameters[3]], index = ["alpha","R0","sigma","gamma"], columns = ["value"])
+    if extension == "csv":
+        out_dict.to_csv(f"{fname}.{extension}", index_label="parameter")
+    if extension == "parquet":
+        out_df["parameter"] = out_df.index
+        pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
+        pa.parquet.write_table(pa_df,f"{fname}.{extension}")
 
