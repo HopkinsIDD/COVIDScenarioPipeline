@@ -99,8 +99,6 @@ if(census_key == "")
 }
 tidycensus::census_api_key(key = census_key)
 
-case_data_dir <- "data/case_data"
-
 if (!file.exists(file.path(outdir, "input_data.csv"))) {
   print("IMPORT 1: SETUP")
   setup_importations(
@@ -110,10 +108,7 @@ if (!file.exists(file.path(outdir, "input_data.csv"))) {
     dest_aggr_level=config$importation$aggregate_to,
     first_date=as.POSIXct(lubridate::ymd(config$start_date)),
     last_date=as.POSIXct(lubridate::ymd(config$end_date)),
-    update_case_data = config$importation$update_case_data,
-    case_data_dir = case_data_dir,
     output_dir = outdir,
-    check_saved_data=config$importation$cache_work,
     save_case_data=config$importation$cache_work,
     get_travel=TRUE, # FUTURE FUNCTIONALITY
     n_top_dests=config$importation$maximum_destinations,
