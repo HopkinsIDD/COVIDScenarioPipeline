@@ -11,9 +11,9 @@ create_delay_frame <- function(data, name, local_config){
 
   all_dates <- unique(data$time)
   all_geoids <- sort(unique(data$geoid))
-  
+
   for(i in which(local_config$incidence %in% names(data))){
-    local_config$incidence[[i]] <- data[[local_config$incidence[[i]]]] 
+    local_config$incidence[[i]] <- data[[local_config$incidence[[i]]]]
   }
 
   for(i in which(local_config$delay %in% names(data))){
@@ -77,11 +77,11 @@ create_delay_frame <- function(data, name, local_config){
   }
 
   all_geoid_dates_frame <- tidyr::expand_grid(data.frame(geoid = all_geoids),data.frame(time = all_dates))
-  
+
   if(!using_release){
     release_time <- all_geoid_dates_frame[1,]
   }
-  
+
   release_time$type <- "release"
   incident_time$type <- "incident"
   all_geoid_dates_frame$type <- "test"
@@ -89,14 +89,14 @@ create_delay_frame <- function(data, name, local_config){
     release_time,
     incident_time,
     all_geoid_dates_frame
-  ) %>% 
+  ) %>%
     dplyr::group_by(geoid,time) %>%
     tidyr::pivot_wider(
       c('geoid','time'),names_from=type,values_from=count,values_fn = list(count=sum), values_fill=c(count=0)
     ) %>%
     dplyr::mutate(
       change = incident - release
-    ) %>% 
+    ) %>%
     dplyr::group_by(geoid) %>%
     dplyr::arrange(time) %>%
     dplyr::group_modify(function(.x,.y){
@@ -109,7 +109,7 @@ create_delay_frame <- function(data, name, local_config){
     ) %>%
     dplyr::arrange(geoid,time) %>%
     ungroup()
-  
+
   data <- dplyr::arrange(data,geoid,time)
 
   data[[paste(name,"incident",sep='_')]] <- current_time$incident
@@ -152,14 +152,14 @@ hosp_load_scenario_sim <- function(scenario_dir,
                                    padding_char = "0",
                                    use_parquet = FALSE
     ) {
-  
+
     if (geoid_len > 0) {
       padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width=geoid_len,pad=padding_char))}
     } else {
       padfn <- function(x) {x}
     }
-  
-  
+
+
     files <- dir(scenario_dir,full.names = TRUE)
     rc <- list()
     i <- sim_id
@@ -237,7 +237,7 @@ build_hospdeath_par <- function(p_hosp,
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
   # for(s in seq_len(n_sim)){
     dat_ <- hosp_load_scenario_sim(data_filename,s,
-                                   keep_compartments = "diffI", 
+                                   keep_compartments = "diffI",
                                    geoid_len = 5,
                                    use_parquet = use_parquet) %>%
       mutate(hosp_curr = 0,
@@ -496,8 +496,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   print(paste("Running over",n_sim,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
-  # foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-  for(s in seq_len(n_sim)) {
+  foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
+  # for(s in seq_len(n_sim)) {
     dat_I <- hosp_load_scenario_sim(data_filename,s,
                                    keep_compartments = "diffI",
                                    geoid_len=5,
@@ -583,4 +583,3 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   }
   doParallel::stopImplicitCluster()
 }
-
