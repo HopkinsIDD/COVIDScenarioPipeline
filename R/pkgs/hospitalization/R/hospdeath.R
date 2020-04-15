@@ -235,7 +235,6 @@ build_hospdeath_par <- function(p_hosp,
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-  # for(s in seq_len(n_sim)){
     dat_ <- hosp_load_scenario_sim(data_filename,s,
                                    keep_compartments = "diffI",
                                    geoid_len = 5,
@@ -307,6 +306,7 @@ build_hospdeath_par <- function(p_hosp,
       outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
       data.table::fwrite(res,outfile)
     }
+    NULL
   }
   doParallel::stopImplicitCluster()
 }
@@ -439,6 +439,7 @@ build_hospdeath_geoid_par <- function(
       outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
       data.table::fwrite(res,outfile)
     }
+    NULL
   }
   doParallel::stopImplicitCluster()
 }
@@ -497,7 +498,6 @@ build_hospdeath_geoid_fixedIFR_par <- function(
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-  # for(s in seq_len(n_sim)) {
     dat_I <- hosp_load_scenario_sim(data_filename,s,
                                    keep_compartments = "diffI",
                                    geoid_len=5,
@@ -580,6 +580,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
       outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
       data.table::fwrite(res,outfile)
     }
+    NULL
   }
   doParallel::stopImplicitCluster()
 }
