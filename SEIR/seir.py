@@ -135,7 +135,8 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
     for it, t in enumerate(t_inter):
         if (it % int(1 / dt) == 0):
             y[E] = y[E] + seeding[int(t)]
-            y[S] = max(0,y[S] - seeding[int(t)])
+            y[S] = y[S] - seeding[int(t)]
+            y[S] = y[S] * (y[S] > 0)
 
         for i in range(nnodes):
             p_expose = 1.0 - np.exp(-dt * (
