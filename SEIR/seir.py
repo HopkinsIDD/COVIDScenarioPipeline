@@ -71,16 +71,15 @@ def onerun_SEIR(uid, s):
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
         if s.write_csv:
             npi.to_csv(f"{s.paramdir}{outfile_prefix}_npi.csv", index_label="time")
-            setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params.csv")
+            setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params","csv")
             out_df.to_csv(
                 f"{s.datadir}{outfile_prefix}.csv",
                 index='time',
                 index_label='time')
         if s.write_parquet:
-            npi.to_csv(f"{s.paramdir}{outfile_prefix}_npi.csv", index_label="time")
             npi['time'] = npi.index
             pa_npi = pa.Table.from_pandas(npi,preserve_index = False)
-            setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params.csv")
+            setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params","parquet")
             out_df['time'] = out_df.index
             pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
             pa.parquet.write_table(pa_df,f"{s.datadir}{outfile_prefix}.parquet")
