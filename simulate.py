@@ -129,10 +129,12 @@ from SEIR.profile import profile_options
               help="the parallelization factor")
 @click.option("--interactive/--batch", default=False,
               help="run in interactive or batch mode [default: batch]")
-@click.option("--write-csv/--no-write-csv", default=True, show_default=True,
+@click.option("--write-csv/--no-write-csv", default=False, show_default=True,
               help="write CSV output at end of simulation")
+@click.option("--write-parquet/--no-write-parquet", default=True, show_default=True,
+              help="write parquet file output at end of simulation")
 @profile_options
-def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
+def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_parquet):
     config.set_file(config_file)
 
     spatial_config = config["spatial_setup"]
@@ -163,6 +165,7 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv):
                         tf=config["end_date"].as_date(),
                         interactive=interactive,
                         write_csv=write_csv,
+                        write_parquet=write_parquet,
                         dt=config["dt"].as_number())
         try:
             s.load_filter(config["dynfilter_path"].get())
