@@ -134,6 +134,15 @@ hosp_create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
 ##'
 ##' Data loading utility function for this package.
 ##'
+#' Load the csv associated with a single scenario
+#' @param scenario_dir The directory to load scenarios from
+#' @param sim_id  integer Which file of the files in `scenario_dir`.
+#' @param keep_compartments character Optional names of compartments to keep (and throw away others).  Default is to keep all compartments
+#' @param time_filter_low lubridate::date time_filter_low Only keep rows that have time after this
+#' @param time_filter_high lubridate::date time_filter_low Only keep rows that have time before this
+#' @param geod_len The minimum length each geoid should be
+#' @param padding_char If geoids need to be increased in length, which character should be used to add length
+#' @param use_parquet Whether to save to parquet files rather than csvs
 hosp_load_scenario_sim <- function(scenario_dir,
                                    sim_id,
                                    keep_compartments=NULL,
@@ -194,6 +203,7 @@ hosp_load_scenario_sim <- function(scenario_dir,
 ##' @param time_ICUdur_pars parameetrs for time of ICU duration
 ##' @param cores The number of CPU cores to run this model on in parallel
 ##' @param root_out_dir Path to the directory to write the outputs of this analysis
+##' @param use_parquet Whether to save to parquet files rather than csvs
 ##'
 ##' @export
 build_hospdeath_par <- function(p_hosp,
@@ -224,8 +234,8 @@ build_hospdeath_par <- function(p_hosp,
   print(paste("Running over",n_sim,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
-  # foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-  for(s in seq_len(n_sim)){
+  foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
+  # for(s in seq_len(n_sim)){
     dat_ <- hosp_load_scenario_sim(data_filename,s,
                                    keep_compartments = "diffI", 
                                    geoid_len = 5,
@@ -486,7 +496,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   print(paste("Running over",n_sim,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
-  foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
+  # foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
+  for(s in seq_len(n_sim)) {
     dat_I <- hosp_load_scenario_sim(data_filename,s,
                                    keep_compartments = "diffI",
                                    geoid_len=5,
