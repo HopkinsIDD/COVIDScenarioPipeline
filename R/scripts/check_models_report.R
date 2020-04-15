@@ -35,7 +35,8 @@ post <- function(x){
     dplyr::filter(!is.na(time), geoid %in% included_geoids) %>%
     group_by(time) %>%
     summarise(N = sum(N)) %>%
-    ungroup
+    ungroup %>%
+    mutate(time = as.Date(time))
 }
 
 ###########################################
