@@ -48,7 +48,7 @@ if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
-jhucsse <- get_clean_JHUCSSE_data(aggr_level = "UID", 
+jhucsse <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
                                    last_date = as.POSIXct(lubridate::ymd(config$end_date)),
                                    case_data_dir = file.path('importation',config$spatial_setup$setup_name,"case_data"),
                                    save_raw_data=TRUE,
