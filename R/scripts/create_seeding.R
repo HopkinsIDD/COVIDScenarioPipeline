@@ -48,14 +48,13 @@ if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
-### CHANGE
 jhucsse <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
                                    last_date = as.POSIXct(lubridate::ymd(config$end_date)),
                                    case_data_dir = file.path('importation',config$spatial_setup$setup_name,"case_data"),
                                    save_raw_data=TRUE,
                                    us_data_only=FALSE)
 
-print("Successfully pulled JHU CSSE data for filtering.")
+print("Successfully pulled JHU CSSE data for seeding.")
 
 all_times <- lubridate::ymd(config$start_date) +
   seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
@@ -64,41 +63,34 @@ geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$
 
 all_geoids <- geodata[[config$spatial_setup$nodenames]]
 
-all_loc_df <- dplyr::tibble(
-  Update = all_times[1],
-  FIPS = all_geoids,
-  Confirmed = 0,
-  population = geodata[[config$spatial_setup$popnodes]]
-)
-
-all_time_df <- dplyr::tibble(
-  Update = all_times,
-  FIPS = all_geoids[1],
-  Confirmed = 0
-)
-
 cumulative_cases <- jhucsse %>%
   dplyr::filter(FIPS %in% all_geoids) %>%
-  dplyr::select(Update, FIPS, Confirmed)
+  dplyr::select(Update, FIPS, incidI)
 
 cumulative_cases$Update <- as.Date(cumulative_cases$Update)
 
-all_data <- dplyr::bind_rows(
-  all_loc_df,
-  all_time_df,
-  cumulative_cases
+cumulative_cases <- cumulative_cases %>%
+  group_by(FIPS) %>%
+  group_modify(function(.x,.y){
+    .x %>%
+      arrange(Update) %>%
+      filter(incidI > 0) %>%
+      .[seq_len(min(nrow(.x),5)),] %>%
+      mutate(
+        Update = Update - lubridate::days(5),
+        incidI = 5 * incidI + .05
+      )
+      
+  })
+
+names(cumulative_cases) <- c('time','place','amount')
+
+
+write.table(
+  cumulative_cases,
+  file=file.path(config$seeding$lambda_file),
+  row.names=FALSE,
+  col.names=FALSE
 )
-
-all_data <- all_data %>% arrange(FIPS,Update) %>% pivot_wider(Update,names_from=FIPS,values_from=Confirmed,values_fn=list(Confirmed=function(x){max(x,na.rm=T)}),values_fill=c(Confirmed=0)) %>% arrange(Update)
-
-for(name in names(all_data)[-1]){
-  all_data[[name]] <- cummax(all_data[[name]])
-}
-
-all_data <- all_data %>% dplyr::filter(
-  Update %in% all_times
-)
-
-write.table(all_data[,all_geoids],file=file.path(config$dynfilter_path),row.names=FALSE,col.names=FALSE)
 
 ## @endcond
