@@ -76,11 +76,12 @@ as_random_distribution <- function(obj) {
   } else if (obj$distribution == "poisson") {
     return(purrr::partial(rpois, lambda=as_evaled_expression(obj$lam)))
   } else if (obj$distribution == "binomial") {
-    return(purrr::partial(rbinom, size=as_evaled_expression(obj$size), prob=as_evaled_expression(obj$prob)))
-  } else if (obj$distribution == "lognormal") {
-    return(purrr::partial(rlnorm, meanlog=as_evaled_expression(obj$meanlog), sdlog=as_evaled_expression(obj$sdlog)))
+    return(purrr::partial(rbinom, size=as_evaled_expression(obj$n), prob=as_evaled_expression(obj$p)))
   } else {
       stop("unknown distribution")
   }
 }
 
+.onLoad <- function(libname, pkgname) {
+  config <<- load_config()
+}

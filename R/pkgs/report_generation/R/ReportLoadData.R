@@ -24,8 +24,7 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
                                       scenariolabels=NULL,
                                       incl_geoids=NULL,
                                       geoid_len = 0,
-                                      padding_char = "0",
-                                      file_extension = 'auto'){
+                                      padding_char = "0"){
 
   if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
@@ -59,8 +58,7 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
                                              pre_process = inf_pre_process,
                                              post_process = inf_post_process,
                                              geoid_len = geoid_len,
-                                             padding_char = padding_char,
-                                             file_extension = file_extension)
+                                             padding_char = padding_char)
       rc[[i]]$scenario_num <- i
       rc[[i]]$scenario_name <- scenariolabels[[i]]
   }
@@ -97,8 +95,7 @@ load_cum_hosp_geounit_date <- function(scn_dirs,
                                     display_date=config$end_date,
                                     incl_geoids=NULL,
                                     geoid_len = 0,
-                                    padding_char = "0",
-                                    file_extension = 'auto'){
+                                    padding_char = "0"){
 
     if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")
@@ -140,8 +137,7 @@ load_cum_hosp_geounit_date <- function(scn_dirs,
                                            name_filter = name_filter,
                                            post_process = hosp_post_process,
                                            geoid_len = geoid_len,
-                                           padding_char = padding_char,
-                                           file_extension = file_extension)
+                                           padding_char = padding_char) 
         rc[[i]]$scenario_num <- i
         rc[[i]]$scenario_name <- scenariolabels[[i]]
     }
@@ -179,8 +175,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                         name_filter,
                                         incl_geoids = NULL,
                                         geoid_len = 0,
-                                        padding_char = "0",
-                                        file_extension = 'auto') {
+                                        padding_char = "0") {
 
     if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
@@ -224,8 +219,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                            num_files = num_files,
                                            post_process = hosp_post_process,
                                            geoid_len = geoid_len,
-                                           padding_char = padding_char,
-                                           file_extension = file_extension)
+                                           padding_char = padding_char) 
         rc[[i]]$scenario_num <- i
         rc[[i]]$scenario_name <- scenariolabels[[i]]
     }
@@ -263,8 +257,7 @@ load_inf_geounit_peaks_date <- function(scn_dirs,
                                         scenariolabels=NULL,
                                         incl_geoids=NULL,
                                         geoid_len = 0,
-                                        padding_char = "0",
-                                        file_extension = 'auto'){
+                                        padding_char = "0"){
 
   if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
@@ -304,8 +297,7 @@ load_inf_geounit_peaks_date <- function(scn_dirs,
                                             pre_process = inf_pre_process,
                                             post_process = inf_post_process,
                                             geoid_len = geoid_len,
-                                            padding_char = padding_char,
-                                            file_extension = file_extension) 
+                                            padding_char = padding_char) 
       rc[[i]]$scenario_num <- i
       rc[[i]]$scenario_name <- scenariolabels[[i]]
 
@@ -345,8 +337,7 @@ load_hosp_geounit_peak_date <- function(scn_dirs,
                                   incl_geoids = NULL,
                                   scenariolabels = NULL,
                                   geoid_len = 0,
-                                  padding_char = "0",
-                                  file_extension = 'auto'){
+                                  padding_char = "0"){
     
     if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
@@ -379,8 +370,7 @@ load_hosp_geounit_peak_date <- function(scn_dirs,
                                            name_filter = name_filter,
                                            post_process = hosp_post_process,
                                            geoid_len = geoid_len,
-                                           padding_char = padding_char,
-                                           file_extension = file_extension) %>%
+                                           padding_char = padding_char) %>%
                         dplyr::select(time, geoid, sim_num, mx_var)
         rc[[i]]$scenario_num <- i
         rc[[i]]$scenario_name <- scenariolabels[[i]]
@@ -422,8 +412,7 @@ load_hosp_geounit_threshold <- function(
   incl_geoids = NULL,
   scenario_labels = NULL,
   geoid_len = 0,
-  padding_char = "0",
-  file_extension = 'auto' 
+  padding_char = "0"
 ){
     if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
     catch_all_threshold <- Inf
@@ -486,8 +475,7 @@ load_hosp_geounit_threshold <- function(
                                            name_filter = name_filter,
                                            post_process = hosp_post_process,
                                            geoid_len = geoid_len,
-                                           padding_char = padding_char,
-                                           file_extension = file_extension)
+                                           padding_char = padding_char)
         rc[[i]]$scenario_num <- i
         rc[[i]]$scenario_label <- scenario_labels[[i]]
     }

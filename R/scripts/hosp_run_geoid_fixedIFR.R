@@ -89,8 +89,7 @@ for (scn0 in scenario) {
                                                    time_ICUdur_pars = time_ICUdur_pars,
                                                    cores = ncore,
                                                    data_filename = data_filename,
-                                                   scenario_name = paste(cmd0,"death",sep="_"),
-                                                   use_parquet = TRUE
+                                                   scenario_name = paste(cmd0,"death",sep="_")
     )
   }
 }

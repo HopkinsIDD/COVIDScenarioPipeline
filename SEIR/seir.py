@@ -11,8 +11,6 @@ import tqdm.contrib.concurrent
 
 from . import NPI, setup
 from .utils import config
-import pyarrow.parquet as pq
-import pyarrow as pa
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
@@ -40,9 +38,10 @@ def onerun_SEIR(uid, s):
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
     # Tidyup data for  R, to save it:
-    if (s.write_csv or s.write_parquet):
+    if s.write_csv:
         # Write R0 reductions and parameters
-
+        npi.to_csv(f"{s.paramdir}{outfile_prefix}_npi.csv", index_label="time")
+        setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params.csv")
 
         # Write output
         a = states.copy()[:, :, ::int(1 / s.dt)]
@@ -69,20 +68,12 @@ def onerun_SEIR(uid, s):
         out_df['comp'].replace(R, 'R', inplace=True)
         out_df['comp'].replace(cumI, 'cumI', inplace=True)
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
-        if s.write_csv:
-            npi.to_csv(f"{s.paramdir}{outfile_prefix}_npi.csv", index_label="time")
-            setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params","csv")
-            out_df.to_csv(
-                f"{s.datadir}{outfile_prefix}.csv",
-                index='time',
-                index_label='time')
-        if s.write_parquet:
-            npi['time'] = npi.index
-            pa_npi = pa.Table.from_pandas(npi,preserve_index = False)
-            setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params","parquet")
-            out_df['time'] = out_df.index
-            pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
-            pa.parquet.write_table(pa_df,f"{s.datadir}{outfile_prefix}.parquet")
+        out_df.to_csv(
+            f"{s.datadir}{outfile_prefix}.csv",
+            index='time',
+            index_label='time')
+
+
     return 1
 
 
