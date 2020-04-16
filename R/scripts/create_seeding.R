@@ -86,11 +86,11 @@ cumulative_cases <- cumulative_cases %>%
 names(cumulative_cases) <- c('time','place','amount')
 
 
-write.table(
+write.csv(
   cumulative_cases,
   file=file.path(config$seeding$lambda_file),
   row.names=FALSE,
-  col.names=FALSE
+  col.names=TRUE,
 )
 
 ## @endcond
