@@ -20,7 +20,7 @@ included_geoids <- sort(unique(geodata$geoid))
 pdeathnames <- config$hospitalization$parameters$p_death_names ## c("med")
 
 nfiles = 15
-i = 1
+j = 1
 
 
 ###########################################
@@ -51,26 +51,26 @@ pre2 <- function(x){
 ###########################################
 ## load hosp data from wrapper
 state_hosp_totals <- list()
-state_hosp_totals[[i]] <- load_hosp_geocombined_totals(scn_dirs,
+state_hosp_totals[[1]] <- load_hosp_geocombined_totals(scn_dirs,
                                                        num_files = nfiles,
                                                        scenariolabels = scn_dirs,
-                                                       name_filter= pdeathnames[i],
+                                                       name_filter= pdeathnames[j],
                                                        incl_geoids = included_geoids,
                                                        geoid_len = 5,
                                                        file_extension = 'auto') %>%
-  dplyr::mutate(pdeath=pdeathnames[i])
+  dplyr::mutate(pdeath=pdeathnames[j])
 
 state_hosp_totals <- dplyr::bind_rows(state_hosp_totals)
 
 hosp_plt <- state_hosp_totals %>% 
-  dplyr::filter(pdeath == pdeathnames[i]) %>%
-  dplyr::mutate(sim_num = as.factor(sim_num))
+  dplyr::filter(pdeath == pdeathnames[j]) %>%
+  dplyr::mutate(sim_num = factor(sim_num))
 
 ###########################################
 ## load pop data
-pop <- load_scenario_sims_filtered(scn_dirs, num_files = 15, post_process = post, pre_process = pre, geoid_len = 5, file_extension = 'auto')
+pop <- load_scenario_sims_filtered(scn_dirs, num_files = nfiles, post_process = post, pre_process = pre, geoid_len = 5, file_extension = 'auto')
 pop_toplt <- pop %>%
-  dplyr::mutate(sim_num = as.factor(sim_num))
+  dplyr::mutate(sim_num = factor(sim_num))
 
 
 
@@ -79,7 +79,7 @@ pop_toplt <- pop %>%
 sim_diffI <- list()
 for (i in 1:length(scn_dirs)){
   
-  sim_diffI[[i]] <- load_scenario_sims_filtered(scn_dirs[i], num_files = 15, post_process = post, pre_process = pre2, geoid_len = 5, file_extension = 'auto')
+  sim_diffI[[i]] <- load_scenario_sims_filtered(scn_dirs[i], num_files = nfiles, post_process = post, pre_process = pre2, geoid_len = 5, file_extension = 'auto')
   sim_diffI[[i]]$scenario_num <- i
   sim_diffI[[i]]$scenario_name <- scn_dirs[i]  
 }
@@ -185,7 +185,7 @@ total_inf_sim <- sim_diffI %>%
 
 ## check cumulative numbers (hosp output)
 total_inf <- state_hosp_totals %>%
-  dplyr::filter(pdeath == pdeathnames[i]) %>%
+  dplyr::filter(pdeath == pdeathnames[j]) %>%
   dplyr::mutate(sim_num = factor(sim_num)) %>%
   group_by(sim_num, scenario_name) %>%
   summarise(cumI = sum(NincidInf)) %>%
@@ -197,10 +197,11 @@ total_inf_toplt <- bind_rows(total_inf_sim %>% dplyr::mutate(type = "sim"), tota
 ggplot(total_inf_toplt, aes(x = scenario_name, y = meanCumI)) +
   geom_col(aes(fill = type), position = "dodge") +
   scale_y_continuous("Mean Cumulative Infections", labels = scales::comma) +
+  geom_text(aes(label = meanCumI)) +
   theme(legend.position = "bottom")
 
 total_dh <- state_hosp_totals %>%
-  dplyr::filter(pdeath == pdeathnames[i]) %>%
+  dplyr::filter(pdeath == pdeathnames[j]) %>%
   dplyr::mutate(sim_num = factor(sim_num)) %>%
   group_by(sim_num, scenario_name) %>%
   summarise(incidD = sum(NincidDeath), incidH = sum(NincidHosp)) %>%
@@ -210,6 +211,7 @@ total_dh <- state_hosp_totals %>%
 
 ggplot(total_dh, aes(x = scenario_name, y = value)) +
   geom_col(aes(fill = metric), position = "dodge") +
+  geom_text(aes(label = value)) +
   scale_y_continuous("Deaths/Hosp", labels = scales::comma) +
   theme(legend.position = "bottom")
 
