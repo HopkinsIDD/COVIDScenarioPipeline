@@ -199,6 +199,20 @@ ggplot(total_inf_toplt, aes(x = scenario_name, y = meanCumI)) +
   scale_y_continuous("Mean Cumulative Infections", labels = scales::comma) +
   theme(legend.position = "bottom")
 
+total_dh <- state_hosp_totals %>%
+  dplyr::filter(pdeath == pdeathnames[i]) %>%
+  dplyr::mutate(sim_num = factor(sim_num)) %>%
+  group_by(sim_num, scenario_name) %>%
+  summarise(incidD = sum(NincidDeath), incidH = sum(NincidHosp)) %>%
+  group_by(scenario_name) %>%
+  summarise(meanCumD = mean(incidD), meancumH = mean(incidH)) %>%
+  pivot_longer(cols = contains("meanCum"), names_to = "metric", values_to = "value")
+
+ggplot(total_dh, aes(x = scenario_name, y = value)) +
+  geom_col(aes(fill = metric), position = "dodge") +
+  scale_y_continuous("Deaths/Hosp", labels = scales::comma) +
+  theme(legend.position = "bottom")
+
 dev.off()
 
 
