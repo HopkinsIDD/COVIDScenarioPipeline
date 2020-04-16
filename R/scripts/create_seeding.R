@@ -83,8 +83,10 @@ cumulative_cases <- cumulative_cases %>%
       
   })
 
-names(cumulative_cases) <- c('time','place','amount')
+names(cumulative_cases) <- c('place','date','amount')
 
+cumulative_cases <- cumulative_cases %>%
+  dplyr::filter(!is.na(amount) | !is.na(date))
 
 write.csv(
   cumulative_cases,
