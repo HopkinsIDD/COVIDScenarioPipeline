@@ -159,17 +159,15 @@ hosp_load_scenario_sim <- function(scenario_dir,
       padfn <- function(x) {x}
     }
 
-
-    files <- dir(scenario_dir,full.names = TRUE)
-    rc <- list()
-    i <- sim_id
-    file <- files[i]
+    file <- paste0(scenario_dir,'/',str_pad(sim_id, width=9, pad="0"),'.seir')
     if(use_parquet){
+      file <- paste0(file,'.parquet')
       tmp <- arrow::read_parquet(file)
       if("POSIXct" %in% class(tmp$time)){
         tmp$time <- lubridate::as_date(tz="GMT",tmp$time)
       }
     } else {
+      file <- paste0(file,'csv')
       suppressMessages(tmp <- read_csv(file))
     }
     if (!is.null(keep_compartments)) {
@@ -180,10 +178,28 @@ hosp_load_scenario_sim <- function(scenario_dir,
         tmp %>%
         filter(time <= time_filter_high & time >= time_filter_low) %>%
         pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>%
-        mutate(sim_num = i) %>%
+        mutate(sim_num = sim_id) %>%
         padfn
     return(tmp)
 }
+
+write_hosp_output <- function(root_out_dir, data_dir, dscenario_name, sim_id, res, use_parquet)
+{
+  # Write output
+  outdir <- paste0(root_out_dir,'/', data_dir,'/')
+  if(!dir.exists(outdir)){
+    dir.create(outdir,recursive=TRUE)
+  }
+  outfile <- paste0(outdir,dscenario_name,"_death-",str_pad(sim_id, width=9, pad="0"),'.hosp')
+  if(use_parquet){
+    outfile <- paste0(outfile, '.parquet')
+    arrow::write_parquet(res,outfile)
+  } else {
+    outfile <- paste0(outfile,'.csv')
+    data.table::fwrite(res,outfile)
+  }
+}
+
 
 ##'
 ##' Build a set of sampled hospitalizations, deaths, and recoveries
@@ -193,8 +209,8 @@ hosp_load_scenario_sim <- function(scenario_dir,
 ##' @param p_death probability of death, among infections (hospitalization is required for death)
 ##' @param p_ICU probability of needing the ICU among hospitalized patients
 ##' @param p_vent probability of needing a ventilator among ICU patients
-##' @param data_filename Path to the directory that contains the CSV output of the simulation model
-##' @param scenario_name The name of the scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
+##' @param data_dir Path to the directory that contains the CSV output of the simulation model
+##' @param dscenario_name The name of the death scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_ICU_pars parameters for time from hospitalization to ICU
 ##' @param time_vent_pars parameters for time from ICU to time on ventilator
@@ -210,8 +226,8 @@ build_hospdeath_par <- function(p_hosp,
                                 p_death,
                                 p_ICU,
                                 p_vent,
-                                data_filename,
-                                scenario_name,
+                                data_dir,
+                                dscenario_name,
                                 time_hosp_pars = c(1.23, 0.79),
                                 time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
                                 time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
@@ -223,7 +239,7 @@ build_hospdeath_par <- function(p_hosp,
                                 root_out_dir='hospitalization',
                                 use_parquet = FALSE) {
 
-  n_sim <- length(list.files(data_filename))
+  n_sim <- length(list.files(data_dir))
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
 
@@ -235,7 +251,7 @@ build_hospdeath_par <- function(p_hosp,
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    dat_ <- hosp_load_scenario_sim(data_filename,s,
+    dat_ <- hosp_load_scenario_sim(data_dir,s,
                                    keep_compartments = "diffI",
                                    geoid_len = 5,
                                    use_parquet = use_parquet) %>%
@@ -294,18 +310,7 @@ build_hospdeath_par <- function(p_hosp,
              icu_curr = 0,
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
-
-    outdir <- paste0(root_out_dir,'/', data_filename,'/')
-    if(!dir.exists(outdir)){
-      dir.create(outdir,recursive=TRUE)
-    }
-    if(use_parquet){
-      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.parquet')
-      arrow::write_parquet(res,outfile)
-    } else {
-      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
-      data.table::fwrite(res,outfile)
-    }
+    write_hosp_output(root_out_dir, data_dir, dscenario_name, s, res, use_parquet)
     NULL
   }
   doParallel::stopImplicitCluster()
@@ -320,8 +325,8 @@ build_hospdeath_par <- function(p_hosp,
 ##'
 ##' @param prob_dat df of p_hosp, p_death, p_ICU, p_vent, GEOID
 ##' @param scl_fac scaling factor for the probability symptomatic infection
-##' @param data_filename Path to the directory that contains the CSV output of the simulation model
-##' @param scenario_name The name of the scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
+##' @param data_dir Path to the directory that contains the CSV output of the simulation model
+##' @param dscenario_name The name of the scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_ICU_pars parameters for time from hospitalization to ICU
 ##' @param time_vent_pars parameters for time from ICU to time on ventilator
@@ -335,8 +340,8 @@ build_hospdeath_par <- function(p_hosp,
 build_hospdeath_geoid_par <- function(
   prob_dat,
   scl_fac,
-  data_filename,
-  scenario_name,
+  data_dir,
+  dscenario_name,
   time_symp_pars = c(log(5.2), log(1.74)),
   time_hosp_pars = c(1.23, 0.79),
   time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
@@ -353,7 +358,7 @@ build_hospdeath_geoid_par <- function(
   prob_dat$p_symp_inf_scaled <- prob_dat$p_symp_inf * scl_fac
   prob_dat$p_symp_inf_scaled[prob_dat$p_symp_inf_scaled>1] <- 1
 
-  n_sim <- length(list.files(data_filename))
+  n_sim <- length(list.files(data_dir))
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
 
@@ -365,7 +370,7 @@ build_hospdeath_geoid_par <- function(
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    dat_I <- hosp_load_scenario_sim(data_filename,s,
+    dat_I <- hosp_load_scenario_sim(data_dir,s,
                                     keep_compartments = "diffI",
                                     geoid_len=5,
                                     use_parquet = use_parquet) %>%
@@ -428,17 +433,7 @@ build_hospdeath_geoid_par <- function(
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
-    outdir <- paste0(root_out_dir,'/', data_filename,'/')
-    if(!dir.exists(outdir)){
-      dir.create(outdir,recursive=TRUE)
-    }
-    if(use_parquet){
-      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.parquet')
-      arrow::write_parquet(res,outfile)
-    } else {
-      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
-      data.table::fwrite(res,outfile)
-    }
+    write_hosp_output(root_out_dir, data_dir, dscenario_name, s, res, use_parquet)
     NULL
   }
   doParallel::stopImplicitCluster()
@@ -452,8 +447,8 @@ build_hospdeath_geoid_par <- function(
 ##' @param prob_dat df of p_hosp, p_death, p_ICU, p_vent, GEOID
 ##' @param p_death probability of death, among infections (user-defined)
 ##' @param p_hosp_inf probability of hospitalization among infections (user-defined)
-##' @param data_filename Path to the directory that contains the CSV output of the simulation model
-##' @param scenario_name The name of the scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
+##' @param data_dir Path to the directory that contains the CSV output of the simulation model
+##' @param dscenario_name The name of the scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_ICU_pars parameters for time from hospitalization to ICU
 ##' @param time_vent_pars parameters for time from ICU to time on ventilator
@@ -468,8 +463,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   prob_dat,
   p_death,
   p_hosp_inf,
-  data_filename,
-  scenario_name,
+  data_dir,
+  dscenario_name,
   time_hosp_pars = c(1.23, 0.79),
   time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
   time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
@@ -481,7 +476,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   root_out_dir='hospitalization',
   use_parquet = FALSE
 ) {
-  n_sim <- length(list.files(data_filename))
+  n_sim <- length(list.files(data_dir))
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
 
@@ -498,7 +493,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    dat_I <- hosp_load_scenario_sim(data_filename,s,
+    dat_I <- hosp_load_scenario_sim(data_dir,s,
                                    keep_compartments = "diffI",
                                    geoid_len=5,
                                    use_parquet = use_parquet) %>%
@@ -569,17 +564,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
-    outdir <- paste0(root_out_dir,'/', data_filename,'/')
-    if(!dir.exists(outdir)){
-      dir.create(outdir,recursive=TRUE)
-    }
-    if(use_parquet){
-      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.parquet')
-      arrow::write_parquet(res,outfile)
-    } else {
-      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
-      data.table::fwrite(res,outfile)
-    }
+    write_hosp_output(root_out_dir, data_dir, dscenario_name, s, res, use_parquet)
     NULL
   }
   doParallel::stopImplicitCluster()
