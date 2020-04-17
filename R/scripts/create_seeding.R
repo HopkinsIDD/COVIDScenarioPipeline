@@ -78,7 +78,7 @@ cumulative_cases <- cumulative_cases %>%
       .[seq_len(min(nrow(.x),5)),] %>%
       mutate(
         Update = Update - lubridate::days(5),
-        incidI = 5 * incidI + .05
+        incidI = 10 * incidI + .05
       )
       
   })
