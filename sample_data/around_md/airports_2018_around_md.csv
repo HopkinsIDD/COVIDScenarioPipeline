@@ -1,8 +1,0 @@
-ident,type,name,elevation_ft,continent,iso_country,iso_region,municipality,gps_code,iata_code,local_code,coor_lat,coor_lon
-KBWI,large_airport,Baltimore/Washington International Thurgood Marshall Airport,146,"NA",US,US-MD,Baltimore,KBWI,BWI,BWI,39.1754,-76.668297
-KDCA,large_airport,Ronald Reagan Washington National Airport,15,"NA",US,US-DC,Washington,KDCA,DCA,DCA,38.8521,-77.037697
-KIAD,large_airport,Washington Dulles International Airport,312,"NA",US,US-DC,Washington,KIAD,IAD,IAD,38.94449997,-77.45580292
-KORF,large_airport,Norfolk International Airport,26,"NA",US,US-VA,Norfolk,KORF,ORF,ORF,36.89459991455078,-76.201202392578125
-KPHL,large_airport,Philadelphia International Airport,36,"NA",US,US-PA,Philadelphia,KPHL,PHL,PHL,39.87189865112305,-75.24109649658203
-KPIT,large_airport,Pittsburgh International Airport,1203,"NA",US,US-PA,Pittsburgh,KPIT,PIT,PIT,40.49150085,-80.23290253
-KRIC,large_airport,Richmond International Airport,167,"NA",US,US-VA,Richmond,KRIC,RIC,RIC,37.50519943237305,-77.3197021484375
