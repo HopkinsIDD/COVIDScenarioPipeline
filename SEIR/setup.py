@@ -130,7 +130,7 @@ class Setup():
     def load_filter(self, dynfilter_path):
         self.set_filter(np.loadtxt(dynfilter_path))
 
-def seeding_draw(s, uid):
+def seeding_draw(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
     method = s.seeding_config["method"].as_str()
     if (method == 'PoissonDistributed'):
@@ -151,8 +151,7 @@ def seeding_draw(s, uid):
 
     elif (method == 'FolderDraw'):
         folder_path = s.seeding_config["folder_path"].as_str()
-        nfile = uid%len(os.listdir(folder_path)) + 1
-        seeding = pd.read_csv(f'{folder_path}importation_{nfile}.csv',
+        seeding = pd.read_csv(f'{folder_path}importation_{sim_id}.csv',
                               converters={'place': lambda x: str(x)},
                               parse_dates=['date'])
         for  _, row in seeding.iterrows():
