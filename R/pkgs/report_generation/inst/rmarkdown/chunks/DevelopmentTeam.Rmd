@@ -16,6 +16,7 @@ Working Group**:
 * Elizabeth C. Lee
 * Justin Lessler
 * Hannah R. Meredith
+* Javier Perez-Saez
 * Shaun A. Truelove
 
 **University of Utah**
