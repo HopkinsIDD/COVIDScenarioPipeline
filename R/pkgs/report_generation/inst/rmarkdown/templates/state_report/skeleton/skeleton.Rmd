@@ -1,6 +1,6 @@
 ---
 title: "[STATE] Scenario Report"
-author: "[AUTHOR NAMES]"
+author: ""
 output:
   html_document:
     df_print: paged
@@ -8,7 +8,9 @@ output:
     theme: journal
 bibliography: ReportReferences.bib
 params:
+  continue_on_error: TRUE
   config_file: "config.yml"
+  state_usps: "[STATE USPS]"  #state USPS...must provided
     
 ---
 
@@ -16,6 +18,7 @@ Prepared by [Johns Hopkins ID Dynamics](https://iddynamics.jhsph.edu/) Working G
 Updated `r Sys.Date()`
 
 **FOR PLANNING PURPOSES ONLY: NOT A FORECAST**
+
 ```{r setup, include=F}
 ## Block with general knitr options, libray load, etc. Nothing specific to the project.
 knitr::opts_knit$set(root.dir = "../..") ##Assumes we are in a subdirectory of notebooks
@@ -24,7 +27,7 @@ knitr::opts_chunk$set(
     fig.align = "center",
     message = FALSE,
     warning = FALSE,
-    error = TRUE,
+    error = params$continue_on_error,
     cache.lazy = FALSE,
     bitmapType = "cairo"
     )
@@ -37,16 +40,23 @@ library(tidyverse)
 library(covidcommon)
 library(report.generation)
 
+nfiles <- NA ## set to a number for test reports.
+
+if (params$state_usps=="[STATE USPS]") {stop("Must define a target state by USPS code.")}
+
+
 ```
 
 ```{r  load_config}
-reportStateUSPS <- "[STATE POSTAL CODE  HERE]"
+reportStateUSPS <- params$state_usps 
 
 ## Block loads the config file and geodata
 config <- covidcommon:::load_config(params$config_file)
 geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
                              geoid_len=5)
-included_geoids <- (geodata %>% filter(stateUSPS==reportStateUSPS))$geoid
+included_geoids <- (geodata %>% filter(USPS==reportStateUSPS))$geoid
+
+scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 
 ```
 
@@ -57,82 +67,116 @@ shp <- load_shape_file(filename = file.path(config$spatial_setup$base_path, conf
                        geoid_len = 5)
 ```
 
-[OVERALL SUMMARY TEXT GOES HERE]
+```{r config_vals}
+nscenarios <- length(config$interventions$scenarios)
+sim_start_date <- config$start_date
+sim_end_date <- config$end_date
+report_loc <- config$report_location_name
+modeled_loc <- paste(config$spatial_setup$modeled_states, collapse = ", ")
+census_year <- config$spatial_setup$census_year
+incub_period <- 1/eval(parse(text=config$seir$parameters$sigma))
+infect_period <- c(1/(eval(parse(text=config$seir$parameters$gamma$high))),
+                   1/(eval(parse(text=config$seir$parameters$gamma$low))))
+R0_range <- c(config$seir$parameters$R0s$low, config$seir$parameters$R0s$high)
 
-<!-- Default figure is the  -->
+```
 
+We compared `r nscenarios` intervention scenarios for model simulations from `r print_pretty_date(sim_start_date)` through `r print_pretty_date(sim_end_date)`:
 
-```{r load_hosp_data}
-###Load state totalsk for the hospital.
-scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
+[CHANGE BELOW DETAILS ABOUT INTERVENTIONS]
+
+1. *Lockdown followed by Worst-Case Uncontrolled Spread:* This scenario has statewide school closures from March 13-19 followed by a statewide stay-at-home policy from March 19 through May 14. All interventions are then removed (back to worst-case uncontrolled transmission) starting May 15.
+
+1. *Lockdown followed by Test and Isolate:* This scenario has statewide school closures from March 13-19 followed by a statewide stay-at-home policy from March 19 through May 14. From May 15 through December 31, there is a targeted test and isolate strategy similar to that implemented in South Korea.
+
+1. *Lockdown followed by Moderate Social Distancing:* This scenario has statewide school closures from March 13-19 followed by a statewide stay-at-home policy from March 19 through May 14. From May 15 through December 31, there is moderately restrictive social distancing similar to that in US cities during the 1918 influenza pandemic.
+
+[MAYBE WE SHOULD THEN ADD SOME SUMMARY STATEMENTS ABOUT OUR FINDINGS?]
+
+[ALTER BELOW DESCRIPTIVE STRING FOR SCENARIO CAPTIONS]
+
+```{r rmd_formatting}
+scen_desc_str <- "three scenarios with 8-week lockdown followed by 1) worst-case uncontrolled spread, 2) targeted testing and isolation, and 3) moderately restrictive social distancing"
+fig_counter <- 1
+tab_counter <- 1
+```
+
+```{r load_hosp_geocombined_totals}
 
 state_hosp_totals <- list()
-
 for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
     state_hosp_totals[[i]] <- load_hosp_geocombined_totals(scn_dirs,
-                                               config$report$formatting$scenario_labels,
+                                               num_files = nfiles,
+                                               scenariolabels = config$report$formatting$scenario_labels,
                                                name_filter= config$hospitalization$parameters$p_death_names[i],
-                                               incl_geoids=included_geoids,
-                                               geoid_len=5) %>%
+                                               incl_geoids = included_geoids,
+                                               geoid_len = 5) %>%
         mutate(pdeath=config$hospitalization$parameters$p_death[i])
 }
 
 state_hosp_totals <- dplyr::bind_rows(state_hosp_totals)
 ```
-```{r summary_fig,  summary_fig, fig.cap="**Fig. 1**:  Peak hospitalizations for 15 realizations from [LIST SCENARIOS AND COLORS]"}
+
+```{r summary_fig, fig.cap = cap}
 plot_ts_hosp_state_sample(state_hosp_totals,
+                          varname = "NhospCurr",
+                          varlabel = "Daily hospital occupancy",
                           scenario_labels = config$report$formatting$scenario_labels,
                           scenario_cols = config$report$formatting$scenario_colors,
                           sim_start_date = config$start_date,
                           sim_end_date = config$end_date,
                           pdeath_level = 0.01)
+
+cap <- paste0("**Fig. ", fig_counter, "**: Daily hospital occupancy for 15 simulation realizations for ", scen_desc_str, "at 1 % IFR assumptions.")
 ```
 
-```{r}
+```{r load_inf_geounit_peaks_date}
 ## Load peak infections by specific date
 
 inf_geounit_peaks <- load_inf_geounit_peaks_date(scn_dirs,
-                           display_date = config$report$formatting$display_dates[1],
+                         num_files = nfiles,
+                         display_date = config$report$formatting$display_dates[1],
+                         scenariolabels = config$report$formatting$scenario_labels,
+                         incl_geoids = included_geoids,
+                         geoid_len = 5)
+```
+
+```{r load_cum_inf_geounit_dates}
+###Load cumulative infections on specific dates
+
+cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
+                           num_files = nfiles,
+                           display_dates = config$report$formatting$display_dates,
                            scenariolabels = config$report$formatting$scenario_labels,
                            incl_geoids = included_geoids,
                            geoid_len = 5)
-```
-
-```{r}
-###Load cumulative infections on specific dates
-scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
-
-cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
-                           display_dates = config$report$formatting$display_dates,
-                           scenariolabels = config$report$formatting$scenario_labels,
-                           incl_geoids=included_geoids,
-                           geoid_len=5)
 
 ```
 
 
-```{r}
+```{r load_cum_hosp_geounit_date}
 ###Load cumulative hospitalizations on specific dates
-scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 
 for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
   cum_hosp_dates <- load_cum_hosp_geounit_date(scn_dirs,
+                              num_files = nfiles,
                               name_filter = config$hospitalization$parameters$p_death_names[i],
                               display_date = config$report$formatting$display_dates,
                               scenariolabels = config$report$formatting$scenario_labels,
-                              incl_geoids=included_geoids,
-                              geoid_len=5) %>%
-        mutate(pdeath=config$hospitalization$parameters$p_death[i])
+                              incl_geoids = included_geoids,
+                              geoid_len = 5) %>%
+        mutate(pdeath = config$hospitalization$parameters$p_death[i])
 }
 
 ```
 
-```{r}
+```{r load_hosp_geounit_peak_date}
 ## Load peak hosp_curr by specific date
 for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
   hosp_geounit_peaks <- load_hosp_geounit_peak_date(scn_dirs,
                           max_var = "hosp_curr",
-                          name_filter= config$hospitalization$parameters$p_death_names[i],
+                          num_files = nfiles,
+                          name_filter = config$hospitalization$parameters$p_death_names[i],
                           display_date = config$report$formatting$display_dates[1],
                           scenariolabels = config$report$formatting$scenario_labels,
                           incl_geoids = included_geoids,
@@ -144,10 +188,12 @@ for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
 ## State Level Results
 
 ### Summary
-[DESCRIPTION OF REPORT AND SCENARIOS]
 
-```{r}
-make_scn_time_summary_table(state_hosp_totals%>%filter(pdeath==.01), config$report$formatting$display_dates)
+`r paste0("**Tab.", tab_counter, "**: Summary across", scen_desc_str, ". Estimates are presented across", length(config$report$formatting$display_dates)+1, "time periods for 1% IFR assumptions.")`
+
+```{r scn_time_sum}
+make_scn_time_summary_table(state_hosp_totals %>% dplyr::filter(pdeath==.01), config$report$formatting$display_dates)
+tab_counter <- tab_counter+1
 ```
 
 
@@ -161,6 +207,7 @@ hist_plts <- list()
 
 for (i in 1:length(show_dates)) {
     hist_plts[[i]] <- plot_hist_incidHosp_state(state_hosp_totals,
+                                           var_name = "NincidHosp",
                                            scenario_labels =  config$report$formatting$scenario_labels,
                                            scenario_cols =  config$report$formatting$scenario_colors,
                                            sim_start_date = config$start_date,
@@ -171,106 +218,71 @@ for (i in 1:length(show_dates)) {
 ggpubr::ggarrange(plotlist=hist_plts, nrow=1)
 
 
-cap <- "**Fig 2**: Distribution of total hospitalizations by scenario at XXX time points, [LIST TIME POINTS]."
+cap <- paste("**Fig.", fig_counter, "**: Distribution of cumulative hospital admissions for", scen_desc_str, "at 1% IFR assumptions. Each bar represents a bin of 1,000 hospitalizations.")
+fig_counter <- fig_counter+1
 ```
 
-
-<!-- #### plot-ts-inc-state -->
-<!-- ```{r plot-ts-inc-state} -->
-<!-- plot_ts_incid_inf_state_sample(hosp_state_totals, -->
-<!--                                num_sim = 15, -->
-<!--                                # pdeath_level = , ## default is high -->
-<!--                                scenario_labels = config$report$formatting$scenario_labels, -->
-<!--                                scenario_cols = config$report$formatting$scenario_colors, -->
-<!--                                sim_start_date = config$start_date, -->
-<!--                                sim_end_date = config$end_date, -->
-<!--                                plot_intervention = config$report$plot_settings$plot_intervention, ## may not make sense to plot interventions if there are multiple intervention periods -->
-<!--                                interv_start_date = config$interventions$settings$Wuhan$period_start_date, ## N.B. these are currently hard-coded to Wuhan like settings -->
-<!--                                interv_end_date = config$interventions$settings$Wuhan$period_start_date) -->
-<!-- ``` -->
-
-<!-- `r #make_fig_captions("ts_incid_inf_state_sample", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_start_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)` -->
-
-<!-- #### plot-ts-death -->
-<!-- ```{r plot-ts-death} -->
-<!-- plot_ts_incid_death_state_sample_allPdeath( -->
-<!--   hosp_state_totals, -->
-<!--   num_sims = 15, -->
-<!--   scenario_labels = config$report$formatting$scenario_labels, -->
-<!--   scenario_cols = config$report$formatting$scenario_colors, -->
-<!--   pdeath_labels = config$report$formatting$pdeath_labels[3], -->
-<!--   sim_start_date = config$start_date, -->
-<!--   sim_end_date = config$end_date, -->
-<!--   plot_intervention = config$report$plot_settings$plot_intervention, -->
-<!--   interv_start_date = config$interventions$settings$Wuhan$period_start_date, -->
-<!--   interv_end_date = config$interventions$settings$Wuhan$period_end_date -->
-<!-- ) -->
-<!-- ``` -->
-
-<!-- `r #make_fig_captions("ts_incid_death_state_sample_allPdeath", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_start_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)` -->
-
-<!-- #### plot-hist-incidHosp-state -->
-<!-- ```{r plot-hist-incidHosp-state} -->
-<!-- plot_hist_incidHosp_state( -->
-<!--   hosp_state_totals, -->
-<!--   # pdeath_level = , ## default is high -->
-<!--   scenario_labels = config$report$formatting$scenario_labels, -->
-<!--   scenario_cols = config$report$formatting$scenario_colors, -->
-<!--   sim_start_date = config$start_date, -->
-<!--   summary_date = "2020-05-14" -->
-<!-- ) #ls# choose date for cumulative final size histogram of hosp occupancy -->
-<!-- ``` -->
-
-`r #make_fig_captions("hist_incidHosp_state", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_end_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, state = config$report_location_name, figure_num = 1)`
-
-<!-- #### plot-line-hospPeak-time-county -->
-<!-- ```{r plot-line-hospPeak-time-county} -->
-<!-- plot_line_hospPeak_time_county( -->
-<!--   hosp_cty_peaks, -->
-<!--   cty_names, -->
-<!--   scenario = config$report$formatting$scenario_labels[1], -->
-<!--   scenario_labels = config$report$formatting$scenario_labels[1], -->
-<!--   scenario_cols = config$report$formatting$scenario_colors[1], -->
-<!--   start_date = config$start_date, -->
-<!--   end_date = config$end_date -->
-<!-- ) ## choose date for cumulative final size histogram of hosp occupancy -->
-<!-- ``` -->
-
-<!-- `r #make_fig_captions("line_hospPeak_time_county", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_end_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)` -->
-
-
-<!-- `r #make_fig_captions("county_attack_rate_map", scenario_nums = length(config$report$formatting$scenario_labels), interv_start_date = config$interventions$settings$Wuhan$period_end_date, interv_end_date = config$interventions$settings$Wuhan$period_end_date, sim_start_date = config$start_date, sim_end_date = config$end_date, location_name = config$report_location_name, figure_num = 1)` -->
-
 ## Scenario Summaries
+
+[IF AVAILABLE, LOAD BED DATA AS IN THE EXAMPLE THAT FOLLOWS]
+```{r load_special_md_data}
+
+## source("R/load_beds_by_county_[STATE].R")
+## bedtype <- "staffed ICU"
+## vname <- "n_icu_bed_staffed"
+## hosp_vname <- "icu_curr"
+## occup_assum <- 0.68 ## assumes ICU occupancy is 68% per county over time on non-COVID patients
+## bedtype_label <- paste("Available", bedtype, "ICU beds, calculated as", (1-occup_assum)*100, "% of", bedtype, "Beds")
+
+## md_beddata <- load_beds_by_county_md(filename = "data/east-coast/md_hospbeddata.csv",
+##                                               varname = vname,
+##                                               bed_percentage = 1-occup_assum)
+
+## ## dataframe to show when hosp_curr exceeds bed data by county
+## thresholddat <- load_hosp_geounit_threshold(scn_dirs,
+##                                             num_files = nfiles,
+##                                             threshold = md_beddata,
+##                                             name_filter = "high",
+##                                             variable = hosp_vname,
+##                                             end_date = config$end_date,
+##                                             incl_geoids = included_geoids,
+##                                             scenario_labels = config$report$formatting$scenario_labels,
+##                                             geoid_len = 5)
+```
 
 ### Scenario 1: [Scenario Name]
 
 [BRIEF SCENARIO DESCRIPTION]
 
-[STATE LEVEL SCENARIO SUMMARY TABLE]
-```{r}
+`r paste("**Tab.", tab_counter, "** State-level summary for", config$report$formatting$scenario_labels[1], "scenario reported for the period from", sim_start_date, "through the dates specified by the column headers.")`
+
+```{r scn_state_table1}
 make_scn_state_table(config$report$formatting$scenario_labels[1],
                      state_hosp_totals,
                      table_dates = config$report$formatting$display_dates,
                      pdeath_labels = config$report$formatting$pdeath_labels,
                      pdeath_filecode = config$hospitalization$parameters$p_death)
+
+tab_counter <- tab_counter+1
 ```
 
 
-```{r}
+```{r ARmaps1, fig.cap = cap}
 ARmap1 <- plot_geounit_attack_rate_map(cum_inf_dates,
                             geodata,
                             shp,
                             scenariolabel = config$report$formatting$scenario_labels[1],
                             display_date = config$report$formatting$display_dates[1],
-                            viridis_palette = "plasma")
+                            viridis_palette = "plasma",
+                            popnodes = config$spatial_setup$popnodes)
 
 ARmap2 <- plot_geounit_attack_rate_map(cum_inf_dates,
                             geodata,
                             shp,
                             scenariolabel = config$report$formatting$scenario_labels[1],
                             display_date = config$report$formatting$display_dates[2],
-                            viridis_palette = "viridis")
+                            viridis_palette = "viridis",
+                            popnodes = config$spatial_setup$popnodes)
 
 ARmap3 <- plot_geounit_attack_rate_map(cum_inf_dates,
                             geodata,
@@ -279,10 +291,27 @@ ARmap3 <- plot_geounit_attack_rate_map(cum_inf_dates,
                             display_date = config$report$formatting$display_dates[3],
                             viridis_palette = "cividis")
 cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3)
+
+cap <- paste("**Fig.", fig_counter, "** County-level map of infections per 10,000 for", config$report$formatting$scenario_labels[1], " strategy.")
+fig_counter <- fig_counter+1
 ```
 
-
-[MULTI PANEL SCENARIO SUMMARY FIG]
+<!-- ```{r plot_threshold1, fig.cap = cap, fig.height = 7} -->
+<!-- plot_event_time_by_geoid( -->
+<!--   hosp_county_peaks = thresholddat, -->
+<!--   shapefile = shp %>% mutate(name=as.character(name)), -->
+<!--   scenario_labels = config$report$formatting$scenario_labels[1], -->
+<!--   scenario_colors = config$report$formatting$scenario_colors[1], -->
+<!--   time_caption = paste("Time when", bedtype, "occupancy exceeds", bedtype, "bed capacity"), -->
+<!--   geoid_caption = "County", -->
+<!--   value_name = "threshold_value", -->
+<!--   value_label = bedtype_label, -->
+<!--   start_date = config$start_date, -->
+<!--   end_date = config$end_date -->
+<!-- )  -->
+<!-- cap <- paste("**Fig.", fig_counter, "** Time when COVID-19", bedtype, "occupancy exceeds in-county", bedtype, "bed capacity for", config$report$formatting$scenario_labels[1], "scenario at 1% IFR assumptions. We assume that occupancy is", occup_assum*100, "% over time for non-COVID patients. Points indicate the median and lines indicate the interquartile range of model estimates. Counties which never exceed capacity will have no estimate plotted.") -->
+<!-- fig_counter <- fig_counter+1 -->
+<!-- ``` -->
 
 
 
@@ -309,6 +338,39 @@ cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3)
 
 ### Technical Details
 
+#### Data Sources
+
+* County-level confirmed SARS-COV-2 infections: [JHU CSSE COVID-19  Data Portal](https://coronavirus.jhu.edu/map.html)
+  
+
+* US Census Bureau 2010 county commuting flows and `r census_year` population data
+
+Our model and report make the following key assumptions:
+
+* Mean incubation period: `r incub_period` days
+
+* Infectious period: ranges from `r paste(infect_period, collapse = "-")` days
+
+* R0: `r paste(R0_range, collapse = "-")`
+
+* We examine 3 infection fatality rates (IFR) throughout our report: `r paste0(config$hospitalization$parameters$p_death * 100, collapse = ", ")`%.
+
+* We assume that `r paste0(config$hospitalization$parameters$p_death_rate * 100, "%")` of all hospitalized patients will die and adjust overall hospitalization rates to match the given IFR for a scenario.
+
+* Hospitalizations admitted to the ICU: `r paste0(config$hospitalization$parameters$p_ICU*100, "%")`
+
+* ICU admissions that are ventilated: `r paste0(config$hospitalization$parameters$p_vent*100, "%")`
+
+* ICU occupancy is fixed at 68% over time for non-COVID-related patients for figures related to the time when bed occupancy exceeds capacity.
+
+
+#### Epidemic Simulation
+
+We used an air importation model in conjunction with the cumulative confirmed COVID case data from [JHU CSSE COVID-19 Data Portal](https://coronavirus.jhu.edu/map.html) and assumptions in recent travel reductions to estimate the number of COVID case importations into major airports located in `r report_loc` and surrounding areas (`r paste(config$spatial_setup$modeled_states, collapse = ", ")`) from January through March. These importations were used to seed our epidemic model.
+
+If the number of infections in any single county was below the number of confirmed cases reported by the JHU CSSE COVID-19 Data Portal on a given day between February 1 and March 18, the simulation was stopped and removed from the model results. We ran 1000 model simulations from `r print_pretty_date(sim_start_date)` through `r print_pretty_date(sim_end_date)` for each scenario. Some outcomes may be reported beyond the simulation period in order to examine the full disease course for infections occurring at the end of the simulation period.
+
+
 #### SEIR Model
 
 ```{r, child=reference_chunk("SEIRModelDesc.Rmd")}
@@ -324,10 +386,6 @@ cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3)
 
 ```{r, child=reference_chunk("key_sources.Rmd")}
 ```
-
-## Appendix 2: Supplemental State Level Tables
-
-## Appendix 3: Detailed County Level Results
 
 ## Appendix 4: Team
 
