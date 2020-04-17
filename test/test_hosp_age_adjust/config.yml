@@ -1,47 +1,20 @@
-name: test_importation
+name: test_hosp_age_adjust
 start_date: 2020-01-31
 end_date: 2020-05-31
 nsimulations: 1
 dt: 0.25
-dynfilter_path: data/filter.txt
 
 spatial_setup:
   base_path: data
-  setup_name: test_importation
+  setup_name: test1
   geodata: geodata.csv
   mobility: mobility.txt
-  popnodes: pop2010
+  popnodes: population
   nodenames: geoid
-  census_year: 2018
-  modeled_states: 
-    - HI
-
-importation:
-  travel_dispersion: 3
-  maximum_destinations: Inf
-  dest_type : state
-  dest_country : USA
-  aggregate_to: airport
-  cache_work: TRUE
-  update_case_data: TRUE
-  draw_travel_from_distribution: FALSE
-  print_progress: FALSE
-  travelers_threshold: 10000
-  airport_cluster_distance: 80
-  param_list:
-    incub_mean_log: log(5.89)
-    incub_sd_log: log(1.74)
-    inf_period_nohosp_mean: 15
-    inf_period_nohosp_sd: 5
-    inf_period_hosp_mean_log: 1.23
-    inf_period_hosp_sd_log: 0.79
-    p_report_source: [0.05, 0.25]
-    shift_incid_days: -10
-    delta: 1
 
 seeding:
- method: FolderDraw
- folder_path: importation/test_importation/
+  method: PoissonDistributed
+  lambda_file: data/seeding.csv
 
 seir:
   parameters:
@@ -82,15 +55,20 @@ interventions:
         - None
         
 hospitalization:
+  paths:
+    run_age_adjust: TRUE
   parameters:
     time_hosp: [1.23, 0.79]
     time_disch: [log(11.5), log(1.22)]
-    time_hosp_death: [log(11.25), log(1.15)]
+    # time_hosp_death: [log(11.25), log(1.15)]
     time_ICU: [log(8.25), log(2.2)]
     time_ICUdur: [log(16), log(2.96)]
     time_vent: [log(10.5), log((10.5-8)/1.35)]
     p_death: [.0025, .005, .01]
     p_death_names: ["low","med","high"]
-    p_death_rate: 0.1
-    p_ICU: 0.32
-    p_vent: 0.15
+    p_hosp_inf: [0.025, 0.05, 0.1]
+    # p_death_rate: 0.1
+    # p_ICU: 0.32
+    # p_vent: 0.15
+    time_onset_death: [2.84, 0.72]
+    time_ventdur: [log(7), 0.2]

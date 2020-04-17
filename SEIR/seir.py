@@ -6,10 +6,13 @@ from numba import jit
 import numpy as np
 import pandas as pd
 import scipy
+import os
 import tqdm.contrib.concurrent
 
 from . import NPI, setup
 from .utils import config
+import pyarrow.parquet as pq
+import pyarrow as pa
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
@@ -17,6 +20,10 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 def onerun_SEIR(uid, s):
     scipy.random.seed()
+
+    out_uuid = str(uuid.uuid4())
+
+    outfile_prefix = f"{s.timestamp}_{s.setup_name}_{out_uuid}"
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
     npi = npi.get().T
@@ -33,7 +40,11 @@ def onerun_SEIR(uid, s):
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
     # Tidyup data for  R, to save it:
-    if s.write_csv:
+    if (s.write_csv or s.write_parquet):
+        # Write R0 reductions and parameters
+
+
+        # Write output
         a = states.copy()[:, :, ::int(1 / s.dt)]
         a = np.moveaxis(a, 1, 2)
         a = np.moveaxis(a, 0, 1)
@@ -58,12 +69,23 @@ def onerun_SEIR(uid, s):
         out_df['comp'].replace(R, 'R', inplace=True)
         out_df['comp'].replace(cumI, 'cumI', inplace=True)
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
-        str(uuid.uuid4())[:2]
-        out_df.to_csv(
-            f"{s.datadir}{s.timestamp}_{s.setup_name}_{str(uuid.uuid4())}.csv",
-            index='time',
-            index_label='time')
+        if s.write_csv:
+            npi.to_csv(f"{s.paramdir}{outfile_prefix}_npi.csv", index_label="time")
+            setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params","csv")
+            out_df.to_csv(
+                f"{s.datadir}{outfile_prefix}.csv",
+                index='time',
+                index_label='time')
+        if s.write_parquet:
+            npi['time'] = npi.index
+            pa_npi = pa.Table.from_pandas(npi,preserve_index = False)
+            pa.parquet.write_table(pa_npi,f"{s.paramdir}{outfile_prefix}_npi.parquet")
 
+            setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params","parquet")
+
+            out_df['time'] = out_df.index
+            pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
+            pa.parquet.write_table(pa_df,f"{s.datadir}{outfile_prefix}.parquet")
     return 1
 
 
@@ -115,8 +137,9 @@ def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
 
     for it, t in enumerate(t_inter):
         if (it % int(1 / dt) == 0):
-            y[I1] = y[I1] + seeding[int(t)]
-            y[cumI] = y[cumI] + seeding[int(t)]
+            y[E] = y[E] + seeding[int(t)]
+            y[S] = y[S] - seeding[int(t)]
+            y[S] = y[S] * (y[S] > 0)
 
         for i in range(nnodes):
             p_expose = 1.0 - np.exp(-dt * (

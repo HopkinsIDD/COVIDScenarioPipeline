@@ -38,8 +38,6 @@ importation:
     inf_period_nohosp_sd: 5
     inf_period_hosp_mean_log: 1.23
     inf_period_hosp_sd_log: 0.79
-    inf_period_hosp_shape: 0.75
-    inf_period_hosp_scale: 5.367
     p_report_source: [0.05, 0.25]
     shift_incid_days: -10
     delta: 1
@@ -87,12 +85,10 @@ interventions:
         - None
         
 hospitalization:
-  paths:
-    output_path: hospitalization
   parameters:
     time_hosp: [1.23, 0.79]
     time_disch: [log(11.5), log(1.22)]
-    time_death: [log(11.25), log(1.15)]
+    time_hosp_death: [log(11.25), log(1.15)]
     time_ICU: [log(8.25), log(2.2)]
     time_ICUdur: [log(16), log(2.96)]
     time_vent: [log(10.5), log((10.5-8)/1.35)]

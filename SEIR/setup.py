@@ -3,6 +3,8 @@ import pandas as pd
 import datetime
 import os
 import scipy.sparse
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from .utils import config
 
@@ -32,11 +34,24 @@ class SpatialSetup:
         if len(self.nodenames) != len(set(self.nodenames)):
             raise ValueError(f"There are duplicate nodenames in geodata.")
 
-        self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
 
-        # Validate mobility data
-        if self.mobility.shape != (self.nnodes, self.nnodes):
-             raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
+        if ('.txt' in str(mobility_file)):
+            print('Mobility files as matrices are not recommended. Please switch soon to long form csv files.')
+            self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
+            # Validate mobility data
+            if self.mobility.shape != (self.nnodes, self.nnodes):
+                raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
+
+        elif ('.csv' in str(mobility_file)):
+            print('Mobility files as matrices are not recommended. Please switch soon to long form csv files.')
+            mobility_data = pd.read_csv(mobility_file)
+            self.mobility = scipy.sparse.csr_matrix((self.nnodes, self.nnodes))
+            for index, row in mobility_data.iterrows():
+                self.mobility[self.nodenames.index(row['ori']),self.nodenames.index(row['dest'])] = row['amount']
+                if (self.nodenames.index(row['ori']) == self.nodenames.index(row['dest'])):
+                    raise ValueError(f"Mobility fluxes with same origin and destination: '{row['ori']}' to {row['dest']} in long form matrix. This is not supported")
+        else:
+            raise ValueError(f"Mobility data must either be a .csv file in longform (recommended) or a .txt matrix file. Got {mobility_file}")
 
         # if (self.mobility - self.mobility.T).nnz != 0:
         #     raise ValueError(f"mobility data is not symmetric.")
@@ -67,6 +82,7 @@ class Setup():
                  seeding_config={},
                  interactive=True,
                  write_csv=False,
+                 write_parquet=False,
                  dt=1 / 6, # step size, in days
                  nbetas=None): # # of betas, which are rates of infection
         self.setup_name = setup_name
@@ -81,6 +97,7 @@ class Setup():
         self.seeding_config = seeding_config
         self.interactive = interactive
         self.write_csv = write_csv
+        self.write_parquet = write_parquet
 
         if nbetas is None:
             nbetas = nsim
@@ -91,11 +108,12 @@ class Setup():
         self.build_setup()
         self.dynfilter = -np.ones((self.t_span, self.nnodes))
 
-        if self.write_csv:
+        if (self.write_csv or self.write_parquet):
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             self.datadir = f'model_output/{self.setup_name}/'
-            if not os.path.exists(self.datadir):
-                os.makedirs(self.datadir)
+            os.makedirs(self.datadir, exist_ok=True)
+            self.paramdir = f'model_parameters/{self.setup_name}/'
+            os.makedirs(self.paramdir, exist_ok=True)
 
     def build_setup(self):
         self.t_span = (self.tf - self.ti).days
@@ -168,3 +186,13 @@ def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
     beta = np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
 
     return (alpha, beta.T, sigma, gamma)
+
+def parameters_write(parameters, fname, extension):
+    out_df = pd.DataFrame([parameters[0], parameters[1][0][0]*n_Icomp / parameters[3], parameters[2], parameters[3]], index = ["alpha","R0","sigma","gamma"], columns = ["value"])
+    if extension == "csv":
+        out_dict.to_csv(f"{fname}.{extension}", index_label="parameter")
+    if extension == "parquet":
+        out_df["parameter"] = out_df.index
+        pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
+        pa.parquet.write_table(pa_df,f"{fname}.{extension}")
+

@@ -1,4 +1,125 @@
 
+#' @name create_delay_frame
+#' Append one (or two) column(s) to a data frame with the incident (and optionally current) counts for the number of people in a compartment if the incident count, time (and duration) are derived from distributions of columns of `data`.
+#' @param data A data frame with columns geoid, time, and others as specified in `local_config`.  The geoid column should contain unique identifiers for time series.  The time should be a lubridate date.  The distributions in the config can have their values substituted with other columns of data, so any such columns must also be included.
+#' @param name character() The name of the compartment we are appending to `data`.  This is used to create the names of the new columns (e.g., hospitalization).
+#' @param local_config A list with two or three sub-lists.  incidence, delay, duration.  Each should be able to be passed to covidcommon::as_random_distribution after substituting in columns from `data`.  The incidence element should generate the number of people who enter the `name` compartment based on the state at the current time.  The delay element delay should keep track of how much time will pass from the current time until they enter `name`.  The duration element should keep track of how long they will stay in `name` before leaving.  The duration element is optional.
+#' @return A data frame that is identical to data with one or two new columns.  The first new column `name`_incident is the number of people entering `name` at that time for that time series.  The second column `name`_current is the number of people currently in that compartment.
+#' @export
+create_delay_frame <- function(data, name, local_config){
+  library(foreach)
+
+  all_dates <- unique(data$time)
+  all_geoids <- sort(unique(data$geoid))
+
+  for(i in which(local_config$incidence %in% names(data))){
+    local_config$incidence[[i]] <- data[[local_config$incidence[[i]]]]
+  }
+
+  for(i in which(local_config$delay %in% names(data))){
+    local_config$delay[[i]] <- data[[local_config$delay[[i]]]]
+  }
+
+  for(i in which(local_config$duration %in% names(data))){
+    local_config$duration[[i]] <- data[[local_config$duration[[i]]]]
+  }
+
+  incidence_draw <- covidcommon::as_random_distribution(local_config$incidence)(n=nrow(data))
+
+  incident_time <- foreach(time = seq_len(length(incidence_draw))) %do% {
+    if(time %% 100 == 0){print(time / length(incidence_draw))}
+    if(incidence_draw[time] > 0){
+      data.frame(
+        geoid = data$geoid[[time]],
+        time = data$time[[time]] + lubridate::days(round(
+          covidcommon::as_random_distribution(local_config$delay)(incidence_draw[time])
+        ))
+      ) %>%
+        dplyr::group_by(geoid,time) %>%
+        dplyr::summarize(count = length(time)) %>%
+        ungroup()
+    } else {
+      NULL
+    }
+  }
+  incident_time <- do.call(dplyr::bind_rows,incident_time) %>%
+    dplyr::filter(count > 0) %>%
+    dplyr::group_by(geoid,time) %>%
+    dplyr::summarize(count = sum(count))
+
+  using_release <- "duration" %in% names(local_config)
+  if(using_release){ #only set up current value for things that have durations
+    release_time <- incident_time %>%
+      dplyr::group_by(geoid,time) %>%
+      dplyr::group_map(function(.x,.y){
+        if(.x$count > 0){
+          data.frame(
+            geoid= .y$geoid,
+            time = .y$time + lubridate::days(round(
+              covidcommon::as_random_distribution(local_config$duration)(.x$count)
+            ))
+          ) %>%
+            dplyr::group_by(geoid,time) %>%
+            dplyr::summarize(count = length(time)) %>%
+            dplyr::ungroup() %>%
+            return
+        } else {
+          return(data.frame(
+            geoid= .y$geoid,
+            time = .y$time,
+            count = 0
+          ))
+        }
+      }) %>%
+      do.call(what=rbind) %>%
+      dplyr::group_by(geoid,time) %>%
+      dplyr::summarize(count = sum(count))
+  }
+
+  all_geoid_dates_frame <- tidyr::expand_grid(data.frame(geoid = all_geoids),data.frame(time = all_dates))
+
+  if(!using_release){
+    release_time <- all_geoid_dates_frame[1,]
+  }
+
+  release_time$type <- "release"
+  incident_time$type <- "incident"
+  all_geoid_dates_frame$type <- "test"
+  current_time <- dplyr::bind_rows(
+    release_time,
+    incident_time,
+    all_geoid_dates_frame
+  ) %>%
+    dplyr::group_by(geoid,time) %>%
+    tidyr::pivot_wider(
+      c('geoid','time'),names_from=type,values_from=count,values_fn = list(count=sum), values_fill=c(count=0)
+    ) %>%
+    dplyr::mutate(
+      change = incident - release
+    ) %>%
+    dplyr::group_by(geoid) %>%
+    dplyr::arrange(time) %>%
+    dplyr::group_modify(function(.x,.y){
+      .x$current = cumsum(.x$change)
+      return(.x[,c('time','current','incident')])
+    }) %>%
+    dplyr::filter(
+      time %in% all_dates,
+      geoid %in% all_geoids
+    ) %>%
+    dplyr::arrange(geoid,time) %>%
+    ungroup()
+
+  data <- dplyr::arrange(data,geoid,time)
+
+  data[[paste(name,"incident",sep='_')]] <- current_time$incident
+  if(using_release){
+    data[[paste(name,"current",sep='_')]] <- current_time$current
+  }
+
+  return(data)
+}
+
 hosp_create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
     X_ <- rbinom(length(data_[[X]]),data_[[X]],p_X)
     rc <- data.table::data.table(
@@ -13,30 +134,46 @@ hosp_create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
 ##'
 ##' Data loading utility function for this package.
 ##'
+#' Load the csv associated with a single scenario
+#' @param scenario_dir The directory to load scenarios from
+#' @param sim_id  integer Which file of the files in `scenario_dir`.
+#' @param keep_compartments character Optional names of compartments to keep (and throw away others).  Default is to keep all compartments
+#' @param time_filter_low lubridate::date time_filter_low Only keep rows that have time after this
+#' @param time_filter_high lubridate::date time_filter_low Only keep rows that have time before this
+#' @param geod_len The minimum length each geoid should be
+#' @param padding_char If geoids need to be increased in length, which character should be used to add length
+#' @param use_parquet Whether to save to parquet files rather than csvs
 hosp_load_scenario_sim <- function(scenario_dir,
                                    sim_id,
                                    keep_compartments=NULL,
                                    time_filter_low = -Inf,
                                    time_filter_high = Inf,
                                    geoid_len = 0,
-                                   padding_char = "0"
+                                   padding_char = "0",
+                                   use_parquet = FALSE
     ) {
-  
+
     if (geoid_len > 0) {
       padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width=geoid_len,pad=padding_char))}
     } else {
       padfn <- function(x) {x}
     }
-  
-  
+
+
     files <- dir(scenario_dir,full.names = TRUE)
     rc <- list()
     i <- sim_id
     file <- files[i]
-    if (is.null(keep_compartments)) {
-      suppressMessages(tmp <- read_csv(file))
+    if(use_parquet){
+      tmp <- arrow::read_parquet(file)
+      if("POSIXct" %in% class(tmp$time)){
+        tmp$time <- lubridate::as_date(tz="GMT",tmp$time)
+      }
     } else {
-      suppressMessages(tmp <- read_csv(file) %>% filter(comp %in% keep_compartments))
+      suppressMessages(tmp <- read_csv(file))
+    }
+    if (!is.null(keep_compartments)) {
+      suppressMessages(tmp <- tmp %>% filter(comp %in% keep_compartments))
     }
 
     tmp <- #tmp[-1,] %>%
@@ -66,6 +203,7 @@ hosp_load_scenario_sim <- function(scenario_dir,
 ##' @param time_ICUdur_pars parameetrs for time of ICU duration
 ##' @param cores The number of CPU cores to run this model on in parallel
 ##' @param root_out_dir Path to the directory to write the outputs of this analysis
+##' @param use_parquet Whether to save to parquet files rather than csvs
 ##'
 ##' @export
 build_hospdeath_par <- function(p_hosp,
@@ -82,7 +220,8 @@ build_hospdeath_par <- function(p_hosp,
                                 time_ICUdur_pars = c(log(17.46), log(4.044)),
                                 time_ventdur_pars = log(17),
                                 cores=8,
-                                root_out_dir='hospitalization') {
+                                root_out_dir='hospitalization',
+                                use_parquet = FALSE) {
 
   n_sim <- length(list.files(data_filename))
   print(paste("Creating cluster with",cores,"cores"))
@@ -97,8 +236,9 @@ build_hospdeath_par <- function(p_hosp,
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_ <- hosp_load_scenario_sim(data_filename,s,
-                                   keep_compartments = "diffI", 
-                                   geoid_len = 5) %>%
+                                   keep_compartments = "diffI",
+                                   geoid_len = 5,
+                                   use_parquet = use_parquet) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -155,12 +295,18 @@ build_hospdeath_par <- function(p_hosp,
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
-    outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
-    outdir <- gsub('/[^/]*$','',outfile)
+    outdir <- paste0(root_out_dir,'/', data_filename,'/')
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    data.table::fwrite(res,outfile)
+    if(use_parquet){
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.parquet')
+      arrow::write_parquet(res,outfile)
+    } else {
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
+      data.table::fwrite(res,outfile)
+    }
+    NULL
   }
   doParallel::stopImplicitCluster()
 }
@@ -200,7 +346,8 @@ build_hospdeath_geoid_par <- function(
   time_ICUdur_pars = c(log(17.46), log(4.044)),
   time_ventdur_pars = log(17),
   cores=8,
-  root_out_dir='hospitalization') {
+  root_out_dir='hospitalization',
+  use_parquet = FALSE) {
 
   ## add in scaling factor to p_symp_inf
   prob_dat$p_symp_inf_scaled <- prob_dat$p_symp_inf * scl_fac
@@ -220,7 +367,8 @@ build_hospdeath_geoid_par <- function(
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_I <- hosp_load_scenario_sim(data_filename,s,
                                     keep_compartments = "diffI",
-                                    geoid_len=5) %>%
+                                    geoid_len=5,
+                                    use_parquet = use_parquet) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -280,12 +428,18 @@ build_hospdeath_geoid_par <- function(
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
-    outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
-    outdir <- gsub('/[^/]*$','',outfile)
+    outdir <- paste0(root_out_dir,'/', data_filename,'/')
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    fwrite(res,outfile)
+    if(use_parquet){
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.parquet')
+      arrow::write_parquet(res,outfile)
+    } else {
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
+      data.table::fwrite(res,outfile)
+    }
+    NULL
   }
   doParallel::stopImplicitCluster()
 }
@@ -324,7 +478,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   time_ICUdur_pars = c(log(17.46), log(4.044)),
   time_ventdur_pars = log(17),
   cores=8,
-  root_out_dir='hospitalization'
+  root_out_dir='hospitalization',
+  use_parquet = FALSE
 ) {
   n_sim <- length(list.files(data_filename))
   print(paste("Creating cluster with",cores,"cores"))
@@ -345,7 +500,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     dat_I <- hosp_load_scenario_sim(data_filename,s,
                                    keep_compartments = "diffI",
-                                   geoid_len=5) %>%
+                                   geoid_len=5,
+                                   use_parquet = use_parquet) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -413,13 +569,18 @@ build_hospdeath_geoid_fixedIFR_par <- function(
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
-    outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
-    outdir <- gsub('/[^/]*$','',outfile)
+    outdir <- paste0(root_out_dir,'/', data_filename,'/')
     if(!dir.exists(outdir)){
       dir.create(outdir,recursive=TRUE)
     }
-    fwrite(res,outfile)
+    if(use_parquet){
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.parquet')
+      arrow::write_parquet(res,outfile)
+    } else {
+      outfile <- paste0(root_out_dir,'/', data_filename,'/',scenario_name,'-',s,'.csv')
+      data.table::fwrite(res,outfile)
+    }
+    NULL
   }
   doParallel::stopImplicitCluster()
 }
-
