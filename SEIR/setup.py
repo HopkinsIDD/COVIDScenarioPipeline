@@ -44,7 +44,7 @@ class SpatialSetup:
 
         elif ('.csv' in str(mobility_file)):
             print('Mobility files as matrices are not recommended. Please switch soon to long form csv files.')
-            mobility_data = pd.read_csv(mobility_file)
+            mobility_data = pd.read_csv(mobility_file, converters={'ori': lambda x: str(x), 'dest': lambda x: str(x)})
             self.mobility = scipy.sparse.csr_matrix((self.nnodes, self.nnodes))
             for index, row in mobility_data.iterrows():
                 self.mobility[self.nodenames.index(row['ori']),self.nodenames.index(row['dest'])] = row['amount']
