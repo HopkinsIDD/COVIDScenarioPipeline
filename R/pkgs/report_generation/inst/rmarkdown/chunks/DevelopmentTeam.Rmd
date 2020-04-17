@@ -9,6 +9,7 @@ Working Group**:
 **Johns Hopkins Infectious Disease Dynamics**
 
 * Qifang Bi
+* M. Kate Grabowski
 * Kyra H. Grantz
 * Joshua Kaminsky
 * Stephen A. Lauer
