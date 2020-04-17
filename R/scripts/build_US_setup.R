@@ -3,7 +3,8 @@ library(tidyr)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
-  optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory")
+  optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory"),
+  optparse::make_option(c("-w", "--wide_form"), action="store",default=FALSE,type='logical',help="Whether to generate the old wide format mobility or the new long format")
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
@@ -45,13 +46,15 @@ t_commute_table <- tibble(
   FLOW = commute_data$FLOW
 )
 
-rc <- padding_table %>% bind_rows(commute_data) %>% bind_rows(t_commute_table) %>%
-  pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
+rc <- padding_table %>% bind_rows(commute_data) %>% bind_rows(t_commute_table)
+if(opt$w){
+  rc <- rc %>%pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
+}
 
 if(!isTRUE(all(rc$OFIPS == census_data$GEOID))){
   stop("There was a problem generating the mobility matrix")
 }
 
 print(outdir)
-write.table(file = file.path(outdir,'mobility.txt'), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
+write.csv(file = file.path(outdir,'mobility.txt'), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
 write.csv(file = file.path(outdir,'geodata.csv'), census_data)
