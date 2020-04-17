@@ -1,11 +1,23 @@
+# Parse command-line
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
-  optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory"),
-  optparse::make_option(c("-n", "--ncoreper"), action="store", default="1", type='character', help="Number of CPUS/jobs for pipeline")
+  optparse::make_option(c("-p", "--pipepath"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory"),
+  optparse::make_option(c("-n", "--ncoreper"), action="store", default="1", type='character', help="Number of CPUS/jobs for pipeline"),
+  optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable")
 )
-opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
-config = covidcommon::load_config(opt$c)
+parser=optparse::OptionParser(option_list=option_list)
+opt = optparse::parse_args(parser)
+
+if(opt$config == ""){
+  optparse::print_help(parser)
+  stop(paste(
+    "Please specify a config YAML file with either -c option or CONFIG_PATH environment variable."
+  ))
+}
+
+# Parse config
+config = covidcommon::load_config(opt$config)
 if(isTRUE(config$this_file_is_unedited)){
   stop(paste(
     "Please make minimal edits to the config file before running this script.
@@ -26,6 +38,20 @@ cat("\n")
 
 using_importation <- ("importation" %in% names(config))
 generating_report <- ("report" %in% names(config))
+
+if(generating_report)
+{
+  # Create report name (no suffix) for the .Rmd and .html
+  report_name = ""
+  if(length(config$report_location_name) != 0){
+    report_name = config$report_location_name
+  } else if(length(config$name) != 0){
+    report_name = config$name
+  } else {
+    stop(paste("Please specify report_location_name or name in the config"))
+  }
+  report_name = paste0(report_name, "_",  format(Sys.Date(), format="%Y%m%d"))
+}
 
 importation_target_name <- function(simulation, prefix = ""){
   paste0(".files/",prefix,simulation,"_importation")
@@ -110,36 +136,59 @@ cat("
 .PHONY: rerun rerun_simulations rerun_hospitalization clean_hospitalization clean clean_simulations
 
 RSCRIPT=Rscript
-PYTHON=python3
 ")
+cat(paste0("PYTHON=",opt$python,"\n"))
+cat(paste0("NCOREPER=",opt$ncoreper,"\n"))
+cat(paste0("PIPELINE=",opt$pipepath,"\n"))
+cat(paste0("CONFIG=",opt$config,"\n\n"))
 
-cat(paste0("NCOREPER=",opt$n,"\n"))
-cat(paste0("PIPELINE=",opt$p,"\n"))
-cat(paste0("CONFIG=",opt$c,"\n\n"))
-
-cat("
-.files:
-\tmkdir $@
-")
-
-if(generating_report){
-  cat("report:")
+# Generate first target
+# If generating report, first target is the html file.
+# Otherwise, first target is run.
+# For both, the dependencies include all the simulation targets.
+if(generating_report)
+{
+  rmd_file = sprintf("notebooks/%s/%s_report.Rmd", report_name, report_name)
+  report_html_target_name = sprintf("notebooks/%s/%s_report.html", report_name, report_name)
+  cat(paste0(report_html_target_name,":"))
 } else {
   cat("run:")
 }
-for(scenario in scenarios){
+
+for(scenario in scenarios)
+{
   cat(" ")
   cat(simulation_target_name(simulations,scenario))
-  for(deathrate in deathrates){
+  for(deathrate in deathrates)
+  {
     cat(" ")
     cat(hospitalization_target_name(simulations,scenario,deathrate))
   }
 }
-cat("\n")
 
-if(generating_report){
-  cat("\tRscript compile_Rmd.R\n")
+if(generating_report)
+{
+  # final target dependency for .html is the Rmd
+  cat(sprintf(" %s\n", rmd_file))
+
+  renderCmd = sprintf("\t$(RSCRIPT) -e 'rmarkdown::render(\"%s\"", rmd_file)
+  renderCmd = paste0(renderCmd, sprintf(", params=list(state_usps=\"%s\"", config$report$state_usps))
+  if(length(config$report$continue_on_error) != 0)
+  {
+    renderCmd = paste0(renderCmd, 
+                      sprintf(", continue_on_error=%s", config$report$continue_on_error))
+  }
+  renderCmd = paste0(renderCmd, "))'")
+  cat(renderCmd)
+
+  rmd_target = sprintf("
+%s:
+\tmkdir -p notebooks/%s
+\t$(RSCRIPT) -e 'rmarkdown::draft(\"$@\",template=\"state_report\",package=\"report.generation\",edit=FALSE)'", 
+rmd_file, report_name)
+  cat(rmd_target)
 }
+cat("\n")
 
 if(using_importation){
   for(sim_idx in seq_len(length(simulations))){
@@ -159,6 +208,12 @@ for(sim_idx in seq_len(length(simulations))){
     }
   }
 }
+
+cat("
+.files:
+\tmkdir $@
+")
+
 
 cat(paste0("
 
@@ -182,19 +237,27 @@ rerun_simulations: clean_simulations
 \trm -f .files/1*_simulation*
 rerun_hospitalization:
 \trm -f .files/1*_hospitalization*
-clean: clean_simulations clean_hospitalization clean_reports
-\trm -rf .files"
-))
+clean: clean_simulations clean_hospitalization"))
 if(using_importation){
   cat(" clean_importation clean_filter")
 }
-cat(paste0("
-clean_reports:
-\trm -f notebooks/*.html
+if(generating_report)
+{
+  cat(" clean_reports")
+}
+cat("
+\trm -rf .files
 clean_simulations: rerun_simulations
 \trm -rf model_output
 clean_hospitalization: rerun_hospitalization
 \trm -rf hospitalization
-"))
+")
+if(generating_report)
+{
+  cat(paste0("
+clean_reports:
+\trm -f ",report_html_target_name))
+}
+
 
 sink(NULL)

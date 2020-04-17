@@ -1,0 +1,10 @@
+alpha: 0.5
+sigma: 1 / 5.2
+gamma:
+  distribution: uniform
+  low: 1 / 6
+  high: 1 / 2.6
+R0s:
+  distribution: uniform
+  low: 2
+  high: 3
