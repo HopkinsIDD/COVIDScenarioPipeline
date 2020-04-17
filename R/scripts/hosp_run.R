@@ -8,11 +8,6 @@
 # 
 # ```yaml
 # name
-# spatial_setup:
-#   setup_name: <string>
-#   base_path: <path to directory>
-#   geodata: <path to file>
-#   popnodes: <string>
 #
 # interventions:
 #   scenarios:
@@ -55,7 +50,6 @@
 #
 # ## Input Data
 #
-# * <b>{spatial_setup::base_path}/{spatial_setup::geodata}</b> is a path to a csv with columns "geoid" and {spatial_setup::popnodes}
 # * <b>model\_output/{name}\_[scenario]</b> is a directory of csv's. 
 #    + Each csv must have columns: "time", "comp", and each geoid of interest.
 #    + The "comp" column must have a value of "diffI" in at least one row. 
@@ -139,7 +133,6 @@ time_vent_pars <- as_evaled_expression(hosp_parameters$time_vent)
 p_death <- as_evaled_expression(hosp_parameters$p_death)
 names(p_death) = hosp_parameters$p_death_names
 
-# config$hospitalization$paths$output_path
 cmd <- opt$d
 scenario <- opt$s
 ncore <- opt$j
@@ -157,14 +150,6 @@ if (scenario == "all" ) {
   message(paste("Invalid scenario argument:", scenario, "did not match any of the named args in", paste(config$interventions$scenario, collapse = ", ") , "\n"))
   quit("yes", status=1)
 }
-
-print(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
-county_dat <- read.csv(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
-print(county_dat)
-county_dat$geoid <- as.character(county_dat$geoid)
-county_dat$new_pop <- county_dat[[config$spatial_setup$popnodes]]
-#county_dat <- make_metrop_labels(county_dat)
-
 
 
 ## Running age-adjusted script
