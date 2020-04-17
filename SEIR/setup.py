@@ -34,11 +34,24 @@ class SpatialSetup:
         if len(self.nodenames) != len(set(self.nodenames)):
             raise ValueError(f"There are duplicate nodenames in geodata.")
 
-        self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
 
-        # Validate mobility data
-        if self.mobility.shape != (self.nnodes, self.nnodes):
-             raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
+        if ('.txt' in str(mobility_file)):
+            print('Mobility files as matrices are not recommended. Please switch soon to long form csv files.')
+            self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
+            # Validate mobility data
+            if self.mobility.shape != (self.nnodes, self.nnodes):
+                raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
+
+        elif ('.csv' in str(mobility_file)):
+            print('Mobility files as matrices are not recommended. Please switch soon to long form csv files.')
+            mobility_data = pd.read_csv(mobility_file)
+            self.mobility = scipy.sparse.csr_matrix((self.nnodes, self.nnodes))
+            for index, row in mobility_data.iterrows():
+                self.mobility[self.nodenames.index(row['ori']),self.nodenames.index(row['dest'])] = row['amount']
+                if (self.nodenames.index(row['ori']) == self.nodenames.index(row['dest'])):
+                    raise ValueError(f"Mobility fluxes with same origin and destination: '{row['ori']}' to {row['dest']} in long form matrix. This is not supported")
+        else:
+            raise ValueError(f"Mobility data must either be a .csv file in longform (recommended) or a .txt matrix file. Got {mobility_file}")
 
         # if (self.mobility - self.mobility.T).nnz != 0:
         #     raise ValueError(f"mobility data is not symmetric.")
