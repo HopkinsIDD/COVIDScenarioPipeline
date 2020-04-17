@@ -16,7 +16,7 @@ scenarios <- ifelse(opt$s == "all", config$interventions$scenarios, opt$s)
 scn_dirs <- paste(config$name, scenarios, sep='_')
 geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
                              geoid_len=5)
-included_geoids <- sort(unique(geodata$geoid))
+included_geoids <- (geodata %>% dplyr::rename(targeted = config$spatial_setup$include_in_report) %>% dplyr::filter(targeted))$geoid
 pdeathnames <- config$hospitalization$parameters$p_death_names ## c("med")
 
 nfiles = 15
@@ -129,21 +129,21 @@ ggplot(hosp_plt, aes(x = time, y = NincidICU, group = sim_num)) +
   guides(colour = "none") +
   facet_wrap(~scenario_name, ncol=1)
 
-# ggplot(hosp_plt, aes(x = time, y = NincidVent, group = sim_num)) +
-#   geom_line(aes(colour = sim_num)) +
-#   scale_x_date(date_breaks = "1 month",
-#                date_labels = "%b") +
-#   scale_y_continuous("Total vent admissions", labels = scales::comma) +
-#   guides(colour = "none") +
-#   facet_wrap(~scenario_name, ncol=1)
+ggplot(hosp_plt, aes(x = time, y = NincidVent, group = sim_num)) +
+  geom_line(aes(colour = sim_num)) +
+  scale_x_date(date_breaks = "1 month",
+               date_labels = "%b") +
+  scale_y_continuous("Total vent admissions", labels = scales::comma) +
+  guides(colour = "none") +
+  facet_wrap(~scenario_name, ncol=1)
 
-# ggplot(hosp_plt, aes(x = time, y = NventCurr, group = sim_num)) +
-#   geom_line(aes(colour = sim_num)) +
-#   scale_x_date(date_breaks = "1 month",
-#                date_labels = "%b") +
-#   scale_y_continuous("Total vent curr", labels = scales::comma) +
-#   guides(colour = "none") +
-#   facet_wrap(~scenario_name, ncol=1)
+ggplot(hosp_plt, aes(x = time, y = NventCurr, group = sim_num)) +
+  geom_line(aes(colour = sim_num)) +
+  scale_x_date(date_breaks = "1 month",
+               date_labels = "%b") +
+  scale_y_continuous("Total vent curr", labels = scales::comma) +
+  guides(colour = "none") +
+  facet_wrap(~scenario_name, ncol=1)
 
 
 ## check population size
