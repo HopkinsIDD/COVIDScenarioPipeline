@@ -79,7 +79,10 @@ def onerun_SEIR(uid, s):
         if s.write_parquet:
             npi['time'] = npi.index
             pa_npi = pa.Table.from_pandas(npi,preserve_index = False)
+            pa.parquet.write_table(pa_npi,f"{s.paramdir}{outfile_prefix}_npi.parquet")
+
             setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params","parquet")
+
             out_df['time'] = out_df.index
             pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
             pa.parquet.write_table(pa_df,f"{s.datadir}{outfile_prefix}.parquet")
