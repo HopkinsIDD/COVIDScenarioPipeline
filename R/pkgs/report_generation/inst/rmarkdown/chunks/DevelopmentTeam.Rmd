@@ -10,12 +10,14 @@ Working Group**:
 
 * Qifang Bi
 * Jacob Fiksel
+* M. Kate Grabowski
 * Kyra H. Grantz
 * Joshua Kaminsky
 * Stephen A. Lauer
 * Elizabeth C. Lee
 * Justin Lessler
 * Hannah R. Meredith
+* Javier Perez-Saez
 * Shaun A. Truelove
 
 
