@@ -3,7 +3,8 @@ option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
   optparse::make_option(c("-p", "--pipepath"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory"),
   optparse::make_option(c("-n", "--ncoreper"), action="store", default="1", type='character', help="Number of CPUS/jobs for pipeline"),
-  optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable")
+  optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable"),
+  optparse::make_option(c("-r", "--rpath"), action="store", default="Rscript", type = 'character', help = "path to R executable")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -136,12 +137,12 @@ sink("Makefile")
 cat("
 .PHONY: rerun rerun_simulations rerun_hospitalization clean_hospitalization clean clean_simulations
 
-RSCRIPT=Rscript
 ")
 cat(paste0("PYTHON=",opt$python,"\n"))
 cat(paste0("NCOREPER=",opt$ncoreper,"\n"))
 cat(paste0("PIPELINE=",opt$pipepath,"\n"))
 cat(paste0("CONFIG=",opt$config,"\n\n"))
+cat(paste0("RSCRIPT=",opt$rpath,"\n\n"))
 
 # Generate first target
 # If generating report, first target is the html file.
