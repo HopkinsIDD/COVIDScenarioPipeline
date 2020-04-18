@@ -179,7 +179,8 @@ load_ts_current_hosp_geounit <- function(scn_dirs,
                                          geoid_len = 0,
                                          padding_char = "0",
                                          qlo = 0.025,
-                                         qhi= 0.975){
+                                         qhi= 0.975,
+                                         file_extension = 'auto') {
   
   if(is.null(scenariolabels)){
     warning("You have not specified scenario labels for this function. You may encounter future errors.")
@@ -243,7 +244,8 @@ load_ts_current_hosp_geounit <- function(scn_dirs,
                                        name_filter = name_filter,
                                        post_process = hosp_post_process,
                                        geoid_len = geoid_len,
-                                       padding_char = padding_char) 
+                                       padding_char = padding_char,
+                                       file_extension = file_extension) 
     rc[[i]]$scenario_num <- i
     rc[[i]]$scenario_name <- scenariolabels[[i]]
   }
@@ -753,7 +755,8 @@ load_hosp_geounit_relative_to_threshold <- function(
                       incl_geoids = NULL,
                       scenario_labels = NULL,
                       geoid_len = 0,
-                      padding_char = "0"
+                      padding_char = "0",
+                      file_extension = 'auto'
                       ){
 
   if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
@@ -788,7 +791,8 @@ load_hosp_geounit_relative_to_threshold <- function(
                                          name_filter = name_filter,
                                          post_process = hosp_post_process,
                                          geoid_len = geoid_len,
-                                         padding_char = padding_char)
+                                         padding_char = padding_char,
+                                         file_extension = file_extension)
       rc[[i]]$scenario_num <- i
       rc[[i]]$scenario_label <- scenario_labels[[i]]
   }

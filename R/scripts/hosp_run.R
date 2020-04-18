@@ -56,7 +56,7 @@
 #
 # ## Output Data
 #
-# * <b>hospitalization/model\_output/{name}\_[scenario]/[deathrate]\_death-*.csv</b> A csv is created for each csv in input data model\_output/{name}\_[scenario]. The columns in the output csv's are:
+# * <b>hospitalization/model\_output/{name}\_[scenario]/[deathrate]\_death-[simulation ID].hosp.[csv/parquet]</b> Created for each csv in input data model\_output/{name}\_[scenario]. The columns in the output csv's are:
 #    + time
 #    + uid
 #    + geoid
@@ -156,7 +156,8 @@ if (scenario == "all" ) {
 if(run_age_adjust){
 
   # read in probability file
-  prob_dat <- readr::read_csv(paste(opt$p,"data","geoid-params.csv",sep='/'))
+  # NOTE(jwills): this file would ideally live inside of the hospitalization package as an .Rdata object
+  prob_dat <- readr::read_csv(paste(opt$p,"sample_data","geoid-params.csv",sep='/'))
 
   time_onset_death_pars <- as_evaled_expression(hosp_parameters$time_onset_death)
   p_hosp_inf <- as_evaled_expression(hosp_parameters$p_hosp_inf)
@@ -182,13 +183,13 @@ if(run_age_adjust){
                                                      time_ventdur_pars = time_ventdur_pars,
                                                      time_ICUdur_pars = time_ICUdur_pars,
                                                      cores = ncore,
-                                                     data_filename = data_dir,
-                                                     scenario_name = paste(cmd0,"death",sep="_"),
+                                                     data_dir = data_dir,
+                                                     dscenario_name = paste(cmd,"death",sep="_"),
                                                      use_parquet = TRUE
       )
     }
   }
-} else{
+} else {
 
   p_death_rate <- as_evaled_expression(hosp_parameters$p_death_rate)
   p_ICU <- as_evaled_expression(hosp_parameters$p_ICU)
@@ -226,8 +227,8 @@ if(run_age_adjust){
                                       time_ICUdur_pars = time_ICUdur_pars,
                                       time_ventdur_pars = time_ventdur_pars,
                                       cores = ncore,
-                                      data_filename = data_dir,
-                                      scenario_name = paste(cmd0,"death",sep="_"),
+                                      data_dir = data_dir,
+                                      dscenario_name = cmd0,
                                       use_parquet = TRUE
       )
     }
