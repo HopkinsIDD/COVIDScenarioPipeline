@@ -15,17 +15,17 @@ test_that("as_random_distribution works", {
   })
 
   expect_true({
-    rn <- as_random_distribution(list(distribution = "binomial",n=5,p="1/10"))
+    rn <- as_random_distribution(list(distribution = "binomial",size=5,prob="1/10"))
     all(is.numeric(rn(100)) & (rn(100) >= 0) & (rn(100) <= 5))
   })
 
   expect_error({
-    rn <- as_random_distribution(list(distribution = "uniform",n=5,p="1/10"))
+    rn <- as_random_distribution(list(distribution = "uniform",size=5,prob="1/10"))
     rn(100)
   })
 
   expect_error({
-    rn <- as_random_distribution(list(distribution = "poisson",n=5,p="1/10"))
+    rn <- as_random_distribution(list(distribution = "poisson",size=5,prob="1/10"))
     rn(100)
   })
 
@@ -73,12 +73,12 @@ test_that("as_random_distribution works", {
   })
 
   expect_true({
-    rn <- as_random_distribution(list(distribution = "binomial",n=5,p="1/10"))
+    rn <- as_random_distribution(list(distribution = "binomial",size=5,prob="1/10"))
     mean(rn(100000)) > 5*1/10*.99 & mean(rn(100000)) < 5*1/10*1.01
   })
 
   expect_true({
-    rn <- as_random_distribution(list(distribution = "binomial",n=5,p="1/10"))
+    rn <- as_random_distribution(list(distribution = "binomial",size=5,prob="1/10"))
     var(rn(100000)) > 5*1/10*9/10*.99 & var(rn(100000)) < 5*1/10*9/10*1.01
   })
 
