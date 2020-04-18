@@ -5,6 +5,8 @@ Public shared code for doing scenario forecasting and creating reports for vario
 
 ### Set up the repository
 
+**Please see [our template](https://github.com/HopkinsIDD/COVID19_Minimal) for instructions on how to get started.**
+
 **Please see the [Wiki for this repository](https://github.com/HopkinsIDD/COVIDScenarioPipeline/wiki) for updated instructions on how to clone the repository and push/pull changes.**
 
 If making changes to this repository, please do it directly instead of through the submodule of another repository.
@@ -41,6 +43,7 @@ Curriculum](https://docker-curriculum.com/) is a good starting point.
 
 ## Starting environment
 
+
 A pre-built container can be pulled from Docker Hub via:
 ```
 docker pull hopkinsidd/covidscenariopipeline:latest
@@ -64,7 +67,6 @@ Run `docker build .` if you ever need to rebuild the container.
 # Configuration files
 
 The pipeline now uses a configuration file to set simulation parameters.
-A template can be found in `config.yml`. The easiest way to specify this
 config file to jobs is to use the `CONFIG_PATH` environment variable:
 
 ```
