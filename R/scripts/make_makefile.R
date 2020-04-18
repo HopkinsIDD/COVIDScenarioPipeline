@@ -234,13 +234,13 @@ clean_importation: rerun_importation
 }
 cat(paste0("
 rerun_filter:
-\trm -f .files/1*_filter
+\trm -f .files/*_filter
 rerun_importation:
-\trm -f .files/1*_importation
+\trm -f .files/*_importation
 rerun_simulations: clean_simulations
-\trm -f .files/1*_simulation*
+\trm -f .files/*_simulation*
 rerun_hospitalization:
-\trm -f .files/1*_hospitalization*
+\trm -f .files/*_hospitalization*
 clean: clean_simulations clean_hospitalization"))
 if(using_importation){
   cat(" clean_importation clean_filter")
