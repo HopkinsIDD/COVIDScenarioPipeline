@@ -156,7 +156,8 @@ if (scenario == "all" ) {
 if(run_age_adjust){
 
   # read in probability file
-  prob_dat <- readr::read_csv(paste(opt$p,"data","geoid-params.csv",sep='/'))
+  # NOTE(jwills): this file would ideally live inside of the hospitalization package as an .Rdata object
+  prob_dat <- readr::read_csv(paste(opt$p,"sample_data","geoid-params.csv",sep='/'))
 
   time_onset_death_pars <- as_evaled_expression(hosp_parameters$time_onset_death)
   p_hosp_inf <- as_evaled_expression(hosp_parameters$p_hosp_inf)
