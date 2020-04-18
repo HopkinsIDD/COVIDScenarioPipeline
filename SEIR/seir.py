@@ -18,17 +18,15 @@ ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
-def onerun_SEIR(uid, s):
+def onerun_SEIR(sim_id, s):
     scipy.random.seed()
 
-    out_uuid = str(uuid.uuid4())
-
-    outfile_prefix = f"{s.timestamp}_{s.setup_name}_{out_uuid}"
+    sim_id_str = str(sim_id).zfill(9)
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
     npi = npi.get().T
 
-    seeding = setup.seeding_draw(s, uid)
+    seeding = setup.seeding_draw(s, sim_id)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -36,15 +34,12 @@ def onerun_SEIR(uid, s):
     parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes, s.dt, npi)
 
     states = steps_SEIR_nb(parameters,
-                           seeding, uid, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
     # Tidyup data for  R, to save it:
     if (s.write_csv or s.write_parquet):
-        # Write R0 reductions and parameters
-
-
-        # Write output
+        # Write output to .snpi.*, .spar.*, and .seir.* files
         a = states.copy()[:, :, ::int(1 / s.dt)]
         a = np.moveaxis(a, 1, 2)
         a = np.moveaxis(a, 0, 1)
@@ -70,34 +65,34 @@ def onerun_SEIR(uid, s):
         out_df['comp'].replace(cumI, 'cumI', inplace=True)
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
         if s.write_csv:
-            npi.to_csv(f"{s.paramdir}{outfile_prefix}_npi.csv", index_label="time")
-            setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params","csv")
+            npi.to_csv(f"{s.paramdir}{sim_id}.snpi.csv", index_label="time")
+            setup.parameters_write(parameters, f"{s.paramdir}{sim_id_str}.spar","csv")
             out_df.to_csv(
-                f"{s.datadir}{outfile_prefix}.csv",
+                f"{s.datadir}{sim_id}.seir.csv",
                 index='time',
                 index_label='time')
         if s.write_parquet:
             npi['time'] = npi.index
             pa_npi = pa.Table.from_pandas(npi,preserve_index = False)
-            pa.parquet.write_table(pa_npi,f"{s.paramdir}{outfile_prefix}_npi.parquet")
+            pa.parquet.write_table(pa_npi,f"{s.paramdir}{sim_id_str}.snpi.parquet")
 
-            setup.parameters_write(parameters, f"{s.paramdir}{outfile_prefix}_params","parquet")
+            setup.parameters_write(parameters, f"{s.paramdir}{sim_id_str}.spar","parquet")
 
             out_df['time'] = out_df.index
             pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
-            pa.parquet.write_table(pa_df,f"{s.datadir}{outfile_prefix}.parquet")
+            pa.parquet.write_table(pa_df,f"{s.datadir}{sim_id_str}.seir.parquet")
     return 1
 
 
 def run_parallel(s, *, n_jobs=1):
     start = time.monotonic()
-    uids = np.arange(s.nsim)
+    sim_ids = np.arange(1, s.nsim + 1)
 
     if n_jobs == 1:          # run single process for debugging/profiling purposes
-        for uid in tqdm.tqdm(uids):
-            onerun_SEIR(uid, s)
+        for sim_id in tqdm.tqdm(sim_ids):
+            onerun_SEIR(sim_id, s)
     else:
-        tqdm.contrib.concurrent.process_map(onerun_SEIR, uids, itertools.repeat(s),
+        tqdm.contrib.concurrent.process_map(onerun_SEIR, sim_ids, itertools.repeat(s),
                                             max_workers=n_jobs)
 
     print(f"""
@@ -106,14 +101,13 @@ def run_parallel(s, *, n_jobs=1):
 
 
 @jit(nopython=True)
-def steps_SEIR_nb(p_vec, seeding, uid, dt, t_inter, nnodes, popnodes,
+def steps_SEIR_nb(p_vec, seeding, dt, t_inter, nnodes, popnodes,
                   mobility_row_indices, mobility_data_indices, mobility_data, dynfilter):
     """
         Made to run just-in-time-compiled by numba, hence very descriptive and using loop,
         because loops are expanded by the compiler hence not a problem.
         as there is very few authorized function. Needs the nopython option to be fast.
     """
-    #np.random.seed(uid)
     alpha, beta, sigma, gamma = p_vec
     t = 0
 
