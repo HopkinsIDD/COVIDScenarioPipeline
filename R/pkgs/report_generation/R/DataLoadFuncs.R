@@ -21,6 +21,7 @@ read_file_of_type <- function(extension,...){
       if("POSIXct" %in% class(tmp$time)){
         tmp$time <- lubridate::as_date(tz="GMT",tmp$time)
       }
+      tmp
     })
   }
   if(extension == 'auto'){
