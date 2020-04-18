@@ -16,12 +16,7 @@ read_file_of_type <- function(extension,...){
       )))})
   }
   if(extension == 'parquet'){
-    return(function(x){
-      tmp <- arrow::read_parquet(x) 
-      if("POSIXct" %in% class(tmp$time)){
-        tmp$time <- lubridate::as_date(tz="GMT",tmp$time)
-      }
-    })
+    return(arrow::read_parquet)
   }
   if(extension == 'auto'){
     return(function(filename){
