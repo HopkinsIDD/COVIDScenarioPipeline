@@ -15,7 +15,9 @@ option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
   #' @param -s The intervention scenario
   optparse::make_option(c("-s", "--scenario"), action="store", default='all', type='character', help="name of the intervention to run, or 'all' to run all of them"),
-  optparse::make_option(c("-n", "--ncoreper"), action="store", default="8", type='integer', help="Number of CPUS/jobs for pipeline")
+  #' @param -d The death rate
+  optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenario to run, or 'all' to run all of them"),
+  optparse::make_option(c("-j", "--jobs"), action="store", default="8", type='integer', help="Number of jobs to run in parallel")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -39,6 +41,7 @@ nfiles <- config$nsimulations## set to NULL or the actual number of sim files to
 
 data_path <- config$filtering$data_path
 
+# Parse jhucsse using covidImportation
 if (!file.exists(data_path)) {
   jhucsse <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
                                    last_date = as.POSIXct(lubridate::ymd(config$end_date)),
@@ -62,6 +65,15 @@ if (!file.exists(data_path)) {
   rm(jhucsse)
 }
 
+# Parse scenario arguments
+deathrates <- opt$d
+if(deathrates == "all") {
+  deathrates<- names(as_evaled_expression(config$hospitalization$p_death)) # Run all of the configured hospitalization scenarios
+} else if (!(deathrates %in% names(config$hospitalization$p_death))) {
+  message(paste("Invalid death rate argument:", deathrate, "did not match any of the named args in", paste( p_death, collapse = ", "), "\n"))
+  quit("yes", status=1)
+}
+
 scenarios <- opt$s
 if (scenarios == "all"){
   scenarios <- config$interventions$scenarios
@@ -70,111 +82,108 @@ if (scenarios == "all"){
   quit("yes", status=1)
 }
 
-for(scenario in scenarios){
-  # ! This needs to be checked, if understood correctly this should correspond to the slot:
-  # - 1 specific scenario and all pdeath outputs (?)
-  sim_dir <- paste0(config$name,"_",scenario)
-  sim_files <- list.files(sim_dir, full.names = T)
-  
-  # Functions --------------------------------------------------------------------
-  
-  # Function to apply time aggreation
-  periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k, aggregator, na.rm = F) {
-    if(na.rm) {
-      dates <- dates[!is.na(data)]
-      data <- data[!is.na(data)]
-    }
-    if (length(data) == 0) {
-      return(data.frame(date = NA, stat = NA))
-    }
-    if (!is.null(end_date)) {
-      data <- data[dates <= end_date]
-      dates <- dates[dates <= end_date]
-    }
-    
-    xtsobj <- as.xts(zoo(data, dates))
-    stats <- period.apply(xtsobj, 
-                          endpoints(xtsobj, on = period_unit, k = period_k),
-                          aggregator)
-    return(stats)
+# Function to apply time aggreation
+
+periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k, aggregator, na.rm = F) {
+  if(na.rm) {
+    dates <- dates[!is.na(data)]
+    data <- data[!is.na(data)]
+  }
+  if (length(data) == 0) {
+    return(data.frame(date = NA, stat = NA))
+  }
+  if (!is.null(end_date)) {
+    data <- data[dates <= end_date]
+    dates <- dates[dates <= end_date]
   }
   
-  getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
-    lapply(
-      stat_list,
-      function(s) {
-        aggregator <- match.fun(s$aggregator)
-        # Get the time period over whith to apply aggregation
-        period_info <- strsplit(s$period, " ")[[1]]
-        
-        res <- periodAggregate(df[[s[[var_col]]]],
-                               df[[time_col]],
-                               end_date,
-                               period_info[2],
-                               period_info[1],
-                               aggregator,
-                               na.rm = s$remove_na)
-        res %>% 
-          as.data.frame() %>% 
-          mutate(date = rownames(.)) %>% 
-          set_colnames(c(var_col, "date")) %>% 
-          select(date, one_of(var_col))
-      })
+  xtsobj <- as.xts(zoo(data, dates))
+  stats <- period.apply(xtsobj, 
+                        endpoints(xtsobj, on = period_unit, k = period_k),
+                        aggregator)
+  return(stats)
+}
+
+getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
+  lapply(
+    stat_list,
+    function(s) {
+      aggregator <- match.fun(s$aggregator)
+      # Get the time period over whith to apply aggregation
+      period_info <- strsplit(s$period, " ")[[1]]
+      
+      res <- periodAggregate(df[[s[[var_col]]]],
+                             df[[time_col]],
+                             end_date,
+                             period_info[2],
+                             period_info[1],
+                             aggregator,
+                             na.rm = s$remove_na)
+      res %>% 
+        as.data.frame() %>% 
+        mutate(date = rownames(.)) %>% 
+        set_colnames(c(var_col, "date")) %>% 
+        select(date, one_of(var_col))
+    })
+}
+
+logLikStat <- function(obs, sim, distr, param, add_one = F) {
+  if (add_one) {
+    sim[sim == 0] = 1
   }
-  
-  
-  logLikStat <- function(obs, sim, distr, param, add_one = F) {
-    if (add_one) {
-      sim[sim == 0] = 1
-    }
-    if(distr == "pois") {
-      dpois(obs, sim, log = T)
-    } else if (distr == "norm") {
-      dnorm(obs, sim, sd = params[1], log = T)
-    } else if (distr == "nbinom") {
-      dnbinom(obs, sim, k = params[1], log = T)
+  if(distr == "pois") {
+    dpois(obs, sim, log = T)
+  } else if (distr == "norm") {
+    dnorm(obs, sim, sd = params[1], log = T)
+  } else if (distr == "nbinom") {
+    dnbinom(obs, sim, k = params[1], log = T)
+  }
+}
+
+iterateAccept <- function(df, ll_col) {
+  ind <- 1
+  lls <- df[[ll_col]]
+  ll_ref <- lls[1]
+  for (i in 2:length(lls)) {
+    ll_new <- lls[i]
+    ll_ratio <- exp(min(c(0, ll_new - ll_ref)))
+    if (ll_ratio >= runif(1)) {
+      ll_ref <- ll_new
+      ind <- i
     }
   }
-  
-  iterateAccept <- function(df, ll_col) {
-    ind <- 1
-    lls <- df[[ll_col]]
-    ll_ref <- lls[1]
-    for (i in 2:length(lls)) {
-      ll_new <- lls[i]
-      ll_ratio <- exp(min(c(0, ll_new - ll_ref)))
-      if (ll_ratio >= runif(1)) {
-        ll_ref <- ll_new
-        ind <- i
-      }
-    }
-    return(data.frame(ll = ll_ref, ind_accept = ind))
+  return(data.frame(ll = ll_ref, ind_accept = ind))
+}
+
+cl <- parallel::makeCluster(opt$n)
+doParallel::registerDoParallel(cl)
+required_packages <- c("dplyr", "magrittr", "xts", "zoo", "report.generation", "foreach", "itertools")
+foreach (scenario = scenarios) %:% {
+  foreach(deathrate = deathrates) %do% {
+    # Data -------------------------------------------------------------------------
+    # Load
+  if(!("obs" %in% ls())){
+    obs <<- readr::read_csv(data_path)
   }
-  
-  # Data -------------------------------------------------------------------------
-  # Load
-  obs <- readr::read_csv(data_path)
-  obs_nodename <- "USPS" # "config$spatial_setup$nodenames" is not the same? "geoid" in config
+  obs_nodename <- "USPS"
   geonames <- unique(obs[[obs_nodename]])
   # Compute statistics
-  data_stats <- lapply(geonames,
-                       function(x) {
-                         df <- obs[obs[[obs_nodename]] == x, ]
-                         getStats(df, "date", "data_var", stat_list = config$filtering$statistics)
-                       }) %>% 
-    set_names(geonames)
+  data_stats <- lapply(
+    geonames,
+    function(x) {
+      df <- obs[obs[[obs_nodename]] == x, ]
+      getStats(
+        df,
+        "date",
+        "data_var",
+        stat_list = config$filtering$statistics)
+    }) %>% 
+      set_names(geonames)
   
   # Load sims -----------------------------------------------------------
   
   # The number of cores can be changed to the number available in the slot
-  cl <- parallel::makeCluster(opt$n)
-  doParallel::registerDoParallel(cl)
   # Simulation outputs
-  epacks <- c("dplyr", "magrittr", "xts", "zoo", "report.generation", "foreach", "itertools")
-  ll_results <- foreach(i = 1:length(config$hospitalization$parameters$p_death_names),
-                        .combine = rbind, 
-                        .packages = epacks
-  ) %do% {
     
     # One scenarios, one pdeath
     sim_hosp <- load_hosp_sims_filtered(
