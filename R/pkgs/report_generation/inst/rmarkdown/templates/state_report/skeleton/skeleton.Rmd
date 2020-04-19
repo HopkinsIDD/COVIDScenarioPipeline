@@ -232,11 +232,11 @@ plot_ts_hosp_state_sample(state_hosp_totals,
                           sim_end_date = config$end_date,
                           num_sims = nfiles2,
                           pdeath_level = 0.01) +
-    geom_hline(aes(yintercept = 7442)) +
+    geom_hline(aes(yintercept = 7442)) + ## non-surge ICU bed capacity hard-coded
     facet_wrap(~scenario_name, nrow = 1) +
     theme(axis.text.x =element_text(angle=45), legend.position = "none")
 
-cap <- paste("**Fig. ", fig_counter, "**: Daily number of ICU beds needed for", nfiles2, "simulation realizations for", scen_desc_str, "at 1 % IFR assumptions. The horizontal line represents non-surge ICU bed capacity in California.")
+cap <- paste("**Fig. ", fig_counter, "**: Daily number of ICU beds needed for", nfiles2, "simulation realizations for", scen_desc_str, "at 1 % IFR assumptions. The horizontal line represents non-surge ICU bed capacity")
 fig_counter <- fig_counter+1
 ```
 
