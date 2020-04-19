@@ -1618,14 +1618,18 @@ plot_needs_relative_to_threshold_heatmap <- function(
     value_name,
     value_label,
     start_date,
-    end_date){
+    end_date,
+    incl_geoids = NULL){
 
   start_date <- lubridate::ymd(start_date)
   end_date <- lubridate::ymd(end_date) 
 
+  if(is.null(incl_geoids)) { incl_geoids <- unique(hosp_geounit_relative$geoid)}
+  
   shp <- shapefile %>%
     sf::st_drop_geometry() %>%
     dplyr::select(geoid, name) %>%
+    dplyr::filter(geoid %in% incl_geoids) %>%
     dplyr::arrange(name) %>%
     dplyr::mutate(name_num = seq_along(name)) ## secondary axes only work with continuous values
   
