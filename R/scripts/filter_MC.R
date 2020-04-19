@@ -40,7 +40,6 @@ geodata <- report.generation::load_geodata_file(paste(
 nfiles <- config$nsimulations## set to NULL or the actual number of sim files to include for final report
 
 data_path <- config$filtering$data_path
-
 # Parse jhucsse using covidImportation
 if (!file.exists(data_path)) {
   jhucsse <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
@@ -67,15 +66,15 @@ if (!file.exists(data_path)) {
 
 # Parse scenario arguments
 deathrates <- opt$d
-if(deathrates == "all") {
-  deathrates<- names(as_evaled_expression(config$hospitalization$p_death)) # Run all of the configured hospitalization scenarios
-} else if (!(deathrates %in% names(config$hospitalization$p_death))) {
+if(all(deathrates == "all")) {
+  deathrates<- config$hospitalization$parameters$p_death_names
+} else if (!(deathrates %in% config$hospitalization$parameters$p_death_names)) {
   message(paste("Invalid death rate argument:", deathrate, "did not match any of the named args in", paste( p_death, collapse = ", "), "\n"))
   quit("yes", status=1)
 }
 
 scenarios <- opt$s
-if (scenarios == "all"){
+if (all(scenarios == "all")){
   scenarios <- config$interventions$scenarios
 } else if (!all(scenarios %in% config$interventions$scenarios)) {
   message(paste("Invalid scenario argument:",scenario, "did not match any of the named args in ", paste(config$interventions$scenario, collapse = ", "), "\n"))
@@ -158,7 +157,7 @@ iterateAccept <- function(df, ll_col) {
 cl <- parallel::makeCluster(opt$n)
 doParallel::registerDoParallel(cl)
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "report.generation", "foreach", "itertools")
-foreach (scenario = scenarios) %:% {
+foreach (scenario = scenarios) %:%
   foreach(deathrate = deathrates) %do% {
     # Data -------------------------------------------------------------------------
     # Load
@@ -180,17 +179,17 @@ foreach (scenario = scenarios) %:% {
     }) %>% 
       set_names(geonames)
   
-  # Load sims -----------------------------------------------------------
-  
-  # The number of cores can be changed to the number available in the slot
-  # Simulation outputs
+  scenario_files <- list.files(paste0('hospitalization/model_output/',config$name,"_",scenario),full.names=TRUE)
+  scenario_files <- scenario_files[grepl(deathrate,gsub('.*/','',scenario_files))]
+  ll_data <- foreach(
+    file = scenario_files,
+    .packages = required_packages
+  ) %do% {
+    # Load sims -----------------------------------------------------------
     
     # One scenarios, one pdeath
-    sim_hosp <- load_hosp_sims_filtered(
-      sim_dir,
-      num_files = nfiles,
-      name_filter = config$hospitalization$parameters$p_death_names[i]) %>% 
-      inner_join(geodata)
+    sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
+      inner_join(geodata, by = config$spatial_setup$nodenames)
     
     # Aggregate by USPS (maybe to be replaced by function in packages that already does this?)
     sim_hosp <- sim_hosp %>% 
@@ -199,57 +198,48 @@ foreach (scenario = scenarios) %:% {
       select_if(is.numeric) %>% 
       summarise_all(sum) %>% 
       mutate(uid = str_c(USPS, sim_num, sep = "-")) 
+
+
     
-    # Compute log-likelihood of data for each sim
-    # This part can be parallelized
-    ll_data <- foreach(sim = isplit(sim_hosp, sim_hosp$uid),
-                       .packages = epacks
-    ) %dopar% {
-      
-      USPS <- sim$value$USPS[1]
-      end_date <- max(obs$date[obs[[obs_nodename]] == USPS])
-      # Compute simulation statistics
-      sim_stats <- getStats(sim$value, "time", "sim_var",
-                            end_date = end_date,
-                            config$filtering$statistics)
+    log_likelihood_data <- foreach (location = sim_hosp$USPS) %do% {
+      # Compute log-likelihood of data for each sim
+      # This part can be parallelized
+      local_sim_hosp <- dplyr::filter(sim_hosp, USPS == location)
+      sim_stats <- getStats(
+        local_sim_hosp,
+        "time",
+        "sim_var",
+        end_date = max(obs$date[obs[[obs_nodename]] == location]),
+        config$filtering$statistics 
+      )
+        
       
       # Get observation statistics
-      USPS_obs_stats <- data_stats[[USPS]]
-      
+      log_likelihood <- foreach (var = names(data_stats[[location]]), .combine = sum) %do% {
+        
+        logLikStat(
+          obs = data_stats[[location]][[var]]$data_var,
+          sim = sim_stats[[var]]$sim_var,
+          dist = config$filtering$statistics[[var]]$likelihood$dist,
+          param = config$filtering$statistics[[var]]$likelihood$param,
+          add_one = config$filtering$statistics[[var]]$add_one
+        )
+      }
       # Compute log-likelihoods
-      logliks <- lapply(
-        seq_len(length(USPS_obs_stats)),
-        function(i){
-          # Check if there is data to compare to
-          if (sum(is.na(USPS_obs_stats[[i]]$date) > 0)) {
-            return(NA)
-          }
-          combined <- inner_join(USPS_obs_stats[[i]], sim_stats[[i]])
-          lls <- logLikStat(obs = combined$data_var, 
-                            sim = combined$sim_var, 
-                            dist = config$filtering$statistics[[i]]$likelihood$dist,
-                            param = config$filtering$statistics[[i]]$likelihood$param,
-                            add_one = config$filtering$statistics[[i]]$add_one)
-          return(sum(unlist(lls)))
-        }) %>% 
-        set_names(names(config$filtering$statistics))
-      
-      # add log-likelihoods together for givensimulation and USPS
-      ll_tot <- sum(unlist(logliks))
-      
-      data.frame(ll = ll_tot, sim_num = sim$value$sim_num[1], USPS = USPS)
-    }
 
-    ll_data <- do.call(rbind,ll_data)
+      data.frame(ll = log_likelihood, filename = file, USPS = location)
+    } %>%
+    do.call(what=rbind)
+
     
     # Compute total loglik for each sim
-    ll_data %>% 
-      group_by(sim_num) %>% 
+    tmp <- log_likelihood_data %>% 
+      group_by(filename) %>% 
       summarise(ll = sum(ll, na.rm = T)) %>% 
-      mutate(pdeath = config$hospitalization$parameters$p_death[i])
+      mutate(pdeath = deathrate, scenario = scenario)
   }
   
-  parallel::stopCluster(cl)
+  browser()
   
   # Acceptance -------------------------------------------------------------------
   
@@ -262,3 +252,5 @@ foreach (scenario = scenarios) %:% {
     print
 
 }
+
+parallel::stopCluster(cl)
