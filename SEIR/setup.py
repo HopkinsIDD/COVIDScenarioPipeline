@@ -151,7 +151,8 @@ def seeding_draw(s, sim_id):
 
     elif (method == 'FolderDraw'):
         folder_path = s.seeding_config["folder_path"].as_str()
-        seeding = pd.read_csv(f'{folder_path}importation_{sim_id}.csv',
+        nfile = sim_id%len(os.listdir(folder_path))+1
+        seeding = pd.read_csv(f'{folder_path}importation_{nfile}.csv',
                               converters={'place': lambda x: str(x)},
                               parse_dates=['date'])
         for  _, row in seeding.iterrows():
