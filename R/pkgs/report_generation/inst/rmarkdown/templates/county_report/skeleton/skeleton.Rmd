@@ -9,8 +9,8 @@ output:
 bibliography: ReportReferences.bib
 params:
   config_file: "config.yml"
-  included_state: "MD" #two digit abbreviation of state to produce county-level report
-  sim_end_date: "2020-12-31" #date at which all results are truncated
+  included_state: "XX" #two digit abbreviation of state to produce county-level report
+  sim_end_date: "YYYY-MM-DD" #date at which all results are truncated
   pdeath_default: "high" # which of config$hospitalization$parameters$p_death_names to display for county-level tables
     
 ---
@@ -19,6 +19,7 @@ Prepared by [Johns Hopkins ID Dynamics](https://iddynamics.jhsph.edu/) Working G
 Updated `r Sys.Date()`
 
 **FOR PLANNING PURPOSES ONLY: NOT A FORECAST**
+
 ```{r setup, include=F}
 ## Block with general knitr options, libray load, etc. Nothing specific to the project.
 knitr::opts_knit$set(root.dir = "../..") ##Assumes we are in a subdirectory of notebooks
@@ -39,7 +40,7 @@ options(scipen=999)
 library(tidyverse)
 library(covidcommon)
 library(report.generation)
-#library(covidImportation)
+library(covidImportation)
 
 ```
 
@@ -72,8 +73,6 @@ shp <- load_shape_file(filename = file.path(config$spatial_setup$base_path, conf
   tab_counter <- 1
   
 ```
-
-[OVERALL SUMMARY TEXT GOES HERE]
 
 ```{r load_hosp_data}
 
@@ -132,6 +131,11 @@ hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(scn_dirs = scn_
 
 ```
 
+----------------------------------------
+
+## Summary
+
+[OVERALL SUMMARY TEXT GOES HERE]
 
 ```{r summary_fig_hosp, fig.cap=cap, fig.width=10}
 
@@ -184,7 +188,7 @@ fig_counter <- fig_counter+1
 
 ----------------------------------------
 
-## County Level Results
+## County-Specific Results
 
 
 ```{r county-level read, results="asis"}
@@ -231,27 +235,17 @@ for(i in 1:length(included_geoids)) {
 ```
 
 
-```{r include = FALSE, eval=FALSE}
-### ------- this might be another option to loop through chunks for each geoid ---- ####
-
-out = NULL
-for (i in 1:2) {
-  num <- i
-  out <- c(out,knit_child('child.Rmd'))
-}
-```
-
 ----------------------------------------
 
-### Appendix: Methods
+## Appendix: Methods
 
 
-#### Pipeline Overview
+### Pipeline Overview
 
 ```{r, child=reference_chunk("PipelineDescription.Rmd")}
 ```
 
-#### Technical Details
+### Technical Details
 
 #### SEIR Model
 
