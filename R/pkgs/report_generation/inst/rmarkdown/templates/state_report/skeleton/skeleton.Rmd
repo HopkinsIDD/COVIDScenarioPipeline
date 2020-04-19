@@ -46,7 +46,7 @@ nfiles <- NA ## set to a number for test reports.
 nfiles2 <- ifelse(nfiles <= 50, nfiles, 50) ## for plotting
 
 if (params$state_usps=="[STATE USPS]") {stop("Must define a target state by USPS code.")}
-ncores <- 25
+ncores <- 25 ## number of cores to use for loading data
 
 ```
 
@@ -160,6 +160,9 @@ registerDoSEQ()
 jhu_dat <- load_jhu_csse_for_report(states = modeled_states, update=TRUE) ## change to update=FALSE after the data is pulled for the first time
 ```
 
+
+```{r, child=reference_chunk("planning_models.Rmd")}
+```
 
 ## State Level Results
 
