@@ -831,7 +831,7 @@ make_scn_state_table_withVent <- function(current_scenario,
                            "ICU \n  total", "", "",
                            "  daily peak admissions", "", "",
                            "  daily peak capacity", "", "",
-                           "Ventilations \n total", "", "",
+                           "VENTILATIONS \n total", "", "",
                            "   daily peak incident ventilations", "", "",
                            "   daily peak currently ventilated", "", "",
                            "DEATHS\n  total", "", ""))
