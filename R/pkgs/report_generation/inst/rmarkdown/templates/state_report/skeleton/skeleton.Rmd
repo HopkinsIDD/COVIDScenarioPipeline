@@ -141,7 +141,7 @@ cap <- paste0("**Fig. ", fig_counter, "**: Daily hospital occupancy for 15 simul
 
 ```{r load_cum_inf_geounit_dates}
 ###Load cumulative infections on specific dates
-doParallel::registerDoParallel(ncores)
+# doParallel::registerDoParallel(ncores) ## commenting this out because this parallelization has caused been hanging in some of the reports
 
 cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
                            num_files = nfiles,
@@ -151,8 +151,8 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
                            geoid_len = 5,
                            file_extension="auto")
 
-doParallel::stopImplicitCluster()
-registerDoSEQ()
+# doParallel::stopImplicitCluster()
+# registerDoSEQ()
 ```
 
 ```{r load_csse_data}
@@ -202,6 +202,76 @@ ggpubr::ggarrange(plotlist=hist_plts, nrow=1)
 
 
 cap <- paste("**Fig.", fig_counter, "**: Distribution of cumulative hospital admissions for", scen_desc_str, "at 1% IFR assumptions. Each bar represents a bin of 2,000 hospitalizations.")
+fig_counter <- fig_counter+1
+```
+
+```{r summary_fig_incidI, fig.cap = cap, fig.width = 12}
+plot_ts_hosp_state_sample(state_hosp_totals,
+                          varname = "NincidInf",
+                          varlabel = "Number of incident infections per day",
+                          scenario_labels = config$report$formatting$scenario_labels,
+                          scenario_cols = config$report$formatting$scenario_colors,
+                          sim_start_date = config$start_date,
+                          sim_end_date = config$end_date,
+                          num_sims = nfiles2,
+                          pdeath_level = 0.01) +
+    facet_wrap(~scenario_name, nrow = 1) +
+    theme(axis.text.x =element_text(angle=45), legend.position = "none")
+
+cap <- paste("**Fig. ", fig_counter, "**: Daily incident infections for", nfiles2, "simulation realizations for", scen_desc_str, ".")
+fig_counter <- fig_counter+1
+```
+
+```{r summary_fig_icuCurr, fig.cap = cap, fig.width = 12}
+plot_ts_hosp_state_sample(state_hosp_totals,
+                          varname = "NICUCurr",
+                          varlabel = "Total patients in the ICU per day",
+                          scenario_labels = config$report$formatting$scenario_labels,
+                          scenario_cols = config$report$formatting$scenario_colors,
+                          sim_start_date = config$start_date,
+                          sim_end_date = config$end_date,
+                          num_sims = nfiles2,
+                          pdeath_level = 0.01) +
+    facet_wrap(~scenario_name, nrow = 1) +
+    theme(axis.text.x =element_text(angle=45), legend.position = "none")
+
+cap <- paste("**Fig. ", fig_counter, "**: Daily number of ICU beds needed for", nfiles2, "simulation realizations for", scen_desc_str, "at 1 % IFR assumptions.")
+fig_counter <- fig_counter+1
+```
+
+```{r summary_fig_incidVent, fig.cap = cap, fig.width = 12}
+plot_ts_hosp_state_sample(state_hosp_totals,
+                          varname = "NincidVent",
+                          varlabel = "Total incident ventilated patients per day",
+                          scenario_labels = config$report$formatting$scenario_labels,
+                          scenario_cols = config$report$formatting$scenario_colors,
+                          sim_start_date = config$start_date,
+                          sim_end_date = config$end_date,
+                          num_sims = nfiles2,
+                          pdeath_level = 0.01) +
+    facet_wrap(~scenario_name, nrow = 1) +
+    theme(axis.text.x =element_text(angle=45), legend.position = "none")
+
+cap <- paste("**Fig. ", fig_counter, "**: Daily number of incident ventilated patients for", nfiles2, "simulation realizations for", scen_desc_str, "at 1 % IFR assumptions.")
+fig_counter <- fig_counter+1
+```
+
+```{r plot_modelVsObs_all, fig.cap = cap, fig.height = 7}
+compare_plts <- plot_model_vs_obs(state_hosp_totals = state_hosp_totals,
+                  jhu_obs_dat = jhu_dat,
+                  scenario_labels = config$report$formatting$scenario_labels,
+                  scenario_cols = config$report$formatting$scenario_colors,
+                  pdeath_level = .01,
+                  obs_data_col = 'black',
+                  ci.L = 0.025,
+                  ci.U = 0.975,
+                  sim_start_date = sim_start_date,
+                  sim_end_date = "2020-05-14",
+                  assumed_reporting_rate = 0.2) 
+
+ggpubr::ggarrange(plotlist=compare_plts, ncol=1)
+
+cap <- paste("**Fig.", fig_counter, "** Modeled cases and deaths (assuming 1% IFR) versus actual case reports (top) and deaths (bottom) for all scenarios through May 14, 2020 as compared to JHU CSSE data. Here, modeled cases is calculated as 20% of all modeled infections (i.e., we assume that 20% of infections are reported as cases). Black points represent actual data, lines represent means and shading represents the 95% prediction interval for a given scenario. Note that JHU CSSE data are originally reported as cumulative cases and deaths, and daily cumulative case counts were differenced in order to report the incident cases and deaths in this figure. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")
 fig_counter <- fig_counter+1
 ```
 

@@ -137,7 +137,7 @@ ggplot(hosp_plt, aes(x = time, y = NincidVent, group = sim_num)) +
   guides(colour = "none") +
   facet_wrap(~scenario_name, ncol=1)
 
-ggplot(hosp_plt, aes(x = time, y = NventCurr, group = sim_num)) +
+ggplot(hosp_plt, aes(x = time, y = NVentCurr, group = sim_num)) +
   geom_line(aes(colour = sim_num)) +
   scale_x_date(date_breaks = "1 month",
                date_labels = "%b") +
