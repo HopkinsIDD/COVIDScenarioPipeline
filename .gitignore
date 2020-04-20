@@ -5,8 +5,7 @@
 COVID-19_California.Rproj
 __pycache__/
 COVID-19_California.code-workspace
-data/RAW/
-data/dataside/
+data/
 dev-versions/
 reports/
 doc/html
