@@ -10,8 +10,6 @@ import time
 import yaml
 
 @click.command()
-@click.option("-p", "--job-prefix", type=str, required=True,
-              help="A short but descriptive string to use as an identifier for the job run")
 @click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
               help="configuration file for this run")
 @click.option("-j", "--num-jobs", "num_jobs", type=click.IntRange(min=1), required=True,
@@ -19,15 +17,24 @@ import yaml
 @click.option("-s", "--sims-per-job", "sims_per_job", type=click.IntRange(min=1), required=True,
               help="how many sims each job should run")
 @click.option("-t", "--dvc-target", "dvc_target", type=click.Path(exists=True), required=True,
-              help="name of the .dvc file that is the last step in the pipeline")
-@click.option("-i", "--s3-input-bucket", "s3_input_bucket", type=str, default="idd-input-data-sets")
-@click.option("-o", "--s3-output-bucket", "s3_output_bucket", type=str, default="idd-pipeline-results")
-@click.option("-d", "--job-definition", "batch_job_definition", type=str, default="Batch-CovidPipeline-Job")
-@click.option("-q", "--job-queue", "batch_job_queue", type=str, default="Batch-CovidPipeline")
-def launch_batch(job_prefix, config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue):
+              help="name of the .dvc file that is the last step in the dvc run pipeline")
+@click.option("-i", "--s3-input-bucket", "s3_input_bucket", type=str, default="idd-input-data-sets", show_default=True,
+              help="The S3 bucket to use for uploading the code and configuration used by the batch job")
+@click.option("-o", "--s3-output-bucket", "s3_output_bucket", type=str, default="idd-pipeline-results", show_default=True,
+              help="The S3 bucket for storing the job's outputs")
+@click.option("-d", "--job-definition", "batch_job_definition", type=str, default="Batch-CovidPipeline-Job", show_default=True,
+              help="The name of the AWS Batch Job Definition to use for the job")
+@click.option("-q", "--job-queue", "batch_job_queue", type=str, default="Batch-CovidPipeline", show_default=True,
+              help="The name of the AWS Batch Job Queue to use for the job")
+def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue):
 
-    # A unique name for this job run, based on the job prefix and current time
-    job_name = "%s-%d" % (job_prefix, int(time.time()))
+    raw_config = None
+    with open(config_file) as f:
+        raw_config = f.read()
+    parsed_config = yaml.full_load(raw_config)
+
+    # A unique name for this job run, based on the config name and current time
+    job_name = "%s-%d" % (parsed_config['name'], int(time.time()))
     print("Preparing to run job: %s" % job_name)
 
     print("Verifying that dvc target is up to date...")
@@ -39,10 +46,9 @@ def launch_batch(job_prefix, config_file, num_jobs, sims_per_job, dvc_target, s3
 
     # Update and save the config file with the number of sims to run
     print("Updating config file %s to run %d simulations..." % (config_file, sims_per_job))
-    config = open(config_file).read()
-    config = re.sub("nsimulations: \d+", "nsimulations: %d" % sims_per_job, config)
+    raw_config = re.sub("nsimulations: \d+", "nsimulations: %d" % sims_per_job, raw_config)
     with open(config_file, "w") as f:
-        f.write(config)
+        f.write(raw_config)
 
     # Prepare to tar up the current directory, excluding any dvc outputs, so it
     # can be shipped to S3
