@@ -34,7 +34,7 @@ def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucke
     parsed_config = yaml.full_load(raw_config)
 
     # A unique name for this job run, based on the config name and current time
-    job_name = "%s-%d" % (parsed_config['name'], int(time.time()))
+    job_name = f"{parsed_config['name']}-{int(time.time())}"
     print("Preparing to run job: %s" % job_name)
 
     print("Verifying that dvc target is up to date...")
@@ -45,7 +45,7 @@ def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucke
         return 1
 
     # Update and save the config file with the number of sims to run
-    print("Updating config file %s to run %d simulations..." % (config_file, sims_per_job))
+    print(f"Updating {config_file} to run {sims_per_job} simulations...")
     raw_config = re.sub("nsimulations: \d+", "nsimulations: %d" % sims_per_job, raw_config)
     with open(config_file, "w") as f:
         f.write(raw_config)
@@ -53,7 +53,7 @@ def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucke
     # Prepare to tar up the current directory, excluding any dvc outputs, so it
     # can be shipped to S3
     dvc_outputs = get_dvc_outputs()
-    tarfile_name = "%s.tar.gz" % job_name
+    tarfile_name = f"{job_name}.tar.gz"
     tar = tarfile.open(tarfile_name, "w:gz")
     for p in os.listdir('.'):
         if not (p.startswith(".") or p.endswith("tar.gz") or p in dvc_outputs or p == "batch"):
@@ -61,15 +61,15 @@ def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucke
     tar.close()
  
     # Upload the tar'd contents of this directory and the runner script to S3 
-    runner_script_name = "%s-runner.sh" % job_name
+    runner_script_name = f"{job_name}-runner.sh"
     s3_client = boto3.client('s3')
     s3_client.upload_file("batch/runner.sh", s3_input_bucket, runner_script_name)
     s3_client.upload_file(tarfile_name, s3_input_bucket, tarfile_name)
     os.remove(tarfile_name)
 
     # Prepare and launch the num_jobs via AWS Batch.
-    model_data_path = "s3://%s/%s" % (s3_input_bucket, tarfile_name)
-    results_path = "s3://%s/%s" % (s3_output_bucket, job_name)
+    model_data_path = f"s3://{s3_input_bucket}/{tarfile_name}"
+    results_path = f"s3://{s3_output_bucket}/{job_name}"
     env_vars = [
             {"name": "CONFIG_PATH", "value": config_file},
             {"name": "S3_MODEL_DATA_PATH", "value": model_data_path},
@@ -77,8 +77,8 @@ def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucke
             {"name": "DVC_OUTPUTS", "value": " ".join(dvc_outputs)},
             {"name": "S3_RESULTS_PATH", "value": results_path}
     ]
-    s3_cp_run_script = "aws s3 cp s3://%s/%s $PWD/run-covid-pipeline" % (s3_input_bucket, runner_script_name)
-    command = ["sh", "-c", "%s; /bin/bash $PWD/run-covid-pipeline" % s3_cp_run_script]
+    s3_cp_run_script = f"aws s3 cp s3://{s3_input_bucket}/{runner_script_name} $PWD/run-covid-pipeline"
+    command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
     container_overrides = {
             'vcpus': 72,
             'memory': 184000,
@@ -110,7 +110,7 @@ def get_dvc_outputs():
     ret = []
     for dvc_file in glob.glob("*.dvc"):
         with open(dvc_file) as df:
-            d = yaml.load(df, Loader=yaml.FullLoader)
+            d = yaml.full_load(df)
             if 'cmd' in d and 'outs' in d:
                 ret.extend([x['path'] for x in d['outs']])
     return ret
