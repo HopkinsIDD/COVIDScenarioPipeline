@@ -30,6 +30,13 @@ def launch_batch(job_prefix, config_file, num_jobs, sims_per_job, dvc_target, s3
     job_name = "%s-%d" % (job_prefix, int(time.time()))
     print("Preparing to run job: %s" % job_name)
 
+    print("Verifying that dvc target is up to date...")
+    exit_code, output = subprocess.getstatusoutput("dvc status")
+    if exit_code != 0:
+        print("dvc status is not up to date...")
+        print(output)
+        return 1
+
     # Update and save the config file with the number of sims to run
     print("Updating config file %s to run %d simulations..." % (config_file, sims_per_job))
     config = open(config_file).read()
@@ -87,6 +94,10 @@ def launch_batch(job_prefix, config_file, num_jobs, sims_per_job, dvc_target, s3
                 jobQueue=batch_job_queue,
                 jobDefinition=batch_job_definition,
                 containerOverrides=container_overrides)
+
+    # TODO: record batch job info to a file so it can be tracked
+
+    return 0
 
 
 def get_dvc_outputs():
