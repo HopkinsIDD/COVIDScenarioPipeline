@@ -3,6 +3,8 @@ import pandas as pd
 import datetime
 import os
 import scipy.sparse
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from .utils import config
 
@@ -32,27 +34,37 @@ class SpatialSetup:
         if len(self.nodenames) != len(set(self.nodenames)):
             raise ValueError(f"There are duplicate nodenames in geodata.")
 
-        self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
 
-        # Validate mobility data
-        if self.mobility.shape != (self.nnodes, self.nnodes):
-             raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
+        if ('.txt' in str(mobility_file)):
+            print('Mobility files as matrices are not recommended. Please switch soon to long form csv files.')
+            self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
+            # Validate mobility data
+            if self.mobility.shape != (self.nnodes, self.nnodes):
+                raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
+
+        elif ('.csv' in str(mobility_file)):
+            print('Mobility files as matrices are not recommended. Please switch soon to long form csv files.')
+            mobility_data = pd.read_csv(mobility_file, converters={'ori': lambda x: str(x), 'dest': lambda x: str(x)})
+            self.mobility = scipy.sparse.csr_matrix((self.nnodes, self.nnodes))
+            for index, row in mobility_data.iterrows():
+                self.mobility[self.nodenames.index(row['ori']),self.nodenames.index(row['dest'])] = row['amount']
+                if (self.nodenames.index(row['ori']) == self.nodenames.index(row['dest'])):
+                    raise ValueError(f"Mobility fluxes with same origin and destination: '{row['ori']}' to {row['dest']} in long form matrix. This is not supported")
+        else:
+            raise ValueError(f"Mobility data must either be a .csv file in longform (recommended) or a .txt matrix file. Got {mobility_file}")
 
         # if (self.mobility - self.mobility.T).nnz != 0:
         #     raise ValueError(f"mobility data is not symmetric.")
 
-        # Make sure mobility values <= the population of corresponding nodes
-        # tmp = self.mobility - self.popnodes.T
-        # tmp = (self.mobility.T - self.popnodes).T
-        # tmp[tmp < 0] = 0
-        # if tmp.any():
-        #     rows, cols, values = scipy.sparse.find(tmp)
-        #     errmsg = ""
-        #     for r,c,v in zip(rows, cols, values):
-        #         errmsg += f"\n({r}, {c}) = {v} > population of one of these nodes {set([self.nodenames[r], self.popnodes[r]])}"
-        # 
-        #     raise ValueError(f"The following entries in the mobility data exceed the populations in geodata:{errmsg}")
-        # print("HERE")
+        # Make sure mobility values <= the population of src node
+        tmp = (self.mobility.T - self.popnodes).T
+        tmp[tmp < 0] = 0
+        if tmp.any():
+            rows, cols, values = scipy.sparse.find(tmp)
+            errmsg = ""
+            for r,c,v in zip(rows, cols, values):
+                errmsg += f"\n({r}, {c}) = {self.mobility[r,c]} > population of '{self.nodenames[r]}' = {self.popnodes[r]}"
+            raise ValueError(f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}")
 
 
 class Setup():
@@ -70,6 +82,7 @@ class Setup():
                  seeding_config={},
                  interactive=True,
                  write_csv=False,
+                 write_parquet=False,
                  dt=1 / 6, # step size, in days
                  nbetas=None): # # of betas, which are rates of infection
         self.setup_name = setup_name
@@ -84,6 +97,7 @@ class Setup():
         self.seeding_config = seeding_config
         self.interactive = interactive
         self.write_csv = write_csv
+        self.write_parquet = write_parquet
 
         if nbetas is None:
             nbetas = nsim
@@ -94,11 +108,12 @@ class Setup():
         self.build_setup()
         self.dynfilter = -np.ones((self.t_span, self.nnodes))
 
-        if self.write_csv:
+        if (self.write_csv or self.write_parquet):
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             self.datadir = f'model_output/{self.setup_name}/'
-            if not os.path.exists(self.datadir):
-                os.makedirs(self.datadir)
+            os.makedirs(self.datadir, exist_ok=True)
+            self.paramdir = f'model_parameters/{self.setup_name}/'
+            os.makedirs(self.paramdir, exist_ok=True)
 
     def build_setup(self):
         self.t_span = (self.tf - self.ti).days
@@ -115,7 +130,7 @@ class Setup():
     def load_filter(self, dynfilter_path):
         self.set_filter(np.loadtxt(dynfilter_path))
 
-def seeding_draw(s, uid):
+def seeding_draw(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
     method = s.seeding_config["method"].as_str()
     if (method == 'PoissonDistributed'):
@@ -136,8 +151,7 @@ def seeding_draw(s, uid):
 
     elif (method == 'FolderDraw'):
         folder_path = s.seeding_config["folder_path"].as_str()
-        nfile = uid%len(os.listdir(folder_path)) + 1
-        seeding = pd.read_csv(f'{folder_path}importation_{nfile}.csv',
+        seeding = pd.read_csv(f'{folder_path}importation_{sim_id}.csv',
                               converters={'place': lambda x: str(x)},
                               parse_dates=['date'])
         for  _, row in seeding.iterrows():
@@ -146,24 +160,38 @@ def seeding_draw(s, uid):
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
     return importation
 
+# Returns alpha, beta, sigma, and gamma parameters in a tuple
+# alpha, sigma and gamma are scalars
+# alpha is percentage of day spent commuting
+# beta is an array of shape (nt_inter, nnodes)
+def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
+    if nnodes <= 0 or nt_inter <= 0:
+        raise ValueError("Invalid nt_inter or nnodes")
 
-def parameters_quick_draw(s, npi):
-    sigma = config["seir"]["parameters"]["sigma"].as_evaled_expression()
-    gamma = config["seir"]["parameters"]["gamma"].as_random_distribution()() * n_Icomp
-    R0s = config["seir"]["parameters"]["R0s"].as_random_distribution()()
+    alpha = 1.0
+    if "alpha" in p_config:
+        alpha = p_config["alpha"].as_evaled_expression()
 
-    beta = np.multiply(R0s, gamma) / n_Icomp
+    sigma = p_config["sigma"].as_evaled_expression()
+    gamma = p_config["gamma"].as_random_distribution()() * n_Icomp
+    R0s = p_config["R0s"].as_random_distribution()()
 
-    beta = np.hstack([beta] * len(s.t_inter))
-    gamma = np.hstack([gamma] * len(s.t_inter))
-    sigma = np.hstack([sigma] * len(s.t_inter))
+    beta = R0s * gamma / n_Icomp
 
-    beta = np.vstack([beta] * s.nnodes)
-    gamma = np.vstack([gamma] * s.nnodes)
-    sigma = np.vstack([sigma] * s.nnodes)
+    beta = np.full((nnodes, nt_inter), beta)
 
     npi.index = pd.to_datetime(npi.index.astype(str))
-    npi = npi.resample(str(s.dt * 24) + 'H').ffill()
+    npi = npi.resample(str(dt * 24) + 'H').ffill()
     beta = np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
 
-    return (np.array([beta.T, sigma.T, gamma.T]))
+    return (alpha, beta.T, sigma, gamma)
+
+def parameters_write(parameters, fname, extension):
+    out_df = pd.DataFrame([parameters[0], parameters[1][0][0]*n_Icomp / parameters[3], parameters[2], parameters[3]], index = ["alpha","R0","sigma","gamma"], columns = ["value"])
+    if extension == "csv":
+        out_dict.to_csv(f"{fname}.{extension}", index_label="parameter")
+    if extension == "parquet":
+        out_df["parameter"] = out_df.index
+        pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
+        pa.parquet.write_table(pa_df,f"{fname}.{extension}")
+

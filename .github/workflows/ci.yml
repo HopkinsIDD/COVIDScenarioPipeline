@@ -40,3 +40,12 @@ jobs:
           setwd("R/pkgs/report_generation")
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
+      - name: Run integration tests
+        env: 
+          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+        run: |
+          Rscript local_install.R
+          cd test
+          /home/app/python_venv/bin/pytest run_tests.py
+        shell: bash
+
