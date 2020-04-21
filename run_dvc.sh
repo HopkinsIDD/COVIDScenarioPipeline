@@ -7,6 +7,9 @@ fi
 
 CONFIG=$1
 
+# First, make sure local R packages are up to date.
+Rscript local_install.R
+
 if [[ ! -f model_output.dvc ]]; then
   dvc run \
     -d data -d $CONFIG \
