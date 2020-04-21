@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -x
+set -e
+
 # Expected environment variables from AWS Batch env
 # S3_MODEL_DATA_PATH location in S3 with the code, data, and dvc pipeline to run
 # DVC_TARGET the name of the dvc file in the model that should be reproduced locally.
@@ -35,20 +38,16 @@ dvc repro $DVC_TARGET
 
 DVC_OUTPUTS_ARRAY=($DVC_OUTPUTS)
 if [ -z "$AWS_BATCH_JOB_ARRAY_INDEX" ]; then
-	echo "Compressing and uploading outputs from singleton batch job"
 	for output in "${DVC_OUTPUTS_ARRAY[@]}"
 	do
-		"Saving output $output"
 		tar cv --use-compress-program=pbzip2 -f $output.tar.bz2 $output
 		aws s3 cp $output.tar.bz2 $S3_RESULTS_PATH/
 	done
 else
-	echo "Saving outputs from array batch job"
 	for output in "${DVC_OUTPUTS_ARRAY[@]}"
 	do
-		echo "Saving output $output"
-		aws s3 cp --recursive $output $S3_RESULTS_PATH/$output-$AWS_BATCH_JOB_ID/
-		aws s3 sync $output $S3_RESULTS_PATH/$output-$AWS_BATCH_JOB_ID/ --delete
+		aws s3 cp --recursive $output $S3_RESULTS_PATH/$AWS_BATCH_JOB_ID/$output/
+		aws s3 sync $output $S3_RESULTS_PATH/$AWS_BATCH_JOB_ID/$output/ --delete
 	done
 fi
 
