@@ -34,10 +34,14 @@ if(opt$config == ""){
 }
 config = covidcommon::load_config(opt$config)
 
-geodata <- report.generation::load_geodata_file(paste(
-  config$spatial_setup$base_path,
-  config$spatial_setup$geodata, sep = "/"),geoid_len=5) %>% 
-  dplyr::select(geoid, USPS)
+geodata <- report.generation::load_geodata_file(
+  paste(
+    config$spatial_setup$base_path,
+    config$spatial_setup$geodata, sep = "/"
+  ),
+  geoid_len=5
+)
+obs_nodename <- config$spatial_setup$nodenames
 
 nfiles <- config$nsimulations## set to NULL or the actual number of sim files to include for final report
 
@@ -51,17 +55,24 @@ if (!file.exists(data_path)) {
                                    us_data_only=FALSE)
   jhucsse  <- 
     jhucsse %>%
-    dplyr::mutate(date = as.Date(Update)) %>%
-    dplyr::filter(Country_Region %in% "US") %>%
-    dplyr::mutate(USPS = cdlTools::fips(str_replace_all(Province_State," ", ""),to="abbreviation")) %>% 
-    group_by(date, USPS) %>%
-    dplyr::summarize(cumConfirmed = sum(Confirmed), cumDeaths = sum(Deaths, na.rm = TRUE)) %>%
-    ungroup() %>%
+    dplyr::mutate(date = lubridate::ymd(Update)) %>%
+    dplyr::filter(FIPS %in% geodata[[obs_nodename]]) %>%
+    dplyr::rename(
+      cumConfirmed = Confirmed,
+      # cumDeaths = Deaths
+    ) %>%
     dplyr::arrange(date) %>%
-    group_by(USPS) %>% 
-    mutate(conf_incid = pmax(0, c(cumConfirmed[1], diff(cumConfirmed))),
-           death_incid = pmax(0, c(cumConfirmed[1], diff(cumDeaths)))) %>% 
-    filter(!is.na(USPS))
+    dplyr::group_by(FIPS) %>% 
+    dplyr::group_modify(
+      function(.x,.y){
+        .x$cumConfirmed = cummax(.x$cumConfirmed)
+        .x$conf_incid = c(.x$cumConfirmed[1],diff(.x$cumConfirmed))
+        # .x$cumDeaths = cummax(.x$cumDeaths)
+        # .x$death_incid = c(.x$cumDeaths[1],.x$diff(cumDeaths))
+        return(.x)
+      }
+    )
+  names(jhucsse)[names(jhucsse) == 'FIPS'] <- as.character(obs_nodename)
   write_csv(jhucsse, data_path)
   rm(jhucsse)
 }
@@ -157,6 +168,23 @@ iterateAccept <- function(df, ll_col) {
   return(data.frame(ll = ll_ref, ind_accept = ind))
 }
 
+if(!("obs" %in% ls())){
+  obs <<- readr::read_csv(data_path)
+}
+geonames <- unique(obs[[obs_nodename]])
+# Compute statistics
+data_stats <- lapply(
+  geonames,
+  function(x) {
+    df <- obs[obs[[obs_nodename]] == x, ]
+    getStats(
+      df,
+      "date",
+      "data_var",
+      stat_list = config$filtering$statistics)
+  }) %>% 
+    set_names(geonames)
+
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 # foreach (scenario = scenarios) %:%
 #   foreach(deathrate = deathrates) %do% {
@@ -165,61 +193,35 @@ for(scenario in scenarios) {
   # profout <- profvis::profvis({
       # Data -------------------------------------------------------------------------
       # Load
-    if(!("obs" %in% ls())){
-      obs <<- readr::read_csv(data_path)
-    }
-    obs_nodename <- "USPS"
-    geonames <- unique(obs[[obs_nodename]])
-    # Compute statistics
-    data_stats <- lapply(
-      geonames,
-      function(x) {
-        df <- obs[obs[[obs_nodename]] == x, ]
-        getStats(
-          df,
-          "date",
-          "data_var",
-          stat_list = config$filtering$statistics)
-      }) %>% 
-        set_names(geonames)
     
     scenario_files <- list.files(paste0('hospitalization/model_output/',config$name,"_",scenario),full.names=TRUE)
     scenario_files <- scenario_files[grepl(deathrate,gsub('.*/','',scenario_files))]
   
     cl <- parallel::makeCluster(opt$j)
     doParallel::registerDoParallel(cl)
-    doParallel::registerDoParallel
     ll_data <- foreach(file = scenario_files, .packages = required_packages) %dopar% {
     # ll_data <- list()
     # for( file in scenario_files) {
       # Load sims -----------------------------------------------------------
       
-      sim_hosp <<- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
-        inner_join(geodata, by = config$spatial_setup$nodenames) %>% 
-        select(-date_inds) %>% 
-        group_by(time, USPS, sim_num, comp) %>% 
-        select_if(is.numeric) %>% 
-        summarise_all(sum) %>% 
-        mutate(uid = str_c(USPS, sim_num, sep = "-")) 
-  
-  
+      sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
+        filter(time <= max(obs$date)) %>%
+        select(-date_inds)
       
       log_likelihood_data <- list()
-      for(location in sim_hosp$USPS) {
+      
+      for(location in unique(sim_hosp[[obs_nodename]])) {
       # log_likelihood_data <- foreach (location = sim_hosp$USPS) %do% {
         # Compute log-likelihood of data for each sim
         # This part can be parallelized
         # One scenarios, one pdeath
         if(!('sim_hosp' %in% ls())){
           sim_hosp <<- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
-            inner_join(geodata, by = config$spatial_setup$nodenames) %>% 
-            select(-date_inds) %>% 
-            group_by(time, USPS, sim_num, comp) %>% 
-            select_if(is.numeric) %>% 
-            summarise_all(sum) %>% 
-            mutate(uid = str_c(USPS, sim_num, sep = "-")) 
+            filter(time <= max(obs$date)) %>%
+            select(-date_inds)
         }
-        local_sim_hosp <- dplyr::filter(sim_hosp, USPS == location)
+
+        local_sim_hosp <- dplyr::filter(sim_hosp, !!rlang::sym(obs_nodename) == location)
         sim_stats <- getStats(
           local_sim_hosp,
           "time",
@@ -245,7 +247,12 @@ for(scenario in scenarios) {
         }
         # Compute log-likelihoods
   
-        log_likelihood_data[[file]] <- data.frame(ll = sum(unlist(log_likelihood)), filename = file, USPS = location)
+        log_likelihood_data[[file]] <- dplyr::tibble(
+          ll = sum(unlist(log_likelihood)),
+          filename = file,
+          geoid = location
+        )
+        names(log_likelihood_data)[names(log_likelihood_data) == 'geoid'] <- obs_nodename
       # }
       }
       rm(sim_hosp)
