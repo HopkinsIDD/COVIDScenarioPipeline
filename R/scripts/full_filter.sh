@@ -3,7 +3,7 @@ RSCRIPT=Rscript
 J=8
 CONFIG=config.yml
 PYTHON=python3
-K=100
+K=1000
 for N in {1..100}
 do
   $PYTHON $CSP/simulate.py -j $J -c $CONFIG -n $K --write-parquet
