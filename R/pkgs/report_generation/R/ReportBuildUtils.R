@@ -596,53 +596,54 @@ plot_ts_incid_ar_state <- function (hosp_state_totals,
 }
 
 
-##'
-##' Plot modeling assumption parameter distributions
-##'
-##' @param name parameter name
-##' @param config config file
-##' @return plot of distribution of peak timing across simulations by county
-##'
-##' @export
-##'
-plot_model_parameter_distributions <- function(name, config){
-  dist_plot_config <- config$report$plot_settings$parameters_to_display
-  local_config <- dist_plot_config[[name]]
-  value <- config[[local_config$type]][['parameters']][[name]]
-  if((length(value) > 1) & ("distribution" %in% names(value))){
-    if(value$distribution == 'uniform' ){
-      value <- runif(1e5,covidcommon::as_evaled_expression(value$low) , covidcommon::as_evaled_expression(value$high))
-    }
-  } else {
-    value <- covidcommon::as_evaled_expression(value)
-  }
-  if('transform' %in% names(dist_plot_config[[name]]) ){
-    if(dist_plot_config[[name]][['transform']] == 'invert'){
-      value = 1 / value
-    }
-  }
-  rval <- NaN
-  if(local_config$distribution == "lnormal"){
-    rval <- (rlnorm(1e5,meanlog= value[1], sdlog = value[2]))
-  }
-  if(local_config$distribution == "exp"){
-    rval <- rexp(1e5,rate=value)
-  }
-  if(local_config$distribution == "gamma"){
-    all_compartments <<- unique(report.generation::load_scenario_sims_filtered('mid-west-coast-AZ-NV_CaliforniaMild/',pre_process=function(x){return(x[x$time==x$time[1], ])})$comp)
-    number_compartments <<- sum(grepl("I[[:digit:]]+",all_compartments))
-    if(length(value)==1){
-      value[2] <- 1/value[1]
-    }
-    rval <- rgamma(1e5,shape=value/number_compartments,scale=number_compartments)
-  }
-  if('xlim' %in% names(local_config)){
-    plt <- plot(density(rval),main = local_config$formal_name, xlab = local_config$xlab, bty='n', xlim=as.numeric(local_config$xlim))
-  } else {
-    plt <- plot(density(rval),main = local_config$formal_name, xlab = local_config$xlab, bty='n')
-  }
-  return(plt)
-}
+# #### This function isn't working quite right
+# ##'
+# ##' Plot modeling assumption parameter distributions
+# ##'
+# ##' @param name parameter name
+# ##' @param config config file
+# ##' @return plot of distribution of peak timing across simulations by county
+# ##'
+# ##' @export
+# ##'
+# plot_model_parameter_distributions <- function(name, config){
+#   dist_plot_config <- config$report$plot_settings$parameters_to_display
+#   local_config <- dist_plot_config[[name]]
+#   value <- config[[local_config$type]][['parameters']][[name]]
+#   if((length(value) > 1) & ("distribution" %in% names(value))){
+#     if(value$distribution == 'uniform' ){
+#       value <- runif(1e5,covidcommon::as_evaled_expression(value$low) , covidcommon::as_evaled_expression(value$high))
+#     }
+#   } else {
+#     value <- covidcommon::as_evaled_expression(value)
+#   }
+#   if('transform' %in% names(dist_plot_config[[name]]) ){
+#     if(dist_plot_config[[name]][['transform']] == 'invert'){
+#       value = 1 / value
+#     }
+#   }
+#   rval <- NaN
+#   if(local_config$distribution == "lnormal"){
+#     rval <- (rlnorm(1e5,meanlog= value[1], sdlog = value[2]))
+#   }
+#   if(local_config$distribution == "exp"){
+#     rval <- rexp(1e5,rate=value)
+#   }
+#   if(local_config$distribution == "gamma"){
+#     all_compartments <<- unique(report.generation::load_scenario_sims_filtered('mid-west-coast-AZ-NV_CaliforniaMild/',pre_process=function(x){return(x[x$time==x$time[1], ])})$comp)
+#     number_compartments <<- sum(grepl("I[[:digit:]]+",all_compartments))
+#     if(length(value)==1){
+#       value[2] <- 1/value[1]
+#     }
+#     rval <- rgamma(1e5,shape=value/number_compartments,scale=number_compartments)
+#   }
+#   if('xlim' %in% names(local_config)){
+#     plt <- plot(density(rval),main = local_config$formal_name, xlab = local_config$xlab, bty='n', xlim=as.numeric(local_config$xlim))
+#   } else {
+#     plt <- plot(density(rval),main = local_config$formal_name, xlab = local_config$xlab, bty='n')
+#   }
+#   return(plt)
+# }
 
 
 
@@ -830,7 +831,7 @@ make_scn_state_table_withVent <- function(current_scenario,
                            "ICU \n  total", "", "",
                            "  daily peak admissions", "", "",
                            "  daily peak capacity", "", "",
-                           "Ventilations \n total", "", "",
+                           "VENTILATIONS \n total", "", "",
                            "   daily peak incident ventilations", "", "",
                            "   daily peak currently ventilated", "", "",
                            "DEATHS\n  total", "", ""))
@@ -1403,6 +1404,7 @@ boxplot_by_timeperiod <- function(df,
 ##' @param date_breaks breaks for dates in figure
 ##' @param sim_start_date simulation start date
 ##' @param sim_end_date simulation end date
+##' @param assumed_reporting_rate assumed reporting rate (0.2 means 20% of infections are reported cases)
 ##' 
 ##' @export
 plot_model_vs_obs <- function(state_hosp_totals,
@@ -1415,9 +1417,8 @@ plot_model_vs_obs <- function(state_hosp_totals,
                               ci.U = 1,
                               date_breaks = "1 month",
                               sim_start_date,
-                              sim_end_date) {
-
-  assumed_reporting_rate <- 0.2
+                              sim_end_date, 
+                              assumed_reporting_rate) {
 
   state_hosp_totals <-
     state_hosp_totals %>%
@@ -1618,14 +1619,18 @@ plot_needs_relative_to_threshold_heatmap <- function(
     value_name,
     value_label,
     start_date,
-    end_date){
+    end_date,
+    incl_geoids = NULL){
 
   start_date <- lubridate::ymd(start_date)
   end_date <- lubridate::ymd(end_date) 
 
+  if(is.null(incl_geoids)) { incl_geoids <- unique(hosp_geounit_relative$geoid)}
+  
   shp <- shapefile %>%
     sf::st_drop_geometry() %>%
     dplyr::select(geoid, name) %>%
+    dplyr::filter(geoid %in% incl_geoids) %>%
     dplyr::arrange(name) %>%
     dplyr::mutate(name_num = seq_along(name)) ## secondary axes only work with continuous values
   

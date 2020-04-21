@@ -5,8 +5,11 @@
 COVID-19_California.Rproj
 __pycache__/
 COVID-19_California.code-workspace
-data/RAW/
-data/dataside/
+data/
+importation/
+model_output/
+model_parameters/
+hospitalization/
 dev-versions/
 reports/
 doc/html
