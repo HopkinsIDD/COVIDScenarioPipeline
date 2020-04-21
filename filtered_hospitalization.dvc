@@ -1,0 +1,13 @@
+md5: 55c8af7c110176fb05287fdac9edf0a7
+cmd: Rscript R/scripts/full_filter.R -c config.yml
+deps:
+- md5: 0f9a5687346372034241472cf4474fde
+  path: R/scripts/filter_MC.R
+- md5: bd4583b95acaef70cbf0edbe747d5aee.dir
+  path: hospitalization
+outs:
+- md5: 4f2f7949b5b8aae284b9f1688d80e6de.dir
+  path: filtered_hospitalization
+  cache: true
+  metric: false
+  persist: false
