@@ -34,4 +34,8 @@ install_version("splines2", version = "0.2.8", repos = repo_url)
 install_version("nnls", version = "1.4", repos = repo_url)
 
 install_github("HopkinsIDD/globaltoolboxlite")
-install_github("HopkinsIDD/covidImportation", ref = "7ae00f6c59da3b4f3d4f35316086c6bc6c743fdc")
+install_github("HopkinsIDD/covidImportation", ref = "optimize")
+
+# Install arrow and it's extra dependencies
+install_version("arrow", version = "0.16.0.2", repos = repo_url)
+arrow::install_arrow()
