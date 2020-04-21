@@ -46,15 +46,6 @@ class TestSpatialSetup:
                                 popnodes_key="population",
                                 nodenames_key="geoid")
 
-    ## I think we're not requiring this for now.
-    ## def test_mobility_unsymmetric_fail(self):
-    ##     with pytest.raises(ValueError, match=r".*mobility.*symmetric.*"):
-    ##         setup.SpatialSetup(setup_name=TEST_SETUP_NAME,
-    ##                             geodata_file=f"{DATA_DIR}/geodata.csv",
-    ##                             mobility_file=f"{DATA_DIR}/mobility_unsymmetric.txt",
-    ##                             popnodes_key="population",
-    ##                             nodenames_key="geoid")
-
     def test_mobility_too_big_fail(self):
         with pytest.raises(ValueError, match=r".*mobility.*population.*"):
             setup.SpatialSetup(setup_name=TEST_SETUP_NAME,
@@ -96,14 +87,18 @@ def test_parameters_quick_draw():
     npi = pd.DataFrame(0.0, index=date_range,
                             columns=range(nnodes))
 
-    alpha, beta, sigma, gamma = setup.parameters_quick_draw(config, nt_inter, nnodes, dt, npi)
+    alpha, beta, sigma, gamma = setup.parameters_quick_draw(config, nt_inter, nnodes)
 
-    assert alpha == 0.5
+    assert alpha.shape == (nt_inter, nnodes)
+    assert (alpha == 0.5).all()
 
     assert beta.shape == (nt_inter, nnodes)
+    assert (len(np.unique(beta)) == 1)
     assert (((1/6. * 2) <= beta)  & (beta <= (1./2.6 * 3))).all()
-    assert (beta == beta[0][0]).all()
 
-    assert (sigma == config["sigma"].as_evaled_expression())
+    assert sigma.shape == (nt_inter, nnodes)
+    assert (sigma == config["sigma"].as_evaled_expression()).all()
 
-    assert (setup.n_Icomp * (1./6)) <= gamma <= (setup.n_Icomp * (1/2.6))
+    assert gamma.shape == (nt_inter, nnodes)
+    assert (len(np.unique(gamma)) == 1)
+    assert (((setup.n_Icomp * (1./6)) <= gamma) & (gamma <= (setup.n_Icomp * (1/2.6)))).all()
