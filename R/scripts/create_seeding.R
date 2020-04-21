@@ -63,13 +63,13 @@ geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$
 
 all_geoids <- geodata[[config$spatial_setup$nodenames]]
 
-cumulative_cases <- jhucsse %>%
+incident_cases <- jhucsse %>%
   dplyr::filter(FIPS %in% all_geoids) %>%
   dplyr::select(Update, FIPS, incidI)
 
-cumulative_cases$Update <- as.Date(cumulative_cases$Update)
+incident_cases$Update <- as.Date(incident_cases$Update)
 
-cumulative_cases <- cumulative_cases %>%
+incident_cases <- incident_cases %>%
   group_by(FIPS) %>%
   group_modify(function(.x,.y){
     .x %>%
@@ -83,13 +83,13 @@ cumulative_cases <- cumulative_cases %>%
       
   })
 
-names(cumulative_cases) <- c('place','date','amount')
+names(incident_cases) <- c('place','date','amount')
 
-cumulative_cases <- cumulative_cases %>%
+incident_cases <- incident_cases %>%
   dplyr::filter(!is.na(amount) | !is.na(date))
 
 write.csv(
-  cumulative_cases,
+  incident_cases,
   file=file.path(config$seeding$lambda_file),
   row.names=FALSE,
   col.names=TRUE,

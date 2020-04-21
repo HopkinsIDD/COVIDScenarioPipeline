@@ -184,7 +184,7 @@ if(run_age_adjust){
                                                      time_ICUdur_pars = time_ICUdur_pars,
                                                      cores = ncore,
                                                      data_dir = data_dir,
-                                                     dscenario_name = paste(cmd,"death",sep="_"),
+                                                     dscenario_name = cmd0,
                                                      use_parquet = TRUE
       )
     }
