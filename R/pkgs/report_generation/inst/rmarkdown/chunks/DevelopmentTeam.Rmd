@@ -9,13 +9,17 @@ Working Group**:
 **Johns Hopkins Infectious Disease Dynamics**
 
 * Qifang Bi
+* Jacob Fiksel
+* M. Kate Grabowski
 * Kyra H. Grantz
 * Joshua Kaminsky
 * Stephen A. Lauer
 * Elizabeth C. Lee
 * Justin Lessler
 * Hannah R. Meredith
+* Javier Perez-Saez
 * Shaun A. Truelove
+
 
 **University of Utah**
 
@@ -23,5 +27,18 @@ Working Group**:
 
 **Developers Without Affiliation**
 
+* Ian Chamberlain
+* Kathryn Kaminsky
 * Sam Shah
 * Josh Wills
+
+
+**Amazon Web Services**
+
+* Pierre-Yves Aquilanti
+* Karthik Raman
+* Arun Subramaniyan
+* Greg Thursam
+* Anh Tran
+
+
