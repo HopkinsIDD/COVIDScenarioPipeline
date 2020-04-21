@@ -13,11 +13,12 @@ library(xts)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
-  #' @param -s The intervention scenario
-  optparse::make_option(c("-s", "--scenario"), action="store", default='all', type='character', help="name of the intervention to run, or 'all' to run all of them"),
+  #' @param -s The intervention scenarios
+  optparse::make_option(c("-s", "--scenarios"), action="store", default='all', type='character', help="name of the intervention to run, or 'all' to run all of them"),
   #' @param -d The death rate
-  optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenario to run, or 'all' to run all of them"),
-  optparse::make_option(c("-j", "--jobs"), action="store", default="8", type='integer', help="Number of jobs to run in parallel")
+  optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenarios to run, or 'all' to run all of them"),
+  optparse::make_option(c("-j", "--jobs"), action="store", default="8", type='integer', help="Number of jobs to run in parallel"),
+  optparse::make_option(c("-k", "--index"), action="store", default="1", type='integer', help = "id of this slot")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -64,7 +65,7 @@ if (!file.exists(data_path)) {
   rm(jhucsse)
 }
 
-# Parse scenario arguments
+# Parse scenarios arguments
 deathrates <- opt$d
 if(all(deathrates == "all")) {
   deathrates<- config$hospitalization$parameters$p_death_names
@@ -77,7 +78,7 @@ scenarios <- opt$s
 if (all(scenarios == "all")){
   scenarios <- config$interventions$scenarios
 } else if (!all(scenarios %in% config$interventions$scenarios)) {
-  message(paste("Invalid scenario argument:",scenario, "did not match any of the named args in ", paste(config$interventions$scenario, collapse = ", "), "\n"))
+  message(paste("Invalid scenario argument:",scenario, "did not match any of the named args in ", paste(config$interventions$scenarios, collapse = ", "), "\n"))
   quit("yes", status=1)
 }
 
@@ -157,100 +158,125 @@ iterateAccept <- function(df, ll_col) {
 cl <- parallel::makeCluster(opt$n)
 doParallel::registerDoParallel(cl)
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "report.generation", "foreach", "itertools")
-foreach (scenario = scenarios) %:%
-  foreach(deathrate = deathrates) %do% {
-    # Data -------------------------------------------------------------------------
-    # Load
-  if(!("obs" %in% ls())){
-    obs <<- readr::read_csv(data_path)
-  }
-  obs_nodename <- "USPS"
-  geonames <- unique(obs[[obs_nodename]])
-  # Compute statistics
-  data_stats <- lapply(
-    geonames,
-    function(x) {
-      df <- obs[obs[[obs_nodename]] == x, ]
-      getStats(
-        df,
-        "date",
-        "data_var",
-        stat_list = config$filtering$statistics)
-    }) %>% 
-      set_names(geonames)
+# foreach (scenario = scenarios) %:%
+#   foreach(deathrate = deathrates) %do% {
+for(scenario in scenarios) {
+  for(deathrate in deathrates) {
+  profout <- profvis::profvis({
+      # Data -------------------------------------------------------------------------
+      # Load
+    if(!("obs" %in% ls())){
+      obs <<- readr::read_csv(data_path)
+    }
+    obs_nodename <- "USPS"
+    geonames <- unique(obs[[obs_nodename]])
+    # Compute statistics
+    data_stats <- lapply(
+      geonames,
+      function(x) {
+        df <- obs[obs[[obs_nodename]] == x, ]
+        getStats(
+          df,
+          "date",
+          "data_var",
+          stat_list = config$filtering$statistics)
+      }) %>% 
+        set_names(geonames)
+    
+    scenario_files <- list.files(paste0('hospitalization/model_output/',config$name,"_",scenario),full.names=TRUE)
+    scenario_files <- scenario_files[grepl(deathrate,gsub('.*/','',scenario_files))]
   
-  scenario_files <- list.files(paste0('hospitalization/model_output/',config$name,"_",scenario),full.names=TRUE)
-  scenario_files <- scenario_files[grepl(deathrate,gsub('.*/','',scenario_files))]
-  ll_data <- foreach(
-    file = scenario_files,
-    .packages = required_packages
-  ) %do% {
-    # Load sims -----------------------------------------------------------
-    
-    # One scenarios, one pdeath
-    sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
-      inner_join(geodata, by = config$spatial_setup$nodenames)
-    
-    # Aggregate by USPS (maybe to be replaced by function in packages that already does this?)
-    sim_hosp <- sim_hosp %>% 
-      select(-date_inds) %>% 
-      group_by(time, USPS, sim_num, comp) %>% 
-      select_if(is.numeric) %>% 
-      summarise_all(sum) %>% 
-      mutate(uid = str_c(USPS, sim_num, sep = "-")) 
-
-
-    
-    log_likelihood_data <- foreach (location = sim_hosp$USPS) %do% {
-      # Compute log-likelihood of data for each sim
-      # This part can be parallelized
-      local_sim_hosp <- dplyr::filter(sim_hosp, USPS == location)
-      sim_stats <- getStats(
-        local_sim_hosp,
-        "time",
-        "sim_var",
-        end_date = max(obs$date[obs[[obs_nodename]] == location]),
-        config$filtering$statistics 
-      )
-        
+    # ll_data <- foreach(
+    #   file = scenario_files,
+    #   .packages = required_packages
+    # ) %do% {
+    ll_data <- list()
+    for( file in scenario_files) {
+      # Load sims -----------------------------------------------------------
       
-      # Get observation statistics
-      log_likelihood <- foreach (var = names(data_stats[[location]]), .combine = sum) %do% {
-        
-        logLikStat(
-          obs = data_stats[[location]][[var]]$data_var,
-          sim = sim_stats[[var]]$sim_var,
-          dist = config$filtering$statistics[[var]]$likelihood$dist,
-          param = config$filtering$statistics[[var]]$likelihood$param,
-          add_one = config$filtering$statistics[[var]]$add_one
+      sim_hosp <<- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
+        inner_join(geodata, by = config$spatial_setup$nodenames) %>% 
+        select(-date_inds) %>% 
+        group_by(time, USPS, sim_num, comp) %>% 
+        select_if(is.numeric) %>% 
+        summarise_all(sum) %>% 
+        mutate(uid = str_c(USPS, sim_num, sep = "-")) 
+  
+  
+      
+      log_likelihood_data <- list()
+      for(location in sim_hosp$USPS) {
+      # log_likelihood_data <- foreach (location = sim_hosp$USPS) %do% {
+        # Compute log-likelihood of data for each sim
+        # This part can be parallelized
+        # One scenarios, one pdeath
+        if(!(sim_hosp %in% ls())){
+          sim_hosp <<- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
+            inner_join(geodata, by = config$spatial_setup$nodenames) %>% 
+            select(-date_inds) %>% 
+            group_by(time, USPS, sim_num, comp) %>% 
+            select_if(is.numeric) %>% 
+            summarise_all(sum) %>% 
+            mutate(uid = str_c(USPS, sim_num, sep = "-")) 
+        }
+        local_sim_hosp <- dplyr::filter(sim_hosp, USPS == location)
+        sim_stats <- getStats(
+          local_sim_hosp,
+          "time",
+          "sim_var",
+          end_date = max(obs$date[obs[[obs_nodename]] == location]),
+          config$filtering$statistics 
         )
+          
+        
+        # Get observation statistics
+        log_likelihood <- list()
+        for(var in names(data_stats[[location]])) {
+        # log_likelihood <- foreach (var = names(data_stats[[location]]), .combine = sum) %do% {
+          
+          log_likelihood[[var]] <- logLikStat(
+            obs = data_stats[[location]][[var]]$data_var,
+            sim = sim_stats[[var]]$sim_var,
+            dist = config$filtering$statistics[[var]]$likelihood$dist,
+            param = config$filtering$statistics[[var]]$likelihood$param,
+            add_one = config$filtering$statistics[[var]]$add_one
+          )
+        # }
+        }
+        # Compute log-likelihoods
+  
+        log_likelihood_data[[file]] <- data.frame(ll = sum(unlist(log_likelihood)), filename = file, USPS = location)
+      # }
       }
-      # Compute log-likelihoods
-
-      data.frame(ll = log_likelihood, filename = file, USPS = location)
-    } %>%
-    do.call(what=rbind)
-
+      rm(sim_hosp)
+      print(log_likelihood_data)
+  
+      log_likelihood_data <- log_likelihood_data %>% do.call(what=rbind)
+  
+      # print(log_likelihood)
+      
+      # Compute total loglik for each sim
+      tmp <- log_likelihood_data %>% 
+        group_by(filename) %>% 
+        summarise(ll = sum(ll, na.rm = T)) %>% 
+        mutate(pdeath = deathrate, scenario = scenario)
+      ll_data[[file]] <- tmp
+    }
+    ll_data <- do.call(ll_data, what=rbind)
+    # } %>% do.call(what=rbind)
+    })
+  
+    # Acceptance -------------------------------------------------------------------
+    browser()
     
-    # Compute total loglik for each sim
-    tmp <- log_likelihood_data %>% 
-      group_by(filename) %>% 
-      summarise(ll = sum(ll, na.rm = T)) %>% 
-      mutate(pdeath = deathrate, scenario = scenario)
+    accepted_data <- iterateAccept(ll_data, "ll")
+    accepted_data$filename <- scenario_files[accepted_data$ind_accept]
+    accepted_data$target_filename <- gsub('hosp[.]','filt.',gsub(paste0('0*',accepted_data$ind_accept),sprintf("%09d",opt$k),gsub('^','filtered_',accepted_data$filename)))
+    accepted_data$target_dir <- gsub('/[^/]*$','',accepted_data$target_filename)
+    dir.create(accepted_data$target_dir, recursive=TRUE)
+    file.copy(from=accepted_data$filename,to=accepted_data$target_filename)
   }
-  
-  browser()
-  
-  # Acceptance -------------------------------------------------------------------
-  
-  # Accept iteratively
-  ind_accept <- lapply(config$hospitalization$parameters$p_death, 
-                      function(x) 
-                        iterateAccept(filter(ll_results, pdeath == x), "ll") %>% 
-                        mutate(pdeath = x)) %>% 
-    bind_rows() %>%
-    print
-
 }
+#}
 
 parallel::stopCluster(cl)
