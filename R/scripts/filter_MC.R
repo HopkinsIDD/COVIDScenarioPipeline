@@ -19,6 +19,7 @@ option_list = list(
   optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenarios to run, or 'all' to run all of them"),
   optparse::make_option(c("-j", "--jobs"), action="store", default="8", type='integer', help="Number of jobs to run in parallel"),
   optparse::make_option(c("-k", "--index"), action="store", default="1", type='integer', help = "id of this slot")
+ 
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -105,9 +106,9 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
 }
 
 getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
-  lapply(
-    stat_list,
-    function(s) {
+  rc <- list()
+  for(stat in names(stat_list)){
+      s <- stat_list[[stat]]
       aggregator <- match.fun(s$aggregator)
       # Get the time period over whith to apply aggregation
       period_info <- strsplit(s$period, " ")[[1]]
@@ -119,12 +120,13 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
                              period_info[1],
                              aggregator,
                              na.rm = s$remove_na)
-      res %>% 
+      rc[[stat]] <- res %>% 
         as.data.frame() %>% 
         mutate(date = rownames(.)) %>% 
         set_colnames(c(var_col, "date")) %>% 
         select(date, one_of(var_col))
-    })
+  }
+  return(rc)
 }
 
 logLikStat <- function(obs, sim, distr, param, add_one = F) {
@@ -155,14 +157,12 @@ iterateAccept <- function(df, ll_col) {
   return(data.frame(ll = ll_ref, ind_accept = ind))
 }
 
-cl <- parallel::makeCluster(opt$n)
-doParallel::registerDoParallel(cl)
-required_packages <- c("dplyr", "magrittr", "xts", "zoo", "report.generation", "foreach", "itertools")
+required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 # foreach (scenario = scenarios) %:%
 #   foreach(deathrate = deathrates) %do% {
 for(scenario in scenarios) {
   for(deathrate in deathrates) {
-  profout <- profvis::profvis({
+  # profout <- profvis::profvis({
       # Data -------------------------------------------------------------------------
       # Load
     if(!("obs" %in% ls())){
@@ -186,12 +186,12 @@ for(scenario in scenarios) {
     scenario_files <- list.files(paste0('hospitalization/model_output/',config$name,"_",scenario),full.names=TRUE)
     scenario_files <- scenario_files[grepl(deathrate,gsub('.*/','',scenario_files))]
   
-    # ll_data <- foreach(
-    #   file = scenario_files,
-    #   .packages = required_packages
-    # ) %do% {
-    ll_data <- list()
-    for( file in scenario_files) {
+    cl <- parallel::makeCluster(opt$j)
+    doParallel::registerDoParallel(cl)
+    doParallel::registerDoParallel
+    ll_data <- foreach(file = scenario_files, .packages = required_packages) %dopar% {
+    # ll_data <- list()
+    # for( file in scenario_files) {
       # Load sims -----------------------------------------------------------
       
       sim_hosp <<- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
@@ -210,7 +210,7 @@ for(scenario in scenarios) {
         # Compute log-likelihood of data for each sim
         # This part can be parallelized
         # One scenarios, one pdeath
-        if(!(sim_hosp %in% ls())){
+        if(!('sim_hosp' %in% ls())){
           sim_hosp <<- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
             inner_join(geodata, by = config$spatial_setup$nodenames) %>% 
             select(-date_inds) %>% 
@@ -260,23 +260,22 @@ for(scenario in scenarios) {
         group_by(filename) %>% 
         summarise(ll = sum(ll, na.rm = T)) %>% 
         mutate(pdeath = deathrate, scenario = scenario)
-      ll_data[[file]] <- tmp
+      # ll_data[[file]] <- tmp
+    # }
+      tmp
     }
+    # })
+    parallel::stopCluster(cl)
     ll_data <- do.call(ll_data, what=rbind)
-    # } %>% do.call(what=rbind)
-    })
   
     # Acceptance -------------------------------------------------------------------
-    browser()
     
     accepted_data <- iterateAccept(ll_data, "ll")
     accepted_data$filename <- scenario_files[accepted_data$ind_accept]
-    accepted_data$target_filename <- gsub('hosp[.]','filt.',gsub(paste0('0*',accepted_data$ind_accept),sprintf("%09d",opt$k),gsub('^','filtered_',accepted_data$filename)))
+    accepted_data$target_filename <- gsub('hosp[.]','filt.',gsub(paste0('0*',accepted_data$ind_accept),sprintf("%09d",opt$index),gsub('^','filtered_',accepted_data$filename)))
     accepted_data$target_dir <- gsub('/[^/]*$','',accepted_data$target_filename)
     dir.create(accepted_data$target_dir, recursive=TRUE)
-    file.copy(from=accepted_data$filename,to=accepted_data$target_filename)
+    file.copy(from=accepted_data$filename,to=accepted_data$target_filename, overwrite=TRUE)
   }
 }
 #}
-
-parallel::stopCluster(cl)
