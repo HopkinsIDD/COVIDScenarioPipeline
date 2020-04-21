@@ -67,6 +67,7 @@ as_evaled_expression <- function(l) {
 ##'@param obj the string to evaluate
 ##'@return a float evaluation of the expression
 ##'
+##'@export
 as_random_distribution <- function(obj) {
   require(purrr)
 
@@ -75,12 +76,11 @@ as_random_distribution <- function(obj) {
   } else if (obj$distribution == "poisson") {
     return(purrr::partial(rpois, lambda=as_evaled_expression(obj$lam)))
   } else if (obj$distribution == "binomial") {
-    return(purrr::partial(rbinom, size=as_evaled_expression(obj$n), prob=as_evaled_expression(obj$p)))
+    return(purrr::partial(rbinom, size=as_evaled_expression(obj$size), prob=as_evaled_expression(obj$prob)))
+  } else if (obj$distribution == "lognormal") {
+    return(purrr::partial(rlnorm, meanlog=as_evaled_expression(obj$meanlog), sdlog=as_evaled_expression(obj$sdlog)))
   } else {
       stop("unknown distribution")
   }
 }
 
-.onLoad <- function(libname, pkgname) {
-  config <<- load_config()
-}

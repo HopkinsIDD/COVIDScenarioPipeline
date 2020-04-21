@@ -1,0 +1,13 @@
+## What are the features of the planning model?
+ 
+The model estimates the potential impact of non-pharmaceutical intervention scenarios that governments are using in response to the COVID-19 pandemic. By accounting for factors that help explain how the coronavirus that causes COVID-19 spreads through communities, such as volume of travel in and out of the county and movement within the county, the model provides reasonable estimates about how health outcomes (e.g., epidemic peak timing, hospital bed needs) may be impacted by each of the non-pharmaceutical interventions. These health impact estimates reflect information about local resources and capacity. The models are not predictions, but rather our best approximation of how the COVID-19 pandemic could play out under different government actions. As such, they should be used as decision making tools only; these estimates are not meant to be shared outside of decision-making contexts. 
+
+### Forecasting models vs planning models
+
+*What is the difference?*
+
+The difference is important. This report presents planning models tailored to a specific location, with the aim of providing a best estimate of what may happen under different interventions. In contrast, forecasting models attempt to predict what will happen. 
+
+*Why does that difference matter?*
+
+Planning models are a tool for decision makers who are responsible for making decisions about the jurisdictions they serve. They are less useful for members of the general public who are not making decisions for their cities. The different scenarios used in planning models assume that the government actions will result in large-scale behavior change that is best accomplished through government action, and can inform resource allocation decisions made by governments and healthcare organizations.  
