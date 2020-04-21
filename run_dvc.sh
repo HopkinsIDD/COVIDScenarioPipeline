@@ -22,7 +22,7 @@ if [[ ! -f hospitalization.dvc ]]; then
     -o hospitalization \
     Rscript R/scripts/hosp_run.R -c $CONFIG -p .
   git add hospitalization.dvc
-  got commit -m "Commit hospitalization.dvc from run"
+  git commit -m "Commit hospitalization.dvc from run"
 fi
 
 echo "dvc run commands are saved; batch job is ready to be launched on AWS via batch/launch_job.py"

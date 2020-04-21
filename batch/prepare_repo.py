@@ -3,6 +3,7 @@
 import click
 from datetime import datetime
 import re
+import os
 import subprocess
 
 @click.command()
@@ -18,33 +19,26 @@ def prepare_repo(data_repo, user, config_file, num_test_sims):
 
     # Create a new branch to track the run
     branch_name = f"run_{data_repo.lower()}_{user}_{datetime.today().strftime('%Y%m%d%H%M%S')}"
-    print(f"Creating run branch named {branch_name}...")
-    branch_proc = subprocess.Popen(["git", "checkout", "-b", branch_name], stdout=subprocess.PIPE)
-    print(branch_proc.communicate()[0])
+    subprocess.run(["git", "checkout", "-b", branch_name])
 
-    # Import the data/ directory from the data_repo with dvc
+    # Import the data/ directory from the data_repo with dvc if it's not here already
     if not data_repo.endswith(".git"):
         data_repo = f"git@github.com:HopkinsIDD/{data_repo}.git"
-    print(f"Importing data/ from {data_repo}...")
-    import_proc = subprocess.Popen(["dvc", "import", data_repo, "data"], stdout=subprocess.PIPE)
-    print(import_proc.communicate()[0])
+    if not os.path.isfile("data.dvc"):
+        subprocess.run(["dvc", "import", data_repo, "data"])
+        subprocess.run(["git", "add", "data.dvc"])
+        subprocess.run(["git", "commit", "-m", "'Add data.dvc'"])
 
     # Get the config file for the run
-    print(f"Getting {config_file} from {data_repo}...")
-    import_proc = subprocess.Popen(["dvc", "get", data_repo, config_file], stdout=subprocess.PIPE)
-    print(import_proc.communicate()[0])
+    subprocess.run(["dvc", "get", data_repo, config_file])
 
     print(f"Updating config file {config_file} to run {num_test_sims} simulations...")
     config = open(config_file).read()
     config = re.sub("nsimulations: \d+", "nsimulations: %d" % num_test_sims, config)
     with open(config_file, "w") as f:
         f.write(config)
-
-    print("Committing data and config for run...")
-    add_proc = subprocess.Popen(["git", "add", "data.dvc", config_file], stdout=subprocess.PIPE)
-    print(add_proc.communicate()[0])
-    commit_proc = subprocess.Popen(["git", "commit", "-m", "'Commiting data and config for run'"], stdout=subprocess.PIPE)
-    print(commit_proc.communicate()[0])
+    subprocess.run(["git", "add", config_file])
+    subprocess.run(["git", "commit", "-m", "'Commiting config file for run'"])
 
     print(f"Branch {branch_name} is ready; execute 'run_dvc.sh {config_file}' to setup the commands for the batch run")
 

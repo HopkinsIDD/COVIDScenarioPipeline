@@ -5,6 +5,7 @@ import click
 import glob
 import os
 import re
+import subprocess
 import tarfile
 import time
 import yaml
