@@ -1,0 +1,310 @@
+name: Louisiana
+start_date: 2020-01-31
+end_date: 2020-12-31
+nsimulations: 20
+dt: 0.25
+# dynfilter_path: data/LA/filter.txt
+
+spatial_setup:
+  census_year: 2010
+  base_path: data/LA
+  modeled_states:
+   - LA
+  setup_name: LA
+  geodata: geodata.csv
+  mobility: mobility.txt
+  popnodes: pop2010
+  nodenames: geoid  # Name of the column in geodata with uniquely name of nodes
+  include_in_report: include_in_report
+  shapefile: shp/counties_2010_LA.shp
+  shapefile_name: shp/counties_2010_LA.shp
+
+seeding:
+  method: PoissonDistributed
+  lambda_file: data/LA/seeding.csv
+
+seir:
+  parameters:
+    sigma: 1 / 5.2
+    gamma:
+      distribution: uniform
+      low: 1 / 6
+      high: 1 / 2.6
+    R0s:
+      distribution: uniform
+      low: 2
+      high: 3
+
+interventions:
+  scenarios:
+    - Current_NoFollowup
+    # - Current_TestIsolate
+    # - Current_TestIsolate50
+  settings:
+    WuhanPartial:
+      template: ReduceR0
+      period_start_date: 2020-03-19
+      period_end_date: 2020-05-14
+      value:
+        distribution: uniform
+        low: .81
+        high: .89
+    Influenza1918Partial:
+      template: ReduceR0
+      period_start_date: 2020-05-15
+      period_end_date: 2020-12-31
+      value:
+        distribution: uniform
+        low: .44
+        high: .65
+    SchoolClosurePartial:
+      template: ReduceR0
+      period_start_date: 2020-03-13
+      period_end_date: 2020-03-19
+      value:
+        distribution: truncnorm
+        a: 0.16
+        b: 0.30
+        mean: 0.18
+        sd: 0.05
+    TestIsolatePartial:
+      template: ReduceR0
+      period_start_date: 2020-05-15
+      period_end_date: 2020-12-31
+      value:
+        distribution: uniform
+        low: .48
+        high: .76
+    TestIsolatePartial50:
+      template: ReduceR0
+      period_start_date: 2020-05-15
+      period_end_date: 2020-12-31
+      value:
+        distribution: uniform
+        low: .24
+        high: .38
+    Influenza1918PartialElse25:
+      template: ReduceR0
+      affected_geoids: ["22107", "22023", "22035", "22081", "22021", "22025", "22091", "22123", "22065", "22013", "22059", "22127", "22125", "22049", "22027", "22037", "22083", "22041", "22029", "22093", "22043", "22111", "22077", "22075", "22007", "22121", "22085", "22003", "22031", "22067", "22053", "22047", "22039", "22011", "22087", "22069", "22119", "22009", "22095", "22061", "22117", "22099", "22115", "22089", "22101", "22113", "22001", "22045", "22097", "22057", "22005", "22109", "22015", "22105", "22063", "22079", "22073", "22019", "22055", "22103", "22017", "22051", "22033"]
+      period_start_date: 2020-03-16
+      period_end_date: 2020-03-23
+      value:
+        distribution: uniform
+        low: .11
+        high: .16
+    Influenza1918PartialElse:
+      template: ReduceR0
+      affected_geoids: ["22107", "22023", "22035", "22081", "22021", "22025", "22091", "22123", "22065", "22013", "22059", "22127", "22125", "22049", "22027", "22037", "22083", "22041", "22029", "22093", "22043", "22111", "22077", "22075", "22007", "22121", "22085", "22003", "22031", "22067", "22053", "22047", "22039", "22011", "22087", "22069", "22119", "22009", "22095", "22061", "22117", "22099", "22115", "22089", "22101", "22113", "22001", "22045", "22097", "22057", "22005", "22109", "22015", "22105", "22063", "22079", "22073", "22019", "22055", "22103", "22017", "22051", "22033"]
+      period_start_date: 2020-03-16
+      period_end_date: 2020-03-23
+      value:
+        distribution: uniform
+        low: .44
+        high: .65
+    StLouisPartialElse:
+      template: ReduceR0
+      affected_geoids: ["22107", "22023", "22035", "22081", "22021", "22025", "22091", "22123", "22065", "22013", "22059", "22127", "22125", "22049", "22027", "22037", "22083", "22041", "22029", "22093", "22043", "22111", "22077", "22075", "22007", "22121", "22085", "22003", "22031", "22067", "22053", "22047", "22039", "22011", "22087", "22069", "22119", "22009", "22095", "22061", "22117", "22099", "22115", "22089", "22101", "22113", "22001", "22045", "22097", "22057", "22005", "22109", "22015", "22105", "22063", "22079", "22073", "22019", "22055", "22103", "22017", "22051", "22033"]
+      period_start_date: 2020-03-16
+      period_end_date: 2020-03-23
+      value:
+        distribution: uniform
+        low: .35
+        high: .46
+    StLouisPartialElse50:
+      template: ReduceR0
+      affected_geoids: ["22107", "22023", "22035", "22081", "22021", "22025", "22091", "22123", "22065", "22013", "22059", "22127", "22125", "22049", "22027", "22037", "22083", "22041", "22029", "22093", "22043", "22111", "22077", "22075", "22007", "22121", "22085", "22003", "22031", "22067", "22053", "22047", "22039", "22011", "22087", "22069", "22119", "22009", "22095", "22061", "22117", "22099", "22115", "22089", "22101", "22113", "22001", "22045", "22097", "22057", "22005", "22109", "22015", "22105", "22063", "22079", "22073", "22019", "22055", "22103", "22017", "22051", "22033"]
+      period_start_date: 2020-03-16
+      period_end_date: 2020-03-23
+      value:
+        distribution: uniform
+        low: .18
+        high: .23
+    UKPartialElse50:
+      template: ReduceR0
+      affected_geoids: ["22107", "22023", "22035", "22081", "22021", "22025", "22091", "22123", "22065", "22013", "22059", "22127", "22125", "22049", "22027", "22037", "22083", "22041", "22029", "22093", "22043", "22111", "22077", "22075", "22007", "22121", "22085", "22003", "22031", "22067", "22053", "22047", "22039", "22011", "22087", "22069", "22119", "22009", "22095", "22061", "22117", "22099", "22115", "22089", "22101", "22113", "22001", "22045", "22097", "22057", "22005", "22109", "22015", "22105", "22063", "22079", "22073", "22019", "22055", "22103", "22017", "22051", "22033"]
+      period_start_date: 2020-03-24
+      period_end_date: 2020-03-30
+      value:
+        distribution: uniform
+        low: .36
+        high: .42
+    UKPartialElse75:
+      template: ReduceR0
+      affected_geoids: ["22107", "22023", "22035", "22081", "22021", "22025", "22091", "22123", "22065", "22013", "22059", "22127", "22125", "22049", "22027", "22037", "22083", "22041", "22029", "22093", "22043", "22111", "22077", "22075", "22007", "22121", "22085", "22003", "22031", "22067", "22053", "22047", "22039", "22011", "22087", "22069", "22119", "22009", "22095", "22061", "22117", "22099", "22115", "22089", "22101", "22113", "22001", "22045", "22097", "22057", "22005", "22109", "22015", "22105", "22063", "22079", "22073", "22019", "22055", "22103", "22017", "22051", "22033"]
+      period_start_date: 2020-03-31
+      period_end_date: 2020-04-06
+      value:
+        distribution: uniform
+        low:  0.53
+        high: 0.62
+    UKPartialElse:
+      template: ReduceR0
+      affected_geoids: ["22107", "22023", "22035", "22081", "22021", "22025", "22091", "22123", "22065", "22013", "22059", "22127", "22125", "22049", "22027", "22037", "22083", "22041", "22029", "22093", "22043", "22111", "22077", "22075", "22007", "22121", "22085", "22003", "22031", "22067", "22053", "22047", "22039", "22011", "22087", "22069", "22119", "22009", "22095", "22061", "22117", "22099", "22115", "22089", "22101", "22113", "22001", "22045", "22097", "22057", "22005", "22109", "22015", "22105", "22063", "22079", "22073", "22019", "22055", "22103", "22017", "22051", "22033"]
+      period_start_date: 2020-04-07
+      period_end_date: 2020-05-14
+      value:
+        distribution: uniform
+        low: .71
+        high: .83
+    Influenza1918PartialOrleans:
+      template: ReduceR0
+      affected_geoids: ["22071"]
+      period_start_date: 2020-03-10
+      period_end_date: 2020-03-15
+      value:
+        distribution: uniform
+        low: .44
+        high: .65
+    Influenza1918PartialOrleans25:
+      template: ReduceR0
+      affected_geoids: ["22071"]
+      period_start_date: 2020-03-10
+      period_end_date: 2020-03-15
+      value:
+        distribution: uniform
+        low: .11
+        high: .16
+    UKPartialOrleans25:
+      template: ReduceR0
+      affected_geoids: ["22071"]
+      period_start_date: 2020-03-16
+      period_end_date: 2020-03-22
+      value:
+        distribution: uniform
+        low: .18
+        high: .21
+    UKPartialOrleans50:
+      template: ReduceR0
+      affected_geoids: ["22071"]
+      period_start_date: 2020-03-23
+      period_end_date: 2020-03-29
+      value:
+        distribution: uniform
+        low: .36
+        high: .42
+    UKPartialOrleans75:
+      template: ReduceR0
+      affected_geoids: ["22071"]
+      period_start_date: 2020-03-30
+      period_end_date: 2020-04-05
+      value:
+        distribution: uniform
+        low: .53
+        high: .62
+    UKPartialOrleans:
+      template: ReduceR0
+      affected_geoids: ["22071"]
+      period_start_date: 2020-04-06
+      period_end_date: 2020-04-30
+      value:
+        distribution: uniform
+        low: .71
+        high: .83
+    Current_NoFollowup:
+      template: Stacked
+      scenarios:
+        - Influenza1918PartialOrleans25
+        - UKPartialOrleans25
+        - UKPartialOrleans50
+        - UKPartialOrleans75
+        - UKPartialOrleans
+        - StLouisPartialElse50
+        - UKPartialElse50
+        - UKPartialElse75
+        - UKPartialElse
+    Current_TestIsolate:
+      template: Stacked
+      scenarios:
+        - Influenza1918PartialOrleans25
+        - UKPartialOrleans25
+        - UKPartialOrleans50
+        - UKPartialOrleans75
+        - UKPartialOrleans
+        - StLouisPartialElse50
+        - UKPartialElse50
+        - UKPartialElse75
+        - UKPartialElse
+        - TestIsolatePartial
+    Current_TestIsolate50:
+      template: Stacked
+      scenarios:
+        - Influenza1918PartialOrleans25
+        - UKPartialOrleans25
+        - UKPartialOrleans50
+        - UKPartialOrleans75
+        - UKPartialOrleans
+        - StLouisPartialElse50
+        - UKPartialElse50
+        - UKPartialElse75
+        - UKPartialElse
+        - TestIsolatePartial50
+    Lockdown_SocialDistancing:
+      template: Stacked
+      scenarios:
+        - SchoolClosurePartial
+        - WuhanPartial
+        - Influenza1918Partial
+    Lockdown_Testing:
+      template: Stacked
+      scenarios:
+        - SchoolClosurePartial
+        - WuhanPartial
+        - TestIsolatePartial
+
+hospitalization:
+  paths:
+    output_path: hospitalization
+    run_age_adjust: TRUE
+  parameters:
+    time_hosp: [log(7), 0.3]
+    time_disch: [log(11.5), log(1.22)]
+    time_ICU: [log(3), 0.3]
+    time_ICUdur: [log(8), 0.2]
+    time_ventdur: [log(7), 0.2]
+    time_vent: [log(1), 0.4]
+    p_death: [.01]
+    p_death_names: ["high"]
+    p_hosp_inf: [0.1]
+    time_onset_death: [2.84, 0.72]
+
+filtering:
+  do_filtering: TRUE
+  data_path: data/us_data.csv
+  statistics:
+    # sum_deaths:
+    #   name: sum_deaths
+    #   aggregator: sum
+    #   period: "1 months"
+    #   sim_var: incidD
+    #   data_var: death_incid
+    #   remove_na: TRUE
+    #   add_one: TRUE
+    #   likelihood:
+    #     dist: pois
+    #     param:
+    sum_hosp:
+      name: sum_hosp
+      aggregator: sum
+      period: "1 months"
+      sim_var: incidH
+      data_var: conf_incid
+      remove_na: TRUE
+      add_one: TRUE
+      likelihood:
+        dist: pois
+        param:
+
+report:
+  data_settings:
+    pop_year: 2010
+  plot_settings:
+    plot_intervention: TRUE
+  formatting:
+    scenario_labels_short: ["No Followup", "Test/Isolate Complete", "Test/Isolate Partial"]
+    scenario_labels:
+    - "Measures Lifted May 15"
+    - "Full test/isolate after May 15"
+    - "Partial test/isolate after May 15"
+    scenario_colors: ["#D95F02", "#1B9E77", "#7570B3"]
+    pdeath_labels: ["0.25% IFR", "0.5% IFR", "1% IFR"]
+    display_dates: ["2020-04-01","2020-05-01", "2020-07-01", "2020-09-01"]
