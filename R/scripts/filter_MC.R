@@ -1,4 +1,8 @@
 
+# install.packages('xts', repos='http://cran.us.r-project.org')
+# install.packages('zoo', repos='http://cran.us.r-project.org')
+# devtools::install_github("HopkinsIDD/covidImportation")
+
 # Preamble ---------------------------------------------------------------------
 library(dplyr)
 library(readr)
@@ -8,8 +12,8 @@ library(covidImportation)
 library(stringr)
 library(foreach)
 library(magrittr)
-library(itertools)
 library(xts)
+
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
@@ -46,29 +50,54 @@ obs_nodename <- config$spatial_setup$nodenames
 nfiles <- config$nsimulations## set to NULL or the actual number of sim files to include for final report
 
 data_path <- config$filtering$data_path
+data_dir <- gsub('[/][^/]*','',data_path)
+if(!dir.exists(data_dir)){
+  dir.create(data_dir,recursive=TRUE)
+}
 # Parse jhucsse using covidImportation
 if (!file.exists(data_path)) {
-  jhucsse <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
+  case_data_dir <- paste(config$spatial_setup$base_path,config$spatial_setup$setup_name,"case_data", sep = '/')
+  if(!dir.exists(case_data_dir)){
+    dir.create(case_data_dir,recursive=TRUE)
+  }
+  jhucsse_cases <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
                                    last_date = as.POSIXct(lubridate::ymd(config$end_date)),
-                                   case_data_dir = file.path('importation',config$spatial_setup$setup_name,"case_data"),
+                                   case_data_dir = case_data_dir,
                                    save_raw_data=TRUE,
-                                   us_data_only=FALSE)
+                                   us_data_only=FALSE) %>%
+                     select(FIPS,Update,Confirmed)
+
+  jhucsse_deaths <- covidImportation::get_clean_JHUCSSE_deaths(aggr_level = "UID", #"source",
+                               last_date = Sys.time(),
+                               case_data_dir = case_data_dir,
+                               save_raw_data=TRUE,
+                               us_data_only=FALSE) %>%
+                     select(FIPS,Update,Deaths)
+
+  jhucsse <- full_join(jhucsse_cases,jhucsse_deaths)
   jhucsse  <- 
     jhucsse %>%
     dplyr::mutate(date = lubridate::ymd(Update)) %>%
     dplyr::filter(FIPS %in% geodata[[obs_nodename]]) %>%
     dplyr::rename(
       cumConfirmed = Confirmed,
-      # cumDeaths = Deaths
+      cumDeaths = Deaths
     ) %>%
-    dplyr::arrange(date) %>%
+    dplyr::arrange(date)
+  if(any(is.na(jhucsse$cumConfirmed))){
+    jhucsse$cumConfirmed[is.na(jhucsse$cumConfirmed)] <- 0
+  }
+  if(any(is.na(jhucsse$cumDeaths))){
+    jhucsse$cumDeaths[is.na(jhucsse$cumDeaths)] <- 0
+  }
+  jhucsse <- jhucsse %>%
     dplyr::group_by(FIPS) %>% 
     dplyr::group_modify(
       function(.x,.y){
         .x$cumConfirmed = cummax(.x$cumConfirmed)
         .x$conf_incid = c(.x$cumConfirmed[1],diff(.x$cumConfirmed))
-        # .x$cumDeaths = cummax(.x$cumDeaths)
-        # .x$death_incid = c(.x$cumDeaths[1],.x$diff(cumDeaths))
+        .x$cumDeaths = cummax(.x$cumDeaths)
+        .x$death_incid = c(.x$cumDeaths[1],diff(.x$cumDeaths,))
         return(.x)
       }
     )
@@ -147,9 +176,11 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
   if(distr == "pois") {
     dpois(obs, sim, log = T)
   } else if (distr == "norm") {
-    dnorm(obs, sim, sd = params[1], log = T)
+    dnorm(obs, sim, sd = param[1], log = T)
   } else if (distr == "nbinom") {
-    dnbinom(obs, sim, k = params[1], log = T)
+    dnbinom(obs, sim, k = param[1], log = T)
+  } else if (distr == "sqrtnorm") {
+    dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[1])
   }
 }
 
@@ -247,7 +278,7 @@ for(scenario in scenarios) {
         }
         # Compute log-likelihoods
   
-        log_likelihood_data[[file]] <- dplyr::tibble(
+        log_likelihood_data[[location]] <- dplyr::tibble(
           ll = sum(unlist(log_likelihood)),
           filename = file,
           geoid = location
@@ -256,21 +287,20 @@ for(scenario in scenarios) {
       # }
       }
       rm(sim_hosp)
-      print(log_likelihood_data)
   
       log_likelihood_data <- log_likelihood_data %>% do.call(what=rbind)
   
-      # print(log_likelihood)
+      print(log_likelihood_data)
       
       # Compute total loglik for each sim
       tmp <- log_likelihood_data %>% 
         group_by(filename) %>% 
         summarise(ll = sum(ll, na.rm = T)) %>% 
         mutate(pdeath = deathrate, scenario = scenario)
-      # ll_data[[file]] <- tmp
+    # ll_data[[file]] <- tmp
     # }
-      tmp
-    }
+       tmp
+     }
     # })
     parallel::stopCluster(cl)
     ll_data <- do.call(ll_data, what=rbind)

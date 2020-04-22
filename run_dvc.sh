@@ -28,10 +28,14 @@ if [[ ! -f hospitalization.dvc ]]; then
   git commit -m "Commit hospitalization.dvc from run"
 fi
 
-if [[! -f filtration.csv ]]; then
+if [[ ! -f filtered_hospitalization.dvc ]]; then
   dvc run \
-  -d hospitalization
-  -o filtered_hospitalization
-  bash R/scripts/full_filter.sh -c $CONFIG
+    -d R/scripts/filter_MC.R \
+    -d hospitalization \
+    -o filtered_hospitalization \
+    Rscript R/scripts/full_filter.R -c $CONFIG
+  git add filtered_hospitalization.dvc
+  git commit -m "Commit filtered_hospitalization.dvc from run"
+fi
 
 echo "dvc run commands are saved; batch job is ready to be launched on AWS via batch/launch_job.py"
