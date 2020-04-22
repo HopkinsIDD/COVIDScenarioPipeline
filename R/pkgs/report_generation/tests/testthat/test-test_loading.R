@@ -98,6 +98,20 @@ test_that("Simulation loading works", {
     )
   )
 
+  expect_error({
+    load_scenario_sims_filtered(
+      scenario_dir = 'a_b',
+      post_process = "not a function"
+    )
+  }, "could not find function")
+
+  expect_error({
+    load_scenario_sims_filtered(
+      scenario_dir = 'a_b',
+      pre_process = "not a function"
+    )
+  }, "could not find function")
+
   unlink(dir, recursive=TRUE)  
 })
 
