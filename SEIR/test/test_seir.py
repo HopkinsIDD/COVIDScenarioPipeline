@@ -93,7 +93,7 @@ def test_constant_population():
     parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes, s.dt, npi)
 
     states = seir.steps_SEIR_nb(parameters,
-                       seeding, 1234, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                       seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
                        mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
     completepop = s.popnodes.sum()
@@ -141,7 +141,7 @@ def test_steps_SEIR_nb_simple_spread():
 
     for i in range(100):
         states = seir.steps_SEIR_nb(parameters,
-                           seeding, 1234, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
 
@@ -181,7 +181,7 @@ def test_steps_SEIR_no_spread():
 
     for i in range(100):
         states = seir.steps_SEIR_nb(parameters,
-                           seeding, 1234, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
 
