@@ -43,7 +43,7 @@ post <- function(x){
 pre2 <- function(x){
   
   x %>%
-    dplyr::filter(comp %in% c("diffI")) )
+    dplyr::filter(comp %in% c("diffI")) 
 }
 
 ###########################################
