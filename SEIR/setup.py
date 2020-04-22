@@ -222,3 +222,4 @@ def parameters_write(parameters, fname, extension):
 
     else:
         raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
+
