@@ -48,10 +48,10 @@ class Stacked(NPIBase):
         out_df = pd.concat(p_dfs)
 
         if extension == "csv":
-            out_df.to_csv(f"{fname}.snpi.{extension}", index_label="time")
+            out_df.to_csv(f"{fname}.{extension}", index_label="time")
         elif extension == "parquet":
             out_df["parameter"] = out_df.index
             out_df = pa.Table.from_pandas(out_df, preserve_index = False)
-            pa.parquet.write_table(out_df,f"{fname}.snpi.{extension}")
+            pa.parquet.write_table(out_df,f"{fname}.{extension}")
         else:
             raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")

@@ -1,4 +1,5 @@
 import pandas as pd
+import pyarrow as pa
 import numpy as np
 
 from .base import NPIBase
