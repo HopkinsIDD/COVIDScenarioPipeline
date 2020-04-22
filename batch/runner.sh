@@ -47,8 +47,7 @@ else
 	for output in "${DVC_OUTPUTS_ARRAY[@]}"
 	do
 		echo "Saving output $output"
-		aws s3 cp --recursive $output $S3_RESULTS_PATH/$output-$AWS_BATCH_JOB_ID/
-		aws s3 sync $output $S3_RESULTS_PATH/$output-$AWS_BATCH_JOB_ID/ --delete
+		aws s3 cp --recursive $output $S3_RESULTS_PATH/$output-$AWS_BATCH_JOB_ID/$output/
 	done
 fi
 
