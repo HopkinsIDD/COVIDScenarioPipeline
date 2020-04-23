@@ -230,9 +230,9 @@ for(scenario in scenarios) {
   
     cl <- parallel::makeCluster(opt$j)
     doParallel::registerDoParallel(cl)
-    # ll_data <- foreach(file = scenario_files, .packages = required_packages) %dopar% {
-    ll_data <- list()
-    for( file in scenario_files) {
+    ll_data <- foreach(file = scenario_files, .packages = required_packages) %dopar% {
+    # ll_data <- list()
+    # for( file in scenario_files) {
       # Load sims -----------------------------------------------------------
       
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
@@ -300,10 +300,10 @@ for(scenario in scenarios) {
         group_by(filename) %>% 
         summarise(ll = sum(ll, na.rm = T)) %>% 
         mutate(pdeath = deathrate, scenario = scenario)
-    ll_data[[file]] <- tmp
+    # ll_data[[file]] <- tmp
+    # }
+      tmp
     }
-    #    tmp
-    #  }
     # })
     parallel::stopCluster(cl)
     ll_data <- do.call(ll_data, what=rbind)
