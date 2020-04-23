@@ -972,10 +972,10 @@ hospitalization:
     time_ICUdur: [log(8), 0.2]
     time_ventdur: [log(7), 0.2]
     time_vent: [log(1), 0.4]
-    p_death: [.01]
-    p_death_names: ["high"]
-    p_hosp_inf: [0.1]
-    time_onset_death: [2.1, 0.72]
+    p_death: [.005]
+    p_death_names: ["med"]
+    p_hosp_inf: [0.05]
+    time_onset_death: [2.1, 0.72] #short time to death
 
 filtering:
   simulations_per_slot: 100
@@ -1002,8 +1002,8 @@ filtering:
       remove_na: TRUE
       add_one: TRUE
       likelihood:
-        dist: sqrtnorm
-        param: [.2]
+        dist: sqrtnorm_scale_sim
+        param: [.2, 5]
 
 report:
   data_settings:

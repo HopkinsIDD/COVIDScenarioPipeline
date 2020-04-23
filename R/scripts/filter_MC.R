@@ -23,7 +23,7 @@ option_list = list(
   optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenarios to run, or 'all' to run all of them"),
   optparse::make_option(c("-j", "--jobs"), action="store", default="8", type='integer', help="Number of jobs to run in parallel"),
   optparse::make_option(c("-k", "--index"), action="store", default="1", type='integer', help = "id of this slot")
- 
+
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -60,7 +60,7 @@ if (!file.exists(data_path)) {
   if(!dir.exists(case_data_dir)){
     dir.create(case_data_dir,recursive=TRUE)
   }
-  jhucsse_cases <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
+  jhucsse_cases <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID",
                                    last_date = as.POSIXct(lubridate::ymd(config$end_date)),
                                    case_data_dir = case_data_dir,
                                    save_raw_data=TRUE,
@@ -75,7 +75,7 @@ if (!file.exists(data_path)) {
                      select(FIPS,Update,Deaths)
 
   jhucsse <- full_join(jhucsse_cases,jhucsse_deaths)
-  jhucsse  <- 
+  jhucsse  <-
     jhucsse %>%
     dplyr::mutate(date = lubridate::ymd(Update)) %>%
     dplyr::filter(FIPS %in% geodata[[obs_nodename]]) %>%
@@ -91,7 +91,7 @@ if (!file.exists(data_path)) {
     jhucsse$cumDeaths[is.na(jhucsse$cumDeaths)] <- 0
   }
   jhucsse <- jhucsse %>%
-    dplyr::group_by(FIPS) %>% 
+    dplyr::group_by(FIPS) %>%
     dplyr::group_modify(
       function(.x,.y){
         .x$cumConfirmed = cummax(.x$cumConfirmed)
@@ -137,9 +137,9 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
     data <- data[dates <= end_date]
     dates <- dates[dates <= end_date]
   }
-  
+
   xtsobj <- as.xts(zoo(data, dates))
-  stats <- period.apply(xtsobj, 
+  stats <- period.apply(xtsobj,
                         endpoints(xtsobj, on = period_unit, k = period_k),
                         aggregator)
   return(stats)
@@ -152,7 +152,7 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
       aggregator <- match.fun(s$aggregator)
       # Get the time period over whith to apply aggregation
       period_info <- strsplit(s$period, " ")[[1]]
-      
+
       res <- periodAggregate(df[[s[[var_col]]]],
                              df[[time_col]],
                              end_date,
@@ -160,27 +160,35 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
                              period_info[1],
                              aggregator,
                              na.rm = s$remove_na)
-      rc[[stat]] <- res %>% 
-        as.data.frame() %>% 
-        mutate(date = rownames(.)) %>% 
-        set_colnames(c(var_col, "date")) %>% 
+      rc[[stat]] <- res %>%
+        as.data.frame() %>%
+        mutate(date = rownames(.)) %>%
+        set_colnames(c(var_col, "date")) %>%
         select(date, one_of(var_col))
   }
   return(rc)
 }
 
+
+
+##Calculate the model evaluatoin statistic.
 logLikStat <- function(obs, sim, distr, param, add_one = F) {
   if (add_one) {
     sim[sim == 0] = 1
   }
+
   if(distr == "pois") {
-    dpois(obs, sim, log = T)
+    rc <- dpois(obs, sim, log = T)
   } else if (distr == "norm") {
-    dnorm(obs, sim, sd = param[1], log = T)
+    rc <- dnorm(obs, sim, sd = param[1], log = T)
   } else if (distr == "nbinom") {
-    dnbinom(obs, sim, k = param[1], log = T)
+    rc <- dnbinom(obs, sim, k = param[1], log = T)
   } else if (distr == "sqrtnorm") {
-    dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[1], log = T)
+      ec <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[1], log = T)
+  } else if (distr == "sqrtnorm_scale_sim") ( #param 1 is cov, param 2 is multipler
+      ec <- dnorm(sqrt(obs), sqrt(sim*param[2]), sd=sqrt(sim*param[2])*param[1],log=T)
+  } else {
+      stop("Invalid stat specified")
   }
 }
 
@@ -213,7 +221,7 @@ data_stats <- lapply(
       "date",
       "data_var",
       stat_list = config$filtering$statistics)
-  }) %>% 
+  }) %>%
     set_names(geonames)
 
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
@@ -224,23 +232,23 @@ for(scenario in scenarios) {
   # profout <- profvis::profvis({
       # Data -------------------------------------------------------------------------
       # Load
-    
+
     scenario_files <- list.files(paste0('hospitalization/model_output/',config$name,"_",scenario),full.names=TRUE)
     scenario_files <- scenario_files[grepl(deathrate,gsub('.*/','',scenario_files))]
-  
+
     cl <- parallel::makeCluster(opt$j)
     doParallel::registerDoParallel(cl)
     ll_data <- foreach(file = scenario_files, .packages = required_packages) %dopar% {
     # ll_data <- list()
     # for( file in scenario_files) {
       # Load sims -----------------------------------------------------------
-      
-      sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
+
+      sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>%
         filter(time <= max(obs$date)) %>%
         select(-date_inds)
-      
+
       log_likelihood_data <- list()
-      
+
       lhs <- unique(sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
@@ -250,7 +258,7 @@ for(scenario in scenarios) {
         # This part can be parallelized
         # One scenarios, one pdeath
         if(!('sim_hosp' %in% ls())){
-          sim_hosp <<- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
+          sim_hosp <<- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>%
             filter(time <= max(obs$date)) %>%
             select(-date_inds)
         }
@@ -261,15 +269,15 @@ for(scenario in scenarios) {
           "time",
           "sim_var",
           end_date = max(obs$date[obs[[obs_nodename]] == location]),
-          config$filtering$statistics 
+          config$filtering$statistics
         )
-          
-        
+
+
         # Get observation statistics
         log_likelihood <- list()
         for(var in names(data_stats[[location]])) {
         # log_likelihood <- foreach (var = names(data_stats[[location]]), .combine = sum) %do% {
-          
+
           log_likelihood[[var]] <- logLikStat(
             obs = data_stats[[location]][[var]]$data_var,
             sim = sim_stats[[var]]$sim_var,
@@ -280,7 +288,7 @@ for(scenario in scenarios) {
         # }
         }
         # Compute log-likelihoods
-  
+
         log_likelihood_data[[location]] <- dplyr::tibble(
           ll = sum(unlist(log_likelihood)),
           filename = file,
@@ -290,15 +298,15 @@ for(scenario in scenarios) {
       # }
       }
       rm(sim_hosp)
-  
+
       log_likelihood_data <- log_likelihood_data %>% do.call(what=rbind)
-  
+
       print(log_likelihood_data)
-      
+
       # Compute total loglik for each sim
-      tmp <- log_likelihood_data %>% 
-        group_by(filename) %>% 
-        summarise(ll = sum(ll, na.rm = T)) %>% 
+      tmp <- log_likelihood_data %>%
+        group_by(filename) %>%
+        summarise(ll = sum(ll, na.rm = T)) %>%
         mutate(pdeath = deathrate, scenario = scenario)
     # ll_data[[file]] <- tmp
     # }
@@ -307,9 +315,9 @@ for(scenario in scenarios) {
     # })
     parallel::stopCluster(cl)
     ll_data <- do.call(ll_data, what=rbind)
-  
+
     # Acceptance -------------------------------------------------------------------
-    
+
     accepted_data <- iterateAccept(ll_data, "ll")
     accepted_data$filename <- scenario_files[accepted_data$ind_accept]
     accepted_data$target_filename <- gsub('hosp[.]','filt.',gsub(paste0('0*',accepted_data$ind_accept),sprintf("%09d",opt$index),gsub('^','filtered_',accepted_data$filename)))
