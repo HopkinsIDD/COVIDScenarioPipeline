@@ -27,30 +27,39 @@ import yaml
               help="The name of the AWS Batch Job Definition to use for the job")
 @click.option("-q", "--job-queue", "batch_job_queue", type=str, default="Batch-CovidPipeline", show_default=True,
               help="The name of the AWS Batch Job Queue to use for the job")
-def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue):
+@click.option("-p", "--parallelize-scenarios", "parallelize_scenarios", type=bool, default=False, show_default=True,
+              help="Launch a different batch job for each scenario")
+def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue, parallelize_scenarios):
 
-    raw_config = None
+    config = None
     with open(config_file) as f:
-        raw_config = f.read()
-    parsed_config = yaml.full_load(raw_config)
+        config = yaml.full_load(f)
 
     # A unique name for this job run, based on the config name and current time
-    job_name = f"{parsed_config['name']}-{int(time.time())}"
+    job_name = f"{config['name']}-{int(time.time())}"
     print("Preparing to run job: %s" % job_name)
-
-    print("Verifying that dvc target is up to date...")
-    exit_code, output = subprocess.getstatusoutput("dvc status")
-    if exit_code != 0:
-        print("dvc status is not up to date...")
-        print(output)
-        return 1
 
     # Update and save the config file with the number of sims to run
     print(f"Updating {config_file} to run {sims_per_job} simulations...")
-    raw_config = re.sub("nsimulations: \d+", "nsimulations: %d" % sims_per_job, raw_config)
-    with open(config_file, "w") as f:
-        f.write(raw_config)
+    config['nsimulations'] = sims_per_job
 
+    if parallelize_scenarios:
+        scenarios = config['interventions']['scenarios']
+        for s in scenarios:
+            scenario_job_name = f"{job_name}_{s}"
+            config['interventions']['scenarios'] = [s]
+            with open(config_file, "w") as f:
+                yaml.dump(config, f, sort_keys=False)
+            launch_job_inner(scenario_job_name, config_file, num_jobs, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue)
+        config['interventions']['scenarios'] = scenarios
+        with open(config_file, "w") as f:
+            yaml.dump(config, f, sort_keys=False)
+    else:
+        with open(config_file, "w") as f:
+            yaml.dump(config, f, sort_keys=False)
+        launch_job_inner(job_name, config_file, num_jobs, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue)
+
+def launch_job_inner(job_name, config_file, num_jobs, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue):
     # Prepare to tar up the current directory, excluding any dvc outputs, so it
     # can be shipped to S3
     dvc_outputs = get_dvc_outputs()
@@ -103,8 +112,6 @@ def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucke
                 containerOverrides=container_overrides)
 
     # TODO: record batch job info to a file so it can be tracked
-
-    return 0
 
 
 def get_dvc_outputs():
