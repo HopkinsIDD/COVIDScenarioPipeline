@@ -40,14 +40,14 @@ if [ -z "$AWS_BATCH_JOB_ARRAY_INDEX" ]; then
 	do
 		"Saving output $output"
 		tar cv --use-compress-program=pbzip2 -f $output.tar.bz2 $output
-		aws s3 cp $output.tar.bz2 $S3_RESULTS_PATH/
+		aws s3 cp --quiet $output.tar.bz2 $S3_RESULTS_PATH/
 	done
 else
 	echo "Saving outputs from array batch job"
 	for output in "${DVC_OUTPUTS_ARRAY[@]}"
 	do
 		echo "Saving output $output"
-		aws s3 cp --recursive $output $S3_RESULTS_PATH/$output-$AWS_BATCH_JOB_ID/$output/
+		aws s3 cp --quiet --recursive $output $S3_RESULTS_PATH/$output-$AWS_BATCH_JOB_ID/$output/
 	done
 fi
 
