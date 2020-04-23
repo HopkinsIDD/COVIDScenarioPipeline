@@ -26,8 +26,7 @@ j = 1
 ###########################################
 ### check total population is constant
 pre <- function(x){
-  x %>% dplyr::filter(comp %in% c("S", "E", "I1", "I2", "I3", "R")) %>%
-    dplyr::filter(time <= "2020-10-01")
+  x %>% dplyr::filter(comp %in% c("S", "E", "I1", "I2", "I3", "R")) 
 }
 post <- function(x){
   x %>%
@@ -44,8 +43,7 @@ post <- function(x){
 pre2 <- function(x){
   
   x %>%
-    dplyr::filter(comp %in% c("diffI")) %>%
-    dplyr::filter(time <= "2020-10-01")
+    dplyr::filter(comp %in% c("diffI")) 
 }
 
 ###########################################
