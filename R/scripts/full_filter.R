@@ -12,7 +12,8 @@ option_list = list(
 
 install.packages('xts', repos='http://cran.us.r-project.org')
 install.packages('zoo', repos='http://cran.us.r-project.org')
-devtools::install_github("HopkinsIDD/covidImportation")
+install.packages('covidImportation',type='source',repos=NULL)
+# devtools::install_github("HopkinsIDD/covidImportation")
 
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)

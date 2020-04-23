@@ -180,7 +180,7 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
   } else if (distr == "nbinom") {
     dnbinom(obs, sim, k = param[1], log = T)
   } else if (distr == "sqrtnorm") {
-    dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[1])
+    dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[1], log = T)
   }
 }
 
@@ -230,9 +230,9 @@ for(scenario in scenarios) {
   
     cl <- parallel::makeCluster(opt$j)
     doParallel::registerDoParallel(cl)
-    ll_data <- foreach(file = scenario_files, .packages = required_packages) %dopar% {
-    # ll_data <- list()
-    # for( file in scenario_files) {
+    # ll_data <- foreach(file = scenario_files, .packages = required_packages) %dopar% {
+    ll_data <- list()
+    for( file in scenario_files) {
       # Load sims -----------------------------------------------------------
       
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>% 
@@ -241,8 +241,11 @@ for(scenario in scenarios) {
       
       log_likelihood_data <- list()
       
-      for(location in unique(sim_hosp[[obs_nodename]])) {
-      # log_likelihood_data <- foreach (location = sim_hosp$USPS) %do% {
+      lhs <- unique(sim_hosp[[obs_nodename]])
+      rhs <- unique(names(data_stats))
+      all_locations <- rhs[rhs %in% lhs]
+      for(location in all_locations) {
+      # log_likelihood_data <- foreach (location = all_locations) %do% {
         # Compute log-likelihood of data for each sim
         # This part can be parallelized
         # One scenarios, one pdeath
@@ -297,10 +300,10 @@ for(scenario in scenarios) {
         group_by(filename) %>% 
         summarise(ll = sum(ll, na.rm = T)) %>% 
         mutate(pdeath = deathrate, scenario = scenario)
-    # ll_data[[file]] <- tmp
-    # }
-       tmp
-     }
+    ll_data[[file]] <- tmp
+    }
+    #    tmp
+    #  }
     # })
     parallel::stopCluster(cl)
     ll_data <- do.call(ll_data, what=rbind)

@@ -63,7 +63,7 @@ spatial_setup:
    - PR
   setup_name: usa
   geodata: geodata.csv
-  mobility: mobility.txt
+  mobility: mobility.csv
   popnodes: pop2010
   nodenames: geoid
   include_in_report: include_in_report
@@ -116,8 +116,8 @@ seir:
 interventions:
   scenarios:
     - LockdownUK_firstcase_5x
-    - Lockdown1918_firstcase_5x
-    - Uncontrolled_firstcase_5x
+    # - Lockdown1918_firstcase_5x
+    # - Uncontrolled_firstcase_5x
   settings:
     Uncontrolled_firstcase_5x:
       template: ReduceR0
@@ -978,7 +978,7 @@ hospitalization:
     time_onset_death: [2.1, 0.72]
 
 filtering:
-  simulations_per_slot: 1000
+  simulations_per_slot: 100
   do_filtering: TRUE
   data_path: data/us_data.csv
   statistics:
