@@ -57,3 +57,4 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+/filtered_hospitalization

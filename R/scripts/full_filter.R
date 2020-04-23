@@ -1,19 +1,22 @@
+
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = "./"),
   optparse::make_option(c("-s", "--scenarios"), action="store", default='all', type='character', help="name of the intervention to run, or 'all' to run all of them"),
   optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenarios to run, or 'all' to run all of them"),
-  optparse::make_option(c("-j", "--jobs"), action="store", default="8", type='integer', help="Number of jobs to run in parallel"),
+  optparse::make_option(c("-j", "--jobs"), action="store", default=parallel::detectCores(), type='integer', help="Number of jobs to run in parallel"),
   optparse::make_option(c("-k", "--sims_per_slot"), action="store", default=NA, type='integer', help = "Number of simulations to run per slot"),
   optparse::make_option(c("-n", "--slots"), action="store", default=NA, type='integer', help = "Number of slots to run."),
   optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable"),
   optparse::make_option(c("-r", "--rpath"), action="store", default="Rscript", type = 'character', help = "path to R executable")
 )
 
-install.packages('xts', repos='http://cran.us.r-project.org')
-install.packages('zoo', repos='http://cran.us.r-project.org')
-install.packages('covidImportation',type='source',repos=NULL)
-# devtools::install_github("HopkinsIDD/covidImportation")
+if (!require("xts")) {
+  install.packages('xts', repos='http://cran.us.r-project.org')
+  install.packages('zoo', repos='http://cran.us.r-project.org')
+  devtools::install_local('covidImportation')
+  # devtools::install_github("HopkinsIDD/covidImportation")
+}
 
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)

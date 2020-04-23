@@ -63,7 +63,7 @@ spatial_setup:
    - PR
   setup_name: usa
   geodata: geodata.csv
-  mobility: mobility.csv
+  mobility: mobility.txt
   popnodes: pop2010
   nodenames: geoid
   include_in_report: include_in_report
