@@ -37,7 +37,6 @@ def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucke
 
     # A unique name for this job run, based on the config name and current time
     job_name = f"{config['name']}-{int(time.time())}"
-    print("Preparing to run job: %s" % job_name)
 
     # Update and save the config file with the number of sims to run
     print(f"Updating {config_file} to run {sims_per_job} simulations...")
@@ -60,6 +59,7 @@ def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucke
         launch_job_inner(job_name, config_file, num_jobs, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue)
 
 def launch_job_inner(job_name, config_file, num_jobs, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue):
+
     # Prepare to tar up the current directory, excluding any dvc outputs, so it
     # can be shipped to S3
     dvc_outputs = get_dvc_outputs()
@@ -96,6 +96,7 @@ def launch_job_inner(job_name, config_file, num_jobs, dvc_target, s3_input_bucke
             'command': command
     }
 
+    print("Preparing to run job: %s" % job_name)
     batch_client = boto3.client('batch')
     if num_jobs > 1:
         resp = batch_client.submit_job(
