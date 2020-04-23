@@ -178,18 +178,20 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
   }
 
   if(distr == "pois") {
-    rc <- dpois(obs, sim, log = T)
+      rc <- dpois(obs, sim, log = T)
   } else if (distr == "norm") {
-    rc <- dnorm(obs, sim, sd = param[1], log = T)
+      rc <- dnorm(obs, sim, sd = param[1], log = T)
   } else if (distr == "nbinom") {
-    rc <- dnbinom(obs, sim, k = param[1], log = T)
+      rc <- dnbinom(obs, sim, k = param[1], log = T)
   } else if (distr == "sqrtnorm") {
-      ec <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[1], log = T)
+      rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[1], log = T)
   } else if (distr == "sqrtnorm_scale_sim") ( #param 1 is cov, param 2 is multipler
-      ec <- dnorm(sqrt(obs), sqrt(sim*param[2]), sd=sqrt(sim*param[2])*param[1],log=T)
+      rc <- dnorm(sqrt(obs), sqrt(sim*param[2]), sd=sqrt(sim*param[2])*param[1],log=T)
   } else {
       stop("Invalid stat specified")
   }
+
+  return(rc)
 }
 
 iterateAccept <- function(df, ll_col) {
