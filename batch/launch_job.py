@@ -91,7 +91,7 @@ def launch_job_inner(job_name, config_file, num_jobs, dvc_target, s3_input_bucke
     command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
     container_overrides = {
             'vcpus': 72,
-            'memory': 184000,
+            'memory': 400000,
             'environment': env_vars,
             'command': command
     }

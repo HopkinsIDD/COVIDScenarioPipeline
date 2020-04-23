@@ -14,7 +14,7 @@ option_list = list(
 if (!require("xts")) {
   install.packages('xts', repos='http://cran.us.r-project.org')
   install.packages('zoo', repos='http://cran.us.r-project.org')
-  devtools::install_local('covidImportation')
+  install.packages('./covidImportation', repos=NULL, type="source")
   # devtools::install_github("HopkinsIDD/covidImportation")
 }
 
