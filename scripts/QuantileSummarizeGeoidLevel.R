@@ -47,22 +47,15 @@ post_proc <- function(x,geodata,opt) {
       mutate(cum_infections=cumsum(incidI)) %>%
       mutate(cum_death=cumsum(incidD)) %>%
       ungroup()%>%
-      filter(time>=opt$start_date& time<=opt$end_date) %>%
-      inner_join(geodata%>%select(geoid, USPS)) %>%
-      group_by(USPS, time) %>%
-      summarize(hosp_curr=sum(hosp_curr),
-                cum_death=sum(cum_death),
-                death=sum(incidD),
-                infections=sum(incidI),
-                cum_infections=sum(cum_infections)) %>%
-      ungroup()
+      filter(time>=opt$start_date& time<=opt$end_date)%>%
+      rename(infections=incidI, death=incidD)
 }
 
 ##Run over scenarios and death rates as appropriate. Note that
 ##Final results will average accross whatever is included
-res_state <-list()
+res_geoid <-list()
 for (i in 1:length(scenarios)) {
-    res_state[[i]] <- report.generation::load_hosp_sims_filtered(scenarios[i],
+    res_geoid[[i]] <- report.generation::load_hosp_sims_filtered(scenarios[i],
                                                                  name_filter = opt$name_filter,
                                                                  num_files = opt$nfiles,
                                                                  post_process = post_proc,
@@ -74,16 +67,17 @@ for (i in 1:length(scenarios)) {
 }
 
 ##Put in one data frame
-res_state<-dplyr::bind_rows(res_state)
+res_geoid<-dplyr::bind_rows(res_geoid)
 
 ##deregister backend
 doParallel::stopImplicitCluster()
 
 
+
 ## Extract quantiles
 tmp_col <- function(x, col) {
     x%>%
-        group_by(time,USPS) %>%
+        group_by(time,geoid) %>%
         summarize(x=list(enframe(quantile(!!sym(col), probs=c(0.01, 0.025,
                                                               seq(0.05, 0.95, by = 0.05), 0.975, 0.99)),
                                  "quantile",col))) %>%
@@ -92,14 +86,14 @@ tmp_col <- function(x, col) {
 }
 
 
-to_save_st <- inner_join(tmp_col(res_state,"hosp_curr"),
-                         tmp_col(res_state,"cum_death"))%>%
-    inner_join(tmp_col(res_state,"death"))%>%
-    inner_join(tmp_col(res_state,"infections"))%>%
-    inner_join(tmp_col(res_state,"cum_infections"))
+to_save_geo <- inner_join(tmp_col(res_geoid,"hosp_curr"),
+                         tmp_col(res_geoid,"cum_death"))%>%
+    inner_join(tmp_col(res_geoid,"death"))%>%
+    inner_join(tmp_col(res_geoid,"infections"))%>%
+    inner_join(tmp_col(res_geoid,"cum_infections"))
 
 
-write_csv(to_save_st, path=opt$outfile)
+write_csv(to_save_geo, path=opt$outfile)
 
 
 
