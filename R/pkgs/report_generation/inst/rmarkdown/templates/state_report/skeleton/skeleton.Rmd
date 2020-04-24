@@ -282,7 +282,8 @@ ARmap3 <- plot_geounit_attack_rate_map(cum_inf_dates,
                             shp,
                             scenariolabel = config$report$formatting$scenario_labels[1],
                             display_date = config$report$formatting$display_dates[3],
-                            viridis_palette = "cividis")
+                            viridis_palette = "cividis",
+                            popnodes = config$spatial_setup$popnodes)
 cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3)
 
 cap <- paste("**Fig.", fig_counter, "** County-level map of infections per 10,000 for", config$report$formatting$scenario_labels[1], " strategy.")

@@ -9,6 +9,7 @@ Working Group**:
 **Johns Hopkins Infectious Disease Dynamics**
 
 * Qifang Bi
+* Juan Dent Hulse
 * Jacob Fiksel
 * M. Kate Grabowski
 * Kyra H. Grantz
