@@ -48,6 +48,7 @@ post_proc <- function(x,opt) {
       group_by(time) %>%
       summarize(hosp_curr=sum(hosp_curr),
                 cum_death=sum(cum_death),
+                hosp=sum(incidH),
                 death=sum(incidD),
                 infections=sum(incidI),
                 cum_infections=sum(cum_infections)) %>%
@@ -91,7 +92,8 @@ to_save <- inner_join(tmp_col(res_all,"hosp_curr"),
                          tmp_col(res_all,"cum_death"))%>%
     inner_join(tmp_col(res_all,"death"))%>%
     inner_join(tmp_col(res_all,"infections"))%>%
-    inner_join(tmp_col(res_all,"cum_infections"))
+    inner_join(tmp_col(res_all,"cum_infections"))%>%
+    inner_join(tmp_col(res_all,"hosp"))
 
 
 write_csv(to_save, path=opt$outfile)

@@ -48,7 +48,7 @@ post_proc <- function(x,geodata,opt) {
       mutate(cum_death=cumsum(incidD)) %>%
       ungroup()%>%
       filter(time>=opt$start_date& time<=opt$end_date)%>%
-      rename(infections=incidI, death=incidD)
+      rename(infections=incidI, death=incidD, hosp=incidH)
 }
 
 ##Run over scenarios and death rates as appropriate. Note that
@@ -90,7 +90,8 @@ to_save_geo <- inner_join(tmp_col(res_geoid,"hosp_curr"),
                          tmp_col(res_geoid,"cum_death"))%>%
     inner_join(tmp_col(res_geoid,"death"))%>%
     inner_join(tmp_col(res_geoid,"infections"))%>%
-    inner_join(tmp_col(res_geoid,"cum_infections"))
+    inner_join(tmp_col(res_geoid,"cum_infections"))%>%
+    inner_join(tmp_col(res_geoid,"hosp"))
 
 
 write_csv(to_save_geo, path=opt$outfile)
