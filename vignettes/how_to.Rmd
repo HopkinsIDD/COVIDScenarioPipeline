@@ -41,7 +41,7 @@ We estimate secondary effects of infection using infection numbers using the [ho
 
 #### Report Generation
 
-We provide functions to access results and help produce reports in the [report_generation](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/report_generation) R package in `COVIDScenarioPipeline`.
+We provide functions to access results and help produce reports in the [report.generation](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/report.generation) R package in `COVIDScenarioPipeline`.
 
 ### Pipeline Configuration
 
@@ -217,7 +217,7 @@ There are two other parameters that calculate different amounts of time.  They a
 
 # Report Generation
 
-We provide a [package](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/report_generation) to help utilize the previous parts of the pipeline to create meaningful reports.  This support comes in the form of functions to help load the output of previous steps (it is sometimes quite large), and R Markdown templates to allow the easy creation of customizable reports without requiring the user to start from scratch.
+We provide a [package](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/report.generation) to help utilize the previous parts of the pipeline to create meaningful reports.  This support comes in the form of functions to help load the output of previous steps (it is sometimes quite large), and R Markdown templates to allow the easy creation of customizable reports without requiring the user to start from scratch.
 
 ## Functions
 
@@ -260,7 +260,7 @@ We have generated templates to help create reports of different types.  Template
 To start a draft from a template, you can use, for example:
 
 ```{r, eval = FALSE}
-rmarkdown::draft("Maryland_Report.Rmd", template = "state_report", package = "report_generation")
+rmarkdown::draft("Maryland_Report.Rmd", template = "state_report", package = "report.generation")
 ```
 
 
@@ -273,7 +273,7 @@ Each intervention is associated with a start and end date and a range of values 
 ### None
 
 This is a non-intervention scenario. It does not reduce `R0`.
-```{r None}
+```{r None, eval=FALSE}
 None:
       template: ReduceR0
       period_start_date: YYYY-MM-DD
@@ -287,7 +287,7 @@ None:
 
 This intervention represents school closures. It reduces `R0` by 16-30%.
 
-```{r School Closure}
+```{r School Closure, eval=FALSE}
 SchoolClosure:
       template: ReduceR0
       period_start_date: YYYY-MM-DD
@@ -306,7 +306,7 @@ SchoolClosure:
 
 This intervention represents the influence of different social distancing scenarios observed in the 1918 Influenza. It reduces `R0` by 44-65%, based on values observed in Milwaukee, Wisconsin. These values can be altered to reflect different cities and scenarios reported by M.Bootsma & N.M.Ferguson in https://www.pnas.org/content/104/18/7588.long
 
-```{r Influenza1918}
+```{r Influenza1918, eval=FALSE}
 Influenza1918:
       template: ReduceR0
       period_start_date: YYYY-MM-DD
@@ -321,7 +321,7 @@ Influenza1918:
 
 This intervention represents shelter in place similar to what was done in Wuhan at the beginning of the outbreak. It reduces `R0` by 81-89%.
 
-```{r Wuhan}
+```{r Wuhan, eval=FALSE}
 Wuhan:
       template: ReduceR0
       period_start_date: YYYY-MM-DD
@@ -336,7 +336,7 @@ Wuhan:
 
 This intervention represents rapid testing and isolation of cases, similar to what was done in Wuhan at the beginning of the outbreak. It reduces `R0` by 45-96%.
 
-```{r TestIsolate}
+```{r TestIsolate, eval=FALSE}
 TestIsolate:
       template: ReduceR0
       period_start_date: YYYY-MM-DD
@@ -351,7 +351,7 @@ TestIsolate:
 
 This intervention has two sequential interventions: School closures followed by a Wuhan-style lockdown.
 
-```{r Mild}
+```{r Mild, eval=FALSE}
 Mild:
     template: Stacked
     scenarios:
@@ -362,7 +362,7 @@ Mild:
 
 This intervention has three sequential interventions: School closures, followed by a Wuhan-style lockdown, followed by social distancing practices used during the 1918 Influenza pandemic.
 
-```{r Mid}
+```{r Mid, eval=FALSE}
 Mid:
     template: Stacked
     scenarios:
@@ -375,7 +375,7 @@ Mid:
 
 This intervention has three sequential interventions: School closures, followed by a Wuhan-style lockdown, followed by rapid testing and isolation.
 
-```{r Severe}
+```{r Severe, eval=FALSE}
 Severe:
     template: Stacked
     scenarios:
@@ -405,7 +405,7 @@ Severe:
    ```{r,eval=FALSE,echo=TRUE}
    devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/covidcommon')
    devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/hospitalization')
-   devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/report_generation')
+   devtools::install_github(repo='HopkinsIDD/COVIDScenarioPipeline', ref='dataseed', subdir='R/pkgs/report.generation')
    ```
 
  - Clone github repo

@@ -20,6 +20,6 @@ is all open source. The core pipeline phases are:
 
 * **Report Generation:** We provide functions to access results and
   help produce reports in the
-  [report_generation](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/report_generation)
+  [report.generation](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/report.generation)
   R package in `COVIDScenarioPipeline`.
   
