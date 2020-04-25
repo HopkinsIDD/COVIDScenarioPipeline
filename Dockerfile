@@ -87,13 +87,14 @@ ENV HOME /home/app
 #####
 
 # TODO: use packrat (or something else) for R package management
-COPY packrat $HOME
-COPY .Rprofile $HOME
+COPY packrat $HOME/packrat
+COPY .Rprofile $HOME/.Rprofile
 COPY R/pkgs $HOME/R/pkgs
-RUN . $Rscript -e "packrat::restore()"
+RUN Rscript -e "install.packages('packrat',repos='https://cloud.r-project.org/')"
+RUN Rscript -e 'packrat::restore()'
 
 # run install_arrow since it depends on hardware
-RUN . $Rscript -e "arrow::install_arrow()"
+RUN Rscript -e 'arrow::install_arrow()'
 
 
 #####
