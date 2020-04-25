@@ -53,6 +53,7 @@ post_proc <- function(x,geodata,opt) {
       summarize(hosp_curr=sum(hosp_curr),
                 cum_death=sum(cum_death),
                 death=sum(incidD),
+                hosp=sum(incidH),
                 infections=sum(incidI),
                 cum_infections=sum(cum_infections)) %>%
       ungroup()
@@ -96,7 +97,8 @@ to_save_st <- inner_join(tmp_col(res_state,"hosp_curr"),
                          tmp_col(res_state,"cum_death"))%>%
     inner_join(tmp_col(res_state,"death"))%>%
     inner_join(tmp_col(res_state,"infections"))%>%
-    inner_join(tmp_col(res_state,"cum_infections"))
+    inner_join(tmp_col(res_state,"cum_infections"))%>%
+    inner_join(tmp_col(res_state,"hosp"))
 
 
 write_csv(to_save_st, path=opt$outfile)
