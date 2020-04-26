@@ -1,0 +1,118 @@
++,ggmultiplot,ANY-method
+                        Generic add operator for 'ggmultiplot'
+apply_facets            Apply facets to to 'ggplot2::ggplot'
+apply_grid              Apply grid to to 'ggplot2::ggplot'
+as_tibble.basis         Convert a spline basis to a tibble
+autoplot.MSM.lm         Autoplot 'MSwM::MSM.lm'
+autoplot.RasterCommon   Autoplot 'raster::raster'
+autoplot.SpatialCommon
+                        Autoplot 'maps::map'
+autoplot.aareg          Autoplot 'survival::aareg'
+autoplot.acf            Autoplot 'stats::acf'. Note to pass 'plot =
+                        FALSE' to original function to suppress
+                        standard plot output
+autoplot.basis          Autoplot spline basis instances
+autoplot.breakpoints    Autoplot 'strucchange::breakpoints'
+autoplot.cpt            Autoplot 'changepoint::cpt'
+autoplot.cv.glmnet      Autoplot 'glmnet::cv.glmnet'
+autoplot.density        Autoplot 'stats::density'
+autoplot.forecast       Autoplot 'forecast::forecast'
+autoplot.ggmultiplot    Autoplot 'ggmultiplot' instances. It returns
+                        the passed instance as it is.
+autoplot.ggplot         Autoplot 'ggplot' instances. It returns the
+                        passed instance as it is.
+autoplot.glmnet         Autoplot 'glmnet::glmnet'
+autoplot.kmeans         Autoplot cluster instances
+autoplot.list           Autoplot list
+autoplot.lm             Autoplot 'stats::lm' and 'stats::glm'
+autoplot.map            Autoplot 'maps::map'
+autoplot.matrix         Plot 'base::matrix'
+autoplot.pca_common     Autoplot PCA-likes
+autoplot.performance    Autoplot 'ROCR::performance'
+autoplot.spec           Autoplot 'stats::spec'
+autoplot.stepfun        Plot 'stats::stepfun'
+autoplot.survfit        Autoplot 'survival::survfit'
+autoplot.ts             Autoplot time-series-like
+autoplot.tsmodel        Autoplot time series models (like AR, ARIMA)
+autoplot.varprd         Autoplot 'vars::varprd'
+cbind_wraps             Wrapper for cbind
+check_names             Check data names are equal with expected
+confint.acf             Calculate confidence interval for 'stats::acf'
+deprecate.warning       Show deprecate warning
+fitted.ar               Calculate fitted values for 'stats::ar'
+flatten                 Flatten dataframe contains matrix
+fortify.MSM.lm          Convert 'MSwM::MSM.lm' to 'data.frame'
+fortify.RasterCommon    Convert 'raster' to 'data.frame'
+fortify.SpatialCommon   Convert 'sp' instances to 'data.frame'.
+fortify.aareg           Convert 'survival::aareg' to 'data.frame'
+fortify.acf             Convert 'stats::acf' to 'data.frame'
+fortify.basis           Convert spline basis instances to 'data.frame'
+fortify.cpt             Convert 'changepoint::cpt' and
+                        'strucchange::breakpoints' to 'data.frame'
+fortify.cv.glmnet       Convert 'glmnet::cv.glmnet' to 'data.frame'
+fortify.density         Convert 'stats::density' to 'data.frame'
+fortify.dist            Convert 'stats::dist' to 'data.frame'
+fortify.ets             Convert 'forecast::bats' and 'forecast::ets' to
+                        'data.frame'
+fortify.factanal        Convert 'stats::factanal' to 'data.frame'
+fortify.forecast        Convert 'forecast::forecast' to 'data.frame'
+fortify.glmnet          Convert 'glmnet::glmnet' to 'data.frame'
+fortify.kmeans          Convert cluster instances to 'data.frame'
+fortify.lfda            Convert 'lfda::lfda' or 'lfda::klfda' or
+                        'lfda::self' to 'data.frame'
+fortify.list            Convert list to data.frame
+fortify.matrix          Convert 'base::matrix' to 'data.frame'
+fortify.performance     Convert 'ROCR::performance' objects to
+                        'data.frame'
+fortify.prcomp          Convert 'stats::prcomp', 'stats::princomp' to
+                        'data.frame'
+fortify.spec            Convert 'stats::spec' to 'data.frame'
+fortify.stepfun         Convert 'stats::stepfun' to 'data.frame'
+fortify.survfit         Convert 'survival::survfit' to 'data.frame'
+fortify.table           Convert 'base::table' to 'data.frame'
+fortify.ts              Convert time-series-like to data.frame
+fortify.tsmodel         Convert time series models (like AR, ARIMA) to
+                        'data.frame'
+fortify.varprd          Convert 'vars::varprd' to 'data.frame'
+fortify_base            Convert 'base::table' to 'data.frame'
+fortify_map             Convert 'maps::map' to 'data.frame'.
+geom_confint            Connect observations by stairs.
+geom_factory            Factory function to control 'ggplot2::geom_xxx'
+                        functions
+get.dtindex             Convert 'ts' index to 'Date' 'vector'
+get.dtindex.continuous
+                        Get 'Date' 'vector' continue to 'ts' index
+get.layout              Calcurate layout matrix for 'ggmultiplot'
+get_geom_function       Factory function to control 'ggplot2::geom_xxx'
+                        functions
+ggbiplot                Draw 'biplot' using 'ggplot2'.
+ggcpgram                Plots a cumulative periodogram
+ggdistribution          Plot distribution
+ggfortify               ggfortify
+ggfreqplot              Plot seasonal subseries of time series,
+                        generalization of 'stats::monthplot'
+ggmultiplot-class       An S4 class to hold multiple 'ggplot2::ggplot'
+                        instances
+ggtsdiag                Plots time-series diagnostics
+grid.draw.ggmultiplot   The implemented grid.draw method for
+                        ggmultiplot, in order to work with ggsave()
+                        properly
+infer                   Infer class name
+is.univariate           Check if Validates number of 'ts' variates
+is_derived_from         Check object is target class, or object is
+                        'data.frame' fortified from target.
+plot_confint            Attach confidence interval to 'ggplot2::ggplot'
+plot_label              Attach label to 'ggplot2::ggplot'
+post_autoplot           Post process for fortify. Based on
+                        'ggplot2::qplot'
+post_fortify            Post process for fortify.
+print,ggmultiplot-method
+                        Generic print function for 'ggmultiplot'
+rbind_ts                Rbind original and predicted time-series-like
+                        instances as fortified 'data.frame'
+residuals.ar            Calculate residuals for 'stats::ar'
+show,ggmultiplot-method
+                        Generic show function for 'ggmultiplot'
+support_autoplot        Check if passed object is supported by
+                        'ggplot2::autoplot'
+unscale                 Backtransform 'scale'-ed object

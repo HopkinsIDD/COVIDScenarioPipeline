@@ -1,0 +1,89 @@
+---
+title: "Adding a new DBI backend"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Adding a new DBI backend}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r, echo = FALSE, message = FALSE}
+knitr::opts_chunk$set(collapse = T, comment = "#>")
+options(tibble.print_min = 4L, tibble.print_max = 4L)
+```
+
+This document describes how to add a new SQL backend to dbplyr. To begin:
+
+* Ensure that you have a DBI compliant database backend. If not, you'll need
+  to first create it by following the instructions in 
+  `vignette("backend", package = "DBI")`.
+  
+* You'll need a working knowledge of S3. Make sure that you're 
+  [familiar with the basics](http://adv-r.had.co.nz/OO-essentials.html#s3) 
+  before you start.
+ 
+This document is still a work in progress, but it will hopefully get you started. I'd also strongly recommend reading the bundled source code for [SQLite](https://github.com/tidyverse/dbplyr/blob/master/R/backend-sqlite.R), [MySQL](https://github.com/tidyverse/dbplyr/blob/master/R/backend-mysql.R), and [PostgreSQL](https://github.com/tidyverse/dbplyr/blob/master/R/backend-postgres.R).
+
+## First steps
+
+For interactive exploitation, attach dplyr and DBI. If you're creating a package, you'll need to import dplyr and DBI.
+
+```{r setup, message = FALSE}
+library(dplyr)
+library(DBI)
+```
+
+Check that you can create a tbl from a connection, like:
+
+```{r}
+con <- DBI::dbConnect(RSQLite::SQLite(), path = ":memory:")
+DBI::dbWriteTable(con, "mtcars", mtcars)
+
+tbl(con, "mtcars")
+```
+
+If you can't, this likely indicates some problem with the DBI methods. Use [DBItest](https://github.com/rstats-db/DBItest) to narrow down the problem.
+
+Now is a good time to implement a method for `db_desc()`. This should briefly describe the connection, typically formatting the information returned from `dbGetInfo()`. This is what dbplyr does for Postgres connections:
+
+```{r}
+#' @export
+db_desc.PostgreSQLConnection <- function(x) {
+  info <- dbGetInfo(x)
+  host <- if (info$host == "") "localhost" else info$host
+
+  paste0("postgres ", info$serverVersion, " [", info$user, "@",
+    host, ":", info$port, "/", info$dbname, "]")
+}
+```
+
+## Copying, computing, collecting and collapsing
+
+Next, check that `copy_to()`, `collapse()`, `compute()`, and `collect()` work.
+
+* If `copy_to()` fails, it's likely you need a method for `db_write_table()`,
+  `db_create_indexes()` or `db_analyze()`.
+
+* If `collapse()` fails, your database has a non-standard way of constructing 
+  subqueries. Add a method for `sql_subquery()`.
+  
+* If `compute()` fails, your database has a non-standard way of saving queries
+  in temporary tables. Add a method for `db_save_query()`.
+
+## SQL translation
+
+Make sure you've read `vignette("translation-verb")` so you have the lay of the land. 
+
+### Verbs
+
+Check that SQL translation for the key verbs work:
+
+* `summarise()`, `mutate()`, `filter()` etc: powered by `sql_select()`
+* `left_join()`, `inner_join()`: powered by `sql_join()`
+* `semi_join()`, `anti_join()`: powered by `sql_semi_join()`
+* `union()`, `intersect()`, `setdiff()`: powered by `sql_set_op()`
+
+### Vectors
+
+Finally, you may have to provide custom R -> SQL translation at the vector level by providing a method for `sql_translate_env()`. This function should return an object created by `sql_variant()`. See existing methods for examples.
+

@@ -1,0 +1,16 @@
+arrange.tbl_lazy        Arrange rows by variables in a remote database
+                        table
+collapse.tbl_sql        Force computation of query
+copy_to.src_sql         Copy a local data frame to a DBI backend.
+do.tbl_sql              Perform arbitrary computation on remote backend
+escape                  Escape/quote a string.
+ident                   Flag a character vector as SQL identifiers
+in_schema               Refer to a table in a schema
+join.tbl_sql            Join sql tbls.
+memdb_frame             Create a database table in temporary in-memory
+                        database.
+remote_name             Metadata about a remote table
+sql                     SQL escaping.
+tbl.src_dbi             Use dplyr verbs with a remote database table
+translate_sql           Translate an expression to sql.
+window_order            Override window order and frame

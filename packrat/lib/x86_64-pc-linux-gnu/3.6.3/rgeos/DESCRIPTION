@@ -1,0 +1,57 @@
+Package: rgeos
+Title: Interface to Geometry Engine - Open Source ('GEOS')
+Version: 0.5-2
+Date: 2019-10-02
+Depends: R (>= 3.3.0), methods, sp (>= 1.1-0)
+Imports: utils, stats, graphics
+LinkingTo: sp
+Suggests: maptools (>= 0.8-5), testthat, XML, maps, rgdal
+NeedsCompilation: yes
+LazyLoad: yes
+Description: Interface to Geometry Engine - Open Source ('GEOS') using
+    the C 'API' for topology operations on geometries. The 'GEOS'
+    library is external to the package, and, when installing the
+    package from source, must be correctly installed first. Windows and
+    Mac Intel OS X binaries are provided on 'CRAN'. ('rgeos' >= 0.5-1):
+    Up to and including 'GEOS' 3.7.1, topological operations succeeded
+    with some invalid geometries for which the same operations fail
+    from and including 'GEOS' 3.7.2. The 'checkValidity=' argument
+    defaults and structure have been changed, from default FALSE to
+    integer default '0L' for 'GEOS' < 3.7.2 (no check), '1L' 'GEOS' >=
+    3.7.2 (check and warn). A value of '2L' is also provided that may
+    be used, assigned globally using 'set_RGEOS_CheckValidity(2L)', or
+    locally using the 'checkValidity=2L' argument, to attempt
+    zero-width buffer repair if invalid geometries are found. The
+    previous default (FALSE, now '0L') is fastest and used for 'GEOS' <
+    3.7.2, but will not warn users of possible problems before the
+    failure of topological operations that previously succeeded.
+Authors@R: c( person("Roger", "Bivand", role = c("cre", "aut"), email =
+    "Roger.Bivand@nhh.no", comment=c(ORCID="0000-0003-2392-6140")),
+    person("Colin", "Rundel", role = "aut"), person("Edzer", "Pebesma",
+    role = "ctb"), person("Rainer", "Stuetz", role = "ctb"),
+    person("Karl Ove", "Hufthammer", role = "ctb"), person("Patrick",
+    "Giraudoux", role = "ctb"), person("Martin", "Davis", role =
+    c("cph", "ctb")), person("Sandro", "Santilli", role = c("cph",
+    "ctb")))
+License: GPL (>= 2)
+URL: https://r-forge.r-project.org/projects/rgeos/
+    https://trac.osgeo.org/geos/
+    http://rgeos.r-forge.r-project.org/index.html
+SystemRequirements: GEOS (>= 3.2.0); for building from source: GEOS
+    from http://trac.osgeo.org/geos/; GEOS OSX frameworks built by
+    William Kyngesburye at http://www.kyngchaos.com/ may be used for
+    source installs on OSX.
+RoxygenNote: 6.1.1
+Packaged: 2019-10-03 07:49:27 UTC; rsb
+Author: Roger Bivand [cre, aut]
+    (<https://orcid.org/0000-0003-2392-6140>), Colin Rundel [aut],
+    Edzer Pebesma [ctb], Rainer Stuetz [ctb], Karl Ove Hufthammer
+    [ctb], Patrick Giraudoux [ctb], Martin Davis [cph, ctb], Sandro
+    Santilli [cph, ctb]
+Maintainer: Roger Bivand <Roger.Bivand@nhh.no>
+Repository: CRAN
+Date/Publication: 2019-10-03 09:50:02 UTC
+Built: R 3.6.3; x86_64-pc-linux-gnu; 2020-04-26 15:21:36 UTC; unix
+InstallAgent: packrat 0.5.0
+InstallSource: CRAN
+Hash: ff86e9c11dddc897f8953704a9fef7f4

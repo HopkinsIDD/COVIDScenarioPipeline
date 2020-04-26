@@ -1,0 +1,13 @@
+useDynLib(gpclib, .registration = TRUE, .fixes = "C_")
+
+importFrom(graphics, plot)
+import(methods)
+
+exportClasses("gpc.poly", "gpc.poly.nohole")
+
+exportMethods("show", "get.bbox", "plot", "intersect", "union",
+              "setdiff", "[", "append.poly", "scale.poly", "area.poly",
+              "get.pts", "coerce", "tristrip", "triangulate")
+
+export("read.polyfile", "write.polyfile")
+

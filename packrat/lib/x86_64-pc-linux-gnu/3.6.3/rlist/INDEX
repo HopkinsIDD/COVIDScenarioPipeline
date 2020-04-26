@@ -1,0 +1,92 @@
+List                    Create a 'List environment' that wraps given
+                        'data' and most list functions are defined for
+                        chainable operations.
+list.all                Examine if a condition is true for all elements
+                        of a list
+list.any                Examine if a condition is true for at least one
+                        list element
+list.append             Append elements to a list
+list.apply              Apply a function to each list element
+                        ('lapply')
+list.cases              Get all unique cases of a list field by
+                        expression
+list.cbind              Bind all list elements by column
+list.class              Classify list elments into unique but
+                        non-exclusive cases
+list.clean              Clean a list by a function
+list.common             Get all common cases by expression for a list
+list.count              Count the number of elements that satisfy given
+                        condition
+list.do                 Call a function with a list of arguments
+list.exclude            Exclude members of a list that meet given
+                        condition.
+list.expand             Create a list from all combinations of factors
+list.extract            Extract an element from a list or vector
+list.filter             Filter a list or vector by a series of
+                        conditions
+list.find               Find a specific number of elements in a list or
+                        vector satisfying a given condition
+list.findi              Find the indices of a number of elements in a
+                        list or vector satisfying a given condition
+list.first              Find the first element that meets a condition
+list.flatten            Flatten a nested list to a one-level list
+list.group              Divide list/vector elements into exclusive
+                        groups
+list.insert             Insert a series of lists at the given index
+list.is                 Return a logical vector that indicates if each
+                        member of a list satisfies a given condition
+list.iter               Iterate a list by evaluating an expression on
+                        each list element
+list.join               Join two lists by single or multiple keys
+list.last               Find the last element that meets a condition
+list.load               Load a list from file
+list.map                Map each element in a list or vector by an
+                        expression.
+list.maps               Map multiple lists with an expression
+list.mapv               Map each member of a list by an expression to a
+                        vector.
+list.match              Select members of a list that match given regex
+                        pattern
+list.merge              Merge a number of named lists in sequential
+                        order
+list.names              Get or set the names of a list by expression
+list.order              Give the order of each list element by
+                        expression
+list.parse              Convert an object to list with identical
+                        structure
+list.prepend            Prepend elements to a list
+list.rbind              Bind all list elements by row
+list.remove             Remove members from a list by index or name
+list.reverse            Reverse a list
+list.sample             Sample a list or vector
+list.save               Save a list to a file
+list.search             Search a list recusively by an expression
+list.select             Select by name or expression for each member of
+                        a list
+list.serialize          Serialize a list
+list.skip               Skip a number of elements
+list.skipWhile          Keep skipping elements while a condition holds
+list.sort               Sort a list by given expressions
+list.stack              Stack all list elements to tabular data
+list.subset             Subset a list
+list.table              Generate a table for a list by expression
+list.take               Take a number of elements
+list.takeWhile          Keep taking elements while a condition holds
+list.ungroup            Ungroup a list by taking out second-level
+                        elements
+list.unserialize        Unserialize a file
+list.unzip              Transform a list of elements with similar
+                        structure into a list of decoupled fields
+list.update             Update a list by appending or modifying its
+                        elements.
+list.which              Give the indices of list elements satisfying a
+                        given condition
+list.zip                Combine multiple lists element-wisely.
+nyweather               New York hourly weather data
+rlist-package           The rlist package
+subset.list             Subset a list by a logical condition
+tryEval                 Try to evaluate an expression and return a
+                        default value if an error occurs or otherwise
+                        return its value.
+tryGet                  Try to get the value of a symbol if exists or
+                        return a default value

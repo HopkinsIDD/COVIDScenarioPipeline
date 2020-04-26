@@ -1,0 +1,8 @@
+The General Polygon Clipper GPC library is written by Alan Murta
+<gpc@cs.man.ac.uk>.  Copyright information for the library is contained in
+the individual source files `gpc.c' and `gpc.h' in the src/ directory of
+the R source package.  For more information about the library itself, see
+http://www.cs.man.ac.uk/aig/staff/alan/software/.
+
+The R interface to the GPC library is written by Roger Peng
+<rpeng@jhsph.edu>.

@@ -1,0 +1,3 @@
+get_Rscript_filename    Returns file name of calling Rscript
+getopt                  C-like getopt behavior
+sort_list               Recursively sorts a list

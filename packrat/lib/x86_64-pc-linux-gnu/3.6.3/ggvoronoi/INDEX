@@ -1,0 +1,8 @@
+fortify_voronoi         Create Data Frame from voronoi_polygons output
+geom_voronoi            Voronoi Diagrams with ggplot2
+ncdc_locations          Locations and Elevation of NCDC Weather
+                        Stations
+oxford_bikes            Bike Rack Locations in Oxford, Ohio.
+oxford_map              Google Map of Oxford, Ohio.
+stat_voronoi            Voronoi Diagrams with ggplot2
+voronoi_polygon         Voronoi Diagram from Data Frame

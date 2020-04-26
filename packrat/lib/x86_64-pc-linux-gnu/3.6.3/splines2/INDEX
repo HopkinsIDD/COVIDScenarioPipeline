@@ -1,0 +1,15 @@
+bSpline                 B-Spline Basis for Polynomial Splines
+cSpline                 C-Spline Basis for Polynomial Splines
+dbs                     Derivative of B-Spline Basis for Polynomial
+                        Splines
+deriv                   Derivative of Splines
+iSpline                 I-Spline Basis for Polynomial Splines or its
+                        derivatives
+ibs                     Integral of B-Spline Basis for Polynomial
+                        Splines
+mSpline                 M-Spline Basis for Polynomial Splines and its
+                        Derivatives
+predict                 Evaluate a Spline Basis
+print                   Print Out a Spline Basis Matrix
+splines2                splines2: Regression Spline Functions and
+                        Classes

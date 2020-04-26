@@ -1,0 +1,28 @@
+Package: lsei
+Title: Solving Least Squares or Quadratic Programming Problems under
+    Equality/Inequality Constraints
+Version: 1.2-0
+Date: 2017-10-22
+Authors@R: c( person("Yong", "Wang", email = "yongwang@auckland.ac.nz",
+    role = c("aut","cre")), person("Charles L.", "Lawson", role =
+    "aut"), person("Richard J.", "Hanson", role = "aut"))
+Description: It contains functions that solve least squares linear
+    regression problems under linear equality/inequality constraints.
+    Functions for solving quadratic programming problems are also
+    available, which transform such problems into least squares ones
+    first. It is developed based on the 'Fortran' program of Lawson and
+    Hanson (1974, 1995), which is public domain and available at
+    <http://www.netlib.org/lawson-hanson>.
+License: GPL (>= 2)
+URL: https://www.stat.auckland.ac.nz/~yongwang
+NeedsCompilation: yes
+Packaged: 2017-10-23 01:14:30 UTC; yong
+Author: Yong Wang [aut, cre], Charles L. Lawson [aut], Richard J.
+    Hanson [aut]
+Maintainer: Yong Wang <yongwang@auckland.ac.nz>
+Repository: CRAN
+Date/Publication: 2017-10-23 07:22:58 UTC
+Built: R 3.6.3; x86_64-pc-linux-gnu; 2020-04-26 16:00:43 UTC; unix
+InstallAgent: packrat 0.5.0
+InstallSource: CRAN
+Hash: 303d9dbdd849f132d0b758533a320ecb

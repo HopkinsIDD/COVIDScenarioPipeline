@@ -1,0 +1,4 @@
+gpc.poly-class          Class "gpc.poly"
+gpc.poly.nohole-class   Class "gpc.poly.nohole"
+new-generics            Generics/Methods for polygon objects
+polyfile                Read/Write polygon data

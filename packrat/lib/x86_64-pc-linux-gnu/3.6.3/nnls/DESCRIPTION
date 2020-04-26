@@ -1,0 +1,18 @@
+Package: nnls
+Type: Package
+Title: The Lawson-Hanson algorithm for non-negative least squares
+    (NNLS)
+Version: 1.4
+Author: Katharine M. Mullen and Ivo H. M. van Stokkum
+Maintainer: Katharine Mullen <mullenkate@gmail.com>
+Description: An R interface to the Lawson-Hanson implementation of an
+    algorithm for non-negative least squares (NNLS).  Also allows the
+    combination of non-negative and non-positive constraints.
+License: GPL (>= 2)
+Packaged: 2012-03-19 16:06:34 UTC; kmullen
+Repository: CRAN
+Date/Publication: 2012-03-19 16:28:59
+Built: R 3.6.3; x86_64-pc-linux-gnu; 2020-04-26 15:32:07 UTC; unix
+InstallAgent: packrat 0.5.0
+InstallSource: CRAN
+Hash: 695ccebac38ab305cf6aca7048433f0d

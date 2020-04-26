@@ -1,0 +1,35 @@
+Package: e1071
+Version: 1.7-3
+Title: Misc Functions of the Department of Statistics, Probability
+    Theory Group (Formerly: E1071), TU Wien
+Imports: graphics, grDevices, class, stats, methods, utils
+Suggests: cluster, mlbench, nnet, randomForest, rpart, SparseM, xtable,
+    Matrix, MASS, slam
+Authors@R: c(person(given = "David", family = "Meyer", role = c("aut",
+    "cre"), email = "David.Meyer@R-project.org"), person(given =
+    "Evgenia", family = "Dimitriadou", role = c("aut","cph")),
+    person(given = "Kurt", family = "Hornik", role = "aut"),
+    person(given = "Andreas", family = "Weingessel", role = "aut"),
+    person(given = "Friedrich", family = "Leisch", role = "aut"),
+    person(given = "Chih-Chung", family = "Chang", role =
+    c("ctb","cph"), comment = "libsvm C++-code"), person(given =
+    "Chih-Chen", family = "Lin", role = c("ctb","cph"), comment =
+    "libsvm C++-code"))
+Description: Functions for latent class analysis, short time Fourier
+    transform, fuzzy clustering, support vector machines, shortest path
+    computation, bagged clustering, naive Bayes classifier, ...
+License: GPL-2 | GPL-3
+LazyLoad: yes
+NeedsCompilation: yes
+Packaged: 2019-11-25 17:01:14 UTC; meyer
+Author: David Meyer [aut, cre], Evgenia Dimitriadou [aut, cph], Kurt
+    Hornik [aut], Andreas Weingessel [aut], Friedrich Leisch [aut],
+    Chih-Chung Chang [ctb, cph] (libsvm C++-code), Chih-Chen Lin [ctb,
+    cph] (libsvm C++-code)
+Maintainer: David Meyer <David.Meyer@R-project.org>
+Repository: CRAN
+Date/Publication: 2019-11-26 18:29:09 UTC
+Built: R 3.6.3; x86_64-pc-linux-gnu; 2020-04-26 15:28:06 UTC; unix
+InstallAgent: packrat 0.5.0
+InstallSource: CRAN
+Hash: f851e9de06edec144aa7d996bbf32538

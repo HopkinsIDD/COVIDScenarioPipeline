@@ -1,0 +1,42 @@
+Package: stringdist
+Maintainer: Mark van der Loo <mark.vanderloo@gmail.com>
+License: GPL-3
+Title: Approximate String Matching and String Distance Functions
+LazyData: no
+Type: Package
+LazyLoad: yes
+Authors@R: c( person("Mark", "van der Loo", role=c("aut","cre") ,
+    email="mark.vanderloo@gmail.com" , comment=
+    c(ORCID="0000-0002-9807-4686")) , person("Jan", "van der Laan",
+    role="ctb") , person("R Core Team","" , role="ctb") ,
+    person("Nick","Logan" , role="ctb") , person("Chris","Muir" ,
+    role="ctb"))
+Description: Implements an approximate string matching version of R's
+    native 'match' function. Can calculate various string distances
+    based on edits (Damerau-Levenshtein, Hamming, Levenshtein, optimal
+    sting alignment), qgrams (q- gram, cosine, jaccard distance) or
+    heuristic metrics (Jaro, Jaro-Winkler). An implementation of
+    soundex is provided as well. Distances can be computed between
+    character vectors while taking proper care of encoding or between
+    integer vectors representing generic sequences. This package is
+    built for speed and runs in parallel by using 'openMP'. An API for
+    C or C++ is exposed as well.
+Version: 0.9.5.5
+Depends: R (>= 2.15.3)
+URL: https://github.com/markvanderloo/stringdist
+BugReports: https://github.com/markvanderloo/stringdist/issues
+Suggests: tinytest
+Imports: parallel
+Encoding: UTF-8
+RoxygenNote: 6.1.1
+NeedsCompilation: yes
+Packaged: 2019-10-21 06:45:42 UTC; mark
+Author: Mark van der Loo [aut, cre]
+    (<https://orcid.org/0000-0002-9807-4686>), Jan van der Laan [ctb],
+    R Core Team [ctb], Nick Logan [ctb], Chris Muir [ctb]
+Repository: CRAN
+Date/Publication: 2019-10-21 07:20:03 UTC
+Built: R 3.6.3; x86_64-pc-linux-gnu; 2020-04-26 15:42:37 UTC; unix
+InstallAgent: packrat 0.5.0
+InstallSource: CRAN
+Hash: 77f97dc936679c242382828193ffbb0a

@@ -1,0 +1,22 @@
+deldir                  Delaunay triangulation and Dirichlet
+                        tessellation
+divchain                Dividing chain; generic.
+divchain.default        Dividing chain; default method.
+divchain.deldir         Dividing chain; "deldir" method.
+duplicatedxy            Determine duplicated points.
+lawSummary              Produce a Lewis-Aboav-Weaire summary of a
+                        tessellation.
+niProperties            Northern Ireland properties.
+plot.deldir             Plot objects produced by deldir
+plot.divchain           Plot a dividing chain.
+plot.tile.list          Plot Dirchlet (Voronoi) tiles
+plot.triang.list        Plot Delaunay triangles
+print.tileInfo          Print a summary of tile information.
+seaweed                 seaweed
+tile.centroids          Compute centroids of Dirchlet (Voronoi) tiles
+tile.list               Create a list of tiles in a tessellation
+tileInfo                Extract information from a tile list.
+tilePerim               Calculate tile perimeters.
+triMat                  Produce matrix of triangle vertex indices.
+triang.list             Create a list of Delaunay triangles
+which.tile              Determine the tile containing a given point.

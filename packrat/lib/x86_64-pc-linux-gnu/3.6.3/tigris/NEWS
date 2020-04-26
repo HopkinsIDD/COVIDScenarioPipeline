@@ -1,0 +1,52 @@
+tigris 0.6
+-------------------------------------------------------
+* You are now able to specify a custom cache directory for your data.  To set the cache directory, use the new `tigris_cache_dir()` function.
+
+* tigris now defaults to the 2016 TIGER/Line and cartographic boundary shapefiles.
+
+* Thanks to contributors from Transport Foundry (https://github.com/transportfoundry), tigris now includes some geolocator functions.
+
+tigris 0.5.1
+-------------------------------------------------------
+* tigris now downloads data to a temporary directory rather than creating a cache directory by default to conform with CRAN policies.  To enable caching of data, set `options(tigris_use_cache = TRUE)` in your R script or .Rprofile.
+
+* 2000 and 2010 Zip Code Tabulation Areas (ZCTAs) are now available.
+
+tigris 0.5
+-------------------------------------------------------
+* tigris now will return objects of class 'sf' if requested by the user with the argument `class = 'sf'` or by setting the option `options(tigris_class = 'sf')`.
+
+* Historical states, counties, Census tracts, and block groups are now available going back to 1990
+
+* In the event of a download error, tigris will attempt to re-download without the user having to request it.
+
+* Various improvements and bug fixes.
+
+tigris 0.3.3
+-------------------------------------------------------
+
+* tigris now accommodates county name changes in the 2015 TIGER/Line dataset.  Shannon County, SD (FIPS code 113) is now Oglala Lakota County (FIPS code 102), and Wade Hampton Census Area, AK (FIPS code 270) is now Kusilvak Census Area (FIPS code 158).
+
+* fixed a bug that would counties not to load in non-interactive mode
+
+tigris 0.3
+-------------------------------------------------------
+
+* tigris now defaults to the 2015 TIGER/Line shapefiles and cartographic boundary shapefiles, the most recent shapefiles available from the US Census Bureau.
+
+tigris 0.2.2
+-------------------------------------------------------
+
+* New function, `voting_districts()`, enables users to retrieve voting district (electoral precinct) shapefiles from the 2012 TIGER/Line dataset.
+
+* tigris now imports and re-exports the `plot()` function from the sp package so that Census shapefiles can be plotted without having to load sp explicitly.
+
+
+tigris 0.2
+-------------------------------------------------------
+
+* Enhancements to the geo_join function to merge tabular data frames to spatial data frames. An optional parameter, by, allows you to supply one column name to merge on if the column names are the same.
+
+* geo_join also accommodates inner joins as well. By supplying 'inner' to the new how parameter, the resultant spatial data frame will retain only those rows that match the target tabular data frame.
+
+* Various improvements and bug fixes.

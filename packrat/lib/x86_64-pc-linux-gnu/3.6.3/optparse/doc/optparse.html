@@ -1,0 +1,189 @@
+<h1 id="optparse-command-line-option-parsing">optparse Command Line Option Parsing</h1>
+<p>optparse is a command line option parser inspired by Python's "optparse" library. Use this with Rscript to write "#!"-shebang scripts that accept short and long flags/options, generate a usage statement, and set default values for options that are not specified on the command line.</p>
+<p>In our working directory we have two example R scripts, named "example.R" and "display_file.R" illustrating the use of the optparse package.</p>
+<p><strong>bash$ ls</strong></p>
+<pre><code>display_file.R
+example.R</code></pre>
+<p>In order for a *nix system to recognize a "#!"-shebang line you need to mark the file executable with the <code>chmod</code> command, it also helps to add the directory containing your Rscripts to your path:</p>
+<p><strong>bash$ chmod ug+x display_file.R example.R</strong></p>
+<p><strong>bash$ export PATH=$PATH:`pwd`</strong></p>
+<p>Here is what <code>example.R</code> contains:</p>
+<p><strong>bash$ display_file.R example.R</strong></p>
+<pre><code>#!/usr/bin/env Rscript
+# Copyright 2010-2013 Trevor L Davis &lt;trevor.l.davis@gmail.com&gt;
+# Copyright 2008 Allen Day
+#  
+#  This file is free software: you may copy, redistribute and/or modify it  
+#  under the terms of the GNU General Public License as published by the  
+#  Free Software Foundation, either version 2 of the License, or (at your  
+#  option) any later version.  
+#  
+#  This file is distributed in the hope that it will be useful, but  
+#  WITHOUT ANY WARRANTY; without even the implied warranty of  
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU  
+#  General Public License for more details.  
+#  
+#  You should have received a copy of the GNU General Public License  
+#  along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.  
+suppressPackageStartupMessages(library(&quot;optparse&quot;))
+suppressPackageStartupMessages(library(&quot;stats&quot;))
+
+# specify our desired options in a list
+# by default OptionParser will add an help option equivalent to 
+# make_option(c(&quot;-h&quot;, &quot;--help&quot;), action=&quot;store_true&quot;, default=FALSE, 
+#               help=&quot;Show this help message and exit&quot;)
+option_list &lt;- list( 
+    make_option(c(&quot;-v&quot;, &quot;--verbose&quot;), action=&quot;store_true&quot;, default=TRUE,
+        help=&quot;Print extra output [default]&quot;),
+    make_option(c(&quot;-q&quot;, &quot;--quietly&quot;), action=&quot;store_false&quot;, 
+        dest=&quot;verbose&quot;, help=&quot;Print little output&quot;),
+    make_option(c(&quot;-c&quot;, &quot;--count&quot;), type=&quot;integer&quot;, default=5, 
+        help=&quot;Number of random normals to generate [default %default]&quot;,
+        metavar=&quot;number&quot;),
+    make_option(&quot;--generator&quot;, default=&quot;rnorm&quot;, 
+        help = &quot;Function to generate random deviates [default \&quot;%default\&quot;]&quot;),
+    make_option(&quot;--mean&quot;, default=0, 
+        help=&quot;Mean if generator == \&quot;rnorm\&quot; [default %default]&quot;),
+    make_option(&quot;--sd&quot;, default=1, metavar=&quot;standard deviation&quot;,
+        help=&quot;Standard deviation if generator == \&quot;rnorm\&quot; [default %default]&quot;)
+    )
+
+# get command line options, if help option encountered print help and exit,
+# otherwise if options not found on command line then set defaults, 
+opt &lt;- parse_args(OptionParser(option_list=option_list))
+
+# print some progress messages to stderr if &quot;quietly&quot; wasn&#39;t requested
+if ( opt$verbose ) { 
+    write(&quot;writing some verbose output to standard error...\n&quot;, stderr()) 
+}
+
+# do some operations based on user input
+if( opt$generator == &quot;rnorm&quot;) {
+    cat(paste(rnorm(opt$count, mean=opt$mean, sd=opt$sd), collapse=&quot;\n&quot;))
+} else {
+    cat(paste(do.call(opt$generator, list(opt$count)), collapse=&quot;\n&quot;))
+}
+cat(&quot;\n&quot;)</code></pre>
+<p>By default <em>optparse</em> will generate a help message if it encounters <code>--help</code> or <code>-h</code> on the command line. Note how <code>%default</code> in the example program was replaced by the actual default values in the help statement that <em>optparse</em> generated.</p>
+<p><strong>bash$ example.R --help</strong></p>
+<pre><code>Usage: example.R [options]
+
+
+Options:
+    -v, --verbose
+        Print extra output [default]
+
+    -q, --quietly
+        Print little output
+
+    -c NUMBER, --count=NUMBER
+        Number of random normals to generate [default 5]
+
+    --generator=GENERATOR
+        Function to generate random deviates [default &quot;rnorm&quot;]
+
+    --mean=MEAN
+        Mean if generator == &quot;rnorm&quot; [default 0]
+
+    --sd=STANDARD DEVIATION
+        Standard deviation if generator == &quot;rnorm&quot; [default 1]
+
+    -h, --help
+        Show this help message and exit</code></pre>
+<p>If you specify default values when creating your <code>OptionParser</code> then <em>optparse</em> will use them as expected.</p>
+<p><strong>bash$ example.R</strong></p>
+<pre><code>writing some verbose output to standard error...
+
+-0.062065972053375
+0.47905522006317
+-0.328494270649886
+1.211641831471
+0.42301092106521</code></pre>
+<p>Or you can specify your own values.</p>
+<p><strong>bash$ example.R --mean=10 --sd=10 --count=3</strong></p>
+<pre><code>writing some verbose output to standard error...
+
+18.809065642538
+5.29337709847511
+5.64966209470831</code></pre>
+<p>If you remember from the example program that <code>--quiet</code> had <code>action="store_false"</code> and <code>dest="verbose"</code>. This means that <code>--quiet</code> is a switch that turns the <code>verbose</code> option from its default value of <code>TRUE</code> to <code>FALSE</code>. Note how the <code>verbose</code> and <code>quiet</code> options store their value in the exact same variable.</p>
+<p><strong>bash$ example.R --quiet -c 4 --generator="runif"</strong></p>
+<pre><code>0.280531030613929
+0.199097874574363
+0.0360796870663762
+0.417285233037546</code></pre>
+<p>If you specify an illegal flag then <em>optparse</em> will throw an error.</p>
+<p><strong>bash$ example.R --silent -m 5</strong></p>
+<pre><code>Error in getopt_options(object, args) : 
+  Error in getopt(spec = spec, opt = args) : long flag &quot;silent&quot; is invalid
+Calls: parse_args -&gt; parse_options -&gt; getopt_options
+Execution halted</code></pre>
+<p>If you specify the same option multiple times then <em>optparse</em> will use the value of the last option specified.</p>
+<p><strong>bash$ example.R -c 100 -c 2 -c 1000 -c 7</strong></p>
+<pre><code>writing some verbose output to standard error...
+
+-1.48222878405123
+-0.84631596794254
+0.351000283817853
+-0.867256577237166
+0.486031446249512
+-1.32244033043135
+0.222268695868458</code></pre>
+<p><em>optparse</em> can also recognize positional arguments if <code>parse_args</code> is given the option <code>positional_arguments = c(min_pa, max_pa)</code> where <code>min_pa</code> is the minimum and <code>max_pa</code> is the maximum number of supported positional arguments. (A single numeric corresponds to <code>min_pa == max_pa</code>, <code>TRUE</code> is equivalent to <code>c(0, Inf)</code>, and <code>FALSE</code>, the default, is equivalent to <code>0</code>.) Below we give an example program <em>display_file.R</em>, which is a program that prints out the contents of a single file (the required positional argument, not an optional argument) and which accepts the normal help option as well as an option to add line numbers to the output. Note that the positional arguments need to be placed <em>after</em> the optional arguments.</p>
+<p><strong>bash$ display_file.R --help</strong></p>
+<pre><code>Usage: display_file.R [options] file
+
+
+Options:
+    -n, --add_numbers
+        Print line number at the beginning of each line [default]
+
+    -h, --help
+        Show this help message and exit</code></pre>
+<p><strong>bash$ display_file.R --add_numbers display_file.R</strong></p>
+<pre><code>1 #!/usr/bin/env Rscript
+2 # Copyright 2010-2013 Trevor L Davis &lt;trevor.l.davis@gmail.com&gt;
+3 # Copyright 2013 Kirill Müller 
+4 #  
+5 #  This file is free software: you may copy, redistribute and/or modify it  
+6 #  under the terms of the GNU General Public License as published by the  
+7 #  Free Software Foundation, either version 2 of the License, or (at your  
+8 #  option) any later version.  
+9 #  
+10 #  This file is distributed in the hope that it will be useful, but  
+11 #  WITHOUT ANY WARRANTY; without even the implied warranty of  
+12 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU  
+13 #  General Public License for more details.  
+14 #  
+15 #  You should have received a copy of the GNU General Public License  
+16 #  along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.  
+17 suppressPackageStartupMessages(library(&quot;optparse&quot;))
+18 
+19 option_list &lt;- list( 
+20     make_option(c(&quot;-n&quot;, &quot;--add_numbers&quot;), action=&quot;store_true&quot;, default=FALSE,
+21         help=&quot;Print line number at the beginning of each line [default]&quot;)
+22     )
+23 parser &lt;- OptionParser(usage = &quot;%prog [options] file&quot;, option_list=option_list)
+24 
+25 arguments &lt;- parse_args(parser, positional_arguments = 1)
+26 opt &lt;- arguments$options
+27 file &lt;- arguments$args
+28 
+29 if( file.access(file) == -1) {
+30     stop(sprintf(&quot;Specified file ( %s ) does not exist&quot;, file))
+31 } else {
+32     file_text &lt;- readLines(file)
+33 }
+34 
+35 if(opt$add_numbers) {
+36     cat(paste(1:length(file_text), file_text), sep = &quot;\n&quot;)
+37 } else {
+38     cat(file_text, sep = &quot;\n&quot;)
+39 }</code></pre>
+<p><strong>bash$ display_file.R non_existent_file.txt</strong></p>
+<pre><code>Error: Specified file ( non_existent_file.txt ) does not exist
+Execution halted</code></pre>
+<p><strong>bash$ display_file.R</strong></p>
+<pre><code>Error in parse_args(parser, positional_arguments = 1) : 
+  required at least 1 positional arguments, got 0
+Execution halted</code></pre>

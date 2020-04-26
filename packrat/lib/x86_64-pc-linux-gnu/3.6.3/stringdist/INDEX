@@ -1,0 +1,23 @@
+amatch                  Approximate string matching
+phonetic                Phonetic algorithms
+printable_ascii         Detect the presence of non-printable or
+                        non-ascii characters
+qgrams                  Get a table of qgram counts from one or more
+                        character vectors.
+seq_amatch              Approximate matching for integer sequences.
+seq_dist                Compute distance metrics between integer
+                        sequences
+seq_qgrams              Get a table of qgram counts for integer
+                        sequences
+seq_sim                 Compute similarity scores between sequences of
+                        integers
+stringdist              Compute distance metrics between strings
+stringdist-encoding     String metrics in 'stringdist'
+stringdist-metrics      String metrics in 'stringdist'
+stringdist-package      A package for string distance calculation and
+                        approximate string matching.
+stringdist-parallelization
+                        Multithreading and parallelization in
+                        'stringdist'
+stringdist_api          Calling stringdist from 'C' or 'C++'
+stringsim               Compute similarity scores between strings

@@ -1,0 +1,66 @@
+ArrayData               ArrayData class
+ChunkedArray            ChunkedArray class
+Codec                   Compression Codec class
+CsvReadOptions          File reader options
+CsvTableReader          Arrow CSV and JSON table reader classes
+DataType                class arrow::DataType
+Dataset                 Multi-file datasets
+DictionaryType          class DictionaryType
+Expression              Arrow expressions
+FeatherReader           FeatherReader class
+Field                   Field class
+FileFormat              Dataset file formats
+FileInfo                FileSystem entry info
+FileSelector            file selector
+FileSystem              FileSystem classes
+FixedWidthType          class arrow::FixedWidthType
+InputStream             InputStream classes
+MemoryPool              class arrow::MemoryPool
+Message                 class arrow::Message
+MessageReader           class arrow::MessageReader
+OutputStream            OutputStream classes
+ParquetFileReader       ParquetFileReader class
+ParquetFileWriter       ParquetFileWriter class
+ParquetReaderProperties
+                        ParquetReaderProperties class
+ParquetWriterProperties
+                        ParquetWriterProperties class
+Partitioning            Define Partitioning for a Dataset
+RecordBatch             RecordBatch class
+RecordBatchReader       RecordBatchReader classes
+RecordBatchWriter       RecordBatchWriter classes
+Scanner                 Scan the contents of a dataset
+Schema                  Schema class
+Table                   Table class
+array                   Arrow Arrays
+arrow_available         Is the C++ Arrow library available?
+buffer                  Buffer class
+cast_options            Cast options
+codec_is_available      Check whether a compression codec is available
+compression             Compressed stream classes
+cpu_count               Manage the global CPU thread pool in libarrow
+data-type               Apache Arrow data types
+dataset_factory         Create a DatasetFactory
+default_memory_pool     default arrow::MemoryPool
+dictionary              Create a dictionary type
+hive_partition          Construct Hive partitioning
+install_arrow           Install or upgrade the Arrow library
+install_pyarrow         Install pyarrow for use with reticulate
+map_batches             Apply a function to a stream of RecordBatches
+mmap_create             Create a new read/write memory mapped file of a
+                        given size
+mmap_open               Open a memory mapped file
+open_dataset            Open a multi-file dataset
+read_delim_arrow        Read a CSV or other delimited file with Arrow
+read_feather            Read a Feather file
+read_ipc_stream         Read Arrow IPC stream format
+read_json_arrow         Read a JSON file
+read_message            Read a Message from a stream
+read_parquet            Read a Parquet file
+read_schema             read a Schema from a stream
+type                    infer the arrow Array type from an R vector
+unify_schemas           Combine and harmonize schemas
+write_feather           Write data in the Feather format
+write_ipc_stream        Write Arrow IPC stream format
+write_parquet           Write Parquet file to disk
+write_to_raw            Write Arrow data to a raw vector

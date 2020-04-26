@@ -1,0 +1,28 @@
+Package: arrayhelpers
+Type: Package
+Title: Convenience Functions for Arrays
+Description: Some convenient functions to work with arrays.
+Maintainer: C. Beleites <claudia.beleites@chemometrix.eu>
+Author: C. Beleites <claudia.beleites@chemometrix.eu>
+Version: 1.1-0
+Date: 2020-02-03
+License: GPL
+LazyLoad: yes
+LazyData: yes
+Imports: methods, utils, svUnit
+URL: http://arrayhelpers.r-forge.r-project.org/
+Encoding: UTF-8
+Collate: 'unittestdata.R' 'arrayhelpers.R' 'apply.R' 'array2df.R'
+    'array2vec.R' 'colSums.R' 'countrows.R' 'delold.R' 'dropdimnames.R'
+    'ensuredim.R' 'groupsum.R' 'init.R' 'makeNd.R' 'ndim.R'
+    'numericindices.R' 'restoredim.R' 'rowsum.R' 'slice.R' 'stack.R'
+    'ta.R' 'unittests.R'
+RoxygenNote: 7.0.2
+NeedsCompilation: no
+Packaged: 2020-02-03 19:28:05 UTC; cb
+Repository: CRAN
+Date/Publication: 2020-02-04 16:10:09 UTC
+Built: R 3.6.3; ; 2020-04-26 16:22:26 UTC; unix
+InstallAgent: packrat 0.5.0
+InstallSource: CRAN
+Hash: d61faa62c762d5e24e01dbfc78e36c88

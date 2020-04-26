@@ -1,0 +1,10 @@
+reprex-package	reprex-package
+opt	opt
+reprex	reprex
+reprex_addin	reprex_addin
+reprex_clean	un-reprex
+reprex_invert	un-reprex
+reprex_rescue	un-reprex
+reprex_selection	reprex_addin
+un-reprex	un-reprex
+_PACKAGE	reprex-package

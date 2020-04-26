@@ -1,0 +1,33 @@
+Package: ggvoronoi
+Version: 0.8.3
+Date: 2019-02-19
+Title: Voronoi Diagrams and Heatmaps with 'ggplot2'
+Author: Robert C. Garrett [aut, cre], Austin Nar [aut], Thomas J.
+    Fisher [aut], Karsten Maurer [ctb]
+Maintainer: Robert C. Garrett <garretrc@miamioh.edu>
+Authors@R: c(person("Robert C.", "Garrett", email =
+    "garretrc@miamioh.edu", role = c("aut", "cre")), person("Austin",
+    "Nar", email = "narar@miamioh.edu", role = c("aut")),
+    person("Thomas J.", "Fisher", email = "fishert4@miamioh.edu", role
+    = c("aut")), person("Karsten", "Maurer", email =
+    "maurerkt@miamioh.edu", role = c("ctb")))
+Description: Easy creation and manipulation of Voronoi diagrams using
+    'deldir' with visualization in 'ggplot2'.
+Depends: R (>= 2.10), ggplot2 (>= 2.2.0)
+Imports: deldir, sp, rgeos, raster, methods
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
+Suggests: knitr, rmarkdown, ggmap, dplyr, scales, testthat, vdiffr,
+    mapproj
+VignetteBuilder: knitr
+URL: https://github.com/garretrc/ggvoronoi/
+NeedsCompilation: no
+Packaged: 2019-02-19 21:39:14 UTC; garre
+Repository: CRAN
+Date/Publication: 2019-02-19 22:00:03 UTC
+Built: R 3.6.3; ; 2020-04-26 15:23:27 UTC; unix
+InstallAgent: packrat 0.5.0
+InstallSource: CRAN
+Hash: 31faf71585ac7f67a8003f0bcc9c561b

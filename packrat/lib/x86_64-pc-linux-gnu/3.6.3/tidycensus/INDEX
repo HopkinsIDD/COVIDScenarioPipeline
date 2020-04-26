@@ -1,0 +1,28 @@
+census_api_key          Install a CENSUS API Key in Your '.Renviron'
+                        File for Repeated Use
+county_laea             County geometry with Alaska and Hawaii shifted
+                        and re-scaled
+fips_codes              Dataset with FIPS codes for US states and
+                        counties
+get_acs                 Obtain data and feature geometry for the
+                        five-year American Community Survey
+get_decennial           Obtain data and feature geometry for the
+                        decennial Census
+get_estimates           Get data from the US Census Bureau Population
+                        Estimates APIs
+load_variables          Load variables from a decennial Census or
+                        American Community Survey dataset to search in
+                        R
+moe_product             Calculate the margin of error for a derived
+                        product
+moe_prop                Calculate the margin of error for a derived
+                        proportion
+moe_ratio               Calculate the margin of error for a derived
+                        ratio
+moe_sum                 Calculate the margin of error for a derived sum
+significance            Evaluate whether the difference in two
+                        estimates is statistically significant.
+state_laea              State geometry with Alaska and Hawaii shifted
+                        and re-scaled
+tidycensus              Return tidy data frames from the US Census
+                        Bureau API

@@ -1,0 +1,37 @@
+Package: tidycensus
+Type: Package
+Title: Load US Census Boundary and Attribute Data as 'tidyverse' and
+    'sf'-Ready Data Frames
+Version: 0.9.9.2
+Authors@R: c( person(given = "Kyle", family = "Walker",
+    email="kyle.walker@tcu.edu", role=c("aut", "cre")), person(given =
+    "Kris", family = "Eberwein", email = "eberwein@knights.ucf.edu",
+    role = "ctb"), person(given = "Matt", family = "Herman", email =
+    "mfherman@gmail.com", role = "ctb"))
+Date: 2020-04-02
+URL: https://github.com/walkerke/tidycensus
+BugReports: https://github.com/walkerke/tidycensus/issues
+Description: An integrated R interface to the decennial US Census and
+    American Community Survey APIs and the US Census Bureau's
+    geographic boundary files.  Allows R users to return Census and ACS
+    data as tidyverse-ready data frames, and optionally returns a
+    list-column with feature geometry for many geographies.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends: R (>= 3.3.0)
+Imports: httr, sf, dplyr (>= 0.7.0), tigris, stringr, jsonlite (>=
+    1.5.0), purrr, rvest, tidyr (>= 0.7.0), rappdirs, readr, xml2,
+    units, utils
+Suggests: ggplot2
+RoxygenNote: 7.0.2
+NeedsCompilation: no
+Packaged: 2020-04-02 20:30:21 UTC; kyle
+Author: Kyle Walker [aut, cre], Kris Eberwein [ctb], Matt Herman [ctb]
+Maintainer: Kyle Walker <kyle.walker@tcu.edu>
+Repository: CRAN
+Date/Publication: 2020-04-03 16:00:03 UTC
+Built: R 3.6.3; ; 2020-04-26 16:22:33 UTC; unix
+InstallAgent: packrat 0.5.0
+InstallSource: CRAN
+Hash: cce679660915fa18e69fdf716464bc01

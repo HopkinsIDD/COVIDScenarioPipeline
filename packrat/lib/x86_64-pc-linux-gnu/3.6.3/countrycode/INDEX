@@ -1,0 +1,8 @@
+cldr_examples           List of CLDR country name codes and associated
+                        examples
+codelist                Country Code Translation Data Frame
+                        (Cross-Sectional)
+codelist_panel          Country Code Translation Data Frame
+                        (Country-Year Panel)
+countrycode             Convert Country Codes
+countrycode-package     Convert Country Codes or Country Names

@@ -1,0 +1,49 @@
+
+Error  list:
+===========
+
+nerror =  1: Contradictory adjacency lists.  Error in adjchk.
+
+nerror =  2: Number of points jumbled.  Error in binsrt.
+
+nerror =  3: Vertices of 'triangle' are collinear
+             and vertex 2 is not between 1 and 3.  Error in circen.
+
+nerror =  4: Number of adjacencies too large.  Error in insrt.
+             (Automatically adjusted for in deldir().)
+
+nerror =  5: Adjacency list of i is empty, and so cannot contain j.
+             Error in pred.
+
+nerror =  6: Adjacency list of i does not contain j.  Error in pred.
+
+nerror =  7: Indicator ijk is out of range. (This CAN'T happen!)
+             Error in qtest.
+
+nerror =  8: Fell through all six cases.
+             Something must be totally stuffed up.  Error in stoke.
+
+nerror =  9: Adjacency list of i is empty, and so cannot contain j.
+             Error in succ.
+
+nerror = 10: Adjacency list of i does not contain j.  Error in succ.
+
+nerror = 11: No triangles to find. Error in trifnd.
+
+nerror = 12: Vertices of triangle are collinear.  Error in dirseg.
+
+nerror = 13: Vertices of triangle are collinear.  Error in dirout.
+
+nerror = 14: Number of Delaunay segments exceeds alloted space.
+             Error in delseg.
+             (Automatically adjusted for in deldir().)
+
+nerror = 15: Number of Dirichlet segments exceeds alloted space.
+             Error in dirseg.
+             (Automatically adjusted for in deldir().)
+
+nerror = 16: Line from midpoint to circumcenter does not intersect
+             rectangle boundary; but it HAS to!!! Error in dirseg.
+
+nerror = 17: Line from midpoint to circumcenter does not intersect
+             rectangle boundary; but it HAS to!!! Error in dirout.

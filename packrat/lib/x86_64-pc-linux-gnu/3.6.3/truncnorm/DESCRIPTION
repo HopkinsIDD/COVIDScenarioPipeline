@@ -1,0 +1,27 @@
+Package: truncnorm
+Version: 1.0-8
+Title: Truncated Normal Distribution
+Description: Density, probability, quantile and random number
+    generation functions for the truncated normal distribution.
+Authors@R: c(person("Olaf", "Mersmann", role=c("aut", "cre"),
+    email="olafm@p-value.net"), person("Heike", "Trautmann",
+    role=c("aut")), person("Detlef", "Steuer", role=c("aut")),
+    person("Björn", "Bornkamp", role=c("aut")))
+URL: https://github.com/olafmersmann/truncnorm
+BugReports: https://github.com/olafmersmann/truncnorm/issues
+Depends: R (>= 3.4.0)
+Suggests: testthat
+License: GPL (>= 2)
+Encoding: UTF-8
+RoxygenNote: 6.0.1
+NeedsCompilation: yes
+Packaged: 2018-02-26 10:06:27 UTC; olafm
+Author: Olaf Mersmann [aut, cre], Heike Trautmann [aut], Detlef Steuer
+    [aut], Björn Bornkamp [aut]
+Maintainer: Olaf Mersmann <olafm@p-value.net>
+Repository: CRAN
+Date/Publication: 2018-02-27 21:37:25 UTC
+Built: R 3.6.3; x86_64-pc-linux-gnu; 2020-04-26 15:20:52 UTC; unix
+InstallAgent: packrat 0.5.0
+InstallSource: CRAN
+Hash: a5534b63255de05674140b3fc8c0e895

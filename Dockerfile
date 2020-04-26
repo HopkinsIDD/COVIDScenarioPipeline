@@ -87,14 +87,13 @@ ENV HOME /home/app
 #####
 
 # TODO: use packrat (or something else) for R package management
-COPY packages.R $HOME
-RUN Rscript packages.R
-
-# install custom packages from R/pkgs/**
-COPY local_install.R $HOME
-COPY R/pkgs $HOME/R/pkgs
-RUN Rscript local_install.R
-
+RUN Rscript -e "install.packages('packrat',repos='https://cloud.r-project.org/')"
+RUN Rscript -e "install.packages('arrow',repos='https://cloud.r-project.org/')"
+RUN Rscript -e 'arrow::install_arrow()'
+COPY --chown=app:app packrat $HOME/packrat
+COPY --chown=app:app  .Rprofile $HOME/.Rprofile
+COPY --chown=app:app R/pkgs $HOME/R/pkgs
+RUN Rscript -e 'packrat::restore()'
 
 #####
 # Python (managed via pyenv)
