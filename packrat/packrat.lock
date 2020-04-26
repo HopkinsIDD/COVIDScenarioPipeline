@@ -158,11 +158,6 @@ GithubRepo: covidImportation
 GithubUsername: HopkinsIDD
 GithubRef: master
 GithubSha1: ee5e7e7f3378df399ade311477b7156eb7341969
-RemoteHost: api.github.com
-RemoteRepo: covidImportation
-RemoteUsername: HopkinsIDD
-RemoteRef: master
-RemoteSha: ee5e7e7f3378df399ade311477b7156eb7341969
 
 Package: covidcommon
 Source: source
