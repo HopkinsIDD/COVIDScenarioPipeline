@@ -90,7 +90,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
     stop(paste0("There were no files in ",getwd(), "/", sprintf("model_output/%s", scenario_dir)))
   }
 
-  read_file <- read_file_of_type(file_extension)
+  read_file <- report.generation:::read_file_of_type(file_extension)
   
   if (geoid_len > 0) {
     padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width =geoid_len,pad=padding_char))}
@@ -98,8 +98,10 @@ load_scenario_sims_filtered <- function(scenario_dir,
     padfn <- function(x) {x}
   }
   
-  rc <- foreach(i = 1:length(files)) %dopar% {
-    require(tidyverse)
+  rc <- foreach(i = 1:length(files),
+                .packages = c("tidyverse"),
+                .export = c("read_file","pre_process","post_process")) %dopar% {
+    #require(tidyverse)
     
     read_file(files[i]) %>%
       pre_process(...) %>%

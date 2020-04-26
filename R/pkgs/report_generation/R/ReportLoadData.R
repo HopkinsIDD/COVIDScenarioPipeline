@@ -342,6 +342,101 @@ load_hosp_geocombined_totals <- function(scn_dirs,
 
 
 
+
+##'
+##' Convenience function to allow us to load hospital totals for the combined geounits quickly for
+##' the given scenarios.
+##'
+##' @param scn_dirs the dirctories containing the relevant scenarios
+##' @param scenariolabels the scenarios labels
+##' @param name_filter character string that filenames should match
+##' @param geoid_len required length of geoid
+##' @param padding_char padding
+##'
+##' @return a data frame with columns:
+##'    - sim_num
+##'    - NhospCurr number of people in hospital on a day
+##'    - NICUCurr number of people in ICU on a day
+##'    - NincidDeath  number of incidence deaths on a day
+##'    - NincidInf  number of incident infections on a day
+##'    - NincidICH number of incident ICUs on a day
+##'
+##'
+##'
+##' @export
+##'
+load_hosp_geounit_totals <- function(scn_dirs,
+                                         num_files = NA,
+                                         scenariolabels = NULL,
+                                         name_filter,
+                                         incl_geoids = NULL,
+                                         geoid_len = 0,
+                                         padding_char = "0",
+                                         file_extension = 'auto') {
+  
+  if(is.null(scenariolabels)){
+    warning("You have not specified scenario labels for this function. You may encounter future errors.")  
+  }
+  
+  ##filter to munge the data at the scenario level
+  if (!is.null(incl_geoids)) {
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::filter(!is.na(time) & (geoid %in% incl_geoids)) %>%
+        group_by(time, sim_num, geoid) %>%
+        dplyr::summarize(NhospCurr = sum(hosp_curr),
+                         NICUCurr = sum(icu_curr),
+                         NincidDeath = sum(incidD),
+                         NincidInf = sum(incidI),
+                         NincidICU = sum(incidICU),
+                         NincidHosp = sum(incidH),
+                         NincidVent = sum(incidVent),
+                         NVentCurr = sum(vent_curr)) %>%
+        ungroup()
+    }
+  } else {
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::filter(!is.na(time)) %>%
+        group_by(time, sim_num, geoid) %>%
+        dplyr::summarize(NhospCurr = sum(hosp_curr),
+                         NICUCurr = sum(icu_curr),
+                         NincidDeath = sum(incidD),
+                         NincidInf = sum(incidI),
+                         NincidICU=sum(incidICU),
+                         NincidHosp=sum(incidH),
+                         NincidVent = sum(incidVent),
+                         NVentCurr = sum(vent_curr)) %>%
+        ungroup()
+    }
+  }
+  
+  rc <- list(length=length(scn_dirs))
+  for (i in 1:length(scn_dirs)) {
+    rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
+                                       name_filter = name_filter,
+                                       num_files = num_files,
+                                       post_process = hosp_post_process,
+                                       geoid_len = geoid_len,
+                                       padding_char = padding_char,
+                                       file_extension = file_extension)
+    rc[[i]]$scenario_num <- i
+    rc[[i]]$scenario_name <- scenariolabels[[i]]
+  }
+  
+  rc %>% 
+    dplyr::bind_rows() %>%
+    return()
+}
+
+
+
+
+
+
+
+
+
 ##' Convenience function to load peak geounit infections before a given date for the given scenarios
 ##' 
 ##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
