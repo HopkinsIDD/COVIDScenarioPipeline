@@ -691,7 +691,7 @@ load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
                                      states,
                                      updateJHUData = TRUE,
                                      ...) {
-  if(!dir.exists(jhu_data_dir)) {
+  if(!(dir.exists(jhu_data_dir) & length(list.files(jhu_data_dir) > 0))) {
     ### Download JHU data
     pull_JHUCSSE_github_data(jhu_data_dir) 
   } else {
