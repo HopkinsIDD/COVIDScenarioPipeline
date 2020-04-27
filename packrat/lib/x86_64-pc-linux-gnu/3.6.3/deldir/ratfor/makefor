@@ -1,7 +1,0 @@
-#! /bin/csh
-
-foreach file (*.r)
-set stem = `basename $file .r`
-ratfor $file > $stem.f
-/bin/mv $stem.f ../../src
-end

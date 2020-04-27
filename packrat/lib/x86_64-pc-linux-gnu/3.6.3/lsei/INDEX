@@ -1,8 +1,0 @@
-hfti                    Least Squares Solution using Householder
-                        Transformation
-indx                    Index-finding in a Sorted Vector
-lsei                    Least Squares Solution under Equality and
-                        Inequality Constraints
-matMaxs                 Row or Column Maximum Values of a Matrix
-nnls                    Least Squares and Quadratic Programming under
-                        Nonnegativity Constraints

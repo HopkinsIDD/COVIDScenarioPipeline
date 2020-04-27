@@ -1,7 +1,0 @@
-export(dtruncnorm)
-export(ptruncnorm)
-export(qtruncnorm)
-export(rtruncnorm)
-export(etruncnorm)
-export(vtruncnorm)
-useDynLib(truncnorm, .registration = TRUE, .fixes = "C_")

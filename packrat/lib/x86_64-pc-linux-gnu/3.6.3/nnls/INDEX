@@ -1,6 +1,0 @@
-nnls                    The Lawson-Hanson NNLS implemention of
-                        non-negative least squares
-nnls-package            The Lawson-Hanson NNLS implementation of
-                        non-negative least squares
-nnnpls                  An implementation of least squares with
-                        non-negative and non-positive constraints
