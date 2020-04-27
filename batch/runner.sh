@@ -28,7 +28,6 @@ aws s3 cp --quiet $S3_MODEL_DATA_PATH model_data.tar.gz
 mkdir model_data
 tar -xvzf model_data.tar.gz -C model_data
 cd model_data
-Rscript local_install.R
 
 # Optional tracking variable to use to write unique output files
 export AWS_BATCH_SIM_OFFSET=$((${AWS_BATCH_JOB_ARRAY_INDEX:-0} * ${SIMS_PER_JOB:-0}))
