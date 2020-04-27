@@ -1,20 +1,81 @@
-trivial:
+# Global Configs
+trivial_global:
   start_date: 2020-01-01
   end_date: 2020-01-01
-  interventions:
-   settings:
-      Test:
-        template: ReduceR0
-        value:
-          distribution: fixed
-          value: 1
-daterange:
+
+month_global:
   start_date: 2020-01-01
-  end_date: 2020-01-31
-  interventions:
-    settings:
-      Test:
-        template: ReduceR0
-        value:
-          distribution: fixed
-          value: 1
+  end_date: 2020-02-01
+
+
+# NPI Configs
+trivial:
+  value:
+    distribution: fixed
+    value: 1
+  parameter: gamma
+  value:
+    distribution: fixed
+    value: 0.5
+
+bad_geoid:
+  parameter: gamma
+  value:
+    distribution: fixed
+    value: 0.5
+  affected_geoids:
+    - does_not_exit
+
+geoidrange:
+  parameter: gamma
+  value:
+    distribution: fixed
+    value: 0.5
+  affected_geoids:
+    - 10001
+    - 2020
+
+invalid_parameter:
+  parameter: NOT_A_PARAMETER
+  value:
+    distribution: fixed
+    value: 0.5
+
+bad_start_date:
+  period_start_date: 2019-12-31 # period_start_date before global start date
+  period_end_date: 2020-01-31
+  value:
+    distribution: fixed
+    value: 1
+
+bad_end_date:
+  period_start_date: 2019-01-31
+  period_end_date: 2020-02-23 # period_end_date after global end date
+  value:
+    distribution: fixed
+    value: 1
+
+daterange:
+  period_start_date: 2020-01-05
+  period_end_date: 2020-01-20
+  parameter: gamma
+  value:
+    distribution: fixed
+    value: 0.5
+
+fullrange:
+  parameter: gamma
+  value:
+    distribution: fixed
+    value: 0.5
+  period_start_date: 2020-01-31
+  period_end_date: 2020-01-20
+  affected_geoids:
+    - 10001
+    - 2020
+
+toobig:
+  parameter: gamma
+  value:
+    distribution: fixed
+    value: 1.1

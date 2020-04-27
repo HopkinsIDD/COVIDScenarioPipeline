@@ -1,13 +1,12 @@
 import pandas as pd
-import numpy as np
 import pyarrow as pa
+import numpy as np
 
 from .base import NPIBase
 
+REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
 
-# ReduceR0 is redundant with the newer Reduce NPI configured with parameter: 'r0'
-# Kept for backwards compatibility
-class ReduceR0(NPIBase):
+class Reduce(NPIBase):
     def __init__(self, *, npi_config, global_config, geoids):
         self.start_date = global_config["start_date"].as_date()
         self.end_date = global_config["end_date"].as_date()
@@ -28,8 +27,6 @@ class ReduceR0(NPIBase):
         if self.period_end_date < self.start_date:
             raise ValueError(f"period_end_date  ({self.period_end_date}) is less than period_start_date ({self.period_start_date})")
 
-        self.dist = npi_config["value"].as_random_distribution()
-
         # Optional config field "affected_geoids"
         # If values of "affected_geoids" is "all" or unspecified, run on all geoids.
         # Otherwise, run only on geoids specified.
@@ -42,24 +39,34 @@ class ReduceR0(NPIBase):
                     raise ValueError(f"Invalid config value {n.name} ({node}) not in geoids")
                 affected.append(node)
 
-        self.npi = pd.DataFrame(0.0, index=geoids,
-                                columns=pd.date_range(self.start_date, self.end_date))
+        # Get name of the parameter to reduce
+        param_name = npi_config["parameter"].as_str().lower()
+        if param_name not in REDUCE_PARAMS:
+            raise ValueError(f"Invalid parameter name: {param_name}. Must be one of {REDUCE_PARAMS}")
+        self.reduced_param = param_name
+
+        # Create reduction
+        self.npi = pd.DataFrame(0.0, index=self.geoids,
+                                    columns=pd.date_range(self.start_date, self.end_date))
+        self.dist = npi_config["value"].as_random_distribution()
         period_range = pd.date_range(self.period_start_date, self.period_end_date)
         self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T
 
+        # Validate
         if (self.npi == 0).all(axis=None):
             print(f"Warning: The intervention in config: {npi_config.name} does nothing.")
 
-        print("Warning: The ReduceR0 is redundant with the newer Reduce NPI template configured with parameter: r0")
+        if (self.npi > 1).all(axis=None):
+            raise ValueError(f"The intervention in config: {npi_config.name} has reduction of {param_name} is greater than 1")
 
     def getReduction(self, param):
-        if param == 'r0':
+        if param == self.reduced_param:
             return self.npi
         return pd.DataFrame(0.0, index=self.geoids,
-                                columns=pd.date_range(self.start_date, self.end_date))
+                                    columns=pd.date_range(self.start_date, self.end_date))
 
     def writeReductions(self, fname, extension):
-        out_df = self.npi.T.assign(parameter="r0")
+        out_df = self.npi.T.assign(parameter=self.reduced_param)
 
         if extension == "csv":
             out_df.to_csv(f"{fname}.{extension}", index_label="time")
