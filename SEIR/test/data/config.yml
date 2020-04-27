@@ -13,14 +13,6 @@ spatial_setup:
   popnodes: population
   nodenames: geoid
 
-seeding: ## If removing the importation, comment out this seeding block
-  method: FolderDraw
-  folder_path: importation/minimal/
-
-# seeding: ## If removing importation, uncomment this seeding block
-#   method: PoissonDistributed
-#   lambda_file: data/minimal/seeding.csv
-
 seir:
   parameters:
     alpha: 0.5
@@ -39,14 +31,16 @@ interventions:
     - None
   settings:
     None:
-      template: ReduceR0
+      template: Reduce
+      parameter: r0
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
       value:
         distribution: fixed
         value: 0
     Wuhan:
-      template: ReduceR0
+      template: Reduce
+      parameter: r0
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
       value:
@@ -55,6 +49,7 @@ interventions:
         high: .33
     KansasCity:
       template: ReduceR0
+      parameter: r0
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
       value:
