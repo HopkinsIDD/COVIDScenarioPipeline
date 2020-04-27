@@ -104,9 +104,10 @@ ENV PYTHON_VERSION 3.7.6
 ENV PYTHON_VENV_DIR $HOME/python_venv
 ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 
+
 RUN git clone git://github.com/yyuu/pyenv.git $HOME/.pyenv \
     && rm -rf $HOME/.pyenv/.git \
-    && pyenv install -s $PYTHON_VERSION --verbose \
+    && env PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install -s $PYTHON_VERSION --verbose \
     && pyenv rehash \
     && echo 'eval "$(pyenv init -)"' >> ~/.bashrc \
     && echo "PS1=\"\[\e]0;\u@\h: \w\a\] \h:\w\$ \"" >> ~/.bashrc
