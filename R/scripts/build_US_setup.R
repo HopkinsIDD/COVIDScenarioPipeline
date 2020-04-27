@@ -1,5 +1,6 @@
 library(dplyr)
 library(tidyr)
+library(tidycensus)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
@@ -9,49 +10,91 @@ option_list = list(
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
 config <- covidcommon::load_config(opt$c)
-if (is.na(config)) {
+if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
 outdir <- config$spatial_setup$base_path
 filterUSPS <- config$spatial_setup$modeled_states
 
-commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
-census_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","census_tracts_2010.csv", sep = '/'))
+# Get census key
+census_key = Sys.getenv("CENSUS_API_KEY")
+if(length(config$importation$census_api_key) != 0)
+{
+  census_key = config$importation$census_api_key
+}
+if(census_key == "")
+{
+  stop("no census key found -- please set CENSUS_API_KEY environment variable or specify importation::census_api_key in config file")
+}
+tidycensus::census_api_key(key = census_key)
 
-
+# CENSUS DATA
+census_data <- tidycensus::get_acs(geography="county", state=filterUSPS, 
+                                   variables="B01003_001", year=2018, 
+                                   keep_geo_vars=TRUE, geometry=FALSE, show_call=TRUE)
 census_data <- census_data %>%
-  filter(USPS %in% filterUSPS) %>%
-  select(USPS,GEOID,POP10) %>%
-  mutate(GEOID = substr(GEOID,1,5))
+  rename(population=estimate, geoid=GEOID) %>%
+  select(geoid, population) %>%
+  mutate(geoid = substr(geoid,1,5))
 
+# Add USPS column
+data(fips_codes)
+fips_geoid_codes <- mutate(fips_codes, geoid=paste0(state_code,county_code)) %>% 
+  group_by(geoid) %>% 
+  summarize(USPS=unique(state))
+census_data <- census_data %>% left_join(fips_geoid_codes, by="geoid")
+
+# Make each territory one county.
+# Puerto Rico is the only one in the 2018 ACS estimates right now. Aggregate it.
+# Keeping the other territories in the aggregation just in case they're there in the future.
 name_changer <- setNames(
-  unique(census_data$GEOID),
-  unique(census_data$GEOID)
+  unique(census_data$geoid),
+  unique(census_data$geoid)
 )
-name_changer[grepl("^60",name_changer)] <- "60000"
-name_changer[grepl("^66",name_changer)] <- "66000"
-name_changer[grepl("^69",name_changer)] <- "69000"
-name_changer[grepl("^72",name_changer)] <- "72000"
-name_changer[grepl("^78",name_changer)] <- "78000"
+name_changer[grepl("^60",name_changer)] <- "60000" # Amerian Samoa
+name_changer[grepl("^66",name_changer)] <- "66000" # Guam
+name_changer[grepl("^69",name_changer)] <- "69000" # Northern Mariana Islands
+name_changer[grepl("^72",name_changer)] <- "72000" # Puerto Rico
+name_changer[grepl("^78",name_changer)] <- "78000" # Virgin Islands
 
 census_data <- census_data %>%
-  mutate(GEOID = name_changer[GEOID]) %>%
-  group_by(GEOID) %>%
-  summarize(USPS = unique(USPS),POP10 = sum(POP10)) %>%
-  arrange(POP10)
+  mutate(geoid = name_changer[geoid]) %>%
+  group_by(geoid) %>%
+  summarize(USPS = unique(USPS), population = sum(population))
 
+# Territory populations (except Puerto Rico) taken from from https://www.census.gov/prod/cen2010/cph-2-1.pdf
+terr_geoid = c("60000","66000","69000","78000")
+terr_USPS = c("AS", "GU", "MP", "VI")
+terr_population = c(55519, 159385, 53883, 106405)
+terr_census_data <- data.frame(geoid=terr_geoid, USPS=terr_USPS, population=terr_population, stringsAsFactors=FALSE)
+
+census_data <- terr_census_data %>% 
+  filter(length(filterUSPS) == 0 | ((USPS %in% filterUSPS) & !(USPS %in% census_data)))%>%
+  rbind(census_data)
+
+# Sort by population
+census_data <- census_data %>%
+  arrange(population)
+
+write.csv(file = file.path(outdir,'geodata.csv'), census_data,row.names=FALSE)
+
+
+
+
+# COMMUTE DATA
+commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
 commute_data <- commute_data %>%
   mutate(OFIPS = substr(OFIPS,1,5), DFIPS = substr(DFIPS,1,5)) %>%
   mutate(OFIPS = name_changer[OFIPS], DFIPS = name_changer[DFIPS]) %>%
-  filter(OFIPS %in% census_data$GEOID, DFIPS %in% census_data$GEOID) %>%
+  filter(OFIPS %in% census_data$geoid, DFIPS %in% census_data$geoid) %>%
   group_by(OFIPS,DFIPS) %>%
   summarize(FLOW = sum(FLOW)) %>%
   filter(OFIPS != DFIPS)
 
 padding_table <- tibble(
-  OFIPS = census_data$GEOID,
-  DFIPS = census_data$GEOID,
+  OFIPS = census_data$geoid,
+  DFIPS = census_data$geoid,
   FLOW = 0
 )
 
@@ -68,7 +111,7 @@ if(opt$w){
 
 print(outdir)
 if(opt$w){
-  if(!isTRUE(all(rc$OFIPS == census_data$GEOID))){
+  if(!isTRUE(all(rc$OFIPS == census_data$geoid))){
     stop("There was a problem generating the mobility matrix")
   }
   write.table(file = file.path(outdir,'mobility.txt'), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
@@ -77,5 +120,3 @@ if(opt$w){
   rc <- rc[rc$ori != rc$dest,]
   write.csv(file = file.path(outdir,'mobility.csv'), rc, row.names=FALSE)
 }
-names(census_data) <- c("geoid","USPS","pop2010")
-write.csv(file = file.path(outdir,'geodata.csv'), census_data,row.names=FALSE)
