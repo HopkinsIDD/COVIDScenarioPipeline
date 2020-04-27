@@ -37,10 +37,10 @@
 #     - ...
 #   settings:
 #     <scenario 1 name>:
-#       template: choose one - "ReduceR0", "Stacked"
+#       template: choose one - "Reduce", ReduceR0", "Stacked"
 #       ...
 #     <scenario 2 name>:
-#       template: choose one - "Reduce R0", "Stacked"
+#       template: choose one - "Reduce", "ReduceR0", "Stacked"
 #       ...
 #
 # seeding:
@@ -48,6 +48,19 @@
 # ```
 #
 # ### interventions::scenarios::settings::<scenario name>
+#
+# If {template} is ReduceR0
+# ```yaml
+# interventions:
+#   scenarios:
+#     <scenario name>:
+#       template: Reduce
+#       parameter: choose one - "alpha, sigma, gamma, r0"
+#       period_start_date: <date>
+#       period_end_date: <date>
+#       value: <random distribution>
+#       affected_geoids: <list of strings> optional
+# ```
 #
 # If {template} is ReduceR0
 # ```yaml
@@ -101,7 +114,7 @@
 #
 # * model_output/{spatial_setup::setup_name}_[scenario]/[simulation ID].seir.[csv/parquet]
 # * model_parameters/{spatial_setup::setup_name}_[scenario]/[simulation ID].spar.[csv/parquet]
-# * model_parameters/{spatial_setup::setup_name}_[scenario]/[simulation ID].npi.[csv/parquet]
+# * model_parameters/{spatial_setup::setup_name}_[scenario]/[simulation ID].snpi.[csv/parquet]
 
 
 ## @cond
