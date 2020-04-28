@@ -9,7 +9,11 @@ class NPIBase(abc.ABC):
         NPIBase.__plugins__[cls.__name__] = cls
 
     @abc.abstractmethod
-    def get(self):
+    def getReduction(self, param):
+        pass
+
+    @abc.abstractmethod
+    def writeReductions(self, fname, extension):
         pass
 
     def execute(*, npi_config, global_config, geoids):
