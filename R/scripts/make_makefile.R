@@ -38,11 +38,12 @@ cat("\n")
 
 using_importation <- ("importation" %in% names(config))
 generating_report <- ("report" %in% names(config))
+building_US_setup <- ("modeled_states" %in% names(config$spatial_setup))
 
 if(generating_report)
 {
   # Create report name (no suffix) for the .Rmd and .html
-  report_name = ""
+  report_name <- ""
   if(length(config$report_location_name) != 0){
     report_name = config$report_location_name
   } else if(length(config$name) != 0){
@@ -50,7 +51,7 @@ if(generating_report)
   } else {
     stop(paste("Please specify report_location_name or name in the config"))
   }
-  report_name = paste0(report_name, "_",  format(Sys.Date(), format="%Y%m%d"))
+  report_name <- paste0(report_name, "_",  format(Sys.Date(), format="%Y%m%d"))
 }
 
 importation_target_name <- function(simulation, prefix = ""){
@@ -130,6 +131,60 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   ))
 }
 
+report_html_target_name <- function(report_name) {
+  return(sprintf("notebooks/%s/%s_report.html", report_name, report_name))
+}
+
+report_html_make_command <- function(report_name, scenarios, simulations, deathrates, config) {
+  rmd_file = report_rmd_target_name(report_name)
+  s <- run_dependencies(scenarios, simulations, deathrates)
+  s <- paste0(s, " ", rmd_file,"\n")
+
+  renderCmd = sprintf("\t$(RSCRIPT) -e 'rmarkdown::render(\"%s\"", rmd_file)
+  renderCmd = paste0(renderCmd, sprintf(", params=list(state_usps=\"%s\"", config$report$state_usps))
+  if(length(config$report$continue_on_error) != 0)
+  {
+    renderCmd = paste0(renderCmd, 
+                      sprintf(", continue_on_error=%s", config$report$continue_on_error))
+  }
+  renderCmd = paste0(renderCmd, "))'")
+
+  s <- paste0(s, renderCmd, "\n")
+  return(s)
+}
+
+report_rmd_target_name <- function(report_name) {
+  return(sprintf("notebooks/%s/%s_report.Rmd", report_name, report_name))
+}
+
+report_rmd_make_command <- function(report_name) {
+  return(sprintf(":
+\tmkdir -p notebooks/%s
+\t$(RSCRIPT) -e 'rmarkdown::draft(\"$@\",template=\"state_report\",package=\"report.generation\",edit=FALSE)'\n",
+report_name))
+}
+
+run_dependencies <- function(scenarios, simulations, deathrates) {
+  s <- ":"
+  for(scenario in scenarios)
+  {
+    s <- paste0(s, " ", simulation_target_name(simulations, scenario))
+    for(deathrate in deathrates)
+    {
+      s <- paste0(s, " ", hospitalization_target_name(simulations, scenario, deathrate))
+    }
+  }
+  return(s)
+}
+
+build_US_setup_target_Name <- function() {
+
+}
+
+build_US_setup_make_command <- function() {
+
+}
+
 sink("Makefile")
 
  
@@ -147,48 +202,16 @@ cat(paste0("CONFIG=",opt$config,"\n\n"))
 # If generating report, first target is the html file.
 # Otherwise, first target is run.
 # For both, the dependencies include all the simulation targets.
-if(generating_report)
-{
-  rmd_file = sprintf("notebooks/%s/%s_report.Rmd", report_name, report_name)
-  report_html_target_name = sprintf("notebooks/%s/%s_report.html", report_name, report_name)
-  cat(paste0(report_html_target_name,":"))
+if(generating_report) {
+  cat(report_html_target_name(report_name))
+  cat(report_html_make_command(report_name, scenarios, simulations, deathrates, config))
+  cat(report_rmd_target_name(report_name))
+  cat(report_rmd_make_command(report_name))
 } else {
-  cat("run:")
+  cat("run")
+  cat(run_dependencies(scenarios, simulations, deathrates))
 }
 
-for(scenario in scenarios)
-{
-  cat(" ")
-  cat(simulation_target_name(simulations,scenario))
-  for(deathrate in deathrates)
-  {
-    cat(" ")
-    cat(hospitalization_target_name(simulations,scenario,deathrate))
-  }
-}
-
-if(generating_report)
-{
-  # final target dependency for .html is the Rmd
-  cat(sprintf(" %s\n", rmd_file))
-
-  renderCmd = sprintf("\t$(RSCRIPT) -e 'rmarkdown::render(\"%s\"", rmd_file)
-  renderCmd = paste0(renderCmd, sprintf(", params=list(state_usps=\"%s\"", config$report$state_usps))
-  if(length(config$report$continue_on_error) != 0)
-  {
-    renderCmd = paste0(renderCmd, 
-                      sprintf(", continue_on_error=%s", config$report$continue_on_error))
-  }
-  renderCmd = paste0(renderCmd, "))'")
-  cat(renderCmd)
-
-  rmd_target = sprintf("
-%s:
-\tmkdir -p notebooks/%s
-\t$(RSCRIPT) -e 'rmarkdown::draft(\"$@\",template=\"state_report\",package=\"report.generation\",edit=FALSE)'", 
-rmd_file, report_name)
-  cat(rmd_target)
-}
 cat("\n")
 
 if(using_importation){
@@ -259,7 +282,7 @@ if(generating_report)
 {
   cat(paste0("
 clean_reports:
-\trm -f ",report_html_target_name))
+\trm -f ",report_html_target_name(report_name)))
 }
 
 
