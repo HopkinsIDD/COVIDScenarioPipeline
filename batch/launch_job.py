@@ -15,8 +15,8 @@ import yaml
               help="configuration file for this run")
 @click.option("-j", "--num-jobs", "num_jobs", type=click.IntRange(min=1), required=True,
               help="total number of jobs to run in this batch")
-@click.option("-s", "--sims-per-job", "sims_per_job", type=click.IntRange(min=1), required=True,
-              help="how many sims each job should run")
+@click.option("-l", "--slots-per-job", "slots_per_job", type=click.IntRange(min=1), required=True,
+              help="how many slots each job should run")
 @click.option("-t", "--dvc-target", "dvc_target", type=click.Path(exists=True), required=True,
               help="name of the .dvc file that is the last step in the dvc run pipeline")
 @click.option("-i", "--s3-input-bucket", "s3_input_bucket", type=str, default="idd-input-data-sets", show_default=True,
@@ -29,9 +29,11 @@ import yaml
               help="The name of the AWS Batch Job Queue to use for the job")
 @click.option("-p", "--parallelize-scenarios", "parallelize_scenarios", is_flag=True, default=False, show_default=True,
               help="Launch a different batch job for each scenario")
+@click.option("-v", "--vcpu", "vcpu", type=click.IntRange(min=2, max=96), default=72, show_default=True,
+              help="The number of vCPU cores each job should have")
 @click.option("-m", "--memory", "memory", type=click.IntRange(min=1000, max=6000), default=4000, show_default=True,
               help="The amount of RAM in megabytes needed per CPU running simulations")
-def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue, parallelize_scenarios, memory):
+def launch_batch(config_file, num_jobs, slots_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue, parallelize_scenarios, vcpu, memory):
 
     config = None
     with open(config_file) as f:
@@ -41,8 +43,8 @@ def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucke
     job_name = f"{config['name']}-{int(time.time())}"
 
     # Update and save the config file with the number of sims to run
-    print(f"Updating {config_file} to run {sims_per_job} simulations...")
-    config['nsimulations'] = sims_per_job
+    print(f"Updating {config_file} to run {slots_per_job} slots...")
+    config['nsimulations'] = slots_per_job
 
     if parallelize_scenarios:
         scenarios = config['interventions']['scenarios']
@@ -51,21 +53,21 @@ def launch_batch(config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucke
             config['interventions']['scenarios'] = [s]
             with open(config_file, "w") as f:
                 yaml.dump(config, f, sort_keys=False)
-            launch_job_inner(scenario_job_name, config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue, memory)
+            launch_job_inner(scenario_job_name, config_file, num_jobs, slots_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue, vcpu, memory)
         config['interventions']['scenarios'] = scenarios
         with open(config_file, "w") as f:
             yaml.dump(config, f, sort_keys=False)
     else:
         with open(config_file, "w") as f:
             yaml.dump(config, f, sort_keys=False)
-        launch_job_inner(job_name, config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue, memory)
+        launch_job_inner(job_name, config_file, num_jobs, slots_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue, vcpu, memory)
 
     (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")
     print(txt)
     return rc
 
 
-def launch_job_inner(job_name, config_file, num_jobs, sims_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue, memory):
+def launch_job_inner(job_name, config_file, num_jobs, slots_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue, vcpu, memory):
 
     # Prepare to tar up the current directory, excluding any dvc outputs, so it
     # can be shipped to S3
@@ -94,14 +96,13 @@ def launch_job_inner(job_name, config_file, num_jobs, sims_per_job, dvc_target, 
             {"name": "DVC_TARGET", "value": dvc_target},
             {"name": "DVC_OUTPUTS", "value": " ".join(dvc_outputs)},
             {"name": "S3_RESULTS_PATH", "value": results_path},
-            {"name": "SIMS_PER_JOB", "value": str(sims_per_job)}
+            {"name": "SLOTS_PER_JOB", "value": str(slots_per_job)}
     ]
     s3_cp_run_script = f"aws s3 cp s3://{s3_input_bucket}/{runner_script_name} $PWD/run-covid-pipeline"
     command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
-    vcpus = min(72, max(2, sims_per_job))
     container_overrides = {
-            'vcpus': vcpus,
-            'memory': vcpus * memory,
+            'vcpus': vcpu,
+            'memory': vcpu * memory,
             'environment': env_vars,
             'command': command
     }

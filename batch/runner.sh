@@ -30,7 +30,7 @@ tar -xvzf model_data.tar.gz -C model_data
 cd model_data
 
 # Optional tracking variable to use to write unique output files
-export AWS_BATCH_SIM_OFFSET=$((${AWS_BATCH_JOB_ARRAY_INDEX:-0} * ${SIMS_PER_JOB:-0}))
+export AWS_BATCH_SIM_OFFSET=$((${AWS_BATCH_JOB_ARRAY_INDEX:-0} * ${SLOTS_PER_JOB:-0}))
 
 # Initialize dvc and run the pipeline to re-create the
 # dvc target
