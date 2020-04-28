@@ -229,7 +229,7 @@ def parameters_write(parameters, fname, extension):
     out_df = pd.DataFrame([alpha[0][0],
                             beta[0][0] * n_Icomp / gamma[0][0],
                             sigma[0][0],
-                            gamma[0][0]], \
+                            gamma[0][0] / n_Icomp], \
                             index = ["alpha","R0","sigma","gamma"], columns = ["value"])
 
     if extension == "csv":
@@ -241,3 +241,27 @@ def parameters_write(parameters, fname, extension):
 
     else:
         raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
+
+# drop-in equivalent to param_quick_draw() that take a file as parameter_write()
+def parameters_load(fname, extension, nt_inter, nnodes):
+    if extension == "csv":
+        pars = pd.read_csv(f"{fname}.{extension}", index_label="parameter")
+    elif extension == "parquet":
+        pars = pq.read_table(f"{fname}.{extension}").to_pandas()
+    else:
+        raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
+        
+    alpha = float(pars[pars['parameter'] == 'alpha'].value)
+    sigma = float(pars[pars['parameter'] == 'sigma'].value)
+    gamma = float(pars[pars['parameter'] == 'gamma'].value) * n_Icomp
+    beta =  float(pars[pars['parameter'] == 'R0'].value) * gamma / n_Icomp
+    
+    alpha = np.full((nt_inter, nnodes), alpha)
+    sigma = np.full((nt_inter, nnodes), sigma)
+    gamma = np.full((nt_inter, nnodes), gamma)
+    beta =  np.full((nt_inter, nnodes), beta)
+    
+    return (alpha, beta, sigma, gamma)
+
+
+
