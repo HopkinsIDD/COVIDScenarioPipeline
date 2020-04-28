@@ -1,6 +1,5 @@
 import functools
 import pandas as pd
-import pyarrow as pa
 
 from .base import NPIBase
 
@@ -8,8 +7,12 @@ REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
 
 class Stacked(NPIBase):
     def __init__(self, *, npi_config, global_config, geoids):
+        super().__init__(npi_config)
+
         self.start_date = global_config["start_date"].as_date()
         self.end_date = global_config["end_date"].as_date()
+
+        self.sub_npis = []
 
         # Gather parameter reductions
         reduction_lists = {}
@@ -27,6 +30,7 @@ class Stacked(NPIBase):
                 scenario_npi_config = scenario
 
             sub_npi = NPIBase.execute(npi_config=scenario_npi_config, global_config=global_config, geoids=geoids)
+            self.sub_npis.append(sub_npi)
 
             for p in REDUCE_PARAMS:
                 reduction_lists[p].append(sub_npi.getReduction(p))
@@ -39,19 +43,5 @@ class Stacked(NPIBase):
     def getReduction(self, param):
         return self.reductions[param]
 
-    def writeReductions(self, fname, extension):
-        p_dfs = []
-        for p_name, p_df in self.reductions.items():
-            if (p_df == 0.0).all(axis=None):
-                continue
-            p_dfs.append(p_df.T.assign(parameter=p_name))
-        out_df = pd.concat(p_dfs)
-
-        if extension == "csv":
-            out_df.to_csv(f"{fname}.{extension}", index_label="time")
-        elif extension == "parquet":
-            out_df["time"] = out_df.index
-            out_df = pa.Table.from_pandas(out_df, preserve_index = False)
-            pa.parquet.write_table(out_df,f"{fname}.{extension}")
-        else:
-            raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
+    def getReductionToWrite(self):
+        return pd.concat([sub_npi.getReductionToWrite() for sub_npi in self.sub_npis], ignore_index=True)

@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import pyarrow as pa
 
 from .base import NPIBase
 
@@ -9,6 +8,8 @@ from .base import NPIBase
 # Kept for backwards compatibility
 class ReduceR0(NPIBase):
     def __init__(self, *, npi_config, global_config, geoids):
+        super().__init__(npi_config)
+
         self.start_date = global_config["start_date"].as_date()
         self.end_date = global_config["end_date"].as_date()
 
@@ -58,15 +59,9 @@ class ReduceR0(NPIBase):
         return pd.DataFrame(0.0, index=self.geoids,
                                 columns=pd.date_range(self.start_date, self.end_date))
 
-    def writeReductions(self, fname, extension):
-        out_df = self.npi.T.assign(parameter="r0")
-
-        if extension == "csv":
-            out_df.to_csv(f"{fname}.{extension}", index_label="time")
-        elif extension == "parquet":
-            out_df["time"] = out_df.index
-            out_df = pa.Table.from_pandas(out_df, preserve_index = False)
-            pa.parquet.write_table(out_df,f"{fname}.{extension}")
-        else:
-            raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
-
+    def getReductionToWrite(self):
+        df = self.npi.T.assign(parameter="r0", npi_name=self.name)
+        df.index.name = "time"
+        df = df.reset_index()
+        print(df)
+        return df
