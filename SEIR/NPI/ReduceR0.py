@@ -63,5 +63,4 @@ class ReduceR0(NPIBase):
         df = self.npi.T.assign(parameter="r0", npi_name=self.name)
         df.index.name = "time"
         df = df.reset_index()
-        print(df)
         return df
