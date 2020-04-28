@@ -165,8 +165,9 @@ def seeding_draw(s, sim_id):
                 np.random.poisson(row['amount'])
 
     elif (method == 'FolderDraw'):
+        sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         folder_path = s.seeding_config["folder_path"].as_str()
-        seeding = pd.read_csv(f'{folder_path}importation_{sim_id}.csv',
+        seeding = pd.read_csv(f'{folder_path}importation_{sim_id_str}.csv',
                               converters={'place': lambda x: str(x)},
                               parse_dates=['date'])
         for  _, row in seeding.iterrows():
@@ -240,4 +241,3 @@ def parameters_write(parameters, fname, extension):
 
     else:
         raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
-
