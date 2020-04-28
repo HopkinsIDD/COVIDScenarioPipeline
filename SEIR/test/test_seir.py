@@ -88,9 +88,9 @@ def test_constant_population():
     mobility_data = s.mobility.data
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
-    npi = npi.get().T
 
-    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes, s.dt, npi)
+    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
+    parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     states = seir.steps_SEIR_nb(parameters,
                        seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
@@ -135,9 +135,9 @@ def test_steps_SEIR_nb_simple_spread():
     mobility_data = s.mobility.data
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
-    npi = npi.get().T
 
-    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes, s.dt, npi)
+    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
+    parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     for i in range(100):
         states = seir.steps_SEIR_nb(parameters,
@@ -175,9 +175,9 @@ def test_steps_SEIR_no_spread():
     mobility_data = s.mobility.data * 0
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
-    npi = npi.get().T
 
-    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes, s.dt, npi)
+    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
+    parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     for i in range(100):
         states = seir.steps_SEIR_nb(parameters,
