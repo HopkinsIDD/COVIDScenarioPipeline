@@ -71,3 +71,6 @@ class Reduce(NPIBase):
         df.index.name = "time"
         df = df.reset_index()
         return df
+
+
+

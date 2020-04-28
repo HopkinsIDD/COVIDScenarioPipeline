@@ -36,6 +36,11 @@ def onerun_SEIR(sim_id, s):
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
+    postprocess_and_write(sim_id, s, states, p_draw, npi, seeding)
+
+    return 1
+
+def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
     # Tidyup data for  R, to save it:
     if (s.write_csv or s.write_parquet):
         # Write output to .snpi.*, .spar.*, and .seir.* files
@@ -67,6 +72,7 @@ def onerun_SEIR(sim_id, s):
         if s.write_csv:
             npi.writeReductions(f"{s.paramdir}{sim_id_str}.snpi","csv")
             setup.parameters_write(parameters, f"{s.paramdir}{sim_id_str}.spar", "csv")
+            #setup.seeding_write(parameters, f"{s.paramdir}{sim_id_str}.seed", "csv")
 
             out_df.to_csv(
                 f"{s.datadir}{sim_id}.seir.csv",
@@ -75,12 +81,44 @@ def onerun_SEIR(sim_id, s):
         if s.write_parquet:
             npi.writeReductions(f"{s.paramdir}{sim_id_str}.snpi", "parquet")
             setup.parameters_write(p_draw, f"{s.paramdir}{sim_id_str}.spar", "parquet")
+            #setup.seeding_write(parameters, f"{s.paramdir}{sim_id_str}.seed", "parquet")
 
             out_df['time'] = out_df.index
             pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
             pa.parquet.write_table(pa_df,f"{s.datadir}{sim_id_str}.seir.parquet")
-    return 1
+    
+    return out_df
 
+def onerun_SEIR_from_draw(sim_id2write, s, sim_id2load):
+    if (s.write_parquet and s.write_csv):
+        print("Confused between reading .csv or parquet. Assuming input file is .parquet")
+    if s.write_parquet:
+        extension = 'parquet'
+    elif s.write_csv:
+        extension = 'csv'
+    sim_id_str = str(sim_id2load + s.first_sim_index - 1).zfill(9)
+
+    scipy.random.seed()
+
+    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
+
+    seeding = setup.seeding_load(s, sim_id2load)
+
+    mobility_geoid_indices = s.mobility.indices
+    mobility_data_indices = s.mobility.indptr
+    mobility_data = s.mobility.data
+    
+    p_draw = setup.parameters_load(f"{s.paramdir}{sim_id_str}.spar", extension, len(s.t_inter), s.nnodes)
+    
+    parameters = setup.parameters_reduce(p_draw, npi, s.dt)
+
+    states = steps_SEIR_nb(parameters,
+                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                           mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
+
+    out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding)
+
+    return out_df
 
 def run_parallel(s, *, n_jobs=1):
     start = time.monotonic()

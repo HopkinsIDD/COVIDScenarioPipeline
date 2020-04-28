@@ -176,6 +176,23 @@ def seeding_draw(s, sim_id):
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
     return importation
 
+
+def seeding_load(s, sim_id):
+    importation = np.zeros((s.t_span+1, s.nnodes))
+    sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
+    try:
+        folder_path = s.seeding_config["folder_path"].as_str()
+    except:
+        raise ValueError(f"When loading, the seeding must be specified as FolderDraw and a folder must be provided")
+    seeding = pd.read_csv(f'{folder_path}importation_{sim_id_str}.csv',
+                        converters={'place': lambda x: str(x)},
+                        parse_dates=['date'])
+    for  _, row in seeding.iterrows():
+        importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
+
+    return importation
+
+
 # Returns alpha, beta, sigma, and gamma parameters in a tuple.
 # All parameters are arrays of shape (nt_inter, nnodes).
 # They are returned as a tuple because it is numba-friendly for steps_SEIR_nb().
@@ -241,6 +258,9 @@ def parameters_write(parameters, fname, extension):
 
     else:
         raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
+
+def seeding_write(seeding, fname, extension):
+    raise NotImplementedError(f"It is not yet possible to write the seeding to a file")
 
 # drop-in equivalent to param_quick_draw() that take a file as parameter_write()
 def parameters_load(fname, extension, nt_inter, nnodes):
