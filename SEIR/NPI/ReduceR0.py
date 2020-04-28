@@ -64,7 +64,7 @@ class ReduceR0(NPIBase):
         if extension == "csv":
             out_df.to_csv(f"{fname}.{extension}", index_label="time")
         elif extension == "parquet":
-            out_df["parameter"] = out_df.index
+            out_df["time"] = out_df.index
             out_df = pa.Table.from_pandas(out_df, preserve_index = False)
             pa.parquet.write_table(out_df,f"{fname}.{extension}")
         else:
