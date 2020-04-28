@@ -226,30 +226,30 @@ cat("
 
 cat(paste0("
 
-rerun: rerun_simulations rerun_hospitalization"
+rerun: rerun_simulations rerun_hospitalization\n"
 ))
 
 if(using_static_filter){
   cat(paste0("clean_filter: rerun_filter
 \trm -rf ",config$dynfilter_path,"
 rerun_filter:
-\trm -f .files/1*_filter
+\trm -f .files/*_filter
 "))
 }
 if(using_importation){
-  cat(paste0("rerun_importation rerun_filter
+  cat(paste0("
 clean_importation: rerun_importation
 \trm -rf data/case_data
 \trm -rf importation
 rerun_importation:
-\trm -f .files/1*_importation
+\trm -f .files/*_importation
 "))
 }
 cat(paste0("
 rerun_simulations: clean_simulations
-\trm -f .files/1*_simulation*
+\trm -f .files/*_simulation*
 rerun_hospitalization:
-\trm -f .files/1*_hospitalization*
+\trm -f .files/*_hospitalization*
 clean: clean_simulations clean_hospitalization"))
 if(using_importation){
   cat(" clean_importation")
