@@ -27,7 +27,7 @@ option_list = list(
   optparse::make_option(c("-i", "--this_slot"), action="store", default="1", type='integer', help = "id of this slot"),
   optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable"),
   optparse::make_option(c("-r", "--rpath"), action="store", default="Rscript", type = 'character', help = "path to R executable"),
-  optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = "./")
+  optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = "COVIDScenarioPipeline/")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -164,6 +164,7 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
 getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
   rc <- list()
   for(stat in names(stat_list)){
+    browser()
       s <- stat_list[[stat]]
       aggregator <- match.fun(s$aggregator)
       # Get the time period over whith to apply aggregation
@@ -246,7 +247,7 @@ accept_reject_new_seeding <- function(seeding_orig, seeding_prop, orig_lls, prop
     orig_lls$ll[accept] <- prop_lls$ll[accept]
 
     for (place in orig_lls$geoid[accept]) {
-        rc$amount[rc$geoid==place] <- seeding_prop$amount[rc$geoid==place]
+        rc$amount[rc$place == place] <- seeding_prop$amount[rc$place ==place]
     }
 
     return(list(seeding=rc,lls = orig_lls))
@@ -433,6 +434,7 @@ for(scenario in scenarios) {
 
       log_likelihood_data <- log_likelihood_data %>% do.call(what=rbind)
 
+
       # Compute total loglik for each sim
       likelihood <- log_likelihood_data %>%
         summarise(ll = sum(ll, na.rm = T)) %>%
@@ -452,14 +454,20 @@ for(scenario in scenarios) {
       }
 
       seeding_list <- accept_reject_new_seeding(
-        current_seeding,
         initial_seeding,
-        log_likelihood_data,
-        previous_likelihood_data
+        current_seeding,
+        previous_likelihood_data,
+        log_likelihood_data
       )
+
+
       initial_seeding <- seeding_list$seeding
-      previous_likelihood_data <- seeding_list$likelihood
+      previous_likelihood_data <- seeding_list$lls
+
       print(paste("Current index is ",current_index))
+      print(log_likelihood_data)
+      print(previous_likelihood_data)
+
     }
 
     current_file <- paste(
