@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 
 USER root
-ENV TERM dumb
+ENV TERM linux
 
 # set locale info
 RUN apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8
@@ -12,6 +12,7 @@ ENV LC_ALL en_US.UTF-8
 # set noninteractive installation
 ENV DEBIAN_FRONTEND noninteractive
 ENV R_VERSION 3.6.3-1bionic
+ENV RSTUDIO_VERSION 1.2.5033
 
 # see https://www.digitalocean.com/community/tutorials/how-to-install-r-on-ubuntu-18-04
 # https://cran.r-project.org/bin/linux/debian/
@@ -95,6 +96,13 @@ COPY local_install.R $HOME
 COPY R/pkgs $HOME/R/pkgs
 RUN Rscript local_install.R
 
+# install rstudio
+RUN curl -O https://download2.rstudio.org/server/bionic/amd64/rstudio-server-$RSTUDIO_VERSION-amd64.deb \
+    && sudo apt-get install -f -y ./rstudio-server-$RSTUDIO_VERSION-amd64.deb \
+    && rm -f ./rstudio-server-$RSTUDIO_VERSION-amd64.deb
+
+# expose Rstudio port
+EXPOSE 8787
 
 #####
 # Python (managed via pyenv)
