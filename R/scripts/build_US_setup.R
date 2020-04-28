@@ -1,3 +1,32 @@
+##
+# @file
+# @brief Creates mobility and geodata for US
+#
+# @details
+#
+# ## Configuration Items
+#
+# ```yaml
+# spatial_setup:
+#   base_path: <path to directory>
+#   modeled_states: <list of state postal codes> e.g. MD, CA, NY
+# 
+# importation:
+#   census_api_key: <string, optional> default is environment variable CENSUS_API_KEY. Environment variable is preferred so you don't accidentally commit your key.
+# ```
+#
+# ## Input Data
+#
+# None
+#
+# ## Output Data
+#
+# * {spatial_setup::base_path}/mobility.txt
+# * {spatial_setup::base_path}/geodata.csv
+#
+
+## @cond
+
 library(dplyr)
 library(tidyr)
 library(tidycensus)
@@ -64,10 +93,7 @@ census_data <- census_data %>%
   summarize(USPS = unique(USPS), population = sum(population))
 
 # Territory populations (except Puerto Rico) taken from from https://www.census.gov/prod/cen2010/cph-2-1.pdf
-terr_geoid = c("60000","66000","69000","78000")
-terr_USPS = c("AS", "GU", "MP", "VI")
-terr_population = c(55519, 159385, 53883, 106405)
-terr_census_data <- data.frame(geoid=terr_geoid, USPS=terr_USPS, population=terr_population, stringsAsFactors=FALSE)
+terr_census_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","census_tracts_island_areas_2010.csv",sep='/'))
 
 census_data <- terr_census_data %>% 
   filter(length(filterUSPS) == 0 | ((USPS %in% filterUSPS) & !(USPS %in% census_data)))%>%
@@ -109,7 +135,6 @@ if(opt$w){
   rc <- rc %>%pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
 }
 
-print(outdir)
 if(opt$w){
   if(!isTRUE(all(rc$OFIPS == census_data$geoid))){
     stop("There was a problem generating the mobility matrix")
@@ -120,3 +145,5 @@ if(opt$w){
   rc <- rc[rc$ori != rc$dest,]
   write.csv(file = file.path(outdir,'mobility.csv'), rc, row.names=FALSE)
 }
+
+## @endcond
