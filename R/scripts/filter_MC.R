@@ -195,6 +195,23 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
 ##'
 ##' @return NULL
 ##'
+parameter_file_path <- function(config,index){
+  if(length(config$interventions$scenarios) > 1){
+    stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
+  }
+
+  ## FIX ME 
+  return(sprintf("model_output/%s_%s/%s.parquet",config$name,config$interventio$folder_path,index))
+}
+
+
+
+##' Function for determining where to write the seeding.csv file
+##' @param config The config for this run
+##' @param index The index of this simulation
+##'
+##' @return NULL
+##'
 seeding_file_path <- function(config,index){
   if(length(config$interventions$scenarios) > 1){
     stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
@@ -205,6 +222,10 @@ seeding_file_path <- function(config,index){
 
 
 
+##' Fuction perturbs a seeding file based on a normal
+##' proposal on the start date and
+##' a poisson on the number of cases.
+##'
 ##' @param seeding the original seeding
 ##' @param sd the standard deviation of the posson
 ##'
@@ -225,6 +246,30 @@ perturb_seeding <- function(seeding,sd) {
 
 
 
+##' Fuction perturbs an npi parameter file based on user-specified distributions
+##'
+##' @param params the original paramters
+##' @param perturbations a list of standard deviations
+##'
+##'
+##' @return a pertubed data frame
+##'
+perturb_params <- function(params, perturbations) {
+  require(dplyr)
+  require(magrittr)
+  params_new <- params
+  geoids <- colnames(select(params, -time, -parameter, -npi_name))
+  for (par in names(perturbations)) {
+    if (perturbations[[par]]$distribution == "normal") {
+      pert_dist <- function(n) {rnorm(n, mean = perturbations[[par]]$mu, sd = perturbations[[par]]$sd)}
+    } 
+    ind <- params[["parameter"]] == par 
+    for (gid in geoids) {
+      params_new[[gid]][ind] <- params_new[[gid]][ind] + pert_dist(1)
+    }
+  }
+  return(params_new)
+}
 
 ##'
 ##' Function to go through to accept or reject seedings in a block manner based
@@ -237,9 +282,16 @@ perturb_seeding <- function(seeding,sd) {
 ##'
 ##' @return a new data frame with the confirmed seedin.
 ##'
-accept_reject_new_seeding <- function(seeding_orig, seeding_prop, orig_lls, prop_lls) {
-
-    rc <- seeding_orig
+accept_reject_new_seeding_params <- function(
+  seeding_orig,
+  seeding_prop,
+  params_orig,
+  params_prop, 
+  orig_lls,
+  prop_lls
+) {
+  rc_seeding <- seeding_orig
+  rc_params <- params_orig
 
     if(!all(orig_lls$geoid == prop_lls$geoid)){stop("geoids must match")}
     ##draww accepts/rejects
@@ -248,16 +300,17 @@ accept_reject_new_seeding <- function(seeding_orig, seeding_prop, orig_lls, prop
 
     orig_lls$ll[accept] <- prop_lls$ll[accept]
 
-    for (place in orig_lls$geoid[accept]) {
-        rc$amount[rc$place == place] <- seeding_prop$amount[rc$place ==place]
-    }
-
-    return(list(seeding=rc,lls = orig_lls))
+  for (place in orig_lls$geoid[accept]) {
+    rc_seeding[rc_seeding$geoid==place, ] <- seeding_prop[seeding_prop$geoid==place, ]
+    rc_params[, place] <- params_prop[, place]
+  }
+  
+  return(list(seeding=rc_seeding, params=rc_params, lls = orig_lls))
 }
 
 
 
-##Calculate the model evaluatoin statistic.
+##Calculate the model evaluation statistic.
 logLikStat <- function(obs, sim, distr, param, add_one = F) {
   if (add_one) {
     sim[sim == 0] = 1
@@ -307,9 +360,6 @@ data_stats <- lapply(
   }) %>%
     set_names(geonames)
 
-## compute last date here:
-
-
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 for(scenario in scenarios) {
 
@@ -321,6 +371,7 @@ for(scenario in scenarios) {
   for(deathrate in deathrates) {
       # Data -------------------------------------------------------------------------
       # Load
+    
     if(!file.exists(config$seeding$lambda_file)){
       err <- system(paste(
         opt$rpath,
@@ -336,15 +387,23 @@ for(scenario in scenarios) {
     current_index <- 0
     current_likelihood <- data.frame()
 
-    print(opt$simulations_per_slot)
+    # FIX ME : this file won't exist in general
+    # TODO CHANGE TO FIRST DRAW OF SEIR CODE
+    initial_params <- arrow::read_parquet("model_parameters/test_simple_None/000000001.snpi.parquet")
+
     for( index in seq_len(opt$simulations_per_slot)) {
       print(index)
       # Load sims -----------------------------------------------------------
 
       current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
+      current_params <- perturb_params(initial_params, config$filtering$perturbations)
       write.csv(
         current_seeding,
         file = seeding_file_path(config,sprintf("%09d",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index))
+      )
+      write.csv(
+        current_params,
+        file = param_file_path(config,sprintf("%09d",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index))
       )
 
 
@@ -352,9 +411,8 @@ for(scenario in scenarios) {
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
       err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
       err <- ifelse(err == 1,0,1)
-      print(err)
-      print("HERE")
       if(err != 0){quit("no")}
+
       ## Run hospitalization
       err <- system(paste(
         opt$rpath,
@@ -391,6 +449,7 @@ for(scenario in scenarios) {
       lhs <- unique(sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
+
       for(location in all_locations) {
       # log_likelihood_data <- foreach (location = all_locations) %do% {
         # Compute log-likelihood of data for each sim
@@ -439,42 +498,42 @@ for(scenario in scenarios) {
       rm(sim_hosp)
 
       log_likelihood_data <- log_likelihood_data %>% do.call(what=rbind)
-      print("THERE")
-
 
       # Compute total loglik for each sim
       likelihood <- log_likelihood_data %>%
         summarise(ll = sum(ll, na.rm = T)) %>%
         mutate(pdeath = deathrate, scenario = scenario)
+
       ## For logging
       if(current_index == 0){
         current_likelihood <- likelihood
         current_index <- index
         initial_seeding <- current_seeding
+        initial_params <- current_params
         previous_likelihood_data <- log_likelihood_data
         next
       }
       print(paste("Current likelihood",current_likelihood,"Proposed likelihood",likelihood))
+      
       if(iterateAccept(current_likelihood, likelihood, 'll')){
         current_index <- index
         current_likelihood <- likelihood
       }
 
-      seeding_list <- accept_reject_new_seeding(
-        initial_seeding,
+      seeding_params_list <- accept_reject_new_seeding_params(
         current_seeding,
-        previous_likelihood_data,
-        log_likelihood_data
+        initial_seeding,
+        current_params,
+        initial_params,
+        log_likelihood_data,
+        previous_likelihood_data
       )
-
-
-      initial_seeding <- seeding_list$seeding
-      previous_likelihood_data <- seeding_list$lls
-
+      initial_seeding <- seeding_params_list$seeding
+      initial_params <- seeding_params_list$params
+      previous_likelihood_data <- seeding_params_list$likelihood
       print(paste("Current index is ",current_index))
       print(log_likelihood_data)
       print(previous_likelihood_data)
-
     }
 
     current_file <- paste(
