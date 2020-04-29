@@ -88,16 +88,14 @@ ENV HOME /home/app
 #####
 
 # TODO: use packrat (or something else) for R package management
-COPY packages.R $HOME
-RUN Rscript packages.R
-
-# install custom packages from R/pkgs/**
-COPY local_install.R $HOME
-COPY R/pkgs $HOME/R/pkgs
-RUN Rscript local_install.R
-
-# install rstudio
-RUN curl -O https://download2.rstudio.org/server/bionic/amd64/rstudio-server-$RSTUDIO_VERSION-amd64.deb \
+RUN Rscript -e "install.packages('packrat',repos='https://cloud.r-project.org/')" \
+    && Rscript -e "install.packages('arrow',repos='https://cloud.r-project.org/')" \
+    && Rscript -e 'arrow::install_arrow()'
+COPY --chown=app:app packrat $HOME/packrat
+COPY --chown=app:app  .Rprofile $HOME/.Rprofile
+COPY --chown=app:app R/pkgs $HOME/R/pkgs
+RUN Rscript -e 'packrat::restore()' \
+    && curl -O https://download2.rstudio.org/server/bionic/amd64/rstudio-server-$RSTUDIO_VERSION-amd64.deb \
     && sudo apt-get install -f -y ./rstudio-server-$RSTUDIO_VERSION-amd64.deb \
     && rm -f ./rstudio-server-$RSTUDIO_VERSION-amd64.deb
 
@@ -113,9 +111,10 @@ ENV PYTHON_VERSION 3.7.6
 ENV PYTHON_VENV_DIR $HOME/python_venv
 ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 
+
 RUN git clone git://github.com/yyuu/pyenv.git $HOME/.pyenv \
     && rm -rf $HOME/.pyenv/.git \
-    && pyenv install -s $PYTHON_VERSION --verbose \
+    && env PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install -s $PYTHON_VERSION --verbose \
     && pyenv rehash \
     && echo 'eval "$(pyenv init -)"' >> ~/.bashrc \
     && echo "PS1=\"\[\e]0;\u@\h: \w\a\] \h:\w\$ \"" >> ~/.bashrc
