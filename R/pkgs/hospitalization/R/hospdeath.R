@@ -250,8 +250,10 @@ build_hospdeath_par <- function(p_hosp,
   print(paste("Running over",n_sim,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
+  sim_block <- as.integer(Sys.getenv("AWS_BATCH_SIM_BLOCK", unset="0"))
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    dat_ <- hosp_load_scenario_sim(data_dir,s,
+    sim_id <- s + sim_block
+    dat_ <- hosp_load_scenario_sim(data_dir,sim_id,
                                    keep_compartments = "diffI",
                                    geoid_len = 5,
                                    use_parquet = use_parquet) %>%
@@ -293,24 +295,22 @@ build_hospdeath_par <- function(p_hosp,
       mutate(date_inds = as.integer(time - min(time) + 1),
              geo_ind = as.numeric(as.factor(geoid))) %>%
       arrange(geo_ind, date_inds) %>%
-      group_by(geo_ind) %>%
-      group_map(function(.x,.y){
+      split(.$geo_ind) %>%
+      purrr::map_dfr(function(.x){
         .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),
                                                 n=R_delay_,default=0)
         .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),
                                                  n=ICU_dur_,default=0)
         .x$vent_curr <- cumsum(.x$incidVent) - lag(cumsum(.x$incidVent),
                                                    n=Vent_dur_)
-        .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
-      do.call(what=rbind) %>%
       replace_na(
         list(vent_curr = 0,
              icu_curr = 0,
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
-    write_hosp_output(root_out_dir, data_dir, dscenario_name, s, res, use_parquet)
+    write_hosp_output(root_out_dir, data_dir, dscenario_name, sim_id, res, use_parquet)
     NULL
   }
   doParallel::stopImplicitCluster()
@@ -369,11 +369,13 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   print(paste("Running over",n_sim,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
+  sim_block <- as.integer(Sys.getenv("AWS_BATCH_SIM_BLOCK", unset="0"))
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    dat_I <- hosp_load_scenario_sim(data_dir,s,
-                                   keep_compartments = "diffI",
-                                   geoid_len=5,
-                                   use_parquet = use_parquet) %>%
+    sim_id <- s + sim_block
+    dat_I <- hosp_load_scenario_sim(data_dir, sim_id,
+                                    keep_compartments = "diffI",
+                                    geoid_len=5,
+                                    use_parquet = use_parquet) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -423,25 +425,23 @@ build_hospdeath_geoid_fixedIFR_par <- function(
       mutate(date_inds = as.integer(time - min(time) + 1),
              geo_ind = as.numeric(as.factor(geoid))) %>%
       arrange(geo_ind, date_inds) %>%
-      group_by(geo_ind) %>%
-      group_map(function(.x,.y){
+      split(.$geo_ind) %>%
+      purrr::map_dfr(function(.x){
         .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),
                                                 n=R_delay_,default=0)
         .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),
                                                  n=ICU_dur_,default=0)
         .x$vent_curr <- cumsum(.x$incidVent) - lag(cumsum(.x$incidVent),
                                                    n=Vent_dur_)
-        .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
-      do.call(what=rbind) %>%
       replace_na(
         list(vent_curr = 0,
              icu_curr = 0,
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
-    write_hosp_output(root_out_dir, data_dir, dscenario_name, s, res, use_parquet)
+    write_hosp_output(root_out_dir, data_dir, dscenario_name, sim_id, res, use_parquet)
     NULL
   }
   doParallel::stopImplicitCluster()
