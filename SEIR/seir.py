@@ -96,11 +96,13 @@ def onerun_SEIR_from_draw(sim_id2write, s, sim_id2load):
         extension = 'parquet'
     elif s.write_csv:
         extension = 'csv'
+
     sim_id_str = str(sim_id2load + s.first_sim_index - 1).zfill(9)
 
     scipy.random.seed()
 
-    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
+    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config,
+        geoids=s.spatset.nodenames, loaded_df = setup.npi_load(f"{s.paramdir}{sim_id_str}.snpi", extension))
 
     seeding = setup.seeding_load(s, sim_id2load)
 

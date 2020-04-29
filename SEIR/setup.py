@@ -192,7 +192,15 @@ def seeding_load(s, sim_id):
 
     return importation
 
-
+def npi_load(fname, extension):
+    # Quite ugly and should be in class NPI
+    if extension == "csv":
+        in_df = pd.read_csv(f"{fname}.{extension}")
+    elif extension == "parquet":
+        in_df = pa.parquet.read_table(f"{fname}.{extension}").to_pandas()
+    else:
+        raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
+    return in_df
 # Returns alpha, beta, sigma, and gamma parameters in a tuple.
 # All parameters are arrays of shape (nt_inter, nnodes).
 # They are returned as a tuple because it is numba-friendly for steps_SEIR_nb().
