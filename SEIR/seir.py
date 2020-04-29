@@ -89,7 +89,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
     
     return out_df
 
-def onerun_SEIR_from_draw(sim_id2write, s, sim_id2load):
+def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
     if (s.write_parquet and s.write_csv):
         print("Confused between reading .csv or parquet. Assuming input file is .parquet")
     if s.write_parquet:
