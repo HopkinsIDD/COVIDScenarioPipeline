@@ -237,9 +237,11 @@ build_hospdeath_par <- function(p_hosp,
                                 time_ventdur_pars = log(17),
                                 cores=8,
                                 root_out_dir='hospitalization',
-                                use_parquet = FALSE) {
+                                use_parquet = FALSE,
+                                start_sim = 1,
+                                num_sims = -1) {
 
-  n_sim <- length(list.files(data_dir))
+  n_sim <- ifelse(num_sims < 0, length(list.files(data_dir)), num_sims)
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
 
@@ -250,9 +252,8 @@ build_hospdeath_par <- function(p_hosp,
   print(paste("Running over",n_sim,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
-  sim_block <- as.integer(Sys.getenv("AWS_BATCH_SIM_BLOCK", unset="0"))
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    sim_id <- s + sim_block
+    sim_id <- start_sim + s - 1
     dat_ <- hosp_load_scenario_sim(data_dir,sim_id,
                                    keep_compartments = "diffI",
                                    geoid_len = 5,
@@ -351,9 +352,11 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   time_ventdur_pars = log(17),
   cores=8,
   root_out_dir='hospitalization',
-  use_parquet = FALSE
+  use_parquet = FALSE,
+  start_sim = 1,
+  num_sims = -1
 ) {
-  n_sim <- length(list.files(data_dir))
+  n_sim <- ifelse(num_sims < 0, length(list.files(data_dir)), num_sims)
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
 
@@ -369,13 +372,12 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   print(paste("Running over",n_sim,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
-  sim_block <- as.integer(Sys.getenv("AWS_BATCH_SIM_BLOCK", unset="0"))
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    sim_id <- s + sim_block
+    sim_id <- start_sim + s - 1
     dat_I <- hosp_load_scenario_sim(data_dir, sim_id,
-                                    keep_compartments = "diffI",
-                                    geoid_len=5,
-                                    use_parquet = use_parquet) %>%
+                                   keep_compartments = "diffI",
+                                   geoid_len=5,
+                                   use_parquet = use_parquet) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
