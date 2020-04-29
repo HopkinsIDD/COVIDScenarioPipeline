@@ -21,7 +21,7 @@ import yaml
               help="The number of sequential blocks of jobs to run; total sims per slot = sims-per-slot * num-blocks")
 @click.option("-t", "--dvc-target", "dvc_target", type=click.Path(exists=True), required=True,
               help="name of the .dvc file that is the last step in the dvc run pipeline")
-@click.option("-b", "--s3-bucket", "s3_bucket", type=str, default="idd-input-data-sets", show_default=True,
+@click.option("-b", "--s3-bucket", "s3_bucket", type=str, default="idd-inference-runs", show_default=True,
               help="The S3 bucket to use for keeping state for the batch jobs")
 @click.option("-d", "--job-definition", "batch_job_definition", type=str, default="Batch-CovidPipeline-Job", show_default=True,
               help="The name of the AWS Batch Job Definition to use for the job")
