@@ -13,6 +13,7 @@ library(stringr)
 library(foreach)
 library(magrittr)
 library(xts)
+library(reticulate)
 
 
 option_list = list(
@@ -33,6 +34,7 @@ option_list = list(
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)
 
+reticulate::use_python(opt$python)
 ## Block loads the config file and geodata
 if(opt$config == ""){
   optparse::print_help(parser)
@@ -51,6 +53,7 @@ if(config$seeding$method != 'FolderDraw'){
 if(!('lambda_file' %in% names(config$seeding))) {
   stop("Despite being a folder draw method, filtration method requires the seeding to provide a lambda_file argument.")
 }
+
 
 geodata <- report.generation::load_geodata_file(
   paste(
@@ -309,6 +312,12 @@ data_stats <- lapply(
 
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 for(scenario in scenarios) {
+
+  ## One time setup for python
+  py_run_string(paste("config_path = '", opt$config,"'"))
+  py_run_string(paste("scenario = '", scenario, "'"))
+  py_run_file("COVIDScenarioPipeline/minimal_interface.py")
+
   for(deathrate in deathrates) {
       # Data -------------------------------------------------------------------------
       # Load
@@ -339,14 +348,9 @@ for(scenario in scenarios) {
 
 
       ## Generate files
-      err <- system(paste(
-        opt$python,
-        paste(opt$pipepath,"simulate.py", sep='/'),
-        "-j",opt$jobs,
-        "-c",opt$config,
-        "-n",1,
-        "-i",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
-      ))
+      this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
+      err <- py$onerun_SEIR_loadID(this_index,py$s,this_index)
+      err <- err == 1
       if(err != 0){quit("no")}
       ## Run hospitalization
       err <- system(paste(
