@@ -21,6 +21,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Set up Rprofile
+        run: cp Docker.Rprofile $HOME/.Rprofile
+        shell: bash
       - name: Run pytest SEIR
         run: |
           /home/app/python_venv/bin/pytest SEIR/
