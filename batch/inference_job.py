@@ -13,11 +13,11 @@ import yaml
 @click.command()
 @click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
               help="configuration file for this run")
-@click.option("-n", "--num-slots", "num_slots"", type=click.IntRange(min=1, max=1000), required=True,
+@click.option("-n", "--num-slots", "num_jobs", type=click.IntRange(min=1, max=1000), required=True,
               help="number of output slots to generate")
 @click.option("-j", "--sims-per-slot", "sims_per_slot", type=click.IntRange(min=1), default=10, show_default=True,
               help="the number of sims to run on each child job")
-@click.option("-k", "--num-blocks", "num_blocks", type=click.intRange(min=1), default=10, show_default=True,
+@click.option("-k", "--num-blocks", "num_blocks", type=click.IntRange(min=1), default=10, show_default=True,
               help="The number of sequential blocks of jobs to run; total sims per slot = sims-per-slot * num-blocks")
 @click.option("-t", "--dvc-target", "dvc_target", type=click.Path(exists=True), required=True,
               help="name of the .dvc file that is the last step in the dvc run pipeline")
@@ -29,9 +29,11 @@ import yaml
               help="The name of the AWS Batch Job Queue to use for the job")
 @click.option("-p", "--parallelize-scenarios", "parallelize_scenarios", is_flag=True, default=False, show_default=True,
               help="Launch a different batch job for each scenario")
-@click.option("-m", "--memory", "memory", type=click.IntRange(min=1000, max=6000), default=4000, show_default=True,
+@click.option("-v", "--vcpus", "vcpus", type=click.IntRange(min=1, max=96), default=2, show_default=True,
+              help="The number of CPUs to request for running jobs")
+@click.option("-m", "--memory", "memory", type=click.IntRange(min=1000, max=6000), default=2000, show_default=True,
               help="The amount of RAM in megabytes needed per CPU running simulations")
-def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s3_bucket, batch_job_definition, batch_job_queue, parallelize_scenarios, memory):
+def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s3_bucket, batch_job_definition, batch_job_queue, parallelize_scenarios, vcpus, memory):
 
     config = None
     with open(config_file) as f:
@@ -41,7 +43,12 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
     job_name = f"{config['name']}-{int(time.time())}"
 
     # Update and save the config file with the number of sims to run
-    config['filtering']['simulations_per_slot'] = sims_per_slot
+    if 'filtering' in config:
+        config['filtering']['simulations_per_slot'] = sims_per_slot
+    else:
+        print(f"WARNING: no filtering section found in {config_file}!")
+
+    handler = BatchJobHandler(num_jobs, num_blocks, dvc_target, s3_bucket, batch_job_definition, batch_job_queue, vcpus, memory)
 
     if parallelize_scenarios:
         scenarios = config['interventions']['scenarios']
@@ -50,14 +57,14 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
             config['interventions']['scenarios'] = [s]
             with open(config_file, "w") as f:
                 yaml.dump(config, f, sort_keys=False)
-            launch_job_inner(scenario_job_name, config_file, num_jobs, , dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue, memory)
+            handler.launch(scenario_job_name, config_file)
         config['interventions']['scenarios'] = scenarios
         with open(config_file, "w") as f:
             yaml.dump(config, f, sort_keys=False)
     else:
         with open(config_file, "w") as f:
             yaml.dump(config, f, sort_keys=False)
-        launch_job_inner(job_name, config_file, num_jobs, slots_per_job, dvc_target, s3_input_bucket, s3_output_bucket, batch_job_definition, batch_job_queue, vcpu, memory)
+        handler.launch(job_name, config_file)
 
     (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")
     print(txt)
@@ -65,13 +72,14 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
 
 
 class BatchJobHandler(object):
-    def __init__(self, num_jobs, sims_per_job, dvc_target, s3_bucket, batch_job_definition, batch_job_queue, memory):
+    def __init__(self, num_jobs, num_blocks, dvc_target, s3_bucket, batch_job_definition, batch_job_queue, vcpus, memory):
         self.num_jobs = num_jobs
-        self.sims_per_job = sims_per_job
+        self.num_blocks = num_blocks
         self.dvc_target = dvc_target
         self.s3_bucket = s3_bucket
         self.batch_job_definition = batch_job_definition
         self.batch_job_queue = batch_job_queue
+        self.vcpus = vcpus
         self.memory = memory
 
     def launch(self, job_name, config_file):
@@ -109,26 +117,26 @@ class BatchJobHandler(object):
         command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
 
         batch_client = boto3.client('batch')
+        print(f"Launching {job_name}_block0...")
         last_job = batch_client.submit_job(
             jobName=f"{job_name}_block0",
             jobQueue=self.batch_job_queue,
             arrayProperties={'size': self.num_jobs},
             jobDefinition=self.batch_job_definition,
             containerOverrides={
-                'vcpus': 2, # one for the controller and one for the forked processes
-                'memory': self.memory,
+                'vcpus': self.vcpus,
+                'memory': self.vcpus * self.memory,
                 'environment': env_vars,
                 'command': command
             })
         block_idx = 1
         while block_idx < self.num_blocks:
-            #TODO: update this to pass in the path to the output from the last job
             cur_env_vars = env_vars.copy()
             cur_env_vars.append({
                 "name": "S3_LAST_JOB_OUTPUT",
                 "value": f"{results_path}/{last_job['jobId']}"
             })
-
+            print(f"Launching {job_name}_block{block_idx}...")
             cur_job = batch_client.submit_job(
                 jobName=f"{job_name}_block{block_idx}",
                 jobQueue=self.batch_job_queue,
@@ -136,14 +144,14 @@ class BatchJobHandler(object):
                 dependsOn=[{'jobId': last_job['jobId'], 'type': 'N_TO_N'}],
                 jobDefinition=self.batch_job_definition,
                 containerOverrides={
-                    'vcpus': 2, # one for the controller and one for the forked processes
-                    'memory': self.memory,
+                    'vcpus': self.vcpus,
+                    'memory': self.vcpus * self.memory,
                     'environment': cur_env_vars,
                     'command': command
                 })
             last_job = cur_job
             block_idx += 1
-
+        print(f"Final output will be for job id: {last_job['jobId']}")
 
 
 def get_dvc_outputs():
