@@ -373,7 +373,7 @@ for(scenario in scenarios) {
   ## One time setup for python
   reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
   reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
-  reticulate::py_run_file("COVIDScenarioPipeline/minimal_interface.py")
+  reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
   for(deathrate in deathrates) {
       # Data -------------------------------------------------------------------------
