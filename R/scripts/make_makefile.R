@@ -38,6 +38,7 @@ cat("\n")
 
 using_importation <- ("importation" %in% names(config))
 generating_report <- ("report" %in% names(config))
+using_static_filter <- ("dynfilter_path" %in% names(config))
 
 if(generating_report)
 {
@@ -118,7 +119,10 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
     previous_simulation <- 0
   }
   if(using_importation){
-    dependency_name <- paste(dependency_name,filter_target_name(simulation,prefix),importation_target_name(simulation,prefix))
+    dependency_name <- paste(dependency_name,importation_target_name(simulation,prefix))
+  }
+  if(using_static_filter){
+    dependency_name <- paste(dependency_name, filter_target_name(simulation,prefix))
   }
   command_name <- paste0("$(PYTHON) $(PIPELINE)/simulate.py -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER)")
   touch_name <- paste0("touch ",target_name)
@@ -193,9 +197,12 @@ cat("\n")
 
 if(using_importation){
   for(sim_idx in seq_len(length(simulations))){
-    
-    cat(filter_make_command(simulations[sim_idx]))
     cat(importation_make_command(simulations[sim_idx]))
+  }
+}
+if(using_static_filter){
+  for(sim_idx in seq_len(length(simulations))){
+    cat(filter_make_command(simulations[sim_idx]))
   }
 }
 
@@ -219,30 +226,36 @@ cat("
 
 cat(paste0("
 
-rerun: rerun_simulations rerun_hospitalization"
+rerun: rerun_simulations rerun_hospitalization\n"
 ))
 
-if(using_importation){
-  cat(paste0("rerun_importation rerun_filter
-clean_filter: rerun_filter
+if(using_static_filter){
+  cat(paste0("clean_filter: rerun_filter
 \trm -rf ",config$dynfilter_path,"
+rerun_filter:
+\trm -f .files/*_filter
+"))
+}
+if(using_importation){
+  cat(paste0("
 clean_importation: rerun_importation
 \trm -rf data/case_data
 \trm -rf importation
+rerun_importation:
+\trm -f .files/*_importation
 "))
 }
 cat(paste0("
-rerun_filter:
-\trm -f .files/1*_filter
-rerun_importation:
-\trm -f .files/1*_importation
 rerun_simulations: clean_simulations
-\trm -f .files/1*_simulation*
+\trm -f .files/*_simulation*
 rerun_hospitalization:
-\trm -f .files/1*_hospitalization*
+\trm -f .files/*_hospitalization*
 clean: clean_simulations clean_hospitalization"))
 if(using_importation){
-  cat(" clean_importation clean_filter")
+  cat(" clean_importation")
+}
+if(using_static_filter){
+  cat(" clean_filter")
 }
 if(generating_report)
 {
