@@ -6,37 +6,49 @@ suppressMessages({
 
 ##List of specified options
 option_list <- list(
+    make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
+    make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used"),
+    make_option(c("-n", "--num_simulations"), action="store", default=-1, type='numeric', help="number of simulations to run, overrides config file value")
+
     make_option("--name_filter", type="character", default="", help="filename filter, usually deaths"),
-    make_option("--nfiles", type="numeric", default=NA, help="number of files to load, default is all"),
-    make_option("--ncores", type="numeric", default=6, help="number of cores to use in data load, default =6"),
-    make_option(c("--outfile","-o"), type="character", default=NULL, help="file to saver output"),
-    make_option("--start_date", type="character", default="2020-01-01", help="earliest date to include"),
-    make_option("--end_date",  type="character", default="2022-01-01", help="latest date to include")
+    make_option(c("-o","--outfile"), type="character", default=NULL, help="file to save output"),
+    make_option("--start_date", type="character", default=NULL, help="earliest date to include"),
+    make_option("--end_date",  type="character", default=NULL, help="latest date to include")
 )
 
 opt_parser <- OptionParser(option_list = option_list, usage="%prog [options] [one or more scenarios]")
-
-## Paerse the
 arguments <- parse_args(opt_parser, positional_arguments=c(1,Inf))
-opt <- arguments$options
+opts <- arguments$options
+
 scenarios <- arguments$args
 
-if(is.null(opt$outfile)) {
+if(is.null(opts$outfile)) {
     stop("outfile must be specified")
+}
+
+config <- covidcommon::load_config(opts$c)
+if (length(config) == 0) {
+  stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
 
 ## Register the parallel backend
-doParallel::registerDoParallel(opt$ncores)
+doParallel::registerDoParallel(opts$j)
 
 
 ##Convert times to date objects
-opt$start_date <- as.Date(opt$start_date)
-opt$end_date <- as.Date(opt$end_date)
+if (is.null(opts$start_date)) {
+  opts$start_date <- as.Date(config$start_date)
+}
+opts$start_date <- as.Date(opts$start_date)
 
+if (is.null(opts$end_date)) {
+  opts$end_date <- config$end_date
+}
+opts$end_date <- as.Date(opts$end_date)
 
 ##Per file filtering code
-post_proc <- function(x,opt) {
+post_proc <- function(x, opts) {
 
 
   x%>%
@@ -44,7 +56,7 @@ post_proc <- function(x,opt) {
       mutate(cum_infections=cumsum(incidI)) %>%
       mutate(cum_death=cumsum(incidD)) %>%
       ungroup()%>%
-      filter(time>=opt$start_date& time<=opt$end_date) %>%
+      filter(time>=opts$start_date & time<=opts$end_date) %>%
       group_by(time) %>%
       summarize(hosp_curr=sum(hosp_curr),
                 cum_death=sum(cum_death),
@@ -60,10 +72,10 @@ post_proc <- function(x,opt) {
 res_all <-list()
 for (i in 1:length(scenarios)) {
     res_all[[i]] <- report.generation::load_hosp_sims_filtered(scenarios[i],
-                                                                 name_filter = opt$name_filter,
-                                                                 num_files = opt$nfiles,
+                                                                 name_filter = opts$name_filter,
+                                                                 num_files = opts$num_simulations,
                                                                  post_process = post_proc,
-                                                                 opt=opt)%>%
+                                                                 opt=opts)%>%
         mutate(scenario=scenarios[i])
 
 
@@ -96,7 +108,7 @@ to_save <- inner_join(tmp_col(res_all,"hosp_curr"),
     inner_join(tmp_col(res_all,"hosp"))
 
 
-write_csv(to_save, path=opt$outfile)
+write_csv(to_save, path=opts$outfile)
 
 
 
