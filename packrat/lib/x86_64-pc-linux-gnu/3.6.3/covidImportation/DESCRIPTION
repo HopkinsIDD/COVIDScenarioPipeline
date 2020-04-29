@@ -1,0 +1,36 @@
+Package: covidImportation
+Title: Estimating the Number of Imported COVID-19 Cases
+Version: 1.5
+Authors@R: c(person(given = c("Shaun", "A."), family = "Truelove", role
+    = c("aut", "cre"), email = "shauntruelove@jhu.edu"),
+    person(given=c("Stephen", "A."), family="Lauer",
+    email="slauer5@jh.edu", role = c("ctb")))
+Description: What the package does (one paragraph).
+Depends: R (>= 3.5), dplyr, tidyr
+Imports: doParallel, httr, lubridate, countrycode, globaltoolboxlite,
+    fitdistrplus, data.table, abind, reshape2, arrayhelpers, truncnorm,
+    geosphere, ggvoronoi, gpclib, igraph, magrittr, maptools, raster,
+    rgdal, rlist, sf, tidycensus, purrr, readr, tibble, ggplot2,
+    parallel
+License: What license it uses
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.0
+RemoteType: github
+RemoteHost: api.github.com
+RemoteRepo: covidImportation
+RemoteUsername: HopkinsIDD
+RemoteRef: v1.6
+RemoteSha: dc032809bbfe4e1a6b8f850da0c0f9336fcb8f3c
+GithubRepo: covidImportation
+GithubUsername: HopkinsIDD
+GithubRef: v1.6
+GithubSHA1: dc032809bbfe4e1a6b8f850da0c0f9336fcb8f3c
+NeedsCompilation: no
+Packaged: 2020-04-26 16:22:38 UTC; root
+Author: Shaun A. Truelove [aut, cre], Stephen A. Lauer [ctb]
+Maintainer: Shaun A. Truelove <shauntruelove@jhu.edu>
+Built: R 3.6.3; ; 2020-04-26 16:22:42 UTC; unix
+InstallAgent: packrat 0.5.0
+InstallSource: github
+Hash: 454a6a8c1e516fda25fc3a682a6a4f86
