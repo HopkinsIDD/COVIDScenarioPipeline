@@ -93,7 +93,7 @@ RUN Rscript -e "install.packages('packrat',repos='https://cloud.r-project.org/')
     && Rscript -e "install.packages('arrow',repos='https://cloud.r-project.org/')" \
     && Rscript -e 'arrow::install_arrow()'
 COPY --chown=app:app packrat $HOME/packrat
-COPY --chown=app:app  .Rprofile $HOME/.Rprofile
+COPY --chown=app:app Docker.Rprofile $HOME/.Rprofile
 COPY --chown=app:app R/pkgs $HOME/R/pkgs
 RUN Rscript -e 'packrat::restore()' \
     && curl -O https://download2.rstudio.org/server/bionic/amd64/rstudio-server-$RSTUDIO_VERSION-amd64.deb \
