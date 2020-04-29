@@ -34,7 +34,7 @@ option_list = list(
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)
 
-reticulate::use_python(opt$python)
+reticulate::use_python(Sys.which(opt$python),require=TRUE)
 ## Block loads the config file and geodata
 if(opt$config == ""){
   optparse::print_help(parser)
@@ -314,9 +314,9 @@ required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 for(scenario in scenarios) {
 
   ## One time setup for python
-  py_run_string(paste("config_path = '", opt$config,"'"))
-  py_run_string(paste("scenario = '", scenario, "'"))
-  py_run_file("COVIDScenarioPipeline/minimal_interface.py")
+  reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
+  reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
+  reticulate::py_run_file("COVIDScenarioPipeline/minimal_interface.py")
 
   for(deathrate in deathrates) {
       # Data -------------------------------------------------------------------------
@@ -336,6 +336,7 @@ for(scenario in scenarios) {
     current_index <- 0
     current_likelihood <- data.frame()
 
+    print(opt$simulations_per_slot)
     for( index in seq_len(opt$simulations_per_slot)) {
       print(index)
       # Load sims -----------------------------------------------------------
@@ -349,8 +350,10 @@ for(scenario in scenarios) {
 
       ## Generate files
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
-      err <- py$onerun_SEIR_loadID(this_index,py$s,this_index)
-      err <- err == 1
+      err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
+      err <- ifelse(err == 1,0,1)
+      print(err)
+      print("HERE")
       if(err != 0){quit("no")}
       ## Run hospitalization
       err <- system(paste(
@@ -436,6 +439,7 @@ for(scenario in scenarios) {
       rm(sim_hosp)
 
       log_likelihood_data <- log_likelihood_data %>% do.call(what=rbind)
+      print("THERE")
 
 
       # Compute total loglik for each sim
