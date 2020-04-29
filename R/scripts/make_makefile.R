@@ -61,7 +61,7 @@ importation_target_name <- function(simulation, prefix = ""){
 importation_make_command <- function(simulation,prefix=""){
   target_name <- importation_target_name(simulation,prefix)
   dependency_name <- ""
-  command_name <- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/importation.R -c  $(CONFIG) -j $(NCOREPER)")
+  command_name <- "$(RSCRIPT) $(PIPELINE)/R/scripts/importation.R -c $(CONFIG) -j $(NCOREPER)"
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": ",
@@ -71,6 +71,14 @@ importation_make_command <- function(simulation,prefix=""){
   ))
 }
 
+build_US_setup_target_name <- function() {
+  return(file.path(config$spatial_setup$base_path, config$spatial_setup$mobility))
+}
+
+build_US_setup_make_command <- function() {
+  return(":\n\t$(RSCRIPT) $(PIPELINE)/R/scripts/build_US_setup.R -c $(CONFIG) -p $(PIPELINE)")
+}
+
 filter_target_name <- function(simulation, prefix = "" ){
   paste0(".files/",prefix,simulation,"_filter")
 }
@@ -78,6 +86,9 @@ filter_target_name <- function(simulation, prefix = "" ){
 filter_make_command <- function(simulation,prefix=""){
   target_name <- filter_target_name(simulation,prefix)
   dependency_name <- importation_target_name(simulation, prefix=prefix)
+  if(building_US_setup) {
+    dependency_name <- paste(dependency_name, build_US_setup_target_name())
+  }
   command_name<- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/create_filter.R -c $(CONFIG)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
@@ -117,6 +128,9 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
     dependency_name <- simulation_target_name(previous_simulation,scenario, prefix = prefix)
   } else {
     previous_simulation <- 0
+  }
+  if(building_US_setup){
+    dependency_name <- paste(dependency_name, build_US_setup_target_name())
   }
   if(using_importation){
     dependency_name <- paste(dependency_name,filter_target_name(simulation,prefix),importation_target_name(simulation,prefix))
@@ -177,14 +191,6 @@ run_dependencies <- function(scenarios, simulations, deathrates) {
   return(s)
 }
 
-build_US_setup_target_Name <- function() {
-
-}
-
-build_US_setup_make_command <- function() {
-
-}
-
 sink("Makefile")
 
  
@@ -214,6 +220,13 @@ if(generating_report) {
 
 cat("\n")
 
+if(building_US_setup){
+  cat(build_US_setup_target_name())
+  cat(build_US_setup_make_command())
+}
+
+cat("\n")
+
 if(using_importation){
   for(sim_idx in seq_len(length(simulations))){
     
@@ -235,7 +248,7 @@ for(sim_idx in seq_len(length(simulations))){
 
 cat("
 .files/directory_exists:
-\tmkdir .files
+\tmkdir -p .files
 \ttouch .files/directory_exists
 ")
 
@@ -246,7 +259,7 @@ rerun: rerun_simulations rerun_hospitalization"
 ))
 
 if(using_importation){
-  cat(paste0("rerun_importation rerun_filter
+  cat(paste0(" rerun_importation rerun_filter
 clean_filter: rerun_filter
 \trm -rf ",config$dynfilter_path,"
 clean_importation: rerun_importation

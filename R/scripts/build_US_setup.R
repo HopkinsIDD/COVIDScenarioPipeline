@@ -10,6 +10,9 @@
 # spatial_setup:
 #   base_path: <path to directory>
 #   modeled_states: <list of state postal codes> e.g. MD, CA, NY
+#   mobility: <path to file relative to base_path> optional; default is 'mobility.csv'
+#   geodata: <path to file relative to base_path> optional; default is 'geodata.csv'
+#   popnodes: <string> optional; default is 'population'
 # 
 # importation:
 #   census_api_key: <string, optional> default is environment variable CENSUS_API_KEY. Environment variable is preferred so you don't accidentally commit your key.
@@ -21,8 +24,8 @@
 #
 # ## Output Data
 #
-# * {spatial_setup::base_path}/mobility.txt
-# * {spatial_setup::base_path}/geodata.csv
+# * {spatial_setup::base_path}/{spatial_setup::mobility}
+# * {spatial_setup::base_path}/{spatial_setup::geodata}
 #
 
 ## @cond
@@ -103,10 +106,18 @@ census_data <- terr_census_data %>%
 census_data <- census_data %>%
   arrange(population)
 
-write.csv(file = file.path(outdir,'geodata.csv'), census_data,row.names=FALSE)
+if (!is.null(config$spatial_setup$popnodes)) {
+  names(census_data)[names(census_data) == "population"] <- config$spatial_setup$popnodes
+}
 
 
-
+if (length(config$spatial_setup$geodata) > 0) {
+  geodata_file <- config$spatial_setup$geodata
+} else {
+  geodata_file <- 'geodata.csv'
+}
+write.csv(file = file.path(outdir, geodata_file), census_data, row.names=FALSE)
+print(paste("Wrote geodata file:", file.path(outdir, geodata_file)))
 
 # COMMUTE DATA
 commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
@@ -132,18 +143,30 @@ t_commute_table <- tibble(
 
 rc <- padding_table %>% bind_rows(commute_data) %>% bind_rows(t_commute_table)
 if(opt$w){
-  rc <- rc %>%pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
+  rc <- rc %>% pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
 }
 
 if(opt$w){
+  mobility_file <- 'mobility.txt'
+} else if (length(config$spatial_setup$mobility) > 0) {
+  mobility_file <- config$spatial_setup$mobility
+} else {
+  mobility_file <- 'mobility.csv'
+}
+
+if(endsWith(mobility_file, '.txt')) {
   if(!isTRUE(all(rc$OFIPS == census_data$geoid))){
     stop("There was a problem generating the mobility matrix")
   }
-  write.table(file = file.path(outdir,'mobility.txt'), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
-} else {
+  write.table(file = file.path(outdir, mobility_file), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
+} else if(endsWith(mobility_file, '.csv')) {
   names(rc) <- c("ori","dest","amount")
   rc <- rc[rc$ori != rc$dest,]
-  write.csv(file = file.path(outdir,'mobility.csv'), rc, row.names=FALSE)
+  write.csv(file = file.path(outdir, mobility_file), rc, row.names=FALSE)
+} else {
+  stop("Only .txt and .csv extensions supported for mobility matrix. Please check config's spatial_setup::mobility.")
 }
+
+print(paste("Wrote mobility file:", file.path(outdir, mobility_file)))
 
 ## @endcond
