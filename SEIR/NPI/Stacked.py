@@ -6,7 +6,7 @@ from .base import NPIBase
 REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
 
 class Stacked(NPIBase):
-    def __init__(self, *, npi_config, global_config, geoids):
+    def __init__(self, *, npi_config, global_config, geoids, in_df = None):
         super().__init__(npi_config)
 
         self.start_date = global_config["start_date"].as_date()
@@ -29,7 +29,7 @@ class Stacked(NPIBase):
                 # otherwise use the specified map as the config
                 scenario_npi_config = scenario
 
-            sub_npi = NPIBase.execute(npi_config=scenario_npi_config, global_config=global_config, geoids=geoids)
+            sub_npi = NPIBase.execute(npi_config=scenario_npi_config, global_config=global_config, geoids=geoids, in_df = in_df)
             self.sub_npis.append(sub_npi)
 
             for p in REDUCE_PARAMS:
@@ -45,3 +45,6 @@ class Stacked(NPIBase):
 
     def getReductionToWrite(self):
         return pd.concat([sub_npi.getReductionToWrite() for sub_npi in self.sub_npis], ignore_index=True)
+
+    def setReductionFromFile(self, npi, param):
+        self.reductions[param] = npi

@@ -35,7 +35,8 @@ class NPIBase(abc.ABC):
     def getName(self):
         return self.name
 
-    def execute(*, npi_config, global_config, geoids):
+    def execute(*, npi_config, global_config, geoids, in_df = None):
         template = npi_config["template"].as_str()
         npi_class = NPIBase.__plugins__[template]
-        return npi_class(npi_config=npi_config, global_config=global_config, geoids=geoids)
+        return npi_class(npi_config=npi_config, global_config=global_config, geoids=geoids, in_df = in_df)
+
