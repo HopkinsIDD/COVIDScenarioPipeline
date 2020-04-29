@@ -105,6 +105,4 @@ print(f"""
     """)
 
 onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load))
-
-
-
+onerun_SEIR = lambda sim_id2write, s: seir.onerun_SEIR(int(sim_id2write), s)
