@@ -61,11 +61,13 @@ from COVIDScenarioPipeline.SEIR import seir, setup
 from COVIDScenarioPipeline.SEIR.utils import config
 from COVIDScenarioPipeline.SEIR.profile import profile_options
 
+config.set_file(config_path)
 
-config.set_file('config.yml')
+#config.set_file('config.yml')
+
 spatial_config = config["spatial_setup"]
 spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
-scenario = 'Scenario1'
+scenario = scenario
 nsim = 10
 interactive = False
 write_csv = False
