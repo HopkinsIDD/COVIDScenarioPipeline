@@ -120,7 +120,7 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
 
     out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding)
 
-    return out_df
+    return 1#out_df
 
 def run_parallel(s, *, n_jobs=1):
     start = time.monotonic()
