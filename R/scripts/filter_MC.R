@@ -18,9 +18,7 @@ library(reticulate)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
-  #' @param -s The intervention scenarios
   optparse::make_option(c("-s", "--scenarios"), action="store", default='all', type='character', help="name of the intervention to run, or 'all' to run all of them"),
-  #' @param -d The death rate
   optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenarios to run, or 'all' to run all of them"),
   optparse::make_option(c("-j", "--jobs"), action="store", default="8", type='integer', help="Number of jobs to run in parallel"),
   optparse::make_option(c("-k", "--simulations_per_slot"), action="store", default=NA, type='integer', help = "number of simulations to run for this slot"),
@@ -204,7 +202,7 @@ parameter_file_path <- function(config,index, scenario){
   return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$spatial_setup$setup_name, scenario, index))
 }
 
-npi_file_path <- function(config,index){
+npi_file_path <- function(config,index,scenario){
   if(length(config$interventions$scenarios) > 1){
     stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
   }
@@ -263,21 +261,21 @@ perturb_seeding <- function(seeding,sd) {
 ##'
 ##' @return a pertubed data frame
 ##'
-perturb_params <- function(params, perturbations) {
+perturb_npis <- function(npis, perturbations) {
   require(dplyr)
   require(magrittr)
-  params_new <- params
-  geoids <- colnames(select(params, -time, -parameter, -npi_name))
+  npis_new <- npis
+  geoids <- colnames(select(npis, -time, -parameter, -npi_name))
   for (par in names(perturbations)) {
     if (perturbations[[par]]$distribution == "normal") {
       pert_dist <- function(n) {rnorm(n, mean = perturbations[[par]]$mu, sd = perturbations[[par]]$sd)}
     } 
-    ind <- params[["parameter"]] == par 
+    ind <- npis[["parameter"]] == par 
     for (gid in geoids) {
-      params_new[[gid]][ind] <- params_new[[gid]][ind] + pert_dist(1)
+      npis_new[[gid]][ind] <- npis_new[[gid]][ind] + pert_dist(1)
     }
   }
-  return(params_new)
+  return(npis_new)
 }
 
 ##'
@@ -291,16 +289,16 @@ perturb_params <- function(params, perturbations) {
 ##'
 ##' @return a new data frame with the confirmed seedin.
 ##'
-accept_reject_new_seeding_params <- function(
+accept_reject_new_seeding_npis <- function(
   seeding_orig,
   seeding_prop,
-  params_orig,
-  params_prop, 
+  npis_orig,
+  npis_prop, 
   orig_lls,
   prop_lls
 ) {
   rc_seeding <- seeding_orig
-  rc_params <- params_orig
+  rc_npis <- npis_orig
 
     if(!all(orig_lls$geoid == prop_lls$geoid)){stop("geoids must match")}
     ##draww accepts/rejects
@@ -310,11 +308,11 @@ accept_reject_new_seeding_params <- function(
     orig_lls$ll[accept] <- prop_lls$ll[accept]
 
   for (place in orig_lls$geoid[accept]) {
-    rc_seeding[rc_seeding$geoid==place, ] <- seeding_prop[seeding_prop$geoid==place, ]
-    rc_params[, place] <- params_prop[, place]
+    rc_seeding[rc_seeding$place ==place, ] <- seeding_prop[seeding_prop$place ==place, ]
+    rc_npis[, place] <- npis_prop[, place]
   }
   
-  return(list(seeding=rc_seeding, params=rc_params, lls = orig_lls))
+  return(list(seeding=rc_seeding, npis=rc_npis, lls = orig_lls))
 }
 
 
@@ -392,16 +390,23 @@ for(scenario in scenarios) {
     }
     if(err != 0){quit("no")}
     initial_seeding <- readr::read_csv(config$seeding$lambda_file)
+    current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
+    write.csv(
+      current_seeding,
+      file = seeding_file_path(config,sprintf("%09d",opt$this_slot))
+    )
 
     current_index <- 0
     current_likelihood <- data.frame()
 
     # FIX ME : this file won't exist in general
     # TODO CHANGE TO FIRST DRAW OF SEIR CODE
-    first_param_file <- param_file_path(config,opt$this_slot, scenario)
-    if(!file.exists(first_param_file)){
-      py$onerun_SEIR(opt$this_slot,s)
+    first_param_file <- parameter_file_path(config,opt$this_slot, scenario)
+    first_npi_file <- npi_file_path(config,opt$this_slot, scenario)
+    if((!file.exists(first_npi_file)) | (!file.exists(first_npi_file))){
+      py$onerun_SEIR(opt$this_slot,py$s)
     }
+    initial_npis <- arrow::read_parquet(first_npi_file)
     initial_params <- arrow::read_parquet(first_param_file)
 
     for( index in seq_len(opt$simulations_per_slot)) {
@@ -409,14 +414,19 @@ for(scenario in scenarios) {
       # Load sims -----------------------------------------------------------
 
       current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
-      current_params <- perturb_params(initial_params, config$filtering$perturbations)
+      current_npis <- perturb_npis(initial_npis, config$filtering$perturbations)
+      current_params <- initial_params
       write.csv(
         current_seeding,
         file = seeding_file_path(config,sprintf("%09d",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index))
       )
-      write.csv(
+      arrow::write_parquet(
+        current_npis,
+        npi_file_path(config,opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index,scenario)
+      )
+      arrow::write_parquet(
         current_params,
-        file = param_file_path(config,sprintf("%09d",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index))
+        parameter_file_path(config,opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index,scenario)
       )
 
 
@@ -522,6 +532,7 @@ for(scenario in scenarios) {
         current_likelihood <- likelihood
         current_index <- index
         initial_seeding <- current_seeding
+        initial_npis <- current_npis
         initial_params <- current_params
         previous_likelihood_data <- log_likelihood_data
         next
@@ -533,17 +544,17 @@ for(scenario in scenarios) {
         current_likelihood <- likelihood
       }
 
-      seeding_params_list <- accept_reject_new_seeding_params(
+      seeding_npis_list <- accept_reject_new_seeding_npis(
         current_seeding,
         initial_seeding,
-        current_params,
-        initial_params,
+        current_npis,
+        initial_npis,
         log_likelihood_data,
         previous_likelihood_data
       )
-      initial_seeding <- seeding_params_list$seeding
-      initial_params <- seeding_params_list$params
-      previous_likelihood_data <- seeding_params_list$likelihood
+      initial_seeding <- seeding_npis_list$seeding
+      initial_npis <- seeding_npis_list$npis
+      previous_likelihood_data <- seeding_npis_list$likelihood
       print(paste("Current index is ",current_index))
       print(log_likelihood_data)
       print(previous_likelihood_data)
