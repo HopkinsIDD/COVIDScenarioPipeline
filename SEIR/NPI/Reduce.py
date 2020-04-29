@@ -6,7 +6,7 @@ from .base import NPIBase
 REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
 
 class Reduce(NPIBase):
-    def __init__(self, *, npi_config, global_config, geoids):
+    def __init__(self, *, npi_config, global_config, geoids, in_df = None):
         super().__init__(npi_config)
 
         self.start_date = global_config["start_date"].as_date()
@@ -46,12 +46,19 @@ class Reduce(NPIBase):
             raise ValueError(f"Invalid parameter name: {param_name}. Must be one of {REDUCE_PARAMS}")
         self.reduced_param = param_name
 
-        # Create reduction
-        self.npi = pd.DataFrame(0.0, index=self.geoids,
+        if in_df is None:
+            # Create reduction
+            self.npi = pd.DataFrame(0.0, index=self.geoids,
                                     columns=pd.date_range(self.start_date, self.end_date))
-        self.dist = npi_config["value"].as_random_distribution()
-        period_range = pd.date_range(self.period_start_date, self.period_end_date)
-        self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T
+            self.dist = npi_config["value"].as_random_distribution()
+            period_range = pd.date_range(self.period_start_date, self.period_end_date)
+            self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T
+        else:
+            # TODO: Should be a member of the parent.
+            in_df.index = in_df.time
+            in_df = in_df[in_df['npi_name'] == self.name]
+            in_df.drop(['time', 'parameter', 'npi_name'], inplace = True, axis = 1)
+            self.npi = in_df.T
 
         # Validate
         if (self.npi == 0).all(axis=None):
@@ -71,6 +78,12 @@ class Reduce(NPIBase):
         df.index.name = "time"
         df = df.reset_index()
         return df
+
+    def setReductionFromFile(self, npi, param, name):
+        if param == self.reduced_param:
+            self.npi = npi
+            self.name = name
+
 
 
 
