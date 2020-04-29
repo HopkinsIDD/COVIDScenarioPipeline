@@ -16,7 +16,7 @@ jobs:
   unit-tests:
     runs-on: ubuntu-18.04
     container:
-      image: docker://hopkinsidd/covidscenariopipeline:latest-dev
+      image: docker://hopkinsidd/covidscenariopipeline:latest-datseed
       options: --user root
     steps:
       - name: Checkout
