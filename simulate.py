@@ -137,6 +137,9 @@ from SEIR.profile import profile_options
               help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]")
 @click.option("-n", "--nsim", type=click.IntRange(min=1),
               help="override the # of simulation runs in the config file")
+@click.option("-i", "--index", type=click.IntRange(min=1),
+              default=1, show_default=True,
+              help="The index of the first simulation")
 @click.option("-j", "--jobs", type=click.IntRange(min=1),
               default=multiprocessing.cpu_count(), show_default=True,
               help="the parallelization factor")
@@ -147,7 +150,7 @@ from SEIR.profile import profile_options
 @click.option("--write-parquet/--no-write-parquet", default=True, show_default=True,
               help="write parquet file output at end of simulation")
 @profile_options
-def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_parquet):
+def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_parquet,index):
     config.set_file(config_file)
 
     spatial_config = config["spatial_setup"]
@@ -180,7 +183,8 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_p
                         interactive=interactive,
                         write_csv=write_csv,
                         write_parquet=write_parquet,
-                        dt=config["dt"].as_number())
+                        dt=config["dt"].as_number(),
+                        first_sim_index = index)
         try:
             s.load_filter(config["dynfilter_path"].get())
             print(' We are using a filter')
@@ -189,7 +193,7 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_p
 
         print(f"""
 >> Scenario: {scenario}
->> Starting {s.nsim} model runs on {jobs} processes
+>> Starting {s.nsim} model runs beginning from {s.first_sim_index} on {jobs} processes
 >> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}
 >> writing to folder : {s.datadir}{s.setup_name}
     """)

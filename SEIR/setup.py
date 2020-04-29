@@ -81,7 +81,8 @@ class Setup():
                  write_csv=False,
                  write_parquet=False,
                  dt=1 / 6, # step size, in days
-                 nbetas=None): # # of betas, which are rates of infection
+                 nbetas=None,
+                 first_sim_index = 1): # # of betas, which are rates of infection
         self.setup_name = setup_name
         self.nsim = nsim
         self.dt = dt
@@ -95,6 +96,7 @@ class Setup():
         self.interactive = interactive
         self.write_csv = write_csv
         self.write_parquet = write_parquet
+        self.first_sim_index = first_sim_index
 
         if nbetas is None:
             nbetas = nsim
@@ -130,6 +132,22 @@ class Setup():
 def seeding_draw(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
     method = s.seeding_config["method"].as_str()
+    if (method == 'NegativeBinomialDistributed'):
+        seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
+                              converters={'place': lambda x: str(x)},
+                              parse_dates=['date'])
+
+        dupes = seeding[seeding.duplicated(['place', 'date'])].index + 1
+        if not dupes.empty:
+            raise ValueError(f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file.")
+
+        for  _, row in seeding.iterrows():
+            if row['place'] not in s.spatset.nodenames:
+                raise ValueError(f"Invalid place '{row['place']}' in row {_ + 1} of seeding::lambda_file. Not found in geodata.")
+
+            importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = \
+                np.random.negative_binomial(n= 5, p = 5/(row['amount'] + 5))
+
     if (method == 'PoissonDistributed'):
         seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
                               converters={'place': lambda x: str(x)},
