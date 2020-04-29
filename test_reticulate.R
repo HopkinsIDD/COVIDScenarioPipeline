@@ -13,6 +13,8 @@ library(reticulate)
 use_python("/usr/local/bin/python3.7")
 
 # Load the setup
+py_run_string("config_path = 'config.yml'")
+py_run_string("scenario = 'Scenario1'")
 py_run_file("COVIDScenarioPipeline/minimal_interface.py")
 
 py$onerun_SEIR_loadID(1, py$s, 1)
