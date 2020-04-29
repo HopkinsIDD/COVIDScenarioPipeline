@@ -77,7 +77,7 @@ build_US_setup_target_name <- function() {
 }
 
 build_US_setup_make_command <- function() {
-  cmd <- ":\n"
+  cmd <- paste0(build_US_setup_target_name(),":\n")
   cmd <- paste0(cmd, "\tmkdir -p ", config$spatial_setup$base_path, "\n")
   cmd <- paste0(cmd, "\t$(RSCRIPT) $(PIPELINE)/R/scripts/build_US_setup.R -c $(CONFIG) -p $(PIPELINE)")
   return(cmd)
@@ -179,10 +179,10 @@ report_rmd_target_name <- function(report_name) {
 }
 
 report_rmd_make_command <- function(report_name) {
-  return(sprintf(":
+  return(sprintf("%s:
 \tmkdir -p notebooks/%s
 \t$(RSCRIPT) -e 'rmarkdown::draft(\"$@\",template=\"state_report\",package=\"report.generation\",edit=FALSE)'\n",
-report_name))
+report_rmd_target_name(report_name), report_name))
 }
 
 run_dependencies <- function(scenarios, simulations, deathrates) {
@@ -218,7 +218,6 @@ cat(paste0("CONFIG=",opt$config,"\n\n"))
 if(generating_report) {
   cat(report_html_target_name(report_name))
   cat(report_html_make_command(report_name, scenarios, simulations, deathrates, config))
-  cat(report_rmd_target_name(report_name))
   cat(report_rmd_make_command(report_name))
 } else {
   cat("run")
@@ -228,7 +227,6 @@ if(generating_report) {
 cat("\n")
 
 if(building_US_setup){
-  cat(build_US_setup_target_name())
   cat(build_US_setup_make_command())
 }
 
