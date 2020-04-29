@@ -79,7 +79,10 @@ def generate_pdf(max_files, filename, config_file):
     fig, axes = plt.subplots(len(varplot),len(all_hosp_sim), figsize =(23,20), sharex=True)
     for vi, var in enumerate(varplot):
         for scn, key in enumerate(list(all_hosp_sim.keys())):
-            ax = axes[vi][scn]
+            if len(all_hosp_sim) > 1:
+                ax = axes[vi][scn]
+            else:
+                ax = axes[vi]
             ax.set_title(key)
             ax.xaxis.set_major_locator(plt.MaxNLocator(12))
             ax.yaxis.set_major_locator(plt.MaxNLocator(5))
@@ -226,10 +229,13 @@ def generate_pdf(max_files, filename, config_file):
     fig, axes = plt.subplots(len(all_seir_sim_cumI),1, figsize =(15,15), sharex=True)
     i=0
     for key, value in all_seir_sim_cumI.items():
-        axes.flat[i]
+        if len(all_seir_sim_cumI) > 1:
+            ax = axes.flat[i]
+        else:
+            ax = axes
         #fig, axes = plt.subplots(1,1, figsize =(10,5))
-        ax = value.max().hist(ax= axes.flat[i])
-        axes.flat[i].set_title(f"Final Size {key}")
+        ax = value.max().hist(ax= ax)
+        ax.set_title(f"Final Size {key}")
         i=i+1
     pdf.savefig(fig)
 
