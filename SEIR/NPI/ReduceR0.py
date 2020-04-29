@@ -7,7 +7,7 @@ from .base import NPIBase
 # ReduceR0 is redundant with the newer Reduce NPI configured with parameter: 'r0'
 # Kept for backwards compatibility
 class ReduceR0(NPIBase):
-    def __init__(self, *, npi_config, global_config, geoids, in_df = None):
+    def __init__(self, *, npi_config, global_config, geoids, loaded_df = None):
         super().__init__(npi_config)
 
         self.start_date = global_config["start_date"].as_date()
@@ -43,16 +43,16 @@ class ReduceR0(NPIBase):
                     raise ValueError(f"Invalid config value {n.name} ({node}) not in geoids")
                 affected.append(node)
 
-        if in_df is None:
+        if loaded_df is None:
             self.npi = pd.DataFrame(0.0, index=geoids,
                                 columns=pd.date_range(self.start_date, self.end_date))
             period_range = pd.date_range(self.period_start_date, self.period_end_date)
             self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T
         else:
-            in_df.index = in_df.time
-            in_df = in_df[in_df['npi_name'] == self.name]
-            in_df.drop(['time', 'parameter', 'npi_name'], inplace = True, axis = 1)
-            self.npi = in_df.T
+            loaded_df.index = loaded_df.time
+            loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
+            loaded_df.drop(['time', 'parameter', 'npi_name'], inplace = True, axis = 1)
+            self.npi = loaded_df.T
 
         if (self.npi == 0).all(axis=None):
             print(f"Warning: The intervention in config: {npi_config.name} does nothing.")
