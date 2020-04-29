@@ -21,7 +21,7 @@ def _success(test_dir):
 
     # Make Makefile
     cmd = ["Rscript", "../../R/scripts/make_makefile.R",
-            "-c", f"config.yml",
+            "-c", "config.yml",
             "-p", "../..",
             "-n", str(multiprocessing.cpu_count()),
             "-y", sys.executable]

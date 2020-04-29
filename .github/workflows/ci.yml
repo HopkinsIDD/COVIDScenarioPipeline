@@ -16,11 +16,14 @@ jobs:
   unit-tests:
     runs-on: ubuntu-18.04
     container:
-      image: docker://hopkinsidd/covidscenariopipeline:latest-dataseed
+      image: docker://hopkinsidd/covidscenariopipeline:latest-dev
       options: --user root
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Set up Rprofile
+        run: cp Docker.Rprofile $HOME/.Rprofile
+        shell: bash
       - name: Run pytest SEIR
         run: |
           /home/app/python_venv/bin/pytest SEIR/

@@ -37,10 +37,10 @@
 #     - ...
 #   settings:
 #     <scenario 1 name>:
-#       template: choose one - "ReduceR0", "Stacked"
+#       template: choose one - "Reduce", ReduceR0", "Stacked"
 #       ...
 #     <scenario 2 name>:
-#       template: choose one - "Reduce R0", "Stacked"
+#       template: choose one - "Reduce", "ReduceR0", "Stacked"
 #       ...
 #
 # seeding:
@@ -48,6 +48,19 @@
 # ```
 #
 # ### interventions::scenarios::settings::<scenario name>
+#
+# If {template} is ReduceR0
+# ```yaml
+# interventions:
+#   scenarios:
+#     <scenario name>:
+#       template: Reduce
+#       parameter: choose one - "alpha, sigma, gamma, r0"
+#       period_start_date: <date>
+#       period_end_date: <date>
+#       value: <random distribution>
+#       affected_geoids: <list of strings> optional
+# ```
 #
 # If {template} is ReduceR0
 # ```yaml
@@ -101,7 +114,7 @@
 #
 # * model_output/{spatial_setup::setup_name}_[scenario]/[simulation ID].seir.[csv/parquet]
 # * model_parameters/{spatial_setup::setup_name}_[scenario]/[simulation ID].spar.[csv/parquet]
-# * model_parameters/{spatial_setup::setup_name}_[scenario]/[simulation ID].npi.[csv/parquet]
+# * model_parameters/{spatial_setup::setup_name}_[scenario]/[simulation ID].snpi.[csv/parquet]
 
 
 ## @cond
@@ -147,16 +160,17 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_p
     if not nsim:
         nsim = config["nsimulations"].as_number()
 
+    spatial_setup = setup.SpatialSetup(
+        setup_name=spatial_config["setup_name"].get(),
+        geodata_file=spatial_base_path / spatial_config["geodata"].get(),
+        mobility_file=spatial_base_path / spatial_config["mobility"].get(),
+        popnodes_key=spatial_config["popnodes"].get(),
+        nodenames_key=spatial_config["nodenames"].get())
+
     start = time.monotonic()
     for scenario in scenarios:
         s = setup.Setup(setup_name=config["name"].get() + "_" + str(scenario),
-                        spatial_setup=setup.SpatialSetup(
-                            setup_name=spatial_config["setup_name"].get(),
-                            geodata_file=spatial_base_path / spatial_config["geodata"].get(),
-                            mobility_file=spatial_base_path / spatial_config["mobility"].get(),
-                            popnodes_key=spatial_config["popnodes"].get(),
-                            nodenames_key=spatial_config["nodenames"].get()
-                        ),
+                        spatial_setup=spatial_setup,
                         nsim=nsim,
                         npi_scenario=scenario,
                         npi_config=config["interventions"]["settings"][scenario],

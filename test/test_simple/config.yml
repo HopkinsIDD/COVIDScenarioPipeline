@@ -34,7 +34,8 @@ interventions:
     - Scenario1
   settings:
     None:
-      template: ReduceR0
+      template: Reduce
+      parameter: r0
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
       value:
@@ -48,11 +49,20 @@ interventions:
         distribution: uniform
         low: .14
         high: .33
+    Place2:
+      template: Reduce
+      parameter: gamma
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .3
     Scenario1:
       template: Stacked
       scenarios:
         - Place1
         - None
+        - Place2
         
 hospitalization:
   paths:
