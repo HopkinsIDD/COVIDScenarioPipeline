@@ -32,6 +32,7 @@ RUN apt-get update && \
     less \
     build-essential \
     git-core \
+    git-lfs \
     curl \
     pandoc \
     pandoc-citeproc \
