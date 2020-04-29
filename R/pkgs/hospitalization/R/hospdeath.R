@@ -296,18 +296,16 @@ build_hospdeath_par <- function(p_hosp,
       mutate(date_inds = as.integer(time - min(time) + 1),
              geo_ind = as.numeric(as.factor(geoid))) %>%
       arrange(geo_ind, date_inds) %>%
-      group_by(geo_ind) %>%
-      group_map(function(.x,.y){
+      split(.$geo_ind) %>%
+      purrr::map_dfr(function(.x){
         .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),
                                                 n=R_delay_,default=0)
         .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),
                                                  n=ICU_dur_,default=0)
         .x$vent_curr <- cumsum(.x$incidVent) - lag(cumsum(.x$incidVent),
                                                    n=Vent_dur_)
-        .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
-      do.call(what=rbind) %>%
       replace_na(
         list(vent_curr = 0,
              icu_curr = 0,
@@ -429,18 +427,16 @@ build_hospdeath_geoid_fixedIFR_par <- function(
       mutate(date_inds = as.integer(time - min(time) + 1),
              geo_ind = as.numeric(as.factor(geoid))) %>%
       arrange(geo_ind, date_inds) %>%
-      group_by(geo_ind) %>%
-      group_map(function(.x,.y){
+      split(.$geo_ind) %>%
+      purrr::map_dfr(function(.x){
         .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),
                                                 n=R_delay_,default=0)
         .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),
                                                  n=ICU_dur_,default=0)
         .x$vent_curr <- cumsum(.x$incidVent) - lag(cumsum(.x$incidVent),
                                                    n=Vent_dur_)
-        .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
-      do.call(what=rbind) %>%
       replace_na(
         list(vent_curr = 0,
              icu_curr = 0,

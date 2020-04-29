@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 
 USER root
-ENV TERM dumb
+ENV TERM linux
 
 # set locale info
 RUN apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8
@@ -12,6 +12,7 @@ ENV LC_ALL en_US.UTF-8
 # set noninteractive installation
 ENV DEBIAN_FRONTEND noninteractive
 ENV R_VERSION 3.6.3-1bionic
+ENV RSTUDIO_VERSION 1.2.5033
 
 # see https://www.digitalocean.com/community/tutorials/how-to-install-r-on-ubuntu-18-04
 # https://cran.r-project.org/bin/linux/debian/
@@ -31,6 +32,7 @@ RUN apt-get update && \
     less \
     build-essential \
     git-core \
+    git-lfs \
     curl \
     pandoc \
     pandoc-citeproc \
@@ -87,13 +89,20 @@ ENV HOME /home/app
 #####
 
 # TODO: use packrat (or something else) for R package management
-RUN Rscript -e "install.packages('packrat',repos='https://cloud.r-project.org/')"
-RUN Rscript -e "install.packages('arrow',repos='https://cloud.r-project.org/')"
-RUN Rscript -e 'arrow::install_arrow()'
+RUN Rscript -e "install.packages('packrat',repos='https://cloud.r-project.org/')" \
+    && Rscript -e "install.packages('arrow',repos='https://cloud.r-project.org/')" \
+    && Rscript -e 'arrow::install_arrow()'
 COPY --chown=app:app packrat $HOME/packrat
-COPY --chown=app:app  .Rprofile $HOME/.Rprofile
+COPY --chown=app:app Docker.Rprofile $HOME/.Rprofile
 COPY --chown=app:app R/pkgs $HOME/R/pkgs
-RUN Rscript -e 'packrat::restore()'
+RUN Rscript -e 'packrat::restore()' \
+    && curl -O https://download2.rstudio.org/server/bionic/amd64/rstudio-server-$RSTUDIO_VERSION-amd64.deb \
+    && sudo apt-get install -f -y ./rstudio-server-$RSTUDIO_VERSION-amd64.deb \
+    && rm -f ./rstudio-server-$RSTUDIO_VERSION-amd64.deb
+RUN Rscript -e 'install.packages(list.files("R/pkgs",full.names=TRUE),type="source",repos=NULL)' \
+
+# expose Rstudio port
+EXPOSE 8787
 
 #####
 # Python (managed via pyenv)
