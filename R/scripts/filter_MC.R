@@ -195,13 +195,22 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
 ##'
 ##' @return NULL
 ##'
-parameter_file_path <- function(config,index){
+parameter_file_path <- function(config,index, scenario){
   if(length(config$interventions$scenarios) > 1){
     stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
   }
 
   ## FIX ME 
-  return(sprintf("model_output/%s_%s/%s.parquet",config$name,config$interventio$folder_path,index))
+  return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$spatial_setup$setup_name, scenario, index))
+}
+
+npi_file_path <- function(config,index){
+  if(length(config$interventions$scenarios) > 1){
+    stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
+  }
+
+  ## FIX ME 
+  return(sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$spatial_setup$setup_name, scenario, index))
 }
 
 
@@ -389,7 +398,11 @@ for(scenario in scenarios) {
 
     # FIX ME : this file won't exist in general
     # TODO CHANGE TO FIRST DRAW OF SEIR CODE
-    initial_params <- arrow::read_parquet("model_parameters/test_simple_None/000000001.snpi.parquet")
+    first_param_file <- param_file_path(config,opt$this_slot, scenario)
+    if(!file.exists(first_param_file)){
+      py$onerun_SEIR(opt$this_slot,s)
+    }
+    initial_params <- arrow::read_parquet(first_param_file)
 
     for( index in seq_len(opt$simulations_per_slot)) {
       print(index)
