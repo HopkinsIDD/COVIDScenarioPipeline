@@ -76,7 +76,10 @@ build_US_setup_target_name <- function() {
 }
 
 build_US_setup_make_command <- function() {
-  return(":\n\t$(RSCRIPT) $(PIPELINE)/R/scripts/build_US_setup.R -c $(CONFIG) -p $(PIPELINE)")
+  cmd <- ":\n"
+  cmd <- paste0(cmd, "\tmkdir -p ", config$spatial_setup$base_path, "\n")
+  cmd <- paste0(cmd, "\t$(RSCRIPT) $(PIPELINE)/R/scripts/build_US_setup.R -c $(CONFIG) -p $(PIPELINE)")
+  return(cmd)
 }
 
 filter_target_name <- function(simulation, prefix = "" ){

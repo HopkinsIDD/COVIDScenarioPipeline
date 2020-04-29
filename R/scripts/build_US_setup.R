@@ -142,9 +142,6 @@ t_commute_table <- tibble(
 )
 
 rc <- padding_table %>% bind_rows(commute_data) %>% bind_rows(t_commute_table)
-if(opt$w){
-  rc <- rc %>% pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
-}
 
 if(opt$w){
   mobility_file <- 'mobility.txt'
@@ -155,7 +152,10 @@ if(opt$w){
 }
 
 if(endsWith(mobility_file, '.txt')) {
+  rc <- rc %>% pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
   if(!isTRUE(all(rc$OFIPS == census_data$geoid))){
+    print(rc$OFIPS)
+    print(census_data$geoid)
     stop("There was a problem generating the mobility matrix")
   }
   write.table(file = file.path(outdir, mobility_file), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
