@@ -164,7 +164,6 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
 getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
   rc <- list()
   for(stat in names(stat_list)){
-    browser()
       s <- stat_list[[stat]]
       aggregator <- match.fun(s$aggregator)
       # Get the time period over whith to apply aggregation
