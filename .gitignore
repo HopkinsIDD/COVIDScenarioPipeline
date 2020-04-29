@@ -54,3 +54,4 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+packrat/lib*/
