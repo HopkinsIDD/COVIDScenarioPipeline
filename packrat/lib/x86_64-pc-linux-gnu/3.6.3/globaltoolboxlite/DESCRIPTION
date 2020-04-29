@@ -1,0 +1,35 @@
+Package: globaltoolboxlite
+Title: Identify Location Names and Link with Other Data, lite version
+Version: 0.0.0.9000
+Authors@R: c( person("Shaun", "Truelove", email =
+    "shauntruelove@jhu.edu", role = c("aut")), person("Joshua",
+    "Kaminsky", email = "jkaminsky@jhu.edu", role = c("aut", "cre")))
+Description: Allows users to standardize location names.
+Depends: R (>= 3.4)
+Imports: countrycode, dplyr, stringdist, stringr, glue, lubridate,
+    tibble, tidyr, reshape2, stats, rlang
+Suggests: readxl, testthat, covr, httr
+License: GPL (>=2)
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.0
+Collate: 'string_manipulation.R' 'get_country.R' 'get_region.R'
+    'get_who_disease_incidence.R'
+RemoteType: github
+RemoteHost: api.github.com
+RemoteRepo: globaltoolboxlite
+RemoteUsername: HopkinsIDD
+RemoteRef: master
+RemoteSha: bdc856e7aec629d2960b2b72618d9e0b49a5898e
+GithubRepo: globaltoolboxlite
+GithubUsername: HopkinsIDD
+GithubRef: master
+GithubSHA1: bdc856e7aec629d2960b2b72618d9e0b49a5898e
+NeedsCompilation: no
+Packaged: 2020-04-26 15:42:40 UTC; root
+Author: Shaun Truelove [aut], Joshua Kaminsky [aut, cre]
+Maintainer: Joshua Kaminsky <jkaminsky@jhu.edu>
+Built: R 3.6.3; ; 2020-04-26 15:42:41 UTC; unix
+InstallAgent: packrat 0.5.0
+InstallSource: github
+Hash: 471f116c0a354436b3e1c6cfb3ce5bc2
