@@ -32,6 +32,7 @@ RUN apt-get update && \
     less \
     build-essential \
     git-core \
+    git-lfs \
     curl \
     pandoc \
     pandoc-citeproc \
@@ -98,6 +99,7 @@ RUN Rscript -e 'packrat::restore()' \
     && curl -O https://download2.rstudio.org/server/bionic/amd64/rstudio-server-$RSTUDIO_VERSION-amd64.deb \
     && sudo apt-get install -f -y ./rstudio-server-$RSTUDIO_VERSION-amd64.deb \
     && rm -f ./rstudio-server-$RSTUDIO_VERSION-amd64.deb
+RUN Rscript -e 'install.packages(list.files("R/pkgs",full.names=TRUE),type="source",repos=NULL)' \
 
 # expose Rstudio port
 EXPOSE 8787
