@@ -57,9 +57,9 @@ import time
 
 import click
 
-from COVIDScenarioPipeline.SEIR import seir, setup
-from COVIDScenarioPipeline.SEIR.utils import config
-from COVIDScenarioPipeline.SEIR.profile import profile_options
+from SEIR import seir, setup
+from SEIR.utils import config
+from SEIR.profile import profile_options
 
 config.set_file(config_path)
 
