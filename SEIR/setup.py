@@ -183,19 +183,19 @@ def seeding_draw(s, sim_id):
 
         y0 = np.zeros((ncomp, s.nnodes))
 
-        for pl in s.spatset.nodenames:
+        for pl_idx, pl in enumerate(s.spatset.nodenames):
             if pl in list(states['place']):
-                y0[S][s.spatset.nodenames.index(pl)] =  float(states[(states['place'] == pl) & (states['comp'] == 'S')]['amount'])
-                y0[E][s.spatset.nodenames.index(pl)] =  float(states[(states['place'] == pl) & (states['comp'] == 'E')]['amount'])
-                y0[I1][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I1')]['amount'])
-                y0[I2][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I2')]['amount'])
-                y0[I3][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I3')]['amount'])
-                y0[R][s.spatset.nodenames.index(pl)] =  float(states[(states['place'] == pl) & (states['comp'] == 'R')]['amount'])
-                y0[cumI][s.spatset.nodenames.index(pl)] = y0[I1][s.spatset.nodenames.index(pl)] + y0[I2][s.spatset.nodenames.index(pl)] +\
-                                                          y0[I3][s.spatset.nodenames.index(pl)] + y0[R][s.spatset.nodenames.index(pl)]
+                states_pl = states[states['place'] == pl]
+                y0[S][pl_idx] =  float(states_pl[states_pl['comp'] == 'S']['amount'])
+                y0[E][pl_idx] =  float(states_pl[states_pl['comp'] == 'E']['amount'])
+                y0[I1][pl_idx] = float(states_pl[states_pl['comp'] == 'I1']['amount'])
+                y0[I2][pl_idx] = float(states_pl[states_pl['comp'] == 'I2']['amount'])
+                y0[I3][pl_idx] = float(states_pl[states_pl['comp'] == 'I3']['amount'])
+                y0[R][pl_idx] =  float(states_pl[states_pl['comp'] == 'R']['amount'])
+                y0[cumI][pl_idx] = y0[I1][pl_idx] + y0[I2][pl_idx] + y0[I3][pl_idx] + y0[R][pl_idx]
             elif s.seeding_config["ignore_missing"].get():
                 print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                y0[S, s.spatset.nodenames.index(pl)] = s.popnodes[s.spatset.nodenames.index(pl)]
+                y0[S, pl_idx] = s.popnodes[pl_idx]
             else:
                 raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
             
@@ -230,12 +230,12 @@ def seeding_load(s, sim_id):
         for pl_idx, pl in enumerate(s.spatset.nodenames):
             if pl in list(states['place']):
                 states_pl = states[states['place'] == pl]
-                y0[S][pl_idx] =  float(states_pl[states['comp'] == 'S']['amount'])
-                y0[E][pl_idx] =  float(states_pl[states['comp'] == 'E']['amount'])
-                y0[I1][pl_idx] = float(states_pl[states['comp'] == 'I1']['amount'])
-                y0[I2][pl_idx] = float(states_pl[states['comp'] == 'I2']['amount'])
-                y0[I3][pl_idx] = float(states_pl[states['comp'] == 'I3']['amount'])
-                y0[R][pl_idx] =  float(states_pl[states['comp'] == 'R']['amount'])
+                y0[S][pl_idx] =  float(states_pl[states_pl['comp'] == 'S']['amount'])
+                y0[E][pl_idx] =  float(states_pl[states_pl['comp'] == 'E']['amount'])
+                y0[I1][pl_idx] = float(states_pl[states_pl['comp'] == 'I1']['amount'])
+                y0[I2][pl_idx] = float(states_pl[states_pl['comp'] == 'I2']['amount'])
+                y0[I3][pl_idx] = float(states_pl[states_pl['comp'] == 'I3']['amount'])
+                y0[R][pl_idx] =  float(states_pl[states_pl['comp'] == 'R']['amount'])
                 y0[cumI][pl_idx] = y0[I1][pl_idx] + y0[I2][pl_idx] + y0[I3][pl_idx] + y0[R][pl_idx]
             elif s.seeding_config["ignore_missing"].get():
                 print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
