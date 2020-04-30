@@ -177,29 +177,26 @@ def seeding_draw(s, sim_id):
             importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
 
     elif (method == 'SetInitialConditions'):
-        states = pd.read_csv(s.seeding_config["states_file"].as_str(), parse_dates=['time'])
-        states = states[states['time']==pd.Timestamp(s.ti)]
-        states = states.set_index('comp', drop = True)
+        states = pd.read_csv(s.seeding_config["states_file"].as_str(), converters={'place': lambda x: str(x)})
         if (states.empty):
             raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
 
         y0 = np.zeros((ncomp, s.nnodes))
 
         for pl in s.spatset.nodenames:
-            if pl in states.columns:
-                y0[S][s.spatset.nodenames.index(pl)] = states[pl].S
-                y0[E][s.spatset.nodenames.index(pl)] = states[pl].E
-                y0[I1][s.spatset.nodenames.index(pl)] = states[pl].I1
-                y0[I2][s.spatset.nodenames.index(pl)] = states[pl].I2
-                y0[I3][s.spatset.nodenames.index(pl)] = states[pl].I3
-                y0[R][s.spatset.nodenames.index(pl)] = states[pl].R
-                y0[cumI][s.spatset.nodenames.index(pl)] = states[pl].I1 + states[pl].I2 + states[pl].I3
+            if pl in list(states['place']):
+                y0[S][s.spatset.nodenames.index(pl)] =  float(states[(states['place'] == pl) & (states['comp'] == 'S')]['amount'])
+                y0[E][s.spatset.nodenames.index(pl)] =  float(states[(states['place'] == pl) & (states['comp'] == 'E')]['amount'])
+                y0[I1][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I1')]['amount'])
+                y0[I2][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I2')]['amount'])
+                y0[I3][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I3')]['amount'])
+                y0[R][s.spatset.nodenames.index(pl)] =  float(states[(states['place'] == pl) & (states['comp'] == 'R')]['amount'])
+                y0[cumI][s.spatset.nodenames.index(pl)] = y0[I1][s.spatset.nodenames.index(pl)] + y0[I2][s.spatset.nodenames.index(pl)] + y0[I3][s.spatset.nodenames.index(pl)]
             elif s.seeding_config["ignore_missing"].get():
                 print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                y0[S, s.spatset.nodenames.index(pl)] = s.popnodes[s.spatset.nodenames.index(pl)]
             else:
                 raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-    
+            
     else:
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
     
@@ -222,30 +219,25 @@ def seeding_load(s, sim_id):
             importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
 
     elif (method == 'SetInitialConditions'):
-        states = pd.read_csv(s.seeding_config["states_file"].as_str(), parse_dates=['time'])
-        states = states[states['time']==pd.Timestamp(s.ti)]
-        states = states.set_index('comp', drop = True)
+        states = pd.read_csv(s.seeding_config["states_file"].as_str(), converters={'place': lambda x: str(x)})
         if (states.empty):
             raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
 
         y0 = np.zeros((ncomp, s.nnodes))
 
         for pl in s.spatset.nodenames:
-            if pl in states.columns:
-                y0[S][s.spatset.nodenames.index(pl)] = states[pl].S
-                y0[E][s.spatset.nodenames.index(pl)] = states[pl].E
-                y0[I1][s.spatset.nodenames.index(pl)] = states[pl].I1
-                y0[I2][s.spatset.nodenames.index(pl)] = states[pl].I2
-                y0[I3][s.spatset.nodenames.index(pl)] = states[pl].I3
-                y0[R][s.spatset.nodenames.index(pl)] = states[pl].R
-                y0[cumI][s.spatset.nodenames.index(pl)] = states[pl].I1 + states[pl].I2 + states[pl].I3
+            if pl in list(states['place']):
+                y0[S][s.spatset.nodenames.index(pl)] =  float(states[(states['place'] == pl) & (states['comp'] == 'S')]['amount'])
+                y0[E][s.spatset.nodenames.index(pl)] =  float(states[(states['place'] == pl) & (states['comp'] == 'E')]['amount'])
+                y0[I1][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I1')]['amount'])
+                y0[I2][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I2')]['amount'])
+                y0[I3][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I3')]['amount'])
+                y0[R][s.spatset.nodenames.index(pl)] =  float(states[(states['place'] == pl) & (states['comp'] == 'R')]['amount'])
+                y0[cumI][s.spatset.nodenames.index(pl)] = y0[I1][s.spatset.nodenames.index(pl)] + y0[I2][s.spatset.nodenames.index(pl)] + y0[I3][s.spatset.nodenames.index(pl)]
             elif s.seeding_config["ignore_missing"].get():
                 print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                y0[S, s.spatset.nodenames.index(pl)] = s.popnodes[s.spatset.nodenames.index(pl)]
             else:
                 raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-     
-    
     else:
         raise NotImplementedError(f"Seeding method in inference run must be FolderDraw or SetInitialConditions [got: {method}]")
 
