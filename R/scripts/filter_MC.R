@@ -14,6 +14,7 @@ library(foreach)
 library(magrittr)
 library(xts)
 library(reticulate)
+library(truncnorm)
 
 
 option_list = list(
