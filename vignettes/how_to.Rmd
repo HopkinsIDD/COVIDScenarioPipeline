@@ -491,7 +491,7 @@ Severe:
  - Run simulate.py
 
    ```{sh, eval=FALSE}
-   python3 COVIDScenarioPipeline/simulate.py -c config.yml -s None -n 15
+   simulate.py -c config.yml -s None -n 15
    ```
 
  -

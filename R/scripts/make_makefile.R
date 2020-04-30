@@ -124,7 +124,7 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   if(using_static_filter){
     dependency_name <- paste(dependency_name, filter_target_name(simulation,prefix))
   }
-  command_name <- paste0("$(PYTHON) $(PIPELINE)/simulate.py -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER)")
+  command_name <- paste0("$(PYTHON) -m SEIR -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files/directory_exists ",
