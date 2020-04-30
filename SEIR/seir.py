@@ -24,7 +24,7 @@ def onerun_SEIR(sim_id, s):
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    seeding = setup.seeding_draw(s, sim_id)
+    y0, seeding = setup.seeding_draw(s, sim_id)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -32,7 +32,7 @@ def onerun_SEIR(sim_id, s):
     p_draw = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
-    states = steps_SEIR_nb(parameters,
+    states = steps_SEIR_nb(parameters, y0,
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
@@ -139,7 +139,7 @@ def run_parallel(s, *, n_jobs=1):
 
 
 @jit(nopython=True)
-def steps_SEIR_nb(p_vec, seeding, dt, t_inter, nnodes, popnodes,
+def steps_SEIR_nb(p_vec, y0, seeding, dt, t_inter, nnodes, popnodes,
                   mobility_row_indices, mobility_data_indices, mobility_data, dynfilter):
     """
         Made to run just-in-time-compiled by numba, hence very descriptive and using loop,
@@ -148,8 +148,8 @@ def steps_SEIR_nb(p_vec, seeding, dt, t_inter, nnodes, popnodes,
     """
     alpha, beta, sigma, gamma = p_vec
 
-    y = np.zeros((ncomp, nnodes))
-    y[S, :] = popnodes
+
+    y = np.copy(y0)
     states = np.zeros((ncomp, nnodes, len(t_inter)))
 
     exposeCases = np.empty(nnodes)
