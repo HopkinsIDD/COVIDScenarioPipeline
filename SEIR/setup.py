@@ -191,7 +191,8 @@ def seeding_draw(s, sim_id):
                 y0[I2][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I2')]['amount'])
                 y0[I3][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I3')]['amount'])
                 y0[R][s.spatset.nodenames.index(pl)] =  float(states[(states['place'] == pl) & (states['comp'] == 'R')]['amount'])
-                y0[cumI][s.spatset.nodenames.index(pl)] = y0[I1][s.spatset.nodenames.index(pl)] + y0[I2][s.spatset.nodenames.index(pl)] + y0[I3][s.spatset.nodenames.index(pl)]
+                y0[cumI][s.spatset.nodenames.index(pl)] = y0[I1][s.spatset.nodenames.index(pl)] + y0[I2][s.spatset.nodenames.index(pl)] +\
+                                                          y0[I3][s.spatset.nodenames.index(pl)] + y0[R][s.spatset.nodenames.index(pl)]
             elif s.seeding_config["ignore_missing"].get():
                 print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
                 y0[S, s.spatset.nodenames.index(pl)] = s.popnodes[s.spatset.nodenames.index(pl)]
@@ -234,7 +235,8 @@ def seeding_load(s, sim_id):
                 y0[I2][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I2')]['amount'])
                 y0[I3][s.spatset.nodenames.index(pl)] = float(states[(states['place'] == pl) & (states['comp'] == 'I3')]['amount'])
                 y0[R][s.spatset.nodenames.index(pl)] =  float(states[(states['place'] == pl) & (states['comp'] == 'R')]['amount'])
-                y0[cumI][s.spatset.nodenames.index(pl)] = y0[I1][s.spatset.nodenames.index(pl)] + y0[I2][s.spatset.nodenames.index(pl)] + y0[I3][s.spatset.nodenames.index(pl)]
+                y0[cumI][s.spatset.nodenames.index(pl)] = y0[I1][s.spatset.nodenames.index(pl)] + y0[I2][s.spatset.nodenames.index(pl)] +\
+                                                          y0[I3][s.spatset.nodenames.index(pl)] + y0[R][s.spatset.nodenames.index(pl)]
             elif s.seeding_config["ignore_missing"].get():
                 print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
                 y0[S, s.spatset.nodenames.index(pl)] = s.popnodes[s.spatset.nodenames.index(pl)]
