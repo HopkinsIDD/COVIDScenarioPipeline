@@ -131,6 +131,10 @@ class Setup():
 
 def seeding_draw(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
+    
+    y0 = np.zeros((ncomp, s.nnodes))
+    y0[S, :] = s.popnodes
+    
     method = s.seeding_config["method"].as_str()
     if (method == 'NegativeBinomialDistributed'):
         seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
@@ -172,9 +176,29 @@ def seeding_draw(s, sim_id):
                               parse_dates=['date'])
         for  _, row in seeding.iterrows():
             importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
+
+    elif (method == 'SetInitialConditions'):
+        states = pd.read_csv(s.seeding_config["states_file"].as_str(), parse_dates=['time'])
+        states = states[states['time']==s.ti]
+        states = states.set_index('comp', drop = True)
+
+        y0 = np.zeros((ncomp, s.nnodes))
+
+        for pl in s.spatset.nodenames:
+            y[S][s.spatset.nodenames.index(pl)] = states[pl].S
+            y[E][s.spatset.nodenames.index(pl)] = states[pl].E
+            y[I1][s.spatset.nodenames.index(pl)] = states[pl].I1
+            y[I2][s.spatset.nodenames.index(pl)] = states[pl].I2
+            y[I3][s.spatset.nodenames.index(pl)] = states[pl].I3
+            y[R][s.spatset.nodenames.index(pl)] = states[pl].R
+            y[cumI][s.spatset.nodenames.index(pl)] = states[pl].I1 + states[pl].I2 + states[pl].I3  
+    
     else:
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
-    return importation
+    
+
+    return y0, importation
+
 
 
 def seeding_load(s, sim_id):
