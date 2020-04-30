@@ -194,6 +194,7 @@ def seeding_draw(s, sim_id):
                 y0[cumI][s.spatset.nodenames.index(pl)] = y0[I1][s.spatset.nodenames.index(pl)] + y0[I2][s.spatset.nodenames.index(pl)] + y0[I3][s.spatset.nodenames.index(pl)]
             elif s.seeding_config["ignore_missing"].get():
                 print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
+                y0[S, s.spatset.nodenames.index(pl)] = s.popnodes[s.spatset.nodenames.index(pl)]
             else:
                 raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
             
@@ -236,6 +237,7 @@ def seeding_load(s, sim_id):
                 y0[cumI][s.spatset.nodenames.index(pl)] = y0[I1][s.spatset.nodenames.index(pl)] + y0[I2][s.spatset.nodenames.index(pl)] + y0[I3][s.spatset.nodenames.index(pl)]
             elif s.seeding_config["ignore_missing"].get():
                 print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
+                y0[S, s.spatset.nodenames.index(pl)] = s.popnodes[s.spatset.nodenames.index(pl)]
             else:
                 raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
     else:
