@@ -1,53 +1,53 @@
 import click
+import confuse
 import multiprocessing
+import os.path
+import pathlib
+import pickle
+
+import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
+from SEIR.utils import config
 from SEIR.profile import profile_options
 
-def load_hosp_sims_filtered(hosp_dir, deathrate, nsims, start_date, end_date):
-# load_hosp_sims_filtered <- function(scenario_dir,
-#                                     name_filter,
-#                                     num_files = NA,
-#                                     post_process=function(x) {x},
-#                                     padding_char = "0",
-#                                     file_extension = 'auto',
-#                                     ...) {
-
-    df = []
+def load_hosp_sims(hosp_dir, deathrate, nsims, start_date, end_date):
+    dfs = []
     for sim_id in range(1, nsims+1):
-        sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
-        file_basename = f"{hosp_dir}/{deathrate}_death-.hosp"
-        if os.exists(f"{file_basename}.csv"):
-            df = pd.read_csv(f"{file_basename}.csv")
-        elif os.exists(f"{file_basename}.parquet"):
-            df = pq.read_table(f"{file_basename}.parquet")
+        sim_id_str = str(sim_id).zfill(9)
+        file_basename = f"{hosp_dir}/{deathrate}_death-{sim_id_str}.hosp"
+        if os.path.exists(f"{file_basename}.csv"):
+            df = pd.read_csv(f"{file_basename}.csv", parse_dates=["time"])
+        elif os.path.exists(f"{file_basename}.parquet"):
+            df = pq.read_table(f"{file_basename}.parquet").to_pandas()
         else:
             raise Exception(f"Hospital simulation not found at {file_basename}.[parquet|csv]")
 
-        # Post-process
-
-##Per file filtering code
-# post_proc <- function(x,geodata,opt) {
+        # Per file filtering code
+        # post_proc <- function(x,geodata,opt) {
 
 
-#   x%>%
-#     group_by(geoid) %>%
-#       mutate(cum_infections=cumsum(incidI)) %>%
-#       mutate(cum_death=cumsum(incidD)) %>%
-#       ungroup()%>%
-#       filter(time>=opt$start_date& time<=opt$end_date)%>%
-#       rename(infections=incidI, death=incidD, hosp=incidH)
-# }
-        grouped_df = df.group_by(geoid)
-        grouped_df["cum_infections"] = np.cumsum("incidI")
-        grouped_df["cum_death"] = np.cumsum("incidD")
-        print(grouped_df)
-        df = df.filter((time >= start_date) and (time <= end_date))
+        #   x%>%
+        #     group_by(geoid) %>%
+        #       mutate(cum_infections=cumsum(incidI)) %>%
+        #       mutate(cum_death=cumsum(incidD)) %>%
+        #       ungroup()%>%
+        #       filter(time>=opt$start_date& time<=opt$end_date)%>%
+        #       rename(infections=incidI, death=incidD, hosp=incidH)
+        # }
+
+        # grouped_df = df.groupby(["geoid"])
+        # grouped_df["cum_infections"] = np.cumsum(df.incidI)
+        # grouped_df["cum_death"] = np.cumsum(df.incidD)
+        # print(grouped_df)
+
+        df.rename(columns={"incidI": "infections", "incidD": "deaths", "incidH": "hosp"}, inplace=True)
+        cum_df = df[["geoid","time","infections","deaths"]].groupby(['geoid', 'time']).sum().groupby(level=0).cumsum().reset_index()
+        cum_df.rename(columns={"infections": "cum_infections", "deaths": "cum_deaths"}, inplace=True)
+        df = df.join(cum_df[["cum_infections","cum_deaths"]])
+        df = df[(df.time > start_date) & (df.time <= end_date)]
         df = df.assign(sim_num=sim_id)
-        df = df.rename(columns={"incidI": "infections", "incidD": "deaths", "incidH": "hosp"})
-        df["cum_infections"] = grouped_df[df.geoid]["cum_infections"]
-        df["cum_death"] = grouped_df[df.geoid]["cum_death"]
         print(df)
         dfs.append(df)
 
@@ -99,13 +99,12 @@ def load_hosp_sims_filtered(hosp_dir, deathrate, nsims, start_date, end_date):
 @click.option("-o", "--outfile", type=str, required=True)
 @profile_options
 def main (config_file, deathrate, scenarios, nsim, jobs, outfile):
-    config = confuse.Configuration("COVIDScenarioPipeline")
     config.set_file(config_file)
 
     start_date = config["start_date"].as_date()
     end_date = config["end_date"].as_date()
 
-    geodata_file = config["spatial_setup"]["base_path"] / config["spatial_setup"]["geodata"]
+    geodata_file = pathlib.Path(config["spatial_setup"]["base_path"].get()) / config["spatial_setup"]["geodata"].get()
     nodenames_key = config["spatial_setup"]["nodenames"]
     geodata = pd.read_csv(geodata_file, converters={nodenames_key: lambda x: str(x)}) # geoids and populations
 
@@ -145,16 +144,17 @@ def main (config_file, deathrate, scenarios, nsim, jobs, outfile):
     ##Final results will average accross whatever is included
     # res_geoid <-list()
     setup_name = config["spatial_setup"]["setup_name"]
+    dfs = []
     for scenario in scenarios:
         hosp_dir = f"hospitalization/model_output/{setup_name}_{scenario}"
-        df = load_hosp_sims_filtered(hosp_dir, deathrate, nsim, start_date, end_date)
+        df = load_hosp_sims(hosp_dir, deathrate, nsim, start_date, end_date)
         df = df.assign(scenario=scenario)
-        exit(0)
+        dfs.append(df)
 
+    res_geoid = pd.concat(dfs)
+    print(res_geoid)
 
-
-# ##Put in one data frame
-# res_geoid<-dplyr::bind_rows(res_geoid)
+    to_save_geo = inner_join()
 
 # ##deregister backend
 # doParallel::stopImplicitCluster()
@@ -169,7 +169,6 @@ def main (config_file, deathrate, scenarios, nsim, jobs, outfile):
 #                                                               seq(0.05, 0.95, by = 0.05), 0.975, 0.99)),
 #                                  "quantile",col))) %>%
 #         unnest(x)
-
 # }
 
 
@@ -180,8 +179,8 @@ def main (config_file, deathrate, scenarios, nsim, jobs, outfile):
 #     inner_join(tmp_col(res_geoid,"cum_infections"))%>%
 #     inner_join(tmp_col(res_geoid,"hosp"))
 
+    to_save_geo.to_csv(outfile)
 
-# write_csv(to_save_geo, path=opt$outfile)
 
 if __name__ == "__main__":
     main()
