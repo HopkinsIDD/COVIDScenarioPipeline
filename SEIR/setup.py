@@ -131,7 +131,6 @@ class Setup():
 
 def seeding_draw(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
-    
     y0 = np.zeros((ncomp, s.nnodes))
     y0[S, :] = s.popnodes
     
@@ -199,22 +198,41 @@ def seeding_draw(s, sim_id):
 
     return y0, importation
 
-
-
 def seeding_load(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
-    sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
-    try:
+    y0 = np.zeros((ncomp, s.nnodes))
+    y0[S, :] = s.popnodes
+    
+    method = s.seeding_config["method"].as_str()
+    if (method == 'FolderDraw'):
+        sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         folder_path = s.seeding_config["folder_path"].as_str()
-    except:
-        raise ValueError(f"When loading, the seeding must be specified as FolderDraw and a folder must be provided")
-    seeding = pd.read_csv(f'{folder_path}importation_{sim_id_str}.csv',
-                        converters={'place': lambda x: str(x)},
-                        parse_dates=['date'])
-    for  _, row in seeding.iterrows():
-        importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
+        seeding = pd.read_csv(f'{folder_path}importation_{sim_id_str}.csv',
+                              converters={'place': lambda x: str(x)},
+                              parse_dates=['date'])
+        for  _, row in seeding.iterrows():
+            importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
 
-    return importation
+    elif (method == 'SetInitialConditions'):
+        states = pd.read_csv(s.seeding_config["states_file"].as_str(), parse_dates=['time'])
+        states = states[states['time']==s.ti]
+        states = states.set_index('comp', drop = True)
+
+        y0 = np.zeros((ncomp, s.nnodes))
+
+        for pl in s.spatset.nodenames:
+            y[S][s.spatset.nodenames.index(pl)] = states[pl].S
+            y[E][s.spatset.nodenames.index(pl)] = states[pl].E
+            y[I1][s.spatset.nodenames.index(pl)] = states[pl].I1
+            y[I2][s.spatset.nodenames.index(pl)] = states[pl].I2
+            y[I3][s.spatset.nodenames.index(pl)] = states[pl].I3
+            y[R][s.spatset.nodenames.index(pl)] = states[pl].R
+            y[cumI][s.spatset.nodenames.index(pl)] = states[pl].I1 + states[pl].I2 + states[pl].I3  
+    
+    else:
+        raise NotImplementedError(f"Seeding method in inference run must be FolderDraw or SetInitialConditions [got: {method}]")
+
+    return y0, importation
 
 def npi_load(fname, extension):
     # Quite ugly and should be in class NPI

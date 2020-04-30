@@ -104,7 +104,7 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config,
         geoids=s.spatset.nodenames, loaded_df = setup.npi_load(f"{s.paramdir}{sim_id_str}.snpi", extension))
 
-    seeding = setup.seeding_load(s, sim_id2load)
+    y0, seeding = setup.seeding_load(s, sim_id2load)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -114,7 +114,7 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
     
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
-    states = steps_SEIR_nb(parameters,
+    states = steps_SEIR_nb(parameters, y0,
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
