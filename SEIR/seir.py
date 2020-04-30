@@ -21,17 +21,16 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 def onerun_SEIR(sim_id, s):
     scipy.random.seed()
 
-    sim_id_str = str(sim_id).zfill(9)
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
-    npi = npi.get().T
 
     seeding = setup.seeding_draw(s, sim_id)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
-    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes, s.dt, npi)
+    p_draw = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
+    parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
     states = steps_SEIR_nb(parameters,
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
@@ -64,19 +63,18 @@ def onerun_SEIR(sim_id, s):
         out_df['comp'].replace(R, 'R', inplace=True)
         out_df['comp'].replace(cumI, 'cumI', inplace=True)
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
+        sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         if s.write_csv:
-            npi.to_csv(f"{s.paramdir}{sim_id}.snpi.csv", index_label="time")
-            setup.parameters_write(parameters, f"{s.paramdir}{sim_id_str}.spar","csv")
+            npi.writeReductions(f"{s.paramdir}{sim_id_str}.snpi","csv")
+            setup.parameters_write(parameters, f"{s.paramdir}{sim_id_str}.spar", "csv")
+
             out_df.to_csv(
                 f"{s.datadir}{sim_id}.seir.csv",
                 index='time',
                 index_label='time')
         if s.write_parquet:
-            npi['time'] = npi.index
-            pa_npi = pa.Table.from_pandas(npi,preserve_index = False)
-            pa.parquet.write_table(pa_npi,f"{s.paramdir}{sim_id_str}.snpi.parquet")
-
-            setup.parameters_write(parameters, f"{s.paramdir}{sim_id_str}.spar","parquet")
+            npi.writeReductions(f"{s.paramdir}{sim_id_str}.snpi", "parquet")
+            setup.parameters_write(p_draw, f"{s.paramdir}{sim_id_str}.spar", "parquet")
 
             out_df['time'] = out_df.index
             pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
@@ -109,7 +107,6 @@ def steps_SEIR_nb(p_vec, seeding, dt, t_inter, nnodes, popnodes,
         as there is very few authorized function. Needs the nopython option to be fast.
     """
     alpha, beta, sigma, gamma = p_vec
-    t = 0
 
     y = np.zeros((ncomp, nnodes))
     y[S, :] = popnodes
@@ -120,9 +117,6 @@ def steps_SEIR_nb(p_vec, seeding, dt, t_inter, nnodes, popnodes,
     incident2Cases = np.empty(nnodes)
     incident3Cases = np.empty(nnodes)
     recoveredCases = np.empty(nnodes)
-
-    p_infect = 1 - np.exp(-dt * sigma)
-    p_recover = 1 - np.exp(-dt * gamma)
 
     percent_who_move = np.zeros(nnodes)
     percent_day_away = 0.5
@@ -136,21 +130,25 @@ def steps_SEIR_nb(p_vec, seeding, dt, t_inter, nnodes, popnodes,
             y[S] = y[S] * (y[S] > 0)
 
         for i in range(nnodes):
+            index = np.arange(mobility_data_indices[i],mobility_data_indices[i+1])
+            row_index = mobility_row_indices[index]
             p_expose = 1.0 - np.exp(-dt * (
-              ((1 - percent_day_away * percent_who_move[i] ) * beta[it][i] * (y[I1][i] + y[I2][i] + y[I3][i])**alpha / popnodes[i] ) +  # Staying at home FoI
+              ((1 - percent_day_away * percent_who_move[i] ) * beta[it][i] * (y[I1][i] + y[I2][i] + y[I3][i])**alpha[it][i] / popnodes[i] ) +  # Staying at home FoI
               (
-                percent_day_away * mobility_data[mobility_data_indices[i]:mobility_data_indices[i+1] ] / popnodes[i] * # Probability of going there
-                beta[it][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] * # The beta for there
-                ( # num infected tehre
-                  y[I1][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] +
-                  y[I2][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] +
-                  y[I3][mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ]
-                )**alpha / popnodes[mobility_row_indices[mobility_data_indices[i]:mobility_data_indices[i+1] ] ] # population there
+                percent_day_away * mobility_data[index] / popnodes[i] * # Probability of going there
+                beta[it][row_index] * # The beta for there
+                ( # num infected there
+                  y[I1][row_index] +
+                  y[I2][row_index] +
+                  y[I3][row_index]
+                )**alpha[it][i] / popnodes[row_index] # population there
               ).sum()
             ))
 
             exposeCases[i] = np.random.binomial(y[S][i], p_expose)
+            p_infect = 1 - np.exp(-dt * sigma[it][i])
             incidentCases[i] = np.random.binomial(y[E][i], p_infect)
+            p_recover = 1 - np.exp(-dt * gamma[it][i])
             incident2Cases[i] = np.random.binomial(y[I1][i], p_recover)
             incident3Cases[i] = np.random.binomial(y[I2][i], p_recover)
             recoveredCases[i] = np.random.binomial(y[I3][i], p_recover)

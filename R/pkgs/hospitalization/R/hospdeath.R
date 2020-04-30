@@ -237,9 +237,11 @@ build_hospdeath_par <- function(p_hosp,
                                 time_ventdur_pars = log(17),
                                 cores=8,
                                 root_out_dir='hospitalization',
-                                use_parquet = FALSE) {
+                                use_parquet = FALSE,
+                                start_sim = 1,
+                                num_sims = -1) {
 
-  n_sim <- length(list.files(data_dir))
+  n_sim <- ifelse(num_sims < 0, length(list.files(data_dir)), num_sims)
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
 
@@ -251,7 +253,8 @@ build_hospdeath_par <- function(p_hosp,
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    dat_ <- hosp_load_scenario_sim(data_dir,s,
+    sim_id <- start_sim + s - 1
+    dat_ <- hosp_load_scenario_sim(data_dir,sim_id,
                                    keep_compartments = "diffI",
                                    geoid_len = 5,
                                    use_parquet = use_parquet) %>%
@@ -293,24 +296,22 @@ build_hospdeath_par <- function(p_hosp,
       mutate(date_inds = as.integer(time - min(time) + 1),
              geo_ind = as.numeric(as.factor(geoid))) %>%
       arrange(geo_ind, date_inds) %>%
-      group_by(geo_ind) %>%
-      group_map(function(.x,.y){
+      split(.$geo_ind) %>%
+      purrr::map_dfr(function(.x){
         .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),
                                                 n=R_delay_,default=0)
         .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),
                                                  n=ICU_dur_,default=0)
         .x$vent_curr <- cumsum(.x$incidVent) - lag(cumsum(.x$incidVent),
                                                    n=Vent_dur_)
-        .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
-      do.call(what=rbind) %>%
       replace_na(
         list(vent_curr = 0,
              icu_curr = 0,
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
-    write_hosp_output(root_out_dir, data_dir, dscenario_name, s, res, use_parquet)
+    write_hosp_output(root_out_dir, data_dir, dscenario_name, sim_id, res, use_parquet)
     NULL
   }
   doParallel::stopImplicitCluster()
@@ -351,9 +352,11 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   time_ventdur_pars = log(17),
   cores=8,
   root_out_dir='hospitalization',
-  use_parquet = FALSE
+  use_parquet = FALSE,
+  start_sim = 1,
+  num_sims = -1
 ) {
-  n_sim <- length(list.files(data_dir))
+  n_sim <- ifelse(num_sims < 0, length(list.files(data_dir)), num_sims)
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
 
@@ -370,7 +373,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
-    dat_I <- hosp_load_scenario_sim(data_dir,s,
+    sim_id <- start_sim + s - 1
+    dat_I <- hosp_load_scenario_sim(data_dir, sim_id,
                                    keep_compartments = "diffI",
                                    geoid_len=5,
                                    use_parquet = use_parquet) %>%
@@ -423,25 +427,23 @@ build_hospdeath_geoid_fixedIFR_par <- function(
       mutate(date_inds = as.integer(time - min(time) + 1),
              geo_ind = as.numeric(as.factor(geoid))) %>%
       arrange(geo_ind, date_inds) %>%
-      group_by(geo_ind) %>%
-      group_map(function(.x,.y){
+      split(.$geo_ind) %>%
+      purrr::map_dfr(function(.x){
         .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),
                                                 n=R_delay_,default=0)
         .x$icu_curr <- cumsum(.x$incidICU) - lag(cumsum(.x$incidICU),
                                                  n=ICU_dur_,default=0)
         .x$vent_curr <- cumsum(.x$incidVent) - lag(cumsum(.x$incidVent),
                                                    n=Vent_dur_)
-        .x$geo_ind <- .y$geo_ind
         return(.x)
       }) %>%
-      do.call(what=rbind) %>%
       replace_na(
         list(vent_curr = 0,
              icu_curr = 0,
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
 
-    write_hosp_output(root_out_dir, data_dir, dscenario_name, s, res, use_parquet)
+    write_hosp_output(root_out_dir, data_dir, dscenario_name, sim_id, res, use_parquet)
     NULL
   }
   doParallel::stopImplicitCluster()

@@ -17,6 +17,8 @@ on:
       - 'local_install.R'
       - 'Dockerfile'
       - 'R/pkgs/**'
+      - '.Rprofile'
+      - 'packrat/**'
 
 name: Deploy to Amazon ECR
 
