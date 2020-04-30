@@ -31,9 +31,12 @@ cd model_data
 
 # check for presence of S3_LAST_JOB_OUTPUT and download the
 # output from the corresponding last job here
+DVC_OUTPUTS_ARRAY=($DVC_OUTPUTS)
 if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
-	aws s3 cp --quiet $S3_LAST_JOB_OUTPUT:$AWS_BATCH_JOB_ARRAY_INDEX/testcp .
-	cat testcp
+	for output in "${DVC_OUTPUTS_ARRAY[@]}"
+	do
+		aws s3 cp --quiet --recursive $S3_LAST_JOB_OUTPUT:AWS_BATCH_JOB_ARRAY_INDEX/$output/ $output/
+	done
 fi
 
 # Initialize dvc and run the pipeline to re-create the
@@ -41,15 +44,11 @@ fi
 dvc init --no-scm
 dvc repro $DVC_TARGET
 
-DVC_OUTPUTS_ARRAY=($DVC_OUTPUTS)
 for output in "${DVC_OUTPUTS_ARRAY[@]}"
 do
 	if [ -d "$output" ]; then
 		aws s3 cp --quiet --recursive $output $S3_RESULTS_PATH/$AWS_BATCH_JOB_ID/$output/
 	fi
 done
-
-echo "Some data from $AWS_BATCH_JOB_ID" > testcp
-aws s3 cp --quiet testcp $S3_RESULTS_PATH/$AWS_BATCH_JOB_ID/
 
 echo "Done"
