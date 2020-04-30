@@ -280,6 +280,7 @@ perturb_npis <- function(npis, intervention_settings) {
           npis[[gid]][out_of_bounds_index]
       }
     }
+    npis <- npis_new
   }
   return(npis_new)
 }
