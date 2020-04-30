@@ -36,6 +36,7 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 	for output in "${DVC_OUTPUTS_ARRAY[@]}"
 	do
 		aws s3 cp --quiet --recursive $S3_LAST_JOB_OUTPUT:AWS_BATCH_JOB_ARRAY_INDEX/$output/ $output/
+		ls -ltr $output
 	done
 fi
 
