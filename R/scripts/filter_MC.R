@@ -199,7 +199,7 @@ parameter_file_path <- function(config,index, scenario){
   }
 
   ## FIX ME 
-  return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$spatial_setup$setup_name, scenario, index))
+  return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$name , scenario, index))
 }
 
 npi_file_path <- function(config,index,scenario){
@@ -208,7 +208,7 @@ npi_file_path <- function(config,index,scenario){
   }
 
   ## FIX ME 
-  return(sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$spatial_setup$setup_name, scenario, index))
+  return(sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
 }
 
 
@@ -226,7 +226,8 @@ seeding_file_path <- function(config,index){
 
   return(sprintf("%s/importation_%s.csv",config$seeding$folder_path,index))
 }
-
+dir.create(config$seeding$folder_path,recursive=TRUE)
+dir.create(sprintf("%s/%s/case_data",'importation',config$name),recursive=TRUE)
 
 
 ##' Fuction perturbs a seeding file based on a normal
@@ -261,18 +262,23 @@ perturb_seeding <- function(seeding,sd) {
 ##'
 ##' @return a pertubed data frame
 ##'
-perturb_npis <- function(npis, perturbations) {
+perturb_npis <- function(npis, intervention_settings) {
   require(dplyr)
   require(magrittr)
   npis_new <- npis
   geoids <- colnames(select(npis, -time, -parameter, -npi_name))
-  for (par in names(perturbations)) {
-    if (perturbations[[par]]$distribution == "normal") {
-      pert_dist <- function(n) {rnorm(n, mean = perturbations[[par]]$mu, sd = perturbations[[par]]$sd)}
-    } 
-    ind <- npis[["parameter"]] == par 
-    for (gid in geoids) {
-      npis_new[[gid]][ind] <- npis_new[[gid]][ind] + pert_dist(1)
+  for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
+    if ('perturbation' %in% names(intervention_settings[[intervention]])){
+      pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
+      ind <- npis[["npi_name"]] == intervention 
+      for (gid in geoids) {
+        npis_new[[gid]][ind] <- npis_new[[gid]][ind] + pert_dist(1)
+        out_of_bounds_index <- covidcommon::as_density_distribution(
+            intervention_settings[[intervention]][['value']]
+          )(npis_new[[gid]]) <= 0
+        npis_new[[gid]][out_of_bounds_index] <- 
+          npis[[gid]][out_of_bounds_index]
+      }
     }
   }
   return(npis_new)
@@ -373,7 +379,8 @@ for(scenario in scenarios) {
   ## One time setup for python
   reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
   reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
-  reticulate::py_run_file("COVIDScenarioPipeline/minimal_interface.py")
+  reticulate::import_from_path("SEIR", path=opt$pipepath)
+  reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
   for(deathrate in deathrates) {
       # Data -------------------------------------------------------------------------
@@ -414,7 +421,7 @@ for(scenario in scenarios) {
       # Load sims -----------------------------------------------------------
 
       current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
-      current_npis <- perturb_npis(initial_npis, config$filtering$perturbations)
+      current_npis <- perturb_npis(initial_npis, config$interventions$settings)
       current_params <- initial_params
       write.csv(
         current_seeding,
@@ -554,7 +561,7 @@ for(scenario in scenarios) {
       )
       initial_seeding <- seeding_npis_list$seeding
       initial_npis <- seeding_npis_list$npis
-      previous_likelihood_data <- seeding_npis_list$likelihood
+      previous_likelihood_data <- seeding_npis_list$ll
       print(paste("Current index is ",current_index))
       print(log_likelihood_data)
       print(previous_likelihood_data)
