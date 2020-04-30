@@ -44,7 +44,7 @@ A template can be found in `config.yml`. The easiest way to specify this
 config file to jobs is to use the `CONFIG_PATH` environment variable:
 
 ```
-$ CONFIG_PATH=/path/to/config.yml python COVIDScenarioPipeline/simulate.py -s Wuhan
+$ CONFIG_PATH=/path/to/config.yml simulate.py -s Wuhan
     [...]
 $ CONFIG_PATH=/path/to/config.yml Rscript hosp_run.R
 ```
@@ -61,7 +61,7 @@ Here's an example to run 10 simulations while profiling the simulation and
 outputting to `~/profile.output`.
 
 ```
-$ ./simulate.py -n 10 --profile --profile-output $HOME/profile.output -j 1
+$ simulate.py -n 10 --profile --profile-output $HOME/profile.output -j 1
 ```
 
 # RStudio

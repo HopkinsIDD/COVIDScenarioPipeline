@@ -24,6 +24,9 @@ jobs:
       - name: Set up Rprofile
         run: cp Docker.Rprofile $HOME/.Rprofile
         shell: bash
+      - name: Install SEIR package
+        run: /home/app/python_venv/bin/python setup.py install
+        shell: bash
       - name: Run pytest SEIR
         run: |
           /home/app/python_venv/bin/pytest SEIR/
