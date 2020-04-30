@@ -2,22 +2,23 @@
 suppressMessages({
     library(optparse, quietly=TRUE)
     library(tidyverse, quietly=TRUE)
+    library(parallel, quietly=TRUE)
 })
 
 ##List of specified options
 option_list <- list(
     make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
     make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used"),
-    make_option(c("-n", "--num_simulations"), action="store", default=-1, type='numeric', help="number of simulations to run, overrides config file value")
+    make_option(c("-n", "--num_simulations"), action="store", default=-1, type='numeric', help="number of simulations to run, overrides config file value"),
 
-    make_option("--name_filter", type="character", default="", help="filename filter, usually deaths"),
+    make_option(c("-d", "--name_filter"), type="character", default="", help="filename filter, usually deaths"),
     make_option(c("-o","--outfile"), type="character", default=NULL, help="file to save output"),
     make_option("--start_date", type="character", default=NULL, help="earliest date to include"),
     make_option("--end_date",  type="character", default=NULL, help="latest date to include")
 )
 
 opt_parser <- OptionParser(option_list = option_list, usage="%prog [options] [one or more scenarios]")
-arguments <- parse_args(opt_parser, positional_arguments=c(1,Inf))
+arguments <- parse_args(opt_parser, positional_arguments=TRUE)
 opts <- arguments$options
 
 scenarios <- arguments$args
