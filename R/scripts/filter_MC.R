@@ -199,7 +199,7 @@ parameter_file_path <- function(config,index, scenario){
   }
 
   ## FIX ME 
-  return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$spatial_setup$setup_name, scenario, index))
+  return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$name , scenario, index))
 }
 
 npi_file_path <- function(config,index,scenario){
@@ -208,7 +208,7 @@ npi_file_path <- function(config,index,scenario){
   }
 
   ## FIX ME 
-  return(sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$spatial_setup$setup_name, scenario, index))
+  return(sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
 }
 
 
@@ -226,7 +226,8 @@ seeding_file_path <- function(config,index){
 
   return(sprintf("%s/importation_%s.csv",config$seeding$folder_path,index))
 }
-
+dir.create(config$seeding$folder_path,recursive=TRUE)
+dir.create(sprintf("%s/%s/case_data",'importation',config$name),recursive=TRUE)
 
 
 ##' Fuction perturbs a seeding file based on a normal
