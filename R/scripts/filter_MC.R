@@ -262,18 +262,23 @@ perturb_seeding <- function(seeding,sd) {
 ##'
 ##' @return a pertubed data frame
 ##'
-perturb_npis <- function(npis, perturbations) {
+perturb_npis <- function(npis, intervention_settings) {
   require(dplyr)
   require(magrittr)
   npis_new <- npis
   geoids <- colnames(select(npis, -time, -parameter, -npi_name))
-  for (par in names(perturbations)) {
-    if (perturbations[[par]]$distribution == "normal") {
-      pert_dist <- function(n) {rnorm(n, mean = perturbations[[par]]$mu, sd = perturbations[[par]]$sd)}
-    } 
-    ind <- npis[["parameter"]] == par 
-    for (gid in geoids) {
-      npis_new[[gid]][ind] <- npis_new[[gid]][ind] + pert_dist(1)
+  for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
+    if ('perturbation' %in% names(intervention_settings[[intervention]])){
+      pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
+      ind <- npis[["parameter"]] == par 
+      for (gid in geoids) {
+        npis_new[[gid]][ind] <- npis_new[[gid]][ind] + pert_dist(1)
+        out_of_bounds_index <- covidcommon::as_density_distribution(
+            intervention_settings[[intervention]][['value']]
+          )(npis_new[,gid]) <= 0
+        npis_new[[gid]][out_of_bounds_index] <- 
+          npis[[gid]][out_of_bounds_index]
+      }
     }
   }
   return(npis_new)
@@ -416,7 +421,7 @@ for(scenario in scenarios) {
       # Load sims -----------------------------------------------------------
 
       current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
-      current_npis <- perturb_npis(initial_npis, config$filtering$perturbations)
+      current_npis <- perturb_npis(initial_npis, config$interventions$settings)
       current_params <- initial_params
       write.csv(
         current_seeding,
