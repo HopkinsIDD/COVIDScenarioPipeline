@@ -17,7 +17,7 @@ option_list <- list(
 opt_parser <- OptionParser(option_list = option_list, usage="%prog [options] [one or more scenarios]")
 
 ## Paerse the
-arguments <- parse_args(opt_parser, positional_arguments=c(1,Inf))
+arguments <- parse_args(opt_parser, positional_arguments=TRUE)
 opt <- arguments$options
 scenarios <- arguments$args
 
