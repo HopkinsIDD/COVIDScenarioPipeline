@@ -79,8 +79,38 @@ as_random_distribution <- function(obj) {
     return(purrr::partial(rbinom, size=as_evaled_expression(obj$size), prob=as_evaled_expression(obj$prob)))
   } else if (obj$distribution == "lognormal") {
     return(purrr::partial(rlnorm, meanlog=as_evaled_expression(obj$meanlog), sdlog=as_evaled_expression(obj$sdlog)))
+  } else if (obj$distribution == "truncnorm") {
+    return(purrr::partial(rtruncnorm, mean = as_evaled_expression(obj$mean), sd = as_evaled_expression(obj$sd), a = as_evaled_expression(obj$a), b = as_evaled_expression(obj$b)))
+  } else if (obj$distribution == "fixed") {
+    return(purrr::partial(rep,x=as_evaled_expression(obj$value)))
   } else {
       stop("unknown distribution")
   }
 }
 
+##'
+##' Takes a list of parameters and converts to a pdf
+##'
+##'@param obj the list to evaluate
+##'@return a function which takes in a vector x and returns P(x) for the defined distribution
+##'
+##'@export
+as_density_distribution <- function(obj) {
+  require(purrr)
+
+  if (obj$distribution == "uniform") {
+    return(purrr::partial(dunif, min=as_evaled_expression(obj$low), max=as_evaled_expression(obj$high)))
+  } else if (obj$distribution == "poisson") {
+    return(purrr::partial(dpois, lambda=as_evaled_expression(obj$lam)))
+  } else if (obj$distribution == "binomial") {
+    return(purrr::partial(dbinom, size=as_evaled_expression(obj$size), prob=as_evaled_expression(obj$prob)))
+  } else if (obj$distribution == "lognormal") {
+    return(purrr::partial(dlnorm, meanlog=as_evaled_expression(obj$meanlog), sdlog=as_evaled_expression(obj$sdlog)))
+  } else if (obj$distribution == "truncnorm") {
+    return(purrr::partial(dtruncnorm, mean = as_evaled_expression(obj$mean), sd = as_evaled_expression(obj$sd), a = as_evaled_expression(obj$a), b = as_evaled_expression(obj$b)))
+  } else if (obj$distribution == "fixed") {
+    return(purrr::partial(function(x,y){x==y}, x = as_evaled_expression(obj$value)))
+  } else {
+      stop("unknown distribution")
+  }
+}
