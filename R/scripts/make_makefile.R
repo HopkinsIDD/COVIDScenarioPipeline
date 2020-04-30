@@ -119,10 +119,10 @@ simulation_make_command <- function(simulation,scenario,previous_simulation){
     previous_simulation <- 0
   }
   if(using_importation){
-    dependency_name <- paste(dependency_name,importation_target_name(simulation,prefix))
+    dependency_name <- paste(dependency_name,importation_target_name(simulation))
   }
   if(using_static_filter){
-    dependency_name <- paste(dependency_name, filter_target_name(simulation,prefix))
+    dependency_name <- paste(dependency_name, filter_target_name(simulation))
   }
   command_name <- paste("$(PYTHON) $(PIPELINE)/simulate.py -c $(CONFIG) -s",scenario,"-n",simulation - previous_simulation,"-j $(NCOREPER)")
   touch_name <- paste("touch",target_name)
@@ -135,17 +135,17 @@ simulation_make_command <- function(simulation,scenario,previous_simulation){
 }
 
 quant_summ_geo_extent_target_name <- function(deathrate) {
-  return(paste("geo_extent_summary_",deathrate,".csv")
+  return(paste0("geo_extent_summary_",deathrate,".csv"))
 }
 
 quant_summ_geo_extent_make_command <- function(deathrate, nsimulation, scenarios) {
-  target_name <- quant_summ_geo_extent_make_command(deathrate)
+  target_name <- quant_summ_geo_extent_target_name(deathrate)
   dependencies <- ""
 
   command <- '$(RSCRIPT) $(PIPELINE)/scripts/QuantileSummarizeGeoExtent.R -c $(CONFIG) -j $(NCOREPER)'
   command <- paste(command, "-n", nsimulation, 
                             "-d", deathrate,
-                            "-o", quant_summ_geo_extent_target_name(deathrate))
+                            "-o $@")
   for (scenario in scenarios) {
     dependencies <- paste(dependencies, hospitalization_target_name(nsimulation, scenario, deathrate))
     command <- paste(command, scenario)
@@ -194,8 +194,15 @@ for(scenario in scenarios)
 
 if(generating_report)
 {
-  # final target dependency for .html is the Rmd
-  cat(sprintf(" %s\n", rmd_file))
+  # target dependency for .html is the Rmd
+  cat(sprintf(" %s", rmd_file))
+  for(deathrate in deathrates)
+  {
+    cat(" ")
+    cat(quant_summ_geo_extent_target_name(deathrate))
+  }
+
+  cat("\n")
 
   renderCmd = sprintf("\t$(RSCRIPT) -e 'rmarkdown::render(\"%s\"", rmd_file)
   renderCmd = paste0(renderCmd, sprintf(", params=list(state_usps=\"%s\"", config$report$state_usps))
@@ -213,12 +220,13 @@ if(generating_report)
 \t$(RSCRIPT) -e 'rmarkdown::draft(\"$@\",template=\"state_report\",package=\"report.generation\",edit=FALSE)'", 
 rmd_file, report_name)
   cat(rmd_target)
-  cat("\n")
   for(deathrate in deathrates) {
-    cat(quant_summ_geo_extent_make_command(deathrate, nsimulation, scenarios))
+    cat("\n")
+    cat(quant_summ_geo_extent_make_command(deathrate, simulations, scenarios))
   }
 }
 cat("\n")
+
 
 if(using_importation){
   for(sim_idx in seq_len(length(simulations))){
