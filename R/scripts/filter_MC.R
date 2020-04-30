@@ -556,7 +556,7 @@ for(scenario in scenarios) {
       )
       initial_seeding <- seeding_npis_list$seeding
       initial_npis <- seeding_npis_list$npis
-      previous_likelihood_data <- seeding_npis_list$likelihood
+      previous_likelihood_data <- seeding_npis_list$ll
       print(paste("Current index is ",current_index))
       print(log_likelihood_data)
       print(previous_likelihood_data)
