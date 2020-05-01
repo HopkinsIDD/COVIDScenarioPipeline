@@ -40,6 +40,10 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 	done
 fi
 
+# Pick up stuff that changed
+# TODO(jwills): maybe move this to like a prep script?
+Rscript COVIDScenarioPipeline/local_install.R
+
 # Initialize dvc and run the pipeline to re-create the
 # dvc target
 dvc init --no-scm
