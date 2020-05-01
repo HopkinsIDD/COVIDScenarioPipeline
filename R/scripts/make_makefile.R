@@ -135,14 +135,56 @@ simulation_make_command <- function(simulation,scenario,previous_simulation){
 }
 
 quant_summ_geo_extent_target_name <- function(deathrate) {
-  return(paste0("geo_extent_summary_",deathrate,".csv"))
+  return(paste0("quantile_summary/geo_extent_summary_",deathrate,".csv"))
 }
 
 quant_summ_geo_extent_make_command <- function(deathrate, nsimulation, scenarios) {
   target_name <- quant_summ_geo_extent_target_name(deathrate)
   dependencies <- ""
+  command <- "mkdir -p quantile_summary\n"
+  command <- paste0(command,'\t$(RSCRIPT) $(PIPELINE)/scripts/QuantileSummarizeGeoExtent.R -c $(CONFIG) -j $(NCOREPER)')
+  command <- paste(command, "-n", nsimulation, 
+                            "-d", deathrate,
+                            "-o $@")
+  for (scenario in scenarios) {
+    dependencies <- paste(dependencies, hospitalization_target_name(nsimulation, scenario, deathrate))
+    command <- paste(command, scenario)
+  }
+  
+  return(paste0(target_name,": ", dependencies, "\n",
+                "\t", command))
+}
 
-  command <- '$(RSCRIPT) $(PIPELINE)/scripts/QuantileSummarizeGeoExtent.R -c $(CONFIG) -j $(NCOREPER)'
+quant_summ_geoid_target_name <- function(deathrate) {
+  return(paste0("quantile_summary/geoid_summary_",deathrate,".csv"))
+}
+
+quant_summ_geoid_make_command <- function(deathrate, nsimulation, scenarios) {
+  target_name <- quant_summ_geoid_target_name(deathrate)
+  dependencies <- ""
+  command <- "mkdir -p quantile_summary\n"
+  command <- paste0(command,'\t$(RSCRIPT) $(PIPELINE)/scripts/QuantileSummarizeGeoidLevel.R -c $(CONFIG) -j $(NCOREPER)')
+  command <- paste(command, "-n", nsimulation, 
+                            "-d", deathrate,
+                            "-o $@")
+  for (scenario in scenarios) {
+    dependencies <- paste(dependencies, hospitalization_target_name(nsimulation, scenario, deathrate))
+    command <- paste(command, scenario)
+  }
+  
+  return(paste0(target_name,": ", dependencies, "\n",
+                "\t", command))
+}
+
+quant_summ_state_target_name <- function(deathrate) {
+  return(paste0("quantile_summary/state_summary_",deathrate,".csv"))
+}
+
+quant_summ_state_make_command <- function(deathrate, nsimulation, scenarios) {
+  target_name <- quant_summ_state_target_name(deathrate)
+  dependencies <- ""
+  command <- "mkdir -p quantile_summary\n"
+  command <- paste0(command,'\t$(RSCRIPT) $(PIPELINE)/scripts/QuantileSummarizeStateLevel.R -c $(CONFIG) -j $(NCOREPER)')
   command <- paste(command, "-n", nsimulation, 
                             "-d", deathrate,
                             "-o $@")
@@ -199,7 +241,9 @@ if(generating_report)
   for(deathrate in deathrates)
   {
     cat(" ")
-    cat(quant_summ_geo_extent_target_name(deathrate))
+    cat(paste(quant_summ_geo_extent_target_name(deathrate),
+              quant_summ_geoid_target_name(deathrate),
+              quant_summ_state_target_name(deathrate)))
   }
 
   cat("\n")
@@ -223,6 +267,10 @@ rmd_file, report_name)
   for(deathrate in deathrates) {
     cat("\n")
     cat(quant_summ_geo_extent_make_command(deathrate, simulations, scenarios))
+    cat("\n")
+    cat(quant_summ_geoid_make_command(deathrate, simulations, scenarios))
+    cat("\n")
+    cat(quant_summ_state_make_command(deathrate, simulations, scenarios))
   }
 }
 cat("\n")
@@ -252,7 +300,7 @@ for(sim_idx in seq_len(length(simulations))){
 
 cat("
 .files/directory_exists:
-\tmkdir .files
+\tmkdir -p .files
 \ttouch .files/directory_exists
 ")
 

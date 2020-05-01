@@ -71,8 +71,10 @@ post_proc <- function(x, opts) {
 ##Run over scenarios and death rates as appropriate. Note that
 ##Final results will average accross whatever is included
 res_all <-list()
+setup_name <- config$spatial_setup$setup_name
 for (i in 1:length(scenarios)) {
-    res_all[[i]] <- report.generation::load_hosp_sims_filtered(scenarios[i],
+    scenario_dir = paste0(setup_name,"_",scenarios[i])
+    res_all[[i]] <- report.generation::load_hosp_sims_filtered(scenario_dir,
                                                                  name_filter = opts$name_filter,
                                                                  num_files = opts$num_simulations,
                                                                  post_process = post_proc,
