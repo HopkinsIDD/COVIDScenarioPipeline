@@ -63,7 +63,7 @@ tidycensus::census_api_key(key = census_key)
 
 # CENSUS DATA
 census_data <- tidycensus::get_acs(geography="county", state=filterUSPS, 
-                                   variables="B01003_001", year=2018, 
+                                   variables="B01003_001", year=config$spatial_setup$census_year, 
                                    keep_geo_vars=TRUE, geometry=FALSE, show_call=TRUE)
 census_data <- census_data %>%
   rename(population=estimate, geoid=GEOID) %>%
