@@ -50,6 +50,7 @@ jobs:
         env: 
           CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
         run: |
+          git lfs pull
           Rscript local_install.R
           cd test
           /home/app/python_venv/bin/pytest run_tests.py
