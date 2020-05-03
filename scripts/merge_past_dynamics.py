@@ -12,7 +12,8 @@ import datetime
 import multiprocessing
 import pathlib
 import time
-from COVIDScenarioPipeline.SEIR.utils import config
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+from SEIR.utils import config
 import click
 
 
@@ -23,8 +24,8 @@ spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 geodata_file=spatial_base_path / spatial_config["geodata"].get()
 nodenames_key=spatial_config["nodenames"].get()
 geodata = pd.read_csv(geodata_file, converters={nodenames_key: lambda x: str(x)})
-past_dynamics = pd.read_csv('data/results_decay_lsq_geodatapop_states.csv', parse_dates=['time'])
-past_dynamics = past_dynamics[past_dynamics['time'] != max(past_dynamics['time'])]
+past_dynamics = pd.read_csv('data/past_dynamics.csv', parse_dates=['time'])
+#past_dynamics = past_dynamics[past_dynamics['time'] != max(past_dynamics['time'])]
 folder = [x for x in Path('model_output/').glob('*') if not x.is_file()]
 
 for fold in folder:
@@ -37,6 +38,7 @@ for fold in folder:
 
         for filename in Path(str(fold)).rglob('*.parquet'):
             sim = pq.read_table(filename).to_pandas()
+            sim = sim[sim['time'] != max(past_dynamics['time'])]
             #sim = sim.set_index('time', drop=True)
             c = pd.concat([past_dynamics, sim], ignore_index = True)
             #c['time'] = c.index
