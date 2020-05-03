@@ -54,12 +54,14 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
         scenarios = config['interventions']['scenarios']
         p_death_names = config['hospitalization']['parameters']['p_death_names']
         p_deaths = config['hospitalization']['parameters']['p_death']
+        p_hosp_inf = config['hospitalization']['parameters']['p_hosp_inf']
         ctr = 0
-        for (s, d) in itertools.product(scenarios, zip(p_death_names, p_deaths)):
+        for (s, d) in itertools.product(scenarios, zip(p_death_names, p_deaths, p_hosp_inf)):
             scenario_job_name = f"{job_name}_{s}_{d[0]}"
             config['interventions']['scenarios'] = [s]
             config['hospitalization']['parameters']['p_death_names'] = [d[0]]
             config['hospitalization']['parameters']['p_death'] = [d[1]]
+            config['hospitalization']['parameters']['p_hosp_inf'] = [d[2]]
             with open(config_file, "w") as f:
                 yaml.dump(config, f, sort_keys=False)
             handler.launch(scenario_job_name, config_file, queues[ctr % len(queues)])
@@ -67,6 +69,7 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
         config['interventions']['scenarios'] = scenarios
         config['hospitalization']['parameters']['p_death_names'] = p_death_names
         config['hospitalization']['parameters']['p_death'] = p_deaths
+        config['hospitalization']['parameters']['p_hosp_inf'] = p_hosp_inf
         with open(config_file, "w") as f:
             yaml.dump(config, f, sort_keys=False)
     else:
