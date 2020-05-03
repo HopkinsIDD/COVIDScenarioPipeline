@@ -12,12 +12,16 @@ class Stacked(NPIBase):
         self.start_date = global_config["start_date"].as_date()
         self.end_date = global_config["end_date"].as_date()
 
-        self.sub_npis = []
+        self.geoids = geoids
 
         # Gather parameter reductions
         reduction_lists = {}
         for param in REDUCE_PARAMS:
             reduction_lists[param] = []
+
+        self.sub_npis = []
+
+        self.intervention_name = npi_config.name
 
         for scenario in npi_config["scenarios"]:
             # if it's a string, look up the scenario name's config
@@ -32,19 +36,23 @@ class Stacked(NPIBase):
             sub_npi = NPIBase.execute(npi_config=scenario_npi_config, global_config=global_config, geoids=geoids, loaded_df = loaded_df)
             self.sub_npis.append(sub_npi)
 
-            for p in REDUCE_PARAMS:
-                reduction_lists[p].append(sub_npi.getReduction(p))
 
-        # Calculate reductions
         self.reductions = {}
-        for param, reduction_list in reduction_lists.items():
-            self.reductions[param] = 1 - functools.reduce(lambda a,b : a * (1-b) , reduction_list, 1)
+        for param in REDUCE_PARAMS:
+            self.reductions[param] = 1 - functools.reduce(lambda a,b : a * (1 - b.getReduction(param)), self.sub_npis, 1)
+
+        self.__checkErrors()
+
+    def __checkErrors(self):
+
+        # Validate
+        for param in self.reductions.keys():
+            if (self.reductions[param] > 1).any(axis=None):
+                raise ValueError(f"The intervention in config: {self.intervention_name} has reduction of {param} which is greater than 100% reduced.")
+
 
     def getReduction(self, param):
         return self.reductions[param]
 
     def getReductionToWrite(self):
         return pd.concat([sub_npi.getReductionToWrite() for sub_npi in self.sub_npis], ignore_index=True)
-
-    def setReductionFromFile(self, npi, param):
-        self.reductions[param] = npi
