@@ -9,14 +9,22 @@ import pyarrow.parquet as pq
 import pyarrow as pa
 import numpy as np
 import datetime
+import multiprocessing
+import pathlib
+import time
+from COVIDScenarioPipeline.SEIR.utils import config
 import click
 
-#@click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=False, 
-#    help="configuration file for this simulation")
 
-#config.set_file(config_file)
-past_dynamics = pd.read_csv('data/results_decay_lsq_geodatapop_states.csv')
-past_dynamics.set_index('time', drop =True)
+config.set_file('config.yml')
+
+spatial_config = config["spatial_setup"]
+spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
+geodata_file=spatial_base_path / spatial_config["geodata"].get()
+nodenames_key=spatial_config["nodenames"].get()
+geodata = pd.read_csv(geodata_file, converters={nodenames_key: lambda x: str(x)})
+past_dynamics = pd.read_csv('data/results_decay_lsq_geodatapop_states.csv', parse_dates=['time'])
+past_dynamics = past_dynamics[past_dynamics['time'] != max(past_dynamics['time'])]
 folder = [x for x in Path('model_output/').glob('*') if not x.is_file()]
 
 for fold in folder:
@@ -29,9 +37,17 @@ for fold in folder:
 
         for filename in Path(str(fold)).rglob('*.parquet'):
             sim = pq.read_table(filename).to_pandas()
-            sim.set_index('time', drop=True)
-            c = pd.concat([past_dynamics, sim])
-            c['time'] = c.index
+            #sim = sim.set_index('time', drop=True)
+            c = pd.concat([past_dynamics, sim], ignore_index = True)
+            #c['time'] = c.index
+            only_in_sim = list(set(sim.columns) - set(past_dynamics.columns))
+            only_in_pastdyn = list(set(past_dynamics.columns)- set(sim.columns))
+            c.drop(only_in_pastdyn, inplace=True, axis=1)
+            c.loc[(c['time'] <= max(past_dynamics['time'])) & (c['comp'] != 'S'), only_in_sim] = 0
+            pop_ois = []
+            for nd in only_in_sim:
+                pop_ois.append(float(geodata[geodata['geoid'] == nd].pop2010))
+            c.loc[(c['time'] <= max(past_dynamics['time'])) & (c['comp'] == 'S'), only_in_sim] = pop_ois
             pa_df = pa.Table.from_pandas(c, preserve_index = False)
             pa.parquet.write_table(pa_df,filename)
         print('DONE')
