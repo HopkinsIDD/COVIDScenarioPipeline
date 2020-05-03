@@ -16,13 +16,8 @@ class Reduce(NPIBase):
 
         self.npi = pd.DataFrame(0.0, index=self.geoids,
                                 columns=pd.date_range(self.start_date, self.end_date))
-
-        self.period_start_date = npi_config["period_start_date"].as_date() \
-            if npi_config["period_start_date"].exists() else self.start_date
-        self.period_end_date = npi_config["period_end_date"].as_date() \
-            if npi_config["period_end_date"].exists() else self.end_date
-
         self.intervention_name = npi_config.name
+
         if loaded_df is None:
             self.__createFromConfig(npi_config)
         else:
@@ -53,6 +48,12 @@ class Reduce(NPIBase):
             raise ValueError(f"The intervention in config: {self.intervention_name} has reduction of {param_name} is greater than 1")
 
     def __createFromConfig(self, npi_config):
+
+        self.period_start_date = npi_config["period_start_date"].as_date() \
+            if npi_config["period_start_date"].exists() else self.start_date
+        self.period_end_date = npi_config["period_end_date"].as_date() \
+            if npi_config["period_end_date"].exists() else self.end_date
+
         # Get name of the parameter to reduce
         self.param_name = npi_config["parameter"].as_str().lower()
         self.reduced_param = self.param_name
