@@ -617,7 +617,7 @@ for(scenario in scenarios) {
     print(paste("Copying",current_file,"to",target_file))
     target_dir <- gsub('/[^/]*$','',target_file)
     dir.create(target_dir, recursive=TRUE)
-    file.rename(from=current_file,to=target_file, overwrite=TRUE)
+    file.rename(from=current_file,to=target_file)
   }
 }
 #}
