@@ -50,6 +50,11 @@ class SpatialSetup:
                 self.mobility[self.nodenames.index(row['ori']),self.nodenames.index(row['dest'])] = row['amount']
                 if (self.nodenames.index(row['ori']) == self.nodenames.index(row['dest'])):
                     raise ValueError(f"Mobility fluxes with same origin and destination: '{row['ori']}' to {row['dest']} in long form matrix. This is not supported")
+        elif ('.npz' in str(mobility_file)):
+            self.mobility = scipy.sparse.load_npz(mobility_file)
+            # Validate mobility data
+            if self.mobility.shape != (self.nnodes, self.nnodes):
+                raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
         else:
             raise ValueError(f"Mobility data must either be a .csv file in longform (recommended) or a .txt matrix file. Got {mobility_file}")
 
