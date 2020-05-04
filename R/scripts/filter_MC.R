@@ -266,24 +266,18 @@ perturb_seeding <- function(seeding,sd) {
 perturb_npis <- function(npis, intervention_settings) {
   require(dplyr)
   require(magrittr)
-  npis_new <- npis
-  geoids <- colnames(select(npis, -time, -parameter, -npi_name))
   for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
     if ('perturbation' %in% names(intervention_settings[[intervention]])){
       pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
-      ind <- npis[["npi_name"]] == intervention 
-      for (gid in geoids) {
-        npis_new[[gid]][ind] <- npis_new[[gid]][ind] + pert_dist(1)
-        out_of_bounds_index <- covidcommon::as_density_distribution(
-            intervention_settings[[intervention]][['value']]
-          )(npis_new[[gid]]) <= 0
-        npis_new[[gid]][out_of_bounds_index] <- 
-          npis[[gid]][out_of_bounds_index]
-      }
+      ind <- (npis[["npi_name"]] == intervention)
+      npis_new <- npis[["reduction"]][ind] + pert_dist(sum(ind))
+      in_bounds_index <- covidcommon::as_density_distribution(
+        intervention_settings[[intervention]][['value']]
+      )(npis_new) > 0
+      npis$reduction[ind][in_bounds_index] <- npis_new[in_bounds_index]
     }
-    npis <- npis_new
   }
-  return(npis_new)
+  return(npis)
 }
 
 ##'
@@ -317,7 +311,7 @@ accept_reject_new_seeding_npis <- function(
 
   for (place in orig_lls$geoid[accept]) {
     rc_seeding[rc_seeding$place ==place, ] <- seeding_prop[seeding_prop$place ==place, ]
-    rc_npis[, place] <- npis_prop[, place]
+    rc_npis[rc_npis$geoid == place,] <- npis_prop[npis_prop$geoid == place, ]
   }
   
   return(list(seeding=rc_seeding, npis=rc_npis, lls = orig_lls))

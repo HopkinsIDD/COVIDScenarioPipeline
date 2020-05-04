@@ -16,7 +16,9 @@ class Reduce(NPIBase):
 
         self.npi = pd.DataFrame(0.0, index=self.geoids,
                                 columns=pd.date_range(self.start_date, self.end_date))
-        self.intervention_name = npi_config.name
+
+        self.parameters = pd.DataFrame(0.0, index=self.geoids,
+                                       columns=["npi_name","start_date","end_date","parameter","reduction"])
 
         if loaded_df is None:
             self.__createFromConfig(npi_config)
@@ -25,13 +27,25 @@ class Reduce(NPIBase):
 
         self.__checkErrors()
 
+        for index in self.parameters.index:
+            period_range = pd.date_range(self.parameters["start_date"][index], self.parameters["end_date"][index])
+
+            ## This the line that does the work
+            self.npi.loc[index, period_range] = np.tile(self.parameters["reduction"][index], (len(period_range), 1)).T
+
     def __checkErrors(self):
-        if not (self.start_date <= self.period_start_date <= self.end_date):
-            raise ValueError(f"period_start_date ({self.period_start_date}) is not between global dates [{self.start_date}, {self.end_date}]")
-        if not (self.start_date <= self.period_end_date <= self.end_date):
-            raise ValueError(f"period_end_date ({self.period_end_date}) is not between global dates [{self.start_date}, {self.end_date}]")
-        if self.period_end_date < self.start_date:
-            raise ValueError(f"period_end_date  ({self.period_end_date}) is less than period_start_date ({self.period_start_date})")
+        min_start_date = self.parameters["start_date"].min()
+        max_start_date = self.parameters["start_date"].max()
+        min_end_date = self.parameters["end_date"].min()
+        max_end_date = self.parameters["end_date"].max()
+        if not ((self.start_date <= min_start_date) & (max_start_date <= self.end_date)):
+            raise ValueError(f"at least one period_start_date [{min_start_date}, {max_start_date}] is not between global dates [{self.start_date}, {self.end_date}]")
+        if not ((self.start_date <= min_end_date) & (max_end_date <= self.end_date)):
+            raise ValueError(f"at least one period_end_date ([{min_end_date}, {max_end_date}] is not between global dates [{self.start_date}, {self.end_date}]")
+
+        if not (self.parameters["start_date"] <= self.parameters["end_date"]).all():
+            bad_parameters = self.parameters["start_date"] > self.parameters["end_date"]
+            raise ValueError(f"at least one period_start_date is greater than the corresponding period end date")
 
         for n in self.affected_geoids:
             if n not in self.geoids:
@@ -42,21 +56,14 @@ class Reduce(NPIBase):
 
         # Validate
         if (self.npi == 0).all(axis=None):
-            print(f"Warning: The intervention in config: {self.intervention_name} does nothing.")
+            print(f"Warning: The intervention in config: {self.name} does nothing.")
 
         if (self.npi > 1).any(axis=None):
-            raise ValueError(f"The intervention in config: {self.intervention_name} has reduction of {param_name} is greater than 1")
+            raise ValueError(f"The intervention in config: {self.name} has reduction of {param_name} is greater than 1")
 
     def __createFromConfig(self, npi_config):
-
-        self.period_start_date = npi_config["period_start_date"].as_date() \
-            if npi_config["period_start_date"].exists() else self.start_date
-        self.period_end_date = npi_config["period_end_date"].as_date() \
-            if npi_config["period_end_date"].exists() else self.end_date
-
         # Get name of the parameter to reduce
         self.param_name = npi_config["parameter"].as_str().lower()
-        self.reduced_param = self.param_name
 
         # Optional config field "affected_geoids"
         # If values of "affected_geoids" is "all" or unspecified, run on all geoids.
@@ -68,28 +75,32 @@ class Reduce(NPIBase):
                 node = str(n.get()) # because confuse may read as an int
                 self.affected_geoids.append(node)
 
+        self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids)]
         # Create reduction
         self.dist = npi_config["value"].as_random_distribution()
 
-        period_range = pd.date_range(self.period_start_date, self.period_end_date)
+        self.parameters["npi_name"] = self.name
+        self.parameters["start_date"] = npi_config["period_start_date"].as_date()
+        self.parameters["end_date"] = npi_config["period_end_date"].as_date()
+        self.parameters["parameter"] = self.param_name
+        self.parameters["reduction"] = self.dist(size=len(self.affected_geoids))
 
-        ## This the line that does the work
-        self.npi.loc[self.affected_geoids, period_range] = np.tile(self.dist(size=len(self.affected_geoids)), (len(period_range), 1)).T
 
     def __createFromDf(self, loaded_df):
-        loaded_df.index = loaded_df.time
+        loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
-        loaded_df.drop(['time', 'parameter', 'npi_name'], inplace = True, axis = 1)
-        self.npi = loaded_df.T
+        self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']]
+        self.affected_geoids = self.parameters.index
+        self.param_name = self.parameters["parameter"].unique()
 
     def getReduction(self, param):
-        if param == self.reduced_param:
+        if param == self.param_name:
             return self.npi
         return pd.DataFrame(0.0, index=self.geoids,
-                                    columns=pd.date_range(self.start_date, self.end_date))
+                            columns=pd.date_range(self.start_date, self.end_date))
 
     def getReductionToWrite(self):
-        df = self.npi.T.assign(parameter="r0", npi_name=self.name)
-        df.index.name = "time"
+        df = self.parameters
+        df.index.name = "geoid"
         df = df.reset_index()
         return df
