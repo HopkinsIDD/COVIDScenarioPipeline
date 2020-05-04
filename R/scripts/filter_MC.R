@@ -413,7 +413,7 @@ for(scenario in scenarios) {
     # TODO CHANGE TO FIRST DRAW OF SEIR CODE
     first_param_file <- parameter_file_path(config,opt$this_slot, scenario)
     first_npi_file <- npi_file_path(config,opt$this_slot, scenario)
-    lock <- flock::lock(paste(gsub('/','-',first_npi_file),sep='/'))
+    lock <- flock::lock(paste('.lock',gsub('/','-',first_npi_file),sep='/'))
     if((!file.exists(first_npi_file)) | (!file.exists(first_param_file))){
       py$onerun_SEIR(opt$this_slot,py$s)
     }
