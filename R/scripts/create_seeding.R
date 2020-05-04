@@ -88,6 +88,12 @@ names(incident_cases) <- c('place','date','amount')
 incident_cases <- incident_cases %>%
   dplyr::filter(!is.na(amount) | !is.na(date))
 
+lambda_dir <- gsub('/[^/]*','',config$seeding$lambda_file)
+print(paste("Saving seeding to",lambda_dir))
+if(!dir.exists(lambda_dir)){
+  suppressWarnings(dir.create(lambda_dir,recursive=TRUE))
+}
+
 write.csv(
   incident_cases,
   file=file.path(config$seeding$lambda_file),

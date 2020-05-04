@@ -4,18 +4,19 @@
 # devtools::install_github("HopkinsIDD/covidImportation")
 
 # Preamble ---------------------------------------------------------------------
-library(dplyr)
-library(readr)
-library(covidcommon)
-library(report.generation)
-library(covidImportation)
-library(stringr)
-library(foreach)
-library(magrittr)
-library(xts)
-library(reticulate)
-library(truncnorm)
-library(flock)
+suppressMessages(suppressWarnings(library(covidImportation)))
+suppressMessages(library(dplyr))
+suppressMessages(library(readr))
+suppressMessages(library(covidcommon))
+suppressMessages(library(report.generation))
+suppressMessages(library(stringr))
+suppressMessages(library(foreach))
+suppressMessages(library(magrittr))
+suppressMessages(library(xts))
+suppressMessages(library(reticulate))
+suppressMessages(library(truncnorm))
+suppressMessages(library(flock))
+options(warn=1)
 
 
 option_list = list(
@@ -28,7 +29,8 @@ option_list = list(
   optparse::make_option(c("-i", "--this_slot"), action="store", default="1", type='integer', help = "id of this slot"),
   optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable"),
   optparse::make_option(c("-r", "--rpath"), action="store", default="Rscript", type = 'character', help = "path to R executable"),
-  optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = "COVIDScenarioPipeline/")
+  optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = "COVIDScenarioPipeline/"),
+  optparse::make_option(c("--clean"), action="store_true",default=TRUE,help="Whether to remove old files if unused")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -55,13 +57,13 @@ if(!('lambda_file' %in% names(config$seeding))) {
 }
 
 
-geodata <- report.generation::load_geodata_file(
+suppressMessages(geodata <- report.generation::load_geodata_file(
   paste(
     config$spatial_setup$base_path,
     config$spatial_setup$geodata, sep = "/"
   ),
   geoid_len=5
-)
+))
 obs_nodename <- config$spatial_setup$nodenames
 
 if(is.na(opt$simulations_per_slot)){
@@ -71,16 +73,19 @@ if(is.na(opt$simulations_per_slot)){
 data_path <- config$filtering$data_path
 data_dir <- gsub('[/][^/]*','',data_path)
 if(!dir.exists(data_dir)){
-  dir.create(data_dir,recursive=TRUE)
+  suppressWarnings(dir.create(data_dir,recursive=TRUE))
+}
+if(!dir.exists(paste('importation',config$spatial_setup$setup_name,'case_data',sep='/'))){
+  suppressWarnings(dir.create(paste('importation',config$spatial_setup$setup_name,'case_data',sep='/'),recursive=TRUE))
 }
 # Parse jhucsse using covidImportation
-dir.create('.lock')
+suppressWarnings(dir.create('.lock'))
 lockfile = 'filter_MC.lock'
 lock <- flock::lock(paste(".lock",gsub('/','-',data_path), sep = '/'))
 if (!file.exists(data_path)) {
   case_data_dir <- paste(config$spatial_setup$base_path,config$spatial_setup$setup_name,"case_data", sep = '/')
   if(!dir.exists(case_data_dir)){
-    dir.create(case_data_dir,recursive=TRUE)
+    suppressWarnings(dir.create(case_data_dir,recursive=TRUE))
   }
   jhucsse_cases <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID",
                                    last_date = as.POSIXct(lubridate::ymd(config$end_date)),
@@ -232,9 +237,32 @@ seeding_file_path <- function(config,index){
 
   return(sprintf("%s/importation_%s.csv",config$seeding$folder_path,index))
 }
-dir.create(config$seeding$folder_path,recursive=TRUE)
-dir.create(sprintf("%s/%s/case_data",'importation',config$name),recursive=TRUE)
+suppressWarnings(dir.create(config$seeding$folder_path,recursive=TRUE))
+suppressWarnings(dir.create(sprintf("%s/%s/case_data",'importation',config$name),recursive=TRUE))
 
+
+
+##' Function for determining where to write the SEIR output to file
+##' @param config The config for this run
+##' @param index The index of this simulation
+##'
+##' @return NULL
+##'
+simulation_file_path <- function(config,index,scenario){
+  return(sprintf("model_output/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
+}
+
+
+
+##' Function for determining where to write the seeding.csv file
+##' @param config The config for this run
+##' @param index The index of this simulation
+##'
+##' @return NULL
+##'
+hospitalization_file_path <- function(config,index,scenario,deathrate){
+  return(sprintf("hospitalization/model_output/%s_%s/%s_death_death-%09d.hosp.parquet", config$name , scenario, deathrate,index))
+}
 
 ##' Fuction perturbs a seeding file based on a normal
 ##' proposal on the start date and
@@ -358,7 +386,7 @@ iterateAccept <- function(ll_ref,ll_new,ll_col) {
 }
 
 if(!("obs" %in% ls())){
-  obs <<- readr::read_csv(data_path)
+  suppressMessages(obs <<- readr::read_csv(data_path))
 }
 geonames <- unique(obs[[obs_nodename]])
 # Compute statistics
@@ -398,7 +426,7 @@ for(scenario in scenarios) {
       err <- 0
     }
     if(err != 0){quit("no")}
-    initial_seeding <- readr::read_csv(config$seeding$lambda_file)
+    suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file))
     current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
     flock::unlock(lock)
     write.csv(
@@ -463,19 +491,7 @@ for(scenario in scenarios) {
       ))
       if(err != 0){quit("no")}
 
-      file <- paste(
-        'hospitalization',
-        'model_output',
-        paste0(config$name,'_',scenario),
-        paste0(
-          deathrate,
-          '_',
-          "death_death-",
-          sprintf("%09d",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index),
-          '.hosp.parquet'
-        ),
-        sep = '/'
-      )
+      file <- hospitalization_file_path(config,opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index,scenario,deathrate)
       print(paste("Reading",file))
 
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>%
@@ -556,8 +572,23 @@ for(scenario in scenarios) {
       print(paste("Current likelihood",current_likelihood,"Proposed likelihood",likelihood))
       
       if(iterateAccept(current_likelihood, likelihood, 'll')){
+        old_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + current_index
         current_index <- index
         current_likelihood <- likelihood
+        if(opt$clean){
+          file.remove(hospitalization_file_path(config,old_index,scenario,deathrate))
+          file.remove(simulation_file_path(config,old_index,scenario))
+          file.remove(npi_file_path(config,old_index,scenario))
+          file.remove(parameter_file_path(config,old_index,scenario))
+        }
+      } else {
+        old_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
+        if(opt$clean){
+          file.remove(hospitalization_file_path(config,old_index,scenario,deathrate))
+          file.remove(simulation_file_path(config,old_index,scenario))
+          file.remove(npi_file_path(config,old_index,scenario))
+          file.remove(parameter_file_path(config,old_index,scenario))
+        }
       }
 
       seeding_npis_list <- accept_reject_new_seeding_npis(
@@ -576,38 +607,18 @@ for(scenario in scenarios) {
       print(previous_likelihood_data)
     }
 
-    current_file <- paste(
-      'hospitalization',
-      'model_output',
-      paste0(config$name,'_',scenario),
-      paste0(
-        deathrate,
-        '_',
-        "death_death-",
-        sprintf("%09d",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + current_index),
-        '.hosp.parquet'
-      ),
-      sep = '/'
+    current_file <- hospitalization_file_path(
+      config,
+      opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + current_index,
+      scenario,
+      deathrate
     )
-
-    target_file <- paste(
-      'hospitalization',
-      'model_output',
-      paste0(config$name,'_',scenario),
-      paste0(
-        deathrate,
-        '_',
-        "death_death-",
-        sprintf("%09d",opt$this_slot),
-        '.hosp.parquet'
-      ),
-      sep = '/'
-    )
+    target_file <- hospitalization_file_path(config,opt$this_slot,scenario,deathrate)
 
     print(paste("Copying",current_file,"to",target_file))
     target_dir <- gsub('/[^/]*$','',target_file)
     dir.create(target_dir, recursive=TRUE)
-    file.copy(from=current_file,to=target_file, overwrite=TRUE)
+    file.rename(from=current_file,to=target_file, overwrite=TRUE)
   }
 }
 #}

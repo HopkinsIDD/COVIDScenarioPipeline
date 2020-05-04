@@ -80,8 +80,10 @@ class Reduce(NPIBase):
         self.dist = npi_config["value"].as_random_distribution()
 
         self.parameters["npi_name"] = self.name
-        self.parameters["start_date"] = npi_config["period_start_date"].as_date()
-        self.parameters["end_date"] = npi_config["period_end_date"].as_date()
+        self.parameters["start_date"] = npi_config["period_start_date"].as_date()  \
+            if npi_config["period_start_date"].exists() else self.start_date
+        self.parameters["end_date"] = npi_config["period_end_date"].as_date() \
+            if npi_config["period_end_date"].exists() else self.end_date
         self.parameters["parameter"] = self.param_name
         self.parameters["reduction"] = self.dist(size=len(self.affected_geoids))
 
