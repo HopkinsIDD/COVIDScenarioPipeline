@@ -75,7 +75,7 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
     else:
         with open(config_file, "w") as f:
             yaml.dump(config, f, sort_keys=False)
-        handler.launch(job_name, config_file, job_queue="Batch-CovidPipeline")
+        handler.launch(job_name, config_file, batch_job_queue=get_job_queues()[0])
 
     (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")
     print(txt)
