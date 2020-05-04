@@ -195,18 +195,18 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
 ##' @return NULL
 ##'
 parameter_file_path <- function(config,index, scenario){
-  if(length(config$interventions$scenarios) > 1){
-    stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
-  }
+  # if(length(config$interventions$scenarios) > 1){
+  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
+  # }
 
   ## FIX ME 
   return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$name , scenario, index))
 }
 
 npi_file_path <- function(config,index,scenario){
-  if(length(config$interventions$scenarios) > 1){
-    stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
-  }
+  # if(length(config$interventions$scenarios) > 1){
+  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
+  # }
 
   ## FIX ME 
   return(sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
@@ -221,9 +221,9 @@ npi_file_path <- function(config,index,scenario){
 ##' @return NULL
 ##'
 seeding_file_path <- function(config,index){
-  if(length(config$interventions$scenarios) > 1){
-    stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
-  }
+  # if(length(config$interventions$scenarios) > 1){
+  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
+  # }
 
   return(sprintf("%s/importation_%s.csv",config$seeding$folder_path,index))
 }
@@ -406,7 +406,7 @@ for(scenario in scenarios) {
     # TODO CHANGE TO FIRST DRAW OF SEIR CODE
     first_param_file <- parameter_file_path(config,opt$this_slot, scenario)
     first_npi_file <- npi_file_path(config,opt$this_slot, scenario)
-    if((!file.exists(first_npi_file)) | (!file.exists(first_npi_file))){
+    if((!file.exists(first_npi_file)) | (!file.exists(first_param_file))){
       py$onerun_SEIR(opt$this_slot,py$s)
     }
     initial_npis <- arrow::read_parquet(first_npi_file)
@@ -446,6 +446,8 @@ for(scenario in scenarios) {
         "-j",opt$jobs,
         "-c",opt$config,
         "-p",opt$pipepath,
+        "-s",scenario,
+        "-d",deathrate,
         "-n",1,
         "-i",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
       ))
