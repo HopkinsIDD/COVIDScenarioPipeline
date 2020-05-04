@@ -43,11 +43,23 @@ fi
 # Pick up stuff that changed
 # TODO(jwills): maybe move this to like a prep script?
 Rscript COVIDScenarioPipeline/local_install.R
+local_install_ret=$?
+
+if [ $local_install_ret -ne 0]; then
+	echo "Error code returned from running local_install.R: $local_install_ret"
+	exit 1
+fi
 
 # Initialize dvc and run the pipeline to re-create the
 # dvc target
 dvc init --no-scm
 dvc repro $DVC_TARGET
+
+dvc_ret=$?
+if [ $dvc_ret -ne 0]; then
+        echo "Error code returned from dvc_repro: $dvc_ret"
+	exit 1
+fi
 
 for output in "${DVC_OUTPUTS_ARRAY[@]}"
 do
@@ -57,3 +69,4 @@ do
 done
 
 echo "Done"
+exit 0

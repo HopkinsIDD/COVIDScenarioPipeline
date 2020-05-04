@@ -150,7 +150,8 @@ class BatchJobHandler(object):
                 'memory': self.vcpus * self.memory,
                 'environment': env_vars,
                 'command': command
-            })
+            },
+            retryStrategy = {'attempts': 3})
         block_idx = 1
         while block_idx < self.num_blocks:
             cur_env_vars = env_vars.copy()
