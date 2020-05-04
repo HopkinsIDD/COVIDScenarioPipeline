@@ -50,7 +50,7 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
     handler = BatchJobHandler(num_jobs, num_blocks, dvc_target, s3_bucket, batch_job_definition, vcpus, memory)
 
     if parallelize_scenarios:
-        queues = ("Inference-A", "Inference-B", "Inference-C")
+        job_queues = get_job_queues()
         scenarios = config['interventions']['scenarios']
         p_death_names = config['hospitalization']['parameters']['p_death_names']
         p_deaths = config['hospitalization']['parameters']['p_death']
@@ -64,7 +64,7 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
             config['hospitalization']['parameters']['p_hosp_inf'] = [d[2]]
             with open(config_file, "w") as f:
                 yaml.dump(config, f, sort_keys=False)
-            handler.launch(scenario_job_name, config_file, queues[ctr % len(queues)])
+            handler.launch(scenario_job_name, config_file, job_queues[ctr % len(job_queues)])
             ctr += 1
         config['interventions']['scenarios'] = scenarios
         config['hospitalization']['parameters']['p_death_names'] = p_death_names
@@ -81,6 +81,18 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
     print(txt)
     return rc
 
+
+def get_job_queues():
+    batch_client = boto3.client('batch')
+    queues_with_jobs = {}
+    resp = batch_client.describe_job_queues()
+    for q in resp['jobQueues']:
+        queue_name = q['jobQueueName']
+        if queue_name.startswith('Inference-JQ-'):
+           job_list_resp = batch_client.list_jobs(jobQueue=queue_name, jobStatus='PENDING')
+           queues_with_jobs[queue_name] = len(job_list_resp['jobSummaryList'])
+    # Return the least-loaded queues first
+    return sorted(queues_with_jobs, key=queues_with_jobs.get)
 
 class BatchJobHandler(object):
     def __init__(self, num_jobs, num_blocks, dvc_target, s3_bucket, batch_job_definition, vcpus, memory):
