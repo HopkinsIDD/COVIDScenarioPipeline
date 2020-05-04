@@ -20,7 +20,7 @@ library(truncnorm)
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
   optparse::make_option(c("-s", "--scenarios"), action="store", default='all', type='character', help="name of the intervention to run, or 'all' to run all of them"),
-  optparse::make_option(c("-d", "--deathrate"), action="store", default='all', type='character', help="name of the death scenarios to run, or 'all' to run all of them"),
+  optparse::make_option(c("-d", "--deathrates"), action="store", default='all', type='character', help="name of the death scenarios to run, or 'all' to run all of them"),
   optparse::make_option(c("-j", "--jobs"), action="store", default="8", type='integer', help="Number of jobs to run in parallel"),
   optparse::make_option(c("-k", "--simulations_per_slot"), action="store", default=NA, type='integer', help = "number of simulations to run for this slot"),
   optparse::make_option(c("-n", "--number_of_simulations"), action="store", default="1", type='integer', help = "number of slots to run"),
@@ -125,7 +125,7 @@ if (!file.exists(data_path)) {
 }
 
 # Parse scenarios arguments
-deathrates <- opt$d
+deathrates <- opt$deathrates
 if(all(deathrates == "all")) {
   deathrates<- config$hospitalization$parameters$p_death_names
 } else if (!(deathrates %in% config$hospitalization$parameters$p_death_names)) {
@@ -133,7 +133,7 @@ if(all(deathrates == "all")) {
   quit("yes", status=1)
 }
 
-scenarios <- opt$s
+scenarios <- opt$scenarios
 if (all(scenarios == "all")){
   scenarios <- config$interventions$scenarios
 } else if (!all(scenarios %in% config$interventions$scenarios)) {
