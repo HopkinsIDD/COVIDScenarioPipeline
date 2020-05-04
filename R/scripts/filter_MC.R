@@ -15,6 +15,7 @@ library(magrittr)
 library(xts)
 library(reticulate)
 library(truncnorm)
+library(flock)
 
 
 option_list = list(
@@ -73,6 +74,9 @@ if(!dir.exists(data_dir)){
   dir.create(data_dir,recursive=TRUE)
 }
 # Parse jhucsse using covidImportation
+dir.create('.lock')
+lockfile = 'filter_MC.lock'
+lock <- flock::lock(paste(".lock",gsub('/','-',data_path), sep = '/'))
 if (!file.exists(data_path)) {
   case_data_dir <- paste(config$spatial_setup$base_path,config$spatial_setup$setup_name,"case_data", sep = '/')
   if(!dir.exists(case_data_dir)){
@@ -123,6 +127,7 @@ if (!file.exists(data_path)) {
   write_csv(jhucsse, data_path)
   rm(jhucsse)
 }
+flock::unlock(lock)
 
 # Parse scenarios arguments
 deathrates <- opt$deathrates
@@ -382,6 +387,7 @@ for(scenario in scenarios) {
       # Data -------------------------------------------------------------------------
       # Load
     
+    lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
     if(!file.exists(config$seeding$lambda_file)){
       err <- system(paste(
         opt$rpath,
@@ -394,6 +400,7 @@ for(scenario in scenarios) {
     if(err != 0){quit("no")}
     initial_seeding <- readr::read_csv(config$seeding$lambda_file)
     current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
+    flock::unlock(lock)
     write.csv(
       current_seeding,
       file = seeding_file_path(config,sprintf("%09d",opt$this_slot))
@@ -406,11 +413,13 @@ for(scenario in scenarios) {
     # TODO CHANGE TO FIRST DRAW OF SEIR CODE
     first_param_file <- parameter_file_path(config,opt$this_slot, scenario)
     first_npi_file <- npi_file_path(config,opt$this_slot, scenario)
+    lock <- flock::lock(paste(gsub('/','-',first_npi_file),sep='/'))
     if((!file.exists(first_npi_file)) | (!file.exists(first_param_file))){
       py$onerun_SEIR(opt$this_slot,py$s)
     }
     initial_npis <- arrow::read_parquet(first_npi_file)
     initial_params <- arrow::read_parquet(first_param_file)
+    flock::unlock(lock)
 
     for( index in seq_len(opt$simulations_per_slot)) {
       print(index)
@@ -435,6 +444,7 @@ for(scenario in scenarios) {
 
       ## Generate files
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
+      lock <- flock::lock(paste(".lock",paste("SEIR",this_index,scenario,sep='.'),sep='/'))
       err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
       err <- ifelse(err == 1,0,1)
       if(err != 0){quit("no")}
@@ -471,6 +481,7 @@ for(scenario in scenarios) {
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>%
         filter(time <= max(obs$date)) %>%
         select(-date_inds)
+      flock::unlock(lock)
 
       log_likelihood_data <- list()
 
