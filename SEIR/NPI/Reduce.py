@@ -25,13 +25,13 @@ class Reduce(NPIBase):
         else:
             self.__createFromDf(loaded_df)
 
-        self.__checkErrors()
-
         for index in self.parameters.index:
             period_range = pd.date_range(self.parameters["start_date"][index], self.parameters["end_date"][index])
 
             ## This the line that does the work
             self.npi.loc[index, period_range] = np.tile(self.parameters["reduction"][index], (len(period_range), 1)).T
+
+        self.__checkErrors()
 
     def __checkErrors(self):
         min_start_date = self.parameters["start_date"].min()
