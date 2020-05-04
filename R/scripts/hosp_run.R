@@ -179,7 +179,7 @@ if(run_age_adjust){
   in_geoids <- geodata[[config$spatial_setup$nodenames]]
   missing_geoids <- setdiff(in_geoids, prob_dat$geoid)
   if(length(missing_geoids) > 0) {
-    warning(paste("There are geoids in geodata that are not present in geoid-params.csv:", missing_geoids))
+    warning(paste("The hospitalization outcomes will not be calculated for geoids not present in geoid-params.csv:", missing_geoids))
   }
 
   time_onset_death_pars <- as_evaled_expression(hosp_parameters$time_onset_death)
