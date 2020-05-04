@@ -34,7 +34,7 @@ for fold in folder:
         for filename in Path(str(fold)).rglob('*.csv'):
             sim = pd.read_csv(filename)
             c = pd.concat([past_dynamics, sim])
-            c.to_csv(filename)
+            c.round().to_csv(filename)
 
         for filename in Path(str(fold)).rglob('*.parquet'):
             sim = pq.read_table(filename).to_pandas()
@@ -50,6 +50,6 @@ for fold in folder:
             for nd in only_in_sim:
                 pop_ois.append(float(geodata[geodata['geoid'] == nd].pop2010))
             c.loc[(c['time'] <= max(past_dynamics['time'])) & (c['comp'] == 'S'), only_in_sim] = pop_ois
-            pa_df = pa.Table.from_pandas(c, preserve_index = False)
+            pa_df = pa.Table.from_pandas(c.round(), preserve_index = False)
             pa.parquet.write_table(pa_df,filename)
         print('DONE')

@@ -19,7 +19,7 @@ from SEIR.utils import config
 
 years = mdates.YearLocator()   # every year
 months = mdates.MonthLocator()  # every month
-years_fmt = mdates.DateFormatter('%Y')
+years_fmt = mdates.DateFormatter('%Y-%m')
 
 @click.command()
 @click.option("-m", "--max_files", type=click.IntRange(min=1), default=100, help="Maximum number of sims to load")
@@ -84,8 +84,8 @@ def generate_pdf(max_files, filename, config_file):
             else:
                 ax = axes[vi]
             ax.set_title(key)
-            ax.xaxis.set_major_locator(plt.MaxNLocator(12))
-            ax.yaxis.set_major_locator(plt.MaxNLocator(5))
+            #ax.xaxis.set_major_locator(plt.MaxNLocator(12))
+            #ax.yaxis.set_major_locator(plt.MaxNLocator(5))
             ax.grid()
             ax.set_ylabel(var)
             for sim in all_hosp_sim[key]:
