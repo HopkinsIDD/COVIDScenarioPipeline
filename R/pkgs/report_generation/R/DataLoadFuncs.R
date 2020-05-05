@@ -5,6 +5,8 @@
 #'  - We use readr::read_csv for csv files
 #'  - We use arrow::read_parquet for parquet files
 #'  - We use a function that detects the extension and calls this function if the auto extension is specified.
+#' @export
+#' 
 read_file_of_type <- function(extension,...){
   if(extension == 'csv'){
     return(function(x){suppressWarnings(readr::read_csv(x,,col_types = cols(
@@ -165,7 +167,7 @@ load_hosp_sims_filtered <- function(scenario_dir,
   
   rc<- foreach (i = 1:length(files),
                 .packages=c("dplyr"),
-                .export=c("read_file", "padfn","post_process","str_pad")) %dopar% {
+                .export=c("read_file", "padfn","post_process", "read_file_of_type", "str_pad")) %dopar% {
                   
     file <- files[i]
   
