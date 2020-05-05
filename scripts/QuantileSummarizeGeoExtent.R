@@ -76,7 +76,7 @@ for (i in 1:length(scenarios)) {
     scenario_dir = paste0(setup_name,"_",scenarios[i])
     res_all[[i]] <- report.generation::load_hosp_sims_filtered(scenario_dir,
                                                                  name_filter = opts$name_filter,
-                                                                 num_files = opts$num_simulations,
+                                                                 num_files = ifelse(opts$num_simulations > 0, opts$num_simulations, config$nsimulations),
                                                                  post_process = post_proc,
                                                                  opt=opts)%>%
         mutate(scenario=scenarios[i])
