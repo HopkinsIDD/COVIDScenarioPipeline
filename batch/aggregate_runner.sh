@@ -26,10 +26,25 @@ cd agg_code
 INFERENCE_PATHS_ARRAY=($INFERENCE_PATHS)
 for inference_path in "${INFERENCE_PATHS_ARRAY[@]}"
 do
-	python3 output_mover.py -n $NUM_JOBS -l $SLOTS_PER_JOB -i $inference_path -o $LOCAL_OUTPUT_PATH
+	python3 COVIDScenarioPipeline/scripts/output_mover.py -n $NUM_JOBS -l $SLOTS_PER_JOB -i $inference_path -o "hospitalization/model_output"
 done
 
-aws s3 cp --quiet --recursive $LOCAL_OUTPUT_PATH $S3_RESULTS_PATH
+# Copy the output of this aggregation step to S3
+aws s3 cp --quiet --recursive hospitalization/ $S3_RESULTS_PATH/hospitalization/
+
+# Run the Spark code to do the quantile summarization
+SPARK_DRIVER_MEMORY=20g
+SPARK_EXECUTOR_MEMORY=20g
+# Update R packages
+Rscript COVIDScenarioPipeline/local_install.R
+
+mkdir -p $OUTPUT_PATH
+Rscript COVIDScenarioPipeline/scripts/QuantileSummarizeGeoExtent.R -o $OUTPUT_PATH/quantile_geo_extent.csv $SCENARIO
+Rscript COVIDScenarioPipeline/scripts/QuantileSummarizeStateLevel.R -o $OUTPUT_PATH/quantile_state_level.csv $SCENARIO
+/opt/spark/bin/spark-submit --driver-memory $SPARK_DRIVER_MEMORY --executor-memory $SPARK_EXECUTOR_MEMORY COVIDScenarioPipeline/scripts/quantile_summarize_geoid_level.py $SCENARIO -o $OUTPUT_PATH/quantile_geoid_level.csv
+
+# Copy the output of the quantile analysis to S3
+aws s3 cp --quiet --recursive $OUTPUT_PATH $S3_RESULTS_PATH/$OUTPUT_PATH
 
 echo "Done"
 exit 0
