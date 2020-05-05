@@ -9,6 +9,7 @@ This script can be executed from the command line in the container by running Ap
 
 import itertools
 import pathlib
+import re
 
 import click
 import numpy as np
@@ -24,6 +25,8 @@ sqlContext = SQLContext(sc)
 
 
 @click.command()
+@click.option("-d", "--name_filter", type=str, default=".*", metavar="REGEX",
+              help="only process files matching this filter")
 @click.option("-o", "--output", type=pathlib.Path, required=True,
               help="write output to this directory")
 @click.option("--start_date", type=click.DateTime(formats=["%Y-%m-%d"]),
@@ -33,11 +36,16 @@ sqlContext = SQLContext(sc)
               default="2022-01-01", show_default=True,
               help="latest date to include")
 @click.argument("input_paths", type=click.Path(), nargs=-1, required=True)
-def process(input_paths, output, start_date, end_date):
+def process(input_paths, output, start_date, end_date, name_filter):
     paths = itertools.chain(*(pathlib.Path("hospitalization/model_output").glob(p + "/**/*.parquet")
                             for p in input_paths))
+    paths = (str(p) for p in paths if p.is_file())
+    paths = filter(lambda p: re.search(name_filter, p), paths)
+    paths = list(paths)
+    if not paths:
+        raise click.BadParameter("no files found in input path")
 
-    df = sqlContext.read.parquet(*(str(p) for p in paths if p.is_file()))
+    df = sqlContext.read.parquet(*paths)
     df = df.withColumnRenamed("incidI", "infections") \
            .withColumnRenamed("incidD", "death") \
            .withColumnRenamed("incidH", "hosp")
