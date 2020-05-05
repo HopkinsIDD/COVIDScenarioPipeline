@@ -82,7 +82,7 @@ for (i in 1:length(scenarios)) {
     scenario_dir = paste0(setup_name,"_",scenarios[i])
     res_state[[i]] <- report.generation::load_hosp_sims_filtered(scenario_dir,
                                                                  name_filter = opt$name_filter,
-                                                                 num_files = opt$num_simulations,
+                                                                 ifelse(opt$num_simulations > 0, opt$num_simulations, config$nsimulations),
                                                                  post_process = post_proc,
                                                                  geodata=geodata,
                                                                  opt=opt)%>%
