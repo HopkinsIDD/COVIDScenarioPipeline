@@ -44,6 +44,9 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
     # Update and save the config file with the number of sims to run
     if 'filtering' in config:
         config['filtering']['simulations_per_slot'] = sims_per_slot
+        if not os.path.exists(config['filtering']['data_path']):
+            print(f"ERROR: filtering.data_path path {config['filtering']['data_path']} does not exist!")
+            return 1
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
 
