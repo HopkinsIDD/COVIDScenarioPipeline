@@ -53,6 +53,7 @@ read_file_of_type <- function(extension,...){
 ##' 
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
 ##' 
+##' @import tidyverse foreach
 ##' 
 ##' @author Justin Lessler
 ##' 
@@ -66,8 +67,8 @@ load_scenario_sims_filtered <- function(scenario_dir,
                                         file_extension = 'auto',
                                         ...) {
   
-  require(tidyverse)
-  require(foreach)
+  # require(tidyverse)
+  # require(foreach)
   
   if (is.na(num_files)) {
     files <- dir(sprintf("model_output/%s", scenario_dir), full.names = TRUE)
@@ -93,14 +94,14 @@ load_scenario_sims_filtered <- function(scenario_dir,
   read_file <- report.generation:::read_file_of_type(file_extension)
   
   if (geoid_len > 0) {
-    padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width =geoid_len,pad=padding_char))}
+    padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid, width=geoid_len, pad=padding_char))}
   } else {
     padfn <- function(x) {x}
   }
   
   rc <- foreach(i = 1:length(files),
                 .packages = c("tidyverse"),
-                .export = c("read_file","pre_process","post_process")) %dopar% {
+                .export = c("read_file","pre_process","post_process", "str_pad")) %dopar% {
     #require(tidyverse)
     
     read_file(files[i]) %>%
@@ -129,7 +130,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
 ##' 
 ##' @author Justin Lessler
-##'
+##' @import tidyverse foreach
 ##'
 ##'@export
 load_hosp_sims_filtered <- function(scenario_dir,
@@ -140,11 +141,6 @@ load_hosp_sims_filtered <- function(scenario_dir,
                                     padding_char = "0",
                                     file_extension = 'auto',
                                     ...) {
-  
-  require(tidyverse)
-  require(foreach)
-  
-
   
   files <- dir(sprintf("hospitalization/model_output/%s", scenario_dir),full.names = TRUE)
   files <- files[grepl(name_filter,gsub('^.*[/]','',files))]
@@ -160,22 +156,23 @@ load_hosp_sims_filtered <- function(scenario_dir,
 
 
   if (geoid_len > 0) {
-    padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width=geoid_len,pad=padding_char))}
+    padfn <- function(x) {x %>% dplyr::mutate(geoid = str_pad(geoid, width=geoid_len, pad=padding_char))}
   } else {
     padfn <- function(x) {x}
   }
 
-  read_file <- read_file_of_type(file_extension)
+  read_file <- report.generation:::read_file_of_type(file_extension)
   
-  rc<- foreach (i = 1:length(files)) %dopar% {
-    require(tidyverse)
+  rc<- foreach (i = 1:length(files),
+                .packages=c("dplyr"),
+                .export=c("read_file", "padfn","post_process","str_pad")) %dopar% {
+                  
     file <- files[i]
-
   
     read_file(files[i]) %>%
       padfn %>%
       post_process(...) %>%
-      mutate(sim_num = i)
+      dplyr::mutate(sim_num = i)
   }
   
   rc<- dplyr::bind_rows(rc)
