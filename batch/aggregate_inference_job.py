@@ -4,22 +4,26 @@ import boto3
 import click
 import os
 import re
-import subprocess
+import tarfile
 import time
 import yaml
 
 @click.command()
 @click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
               help="configuration file for this run")
-@click.option("-n", "--num-slots", "num_jobs", type=click.IntRange(min=1, max=1000), required=True,
-              help="number of output slots to process")
+@click.option("-n", "--num-jobs", "num_jobs", type=click.IntRange(min=1, max=1000), required=True,
+              help="number of output jobs to process")
+@click.option("-l", "--slots-per-job", "slots_per_job", type=click.IntRange(min=1, max=1000), default=1,
+              help="number of output slots per job")
 @click.option("-i", "--inference-path", "inference_paths", type=str, multiple=True, required=True,
               help="S3 paths of output files to be aggregated and analyzed")
 @click.option("-b", "--s3-bucket", "s3_bucket", type=str, default="idd-inference-runs",
               help="The S3 bucket to use for job data")
+@click.option("-o", "--output-path", "output_path", type=str, default="hospitalization/model_output/",
+              help="The output path within the S3 bucket for the aggregated data")
 @click.option("-q", "--job-queue", "batch_job_queue", type=str, default="Batch-CovidPipeline",
               help="The name of the job queue to submit the aggregation job to")
-def aggregation_job(config_file, num_jobs, inference_paths, s3_bucket, batch_job_queue):
+def aggregation_job(config_file, num_jobs, slots_per_job, inference_paths, s3_bucket, output_path, batch_job_queue):
 
     config = None
     with open(config_file) as f:
@@ -30,15 +34,30 @@ def aggregation_job(config_file, num_jobs, inference_paths, s3_bucket, batch_job
     # get the dependent job ids from the inference paths
     dependent_jobs = [{"jobId": x.split("/")[-1]} for x in inference_paths]
 
+    # Code we need to run on the batch machine is tar'd here
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    tarfile_name = f"{job_name}.tar.gz"
+    tar = tarfile.open(tarfile_name, "w:gz")
+    tar.add(os.path.join(this_dir, 'output_mover.py')
+    tar.close()
+
     # Upload the scripts we need to run to S3
     runner_script_name = f"{job_name}-runner.sh"
-    local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'aggregation_runner.sh')
+    local_runner_script = os.path.join(this_dir, 'aggregate_runner.sh')
     s3_client = boto3.client('s3')
     s3_client.upload_file(local_runner_script, s3_bucket, runner_script_name)
+    s3_client.upload_file(tarfile_name, s3_bucket, tarfile_name)
+    os.remove(tarfile_name)
 
     # Prepare and launch the num_jobs via AWS Batch.
+    s3_results_path = f"s3://{s3_bucket}/{job_name}/{output_path}"
     env_vars = [
-	{"name": "S3_INFERENCE_PATHS", "value": " ".join(inference_paths)}
+        {"name": "S3_AGG_CODE_PATH", "value": f"s3://{s3_bucket}/{tarfile_name}" },
+	{"name": "INFERENCE_PATHS", "value": " ".join(inference_paths)},
+        {"name": "NUM_JOBS", "value": str(num_jobs) },
+        {"name": "SLOTS_PER_JOB", "value": str(slots_per_job) },
+        {"name": "LOCAL_OUTPUT_PATH", "value": output_path },
+        {"name": "S3_RESULTS_PATH", "value": s3_results_path }
     ]
 
     s3_cp_run_script = f"aws s3 cp s3://{s3_bucket}/{runner_script_name} $PWD/run-aggregation"
