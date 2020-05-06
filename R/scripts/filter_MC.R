@@ -70,25 +70,21 @@ if(is.na(opt$simulations_per_slot)){
 }
 
 data_path <- config$filtering$data_path
-data_dir <- gsub('[/][^/]*','',data_path)
+data_dir <- dirname(data_path)
 if(!dir.exists(data_dir)){
   suppressWarnings(dir.create(data_dir,recursive=TRUE))
 }
 if(!dir.exists(paste('importation',config$spatial_setup$setup_name,'case_data',sep='/'))){
   suppressWarnings(dir.create(paste('importation',config$spatial_setup$setup_name,'case_data',sep='/'),recursive=TRUE))
 }
-# Parse jhucsse using covidImportation
+# Parse USAFacts data using covidImportation
 suppressWarnings(dir.create('.lock'))
 lockfile = 'filter_MC.lock'
 # lock <- flock::lock(paste(".lock",gsub('/','-',data_path), sep = '/'))
 if (!file.exists(data_path)) {
-  case_data_dir <- paste(config$spatial_setup$base_path,config$spatial_setup$setup_name,"case_data", sep = '/')
-  if(!dir.exists(case_data_dir)){
-    suppressWarnings(dir.create(case_data_dir,recursive=TRUE))
-  }
-  jhucsse <- covidcommon::getUSAFactsData()
-  jhucsse  <-
-    jhucsse %>%
+  cases_deaths <- covidcommon::get_USAFacts_data()
+  cases_deaths  <-
+    cases_deaths %>%
     dplyr::mutate(date = lubridate::ymd(Update)) %>%
     dplyr::filter(FIPS %in% geodata[[obs_nodename]]) %>%
     dplyr::rename(
@@ -96,13 +92,13 @@ if (!file.exists(data_path)) {
       cumDeaths = Deaths
     ) %>%
     dplyr::arrange(date)
-  if(any(is.na(jhucsse$cumConfirmed))){
-    jhucsse$cumConfirmed[is.na(jhucsse$cumConfirmed)] <- 0
+  if(any(is.na(cases_deaths$cumConfirmed))){
+    cases_deaths$cumConfirmed[is.na(cases_deaths$cumConfirmed)] <- 0
   }
-  if(any(is.na(jhucsse$cumDeaths))){
-    jhucsse$cumDeaths[is.na(jhucsse$cumDeaths)] <- 0
+  if(any(is.na(cases_deaths$cumDeaths))){
+    cases_deaths$cumDeaths[is.na(cases_deaths$cumDeaths)] <- 0
   }
-  jhucsse <- jhucsse %>%
+  cases_deaths <- cases_deaths %>%
     dplyr::group_by(FIPS) %>%
     dplyr::group_modify(
       function(.x,.y){
@@ -113,9 +109,9 @@ if (!file.exists(data_path)) {
         return(.x)
       }
     )
-  names(jhucsse)[names(jhucsse) == 'FIPS'] <- as.character(obs_nodename)
-  write_csv(jhucsse, data_path)
-  rm(jhucsse)
+  names(cases_deaths)[names(cases_deaths) == 'FIPS'] <- as.character(obs_nodename)
+  write_csv(cases_deaths, data_path)
+  rm(cases_deaths)
 }
 # flock::unlock(lock)
 

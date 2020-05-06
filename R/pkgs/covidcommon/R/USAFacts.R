@@ -7,7 +7,7 @@
 ##' @param url URL to CSV on USAFacts website
 ##' @return data frame
 ##'
-##' @import dplyr select rename filter mutate
+##' @importFrom dplyr select rename filter mutate
 ##' @importFrom lubridate mdy
 ##' @importFrom readr read_csv col_character
 ##' @importFrom tidyr pivot_longer
