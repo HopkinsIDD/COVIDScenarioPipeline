@@ -25,7 +25,7 @@ def process_parent_jobs(job_queue, parent_tracker, next_token=None):
         while next_child_token is not None:
             next_child_token = process_child_jobs(job['jobId'], tracker, next_child_token)
         if tracker['RUNNING']:
-            print(f"Parent job {job['jobId']} had {tracker['RUNNING']} running child jobs.")
+            print(f"Parent job {job['jobName']} had {tracker['RUNNING']} running child jobs.")
             parent_tracker['CHILD_JOBS'] = parent_tracker.get('CHILD_JOBS', 0) + tracker['RUNNING']
 
     return parent_jobs['nextToken'] if 'nextToken' in parent_jobs else None
