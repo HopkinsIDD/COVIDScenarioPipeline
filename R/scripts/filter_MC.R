@@ -1,10 +1,8 @@
 
 # install.packages('xts', repos='http://cran.us.r-project.org')
 # install.packages('zoo', repos='http://cran.us.r-project.org')
-# devtools::install_github("HopkinsIDD/covidImportation")
 
 # Preamble ---------------------------------------------------------------------
-suppressMessages(suppressWarnings(library(covidImportation)))
 suppressMessages(library(dplyr))
 suppressMessages(library(readr))
 suppressMessages(library(covidcommon))
@@ -74,10 +72,7 @@ data_dir <- dirname(data_path)
 if(!dir.exists(data_dir)){
   suppressWarnings(dir.create(data_dir,recursive=TRUE))
 }
-if(!dir.exists(paste('importation',config$spatial_setup$setup_name,'case_data',sep='/'))){
-  suppressWarnings(dir.create(paste('importation',config$spatial_setup$setup_name,'case_data',sep='/'),recursive=TRUE))
-}
-# Parse USAFacts data using covidImportation
+# Parse USAFacts data
 suppressWarnings(dir.create('.lock'))
 lockfile = 'filter_MC.lock'
 # lock <- flock::lock(paste(".lock",gsub('/','-',data_path), sep = '/'))
