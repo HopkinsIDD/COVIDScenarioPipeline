@@ -86,21 +86,7 @@ if (!file.exists(data_path)) {
   if(!dir.exists(case_data_dir)){
     suppressWarnings(dir.create(case_data_dir,recursive=TRUE))
   }
-  jhucsse_cases <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID",
-                                   last_date = as.POSIXct(lubridate::ymd(config$end_date)),
-                                   case_data_dir = case_data_dir,
-                                   save_raw_data=TRUE,
-                                   us_data_only=FALSE) %>%
-                     select(FIPS,Update,Confirmed)
-
-  jhucsse_deaths <- covidImportation::get_clean_JHUCSSE_deaths(aggr_level = "UID", #"source",
-                               last_date = Sys.time(),
-                               case_data_dir = case_data_dir,
-                               save_raw_data=TRUE,
-                               us_data_only=FALSE) %>%
-                     select(FIPS,Update,Deaths)
-
-  jhucsse <- full_join(jhucsse_cases,jhucsse_deaths)
+  jhucsse <- covidcommon::getUSAFactsData()
   jhucsse  <-
     jhucsse %>%
     dplyr::mutate(date = lubridate::ymd(Update)) %>%
