@@ -23,11 +23,7 @@ mkdir agg_code
 tar -xvzf agg_code.tar.gz -C agg_code
 cd agg_code
 
-INFERENCE_PATHS_ARRAY=($INFERENCE_PATHS)
-for inference_path in "${INFERENCE_PATHS_ARRAY[@]}"
-do
-	python3 COVIDScenarioPipeline/scripts/output_mover.py -n $NUM_JOBS -l $SLOTS_PER_JOB -i $inference_path -o "hospitalization/model_output"
-done
+python3 COVIDScenarioPipeline/scripts/output_mover.py -n $NUM_JOBS -l $SLOTS_PER_JOB -i $INFERENCE_PATHS -o "hospitalization/model_output"
 
 # Copy the output of this aggregation step to S3
 aws s3 cp --quiet --recursive hospitalization/ $S3_RESULTS_PATH/hospitalization/

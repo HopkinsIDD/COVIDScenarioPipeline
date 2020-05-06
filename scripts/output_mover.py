@@ -2,6 +2,7 @@
 
 import boto3
 import click
+import multiprocessing
 import os
 import re
 
@@ -10,17 +11,17 @@ import re
               help="number of output jobs to process")
 @click.option("-l", "--slots-per-job", "slots_per_job", type=click.IntRange(min=1, max=1000), default=1,
               show_default=True, help="number of output slots from each job")
-@click.option("-i", "--inference-path", "inference_paths", type=str, multiple=True, required=True,
-              help="S3 paths of output files to be aggregated and analyzed")
+@click.option("-i", "--inference-paths", "inference_paths_str", type=str, required=True,
+              help="comma-separated list of paths to move from S3 to the local output_dir")
 @click.option("-o", "--output-dir", "output_dir", type=click.Path(), default="hospitalization/model_output",
-              help="The local path to write the output data from S3 to")
-def move_outputs(num_jobs, slots_per_job, inference_paths, output_dir):
+              show_default=True, help="The local path to write the output data from S3 to")
+def move_outputs(num_jobs, slots_per_job, inference_paths_str, output_dir):
 
+    inference_paths = inference_paths_str.split(',')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-
-    s3_client = boto3.client('s3')
     uri_prefix = "s3://"
+    workers = []
     for path in inference_paths:
        if path.startswith(uri_prefix):
            path = path[len(uri_prefix):]
@@ -32,15 +33,36 @@ def move_outputs(num_jobs, slots_per_job, inference_paths, output_dir):
        hosp_dir = os.path.join(output_dir, f"{name}_{scenario}")
        if not os.path.exists(hosp_dir):
            os.makedirs(hosp_dir)
-       index = 1
-       for j in range(num_jobs):
-           for k in range(slots_per_job):
-               key = f"{name_scenario_death}/{hash}:{j}/hospitalization/model_output/{name}_{scenario}/{death}_death_death-{k+1:09d}.hosp.parquet"
-               local_file = os.path.join(hosp_dir, f"{death}_death_death-{index:09d}.hosp.parquet")
-               print(f"Moving {key} to {local_file}...")
-               s3_client.download_file(bucket, key, local_file)
-               index += 1
+       worker = Worker(num_jobs, slots_per_job, bucket, name_scenario_death, hash, hosp_dir, death)
+       workers.append(worker)
+       worker.start()
 
+    for w in workers:
+        w.join()
+
+
+class Worker(multiprocessing.Process):
+    def __init__(self, num_jobs, slots_per_job, bucket, name_scenario_death, hash, hosp_dir, death):
+        super(Worker, self).__init__()
+        self.num_jobs = num_jobs
+        self.slots_per_job = slots_per_job
+        self.bucket = bucket
+        self.name_scenario_death = name_scenario_death
+        self.hash = hash
+        self.hosp_dir = hosp_dir
+        self.death = death
+
+    def run(self):
+        s3_client = boto3.client('s3')
+        index = 1
+        for j in range(self.num_jobs):
+            for k in range(self.slots_per_job):
+                key = f"{self.name_scenario_death}/{self.hash}:{j}/{self.hosp_dir}/{self.death}_death_death-{k+1:09d}.hosp.parquet"
+                local_file = os.path.join(self.hosp_dir, f"{self.death}_death_death-{index:09d}.hosp.parquet")
+                s3_client.download_file(self.bucket, key, local_file)
+                index += 1
+                if index % 100 == 0:
+                    print(f"Moved {index} files from {self.name_scenario_death}/{self.hash} to {self.hosp_dir}")
 
 if __name__ == '__main__':
     move_outputs()
