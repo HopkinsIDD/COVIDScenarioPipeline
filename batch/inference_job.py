@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import tarfile
+import tempfile
 import time
 import yaml
 
@@ -65,20 +66,18 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
             config['hospitalization']['parameters']['p_death_names'] = [d[0]]
             config['hospitalization']['parameters']['p_death'] = [d[1]]
             config['hospitalization']['parameters']['p_hosp_inf'] = [d[2]]
-            with open(config_file, "w") as f:
-                yaml.dump(config, f, sort_keys=False)
-            handler.launch(scenario_job_name, config_file, job_queues[ctr % len(job_queues)])
+            with tempfile.NamedTemporaryFile("w") as launch_config_file:
+                yaml.dump(config, launch_config_file, sort_keys=False)
+                handler.launch(scenario_job_name, launch_config_file.name, job_queues[ctr % len(job_queues)])
             ctr += 1
         config['interventions']['scenarios'] = scenarios
         config['hospitalization']['parameters']['p_death_names'] = p_death_names
         config['hospitalization']['parameters']['p_death'] = p_deaths
         config['hospitalization']['parameters']['p_hosp_inf'] = p_hosp_inf
-        with open(config_file, "w") as f:
-            yaml.dump(config, f, sort_keys=False)
     else:
-        with open(config_file, "w") as f:
-            yaml.dump(config, f, sort_keys=False)
-        handler.launch(job_name, config_file, batch_job_queue=get_job_queues()[0])
+        with tempfile.NamedTemporaryFile("w") as launch_config_file:
+            yaml.dump(config, launch_config_file, sort_keys=False)
+            handler.launch(job_name, launch_config_file.name, batch_job_queue=get_job_queues()[0])
 
     (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")
     print(txt)
