@@ -52,7 +52,7 @@ doParallel::registerDoParallel(cl)
 foreach(scenario = scenarios) %:%
   foreach(deathrate = deathrates) %:%
   foreach(slot = seq_len(opt$slots),
-          .packages = c("dplyr", "magrittr", "xts", "zoo", "stringr")) %dopar% {
+          .packages = c("dplyr", "magrittr", "xts", "zoo", "stringr", "truncnorm")) %dopar% {
     print(paste("Slot",slot,"of",opt$slots))
     
     inference::filter_MC(
