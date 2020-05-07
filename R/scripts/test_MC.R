@@ -55,7 +55,7 @@ foreach(scenario = scenarios) %:%
     print(paste("Slot",slot,"of",opt$slots))
     
     inference::filter_MC(
-      config = opt$config,
+      config_path = opt$config,
       scenarios = scenario,
       deathrates = deathrate,
       jobs = 1,
