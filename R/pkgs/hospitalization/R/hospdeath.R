@@ -167,7 +167,7 @@ hosp_load_scenario_sim <- function(scenario_dir,
         tmp$time <- lubridate::as_date(tz="GMT",tmp$time)
       }
     } else {
-      file <- paste0(file,'csv')
+      file <- paste0(file,'.csv')
       suppressMessages(tmp <- read_csv(file))
     }
     if (!is.null(keep_compartments)) {
