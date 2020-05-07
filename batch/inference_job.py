@@ -32,7 +32,9 @@ import yaml
               help="The number of CPUs to request for running jobs")
 @click.option("-m", "--memory", "memory", type=click.IntRange(min=1000, max=6000), default=2000, show_default=True,
               help="The amount of RAM in megabytes needed per CPU running simulations")
-def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s3_bucket, batch_job_definition, parallelize_scenarios, vcpus, memory):
+@click.option("-r", "--restart-from", "restart_from", type=str, default=None,
+              help="The location of an S3 run to use as the initial to the first block of the current run")
+def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s3_bucket, batch_job_definition, parallelize_scenarios, vcpus, memory, restart_from):
 
     config = None
     with open(config_file) as f:
@@ -50,7 +52,7 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
 
-    handler = BatchJobHandler(num_jobs, num_blocks, dvc_target, s3_bucket, batch_job_definition, vcpus, memory)
+    handler = BatchJobHandler(num_jobs, num_blocks, dvc_target, s3_bucket, batch_job_definition, vcpus, memory, restart_from)
 
     if parallelize_scenarios:
         job_queues = get_job_queues()
@@ -96,7 +98,7 @@ def get_job_queues():
     return sorted(queues_with_jobs, key=queues_with_jobs.get)
 
 class BatchJobHandler(object):
-    def __init__(self, num_jobs, num_blocks, dvc_target, s3_bucket, batch_job_definition, vcpus, memory):
+    def __init__(self, num_jobs, num_blocks, dvc_target, s3_bucket, batch_job_definition, vcpus, memory, restart_from):
         self.num_jobs = num_jobs
         self.num_blocks = num_blocks
         self.dvc_target = dvc_target
@@ -104,6 +106,7 @@ class BatchJobHandler(object):
         self.batch_job_definition = batch_job_definition
         self.vcpus = vcpus
         self.memory = memory
+        self.restart_from = restart_from
 
     def launch(self, job_name, config_file, batch_job_queue):
 
@@ -139,6 +142,10 @@ class BatchJobHandler(object):
         s3_cp_run_script = f"aws s3 cp s3://{self.s3_bucket}/{runner_script_name} $PWD/run-covid-pipeline"
         command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
 
+        cur_env_vars = env_vars.copy()
+        if self.restart_from:
+            cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from})
+
         batch_client = boto3.client('batch')
         print(f"Launching {job_name}_block0...")
         last_job = batch_client.submit_job(
@@ -149,7 +156,7 @@ class BatchJobHandler(object):
             containerOverrides={
                 'vcpus': self.vcpus,
                 'memory': self.vcpus * self.memory,
-                'environment': env_vars,
+                'environment': cur_env_vars,
                 'command': command
             },
             retryStrategy = {'attempts': 3})
@@ -172,7 +179,8 @@ class BatchJobHandler(object):
                     'memory': self.vcpus * self.memory,
                     'environment': cur_env_vars,
                     'command': command
-                })
+                },
+                retryStrategy={'attempts': 3})
             last_job = cur_job
             block_idx += 1
         print(f"Final output will be for job id: {results_path}/{last_job['jobId']}")
