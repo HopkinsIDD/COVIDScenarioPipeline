@@ -368,6 +368,13 @@ iterateAccept <- function(ll_ref,ll_new,ll_col) {
 if(!("obs" %in% ls())){
   suppressMessages(obs <<- readr::read_csv(data_path))
   obs <- obs %>% filter(date >= config$start_date, date <= config$end_date)
+  obs <- obs %>% dplyr::right_join(
+    tidyr::expand_grid(
+      geoid = unique(obs$geoid),
+      date = unique(obs$date)
+    )
+  ) %>%
+  mutate_if(is.numeric,coalesce,0)
 }
 geonames <- unique(obs[[obs_nodename]])
 # Compute statistics
