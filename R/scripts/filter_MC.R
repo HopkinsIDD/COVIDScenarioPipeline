@@ -27,7 +27,8 @@ option_list = list(
   optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable"),
   optparse::make_option(c("-r", "--rpath"), action="store", default="Rscript", type = 'character', help = "path to R executable"),
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = "COVIDScenarioPipeline/"),
-  optparse::make_option(c("--clean"), action="store_true",default=TRUE,help="Whether to remove old files if unused")
+  optparse::make_option(c("--clean"), action="store_true",default=FALSE,help="Remove old files if unused"),
+  optparse::make_option(c("--dontclean"), action="store_false",dest="clean",help="Don't remove old files if unused")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -256,7 +257,7 @@ perturb_seeding <- function(seeding,sd) {
         group_by(place)%>%
         mutate(date = date+round(rnorm(1,0,sd)))%>%
         ungroup()%>%
-        mutate(amount=rpois(length(amount),amount))
+        mutate(amount=round(pmax(rnorm(length(amount),amount,1),0)))
 
     return(seeding)
 
@@ -311,12 +312,12 @@ accept_reject_new_seeding_npis <- function(
   rc_seeding <- seeding_orig
   rc_npis <- npis_orig
 
-    if(!all(orig_lls$geoid == prop_lls$geoid)){stop("geoids must match")}
-    ##draww accepts/rejects
-    ratio <- exp(prop_lls$ll - orig_lls$ll)
-    accept <- ratio>runif(length(ratio),0,1)
+  if(!all(orig_lls$geoid == prop_lls$geoid)){stop("geoids must match")}
+  ##draw accepts/rejects
+  ratio <- exp(prop_lls$ll - orig_lls$ll)
+  accept <- ratio>runif(length(ratio),0,1)
 
-    orig_lls$ll[accept] <- prop_lls$ll[accept]
+  orig_lls$ll[accept] <- prop_lls$ll[accept]
 
   for (place in orig_lls$geoid[accept]) {
     rc_seeding[rc_seeding$place ==place, ] <- seeding_prop[seeding_prop$place ==place, ]
@@ -330,6 +331,9 @@ accept_reject_new_seeding_npis <- function(
 
 ##Calculate the model evaluation statistic.
 logLikStat <- function(obs, sim, distr, param, add_one = F) {
+  if(length(obs) != length(sim)){
+    stop(sprintf("Expecting sim (%d) and obs (%d) to be the same length",length(sim),length(obs)))
+  }
   if (add_one) {
     sim[sim == 0] = 1
   }
@@ -363,13 +367,14 @@ iterateAccept <- function(ll_ref,ll_new,ll_col) {
 
 if(!("obs" %in% ls())){
   suppressMessages(obs <<- readr::read_csv(data_path))
+  obs <- obs %>% filter(date >= config$start_date, date <= config$end_date)
 }
 geonames <- unique(obs[[obs_nodename]])
 # Compute statistics
 data_stats <- lapply(
   geonames,
   function(x) {
-    df <- obs[obs[[obs_nodename]] == x, ]
+    df <- obs[obs[[obs_nodename]] == x, ] 
     getStats(
       df,
       "date",
@@ -392,23 +397,27 @@ for(scenario in scenarios) {
       # Load
     
     # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
-    if(!file.exists(config$seeding$lambda_file)){
-      err <- system(paste(
-        opt$rpath,
-        paste(opt$pipepath,"R","scripts","create_seeding.R", sep='/'),
-        "-c",opt$config
-      ))
-    } else {
-      err <- 0
-    }
-    if(err != 0){quit("no")}
+    err <- 0
+    if(!file.exists(seeding_file_path(config,sprintf("%09d",opt$this_slot)))){
+      if(!file.exists(config$seeding$lambda_file)){
+        err <- system(paste(
+          opt$rpath,
+          paste(opt$pipepath,"R","scripts","create_seeding.R", sep='/'),
+          "-c",opt$config
+        ))
+          if(err != 0){
+            stop("Could not run seeding")
+          }
+      }
     suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file))
-    current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
-    # flock::unlock(lock)
     write.csv(
-      current_seeding,
+      initial_seeding,
       file = seeding_file_path(config,sprintf("%09d",opt$this_slot))
     )
+  }
+    suppressMessages(initial_seeding <- readr::read_csv(seeding_file_path(config,sprintf("%09d",opt$this_slot))))
+    # flock::unlock(lock)
+    initial_seeding$amount <- as.integer(round(initial_seeding$amount))
 
     current_index <- 0
     current_likelihood <- data.frame()
@@ -417,6 +426,7 @@ for(scenario in scenarios) {
     # TODO CHANGE TO FIRST DRAW OF SEIR CODE
     first_param_file <- parameter_file_path(config,opt$this_slot, scenario)
     first_npi_file <- npi_file_path(config,opt$this_slot, scenario)
+    first_hosp_file <- hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
     # lock <- flock::lock(paste('.lock',gsub('/','-',first_npi_file),sep='/'))
     if((!file.exists(first_npi_file)) | (!file.exists(first_param_file))){
       py$onerun_SEIR(opt$this_slot,py$s)
@@ -425,33 +435,15 @@ for(scenario in scenarios) {
     initial_params <- arrow::read_parquet(first_param_file)
     # flock::unlock(lock)
 
-    for( index in seq_len(opt$simulations_per_slot)) {
-      print(index)
-      # Load sims -----------------------------------------------------------
-
-      current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
-      current_npis <- perturb_npis(initial_npis, config$interventions$settings)
-      current_params <- initial_params
-      write.csv(
-        current_seeding,
-        file = seeding_file_path(config,sprintf("%09d",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index))
-      )
-      arrow::write_parquet(
-        current_npis,
-        npi_file_path(config,opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index,scenario)
-      )
-      arrow::write_parquet(
-        current_params,
-        parameter_file_path(config,opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index,scenario)
-      )
-
-
+    if(!file.exists(first_hosp_file)){
       ## Generate files
-      this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
+      this_index <- opt$this_slot
       # lock <- flock::lock(paste(".lock",paste("SEIR",this_index,scenario,sep='.'),sep='/'))
       err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
       err <- ifelse(err == 1,0,1)
-      if(err != 0){quit("no")}
+      if(err != 0){
+        stop("SEIR failed to run")
+      }
 
       ## Run hospitalization
       err <- system(paste(
@@ -463,11 +455,130 @@ for(scenario in scenarios) {
         "-s",scenario,
         "-d",deathrate,
         "-n",1,
-        "-i",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
+        "-i",this_index
       ))
-      if(err != 0){quit("no")}
+      if(err != 0){
+        stop("Hospitalization failed to run")
+      }
+    }
 
-      file <- hospitalization_file_path(config,opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index,scenario,deathrate)
+    initial_sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",first_hosp_file))(first_hosp_file) %>%
+        filter(time >= min(obs$date), time <= max(obs$date)) %>%
+        select(-date_inds)
+      
+      lhs <- unique(initial_sim_hosp[[obs_nodename]])
+      rhs <- unique(names(data_stats))
+      all_locations <- rhs[rhs %in% lhs]
+
+      lhs <- lubridate::ymd(unique(initial_sim_hosp$time))
+      rhs <- lubridate::ymd(unlist(Reduce(intersect,lapply(data_stats,function(x){lapply(x,function(y){y$date})}))))
+      all_dates <- rhs[rhs %in% lhs]
+      if(!all(all_dates == rhs)){
+        stop("This should not happen")
+      }
+
+      if(!dir.exists(config$filtering$likelihood_directory)){
+        dir.create(config$filtering$likelihood_directory)
+      }
+      initial_log_likelihood_file <- paste0(config$filtering$likelihood_directory,"/",sprintf("%09d",opt$this_slot),".llik.parquet")
+      if(!file.exists(initial_log_likelihood_file)){
+        initial_log_likelihood_data <- list()
+        for(location in all_locations) {
+
+          local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
+          initial_sim_stats <- getStats(
+            local_sim_hosp,
+            "time",
+            "sim_var",
+            end_date = max(obs$date[obs[[obs_nodename]] == location]),
+            config$filtering$statistics
+          )
+
+
+          # Get observation statistics
+          log_likelihood <- list()
+          for(var in names(data_stats[[location]])) {
+            log_likelihood[[var]] <- logLikStat(
+              obs = data_stats[[location]][[var]]$data_var,
+              sim = initial_sim_stats[[var]]$sim_var,
+              dist = config$filtering$statistics[[var]]$likelihood$dist,
+              param = config$filtering$statistics[[var]]$likelihood$param,
+              add_one = config$filtering$statistics[[var]]$add_one
+            )
+          }
+          # Compute log-likelihoods
+
+          initial_log_likelihood_data[[location]] <- dplyr::tibble(
+            ll = sum(unlist(log_likelihood)),
+            filename = first_hosp_file,
+            geoid = location
+          )
+          names(initial_log_likelihood_data)[names(initial_log_likelihood_data) == 'geoid'] <- obs_nodename
+        }
+        rm(initial_sim_hosp)
+
+        initial_log_likelihood_data <- initial_log_likelihood_data %>% do.call(what=rbind)
+        arrow::write_parquet(initial_log_likelihood_data,initial_log_likelihood_file)
+      }
+      initial_log_likelihood_data <- arrow::read_parquet(initial_log_likelihood_file)
+
+      # Compute total loglik for each sim
+      likelihood <- initial_log_likelihood_data %>%
+        summarise(ll = sum(ll, na.rm = T)) %>%
+        mutate(pdeath = deathrate, scenario = scenario)
+
+      ## For logging
+      current_likelihood <- likelihood
+      current_index <- 0
+      previous_likelihood_data <- initial_log_likelihood_data
+
+    for( index in seq_len(opt$simulations_per_slot)) {
+      print(index)
+      # Load sims -----------------------------------------------------------
+
+      current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
+      current_npis <- perturb_npis(initial_npis, config$interventions$settings)
+      current_params <- initial_params
+      this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
+      write.csv(
+        current_seeding,
+        file = seeding_file_path(config,sprintf("%09d",this_index))
+      )
+      arrow::write_parquet(
+        current_npis,
+        npi_file_path(config,this_index,scenario)
+      )
+      arrow::write_parquet(
+        current_params,
+        parameter_file_path(config,this_index,scenario)
+      )
+
+
+      ## Generate files
+      # lock <- flock::lock(paste(".lock",paste("SEIR",this_index,scenario,sep='.'),sep='/'))
+      err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
+      err <- ifelse(err == 1,0,1)
+      if(err != 0){
+        stop("SEIR failed to run")
+      }
+
+      ## Run hospitalization
+      err <- system(paste(
+        opt$rpath,
+        paste(opt$pipepath,"R","scripts","hosp_run.R", sep='/'),
+        "-j",opt$jobs,
+        "-c",opt$config,
+        "-p",opt$pipepath,
+        "-s",scenario,
+        "-d",deathrate,
+        "-n",1,
+        "-i",this_index
+      ))
+      if(err != 0){
+        stop("Hospitalization failed to run")
+      }
+
+      file <- hospitalization_file_path(config,this_index,scenario,deathrate)
       print(paste("Reading",file))
 
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>%
@@ -492,7 +603,8 @@ for(scenario in scenarios) {
         #     select(-date_inds)
         # }
 
-        local_sim_hosp <- dplyr::filter(sim_hosp, !!rlang::sym(obs_nodename) == location)
+        local_sim_hosp <- dplyr::filter(sim_hosp, !!rlang::sym(obs_nodename) == location) %>% 
+          dplyr::filter(time %in% all_dates)
         sim_stats <- getStats(
           local_sim_hosp,
           "time",
@@ -516,7 +628,7 @@ for(scenario in scenarios) {
           )
         # }
         }
-        # Compute log-likelihoods
+         # Compute log-likelihoods
 
         log_likelihood_data[[location]] <- dplyr::tibble(
           ll = sum(unlist(log_likelihood)),
@@ -536,15 +648,6 @@ for(scenario in scenarios) {
         mutate(pdeath = deathrate, scenario = scenario)
 
       ## For logging
-      if(current_index == 0){
-        current_likelihood <- likelihood
-        current_index <- index
-        initial_seeding <- current_seeding
-        initial_npis <- current_npis
-        initial_params <- current_params
-        previous_likelihood_data <- log_likelihood_data
-        next
-      }
       print(paste("Current likelihood",current_likelihood,"Proposed likelihood",likelihood))
       
       if(iterateAccept(current_likelihood, likelihood, 'll')){
@@ -552,6 +655,7 @@ for(scenario in scenarios) {
         current_index <- index
         current_likelihood <- likelihood
         if(opt$clean){
+          print("Removing old")
           file.remove(hospitalization_file_path(config,old_index,scenario,deathrate))
           file.remove(simulation_file_path(config,old_index,scenario))
           file.remove(npi_file_path(config,old_index,scenario))
@@ -560,6 +664,7 @@ for(scenario in scenarios) {
       } else {
         old_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
         if(opt$clean){
+          print("Removing new")
           file.remove(hospitalization_file_path(config,old_index,scenario,deathrate))
           file.remove(simulation_file_path(config,old_index,scenario))
           file.remove(npi_file_path(config,old_index,scenario))
@@ -568,12 +673,12 @@ for(scenario in scenarios) {
       }
 
       seeding_npis_list <- accept_reject_new_seeding_npis(
-        current_seeding,
-        initial_seeding,
-        current_npis,
-        initial_npis,
-        log_likelihood_data,
-        previous_likelihood_data
+        seeding_orig = initial_seeding,
+        seeding_prop = current_seeding,
+        npis_orig = initial_npis,
+        npis_prop = current_npis,
+        orig_lls = previous_likelihood_data,
+        prop_lls = log_likelihood_data
       )
       initial_seeding <- seeding_npis_list$seeding
       initial_npis <- seeding_npis_list$npis
@@ -581,20 +686,57 @@ for(scenario in scenarios) {
       print(paste("Current index is ",current_index))
       print(log_likelihood_data)
       print(previous_likelihood_data)
+      rm(current_npis)
+      rm(current_seeding)
     }
 
     current_file <- hospitalization_file_path(
       config,
-      opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + current_index,
+      ## GLOBAL ACCEPT/REJECT vs LOCAL ACCEPT/REJECT
+      # opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + current_index,
+      opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + opt$simulations_per_slot,
       scenario,
       deathrate
     )
     target_file <- hospitalization_file_path(config,opt$this_slot,scenario,deathrate)
+    target_dir <- gsub('/[^/]*$','',target_file)
 
     print(paste("Copying",current_file,"to",target_file))
-    target_dir <- gsub('/[^/]*$','',target_file)
-    dir.create(target_dir, recursive=TRUE)
+    suppressWarnings(dir.create(target_dir, recursive=TRUE))
     file.rename(from=current_file,to=target_file)
+
+
+
+    current_file <- npi_file_path(
+      config,
+      opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + opt$simulations_per_slot,
+      scenario
+    )
+    target_file <- npi_file_path(config,opt$this_slot,scenario)
+    target_dir <- gsub('/[^/]*$','',target_file)
+
+    print(paste("Copying",current_file,"to",target_file))
+    suppressWarnings(dir.create(target_dir, recursive=TRUE))
+    file.rename(from=current_file,to=target_file)
+
+
+
+    current_file <- seeding_file_path(
+      config,
+      sprintf("%09d",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + opt$simulations_per_slot)
+    )
+    target_file <- seeding_file_path(config,sprintf("%09d",opt$this_slot))
+    target_dir <- gsub('/[^/]*$','',target_file)
+
+    print(paste("Copying",current_file,"to",target_file))
+    suppressWarnings(dir.create(target_dir, recursive=TRUE))
+    file.rename(from=current_file,to=target_file)
+
+
+
+    target_file <- initial_log_likelihood_file
+    arrow::write_parquet(previous_likelihood_data,initial_log_likelihood_file)
+
   }
 }
 #}
