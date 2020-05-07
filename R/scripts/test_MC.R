@@ -51,7 +51,8 @@ cl <- parallel::makeCluster(opt$j)
 doParallel::registerDoParallel(cl)
 foreach(scenario = scenarios) %:%
   foreach(deathrate = deathrates) %:%
-  foreach(slot = seq_len(opt$slots)) %dopar% {
+  foreach(slot = seq_len(opt$slots),
+          .packages = c("dplyr", "magrittr", "xts", "zoo", "stringr")) %dopar% {
     print(paste("Slot",slot,"of",opt$slots))
     
     inference::filter_MC(
