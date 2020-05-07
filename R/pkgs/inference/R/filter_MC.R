@@ -37,7 +37,7 @@ filter_MC <- function (
   reticulate::use_python(Sys.which(python),require=TRUE)
 
   # Block loads the config file and geodata
-  if(config == ""){
+  if(config_path == ""){
     stop(paste(
       "Please specify a config YAML file with either -c option or CONFIG_PATH environment variable."
     ))
