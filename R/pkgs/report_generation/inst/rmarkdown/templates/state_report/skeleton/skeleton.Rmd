@@ -142,14 +142,14 @@ cap <- paste0("**Fig. ", fig_counter, "**: Daily hospital occupancy for 15 simul
 ```{r load_cum_inf_geounit_dates}
 ###Load cumulative infections on specific dates
 doParallel::registerDoParallel(ncores)
-
 cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
-                           num_files = nfiles,
-                           display_dates = config$report$formatting$display_dates,
-                           scenariolabels = config$report$formatting$scenario_labels,
-                           incl_geoids = included_geoids,
-                           geoid_len = 5,
-                           file_extension="auto")
+                                           num_files = nfiles,
+                                           scenariolabels = config$report$formatting$scenario_labels,
+                                           name_filter= config$hospitalization$parameters$p_death_names[1],
+                                           incl_geoids = included_geoids,
+                                           geoid_len = 5,
+                                           file_extension="auto") %>%
+    mutate(pdeath=config$hospitalization$parameters$p_death[1])
 
 doParallel::stopImplicitCluster()
 registerDoSEQ()

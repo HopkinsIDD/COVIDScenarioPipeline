@@ -7,15 +7,17 @@
 ##' @param incl_geoids character vector of geoids that are included in the report
 ##' @param geoid_len in defined, this we want to make geoids all the same length
 ##' @param padding_char character to add to the front of geoids if fixed length
+##' @param file_extension string indicating type of model output files (parquet or csv or auto)
+##' @param name_filter string that indicates which pdeath level to import for the source files (from the hosp file name)
 ##'
 ##' @return a data frame with columns
 ##'          - time
-##'          - comp
 ##'          - geoid
-##'          - N
 ##'          - sim_num
+##'          - N
 ##'          - scenario_num
 ##'          - scenario_name
+##'          - pdeath
 ##'
 ##' @export
 load_cum_inf_geounit_dates <- function(scn_dirs,
@@ -25,50 +27,50 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
                                       incl_geoids=NULL,
                                       geoid_len = 0,
                                       padding_char = "0",
-                                      file_extension = 'auto'){
-
+                                      file_extension = 'auto',
+                                      name_filter){
   if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
     }
-
   display_dates <- as.Date(display_dates)
-  inf_pre_process <- function(x) {
-    x %>%
-      dplyr::filter(comp == "cumI") %>%
-      dplyr::filter(time %in% display_dates)
-  }
+  max_date <- max(display_dates)
 
+  ##filter to munge the data at the scenario level
   if (!is.null(incl_geoids)) {
-      inf_post_process <- function(x) {
+       hosp_post_process <- function(x) {
           x %>%
-              ungroup %>%
-              dplyr::filter(!is.na(time), geoid %in% incl_geoids)
+              dplyr::filter(!is.na(time) & geoid %in% incl_geoids, time <= max_date) %>%
+              group_by(time, geoid, sim_num) %>%
+              dplyr::summarize(N = cumsum(incidI)) %>%
+              ungroup() %>%
+              dplyr::filter(time %in% display_dates)
       }
   } else {
-      inf_post_process <- function(x) {
+      hosp_post_process <- function(x) {
           x %>%
-              ungroup %>%
-              dplyr::filter(!is.na(time))
+              dplyr::filter(!is.na(time) & time <= max_date) %>%
+              group_by(time, geoid, sim_num) %>%
+              dplyr::summarize(N = cumsum(incidI)) %>%
+              ungroup() %>%
+              dplyr::filter(time %in% display_dates)
       }
   }
-
+  
   rc <- list()
   for (i in 1:length(scn_dirs)) {
-      rc[[i]] <- load_scenario_sims_filtered(scn_dirs[i],
-                                             num_files = num_files,
-                                             pre_process = inf_pre_process,
-                                             post_process = inf_post_process,
-                                             geoid_len = geoid_len,
-                                             padding_char = padding_char,
-                                             file_extension = file_extension)
-      
+      rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
+                                         num_files = num_files,
+                                         name_filter = name_filter,
+                                         post_process = hosp_post_process,
+                                         geoid_len = geoid_len,
+                                         padding_char = padding_char,
+                                         file_extension = file_extension)
       rc[[i]]$scenario_num <- i
       rc[[i]]$scenario_name <- scenariolabels[[i]]
   }
-
   return(dplyr::bind_rows(rc))
-
 }
+
 
 
 ##' Convenience function to load cumulative geounit hosp outcomes at a specific date for the given scenario
