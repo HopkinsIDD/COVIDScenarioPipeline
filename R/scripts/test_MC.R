@@ -54,7 +54,7 @@ foreach(scenario = scenarios) %:%
   foreach(slot = seq_len(opt$slots)) %dopar% {
     print(paste("Slot",slot,"of",opt$slots))
     
-    filter_MC(
+    inference::filter_MC(
       config = opt$config,
       scenarios = scenario,
       deathrates = deathrate,
