@@ -11,6 +11,7 @@
 ##' @importFrom lubridate mdy
 ##' @importFrom readr read_csv col_character
 ##' @importFrom tidyr pivot_longer
+##' @importFrom magrittr %>%
 ##'
 download_USAFacts_data <- function(filename, url, value_col_name){
 
