@@ -33,6 +33,48 @@ download_USAFacts_data <- function(filename, url, value_col_name){
   return(usafacts_data)
 }
 
+
+##'
+##' Pulls island area data from NY Times
+##'
+##' Downloads data from NY Times and filters on island area
+##'
+##' Returned data preview:
+##' tibble [198 × 5] (S3: spec_tbl_df/tbl_df/tbl/data.frame)
+##'  $ Update   : Date[1:198], format: "2020-03-13" "2020-03-14" "2020-03-14" ...
+##'  $ source   : chr [1:198] "PR" "PR" "VI" "GU" ...
+##'  $ FIPS     : chr [1:198] "72000" "72000" "78000" "66000" ...
+##'  $ Confirmed: num [1:198] 3 4 1 3 5 1 3 5 2 3 ...
+##'  $ Deaths   : num [1:198] 0 0 0 0 0 0 0 0 0 0 ...
+##'
+##' @return the case data frame
+##' 
+##' @importFrom dplyr rename filter mutate
+##' @importFrom plyr revalue
+##' @importFrom readr read_csv
+##' @importFrom magrittr %>%
+##'
+get_islandareas_data <- function() {
+  NYTIMES_DATA_URL <- "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv"
+  nyt_data <- readr::read_csv(url(NYTIMES_DATA_URL))
+
+  # Note: As of 2020-05-06, American Samoa is not in this dataset since there are no cases.
+  ISLAND_AREAS = c(
+    "American Samoa" = "AS",
+    "Northern Mariana Islands" = "MP", 
+    "Guam" = "GU", 
+    "Puerto Rico" = "PR", 
+    "Virgin Islands" = "VI")
+  
+  nyt_data <- nyt_data %>% 
+    dplyr::filter(state %in% names(ISLAND_AREAS)) %>%
+    dplyr::rename(Update=date, source=state, FIPS=fips, Confirmed=cases, Deaths=deaths) %>% # Rename columns
+    dplyr::mutate(FIPS=paste0(FIPS,"000"), source=plyr::revalue(source, ISLAND_AREAS, warn_missing=FALSE))
+
+  return(nyt_data)
+}
+
+
 ##'
 ##' Pull USAFacts data
 ##'
@@ -56,17 +98,15 @@ download_USAFacts_data <- function(filename, url, value_col_name){
 get_USAFacts_data <- function(case_data_filename = "data/case_data/USAFacts_case_data.csv",
                               death_data_filename = "data/case_data/USAFacts_death_data.csv"){
   
-  USAFACTS_CASE_DATA_URL = "https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_confirmed_usafacts.csv"
-  USAFACTS_DEATH_DATA_URL = "https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv"
+  USAFACTS_CASE_DATA_URL <- "https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_confirmed_usafacts.csv"
+  USAFACTS_DEATH_DATA_URL <- "https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv"
   usafacts_case <- download_USAFacts_data(case_data_filename, USAFACTS_CASE_DATA_URL, "Confirmed")
   usafacts_death <- download_USAFacts_data(death_data_filename, USAFACTS_DEATH_DATA_URL, "Deaths")
 
   usafacts_data <- cbind(usafacts_case, usafacts_death["Deaths"])
-  
+  usafacts_data <- rbind(usafacts_data, get_islandareas_data()) # Append island areas
   return(usafacts_data)
 }
-
-
 
 
 
