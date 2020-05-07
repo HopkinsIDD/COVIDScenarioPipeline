@@ -3,7 +3,8 @@
 #'
 #' @return NULL
 #' @export
-load_data <- function(data_path) {
+load_data <- function(data_path, geodata, obs_nodename) {
+  cat("*** Loading Data \n")
   cases_deaths <- covidcommon::get_USAFacts_data()
   cases_deaths  <-
     cases_deaths %>%
@@ -34,4 +35,5 @@ load_data <- function(data_path) {
   names(cases_deaths)[names(cases_deaths) == 'FIPS'] <- as.character(obs_nodename)
   write_csv(cases_deaths, data_path)
   rm(cases_deaths)
+  cat("*** DONE Loading Data \n")
 }
