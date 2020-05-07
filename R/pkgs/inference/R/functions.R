@@ -1,0 +1,279 @@
+# File naming ------------------------------------------------------------------
+
+##' Function for determining where to write the seeding.csv file
+##' @param config The config for this run
+##' @param index The index of this simulation
+##' @param scenario The scenario of the simulation
+##'
+##' @return NULL
+#' @export
+parameter_file_path <- function(config,index, scenario){
+  # if(length(config$interventions$scenarios) > 1){
+  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
+  # }
+
+  ## FIX ME
+  return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$name , scenario, index))
+}
+
+
+##' Function for determining where to write the seeding.csv file
+##' @param config The config for this run
+##' @param index The index of this simulation
+##' @param scenario The scenario of the simulation
+##'
+##' @return NULL
+#' @export
+npi_file_path <- function(config,index,scenario){
+  # if(length(config$interventions$scenarios) > 1){
+  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
+  # }
+
+  ## FIX ME
+  return(sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
+}
+
+
+##' Function for determining where to write the seeding.csv file
+##' @param config The config for this run
+##' @param index The index of this simulation
+##'
+##' @return NULL
+#' @export
+seeding_file_path <- function(config,index){
+  # if(length(config$interventions$scenarios) > 1){
+  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
+  # }
+
+  return(sprintf("%s/importation_%s.csv",config$seeding$folder_path,index))
+}
+
+
+##' Function for determining where to write the SEIR output to file
+##' @param config The config for this run
+##' @param index The index of this simulation
+##' @param scenario The scenario of the simulation
+##' @return NULL
+#' @export
+simulation_file_path <- function(config,index,scenario){
+  return(sprintf("model_output/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
+}
+
+
+##' Function for determining where to write the seeding.csv file
+##' @param config The config for this run
+##' @param index The index of this simulation
+##' @param scenario The scenario of the simulation
+##' @param deathrate
+##' @return NULL
+#' @export
+hospitalization_file_path <- function(config,index,scenario,deathrate){
+  return(sprintf("hospitalization/model_output/%s_%s/%s_death_death-%09d.hosp.parquet", config$name , scenario, deathrate,index))
+}
+
+
+# Likelihood stuff -------------------------------------------------------------
+
+##' Function for applying time aggregation of variables on which to comput likelihoods
+##' @param data Vector of data to aggregate
+##' @param dates Vector of dates
+##' @param end_date Last date to consider
+##' @param period_unit Unit of period over which to aggregate
+##' @param period_k Number of time units defining period over which to aggregate
+##' @param aggregator Function for aggregations
+##' @param na.rm Remove Nas?
+##' @return NULL
+#' @export
+periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k, aggregator, na.rm = F) {
+  if(na.rm) {
+    dates <- dates[!is.na(data)]
+    data <- data[!is.na(data)]
+  }
+  if (length(data) == 0) {
+    return(data.frame(date = NA, stat = NA))
+  }
+  if (!is.null(end_date)) {
+    data <- data[dates <= end_date]
+    dates <- dates[dates <= end_date]
+  }
+
+  xtsobj <- as.xts(zoo(data, dates))
+  stats <- period.apply(xtsobj,
+                        endpoints(xtsobj, on = period_unit, k = period_k),
+                        aggregator)
+  return(stats)
+}
+
+
+##' Function for computing statistics over which to compute likelihoods
+##' @param df Data frame with data
+##' @param time_col Name of the column with time
+##' @param var_col Name of the column with data to process
+##' @param end_date Last date to consider
+##' @param stat_list List with specifications of statistics to compute
+##' @return NULL
+#' @export
+getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
+  rc <- list()
+  for(stat in names(stat_list)){
+    s <- stat_list[[stat]]
+    aggregator <- match.fun(s$aggregator)
+    # Get the time period over whith to apply aggregation
+    period_info <- strsplit(s$period, " ")[[1]]
+
+    res <- periodAggregate(df[[s[[var_col]]]],
+                           df[[time_col]],
+                           end_date,
+                           period_info[2],
+                           period_info[1],
+                           aggregator,
+                           na.rm = s$remove_na)
+    rc[[stat]] <- res %>%
+      as.data.frame() %>%
+      mutate(date = rownames(.)) %>%
+      set_colnames(c(var_col, "date")) %>%
+      select(date, one_of(var_col))
+  }
+  return(rc)
+}
+
+
+##' Function for computing statistics over which to compute likelihoods
+##' @param obs Vector of observed statistics
+##' @param sim Vector of simulated statistics
+##' @param distr Distribution to use for likelihood calculation
+##' @param add_one Whether to add one to simulations to avoid Infs
+##' @return NULL
+#' @export
+logLikStat <- function(obs, sim, distr, param, add_one = F) {
+  if(length(obs) != length(sim)){
+    stop(sprintf("Expecting sim (%d) and obs (%d) to be the same length",length(sim),length(obs)))
+  }
+  if (add_one) {
+    sim[sim == 0] = 1
+  }
+
+  if(distr == "pois") {
+    rc <- dpois(obs, sim, log = T)
+  } else if (distr == "norm") {
+    rc <- dnorm(obs, sim, sd = param[1], log = T)
+  } else if (distr == "nbinom") {
+    rc <- dnbinom(obs, sim, k = param[1], log = T)
+  } else if (distr == "sqrtnorm") {
+    rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[[1]], log = T)
+  } else if (distr == "sqrtnorm_scale_sim") { #param 1 is cov, param 2 is multipler
+    rc <- dnorm(sqrt(obs), sqrt(sim*param[[2]]), sd=sqrt(sim*param[[2]])*param[[1]],log=T)
+  } else {
+    stop("Invalid stat specified")
+  }
+
+  return(rc)
+}
+
+
+
+# MCMC stuff -------------------------------------------------------------------
+
+##' Fuction perturbs a seeding file based on a normal
+##' proposal on the start date and
+##' a poisson on the number of cases.
+##'
+##' @param seeding the original seeding
+##' @param sd the standard deviation of the posson
+##'
+##'
+##' @return a pertubed data frame
+##'
+##' @export
+perturb_seeding <- function(seeding,sd) {
+  require(tidyverse)
+  seeding <- seeding%>%
+    group_by(place)%>%
+    mutate(date = date+round(rnorm(1,0,sd)))%>%
+    ungroup()%>%
+    mutate(amount=round(pmax(rnorm(length(amount),amount,1),0)))
+
+  return(seeding)
+
+}
+
+##' Fuction perturbs an npi parameter file based on
+##' user-specified distributions
+##'
+##' @param npis the original npis
+##' @param intervention_settings a list of perturbation specificationss
+##'
+##'
+##' @return a pertubed data frame
+##' @export
+perturb_npis <- function(npis, intervention_settings) {
+  for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
+    if ('perturbation' %in% names(intervention_settings[[intervention]])){
+      pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
+      ind <- (npis[["npi_name"]] == intervention)
+      npis_new <- npis[["reduction"]][ind] + pert_dist(sum(ind))
+      in_bounds_index <- covidcommon::as_density_distribution(
+        intervention_settings[[intervention]][['value']]
+      )(npis_new) > 0
+      npis$reduction[ind][in_bounds_index] <- npis_new[in_bounds_index]
+    }
+  }
+  return(npis)
+}
+
+##' Function to go through to accept or reject seedings in a block manner based
+##' on a geoid specific likelihood.
+##'
+##'
+##' @param seeding_orig original seeding file.
+##' @param seeding_prop proposal seeding file
+##' @param npis_orig original npi file
+##' @param npis_prop proposal npi file
+##' @param orig_lls original ll file
+##' @param prop_lls proposal ll file
+##' @return a new data frame with the confirmed seedin.
+##' @export
+accept_reject_new_seeding_npis <- function(
+  seeding_orig,
+  seeding_prop,
+  npis_orig,
+  npis_prop,
+  orig_lls,
+  prop_lls
+) {
+  rc_seeding <- seeding_orig
+  rc_npis <- npis_orig
+
+  if(!all(orig_lls$geoid == prop_lls$geoid)){stop("geoids must match")}
+  ##draw accepts/rejects
+  ratio <- exp(prop_lls$ll - orig_lls$ll)
+  accept <- ratio>runif(length(ratio),0,1)
+
+  orig_lls$ll[accept] <- prop_lls$ll[accept]
+
+  for (place in orig_lls$geoid[accept]) {
+    rc_seeding[rc_seeding$place ==place, ] <- seeding_prop[seeding_prop$place ==place, ]
+    rc_npis[rc_npis$geoid == place,] <- npis_prop[npis_prop$geoid == place, ]
+  }
+
+  return(list(seeding=rc_seeding, npis=rc_npis, lls = orig_lls))
+}
+
+
+##' Function accept proposals
+##'
+##'
+##' @param ll_ref original seeding file.
+##' @param ll_new proposal seeding file
+##' @param ll_col a dataframe with columns orig_ll and prop_ll per place
+##' @return a new data frame with the confirmed seedin.
+##' @export
+iterateAccept <- function(ll_ref,ll_new,ll_col) {
+  ll_new <- ll_new[[ll_col]]
+  ll_ref <- ll_ref[[ll_col]]
+  ll_ratio <- exp(min(c(0, ll_new - ll_ref)))
+  if (ll_ratio >= runif(1)) {
+    return(TRUE)
+  }
+  return(FALSE)
+}
