@@ -10,16 +10,11 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 @cc.export(
     "steps_SEIR_nb",
-    "float64[:,:,:](float64[:,:], float64[:,:], float64[:,:], float64[:,:], float64[:,:],"
+    "float64[:,:,:](float64[:,:], float64[:,:], float64[:,:], float64[:,:], float64[:,:], float64[:,:],"
     "float64, float64[:], int64, int64[:], int32[:], int32[:], float64[:], float64[:,:])"
 )
 def steps_SEIR_nb(alpha, beta, sigma, gamma, y0, seeding, dt, t_inter, nnodes, popnodes,
                   mobility_row_indices, mobility_data_indices, mobility_data, dynfilter):
-    """
-        Made to run just-in-time-compiled by numba, hence very descriptive and using loop,
-        because loops are expanded by the compiler hence not a problem.
-        as there is very few authorized function. Needs the nopython option to be fast.
-    """
     y = np.copy(y0)
     states = np.zeros((ncomp, nnodes, len(t_inter)))
 
