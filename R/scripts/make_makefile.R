@@ -38,11 +38,13 @@ cat("\n")
 
 using_importation <- ("importation" %in% names(config))
 generating_report <- ("report" %in% names(config))
+building_US_setup <- ("modeled_states" %in% names(config$spatial_setup))
+using_static_filter <- ("dynfilter_path" %in% names(config))
 
 if(generating_report)
 {
   # Create report name (no suffix) for the .Rmd and .html
-  report_name = ""
+  report_name <- ""
   if(length(config$report_location_name) != 0){
     report_name = config$report_location_name
   } else if(length(config$name) != 0){
@@ -50,7 +52,7 @@ if(generating_report)
   } else {
     stop(paste("Please specify report_location_name or name in the config"))
   }
-  report_name = paste0(report_name, "_",  format(Sys.Date(), format="%Y%m%d"))
+  report_name <- paste0(report_name, "_",  format(Sys.Date(), format="%Y%m%d"))
 }
 
 importation_target_name <- function(simulation, prefix = ""){
@@ -60,7 +62,7 @@ importation_target_name <- function(simulation, prefix = ""){
 importation_make_command <- function(simulation,prefix=""){
   target_name <- importation_target_name(simulation,prefix)
   dependency_name <- ""
-  command_name <- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/importation.R -c  $(CONFIG) -j $(NCOREPER)")
+  command_name <- "$(RSCRIPT) $(PIPELINE)/R/scripts/importation.R -c $(CONFIG) -j $(NCOREPER)"
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": ",
@@ -70,6 +72,17 @@ importation_make_command <- function(simulation,prefix=""){
   ))
 }
 
+build_US_setup_target_name <- function() {
+  return(file.path(config$spatial_setup$base_path, config$spatial_setup$mobility))
+}
+
+build_US_setup_make_command <- function() {
+  cmd <- paste0(build_US_setup_target_name(),":\n")
+  cmd <- paste0(cmd, "\tmkdir -p ", config$spatial_setup$base_path, "\n")
+  cmd <- paste0(cmd, "\t$(RSCRIPT) $(PIPELINE)/R/scripts/build_US_setup.R -c $(CONFIG) -p $(PIPELINE)")
+  return(cmd)
+}
+
 filter_target_name <- function(simulation, prefix = "" ){
   paste0(".files/",prefix,simulation,"_filter")
 }
@@ -77,6 +90,9 @@ filter_target_name <- function(simulation, prefix = "" ){
 filter_make_command <- function(simulation,prefix=""){
   target_name <- filter_target_name(simulation,prefix)
   dependency_name <- importation_target_name(simulation, prefix=prefix)
+  if(building_US_setup) {
+    dependency_name <- paste(dependency_name, build_US_setup_target_name())
+  }
   command_name<- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/create_filter.R -c $(CONFIG)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
@@ -117,10 +133,16 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   } else {
     previous_simulation <- 0
   }
-  if(using_importation){
-    dependency_name <- paste(dependency_name,filter_target_name(simulation,prefix),importation_target_name(simulation,prefix))
+  if(building_US_setup){
+    dependency_name <- paste(dependency_name, build_US_setup_target_name())
   }
-  command_name <- paste0("$(PYTHON) $(PIPELINE)/simulate.py -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER)")
+  if(using_importation){
+    dependency_name <- paste(dependency_name,importation_target_name(simulation,prefix))
+  }
+  if(using_static_filter){
+    dependency_name <- paste(dependency_name, filter_target_name(simulation,prefix))
+  }
+  command_name <- paste0("$(PYTHON) -m SEIR -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files/directory_exists ",
@@ -128,6 +150,52 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
     "\t",command_name, "\n",
     "\t",touch_name, "\n"
   ))
+}
+
+report_html_target_name <- function(report_name) {
+  return(sprintf("notebooks/%s/%s_report.html", report_name, report_name))
+}
+
+report_html_make_command <- function(report_name, scenarios, simulations, deathrates, config) {
+  rmd_file = report_rmd_target_name(report_name)
+  s <- run_dependencies(scenarios, simulations, deathrates)
+  s <- paste0(s, " ", rmd_file,"\n")
+
+  renderCmd = sprintf("\t$(RSCRIPT) -e 'rmarkdown::render(\"%s\"", rmd_file)
+  renderCmd = paste0(renderCmd, sprintf(", params=list(state_usps=\"%s\"", config$report$state_usps))
+  if(length(config$report$continue_on_error) != 0)
+  {
+    renderCmd = paste0(renderCmd, 
+                      sprintf(", continue_on_error=%s", config$report$continue_on_error))
+  }
+  renderCmd = paste0(renderCmd, "))'")
+
+  s <- paste0(s, renderCmd, "\n")
+  return(s)
+}
+
+report_rmd_target_name <- function(report_name) {
+  return(sprintf("notebooks/%s/%s_report.Rmd", report_name, report_name))
+}
+
+report_rmd_make_command <- function(report_name) {
+  return(sprintf("%s:
+\tmkdir -p notebooks/%s
+\t$(RSCRIPT) -e 'rmarkdown::draft(\"$@\",template=\"state_report\",package=\"report.generation\",edit=FALSE)'\n",
+report_rmd_target_name(report_name), report_name))
+}
+
+run_dependencies <- function(scenarios, simulations, deathrates) {
+  s <- ":"
+  for(scenario in scenarios)
+  {
+    s <- paste0(s, " ", simulation_target_name(simulations, scenario))
+    for(deathrate in deathrates)
+    {
+      s <- paste0(s, " ", hospitalization_target_name(simulations, scenario, deathrate))
+    }
+  }
+  return(s)
 }
 
 sink("Makefile")
@@ -147,55 +215,31 @@ cat(paste0("CONFIG=",opt$config,"\n\n"))
 # If generating report, first target is the html file.
 # Otherwise, first target is run.
 # For both, the dependencies include all the simulation targets.
-if(generating_report)
-{
-  rmd_file = sprintf("notebooks/%s/%s_report.Rmd", report_name, report_name)
-  report_html_target_name = sprintf("notebooks/%s/%s_report.html", report_name, report_name)
-  cat(paste0(report_html_target_name,":"))
+if(generating_report) {
+  cat(report_html_target_name(report_name))
+  cat(report_html_make_command(report_name, scenarios, simulations, deathrates, config))
+  cat(report_rmd_make_command(report_name))
 } else {
-  cat("run:")
+  cat("run")
+  cat(run_dependencies(scenarios, simulations, deathrates))
 }
 
-for(scenario in scenarios)
-{
-  cat(" ")
-  cat(simulation_target_name(simulations,scenario))
-  for(deathrate in deathrates)
-  {
-    cat(" ")
-    cat(hospitalization_target_name(simulations,scenario,deathrate))
-  }
+cat("\n")
+
+if(building_US_setup){
+  cat(build_US_setup_make_command())
 }
 
-if(generating_report)
-{
-  # final target dependency for .html is the Rmd
-  cat(sprintf(" %s\n", rmd_file))
-
-  renderCmd = sprintf("\t$(RSCRIPT) -e 'rmarkdown::render(\"%s\"", rmd_file)
-  renderCmd = paste0(renderCmd, sprintf(", params=list(state_usps=\"%s\"", config$report$state_usps))
-  if(length(config$report$continue_on_error) != 0)
-  {
-    renderCmd = paste0(renderCmd, 
-                      sprintf(", continue_on_error=%s", config$report$continue_on_error))
-  }
-  renderCmd = paste0(renderCmd, "))'")
-  cat(renderCmd)
-
-  rmd_target = sprintf("
-%s:
-\tmkdir -p notebooks/%s
-\t$(RSCRIPT) -e 'rmarkdown::draft(\"$@\",template=\"state_report\",package=\"report.generation\",edit=FALSE)'", 
-rmd_file, report_name)
-  cat(rmd_target)
-}
 cat("\n")
 
 if(using_importation){
   for(sim_idx in seq_len(length(simulations))){
-    
-    cat(filter_make_command(simulations[sim_idx]))
     cat(importation_make_command(simulations[sim_idx]))
+  }
+}
+if(using_static_filter){
+  for(sim_idx in seq_len(length(simulations))){
+    cat(filter_make_command(simulations[sim_idx]))
   }
 }
 
@@ -212,37 +256,48 @@ for(sim_idx in seq_len(length(simulations))){
 
 cat("
 .files/directory_exists:
-\tmkdir .files
+\tmkdir -p .files
 \ttouch .files/directory_exists
 ")
 
 
-cat(paste0("
-
-rerun: rerun_simulations rerun_hospitalization"
-))
+cat("\n\nrerun: rerun_simulations rerun_hospitalization")
 
 if(using_importation){
-  cat(paste0("rerun_importation rerun_filter
-clean_filter: rerun_filter
+  cat(" rerun_importation")
+}
+if(using_static_filter){
+  cat(" rerun_filter")
+}
+cat("\n")
+
+if(using_static_filter){
+  cat(paste0("clean_filter: rerun_filter
 \trm -rf ",config$dynfilter_path,"
+rerun_filter:
+\trm -f .files/*_filter
+"))
+}
+if(using_importation){
+  cat(paste0("
 clean_importation: rerun_importation
 \trm -rf data/case_data
 \trm -rf importation
+rerun_importation:
+\trm -f .files/*_importation
 "))
 }
 cat(paste0("
-rerun_filter:
-\trm -f .files/1*_filter
-rerun_importation:
-\trm -f .files/1*_importation
 rerun_simulations: clean_simulations
-\trm -f .files/1*_simulation*
+\trm -f .files/*_simulation*
 rerun_hospitalization:
-\trm -f .files/1*_hospitalization*
+\trm -f .files/*_hospitalization*
 clean: clean_simulations clean_hospitalization"))
 if(using_importation){
-  cat(" clean_importation clean_filter")
+  cat(" clean_importation")
+}
+if(using_static_filter){
+  cat(" clean_filter")
 }
 if(generating_report)
 {
@@ -259,7 +314,7 @@ if(generating_report)
 {
   cat(paste0("
 clean_reports:
-\trm -f ",report_html_target_name))
+\trm -f ",report_html_target_name(report_name)))
 }
 
 

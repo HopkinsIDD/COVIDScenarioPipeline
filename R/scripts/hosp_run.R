@@ -101,7 +101,13 @@ option_list = list(
   optparse::make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used"),
 
   #' @param -p The path to COVIDScenarioPipeline
-  optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory")
+  optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory"),
+
+  #' @param -i The index of the first simulation to run against
+  optparse::make_option(c("-i", "--index-from-sim"), action="store", default=1, type='numeric', help="The index of the first simulation to run against"),
+
+  #' @param -n The number of simulations to run
+  optparse::make_option(c("-n", "--num-sims"), action="store", default=-1, type='numeric', help="number of simulations to run")
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
@@ -136,6 +142,8 @@ names(p_death) = hosp_parameters$p_death_names
 cmd <- opt$d
 scenario <- opt$s
 ncore <- opt$j
+start_sim <- opt$i
+num_sims <- opt$n
 
 # Verify that the cmd maps to a known p_death value
 if (cmd == "all") {
@@ -184,8 +192,10 @@ if(run_age_adjust){
                                                      time_ICUdur_pars = time_ICUdur_pars,
                                                      cores = ncore,
                                                      data_dir = data_dir,
-                                                     dscenario_name = cmd0,
-                                                     use_parquet = TRUE
+                                                     dscenario_name = paste(cmd,"death",sep="_"),
+                                                     use_parquet = TRUE,
+                                                     start_sim = start_sim,
+                                                     num_sims = num_sims
       )
     }
   }
@@ -229,7 +239,9 @@ if(run_age_adjust){
                                       cores = ncore,
                                       data_dir = data_dir,
                                       dscenario_name = cmd0,
-                                      use_parquet = TRUE
+                                      use_parquet = TRUE,
+                                      start_sim = start_sim,
+                                      num_sims = num_sims
       )
     }
   }
