@@ -9,6 +9,11 @@
 # ```yaml
 # name
 #
+# spatial_setup:
+#   base_path: <path to directory>
+#   geodata: <path to file>
+#   nodenames: <string>
+#
 # interventions:
 #   scenarios:
 #     - <scenario 1 name>
@@ -53,6 +58,7 @@
 # * <b>model\_output/{name}\_[scenario]</b> is a directory of csv's. 
 #    + Each csv must have columns: "time", "comp", and each geoid of interest.
 #    + The "comp" column must have a value of "diffI" in at least one row. 
+# * <b>{spatial_setup::base_path}/{spatial_setup::geodata}</b> is a csv with columns {spatial_setup::nodenames} and {spatial_setup::popnodes}
 #
 # ## Output Data
 #
@@ -78,6 +84,7 @@
 library(devtools)
 library(covidcommon)
 library(hospitalization)
+library(report.generation)
 library(readr)
 library(dplyr)
 library(tidyr)
@@ -166,6 +173,14 @@ if(run_age_adjust){
   # read in probability file
   # NOTE(jwills): this file would ideally live inside of the hospitalization package as an .Rdata object
   prob_dat <- readr::read_csv(paste(opt$p,"sample_data","geoid-params.csv",sep='/'))
+
+  # Check that all geoids are in geoid-params.csv
+  geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),5,'0',TRUE)
+  in_geoids <- geodata[[config$spatial_setup$nodenames]]
+  missing_geoids <- setdiff(in_geoids, prob_dat$geoid)
+  if(length(missing_geoids) > 0) {
+    warning(paste("The hospitalization outcomes will not be calculated for geoids not present in geoid-params.csv:", missing_geoids))
+  }
 
   time_onset_death_pars <- as_evaled_expression(hosp_parameters$time_onset_death)
   p_hosp_inf <- as_evaled_expression(hosp_parameters$p_hosp_inf)
