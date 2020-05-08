@@ -3,7 +3,7 @@
 # install.packages('zoo', repos='http://cran.us.r-project.org')
 
 # Preamble ---------------------------------------------------------------------
-suppressMessages(library(dplyr))
+suppressMessages(library(tidyverse))
 suppressMessages(library(readr))
 suppressMessages(library(covidcommon))
 suppressMessages(library(report.generation))
@@ -251,13 +251,15 @@ hospitalization_file_path <- function(config,index,scenario,deathrate){
 ##'
 ##' @return a pertubed data frame
 ##'
-perturb_seeding <- function(seeding,sd) {
-    require(tidyverse)
-    seeding <- seeding%>%
-        group_by(place)%>%
-        mutate(date = date+round(rnorm(1,0,sd)))%>%
-        ungroup()%>%
-        mutate(amount=round(pmax(rnorm(length(amount),amount,1),0)))
+perturb_seeding <- function(seeding,sd,date_bounds) {
+    seeding <- seeding %>%
+        group_by(place) %>%
+        mutate(date = date+round(rnorm(1,0,sd))) %>%
+        ungroup() %>%
+        mutate(
+          amount=round(pmax(rnorm(length(amount),amount,1),0)),
+          date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
+        )
 
     return(seeding)
 
@@ -274,8 +276,6 @@ perturb_seeding <- function(seeding,sd) {
 ##' @return a pertubed data frame
 ##'
 perturb_npis <- function(npis, intervention_settings) {
-  require(dplyr)
-  require(magrittr)
   for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
     if ('perturbation' %in% names(intervention_settings[[intervention]])){
       pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
@@ -547,7 +547,7 @@ for(scenario in scenarios) {
       print(index)
       # Load sims -----------------------------------------------------------
 
-      current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
+      current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
       current_npis <- perturb_npis(initial_npis, config$interventions$settings)
       current_params <- initial_params
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
