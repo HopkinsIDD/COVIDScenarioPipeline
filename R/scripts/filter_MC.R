@@ -406,7 +406,7 @@ for(scenario in scenarios) {
     # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
     err <- 0
     if(!file.exists(seeding_file_path(config,sprintf("%09d",opt$this_slot)))){
-      print("Creating Seeding from Scratch")
+      print(sprintf("Creating Seeding (%s) from Scratch",seeding_file_path(config,sprintf("%09d",opt$this_slot))))
       if(!file.exists(config$seeding$lambda_file)){
         err <- system(paste(
           opt$rpath,
@@ -437,7 +437,7 @@ for(scenario in scenarios) {
     first_hosp_file <- hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
     # lock <- flock::lock(paste('.lock',gsub('/','-',first_npi_file),sep='/'))
     if((!file.exists(first_npi_file)) | (!file.exists(first_param_file))){
-      print("Creating parameters from Scratch")
+      print(sprintf("Creating parameters (%s) from Scratch",first_npi_file))
       py$onerun_SEIR(opt$this_slot,py$s)
     }
     initial_npis <- arrow::read_parquet(first_npi_file)
@@ -445,7 +445,7 @@ for(scenario in scenarios) {
     # flock::unlock(lock)
 
     if(!file.exists(first_hosp_file)){
-      print("Creating initial hospitalizations from Scratch")
+      print(sprintf("Creating hospitalization (%s) from Scratch",first_hosp_file))
       ## Generate files
       this_index <- opt$this_slot
       # lock <- flock::lock(paste(".lock",paste("SEIR",this_index,scenario,sep='.'),sep='/'))
@@ -492,7 +492,7 @@ for(scenario in scenarios) {
       }
       initial_log_likelihood_file <- paste0(config$filtering$likelihood_directory,"/",sprintf("%09d",opt$this_slot),".llik.parquet")
       if(!file.exists(initial_log_likelihood_file)){
-        print("Creating initial likelihood from Scratch")
+        print(sprintf("Creating likelihood (%s) from Scratch",initial_log_likelihood_file))
         initial_log_likelihood_data <- list()
         for(location in all_locations) {
 
