@@ -68,7 +68,7 @@ class SpatialSetup:
             raise ValueError(f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}")
 
 
-class Setup():
+class Setup:
     """
         This class hold a setup model setup.
     """
