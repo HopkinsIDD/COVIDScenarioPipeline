@@ -82,6 +82,8 @@ def test_constant_population():
 
     seeding = np.zeros((len(s.t_inter), s.nnodes))
 
+    y0 = np.zeros((setup.ncomp, s.nnodes))
+    y0[setup.S, :] = s.popnodes
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -92,7 +94,7 @@ def test_constant_population():
     parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
     parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
-    states = seir.steps_SEIR_nb(*parameters,
+    states = seir.steps_SEIR_nb(*parameters, y0,
                        seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
                        mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
@@ -130,6 +132,9 @@ def test_steps_SEIR_nb_simple_spread():
     seeding = np.zeros((len(s.t_inter), s.nnodes))
     seeding[:,0] = 100
 
+    y0 = np.zeros((setup.ncomp, s.nnodes))
+    y0[setup.S, :] = s.popnodes
+
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
@@ -140,7 +145,7 @@ def test_steps_SEIR_nb_simple_spread():
     parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     for i in range(100):
-        states = seir.steps_SEIR_nb(*parameters,
+        states = seir.steps_SEIR_nb(*parameters, y0,
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 
@@ -170,6 +175,9 @@ def test_steps_SEIR_no_spread():
     seeding = np.zeros((len(s.t_inter), s.nnodes))
     seeding[:,0] = 100
 
+    y0 = np.zeros((setup.ncomp, s.nnodes))
+    y0[setup.S, :] = s.popnodes
+
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data * 0
@@ -180,7 +188,7 @@ def test_steps_SEIR_no_spread():
     parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     for i in range(100):
-        states = seir.steps_SEIR_nb(*parameters,
+        states = seir.steps_SEIR_nb(*parameters, y0,
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
 

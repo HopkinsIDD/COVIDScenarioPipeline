@@ -25,6 +25,10 @@ class Reduce(NPIBase):
         else:
             self.__createFromDf(loaded_df)
 
+        # if parameters are exceeding global start/end dates, index of parameter df will be out of range so check first
+        if self.parameters["start_date"].min() < self.start_date or self.parameters["end_date"].max() > self.end_date:
+            raise ValueError("at least one period start or end date is not between global dates")
+
         for index in self.parameters.index:
             period_range = pd.date_range(self.parameters["start_date"][index], self.parameters["end_date"][index])
 
@@ -52,14 +56,14 @@ class Reduce(NPIBase):
                 raise ValueError(f"Invalid config value {n.name} ({node}) not in geoids")
 
         if self.param_name not in REDUCE_PARAMS:
-            raise ValueError(f"Invalid parameter name: {param_name}. Must be one of {REDUCE_PARAMS}")
+            raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
 
         # Validate
         if (self.npi == 0).all(axis=None):
             print(f"Warning: The intervention in config: {self.name} does nothing.")
 
         if (self.npi > 1).any(axis=None):
-            raise ValueError(f"The intervention in config: {self.name} has reduction of {param_name} is greater than 1")
+            raise ValueError(f"The intervention in config: {self.name} has reduction of {self.param_name} is greater than 1")
 
     def __createFromConfig(self, npi_config):
         # Get name of the parameter to reduce
