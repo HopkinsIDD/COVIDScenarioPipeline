@@ -8,7 +8,7 @@ import os
 import re
 import subprocess
 import tarfile
-import time
+from datetime import datetime, timezone
 import yaml
 
 @click.command()
@@ -39,7 +39,8 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
         config = yaml.full_load(f)
 
     # A unique name for this job run, based on the config name and current time
-    job_name = f"{config['name']}-{int(time.time())}"
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    job_name = f"{config['name']}-{timestamp}"
 
     # Update and save the config file with the number of sims to run
     if 'filtering' in config:
@@ -60,7 +61,7 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
         p_hosp_inf = config['hospitalization']['parameters']['p_hosp_inf']
         ctr = 0
         for (s, d) in itertools.product(scenarios, zip(p_death_names, p_deaths, p_hosp_inf)):
-            scenario_job_name = f"{job_name}_{s}_{d[0]}"
+            scenario_job_name = f"{job_name}-{s}-{d[0]}"
             config['interventions']['scenarios'] = [s]
             config['hospitalization']['parameters']['p_death_names'] = [d[0]]
             config['hospitalization']['parameters']['p_death'] = [d[1]]
@@ -116,8 +117,8 @@ class BatchJobHandler(object):
             if not (p.startswith(".") or p.endswith("tar.gz") or p in dvc_outputs or p == "batch"):
                 tar.add(p, filter=lambda x: None if x.name.startswith('.') else x)
         tar.close()
- 
-        # Upload the tar'd contents of this directory and the runner script to S3 
+
+        # Upload the tar'd contents of this directory and the runner script to S3
         runner_script_name = f"{job_name}-runner.sh"
         local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'inference_runner.sh')
         s3_client = boto3.client('s3')
