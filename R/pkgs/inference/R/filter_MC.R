@@ -1,7 +1,7 @@
 options(warn=1)
 
 #' Function to perform filtering
-#' @param config path to the config file
+#' @param config_path path to the config file
 #' @param scenarios name of the intervention to run, or 'all' to run all of them
 #' @param deathrates name of the death scenarios to run, or 'all' to run all of them
 #' @param jobs number of jobs to run in parallel
@@ -16,7 +16,7 @@ options(warn=1)
 #' @return NULL
 #' @export
 filter_MC <- function (
-  config,
+  config_path,
   scenarios,
   deathrates,
   jobs,
@@ -37,12 +37,12 @@ filter_MC <- function (
   reticulate::use_python(Sys.which(python),require=TRUE)
 
   # Block loads the config file and geodata
-  if(config == ""){
+  if(config_path == ""){
     stop(paste(
       "Please specify a config YAML file with either -c option or CONFIG_PATH environment variable."
     ))
   }
-  config <- covidcommon::load_config(config)
+  config <- covidcommon::load_config(config_path)
 
   # Check seeding pertubation parameter
   if(!('perturbation_sd' %in% names(config$seeding))) {
@@ -114,14 +114,17 @@ filter_MC <- function (
   lockfile = 'filter_MC.lock'
   # lock <- flock::lock(paste(".lock",gsub('/','-',data_path), sep = '/'))
   if (!file.exists(data_path)) {
-    load_data(data_path)
+    load_data(data_path, geodata, obs_nodename)
   }
   # flock::unlock(lock)
 
   # Load epi data
   if(!("obs" %in% ls())){
     suppressMessages(obs <<- readr::read_csv(data_path))
-    obs <- obs %>% filter(date >= config$start_date, date <= config$end_date)
+    obs <- obs %>%
+      filter(date >= config$start_date,
+             date <= config$end_date)
+
     obs <- obs %>% dplyr::right_join(
       tidyr::expand_grid(
         geoid = unique(obs$geoid),
@@ -159,7 +162,7 @@ filter_MC <- function (
   for(scenario in scenarios) {
 
     ## One time setup for python
-    reticulate::py_run_string(paste0("config_path = '", config,"'"))
+    reticulate::py_run_string(paste0("config_path = '", config_path,"'"))
     reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
     reticulate::import_from_path("SEIR", path=pipepath)
     reticulate::py_run_file(paste(pipepath,"minimal_interface.py",sep='/'))
