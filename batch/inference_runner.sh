@@ -50,6 +50,21 @@ if [ $local_install_ret -ne 0 ]; then
 	exit 1
 fi
 
+echo "State of directory before we start"
+echo "==="
+ls
+echo "---"
+find hospitalization
+echo "---"
+find model_parameters
+echo "---"
+find model_output
+echo "---"
+find importation
+echo "---"
+find data
+echo "==="
+
 # Initialize dvc and run the pipeline to re-create the
 # dvc target
 dvc init --no-scm
