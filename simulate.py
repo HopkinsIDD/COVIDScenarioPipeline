@@ -37,10 +37,10 @@
 #     - ...
 #   settings:
 #     <scenario 1 name>:
-#       template: choose one - "ReduceR0", "Stacked"
+#       template: choose one - "Reduce", ReduceR0", "Stacked"
 #       ...
 #     <scenario 2 name>:
-#       template: choose one - "Reduce R0", "Stacked"
+#       template: choose one - "Reduce", "ReduceR0", "Stacked"
 #       ...
 #
 # seeding:
@@ -48,6 +48,19 @@
 # ```
 #
 # ### interventions::scenarios::settings::<scenario name>
+#
+# If {template} is ReduceR0
+# ```yaml
+# interventions:
+#   scenarios:
+#     <scenario name>:
+#       template: Reduce
+#       parameter: choose one - "alpha, sigma, gamma, r0"
+#       period_start_date: <date>
+#       period_end_date: <date>
+#       value: <random distribution>
+#       affected_geoids: <list of strings> optional
+# ```
 #
 # If {template} is ReduceR0
 # ```yaml
@@ -101,7 +114,7 @@
 #
 # * model_output/{spatial_setup::setup_name}_[scenario]/[simulation ID].seir.[csv/parquet]
 # * model_parameters/{spatial_setup::setup_name}_[scenario]/[simulation ID].spar.[csv/parquet]
-# * model_parameters/{spatial_setup::setup_name}_[scenario]/[simulation ID].npi.[csv/parquet]
+# * model_parameters/{spatial_setup::setup_name}_[scenario]/[simulation ID].snpi.[csv/parquet]
 
 
 ## @cond
@@ -124,6 +137,9 @@ from SEIR.profile import profile_options
               help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]")
 @click.option("-n", "--nsim", type=click.IntRange(min=1),
               help="override the # of simulation runs in the config file")
+@click.option("-i", "--index", type=click.IntRange(min=1),
+              default=1, show_default=True,
+              help="The index of the first simulation")
 @click.option("-j", "--jobs", type=click.IntRange(min=1),
               default=multiprocessing.cpu_count(), show_default=True,
               help="the parallelization factor")
@@ -134,7 +150,7 @@ from SEIR.profile import profile_options
 @click.option("--write-parquet/--no-write-parquet", default=True, show_default=True,
               help="write parquet file output at end of simulation")
 @profile_options
-def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_parquet):
+def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_parquet,index):
     config.set_file(config_file)
 
     spatial_config = config["spatial_setup"]
@@ -166,7 +182,8 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_p
                         interactive=interactive,
                         write_csv=write_csv,
                         write_parquet=write_parquet,
-                        dt=config["dt"].as_number())
+                        dt=config["dt"].as_number(),
+                        first_sim_index = index)
         try:
             s.load_filter(config["dynfilter_path"].get())
             print(' We are using a filter')
@@ -175,7 +192,7 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_p
 
         print(f"""
 >> Scenario: {scenario}
->> Starting {s.nsim} model runs on {jobs} processes
+>> Starting {s.nsim} model runs beginning from {s.first_sim_index} on {jobs} processes
 >> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}
 >> writing to folder : {s.datadir}{s.setup_name}
     """)
