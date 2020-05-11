@@ -30,7 +30,7 @@ import yaml
               help="Launch a different batch job for each scenario/death combination in the config file")
 @click.option("-v", "--vcpus", "vcpus", type=click.IntRange(min=1, max=96), default=2, show_default=True,
               help="The number of CPUs to request for running jobs")
-@click.option("-m", "--memory", "memory", type=click.IntRange(min=1000, max=6000), default=2000, show_default=True,
+@click.option("-m", "--memory", "memory", type=click.IntRange(min=1000, max=6000), default=4000, show_default=True,
               help="The amount of RAM in megabytes needed per CPU running simulations")
 @click.option("-r", "--restart-from", "restart_from", type=str, default=None,
               help="The location of an S3 run to use as the initial to the first block of the current run")
