@@ -140,16 +140,18 @@ class BatchJobHandler(object):
                 {"name": "S3_RESULTS_PATH", "value": results_path},
         ]
 
-        s3_cp_run_script = f"aws s3 cp s3://{self.s3_bucket}/{runner_script_name} $PWD/run-covid-pipeline"
+        runner_script_path = f"s3://{self.s3_bucket}/{runner_script_name}"
+        s3_cp_run_script = f"aws s3 cp {runner_script_path} $PWD/run-covid-pipeline"
         command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
 
+        # Create first job
         cur_env_vars = env_vars.copy()
         if self.restart_from:
             cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from})
 
         batch_client = boto3.client('batch')
         print(f"Launching {job_name}_block0...")
-        last_job = batch_client.submit_job(
+        last_job_array = batch_client.submit_job(
             jobName=f"{job_name}_block0",
             jobQueue=batch_job_queue,
             arrayProperties={'size': self.num_jobs},
@@ -161,6 +163,8 @@ class BatchJobHandler(object):
                 'command': command
             },
             retryStrategy = {'attempts': 3})
+
+        # Create all other jobs
         block_idx = 1
         while block_idx < self.num_blocks:
             cur_env_vars = env_vars.copy()
@@ -185,6 +189,34 @@ class BatchJobHandler(object):
             last_job = cur_job
             block_idx += 1
         print(f"Final output will be for job id: {results_path}/{last_job['jobId']}")
+
+        # Create job to copy output to appropriate places
+        runner_script_name = f"{job_name}-runner.sh"
+        local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'inference_copy.sh')
+        s3_client.upload_file(local_runner_script, self.s3_bucket, runner_script_name)
+
+        # Prepare and launch the num_jobs via AWS Batch.
+        env_vars = [
+            {"name": "S3_MODEL_DATA_PATH", "value": model_data_path},
+            {"name": "S3_LAST_JOB_OUTPUT", "value": f"{results_path}/{last_job['jobId']}"},
+        ]
+
+        runner_script_path = f"s3://{self.s3_bucket}/{runner_script_name}"
+        s3_cp_run_script = f"aws s3 cp {runner_script_path} $PWD/run-covid-pipeline"
+        command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
+
+        print(f"Launching {job_name}_copy...")
+        copy_job = batch_client.submit_job(
+            jobName=f"{job_name}_copy",
+            jobQueue=batch_job_queue,
+            jobDefinition=self.batch_job_definition,
+            containerOverrides={
+                # 'vcpus': self.vcpus,
+                # 'memory': self.vcpus * self.memory,
+                'environment': env_vars,
+                'command': command
+            },
+            retryStrategy = {'attempts': 3})
 
 
 def get_dvc_outputs():
