@@ -198,7 +198,7 @@ class BatchJobHandler(object):
 
         # Save the manifest file to S3
         with open('manifest.json', 'w') as f:
-            json.dump(manifest, f)
+            json.dump(manifest, f, indent=4)
         s3_client.upload_file('manifest.json', self.s3_bucket, f"{job_name}/manifest.json")
  
         print(f"Final output will be for job id: {results_path}/{last_job['jobId']}")
