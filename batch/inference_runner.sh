@@ -88,10 +88,13 @@ if [ $dvc_ret -ne 0 ]; then
 	exit 1
 fi
 
+# JOB_NAME=$(aws batch describe-jobs --jobs $AWS_BATCH_JOB_ID --query jobs[0].jobName)
+
 for output in "${DVC_OUTPUTS_ARRAY[@]}"
 do
 	if [ -d "$output" ]; then
-		aws s3 cp --quiet --recursive $output $S3_RESULTS_PATH/$AWS_BATCH_JOB_ID/$output/
+		# aws s3 cp --quiet --recursive $output $S3_RESULTS_PATH/$AWS_BATCH_JOB_ID/$output/
+		aws s3 cp --quiet --recursive $output $S3_RESULTS_PATH/$JOB_NAME/$output/
 	fi
 done
 
