@@ -8,6 +8,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tarfile
 import time
 import yaml
@@ -112,6 +113,7 @@ class BatchJobHandler(object):
     def launch(self, job_name, config_file, batch_job_queue):
 
         manifest = {}
+        manifest['cmd'] = " ".join(sys.argv[:])
         manifest['job_name'] = job_name
         manifest['job_queue'] = batch_job_queue
         manifest['data_sha'] = subprocess.getoutput('git rev-parse HEAD')
