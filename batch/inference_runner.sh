@@ -35,7 +35,7 @@ DVC_OUTPUTS_ARRAY=($DVC_OUTPUTS)
 if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 	for output in "${DVC_OUTPUTS_ARRAY[@]}"
 	do
-		aws s3 cp --quiet --recursive $S3_LAST_JOB_OUTPUT:AWS_BATCH_JOB_ARRAY_INDEX/$output/ $output/
+		aws s3 cp --quiet --recursive $S3_LAST_JOB_OUTPUT:$AWS_BATCH_JOB_ARRAY_INDEX/$output/ $output/
 		ls -ltr $output
 	done
 fi
@@ -50,10 +50,37 @@ if [ $local_install_ret -ne 0 ]; then
 	exit 1
 fi
 
+
+(cd COVIDScenarioPipeline && python setup.py install)
+python_install_ret=$?
+
+if [ $python_install_ret -ne 0 ]; then
+	echo "Error code returned from running `python setup.py install`: $python_install_ret"
+	exit 1
+fi
+
+echo "State of directory before we start"
+echo "==="
+ls
+echo "---"
+find hospitalization
+echo "---"
+find model_parameters
+echo "---"
+find model_output
+echo "---"
+find importation
+echo "---"
+find data
+echo "==="
+
 # Initialize dvc and run the pipeline to re-create the
 # dvc target
-dvc init --no-scm
-dvc repro $DVC_TARGET
+# dvc init --no-scm
+# dvc repro $DVC_TARGET
+
+# NOTE(jwills): hard coding this for now
+Rscript COVIDScenarioPipeline/R/scripts/full_filter.R -p COVIDScenarioPipeline -n 1 -k 10 -j 1
 
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then

@@ -44,6 +44,7 @@ invalid_parameter:
 bad_start_date:
   period_start_date: 2019-12-31 # period_start_date before global start date
   period_end_date: 2020-01-31
+  parameter: gamma
   value:
     distribution: fixed
     value: 1
@@ -51,6 +52,7 @@ bad_start_date:
 bad_end_date:
   period_start_date: 2019-01-31
   period_end_date: 2020-02-23 # period_end_date after global end date
+  parameter: gamma
   value:
     distribution: fixed
     value: 1
@@ -68,7 +70,7 @@ fullrange:
   value:
     distribution: fixed
     value: 0.5
-  period_start_date: 2020-01-31
+  period_start_date: 2020-01-01
   period_end_date: 2020-01-20
   affected_geoids:
     - 10001
