@@ -2,7 +2,7 @@
 # install.packages('xts', repos='http://cran.us.r-project.org')
 # install.packages('zoo', repos='http://cran.us.r-project.org')
 
-# Preamble ---------------------------------------------------------------------
+## Preamble ---------------------------------------------------------------------
 suppressMessages(library(tidyverse))
 suppressMessages(library(readr))
 suppressMessages(library(covidcommon))
@@ -55,45 +55,60 @@ if(!('lambda_file' %in% names(config$seeding))) {
 }
 
 
+##Load infromationon geographic locations from geodata file.
 suppressMessages(geodata <- report.generation::load_geodata_file(
   paste(
     config$spatial_setup$base_path,
     config$spatial_setup$geodata, sep = "/"
   ),
-  geoid_len=5
+  geoid_len=5 #Is this hardcode a good idea.
 ))
 obs_nodename <- config$spatial_setup$nodenames
 
+
+##Load simulations per slot from config if not defined on command line
+##command options take precendence
 if(is.na(opt$simulations_per_slot)){
   opt$simulations_per_slot <- config$filtering$simulations_per_slot
 }
 
+##Define data directory and create if it does not exist
 data_path <- config$filtering$data_path
 data_dir <- dirname(data_path)
 if(!dir.exists(data_dir)){
   suppressWarnings(dir.create(data_dir,recursive=TRUE))
 }
-# Parse USAFacts data
+
+
+## Create reference data from  USAFacts data if it does not exist
+## NOTE: Probably should not be so closely tied to USA Facts
 suppressWarnings(dir.create('.lock'))
 lockfile = 'filter_MC.lock'
 # lock <- flock::lock(paste(".lock",gsub('/','-',data_path), sep = '/'))
 if (!file.exists(data_path)) {
-  cases_deaths <- covidcommon::get_USAFacts_data()
+  cases_deaths <- covidcommon::get_USAFacts_data() 
   cases_deaths  <-
     cases_deaths %>%
     dplyr::mutate(date = lubridate::ymd(Update)) %>%
-    dplyr::filter(FIPS %in% geodata[[obs_nodename]]) %>%
+    dplyr::filter(FIPS %in% geodata[[obs_nodename]]) %>% ##subset to FIPS we have in geodata...why at this point
     dplyr::rename(
       cumConfirmed = Confirmed,
       cumDeaths = Deaths
     ) %>%
     dplyr::arrange(date)
+
+  ##remove any NAs in confirmed cases and deaths
   if(any(is.na(cases_deaths$cumConfirmed))){
     cases_deaths$cumConfirmed[is.na(cases_deaths$cumConfirmed)] <- 0
   }
+
+  
   if(any(is.na(cases_deaths$cumDeaths))){
     cases_deaths$cumDeaths[is.na(cases_deaths$cumDeaths)] <- 0
   }
+
+
+  ##Translate cumulative into incident cases. 
   cases_deaths <- cases_deaths %>%
     dplyr::group_by(FIPS) %>%
     dplyr::group_modify(
@@ -106,12 +121,16 @@ if (!file.exists(data_path)) {
       }
     )
   names(cases_deaths)[names(cases_deaths) == 'FIPS'] <- as.character(obs_nodename)
+  
   write_csv(cases_deaths, data_path)
   rm(cases_deaths)
-}
+} ##End Creation of USA Facts
+
+
 # flock::unlock(lock)
 
 # Parse scenarios arguments
+##If death rates are specified check their existence
 deathrates <- opt$deathrates
 if(all(deathrates == "all")) {
   deathrates<- config$hospitalization$parameters$p_death_names
@@ -120,6 +139,7 @@ if(all(deathrates == "all")) {
   quit("yes", status=1)
 }
 
+##If scenarios are specified check their existence
 scenarios <- opt$scenarios
 if (all(scenarios == "all")){
   scenarios <- config$interventions$scenarios
@@ -128,8 +148,19 @@ if (all(scenarios == "all")){
   quit("yes", status=1)
 }
 
-# Function to apply time aggreation
 
+## Function Definitions  ---------------------------------------------------------------------
+
+
+##' Function to apply time aggregation. 
+##'
+##' @param data 
+##' @param dates 
+##' @param end_date
+##' @param period_unit
+##' @param period_k
+##' @param aggregator
+##' @param na.rm
 periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k, aggregator, na.rm = F) {
   if(na.rm) {
     dates <- dates[!is.na(data)]
@@ -365,6 +396,9 @@ iterateAccept <- function(ll_ref,ll_new,ll_col) {
   return(FALSE)
 }
 
+
+## Runner Script---------------------------------------------------------------------
+
 if(!("obs" %in% ls())){
   suppressMessages(obs <<- readr::read_csv(data_path))
   obs <- obs %>% filter(date >= config$start_date, date <= config$end_date)
@@ -377,7 +411,8 @@ if(!("obs" %in% ls())){
   mutate_if(is.numeric,coalesce,0)
 }
 geonames <- unique(obs[[obs_nodename]])
-# Compute statistics
+
+## Compute statistics
 data_stats <- lapply(
   geonames,
   function(x) {
