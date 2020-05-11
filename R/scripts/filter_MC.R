@@ -86,7 +86,7 @@ suppressWarnings(dir.create('.lock'))
 lockfile = 'filter_MC.lock'
 # lock <- flock::lock(paste(".lock",gsub('/','-',data_path), sep = '/'))
 if (!file.exists(data_path)) {
-  cases_deaths <- covidcommon::get_USAFacts_data() 
+  cases_deaths <- covidcommon::get_USAFacts_data()
   cases_deaths  <-
     cases_deaths %>%
     dplyr::mutate(date = lubridate::ymd(Update)) %>%
@@ -102,13 +102,13 @@ if (!file.exists(data_path)) {
     cases_deaths$cumConfirmed[is.na(cases_deaths$cumConfirmed)] <- 0
   }
 
-  
+
   if(any(is.na(cases_deaths$cumDeaths))){
     cases_deaths$cumDeaths[is.na(cases_deaths$cumDeaths)] <- 0
   }
 
 
-  ##Translate cumulative into incident cases. 
+  ##Translate cumulative into incident cases.
   cases_deaths <- cases_deaths %>%
     dplyr::group_by(FIPS) %>%
     dplyr::group_modify(
@@ -121,7 +121,7 @@ if (!file.exists(data_path)) {
       }
     )
   names(cases_deaths)[names(cases_deaths) == 'FIPS'] <- as.character(obs_nodename)
-  
+
   write_csv(cases_deaths, data_path)
   rm(cases_deaths)
 } ##End Creation of USA Facts
@@ -151,61 +151,6 @@ if (all(scenarios == "all")){
 
 ## Function Definitions  ---------------------------------------------------------------------
 
-
-##' Function to apply time aggregation. 
-##'
-##' @param data 
-##' @param dates 
-##' @param end_date
-##' @param period_unit
-##' @param period_k
-##' @param aggregator
-##' @param na.rm
-periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k, aggregator, na.rm = F) {
-  if(na.rm) {
-    dates <- dates[!is.na(data)]
-    data <- data[!is.na(data)]
-  }
-  if (length(data) == 0) {
-    return(data.frame(date = NA, stat = NA))
-  }
-  if (!is.null(end_date)) {
-    data <- data[dates <= end_date]
-    dates <- dates[dates <= end_date]
-  }
-
-  xtsobj <- as.xts(zoo(data, dates))
-  stats <- period.apply(xtsobj,
-                        endpoints(xtsobj, on = period_unit, k = period_k),
-                        aggregator)
-  return(stats)
-}
-
-getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
-  rc <- list()
-  for(stat in names(stat_list)){
-      s <- stat_list[[stat]]
-      aggregator <- match.fun(s$aggregator)
-      # Get the time period over whith to apply aggregation
-      period_info <- strsplit(s$period, " ")[[1]]
-
-      res <- periodAggregate(df[[s[[var_col]]]],
-                             df[[time_col]],
-                             end_date,
-                             period_info[2],
-                             period_info[1],
-                             aggregator,
-                             na.rm = s$remove_na)
-      rc[[stat]] <- res %>%
-        as.data.frame() %>%
-        mutate(date = rownames(.)) %>%
-        set_colnames(c(var_col, "date")) %>%
-        select(date, one_of(var_col))
-  }
-  return(rc)
-}
-
-
 ##' Function for determining where to write the seeding.csv file
 ##' @param config The config for this run
 ##' @param index The index of this simulation
@@ -217,7 +162,7 @@ parameter_file_path <- function(config,index, scenario){
   #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
   # }
 
-  ## FIX ME 
+  ## FIX ME
   return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$name , scenario, index))
 }
 
@@ -226,7 +171,7 @@ npi_file_path <- function(config,index,scenario){
   #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
   # }
 
-  ## FIX ME 
+  ## FIX ME
   return(sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
 }
 
@@ -272,29 +217,6 @@ hospitalization_file_path <- function(config,index,scenario,deathrate){
   return(sprintf("hospitalization/model_output/%s_%s/%s_death_death-%09d.hosp.parquet", config$name , scenario, deathrate,index))
 }
 
-##' Fuction perturbs a seeding file based on a normal
-##' proposal on the start date and
-##' a poisson on the number of cases.
-##'
-##' @param seeding the original seeding
-##' @param sd the standard deviation of the posson
-##'
-##'
-##' @return a pertubed data frame
-##'
-perturb_seeding <- function(seeding,sd,date_bounds) {
-    seeding <- seeding %>%
-        group_by(place) %>%
-        mutate(date = date+round(rnorm(1,0,sd))) %>%
-        ungroup() %>%
-        mutate(
-          amount=round(pmax(rnorm(length(amount),amount,1),0)),
-          date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
-        )
-
-    return(seeding)
-
-}
 
 
 
@@ -321,70 +243,7 @@ perturb_npis <- function(npis, intervention_settings) {
   return(npis)
 }
 
-##'
-##' Function to go through to accept or reject seedings in a block manner based
-##' on a geoid specific likelihood.
-##'
-##'
-##' @param seeding_orig original seeding file.
-##' @param seeding_prop proposal seeding file
-##' @param loc_lls a dataframe with columns orig_ll and prop_ll per place
-##'
-##' @return a new data frame with the confirmed seedin.
-##'
-accept_reject_new_seeding_npis <- function(
-  seeding_orig,
-  seeding_prop,
-  npis_orig,
-  npis_prop, 
-  orig_lls,
-  prop_lls
-) {
-  rc_seeding <- seeding_orig
-  rc_npis <- npis_orig
 
-  if(!all(orig_lls$geoid == prop_lls$geoid)){stop("geoids must match")}
-  ##draw accepts/rejects
-  ratio <- exp(prop_lls$ll - orig_lls$ll)
-  accept <- ratio>runif(length(ratio),0,1)
-
-  orig_lls$ll[accept] <- prop_lls$ll[accept]
-
-  for (place in orig_lls$geoid[accept]) {
-    rc_seeding[rc_seeding$place ==place, ] <- seeding_prop[seeding_prop$place ==place, ]
-    rc_npis[rc_npis$geoid == place,] <- npis_prop[npis_prop$geoid == place, ]
-  }
-  
-  return(list(seeding=rc_seeding, npis=rc_npis, lls = orig_lls))
-}
-
-
-
-##Calculate the model evaluation statistic.
-logLikStat <- function(obs, sim, distr, param, add_one = F) {
-  if(length(obs) != length(sim)){
-    stop(sprintf("Expecting sim (%d) and obs (%d) to be the same length",length(sim),length(obs)))
-  }
-  if (add_one) {
-    sim[sim == 0] = 1
-  }
-
-  if(distr == "pois") {
-      rc <- dpois(obs, sim, log = T)
-  } else if (distr == "norm") {
-      rc <- dnorm(obs, sim, sd = param[1], log = T)
-  } else if (distr == "nbinom") {
-      rc <- dnbinom(obs, sim, k = param[1], log = T)
-  } else if (distr == "sqrtnorm") {
-      rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[[1]], log = T)
-  } else if (distr == "sqrtnorm_scale_sim") { #param 1 is cov, param 2 is multipler
-      rc <- dnorm(sqrt(obs), sqrt(sim*param[[2]]), sd=sqrt(sim*param[[2]])*param[[1]],log=T)
-  } else {
-      stop("Invalid stat specified")
-  }
-
-  return(rc)
-}
 
 iterateAccept <- function(ll_ref,ll_new,ll_col) {
   ll_new <- ll_new[[ll_col]]
@@ -416,8 +275,8 @@ geonames <- unique(obs[[obs_nodename]])
 data_stats <- lapply(
   geonames,
   function(x) {
-    df <- obs[obs[[obs_nodename]] == x, ] 
-    getStats(
+    df <- obs[obs[[obs_nodename]] == x, ]
+    inference::getStats(
       df,
       "date",
       "data_var",
@@ -437,7 +296,7 @@ for(scenario in scenarios) {
   for(deathrate in deathrates) {
       # Data -------------------------------------------------------------------------
       # Load
-    
+
     # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
     err <- 0
     if(!file.exists(seeding_file_path(config,sprintf("%09d",opt$this_slot)))){
@@ -510,7 +369,7 @@ for(scenario in scenarios) {
     initial_sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",first_hosp_file))(first_hosp_file) %>%
         filter(time >= min(obs$date), time <= max(obs$date)) %>%
         select(-date_inds)
-      
+
       lhs <- unique(initial_sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
@@ -532,7 +391,7 @@ for(scenario in scenarios) {
         for(location in all_locations) {
 
           local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
-          initial_sim_stats <- getStats(
+          initial_sim_stats <- inference::getStats(
             local_sim_hosp,
             "time",
             "sim_var",
@@ -544,7 +403,7 @@ for(scenario in scenarios) {
           # Get observation statistics
           log_likelihood <- list()
           for(var in names(data_stats[[location]])) {
-            log_likelihood[[var]] <- logLikStat(
+            log_likelihood[[var]] <- inference::logLikStat(
               obs = data_stats[[location]][[var]]$data_var,
               sim = initial_sim_stats[[var]]$sim_var,
               dist = config$filtering$statistics[[var]]$likelihood$dist,
@@ -582,7 +441,7 @@ for(scenario in scenarios) {
       print(index)
       # Load sims -----------------------------------------------------------
 
-      current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
+      current_seeding <- infernece::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
       current_npis <- perturb_npis(initial_npis, config$interventions$settings)
       current_params <- initial_params
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
@@ -649,9 +508,9 @@ for(scenario in scenarios) {
         #     select(-date_inds)
         # }
 
-        local_sim_hosp <- dplyr::filter(sim_hosp, !!rlang::sym(obs_nodename) == location) %>% 
+        local_sim_hosp <- dplyr::filter(sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
           dplyr::filter(time %in% all_dates)
-        sim_stats <- getStats(
+        sim_stats <- inference::getStats(
           local_sim_hosp,
           "time",
           "sim_var",
@@ -665,7 +524,7 @@ for(scenario in scenarios) {
         for(var in names(data_stats[[location]])) {
         # log_likelihood <- foreach (var = names(data_stats[[location]]), .combine = sum) %do% {
 
-          log_likelihood[[var]] <- logLikStat(
+          log_likelihood[[var]] <- inference::logLikStat(
             obs = data_stats[[location]][[var]]$data_var,
             sim = sim_stats[[var]]$sim_var,
             dist = config$filtering$statistics[[var]]$likelihood$dist,
@@ -695,7 +554,7 @@ for(scenario in scenarios) {
 
       ## For logging
       print(paste("Current likelihood",current_likelihood,"Proposed likelihood",likelihood))
-      
+
       if(iterateAccept(current_likelihood, likelihood, 'll')){
         old_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + current_index
         current_index <- index
@@ -718,7 +577,7 @@ for(scenario in scenarios) {
         }
       }
 
-      seeding_npis_list <- accept_reject_new_seeding_npis(
+      seeding_npis_list <- inference::accept_reject_new_seeding_npis(
         seeding_orig = initial_seeding,
         seeding_prop = current_seeding,
         npis_orig = initial_npis,
