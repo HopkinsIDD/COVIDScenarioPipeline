@@ -796,6 +796,12 @@ Version: 1.4.4
 Hash: 18ecb14c203e2963654dbc1b50f14030
 Requires: Rcpp, plyr, stringr
 
+Package: reticulate
+Source: CRAN
+Version: 1.5
+Hash: 765980609226e42bc8a0b98d24f14b24
+Requires: Rcpp, jsonlite
+
 Package: rex
 Source: CRAN
 Version: 1.2.0
@@ -1062,6 +1068,12 @@ Version: 1.0.0
 Hash: 22c2708f177f9fd9f8a52012bac61d6a
 Requires: processx
 
+Package: xts
+Source: CRAN
+Version: 0.12-0
+Hash: 44a97ea0592b91a5ba6851df01f5bb9f
+Requires: zoo
+
 Package: yaml
 Source: CRAN
 Version: 2.2.1
@@ -1071,3 +1083,9 @@ Package: zip
 Source: CRAN
 Version: 2.0.4
 Hash: f86b0ae5776b2e3880871fb0e34e5e48
+
+Package: zoo
+Source: CRAN
+Version: 1.8-7
+Hash: d333d9408647b5fc153dc5817b3ad0fe
+Requires: lattice

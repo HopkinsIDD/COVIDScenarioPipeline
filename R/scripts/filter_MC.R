@@ -3,7 +3,7 @@
 # install.packages('zoo', repos='http://cran.us.r-project.org')
 
 # Preamble ---------------------------------------------------------------------
-suppressMessages(library(dplyr))
+suppressMessages(library(tidyverse))
 suppressMessages(library(readr))
 suppressMessages(library(covidcommon))
 suppressMessages(library(report.generation))
@@ -251,13 +251,15 @@ hospitalization_file_path <- function(config,index,scenario,deathrate){
 ##'
 ##' @return a pertubed data frame
 ##'
-perturb_seeding <- function(seeding,sd) {
-    require(tidyverse)
-    seeding <- seeding%>%
-        group_by(place)%>%
-        mutate(date = date+round(rnorm(1,0,sd)))%>%
-        ungroup()%>%
-        mutate(amount=round(pmax(rnorm(length(amount),amount,1),0)))
+perturb_seeding <- function(seeding,sd,date_bounds) {
+    seeding <- seeding %>%
+        group_by(place) %>%
+        mutate(date = date+round(rnorm(1,0,sd))) %>%
+        ungroup() %>%
+        mutate(
+          amount=round(pmax(rnorm(length(amount),amount,1),0)),
+          date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
+        )
 
     return(seeding)
 
@@ -274,8 +276,6 @@ perturb_seeding <- function(seeding,sd) {
 ##' @return a pertubed data frame
 ##'
 perturb_npis <- function(npis, intervention_settings) {
-  require(dplyr)
-  require(magrittr)
   for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
     if ('perturbation' %in% names(intervention_settings[[intervention]])){
       pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
@@ -406,6 +406,7 @@ for(scenario in scenarios) {
     # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
     err <- 0
     if(!file.exists(seeding_file_path(config,sprintf("%09d",opt$this_slot)))){
+      print(sprintf("Creating Seeding (%s) from Scratch",seeding_file_path(config,sprintf("%09d",opt$this_slot))))
       if(!file.exists(config$seeding$lambda_file)){
         err <- system(paste(
           opt$rpath,
@@ -436,6 +437,7 @@ for(scenario in scenarios) {
     first_hosp_file <- hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
     # lock <- flock::lock(paste('.lock',gsub('/','-',first_npi_file),sep='/'))
     if((!file.exists(first_npi_file)) | (!file.exists(first_param_file))){
+      print(sprintf("Creating parameters (%s) from Scratch",first_npi_file))
       py$onerun_SEIR(opt$this_slot,py$s)
     }
     initial_npis <- arrow::read_parquet(first_npi_file)
@@ -443,6 +445,7 @@ for(scenario in scenarios) {
     # flock::unlock(lock)
 
     if(!file.exists(first_hosp_file)){
+      print(sprintf("Creating hospitalization (%s) from Scratch",first_hosp_file))
       ## Generate files
       this_index <- opt$this_slot
       # lock <- flock::lock(paste(".lock",paste("SEIR",this_index,scenario,sep='.'),sep='/'))
@@ -489,6 +492,7 @@ for(scenario in scenarios) {
       }
       initial_log_likelihood_file <- paste0(config$filtering$likelihood_directory,"/",sprintf("%09d",opt$this_slot),".llik.parquet")
       if(!file.exists(initial_log_likelihood_file)){
+        print(sprintf("Creating likelihood (%s) from Scratch",initial_log_likelihood_file))
         initial_log_likelihood_data <- list()
         for(location in all_locations) {
 
@@ -543,7 +547,7 @@ for(scenario in scenarios) {
       print(index)
       # Load sims -----------------------------------------------------------
 
-      current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd)
+      current_seeding <- perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
       current_npis <- perturb_npis(initial_npis, config$interventions$settings)
       current_params <- initial_params
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
