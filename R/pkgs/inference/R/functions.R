@@ -75,6 +75,8 @@ hospitalization_file_path <- function(config,index,scenario,deathrate){
 # Likelihood stuff -------------------------------------------------------------
 
 ##' Function for applying time aggregation of variables on which to comput likelihoods
+##' Note that bahavior is not consistent when multiples of time nits are passed in.
+##'
 ##' @param data Vector of data to aggregate
 ##' @param dates Vector of dates
 ##' @param end_date Last date to consider
@@ -97,9 +99,10 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
     dates <- dates[dates <= end_date]
   }
 
-  xtsobj <- as.xts(zoo(data, dates))
-  stats <- period.apply(xtsobj,
-                        endpoints(xtsobj, on = period_unit, k = period_k),
+
+  xtsobj <- xts::as.xts(zoo::zoo(data, dates))
+  stats <- xts::period.apply(xtsobj,
+                        xts::endpoints(xtsobj, on = period_unit, k = period_k),
                         aggregator)
   return(stats)
 }
@@ -108,7 +111,7 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
 ##' Function for computing statistics over which to compute likelihoods
 ##' @param df Data frame with data
 ##' @param time_col Name of the column with time
-##' @param var_col Name of the column with data to process
+##' @param var_col Name of the variable with name of the  column with data to process
 ##' @param end_date Last date to consider
 ##' @param stat_list List with specifications of statistics to compute
 ##' @return NULL
@@ -118,10 +121,11 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
   for(stat in names(stat_list)){
     s <- stat_list[[stat]]
     aggregator <- match.fun(s$aggregator)
-    # Get the time period over whith to apply aggregation
+    ## Get the time period over whith to apply aggregation
     period_info <- strsplit(s$period, " ")[[1]]
 
-    res <- periodAggregate(df[[s[[var_col]]]],
+
+    res <- inference::periodAggregate(df[[s[[var_col]]]],
                            df[[time_col]],
                            end_date,
                            period_info[2],
@@ -131,7 +135,7 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
     rc[[stat]] <- res %>%
       as.data.frame() %>%
       mutate(date = rownames(.)) %>%
-      set_colnames(c(var_col, "date")) %>%
+      magrittr::set_colnames(c(var_col, "date")) %>%
       select(date, one_of(var_col))
   }
   return(rc)
@@ -142,6 +146,7 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
 ##' @param obs Vector of observed statistics
 ##' @param sim Vector of simulated statistics
 ##' @param distr Distribution to use for likelihood calculation
+##' @param param a list opf parameters to the distibution
 ##' @param add_one Whether to add one to simulations to avoid Infs
 ##' @return NULL
 #' @export
@@ -156,13 +161,14 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
   if(distr == "pois") {
     rc <- dpois(obs, sim, log = T)
   } else if (distr == "norm") {
-    rc <- dnorm(obs, sim, sd = param[1], log = T)
+    rc <- dnorm(obs, sim, sd = param[[1]], log = T)
   } else if (distr == "nbinom") {
-    rc <- dnbinom(obs, sim, k = param[1], log = T)
+    rc <- dnbinom(obs, mu=sim, size = param[[1]], log = T)
   } else if (distr == "sqrtnorm") {
-    rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[[1]], log = T)
+      ##rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[[1]], log = T)
+      rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(pmax(obs,5))*param[[1]], log = T)
   } else if (distr == "sqrtnorm_scale_sim") { #param 1 is cov, param 2 is multipler
-    rc <- dnorm(sqrt(obs), sqrt(sim*param[[2]]), sd=sqrt(sim*param[[2]])*param[[1]],log=T)
+    rc <- dnorm(sqrt(obs), sqrt(sim*param[[2]]), sd=sqrt(pmax(obs,5)*param[[2]])*param[[1]],log=T)
   } else {
     stop("Invalid stat specified")
   }
@@ -184,18 +190,20 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
 ##'
 ##' @return a pertubed data frame
 ##'
-##' @export
-perturb_seeding <- function(seeding,sd) {
-  require(tidyverse)
-  seeding <- seeding%>%
-    group_by(place)%>%
-    mutate(date = date+round(rnorm(1,0,sd)))%>%
-    ungroup()%>%
-    mutate(amount=round(pmax(rnorm(length(amount),amount,1),0)))
+perturb_seeding <- function(seeding,sd,date_bounds) {
+    seeding <- seeding %>%
+        group_by(place) %>%
+        mutate(date = date+round(rnorm(1,0,sd))) %>%
+        ungroup() %>%
+        mutate(
+          amount=round(pmax(rnorm(length(amount),amount,1),0)),
+          date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
+        )
 
-  return(seeding)
+    return(seeding)
 
 }
+
 
 ##' Fuction perturbs an npi parameter file based on
 ##' user-specified distributions
@@ -225,12 +233,12 @@ perturb_npis <- function(npis, intervention_settings) {
 ##' on a geoid specific likelihood.
 ##'
 ##'
-##' @param seeding_orig original seeding file.
-##' @param seeding_prop proposal seeding file
-##' @param npis_orig original npi file
-##' @param npis_prop proposal npi file
-##' @param orig_lls original ll file
-##' @param prop_lls proposal ll file
+##' @param seeding_orig original seeding data frame (must have column place)
+##' @param seeding_prop proposal seeding (must have column place)
+##' @param npis_orig original npi data frame  (must have column geoid)
+##' @param npis_prop proposal npi data frame  (must have column geoid)
+##' @param orig_lls original ll data frame  (must have column ll and geoid)
+##' @param prop_lls proposal ll fata frame (must have column ll and geoid)
 ##' @return a new data frame with the confirmed seedin.
 ##' @export
 accept_reject_new_seeding_npis <- function(
@@ -250,6 +258,7 @@ accept_reject_new_seeding_npis <- function(
   accept <- ratio>runif(length(ratio),0,1)
 
   orig_lls$ll[accept] <- prop_lls$ll[accept]
+
 
   for (place in orig_lls$geoid[accept]) {
     rc_seeding[rc_seeding$place ==place, ] <- seeding_prop[seeding_prop$place ==place, ]
