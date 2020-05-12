@@ -148,6 +148,7 @@ class BatchJobHandler(object):
         cur_env_vars = env_vars.copy()
         if self.restart_from:
             cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from})
+        cur_env_vars.append({"name": "JOB_NAME", "value": f"{job_name}_block0"})
 
         batch_client = boto3.client('batch')
         print(f"Launching {job_name}_block0...")
@@ -170,7 +171,11 @@ class BatchJobHandler(object):
             cur_env_vars = env_vars.copy()
             cur_env_vars.append({
                 "name": "S3_LAST_JOB_OUTPUT",
-                "value": f"{results_path}/{last_job['jobId']}"
+                "value": f"{results_path}/{last_job['jobName']}"
+            })
+            cur_env_vars.append({
+                "name": "JOB_NAME",
+                "value": f"{job_name}_block{block_idx}"
             })
             print(f"Launching {job_name}_block{block_idx}...")
             cur_job = batch_client.submit_job(
@@ -188,7 +193,7 @@ class BatchJobHandler(object):
                 retryStrategy={'attempts': 3})
             last_job = cur_job
             block_idx += 1
-        print(f"Final output will be for job id: {results_path}/{last_job['jobId']}")
+        print(f"Final output will be for job: {results_path}/{last_job['jobName']}")
 
         # Create job to copy output to appropriate places
         copy_script_name = f"{job_name}-copy.sh"
@@ -198,7 +203,7 @@ class BatchJobHandler(object):
         # Prepare and launch the num_jobs via AWS Batch.
         env_vars = [
             {"name": "S3_RESULTS_PATH", "value": results_path},
-            {"name": "S3_LAST_JOB_OUTPUT", "value": f"{results_path}/{last_job['jobId']}"},
+            {"name": "S3_LAST_JOB_OUTPUT", "value": f"{results_path}/{last_job['jobName']}"},
             {"name": "NSLOT", "value": str(self.num_jobs)},
         ]
 

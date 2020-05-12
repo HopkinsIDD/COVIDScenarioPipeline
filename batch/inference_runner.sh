@@ -6,6 +6,7 @@ set -x
 # S3_MODEL_DATA_PATH location in S3 with the code, data, and dvc pipeline to run
 # DVC_TARGET the name of the dvc file in the model that should be reproduced locally.
 # DVC_OUTPUTS the names of the directories with outputs to save in S3, separated by a space
+# JOB_NAME the name of the job
 # S3_RESULTS_PATH location in S3 to store the results
 
 # setup the python environment
@@ -91,7 +92,7 @@ fi
 for output in "${DVC_OUTPUTS_ARRAY[@]}"
 do
 	if [ -d "$output" ]; then
-		aws s3 cp --quiet --recursive $output $S3_RESULTS_PATH/$AWS_BATCH_JOB_ID/$output/
+		aws s3 cp --quiet --recursive $output $S3_RESULTS_PATH/$JOB_NAME:$AWS_BATCH_JOB_ARRAY_INDEX/$output/
 	fi
 done
 
