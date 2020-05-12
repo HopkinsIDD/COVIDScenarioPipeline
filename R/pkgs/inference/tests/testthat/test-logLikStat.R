@@ -6,12 +6,12 @@ test_that("Identical timeseries are the MLE for all log like stats",{
 
     sims <- list()
     for (i in 1:49) {
-        sims[[i]] <- tidyr::replace_na(lead(obs,50-i),max(obs))
+        sims[[i]] <- tidyr::replace_na(dplyr::lead(obs,50-i),max(obs))
     }
     sims[[50]] <- obs
 
     for (i in 51:100) {
-        sims[[i]] <- tidyr::replace_na(lag(obs,i),0)
+        sims[[i]] <- tidyr::replace_na(dplyr::lag(obs,i),0)
     }
 
 

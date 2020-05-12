@@ -151,75 +151,6 @@ if (all(scenarios == "all")){
 
 ## Function Definitions  ---------------------------------------------------------------------
 
-##' Function for determining where to write the seeding.csv file
-##' @param config The config for this run
-##' @param index The index of this simulation
-##'
-##' @return NULL
-##'
-parameter_file_path <- function(config,index, scenario){
-  # if(length(config$interventions$scenarios) > 1){
-  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
-  # }
-
-  ## FIX ME
-  return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$name , scenario, index))
-}
-
-npi_file_path <- function(config,index,scenario){
-  # if(length(config$interventions$scenarios) > 1){
-  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
-  # }
-
-  ## FIX ME
-  return(sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
-}
-
-
-
-##' Function for determining where to write the seeding.csv file
-##' @param config The config for this run
-##' @param index The index of this simulation
-##'
-##' @return NULL
-##'
-seeding_file_path <- function(config,index){
-  # if(length(config$interventions$scenarios) > 1){
-  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
-  # }
-
-  return(sprintf("%s/importation_%s.csv",config$seeding$folder_path,index))
-}
-suppressWarnings(dir.create(config$seeding$folder_path,recursive=TRUE))
-suppressWarnings(dir.create(sprintf("%s/%s/case_data",'importation',config$name),recursive=TRUE))
-
-
-
-##' Function for determining where to write the SEIR output to file
-##' @param config The config for this run
-##' @param index The index of this simulation
-##'
-##' @return NULL
-##'
-simulation_file_path <- function(config,index,scenario){
-  return(sprintf("model_output/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
-}
-
-
-
-##' Function for determining where to write the seeding.csv file
-##' @param config The config for this run
-##' @param index The index of this simulation
-##'
-##' @return NULL
-##'
-hospitalization_file_path <- function(config,index,scenario,deathrate){
-  return(sprintf("hospitalization/model_output/%s_%s/%s_death_death-%09d.hosp.parquet", config$name , scenario, deathrate,index))
-}
-
-
-
-
 ##' Fuction perturbs an npi parameter file based on user-specified distributions
 ##'
 ##' @param params the original paramters
@@ -242,19 +173,6 @@ perturb_npis <- function(npis, intervention_settings) {
   }
   return(npis)
 }
-
-
-
-iterateAccept <- function(ll_ref,ll_new,ll_col) {
-  ll_new <- ll_new[[ll_col]]
-  ll_ref <- ll_ref[[ll_col]]
-  ll_ratio <- exp(min(c(0, ll_new - ll_ref)))
-  if (ll_ratio >= runif(1)) {
-    return(TRUE)
-  }
-  return(FALSE)
-}
-
 
 ## Runner Script---------------------------------------------------------------------
 
@@ -299,8 +217,8 @@ for(scenario in scenarios) {
 
     # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
     err <- 0
-    if(!file.exists(seeding_file_path(config,sprintf("%09d",opt$this_slot)))){
-      print(sprintf("Creating Seeding (%s) from Scratch",seeding_file_path(config,sprintf("%09d",opt$this_slot))))
+    if(!file.exists(covidcommon::seeding_file_path(config,sprintf("%09d",opt$this_slot)))){
+      print(sprintf("Creating Seeding (%s) from Scratch",covidcommon::seeding_file_path(config,sprintf("%09d",opt$this_slot))))
       if(!file.exists(config$seeding$lambda_file)){
         err <- system(paste(
           opt$rpath,
@@ -314,10 +232,10 @@ for(scenario in scenarios) {
     suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file))
     write.csv(
       initial_seeding,
-      file = seeding_file_path(config,sprintf("%09d",opt$this_slot))
+      file = covidcommon::seeding_file_path(config,sprintf("%09d",opt$this_slot))
     )
   }
-    suppressMessages(initial_seeding <- readr::read_csv(seeding_file_path(config,sprintf("%09d",opt$this_slot))))
+    suppressMessages(initial_seeding <- readr::read_csv(covidcommon::seeding_file_path(config,sprintf("%09d",opt$this_slot))))
     # flock::unlock(lock)
     initial_seeding$amount <- as.integer(round(initial_seeding$amount))
 
@@ -326,9 +244,9 @@ for(scenario in scenarios) {
 
     # FIX ME : this file won't exist in general
     # TODO CHANGE TO FIRST DRAW OF SEIR CODE
-    first_param_file <- parameter_file_path(config,opt$this_slot, scenario)
-    first_npi_file <- npi_file_path(config,opt$this_slot, scenario)
-    first_hosp_file <- hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
+    first_param_file <- covidcommon::parameter_file_path(config,opt$this_slot, scenario)
+    first_npi_file <- covidcommon::npi_file_path(config,opt$this_slot, scenario)
+    first_hosp_file <- covidcommon::hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
     # lock <- flock::lock(paste('.lock',gsub('/','-',first_npi_file),sep='/'))
     if((!file.exists(first_npi_file)) | (!file.exists(first_param_file))){
       print(sprintf("Creating parameters (%s) from Scratch",first_npi_file))
@@ -441,21 +359,21 @@ for(scenario in scenarios) {
       print(index)
       # Load sims -----------------------------------------------------------
 
-      current_seeding <- infernece::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
+      current_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
       current_npis <- perturb_npis(initial_npis, config$interventions$settings)
       current_params <- initial_params
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
       write.csv(
         current_seeding,
-        file = seeding_file_path(config,sprintf("%09d",this_index))
+        file = covidcommon::seeding_file_path(config,sprintf("%09d",this_index))
       )
       arrow::write_parquet(
         current_npis,
-        npi_file_path(config,this_index,scenario)
+        covidcommon::npi_file_path(config,this_index,scenario)
       )
       arrow::write_parquet(
         current_params,
-        parameter_file_path(config,this_index,scenario)
+        covidcommon::parameter_file_path(config,this_index,scenario)
       )
 
 
@@ -483,7 +401,7 @@ for(scenario in scenarios) {
         stop("Hospitalization failed to run")
       }
 
-      file <- hospitalization_file_path(config,this_index,scenario,deathrate)
+      file <- covidcommon::hospitalization_file_path(config,this_index,scenario,deathrate)
       print(paste("Reading",file))
 
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>%
@@ -555,25 +473,25 @@ for(scenario in scenarios) {
       ## For logging
       print(paste("Current likelihood",current_likelihood,"Proposed likelihood",likelihood))
 
-      if(iterateAccept(current_likelihood, likelihood, 'll')){
+      if(inference::iterateAccept(current_likelihood, likelihood, 'll')){
         old_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + current_index
         current_index <- index
         current_likelihood <- likelihood
         if(opt$clean){
           print("Removing old")
-          file.remove(hospitalization_file_path(config,old_index,scenario,deathrate))
-          file.remove(simulation_file_path(config,old_index,scenario))
-          file.remove(npi_file_path(config,old_index,scenario))
-          file.remove(parameter_file_path(config,old_index,scenario))
+          file.remove(covidcommon::hospitalization_file_path(config,old_index,scenario,deathrate))
+          file.remove(covidcommon::simulation_file_path(config,old_index,scenario))
+          file.remove(covidcommon::npi_file_path(config,old_index,scenario))
+          file.remove(covidcommon::parameter_file_path(config,old_index,scenario))
         }
       } else {
         old_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
         if(opt$clean){
           print("Removing new")
-          file.remove(hospitalization_file_path(config,old_index,scenario,deathrate))
-          file.remove(simulation_file_path(config,old_index,scenario))
-          file.remove(npi_file_path(config,old_index,scenario))
-          file.remove(parameter_file_path(config,old_index,scenario))
+          file.remove(covidcommon::hospitalization_file_path(config,old_index,scenario,deathrate))
+          file.remove(covidcommon::simulation_file_path(config,old_index,scenario))
+          file.remove(covidcommon::npi_file_path(config,old_index,scenario))
+          file.remove(covidcommon::parameter_file_path(config,old_index,scenario))
         }
       }
 
@@ -588,6 +506,9 @@ for(scenario in scenarios) {
       initial_seeding <- seeding_npis_list$seeding
       initial_npis <- seeding_npis_list$npis
       previous_likelihood_data <- seeding_npis_list$ll
+      likelihood_filename <- paste0(config$filtering$likelihood_directory,"/",sprintf("%09d",this_index),".chim.parquet")
+      arrow::write_parquet(previous_likelihood_data, likelihood_filename)
+
       print(paste("Current index is ",current_index))
       print(log_likelihood_data)
       print(previous_likelihood_data)
@@ -595,16 +516,19 @@ for(scenario in scenarios) {
       rm(current_seeding)
     }
 
-    current_file <- hospitalization_file_path(
-      config,
-      ## GLOBAL ACCEPT/REJECT vs LOCAL ACCEPT/REJECT
-      # opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + current_index,
-      opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + opt$simulations_per_slot,
-      scenario,
-      deathrate
-    )
-    target_file <- hospitalization_file_path(config,opt$this_slot,scenario,deathrate)
-    target_dir <- gsub('/[^/]*$','',target_file)
+    if(current_index != 0){
+      current_file <- covidcommon::hospitalization_file_path(
+        config,
+        ## GLOBAL ACCEPT/REJECT
+        opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + current_index,
+        ## NO GLOBAL ACCEPT/REJECT
+        # opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + opt$simulations_per_slot,
+        scenario,
+        deathrate
+      )
+      target_file <- covidcommon::hospitalization_file_path(config,opt$this_slot,scenario,deathrate)
+      target_dir <- gsub('/[^/]*$','',target_file)
+    }
 
     print(paste("Copying",current_file,"to",target_file))
     suppressWarnings(dir.create(target_dir, recursive=TRUE))
@@ -612,12 +536,12 @@ for(scenario in scenarios) {
 
 
 
-    current_file <- npi_file_path(
+    current_file <- covidcommon::npi_file_path(
       config,
       opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + opt$simulations_per_slot,
       scenario
     )
-    target_file <- npi_file_path(config,opt$this_slot,scenario)
+    target_file <- covidcommon::npi_file_path(config,opt$this_slot,scenario)
     target_dir <- gsub('/[^/]*$','',target_file)
 
     print(paste("Copying",current_file,"to",target_file))
@@ -626,11 +550,11 @@ for(scenario in scenarios) {
 
 
 
-    current_file <- seeding_file_path(
+    current_file <- covidcommon::seeding_file_path(
       config,
       sprintf("%09d",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + opt$simulations_per_slot)
     )
-    target_file <- seeding_file_path(config,sprintf("%09d",opt$this_slot))
+    target_file <- covidcommon::seeding_file_path(config,sprintf("%09d",opt$this_slot))
     target_dir <- gsub('/[^/]*$','',target_file)
 
     print(paste("Copying",current_file,"to",target_file))

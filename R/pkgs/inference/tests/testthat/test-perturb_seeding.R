@@ -9,7 +9,6 @@ test_that("seeding date always stays within date bounds", {
     date_bounds <- as.Date(c("2020-01-31", "2020-02-02"))
 
     tmp <- perturb_seeding(seeding, 5, date_bounds=date_bounds)
-    print(range(tmp$date))
 
     expect_that(prod(tmp$date>=date_bounds[1]),equals(1))
     expect_that(prod(tmp$date<=date_bounds[2]),equals(1))
