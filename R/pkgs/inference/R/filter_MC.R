@@ -131,7 +131,7 @@ filter_MC <- function (
         date = unique(obs$date)
       )
     ) %>%
-      mutate_if(is.numeric,coalesce,0)
+      dplyr::mutate_if(is.numeric,coalesce,0)
   }
 
   # Get unique geonames
@@ -172,7 +172,7 @@ filter_MC <- function (
 
       # Run seeding if not found
       err <- 0
-      if(!file.exists(seeding_file_path(config,sprintf("%09d",this_slot)))){
+      if(!file.exists(covidcommon::seeding_file_path(config,sprintf("%09d",this_slot)))){
         if(!file.exists(config$seeding$lambda_file)){
           err <- system(paste(
             rpath,
@@ -186,11 +186,11 @@ filter_MC <- function (
         suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file))
         write.csv(
           initial_seeding,
-          file = seeding_file_path(config,sprintf("%09d",this_slot))
+          file = covidcommon::seeding_file_path(config,sprintf("%09d",this_slot))
         )
       }
 
-      suppressMessages(initial_seeding <- readr::read_csv(seeding_file_path(config,sprintf("%09d",this_slot))))
+      suppressMessages(initial_seeding <- readr::read_csv(covidcommon::seeding_file_path(config,sprintf("%09d",this_slot))))
       # flock::unlock(lock)
 
       initial_seeding$amount <- as.integer(round(initial_seeding$amount))
@@ -200,9 +200,9 @@ filter_MC <- function (
       current_likelihood <- data.frame()
 
       # First files
-      first_param_file <- parameter_file_path(config,this_slot, scenario)
-      first_npi_file   <- npi_file_path(config,this_slot, scenario)
-      first_hosp_file  <- hospitalization_file_path(config,this_slot, scenario, deathrate)
+      first_param_file <- covidcommon::parameter_file_path(config,this_slot, scenario)
+      first_npi_file   <- covidcommon::npi_file_path(config,this_slot, scenario)
+      first_hosp_file  <- covidcommon::hospitalization_file_path(config,this_slot, scenario, deathrate)
 
       # lock <- flock::lock(paste('.lock',gsub('/','-',first_npi_file),sep='/'))
       # Run SEIR model
@@ -301,8 +301,8 @@ filter_MC <- function (
 
       # Compute total loglik for each sim
       likelihood <- initial_log_likelihood_data %>%
-        summarise(ll = sum(ll, na.rm = T)) %>%
-        mutate(pdeath = deathrate, scenario = scenario)
+        dplyr::summarise(ll = sum(ll, na.rm = T)) %>%
+        dplyr::mutate(pdeath = deathrate, scenario = scenario)
 
       ## For logging
       current_likelihood <- likelihood
@@ -317,15 +317,15 @@ filter_MC <- function (
         this_index <- simulations_per_slot * (this_slot - 1) + number_of_simulations + index
         write.csv(
           current_seeding,
-          file = seeding_file_path(config,sprintf("%09d",this_index))
+          file = covidcommon::seeding_file_path(config,sprintf("%09d",this_index))
         )
         arrow::write_parquet(
           current_npis,
-          npi_file_path(config,this_index,scenario)
+          covidcommon::npi_file_path(config,this_index,scenario)
         )
         arrow::write_parquet(
           current_params,
-          parameter_file_path(config,this_index,scenario)
+          covidcommon::parameter_file_path(config,this_index,scenario)
         )
 
 
@@ -353,7 +353,7 @@ filter_MC <- function (
           stop("Hospitalization failed to run")
         }
 
-        file <- hospitalization_file_path(config,this_index,scenario,deathrate)
+        file <- covidcommon::hospitalization_file_path(config,this_index,scenario,deathrate)
         print(paste("Reading",file))
 
         sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>%
@@ -422,8 +422,8 @@ filter_MC <- function (
 
         # Compute total log-likelihood accross locations
         likelihood <- log_likelihood_data %>%
-          summarise(ll = sum(ll, na.rm = T)) %>%
-          mutate(pdeath = deathrate, scenario = scenario)
+          dplyr::summarise(ll = sum(ll, na.rm = T)) %>%
+          dplyr::mutate(pdeath = deathrate, scenario = scenario)
 
         ## For logging
         print(paste("Current likelihood",current_likelihood,"Proposed likelihood",likelihood))
@@ -435,19 +435,19 @@ filter_MC <- function (
           current_likelihood <- likelihood
           if(clean){
             print("Removing old")
-            file.remove(hospitalization_file_path(config,old_index,scenario,deathrate))
-            file.remove(simulation_file_path(config,old_index,scenario))
-            file.remove(npi_file_path(config,old_index,scenario))
-            file.remove(parameter_file_path(config,old_index,scenario))
+            file.remove(covidcommon::hospitalization_file_path(config,old_index,scenario,deathrate))
+            file.remove(covidcommon::simulation_file_path(config,old_index,scenario))
+            file.remove(covidcommon::npi_file_path(config,old_index,scenario))
+            file.remove(covidcommon::parameter_file_path(config,old_index,scenario))
           }
         } else {
           old_index <- simulations_per_slot * (this_slot - 1) + number_of_simulations + index
           if(clean){
             print("Removing new")
-            file.remove(hospitalization_file_path(config,old_index,scenario,deathrate))
-            file.remove(simulation_file_path(config,old_index,scenario))
-            file.remove(npi_file_path(config,old_index,scenario))
-            file.remove(parameter_file_path(config,old_index,scenario))
+            file.remove(covidcommon::hospitalization_file_path(config,old_index,scenario,deathrate))
+            file.remove(covidcommon::simulation_file_path(config,old_index,scenario))
+            file.remove(covidcommon::npi_file_path(config,old_index,scenario))
+            file.remove(covidcommon::parameter_file_path(config,old_index,scenario))
           }
         }
 
@@ -474,7 +474,7 @@ filter_MC <- function (
       # Update files -----------------------------------------------------------------
 
       # Hospitalizations
-      current_file <- hospitalization_file_path(
+      current_file <- covidcommon::hospitalization_file_path(
         config,
         ## GLOBAL ACCEPT/REJECT vs LOCAL ACCEPT/REJECT
         # simulations_per_slot * (this_slot - 1) + number_of_simulations + current_index,
@@ -482,7 +482,7 @@ filter_MC <- function (
         scenario,
         deathrate
       )
-      target_file <- hospitalization_file_path(config,this_slot,scenario,deathrate)
+      target_file <- covidcommon::hospitalization_file_path(config,this_slot,scenario,deathrate)
       target_dir <- gsub('/[^/]*$','',target_file)
 
       print(paste("Copying",current_file,"to",target_file))
@@ -490,12 +490,12 @@ filter_MC <- function (
       file.rename(from=current_file,to=target_file)
 
       # NPIs
-      current_file <- npi_file_path(
+      current_file <- covidcommon::npi_file_path(
         config,
         simulations_per_slot * (this_slot - 1) + number_of_simulations + simulations_per_slot,
         scenario
       )
-      target_file <- npi_file_path(config,this_slot,scenario)
+      target_file <- covidcommon::npi_file_path(config,this_slot,scenario)
       target_dir <- gsub('/[^/]*$','',target_file)
 
       print(paste("Copying",current_file,"to",target_file))
@@ -503,11 +503,11 @@ filter_MC <- function (
       file.rename(from=current_file,to=target_file)
 
       # Seeding
-      current_file <- seeding_file_path(
+      current_file <- covidcommon::seeding_file_path(
         config,
         sprintf("%09d",simulations_per_slot * (this_slot - 1) + number_of_simulations + simulations_per_slot)
       )
-      target_file <- seeding_file_path(config,sprintf("%09d",this_slot))
+      target_file <- covidcommon::seeding_file_path(config,sprintf("%09d",this_slot))
       target_dir <- gsub('/[^/]*$','',target_file)
 
       print(paste("Copying",current_file,"to",target_file))

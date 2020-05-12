@@ -23,3 +23,5 @@ Imports:
   truncnorm,
   arrow
 RoxygenNote: 7.1.0
+Suggests: 
+    testthat
