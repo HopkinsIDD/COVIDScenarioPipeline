@@ -116,6 +116,7 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
 ##'
 ##' @return a pertubed data frame
 ##'
+##' @export
 perturb_seeding <- function(seeding,sd,date_bounds) {
     seeding <- seeding %>%
         dplyr::group_by(place) %>%
