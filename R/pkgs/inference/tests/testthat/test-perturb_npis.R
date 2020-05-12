@@ -28,7 +28,6 @@ test_that("perturb_npis always stays within support", {
           b = ".1"
         )
     ))
-    print(summary(perturb_npis(npis,npi_settings)$reduction))
     expect_equal(all(perturb_npis(npis,npi_settings)$reduction <= as.numeric(npi_settings$test_npi$value$b)),TRUE)
     expect_equal(all(perturb_npis(npis,npi_settings)$reduction >= as.numeric(npi_settings$test_npi$value$a)),TRUE)
 })
