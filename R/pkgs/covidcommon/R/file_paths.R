@@ -7,13 +7,15 @@
 ##'
 ##' @return NULL
 #' @export
-parameter_file_path <- function(config,index, scenario){
+parameter_file_path <- function(config,index, scenario, create_directory = TRUE){
   # if(length(config$interventions$scenarios) > 1){
   #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
   # }
 
   ## FIX ME
-  return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$name , scenario, index))
+  rc <- sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$name , scenario, index)
+  if(create_directory){suppressWarnings(dir.create(dirname(rc)))}
+  return(rc)
 }
 
 
@@ -24,13 +26,11 @@ parameter_file_path <- function(config,index, scenario){
 ##'
 ##' @return NULL
 #' @export
-npi_file_path <- function(config,index,scenario){
-  # if(length(config$interventions$scenarios) > 1){
-  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
-  # }
+npi_file_path <- function(config,index,scenario,create_directory = TRUE){
 
-  ## FIX ME
-  return(sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
+  rc <- sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$name , scenario, index)
+  if(create_directory){suppressWarnings(dir.create(dirname(rc),recursive = TRUE))}
+  return(rc)
 }
 
 
@@ -40,12 +40,14 @@ npi_file_path <- function(config,index,scenario){
 ##'
 ##' @return NULL
 #' @export
-seeding_file_path <- function(config,index){
+seeding_file_path <- function(config,index, create_directory = TRUE){
   # if(length(config$interventions$scenarios) > 1){
   #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
   # }
 
-  return(sprintf("%s/importation_%s.csv",config$seeding$folder_path,index))
+  rc <- sprintf("%s/importation_%s.csv",config$seeding$folder_path,index)
+  if(create_directory){suppressWarnings(dir.create(dirname(rc),recursive = TRUE))}
+  return(rc)
 }
 
 
@@ -55,8 +57,10 @@ seeding_file_path <- function(config,index){
 ##' @param scenario The scenario of the simulation
 ##' @return NULL
 #' @export
-simulation_file_path <- function(config,index,scenario){
-  return(sprintf("model_output/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
+simulation_file_path <- function(config,index,scenario, create_directory = TRUE){
+  rc <- sprintf("model_output/%s_%s/%09d.snpi.parquet", config$name , scenario, index)
+  if(create_directory){suppressWarnings(dir.create(dirname(rc),recursive = TRUE))}
+  return(rc)
 }
 
 
@@ -67,8 +71,10 @@ simulation_file_path <- function(config,index,scenario){
 ##' @param deathrate
 ##' @return NULL
 #' @export
-hospitalization_file_path <- function(config,index,scenario,deathrate){
-  return(sprintf("hospitalization/model_output/%s_%s/%s_death_death-%09d.hosp.parquet", config$name , scenario, deathrate,index))
+hospitalization_file_path <- function(config,index,scenario,deathrate, create_directory = TRUE){
+  rc <- sprintf("hospitalization/model_output/%s_%s/%s_death_death-%09d.hosp.parquet", config$name , scenario, deathrate,index)
+  if(create_directory){suppressWarnings(dir.create(dirname(rc),recursive = TRUE))}
+  return(rc)
 }
 
 
