@@ -4,6 +4,7 @@ import boto3
 import click
 import glob
 import itertools
+improt json
 import os
 import re
 import subprocess
@@ -111,14 +112,25 @@ class BatchJobHandler(object):
 
     def launch(self, job_name, config_file, batch_job_queue):
 
+        manifest = {}
+        manifest['cmd'] = " ".join(sys.argv[:])
+        manifest['job_name'] = job_name
+        manifest['job_queue'] = batch_job_queue
+        manifest['data_sha'] = subprocess.getoutput('git rev-parse HEAD')
+        manifest['csp_sha'] = subprocess.getoutput('cd COVIDScenarioPipeline; git rev-parse HEAD')
+
         # Prepare to tar up the current directory, excluding any dvc outputs, so it
         # can be shipped to S3
         dvc_outputs = get_dvc_outputs()
         tarfile_name = f"{job_name}.tar.gz"
         tar = tarfile.open(tarfile_name, "w:gz", dereference=True)
         for p in os.listdir('.'):
-            if not (p.startswith(".") or p.endswith("tar.gz") or p in dvc_outputs or p == "batch"):
-                tar.add(p, filter=lambda x: None if os.path.basename(x.name).startswith('.') or os.path.basename(x.name) == "packrat" else x)
+            if p == 'COVIDScenarioPipeline':
+                for q in os.listdir('COVIDScenarioPipeline'):
+                    if not (q == 'packrat' or q.startswith('.')):
+                        tar.add(os.path.join('COVIDScenarioPipeline', q))
+            elif not (p.startswith(".") or p.endswith("tar.gz") or p in dvc_outputs or p == "batch"):
+                tar.add(p, filter=lambda x: None if os.path.basename(x.name).startswith('.') else x)
         tar.close()
 
         # Upload the tar'd contents of this directory and the runner script to S3
@@ -194,6 +206,11 @@ class BatchJobHandler(object):
             last_job = cur_job
             block_idx += 1
         print(f"Final output will be for job: {results_path}/{last_job['jobName']}")
+
+        # Save the manifest file to S3
+        with open('manifest.json', 'w') as f:
+            json.dump(manifest, f, indent=4)
+        s3_client.upload_file('manifest.json', self.s3_bucket, f"{job_name}/manifest.json")
 
         # Create job to copy output to appropriate places
         copy_script_name = f"{job_name}-copy.sh"
