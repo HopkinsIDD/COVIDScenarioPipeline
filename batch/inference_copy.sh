@@ -1,24 +1,22 @@
 #!/bin/bash
 
-# This script copies and renames the hospitalization and parameter files from S3_RESULTS_PATH to S3_MODEL_DATA_PATH.
-# To download the results from S3_MODEL_DATA_PATH, run
-# aws s3 sync $S3_MODEL_DATA_PATH/final_output <local_output_dir>
+# This script copies and renames the hospitalization and parameter files from S3_LAST_JOB_OUTPUT to S3_RESULTS_PATH/final_output.
+# To download the results from S3_RESULTS_PATH, run
+# aws s3 sync $S3_RESULTS_PATH/final_output <local_output_dir>
 
 # Expected environment variables from AWS Batch env
-# S3_MODEL_DATA_PATH location in S3 with the code, data, and dvc pipeline to run
-# S3_RESULTS_PATH location in S3 to store the results
-# NSLOT number of slots
+# S3_LAST_JOB_OUTPUT location in S3 with the code, data, and dvc pipeline to run
+#    Example: s3://idd-inference-runs/test-east-coast-20200512T003641/e4c7f6d2-10f3-4f8f-840f-986d77962fc9
+# S3_RESULTS_PATH location in S3 to store the results. Usually, s3://<run name>.
+#    Example: s3://idd-inference-runs/test-east-coast-20200512T003641
+# NSLOT number of slots 
+#    Example: 2
 
 # set optimized S3 configuration
 aws configure set default.s3.max_concurrent_requests 100
 aws configure set default.s3.max_queue_size 100
 aws configure set default.s3.multipart_threshold 8MB
 aws configure set default.s3.multipart_chunksize 8MB
-
-# NSLOT=2
-# S3_RESULTS_PATH="./test_output"
-# S3_RESULTS_PATH=s3://idd-inference-runs/test-east-coast-20200512T003641
-# S3_LAST_JOB_OUTPUT=s3://idd-inference-runs/test-east-coast-20200512T003641/e4c7f6d2-10f3-4f8f-840f-986d77962fc9
 
 printf -v S3_LAST_JOB_OUTPUT_esc "%q" $S3_LAST_JOB_OUTPUT
 printf -v S3_RESULTS_PATH_esc "%q" $S3_RESULTS_PATH
