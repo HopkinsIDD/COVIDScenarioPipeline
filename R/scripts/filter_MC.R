@@ -151,28 +151,6 @@ if (all(scenarios == "all")){
 
 ## Function Definitions  ---------------------------------------------------------------------
 
-##' Fuction perturbs an npi parameter file based on user-specified distributions
-##'
-##' @param params the original paramters
-##' @param perturbations a list of standard deviations
-##'
-##'
-##' @return a pertubed data frame
-##'
-perturb_npis <- function(npis, intervention_settings) {
-  for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
-    if ('perturbation' %in% names(intervention_settings[[intervention]])){
-      pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
-      ind <- (npis[["npi_name"]] == intervention)
-      npis_new <- npis[["reduction"]][ind] + pert_dist(sum(ind))
-      in_bounds_index <- covidcommon::as_density_distribution(
-        intervention_settings[[intervention]][['value']]
-      )(npis_new) > 0
-      npis$reduction[ind][in_bounds_index] <- npis_new[in_bounds_index]
-    }
-  }
-  return(npis)
-}
 
 ## Runner Script---------------------------------------------------------------------
 
@@ -360,7 +338,7 @@ for(scenario in scenarios) {
       # Load sims -----------------------------------------------------------
 
       current_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
-      current_npis <- perturb_npis(initial_npis, config$interventions$settings)
+      current_npis <- inference::perturb_npis(initial_npis, config$interventions$settings)
       current_params <- initial_params
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
       write.csv(

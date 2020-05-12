@@ -134,25 +134,39 @@ perturb_seeding <- function(seeding,sd,date_bounds) {
 ##' Fuction perturbs an npi parameter file based on
 ##' user-specified distributions
 ##'
-##' @param npis the original npis
+##' @param npis the original npis.
 ##' @param intervention_settings a list of perturbation specificationss
 ##'
 ##'
 ##' @return a pertubed data frame
 ##' @export
 perturb_npis <- function(npis, intervention_settings) {
-  for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
-    if ('perturbation' %in% names(intervention_settings[[intervention]])){
-      pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
-      ind <- (npis[["npi_name"]] == intervention)
-      npis_new <- npis[["reduction"]][ind] + pert_dist(sum(ind))
-      in_bounds_index <- covidcommon::as_density_distribution(
-        intervention_settings[[intervention]][['value']]
-      )(npis_new) > 0
-      npis$reduction[ind][in_bounds_index] <- npis_new[in_bounds_index]
+    ##Loop over all interventions
+    for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
+
+        ##Only perform pertubations on interventions where it is specified ot do so.
+
+        if ('perturbation' %in% names(intervention_settings[[intervention]])){
+
+            ##get the random distribution from covidcommon package
+            pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
+
+            ##get the npi values for this distribution
+            ind <- (npis[["npi_name"]] == intervention)
+
+            ##add the pertubation...for now always parameterized in terms of a "reduction"
+            npis_new <- npis[["reduction"]][ind] + pert_dist(sum(ind))
+
+            ##check that this is in bounds (equivalent to having a positive probability)
+            in_bounds_index <- covidcommon::as_density_distribution(
+                                                intervention_settings[[intervention]][['value']]
+                                            )(npis_new) > 0
+
+            ##return all in bounds proposals
+            npis$reduction[ind][in_bounds_index] <- npis_new[in_bounds_index]
+        }
     }
-  }
-  return(npis)
+    return(npis)
 }
 
 ##' Function to go through to accept or reject seedings in a block manner based
