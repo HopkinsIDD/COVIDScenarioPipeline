@@ -5,11 +5,8 @@ if [[ $# -lt 2 ]] ; then
     exit 0
 fi
 
-SLOTS=$1
-SIMS_PER_SLOT=$2
-
-echo $SLOTS
-echo $SIMS_PER_SLOT
+SLOTS=$1         # should correspond to -n of inference_job.py
+SIMS_PER_SLOT=$2 # should correspond to -j of inference_job.py
 
 if [[ ! -f importation.dvc ]]; then
   dvc run \
@@ -19,4 +16,4 @@ if [[ ! -f importation.dvc ]]; then
   git commit -m "Commit importation.dvc from run"
 fi
 
-echo "dvc run commands are saved; batch job is ready to be launched on AWS via batch/launch_job.py"
+echo "dvc run commands are saved; batch job is ready to be launched on AWS via batch/inference_job.py"
