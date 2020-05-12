@@ -58,7 +58,7 @@ get_ground_truth_file <- function(data_path, cache = TRUE) {
 get_ground_truth <- function(data_path, fips_codes, fips_column_name, start_date, end_date, cache = TRUE){
   get_ground_truth_file(data_path,cache)
 
-  rc <- suppressMessages(obs <- readr::read_csv(data_path,col_types = list(FIPS = readr::col_character())))
+  rc <- suppressMessages(readr::read_csv(data_path,col_types = list(FIPS = readr::col_character())))
   rc <- dplyr::filter(
     rc,
     FIPS %in% fips_codes,

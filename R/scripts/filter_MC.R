@@ -84,50 +84,6 @@ if(!dir.exists(data_dir)){
 ## NOTE: Probably should not be so closely tied to USA Facts
 suppressWarnings(dir.create('.lock'))
 lockfile = 'filter_MC.lock'
-# lock <- flock::lock(paste(".lock",gsub('/','-',data_path), sep = '/'))
-if (!file.exists(data_path)) {
-  cases_deaths <- covidcommon::get_USAFacts_data()
-  cases_deaths  <-
-    cases_deaths %>%
-    dplyr::mutate(date = lubridate::ymd(Update)) %>%
-    dplyr::filter(FIPS %in% geodata[[obs_nodename]]) %>% ##subset to FIPS we have in geodata...why at this point
-    dplyr::rename(
-      cumConfirmed = Confirmed,
-      cumDeaths = Deaths
-    ) %>%
-    dplyr::arrange(date)
-
-  ##remove any NAs in confirmed cases and deaths
-  if(any(is.na(cases_deaths$cumConfirmed))){
-    cases_deaths$cumConfirmed[is.na(cases_deaths$cumConfirmed)] <- 0
-  }
-
-
-  if(any(is.na(cases_deaths$cumDeaths))){
-    cases_deaths$cumDeaths[is.na(cases_deaths$cumDeaths)] <- 0
-  }
-
-
-  ##Translate cumulative into incident cases.
-  cases_deaths <- cases_deaths %>%
-    dplyr::group_by(FIPS) %>%
-    dplyr::group_modify(
-      function(.x,.y){
-        .x$cumConfirmed = cummax(.x$cumConfirmed)
-        .x$conf_incid = c(.x$cumConfirmed[1],diff(.x$cumConfirmed))
-        .x$cumDeaths = cummax(.x$cumDeaths)
-        .x$death_incid = c(.x$cumDeaths[1],diff(.x$cumDeaths,))
-        return(.x)
-      }
-    )
-  names(cases_deaths)[names(cases_deaths) == 'FIPS'] <- as.character(obs_nodename)
-
-  write_csv(cases_deaths, data_path)
-  rm(cases_deaths)
-} ##End Creation of USA Facts
-
-
-# flock::unlock(lock)
 
 # Parse scenarios arguments
 ##If death rates are specified check their existence
@@ -148,23 +104,10 @@ if (all(scenarios == "all")){
   quit("yes", status=1)
 }
 
-
-## Function Definitions  ---------------------------------------------------------------------
-
-
 ## Runner Script---------------------------------------------------------------------
 
-if(!("obs" %in% ls())){
-  suppressMessages(obs <<- readr::read_csv(data_path))
-  obs <- obs %>% filter(date >= config$start_date, date <= config$end_date)
-  obs <- obs %>% dplyr::right_join(
-    tidyr::expand_grid(
-      geoid = unique(obs$geoid),
-      date = unique(obs$date)
-    )
-  ) %>%
-  mutate_if(is.numeric,coalesce,0)
-}
+obs <- inference::get_ground_truth(data_path,geodata[[obs_nodename]],obs_nodename, config$start_date, config$end_date)
+
 geonames <- unique(obs[[obs_nodename]])
 
 ## Compute statistics
