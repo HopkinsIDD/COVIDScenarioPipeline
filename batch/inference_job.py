@@ -4,7 +4,7 @@ import boto3
 import click
 import glob
 import itertools
-improt json
+import json
 import os
 import re
 import subprocess
