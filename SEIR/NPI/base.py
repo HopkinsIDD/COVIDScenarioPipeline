@@ -9,8 +9,8 @@ class NPIBase(abc.ABC):
         super().__init_subclass__(**kwargs)
         NPIBase.__plugins__[cls.__name__] = cls
 
-    def __init__(self, npi_config):
-        self.name = npi_config.key
+    def __init__(self, *, name):
+        self.name = name
 
     @abc.abstractmethod
     def getReduction(self, param):
@@ -27,16 +27,12 @@ class NPIBase(abc.ABC):
         if extension == "csv":
             out_df.to_csv(f"{fname}.{extension}", index=False)
         elif extension == "parquet":
-            out_df = pa.Table.from_pandas(out_df, preserve_index = False)
-            pa.parquet.write_table(out_df,f"{fname}.{extension}")
+            out_df = pa.Table.from_pandas(out_df, preserve_index=False)
+            pa.parquet.write_table(out_df, f"{fname}.{extension}")
         else:
             raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
 
-    def getName(self):
-        return self.name
-
-    def execute(*, npi_config, global_config, geoids, loaded_df = None):
+    def execute(*, npi_config, global_config, geoids, loaded_df=None):
         template = npi_config["template"].as_str()
         npi_class = NPIBase.__plugins__[template]
-        return npi_class(npi_config=npi_config, global_config=global_config, geoids=geoids, loaded_df = loaded_df)
-
+        return npi_class(npi_config=npi_config, global_config=global_config, geoids=geoids, loaded_df=loaded_df)

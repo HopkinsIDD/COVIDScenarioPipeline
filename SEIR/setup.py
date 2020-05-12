@@ -1,3 +1,5 @@
+import pathlib
+
 import numpy as np
 import pandas as pd
 import datetime
@@ -34,22 +36,25 @@ class SpatialSetup:
         if len(self.nodenames) != len(set(self.nodenames)):
             raise ValueError(f"There are duplicate nodenames in geodata.")
 
-
-        if ('.txt' in str(mobility_file)):
+        mobility_file = pathlib.Path(mobility_file)
+        if mobility_file.suffix == ".txt":
             print('Mobility files as matrices are not recommended. Please switch soon to long form csv files.')
-            self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file)) # K x K matrix of people moving
+            self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file))  # K x K matrix of people moving
             # Validate mobility data
             if self.mobility.shape != (self.nnodes, self.nnodes):
                 raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
 
-        elif ('.csv' in str(mobility_file)):
-            mobility_data = pd.read_csv(mobility_file, converters={'ori': lambda x: str(x), 'dest': lambda x: str(x)})
-            self.mobility = scipy.sparse.csr_matrix((self.nnodes, self.nnodes))
-            for index, row in mobility_data.iterrows():
-                self.mobility[self.nodenames.index(row['ori']),self.nodenames.index(row['dest'])] = row['amount']
-                if (self.nodenames.index(row['ori']) == self.nodenames.index(row['dest'])):
-                    raise ValueError(f"Mobility fluxes with same origin and destination: '{row['ori']}' to {row['dest']} in long form matrix. This is not supported")
-        elif ('.npz' in str(mobility_file)):
+        elif mobility_file.suffix == ".csv":
+            mobility_data = pd.read_csv(mobility_file, converters={"ori": str, "dest": str})
+            nn_dict = {v: k for k, v in enumerate(self.nodenames)}
+            mobility_data["ori_idx"] = mobility_data["ori"].apply(nn_dict.__getitem__)
+            mobility_data["dest_idx"] = mobility_data["dest"].apply(nn_dict.__getitem__)
+            if any(mobility_data["ori_idx"] == mobility_data["dest_idx"]):
+                raise ValueError(f"Mobility fluxes with same origin and destination in long form matrix. This is not supported")
+
+            self.mobility = scipy.sparse.coo_matrix((mobility_data.amount, (mobility_data.ori_idx, mobility_data.dest_idx)), shape=(self.nnodes, self.nnodes)).tocsr()
+
+        elif mobility_file.suffix == ".npz":
             self.mobility = scipy.sparse.load_npz(mobility_file)
             # Validate mobility data
             if self.mobility.shape != (self.nnodes, self.nnodes):
@@ -302,6 +307,9 @@ def parameters_reduce(p_draw, npi, dt):
 
 # Helper function
 def _parameter_reduce(parameter, reduction, dt):
+    if reduction is None:
+        return parameter
+
     reduction = reduction.T
     reduction.index = pd.to_datetime(reduction.index.astype(str))
     reduction = reduction.resample(str(dt * 24) + 'H').ffill().to_numpy()
