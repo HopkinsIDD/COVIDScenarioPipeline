@@ -16,7 +16,7 @@ import yaml
               help="configuration file for this run")
 @click.option("-n", "--num-slots", "num_jobs", type=click.IntRange(min=1, max=1000), required=True,
               help="number of output slots to generate")
-@click.option("-j", "--sims-per-slot", "sims_per_slot", type=click.IntRange(min=1), default=10, show_default=True,
+@click.option("-j", "--sims-per-block", "sims_per_block", type=click.IntRange(min=1), default=10, show_default=True,
               help="the number of sims to run on each child job")
 @click.option("-k", "--num-blocks", "num_blocks", type=click.IntRange(min=1), default=10, show_default=True,
               help="The number of sequential blocks of jobs to run; total sims per slot = sims-per-slot * num-blocks")
@@ -34,7 +34,7 @@ import yaml
               help="The amount of RAM in megabytes needed per CPU running simulations")
 @click.option("-r", "--restart-from", "restart_from", type=str, default=None,
               help="The location of an S3 run to use as the initial to the first block of the current run")
-def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s3_bucket, batch_job_definition, parallelize_scenarios, vcpus, memory, restart_from):
+def launch_batch(config_file, num_jobs, sims_per_block, num_blocks, dvc_target, s3_bucket, batch_job_definition, parallelize_scenarios, vcpus, memory, restart_from):
 
     config = None
     with open(config_file) as f:
@@ -46,7 +46,7 @@ def launch_batch(config_file, num_jobs, sims_per_slot, num_blocks, dvc_target, s
 
     # Update and save the config file with the number of sims to run
     if 'filtering' in config:
-        config['filtering']['simulations_per_slot'] = sims_per_slot
+        config['filtering']['simulations_per_slot'] = sims_per_block
         if not os.path.exists(config['filtering']['data_path']):
             print(f"ERROR: filtering.data_path path {config['filtering']['data_path']} does not exist!")
             return 1
@@ -115,10 +115,10 @@ class BatchJobHandler(object):
         # can be shipped to S3
         dvc_outputs = get_dvc_outputs()
         tarfile_name = f"{job_name}.tar.gz"
-        tar = tarfile.open(tarfile_name, "w:gz")
+        tar = tarfile.open(tarfile_name, "w:gz", dereference=True)
         for p in os.listdir('.'):
             if not (p.startswith(".") or p.endswith("tar.gz") or p in dvc_outputs or p == "batch"):
-                tar.add(p, filter=lambda x: None if x.name.startswith('.') else x)
+                tar.add(p, filter=lambda x: None if os.path.basename(x.name).startswith('.') or os.path.basename(x.name) == "packrat" else x)
         tar.close()
 
         # Upload the tar'd contents of this directory and the runner script to S3
@@ -151,7 +151,7 @@ class BatchJobHandler(object):
 
         batch_client = boto3.client('batch')
         print(f"Launching {job_name}_block0...")
-        last_job_array = batch_client.submit_job(
+        last_job = batch_client.submit_job(
             jobName=f"{job_name}_block0",
             jobQueue=batch_job_queue,
             arrayProperties={'size': self.num_jobs},
@@ -191,18 +191,19 @@ class BatchJobHandler(object):
         print(f"Final output will be for job id: {results_path}/{last_job['jobId']}")
 
         # Create job to copy output to appropriate places
-        runner_script_name = f"{job_name}-runner.sh"
+        copy_script_name = f"{job_name}-copy.sh"
         local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'inference_copy.sh')
-        s3_client.upload_file(local_runner_script, self.s3_bucket, runner_script_name)
+        s3_client.upload_file(local_runner_script, self.s3_bucket, copy_script_name)
 
         # Prepare and launch the num_jobs via AWS Batch.
         env_vars = [
-            {"name": "S3_MODEL_DATA_PATH", "value": model_data_path},
+            {"name": "S3_RESULTS_PATH", "value": results_path},
             {"name": "S3_LAST_JOB_OUTPUT", "value": f"{results_path}/{last_job['jobId']}"},
+            {"name": "NSLOT", "value": str(self.num_jobs)},
         ]
 
-        runner_script_path = f"s3://{self.s3_bucket}/{runner_script_name}"
-        s3_cp_run_script = f"aws s3 cp {runner_script_path} $PWD/run-covid-pipeline"
+        copy_script_path = f"s3://{self.s3_bucket}/{copy_script_name}"
+        s3_cp_run_script = f"aws s3 cp {copy_script_path} $PWD/run-covid-pipeline"
         command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
 
         print(f"Launching {job_name}_copy...")
@@ -210,9 +211,9 @@ class BatchJobHandler(object):
             jobName=f"{job_name}_copy",
             jobQueue=batch_job_queue,
             jobDefinition=self.batch_job_definition,
+            dependsOn=[{'jobId': last_job['jobId']}],
             containerOverrides={
-                # 'vcpus': self.vcpus,
-                # 'memory': self.vcpus * self.memory,
+                'vcpus': 1,
                 'environment': env_vars,
                 'command': command
             },
