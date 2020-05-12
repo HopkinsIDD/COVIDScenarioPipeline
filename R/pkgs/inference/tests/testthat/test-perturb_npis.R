@@ -78,5 +78,31 @@ test_that("perturb_npis has a median of 0 after 10000 sims",{
 })
 
 test_that("perturb_npis does not perturb npis without a perturbation section", {
-
+    N <- 10000
+    npis <- data.frame(
+        geoid = rep('00000',times=N),
+        npi_name = rep("test_npi",times=N),
+        start_date = rep("2020-02-01",times=N),
+        end_date = rep("2020-02-02",times=N),
+        parameter = rep("r0",times=N),
+        reduction = rep(-.099,times=N)
+    )
+    npi_settings <- list(test_npi = list(
+        template = "Reduce",
+        parameter = "r0",
+        value = list(
+          distribution = "truncnorm",
+          mean = "0",
+          sd = "0.1",
+          a = "-.11",
+          b = "-.097"
+        )
+    ))
+    expect_equal({
+      local_npis <- npis
+      for(i in seq_len(N)){
+        local_npis <- perturb_npis(local_npis,npi_settings)
+      }
+      local_npis
+    },npis)
 })
