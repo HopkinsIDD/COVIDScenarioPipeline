@@ -2,7 +2,6 @@
 #' @param data_path Path where to write the data
 #'
 #' @return NULL
-#' @export
 get_ground_truth_file <- function(data_path, cache = TRUE) {
   data_dir <- dirname(data_path)
   if(!dir.exists(data_dir)){
@@ -52,6 +51,10 @@ get_ground_truth_file <- function(data_path, cache = TRUE) {
   return()
 }
 
+#' Function to load US COVID data from USAfacts
+#' @param data_path Path where to write the data
+#'
+#' @export
 get_ground_truth <- function(data_path, fips_codes, fips_column_name, start_date, end_date, cache = TRUE){
   get_ground_truth_file(data_path,cache)
 
