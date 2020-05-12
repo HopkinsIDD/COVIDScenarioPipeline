@@ -80,7 +80,7 @@ as_random_distribution <- function(obj) {
   } else if (obj$distribution == "lognormal") {
     return(purrr::partial(rlnorm, meanlog=as_evaled_expression(obj$meanlog), sdlog=as_evaled_expression(obj$sdlog)))
   } else if (obj$distribution == "truncnorm") {
-    return(purrr::partial(rtruncnorm, mean = as_evaled_expression(obj$mean), sd = as_evaled_expression(obj$sd), a = as_evaled_expression(obj$a), b = as_evaled_expression(obj$b)))
+    return(purrr::partial(truncnorm::rtruncnorm, mean = as_evaled_expression(obj$mean), sd = as_evaled_expression(obj$sd), a = as_evaled_expression(obj$a), b = as_evaled_expression(obj$b)))
   } else if (obj$distribution == "fixed") {
     return(purrr::partial(rep,x=as_evaled_expression(obj$value)))
   } else {
@@ -107,7 +107,7 @@ as_density_distribution <- function(obj) {
   } else if (obj$distribution == "lognormal") {
     return(purrr::partial(dlnorm, meanlog=as_evaled_expression(obj$meanlog), sdlog=as_evaled_expression(obj$sdlog)))
   } else if (obj$distribution == "truncnorm") {
-    return(purrr::partial(dtruncnorm, mean = as_evaled_expression(obj$mean), sd = as_evaled_expression(obj$sd), a = as_evaled_expression(obj$a), b = as_evaled_expression(obj$b)))
+    return(purrr::partial(truncnorm::dtruncnorm, mean = as_evaled_expression(obj$mean), sd = as_evaled_expression(obj$sd), a = as_evaled_expression(obj$a), b = as_evaled_expression(obj$b)))
   } else if (obj$distribution == "fixed") {
     return(purrr::partial(function(x,y){x==y}, x = as_evaled_expression(obj$value)))
   } else {
