@@ -9,3 +9,50 @@ For more information on getting started, please visit our [Getting Started wiki]
 This is an open-source code licensed under GPL v3.0. 
 
 
+# Tools for using this repository
+## Docker
+
+A containerized environment is a packaged environment where all
+dependencies are bundled together. This means you're guaranteed to be
+using the same libraries and system configuration as everyone else and in
+any runtime environment. To learn more, [Docker
+Curriculum](https://docker-curriculum.com/) is a good starting point.
+
+### Starting environment
+
+A pre-built container can be pulled from Docker Hub via:
+```
+docker pull hopkinsidd/covidscenariopipeline:latest
+```
+
+To start the container:
+```
+docker run -v ~/mysrcdir:/home/app/src -it hopkinsidd/covidscenariopipeline:latest
+```
+
+Replace `mysrcdir` with where the code is mounted on your machine; it will
+be available in the `/home/app/src` directory inside the container.
+
+You'll be dropped to the bash prompt where you can run the Python or
+R scripts (with dependencies already installed).
+
+### Building the container
+
+Run `docker build .` if you ever need to rebuild the container.
+
+# Tools for development
+## Profiling
+
+The Python SEIR simulation supports profiling as a command-line option with the
+`--profile` flag. To write output to a specific file, use the
+`--profile-output` command line option. If you're profiling, it's a good
+idea to run single-threaded (`-j 1`) to capture the statistics that would
+be lost within the child processes.
+
+Here's an example to run 10 simulations while profiling the simulation and
+outputting to `~/profile.output`.
+
+```
+$ ./simulate.py -n 10 --profile --profile-output $HOME/profile.output -j 1
+```
+
