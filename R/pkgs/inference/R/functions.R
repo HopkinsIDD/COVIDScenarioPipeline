@@ -88,7 +88,9 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
     rc <- dpois(obs, sim, log = T)
   } else if (distr == "norm") {
     rc <- dnorm(obs, sim, sd = param[[1]], log = T)
-  } else if (distr == "nbinom") {
+  } else  if (distr == "norm_cov") {
+      rc <- dnorm(obs, sim, sd = pmax(obs,5)*param[[1]], log = T)
+  }  else if (distr == "nbinom") {
     rc <- dnbinom(obs, mu=sim, size = param[[1]], log = T)
   } else if (distr == "sqrtnorm") {
       ##rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[[1]], log = T)
