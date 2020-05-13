@@ -16,7 +16,7 @@ class Stacked(NPIBase):
         self.end_date = global_config["end_date"].as_date()
 
         self.geoids = geoids
-        self.reductions = {param: None for param in REDUCE_PARAMS}  # lazily construct: None means no reduction
+        self.reductions = {param: 1 for param in REDUCE_PARAMS}
         self.reduction_params = []
 
         # the confuse library's config resolution mechanism makes slicing the configuration object expensive; instead,
@@ -37,28 +37,28 @@ class Stacked(NPIBase):
             sub_npi = NPIBase.execute(npi_config=scenario_npi_config, global_config=global_config, geoids=geoids,
                                       loaded_df=loaded_df)
             for param in REDUCE_PARAMS:
-                reduction = sub_npi.getReduction(param)
-                if reduction is not None:
-                    self.reductions[param] = (self.reductions[param] * (1 - reduction)
-                                              if self.reductions[param] is not None else reduction)
+                reduction = sub_npi.getReduction(param, default=0.0)
+                self.reductions[param] *= (1 - reduction)
 
                 # FIXME: getReductionToWrite() returns a concat'd set of stacked scenario params, which is
                 # serialized as a giant dataframe to parquet. move this writing to be incremental, but need to
                 # verify there are no downstream consumers of the dataframe. in the meantime, limit the amount
                 # of data we'll pin in memory
-                if len(self.reduction_params) < 50:
+                if len(self.reduction_params) < 250:
                     self.reduction_params.append(sub_npi.getReductionToWrite())
                 else:
                     warnings.warn("Only storing debug information for the first 50 reduction scenarios "
                                   "in stacked NPI as not to exhaust memory")
 
+        for param in REDUCE_PARAMS:
+            self.reductions[param] = 1 - self.reductions[param]
+
         self.__checkErrors()
 
     def __checkErrors(self):
-        for param in self.reductions.keys():
-            if self.reductions[param] is not None:
-                if (self.reductions[param] > 1).any(axis=None):
-                    raise ValueError(f"The intervention in config: {self.name} has reduction of {param} which is greater than 100% reduced.")
+        for param, reduction in self.reductions.items():
+            if isinstance(reduction, pd.DataFrame) and (reduction > 1).any(axis=None):
+                raise ValueError(f"The intervention in config: {self.name} has reduction of {param} which is greater than 100% reduced.")
 
     def getReduction(self, param):
         return self.reductions[param]
