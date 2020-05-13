@@ -1,7 +1,3 @@
-
-# install.packages('xts', repos='http://cran.us.r-project.org')
-# install.packages('zoo', repos='http://cran.us.r-project.org')
-
 ## Preamble ---------------------------------------------------------------------
 suppressMessages(library(tidyverse))
 suppressMessages(library(readr))
@@ -54,7 +50,6 @@ if(!('lambda_file' %in% names(config$seeding))) {
   stop("Despite being a folder draw method, filtration method requires the seeding to provide a lambda_file argument.")
 }
 
-
 ##Load infromationon geographic locations from geodata file.
 suppressMessages(geodata <- report.generation::load_geodata_file(
   paste(
@@ -64,7 +59,6 @@ suppressMessages(geodata <- report.generation::load_geodata_file(
   geoid_len=5 #Is this hardcode a good idea.
 ))
 obs_nodename <- config$spatial_setup$nodenames
-
 
 ##Load simulations per slot from config if not defined on command line
 ##command options take precendence
@@ -78,12 +72,6 @@ data_dir <- dirname(data_path)
 if(!dir.exists(data_dir)){
   suppressWarnings(dir.create(data_dir,recursive=TRUE))
 }
-
-
-## Create reference data from  USAFacts data if it does not exist
-## NOTE: Probably should not be so closely tied to USA Facts
-suppressWarnings(dir.create('.lock'))
-lockfile = 'filter_MC.lock'
 
 # Parse scenarios arguments
 ##If death rates are specified check their existence
@@ -449,11 +437,11 @@ for(scenario in scenarios) {
       )
       target_file <- covidcommon::hospitalization_file_path(config,opt$this_slot,scenario,deathrate)
       target_dir <- gsub('/[^/]*$','',target_file)
-    }
 
-    print(paste("Copying",current_file,"to",target_file))
-    suppressWarnings(dir.create(target_dir, recursive=TRUE))
-    file.rename(from=current_file,to=target_file)
+      print(paste("Copying",current_file,"to",target_file))
+      suppressWarnings(dir.create(target_dir, recursive=TRUE))
+      file.rename(from=current_file,to=target_file)
+    }
 
 
 
