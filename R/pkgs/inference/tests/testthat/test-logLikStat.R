@@ -47,6 +47,23 @@ test_that("Identical timeseries are the MLE for all log like stats",{
     expect_that(which.max(lik), equals(50))
 
 
+    ##next the normal stat with coefficient of variation
+    lik <- rep(NA,100)
+
+    for(i in 1:100) {
+        lik[i] <- sum(logLikStat(obs, sims[[i]], "norm_cov",list(cov=.2),add_one=FALSE))
+    }
+
+    expect_that(which.max(lik), equals(50))
+
+    for(i in 1:100) {
+        lik[i] <- sum(logLikStat(obs, sims[[i]], "norm_cov" ,list(cov=.2),add_one=TRUE))
+    }
+
+    expect_that(which.max(lik), equals(50))
+
+
+
 
     ##next the negative binimial stat
     lik <- rep(NA,100)

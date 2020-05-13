@@ -2,6 +2,8 @@
 #' @param data_path Path where to write the data
 #'
 #' @return NULL
+#'
+#' @export
 get_ground_truth_file <- function(data_path, cache = TRUE) {
   data_dir <- dirname(data_path)
   if(!dir.exists(data_dir)){
