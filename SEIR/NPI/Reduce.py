@@ -99,12 +99,12 @@ class Reduce(NPIBase):
         self.affected_geoids = self.parameters.index
         self.param_name = self.parameters["parameter"].unique()
 
-    def getReduction(self, param):
-        "Return the reduction for this param, None if no reduction defined"
+    def getReduction(self, param, default=None):
+        "Return the reduction for this param, `default` if no reduction defined"
 
         if param == self.param_name:
             return self.npi
-        return None
+        return default
 
     def getReductionToWrite(self):
         df = self.parameters
