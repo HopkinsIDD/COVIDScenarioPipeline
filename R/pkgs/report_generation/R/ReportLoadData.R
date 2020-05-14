@@ -41,7 +41,7 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
           x %>%
               dplyr::filter(!is.na(time) & geoid %in% incl_geoids, time <= max_date) %>%
               group_by(geoid, sim_num) %>%
-              dplyr::summarize(N = cumsum(incidI)) %>%
+              dplyr::mutate(N = cumsum(incidI)) %>%
               ungroup() %>%
               dplyr::filter(time %in% display_dates)
       }
@@ -50,7 +50,7 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
           x %>%
               dplyr::filter(!is.na(time) & time <= max_date) %>%
               group_by(geoid, sim_num) %>%
-              dplyr::summarize(N = cumsum(incidI)) %>%
+              dplyr::mutate(N = cumsum(incidI)) %>%
               ungroup() %>%
               dplyr::filter(time %in% display_dates)
       }
