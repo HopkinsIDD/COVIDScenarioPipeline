@@ -123,11 +123,15 @@ for(scenario in scenarios) {
   for(deathrate in deathrates) {
       # Data -------------------------------------------------------------------------
       # Load
+    first_param_file <- covidcommon::parameter_file_path(config,opt$this_slot, scenario)
+    first_npi_file <- covidcommon::npi_file_path(config,opt$this_slot, scenario)
+    first_hosp_file <- covidcommon::hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
+    first_seeding_file <- covidcommon::seeding_file_path(config,opt$this_slot)
 
     # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
     err <- 0
-    if(!file.exists(covidcommon::seeding_file_path(config,sprintf("%09d",opt$this_slot)))){
-      print(sprintf("Creating Seeding (%s) from Scratch",covidcommon::seeding_file_path(config,sprintf("%09d",opt$this_slot))))
+    if(!file.exists(first_seeding_file)){
+      print(sprintf("Creating Seeding (%s) from Scratch",first_seeding_file))
       if(!file.exists(config$seeding$lambda_file)){
         err <- system(paste(
           opt$rpath,
@@ -138,24 +142,20 @@ for(scenario in scenarios) {
             stop("Could not run seeding")
           }
       }
-    suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file))
-    write.csv(
-      initial_seeding,
-      file = covidcommon::seeding_file_path(config,sprintf("%09d",opt$this_slot))
-    )
-  }
-    suppressMessages(initial_seeding <- readr::read_csv(covidcommon::seeding_file_path(config,sprintf("%09d",opt$this_slot))))
+      suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file))
+      write.csv(
+        initial_seeding,
+        file =first_seeding_file 
+      )
+    }
+    suppressMessages(initial_seeding <- readr::read_csv(first_seeding_file))
     # flock::unlock(lock)
     initial_seeding$amount <- as.integer(round(initial_seeding$amount))
 
     current_index <- 0
-    current_likelihood <- data.frame()
 
     # FIX ME : this file won't exist in general
     # TODO CHANGE TO FIRST DRAW OF SEIR CODE
-    first_param_file <- covidcommon::parameter_file_path(config,opt$this_slot, scenario)
-    first_npi_file <- covidcommon::npi_file_path(config,opt$this_slot, scenario)
-    first_hosp_file <- covidcommon::hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
     # lock <- flock::lock(paste('.lock',gsub('/','-',first_npi_file),sep='/'))
     if((!file.exists(first_npi_file)) | (!file.exists(first_param_file))){
       print(sprintf("Creating parameters (%s) from Scratch",first_npi_file))
@@ -211,10 +211,10 @@ for(scenario in scenarios) {
       if(!dir.exists(config$filtering$likelihood_directory)){
         dir.create(config$filtering$likelihood_directory)
       }
-      initial_log_likelihood_file <- paste0(config$filtering$likelihood_directory,"/",sprintf("%09d",opt$this_slot),".llik.parquet")
-      if(!file.exists(initial_log_likelihood_file)){
-        print(sprintf("Creating likelihood (%s) from Scratch",initial_log_likelihood_file))
-        initial_log_likelihood_data <- list()
+      first_likelihood_file <- paste0(config$filtering$likelihood_directory,"/",sprintf("%09d",opt$this_slot),".chim.parquet")
+      if(!file.exists(first_likelihood_file)){
+        print(sprintf("Creating likelihood (%s) from Scratch",first_likelihood_file))
+        initial_likelihood_data <- list()
         for(location in all_locations) {
 
           local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
@@ -240,29 +240,67 @@ for(scenario in scenarios) {
           }
           # Compute log-likelihoods
 
-          initial_log_likelihood_data[[location]] <- dplyr::tibble(
+          initial_likelihood_data[[location]] <- dplyr::tibble(
             ll = sum(unlist(log_likelihood)),
             filename = first_hosp_file,
             geoid = location
           )
-          names(initial_log_likelihood_data)[names(initial_log_likelihood_data) == 'geoid'] <- obs_nodename
+          names(initial_likelihood_data)[names(initial_likelihood_data) == 'geoid'] <- obs_nodename
         }
-        rm(initial_sim_hosp)
 
-        initial_log_likelihood_data <- initial_log_likelihood_data %>% do.call(what=rbind)
-        arrow::write_parquet(initial_log_likelihood_data,initial_log_likelihood_file)
+        initial_likelihood_data <- initial_likelihood_data %>% do.call(what=rbind)
+        arrow::write_parquet(initial_likelihood_data,first_likelihood_file)
       }
-      initial_log_likelihood_data <- arrow::read_parquet(initial_log_likelihood_file)
 
+
+### BEFORE
+      global_likelihood_data <- list()
+      for(location in all_locations) {
+
+        local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
+        initial_sim_stats <- inference::getStats(
+          local_sim_hosp,
+          "time",
+          "sim_var",
+          end_date = max(obs$date[obs[[obs_nodename]] == location]),
+          config$filtering$statistics
+        )
+
+
+          # Get observation statistics
+        log_likelihood <- list()
+        for(var in names(data_stats[[location]])) {
+          log_likelihood[[var]] <- inference::logLikStat(
+            obs = data_stats[[location]][[var]]$data_var,
+            sim = initial_sim_stats[[var]]$sim_var,
+            dist = config$filtering$statistics[[var]]$likelihood$dist,
+            param = config$filtering$statistics[[var]]$likelihood$param,
+            add_one = config$filtering$statistics[[var]]$add_one
+          )
+        }
+        # Compute log-likelihoods
+
+        global_likelihood_data[[location]] <- dplyr::tibble(
+          ll = sum(unlist(log_likelihood)),
+          filename = first_hosp_file,
+          geoid = location
+        )
+        names(global_likelihood_data)[names(global_likelihood_data) == 'geoid'] <- obs_nodename
+      }
+      rm(initial_sim_hosp)
+
+      global_likelihood_data <- global_likelihood_data %>% do.call(what=rbind)
       # Compute total loglik for each sim
-      likelihood <- initial_log_likelihood_data %>%
+      initial_likelihood <- global_likelihood_data %>%
         summarise(ll = sum(ll, na.rm = T)) %>%
         mutate(pdeath = deathrate, scenario = scenario)
+      current_likelihood <- initial_likelihood
 
+### AFTER
+      initial_likelihood_data <- arrow::read_parquet(first_likelihood_file)
       ## For logging
-      current_likelihood <- likelihood
       current_index <- 0
-      previous_likelihood_data <- initial_log_likelihood_data
+      current_likelihood_data <- initial_likelihood_data
 
     for( index in seq_len(opt$simulations_per_slot)) {
       print(index)
@@ -274,7 +312,7 @@ for(scenario in scenarios) {
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
       write.csv(
         current_seeding,
-        file = covidcommon::seeding_file_path(config,sprintf("%09d",this_index))
+        file = covidcommon::seeding_file_path(config,this_index)
       )
       arrow::write_parquet(
         current_npis,
@@ -311,29 +349,19 @@ for(scenario in scenarios) {
       }
 
       file <- covidcommon::hospitalization_file_path(config,this_index,scenario,deathrate)
-      print(paste("Reading",file))
 
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>%
         filter(time <= max(obs$date)) %>%
         select(-date_inds)
       # flock::unlock(lock)
 
-      log_likelihood_data <- list()
+      current_likelihood_data <- list()
 
       lhs <- unique(sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
 
       for(location in all_locations) {
-      # log_likelihood_data <- foreach (location = all_locations) %do% {
-        # Compute log-likelihood of data for each sim
-        # This part can be parallelized
-        # One scenarios, one pdeath
-        # if(!('sim_hosp' %in% ls())){
-        #   sim_hosp <<- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>%
-        #     filter(time <= max(obs$date)) %>%
-        #     select(-date_inds)
-        # }
 
         local_sim_hosp <- dplyr::filter(sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
           dplyr::filter(time %in% all_dates)
@@ -362,30 +390,29 @@ for(scenario in scenarios) {
         }
          # Compute log-likelihoods
 
-        log_likelihood_data[[location]] <- dplyr::tibble(
+        current_likelihood_data[[location]] <- dplyr::tibble(
           ll = sum(unlist(log_likelihood)),
           filename = file,
           geoid = location
         )
-        names(log_likelihood_data)[names(log_likelihood_data) == 'geoid'] <- obs_nodename
-      # }
+        names(current_likelihood_data)[names(current_likelihood_data) == 'geoid'] <- obs_nodename
       }
       rm(sim_hosp)
 
-      log_likelihood_data <- log_likelihood_data %>% do.call(what=rbind)
+      current_likelihood_data <- current_likelihood_data %>% do.call(what=rbind)
 
       # Compute total loglik for each sim
-      likelihood <- log_likelihood_data %>%
+      current_likelihood <- current_likelihood_data %>%
         summarise(ll = sum(ll, na.rm = T)) %>%
         mutate(pdeath = deathrate, scenario = scenario)
 
       ## For logging
-      print(paste("Current likelihood",current_likelihood,"Proposed likelihood",likelihood))
+      print(paste("Current likelihood",initial_likelihood,"Proposed likelihood",current_likelihood))
 
-      if(inference::iterateAccept(current_likelihood, likelihood, 'll')){
+      if(inference::iterateAccept(initial_likelihood, current_likelihood, 'll')){
         old_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + current_index
         current_index <- index
-        current_likelihood <- likelihood
+        initial_likelihood <- current_likelihood
         if(opt$clean){
           print("Removing old")
           file.remove(covidcommon::hospitalization_file_path(config,old_index,scenario,deathrate))
@@ -409,18 +436,18 @@ for(scenario in scenarios) {
         seeding_prop = current_seeding,
         npis_orig = initial_npis,
         npis_prop = current_npis,
-        orig_lls = previous_likelihood_data,
-        prop_lls = log_likelihood_data
+        orig_lls = initial_likelihood_data,
+        prop_lls = current_likelihood_data
       )
       initial_seeding <- seeding_npis_list$seeding
       initial_npis <- seeding_npis_list$npis
-      previous_likelihood_data <- seeding_npis_list$ll
+      initial_likelihood_data <- seeding_npis_list$ll
       likelihood_filename <- paste0(config$filtering$likelihood_directory,"/",sprintf("%09d",this_index),".chim.parquet")
-      arrow::write_parquet(previous_likelihood_data, likelihood_filename)
+      arrow::write_parquet(initial_likelihood_data, likelihood_filename)
 
       print(paste("Current index is ",current_index))
-      print(log_likelihood_data)
-      print(previous_likelihood_data)
+      # print(current_likelihood_data)
+      # print(initial_likelihood_data)
       rm(current_npis)
       rm(current_seeding)
     }
@@ -439,7 +466,6 @@ for(scenario in scenarios) {
       target_dir <- gsub('/[^/]*$','',target_file)
 
       print(paste("Copying",current_file,"to",target_file))
-      suppressWarnings(dir.create(target_dir, recursive=TRUE))
       file.rename(from=current_file,to=target_file)
     }
 
@@ -451,30 +477,18 @@ for(scenario in scenarios) {
       scenario
     )
     target_file <- covidcommon::npi_file_path(config,opt$this_slot,scenario)
-    target_dir <- gsub('/[^/]*$','',target_file)
 
     print(paste("Copying",current_file,"to",target_file))
-    suppressWarnings(dir.create(target_dir, recursive=TRUE))
     file.rename(from=current_file,to=target_file)
 
 
 
-    current_file <- covidcommon::seeding_file_path(
-      config,
-      sprintf("%09d",opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + opt$simulations_per_slot)
-    )
-    target_file <- covidcommon::seeding_file_path(config,sprintf("%09d",opt$this_slot))
-    target_dir <- gsub('/[^/]*$','',target_file)
-
     print(paste("Copying",current_file,"to",target_file))
-    suppressWarnings(dir.create(target_dir, recursive=TRUE))
     file.rename(from=current_file,to=target_file)
 
-
-
-    target_file <- initial_log_likelihood_file
-    arrow::write_parquet(previous_likelihood_data,initial_log_likelihood_file)
+    readr::write_csv(initial_seeding,first_seeding_file)
+    arrow::write_parquet(initial_npis,first_npi_file)
+    arrow::write_parquet(initial_likelihood_data,first_likelihood_file)
 
   }
 }
-#}
