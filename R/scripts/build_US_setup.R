@@ -110,6 +110,7 @@ if (!is.null(config$spatial_setup$popnodes)) {
   names(census_data)[names(census_data) == "population"] <- config$spatial_setup$popnodes
 }
 
+dir.create(dirname(outdir), showWarnings = FALSE, recursive = TRUE)
 
 if (length(config$spatial_setup$geodata) > 0) {
   geodata_file <- config$spatial_setup$geodata
