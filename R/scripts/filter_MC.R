@@ -93,7 +93,9 @@ if (!file.exists(data_path)) {
     dplyr::filter(FIPS %in% geodata[[obs_nodename]]) %>% ##subset to FIPS we have in geodata...why at this point
     dplyr::rename(
       cumConfirmed = Confirmed,
-      cumDeaths = Deaths
+      cumDeaths = Deaths,
+      conf_incid = incidI,
+      death_incid = incidDeath
     ) %>%
     dplyr::arrange(date)
 
@@ -107,19 +109,6 @@ if (!file.exists(data_path)) {
     cases_deaths$cumDeaths[is.na(cases_deaths$cumDeaths)] <- 0
   }
 
-
-  ##Translate cumulative into incident cases.
-  cases_deaths <- cases_deaths %>%
-    dplyr::group_by(FIPS) %>%
-    dplyr::group_modify(
-      function(.x,.y){
-        .x$cumConfirmed = cummax(.x$cumConfirmed)
-        .x$conf_incid = c(.x$cumConfirmed[1],diff(.x$cumConfirmed))
-        .x$cumDeaths = cummax(.x$cumDeaths)
-        .x$death_incid = c(.x$cumDeaths[1],diff(.x$cumDeaths,))
-        return(.x)
-      }
-    )
   names(cases_deaths)[names(cases_deaths) == 'FIPS'] <- as.character(obs_nodename)
 
   write_csv(cases_deaths, data_path)

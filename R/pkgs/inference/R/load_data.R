@@ -1,4 +1,4 @@
-#' Function to load US COVID data from JHUCSSE
+#' Function to load US COVID data from USAFacts
 #' @param data_path Path where to write the data
 #'
 #' @return NULL
@@ -12,7 +12,9 @@ load_data <- function(data_path, geodata, obs_nodename) {
     dplyr::filter(FIPS %in% geodata[[obs_nodename]]) %>%
     dplyr::rename(
       cumConfirmed = Confirmed,
-      cumDeaths = Deaths
+      cumDeaths = Deaths,
+      confirmed_incid = incidI,
+      death_incid = incidDeath
     ) %>%
     dplyr::arrange(date)
   if(any(is.na(cases_deaths$cumConfirmed))){
@@ -21,17 +23,6 @@ load_data <- function(data_path, geodata, obs_nodename) {
   if(any(is.na(cases_deaths$cumDeaths))){
     cases_deaths$cumDeaths[is.na(cases_deaths$cumDeaths)] <- 0
   }
-  cases_deaths <- cases_deaths %>%
-    dplyr::group_by(FIPS) %>%
-    dplyr::group_modify(
-      function(.x,.y){
-        .x$cumConfirmed = cummax(.x$cumConfirmed)
-        .x$conf_incid = c(.x$cumConfirmed[1],diff(.x$cumConfirmed))
-        .x$cumDeaths = cummax(.x$cumDeaths)
-        .x$death_incid = c(.x$cumDeaths[1],diff(.x$cumDeaths,))
-        return(.x)
-      }
-    )
   names(cases_deaths)[names(cases_deaths) == 'FIPS'] <- as.character(obs_nodename)
   write_csv(cases_deaths, data_path)
   rm(cases_deaths)
