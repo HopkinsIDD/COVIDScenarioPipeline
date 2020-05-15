@@ -1,77 +1,3 @@
-# File naming ------------------------------------------------------------------
-
-##' Function for determining where to write the seeding.csv file
-##' @param config The config for this run
-##' @param index The index of this simulation
-##' @param scenario The scenario of the simulation
-##'
-##' @return NULL
-#' @export
-parameter_file_path <- function(config,index, scenario){
-  # if(length(config$interventions$scenarios) > 1){
-  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
-  # }
-
-  ## FIX ME
-  return(sprintf("model_parameters/%s_%s/%09d.spar.parquet", config$name , scenario, index))
-}
-
-
-##' Function for determining where to write the seeding.csv file
-##' @param config The config for this run
-##' @param index The index of this simulation
-##' @param scenario The scenario of the simulation
-##'
-##' @return NULL
-#' @export
-npi_file_path <- function(config,index,scenario){
-  # if(length(config$interventions$scenarios) > 1){
-  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
-  # }
-
-  ## FIX ME
-  return(sprintf("model_parameters/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
-}
-
-
-##' Function for determining where to write the seeding.csv file
-##' @param config The config for this run
-##' @param index The index of this simulation
-##'
-##' @return NULL
-#' @export
-seeding_file_path <- function(config,index){
-  # if(length(config$interventions$scenarios) > 1){
-  #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
-  # }
-
-  return(sprintf("%s/importation_%s.csv",config$seeding$folder_path,index))
-}
-
-
-##' Function for determining where to write the SEIR output to file
-##' @param config The config for this run
-##' @param index The index of this simulation
-##' @param scenario The scenario of the simulation
-##' @return NULL
-#' @export
-simulation_file_path <- function(config,index,scenario){
-  return(sprintf("model_output/%s_%s/%09d.snpi.parquet", config$name , scenario, index))
-}
-
-
-##' Function for determining where to write the seeding.csv file
-##' @param config The config for this run
-##' @param index The index of this simulation
-##' @param scenario The scenario of the simulation
-##' @param deathrate
-##' @return NULL
-#' @export
-hospitalization_file_path <- function(config,index,scenario,deathrate){
-  return(sprintf("hospitalization/model_output/%s_%s/%s_death_death-%09d.hosp.parquet", config$name , scenario, deathrate,index))
-}
-
-
 # Likelihood stuff -------------------------------------------------------------
 
 ##' Function for applying time aggregation of variables on which to comput likelihoods
@@ -134,9 +60,9 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
                            na.rm = s$remove_na)
     rc[[stat]] <- res %>%
       as.data.frame() %>%
-      mutate(date = rownames(.)) %>%
+      dplyr::mutate(date = rownames(.)) %>%
       magrittr::set_colnames(c(var_col, "date")) %>%
-      select(date, one_of(var_col))
+      dplyr::select(date, one_of(var_col))
   }
   return(rc)
 }
@@ -162,7 +88,9 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
     rc <- dpois(obs, sim, log = T)
   } else if (distr == "norm") {
     rc <- dnorm(obs, sim, sd = param[[1]], log = T)
-  } else if (distr == "nbinom") {
+  } else  if (distr == "norm_cov") {
+      rc <- dnorm(obs, sim, sd = pmax(obs,5)*param[[1]], log = T)
+  }  else if (distr == "nbinom") {
     rc <- dnbinom(obs, mu=sim, size = param[[1]], log = T)
   } else if (distr == "sqrtnorm") {
       ##rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[[1]], log = T)
@@ -190,12 +118,13 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
 ##'
 ##' @return a pertubed data frame
 ##'
+##' @export
 perturb_seeding <- function(seeding,sd,date_bounds) {
     seeding <- seeding %>%
-        group_by(place) %>%
-        mutate(date = date+round(rnorm(1,0,sd))) %>%
-        ungroup() %>%
-        mutate(
+        dplyr::group_by(place) %>%
+        dplyr::mutate(date = date+round(rnorm(1,0,sd))) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(
           amount=round(pmax(rnorm(length(amount),amount,1),0)),
           date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
         )
@@ -208,25 +137,39 @@ perturb_seeding <- function(seeding,sd,date_bounds) {
 ##' Fuction perturbs an npi parameter file based on
 ##' user-specified distributions
 ##'
-##' @param npis the original npis
+##' @param npis the original npis.
 ##' @param intervention_settings a list of perturbation specificationss
 ##'
 ##'
 ##' @return a pertubed data frame
 ##' @export
 perturb_npis <- function(npis, intervention_settings) {
-  for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
-    if ('perturbation' %in% names(intervention_settings[[intervention]])){
-      pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
-      ind <- (npis[["npi_name"]] == intervention)
-      npis_new <- npis[["reduction"]][ind] + pert_dist(sum(ind))
-      in_bounds_index <- covidcommon::as_density_distribution(
-        intervention_settings[[intervention]][['value']]
-      )(npis_new) > 0
-      npis$reduction[ind][in_bounds_index] <- npis_new[in_bounds_index]
+    ##Loop over all interventions
+    for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
+
+        ##Only perform pertubations on interventions where it is specified ot do so.
+
+        if ('perturbation' %in% names(intervention_settings[[intervention]])){
+
+            ##get the random distribution from covidcommon package
+            pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
+
+            ##get the npi values for this distribution
+            ind <- (npis[["npi_name"]] == intervention)
+
+            ##add the pertubation...for now always parameterized in terms of a "reduction"
+            npis_new <- npis[["reduction"]][ind] + pert_dist(sum(ind))
+
+            ##check that this is in bounds (equivalent to having a positive probability)
+            in_bounds_index <- covidcommon::as_density_distribution(
+                                                intervention_settings[[intervention]][['value']]
+                                            )(npis_new) > 0
+
+            ##return all in bounds proposals
+            npis$reduction[ind][in_bounds_index] <- npis_new[in_bounds_index]
+        }
     }
-  }
-  return(npis)
+    return(npis)
 }
 
 ##' Function to go through to accept or reject seedings in a block manner based
