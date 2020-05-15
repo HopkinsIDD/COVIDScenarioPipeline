@@ -250,7 +250,7 @@ fig_counter <- fig_counter+1
 `r paste("**Tab.", tab_counter, "** State-level summary for", config$report$formatting$scenario_labels[1], "scenario reported for the period from", sim_start_date, "through the dates specified by the column headers.")`
 
 ```{r scn_state_table1}
-make_scn_state_table(config$report$formatting$scenario_labels[1],
+make_scn_state_table_withVent(config$report$formatting$scenario_labels[1],
                      state_hosp_totals,
                      table_dates = config$report$formatting$display_dates,
                      pdeath_labels = config$report$formatting$pdeath_labels,
