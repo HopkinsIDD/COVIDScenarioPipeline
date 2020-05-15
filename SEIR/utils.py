@@ -7,7 +7,7 @@ import numpy as np
 import scipy.stats
 import sympy.parsing.sympy_parser
 
-config = confuse.Configuration("COVIDScenarioPipeline")
+config = confuse.Configuration("COVIDScenarioPipeline", read=False)
 
 
 def add_method(cls):

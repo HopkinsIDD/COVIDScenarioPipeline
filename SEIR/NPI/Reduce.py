@@ -5,9 +5,11 @@ from .base import NPIBase
 
 REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
 
+
 class Reduce(NPIBase):
-    def __init__(self, *, npi_config, global_config, geoids, loaded_df = None):
-        super().__init__(npi_config)
+    def __init__(self, *, npi_config, global_config, geoids, loaded_df=None):
+        super().__init__(name=getattr(npi_config, "key",
+                                      (npi_config["scenario"].exists() and npi_config["scenario"].get()) or "unknown"))
 
         self.start_date = global_config["start_date"].as_date()
         self.end_date = global_config["end_date"].as_date()
@@ -48,12 +50,11 @@ class Reduce(NPIBase):
             raise ValueError(f"at least one period_end_date ([{min_end_date}, {max_end_date}] is not between global dates [{self.start_date}, {self.end_date}]")
 
         if not (self.parameters["start_date"] <= self.parameters["end_date"]).all():
-            bad_parameters = self.parameters["start_date"] > self.parameters["end_date"]
             raise ValueError(f"at least one period_start_date is greater than the corresponding period end date")
 
         for n in self.affected_geoids:
             if n not in self.geoids:
-                raise ValueError(f"Invalid config value {n.name} ({node}) not in geoids")
+                raise ValueError(f"Invalid config value {n.name} not in geoids")
 
         if self.param_name not in REDUCE_PARAMS:
             raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
@@ -76,7 +77,7 @@ class Reduce(NPIBase):
         if "affected_geoids" in npi_config and npi_config["affected_geoids"].get() != "all":
             self.affected_geoids = []
             for n in npi_config["affected_geoids"]:
-                node = str(n.get()) # because confuse may read as an int
+                node = str(n.get())  # because confuse may read as an int
                 self.affected_geoids.append(node)
 
         self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids)]
@@ -91,7 +92,6 @@ class Reduce(NPIBase):
         self.parameters["parameter"] = self.param_name
         self.parameters["reduction"] = self.dist(size=len(self.affected_geoids))
 
-
     def __createFromDf(self, loaded_df):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
@@ -99,11 +99,12 @@ class Reduce(NPIBase):
         self.affected_geoids = self.parameters.index
         self.param_name = self.parameters["parameter"].unique()
 
-    def getReduction(self, param):
+    def getReduction(self, param, default=0.0):
+        "Return the reduction for this param, `default` if no reduction defined"
+
         if param == self.param_name:
             return self.npi
-        return pd.DataFrame(0.0, index=self.geoids,
-                            columns=pd.date_range(self.start_date, self.end_date))
+        return default
 
     def getReductionToWrite(self):
         df = self.parameters

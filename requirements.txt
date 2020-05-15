@@ -11,7 +11,7 @@ click-plugins==1.1.1
 cligj==0.5.0
 colorama==0.4.3
 configobj==5.0.6
-confuse==1.0.0
+confuse==1.1.0
 cycler==0.10.0
 decorator==4.4.2
 distro==1.5.0
