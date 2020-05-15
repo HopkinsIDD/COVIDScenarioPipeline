@@ -85,7 +85,7 @@ fix_negative_counts <- function(df, cum_col_name, incid_col_name) {
     # first try to just remove the row
     df <- df %>% 
         dplyr::arrange(FIPS, source, Update) 
-    df <- df %>% dplyr::filter(df$incid_new >= 0)
+    df <- df %>% dplyr::filter(incid_new >= 0)
     df <- df %>%
         dplyr::group_by(FIPS, source) %>%
         dplyr::mutate(incid_new = diff(c(0,cum_new))) %>% 
