@@ -13,7 +13,7 @@ class NPIBase(abc.ABC):
         self.name = name
 
     @abc.abstractmethod
-    def getReduction(self, param):
+    def getReduction(self, param, default=None):
         pass
 
     # Returns dataframe with columns: <geoids>, time, parameter, name. Index is sequential.
