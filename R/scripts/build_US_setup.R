@@ -142,6 +142,7 @@ t_commute_table <- tibble(
 )
 
 rc <- padding_table %>% bind_rows(commute_data) %>% bind_rows(t_commute_table)
+rc <- commute_data
 
 if(opt$w){
   mobility_file <- 'mobility.txt'
