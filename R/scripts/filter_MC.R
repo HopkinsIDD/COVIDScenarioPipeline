@@ -470,25 +470,8 @@ for(scenario in scenarios) {
     }
 
 
-
-    current_file <- covidcommon::npi_file_path(
-      config,
-      opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + opt$simulations_per_slot,
-      scenario
-    )
-    target_file <- covidcommon::npi_file_path(config,opt$this_slot,scenario)
-
-    print(paste("Copying",current_file,"to",target_file))
-    file.rename(from=current_file,to=target_file)
-
-
-
-    print(paste("Copying",current_file,"to",target_file))
-    file.rename(from=current_file,to=target_file)
-
     readr::write_csv(initial_seeding,first_seeding_file)
     arrow::write_parquet(initial_npis,first_npi_file)
     arrow::write_parquet(initial_likelihood_data,first_likelihood_file)
-
   }
 }
