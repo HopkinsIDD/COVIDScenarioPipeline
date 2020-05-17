@@ -16,27 +16,27 @@ import yaml
 @click.command()
 @click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
               help="configuration file for this run")
-@click.option("-n", "--num-slots", "num_jobs", type=click.IntRange(min=1, max=1000), required=True,
+@click.option("-n", "--num-jobs", "num_jobs", type=click.IntRange(min=1, max=1000), required=True,
               help="number of output slots to generate")
-@click.option("-j", "--sims-per-block", "sims_per_block", type=click.IntRange(min=1), default=10, show_default=True,
+@click.option("-j", "--sims-per-job", "sims_per_job", type=click.IntRange(min=1), default=10, show_default=True,
               help="the number of sims to run on each child job")
 @click.option("-k", "--num-blocks", "num_blocks", type=click.IntRange(min=1), default=10, show_default=True,
               help="The number of sequential blocks of jobs to run; total sims per slot = sims-per-slot * num-blocks")
-@click.option("-t", "--dvc-target", "dvc_target", type=click.Path(exists=True), required=True,
-              help="name of the .dvc file that is the last step in the dvc run pipeline")
+@click.option("-o", "--output", "outputs", multiple=True, default=["model_output", "model_parameters", "importation", "hospitalization"],
+              show_default=True, help="The output directories whose contents are captured and saved in S3")
 @click.option("-b", "--s3-bucket", "s3_bucket", type=str, default="idd-inference-runs", show_default=True,
               help="The S3 bucket to use for keeping state for the batch jobs")
 @click.option("-d", "--job-definition", "batch_job_definition", type=str, default="Batch-CovidPipeline-Job", show_default=True,
               help="The name of the AWS Batch Job Definition to use for the job")
-@click.option("-p", "--parallelize-scenarios", "parallelize_scenarios", is_flag=True, default=False, show_default=True,
-              help="Launch a different batch job for each scenario/death combination in the config file")
+@click.option("-q", "--job-queue-prefix", "job_queue_prefix", type=str, default="Inference-JQ", show_default=True,
+              help="The prefix string of the job queues we should use for this run")
 @click.option("-v", "--vcpus", "vcpus", type=click.IntRange(min=1, max=96), default=2, show_default=True,
               help="The number of CPUs to request for running jobs")
 @click.option("-m", "--memory", "memory", type=click.IntRange(min=1000, max=6000), default=4000, show_default=True,
               help="The amount of RAM in megabytes needed per CPU running simulations")
 @click.option("-r", "--restart-from", "restart_from", type=str, default=None,
               help="The location of an S3 run to use as the initial to the first block of the current run")
-def launch_batch(config_file, num_jobs, sims_per_block, num_blocks, dvc_target, s3_bucket, batch_job_definition, parallelize_scenarios, vcpus, memory, restart_from):
+def launch_batch(config_file, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from):
 
     config = None
     with open(config_file) as f:
@@ -48,63 +48,55 @@ def launch_batch(config_file, num_jobs, sims_per_block, num_blocks, dvc_target, 
 
     # Update and save the config file with the number of sims to run
     if 'filtering' in config:
-        config['filtering']['simulations_per_slot'] = sims_per_block
+        config['filtering']['simulations_per_slot'] = sims_per_job
         if not os.path.exists(config['filtering']['data_path']):
             print(f"ERROR: filtering.data_path path {config['filtering']['data_path']} does not exist!")
             return 1
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
 
-    handler = BatchJobHandler(num_jobs, num_blocks, dvc_target, s3_bucket, batch_job_definition, vcpus, memory, restart_from)
+    handler = BatchJobHandler(num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from)
 
-    if parallelize_scenarios:
-        job_queues = get_job_queues()
-        scenarios = config['interventions']['scenarios']
-        p_death_names = config['hospitalization']['parameters']['p_death_names']
-        p_deaths = config['hospitalization']['parameters']['p_death']
-        p_hosp_inf = config['hospitalization']['parameters']['p_hosp_inf']
-        ctr = 0
-        for (s, d) in itertools.product(scenarios, zip(p_death_names, p_deaths, p_hosp_inf)):
-            scenario_job_name = f"{job_name}-{s}-{d[0]}"
-            config['interventions']['scenarios'] = [s]
-            config['hospitalization']['parameters']['p_death_names'] = [d[0]]
-            config['hospitalization']['parameters']['p_death'] = [d[1]]
-            config['hospitalization']['parameters']['p_hosp_inf'] = [d[2]]
-            with open("config_runme.yml", "w") as launch_config_file:
-                yaml.dump(config, launch_config_file, sort_keys=False)
-            handler.launch(scenario_job_name, "config_runme.yml", job_queues[ctr % len(job_queues)])
-            ctr += 1
-        config['interventions']['scenarios'] = scenarios
-        config['hospitalization']['parameters']['p_death_names'] = p_death_names
-        config['hospitalization']['parameters']['p_death'] = p_deaths
-        config['hospitalization']['parameters']['p_hosp_inf'] = p_hosp_inf
-    else:
+    job_queues = get_job_queues(job_queue_prefix)
+    scenarios = config['interventions']['scenarios']
+    p_death_names = config['hospitalization']['parameters']['p_death_names']
+    p_deaths = config['hospitalization']['parameters']['p_death']
+    p_hosp_inf = config['hospitalization']['parameters']['p_hosp_inf']
+    ctr = 0
+    for (s, d) in itertools.product(scenarios, zip(p_death_names, p_deaths, p_hosp_inf)):
+        scenario_job_name = f"{job_name}-{s}-{d[0]}"
+        config['interventions']['scenarios'] = [s]
+        config['hospitalization']['parameters']['p_death_names'] = [d[0]]
+        config['hospitalization']['parameters']['p_death'] = [d[1]]
+        config['hospitalization']['parameters']['p_hosp_inf'] = [d[2]]
         with open("config_runme.yml", "w") as launch_config_file:
             yaml.dump(config, launch_config_file, sort_keys=False)
-        handler.launch(job_name, "config_runme.yml", batch_job_queue=get_job_queues()[0])
+        handler.launch(scenario_job_name, "config_runme.yml", job_queues[ctr % len(job_queues)])
+        ctr += 1
 
     (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")
     print(txt)
     return rc
 
 
-def get_job_queues():
+def get_job_queues(job_queue_prefix):
     batch_client = boto3.client('batch')
     queues_with_jobs = {}
     resp = batch_client.describe_job_queues()
     for q in resp['jobQueues']:
         queue_name = q['jobQueueName']
-        if queue_name.startswith('Inference-JQ-'):
+        if queue_name.startswith(job_queue_prefix):
            job_list_resp = batch_client.list_jobs(jobQueue=queue_name, jobStatus='PENDING')
            queues_with_jobs[queue_name] = len(job_list_resp['jobSummaryList'])
     # Return the least-loaded queues first
     return sorted(queues_with_jobs, key=queues_with_jobs.get)
 
 class BatchJobHandler(object):
-    def __init__(self, num_jobs, num_blocks, dvc_target, s3_bucket, batch_job_definition, vcpus, memory, restart_from):
+    def __init__(self, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from):
         self.num_jobs = num_jobs
+        self.sims_per_job = sims_per_job
         self.num_blocks = num_blocks
-        self.dvc_target = dvc_target
+        self.outputs = outputs
         self.s3_bucket = s3_bucket
         self.batch_job_definition = batch_job_definition
         self.vcpus = vcpus
@@ -122,15 +114,18 @@ class BatchJobHandler(object):
 
         # Prepare to tar up the current directory, excluding any dvc outputs, so it
         # can be shipped to S3
-        dvc_outputs = get_dvc_outputs()
         tarfile_name = f"{job_name}.tar.gz"
         tar = tarfile.open(tarfile_name, "w:gz", dereference=True)
         for p in os.listdir('.'):
             if p == 'COVIDScenarioPipeline':
                 for q in os.listdir('COVIDScenarioPipeline'):
-                    if not (q == 'packrat' or q.startswith('.')):
+                    if not (q == 'packrat' or q == 'sample_data' or q == 'build' or q.startswith('.')):
                         tar.add(os.path.join('COVIDScenarioPipeline', q))
-            elif not (p.startswith(".") or p.endswith("tar.gz") or p in dvc_outputs or p == "batch"):
+                    elif q == 'sample_data':
+                        for r in os.listdir('COVIDScenarioPipeline/sample_data'):
+                            if r != 'united-states-commutes':
+                                tar.add(os.path.join('COVIDScenarioPipeline', 'sample_data', r))
+            elif not (p.startswith(".") or p.endswith("tar.gz") or p in self.outputs):
                 tar.add(p, filter=lambda x: None if os.path.basename(x.name).startswith('.') else x)
         tar.close()
 
@@ -148,9 +143,9 @@ class BatchJobHandler(object):
         env_vars = [
                 {"name": "CONFIG_PATH", "value": config_file},
                 {"name": "S3_MODEL_DATA_PATH", "value": model_data_path},
-                {"name": "DVC_TARGET", "value": self.dvc_target},
-                {"name": "DVC_OUTPUTS", "value": " ".join(dvc_outputs)},
+                {"name": "DVC_OUTPUTS", "value": " ".join(self.outputs)},
                 {"name": "S3_RESULTS_PATH", "value": results_path},
+                {"name": "SIMS_PER_JOB", "value": str(self.sims_per_job) }
         ]
 
         runner_script_path = f"s3://{self.s3_bucket}/{runner_script_name}"
@@ -206,7 +201,6 @@ class BatchJobHandler(object):
                 retryStrategy={'attempts': 3})
             last_job = cur_job
             block_idx += 1
-        print(f"Final output will be for job: {results_path}/{last_job['jobName']}")
 
         # Save the manifest file to S3
         with open('manifest.json', 'w') as f:
@@ -241,16 +235,7 @@ class BatchJobHandler(object):
                 'command': command
             },
             retryStrategy = {'attempts': 3})
-
-
-def get_dvc_outputs():
-    ret = []
-    for dvc_file in glob.glob("*.dvc"):
-        with open(dvc_file) as df:
-            d = yaml.full_load(df)
-            if 'cmd' in d and 'outs' in d:
-                ret.extend([x['path'] for x in d['outs'] if x['path']])
-    return ret
+        print(f"Final output will be: {results_path}/final_output/")
 
 
 if __name__ == '__main__':
