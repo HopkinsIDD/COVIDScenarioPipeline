@@ -121,6 +121,10 @@ class BatchJobHandler(object):
                 for q in os.listdir('COVIDScenarioPipeline'):
                     if not (q == 'packrat' or q == 'sample_data' or q == 'build' or q.startswith('.')):
                         tar.add(os.path.join('COVIDScenarioPipeline', q))
+                    elif q == 'sample_data':
+                        for r in os.listdir('COVIDScenarioPipeline/sample_data'):
+                            if r != 'united-states-commutes':
+                                tar.add(os.path.join('COVIDScenarioPipeline', 'sample_data', r))
             elif not (p.startswith(".") or p.endswith("tar.gz") or p in self.outputs):
                 tar.add(p, filter=lambda x: None if os.path.basename(x.name).startswith('.') else x)
         tar.close()
