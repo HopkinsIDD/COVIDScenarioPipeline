@@ -65,7 +65,7 @@ all_geoids <- geodata[[config$spatial_setup$nodenames]]
 
 incident_cases <- cases_deaths %>%
   dplyr::filter(FIPS %in% all_geoids) %>%
-  dplyr::select(Update, FIPS, Confirmed)
+  dplyr::select(Update, FIPS, incidI)
 
 incident_cases$Update <- as.Date(incident_cases$Update)
 
@@ -74,11 +74,11 @@ incident_cases <- incident_cases %>%
   group_modify(function(.x,.y){
     .x %>%
       arrange(Update) %>%
-      filter(Confirmed > 0) %>%
+      filter(incidI > 0) %>%
       .[seq_len(min(nrow(.x),5)),] %>%
       mutate(
         Update = Update - lubridate::days(5),
-        Confirmed = 10 * Confirmed + .05
+        incidI = 10 * incidI + .05
       )
       
   })
