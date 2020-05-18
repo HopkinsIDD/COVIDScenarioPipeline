@@ -108,7 +108,7 @@ create_delay_frame <- function(data, name, local_config){
       geoid %in% all_geoids
     ) %>%
     dplyr::arrange(geoid,time) %>%
-    ungroup()
+    dplyr::ungroup()
 
   data <- dplyr::arrange(data,geoid,time)
 
