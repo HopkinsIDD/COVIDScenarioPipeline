@@ -55,7 +55,7 @@ read_file_of_type <- function(extension,...){
 ##' 
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
 ##' 
-##' @import tidyverse foreach
+##' @import tidyverse foreach stringr
 ##' 
 ##' @author Justin Lessler
 ##' 
@@ -96,13 +96,13 @@ load_scenario_sims_filtered <- function(scenario_dir,
   read_file <- report.generation:::read_file_of_type(file_extension)
   
   if (geoid_len > 0) {
-    padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid, width=geoid_len, pad=padding_char))}
+    padfn <- function(x) {x%>% dplyr::mutate(geoid = stringr::str_pad(geoid, width=geoid_len, pad=padding_char))}
   } else {
     padfn <- function(x) {x}
   }
   
   rc <- foreach(i = 1:length(files),
-                .packages = c("tidyverse"),
+                .packages = c("tidyverse","stringr"),
                 .export = c("read_file","pre_process","post_process", "str_pad")) %dopar% {
     #require(tidyverse)
     
@@ -132,7 +132,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
 ##' 
 ##' @author Justin Lessler
-##' @import tidyverse foreach
+##' @import tidyverse foreach stringr
 ##'
 ##'@export
 load_hosp_sims_filtered <- function(scenario_dir,
@@ -158,7 +158,7 @@ load_hosp_sims_filtered <- function(scenario_dir,
 
 
   if (geoid_len > 0) {
-    padfn <- function(x) {x %>% dplyr::mutate(geoid = str_pad(geoid, width=geoid_len, pad=padding_char))}
+    padfn <- function(x) {x %>% dplyr::mutate(geoid = stringr::str_pad(geoid, width=geoid_len, pad=padding_char))}
   } else {
     padfn <- function(x) {x}
   }
@@ -166,7 +166,7 @@ load_hosp_sims_filtered <- function(scenario_dir,
   read_file <- report.generation:::read_file_of_type(file_extension)
   
   rc<- foreach (i = 1:length(files),
-                .packages=c("dplyr"),
+                .packages=c("dplyr","stringr"),
                 .export=c("read_file", "padfn","post_process", "read_file_of_type", "str_pad")) %dopar% {
                   
     file <- files[i]
