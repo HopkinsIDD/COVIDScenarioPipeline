@@ -6,7 +6,8 @@ from .base import NPIBase
 
 REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
 
-class Reduce(NPIBase):
+## Too much redundant code with reduce, could be implementing cleaner calling it.
+class Fatiguing(NPIBase):
     def __init__(self, *, npi_config, global_config, geoids):
         self.start_date = global_config["start_date"].as_date()
         self.end_date = global_config["end_date"].as_date()
@@ -50,8 +51,9 @@ class Reduce(NPIBase):
                                     columns=pd.date_range(self.start_date, self.end_date))
         self.dist = npi_config["value"].as_random_distribution()
         period_range = pd.date_range(self.period_start_date, self.period_end_date)
-        self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T
+        #self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T
 
+        # Fatigue specific that replace #self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T
         self.fatig_rate = npi_config["fatigue_rate"].as_random_distribution()
         self.fatig_rate = 1 - self.fatig_rate(size=len(affected))
         self.fatig_freq = npi_config["fatigue_frequency_days"].as_evaled_expression()
