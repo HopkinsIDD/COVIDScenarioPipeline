@@ -52,6 +52,13 @@ class Reduce(NPIBase):
         period_range = pd.date_range(self.period_start_date, self.period_end_date)
         self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T
 
+        if "fatigue_rate" in npi_config:
+            self.fatig_rate = npi_config["fatigue_rate"].as_random_distribution()
+            self.fatig_rate = 1 - self.fatig_rate(size=len(affected))
+            self.fatig_freq = npi_config["fatigue_frequency_days"].as_evaled_expression()
+            self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T  *  \
+                                                   np.tile(self.fatig_rate,               (len(period_range), 1)).T ** (np.arange(0,len(period_range))/self.fatig_freq)
+
         # Validate
         if (self.npi == 0).all(axis=None):
             print(f"Warning: The intervention in config: {npi_config.name} does nothing.")
