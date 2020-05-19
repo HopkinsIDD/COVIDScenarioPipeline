@@ -31,16 +31,16 @@ copy_file_of_type() {
 	in_file=$(printf '%s\n' "${all_files[@]}" | grep 000000001.$filetype.parquet)
 	if [[ $in_file == "" ]]; then
 		echo "000000001.$filetype.parquet not found in files"
-		exit 1
+	else
+		in_file=s3://$bucket/$in_file
+		# Replace folder of last block with destination folder
+		out_file=${in_file/$S3_LAST_JOB_OUTPUT_esc:$i/$S3_RESULTS_PATH_esc\/final_output}
+		# Replace sim ID 000000001 with correct sim ID
+		printf -v sim "%09d" $(($i+1))
+		out_file=${out_file/000000001.$filetype.parquet/$sim.$filetype.parquet}
+		echo "Copying $in_file to $out_file"
+		aws s3 cp $in_file $out_file
 	fi
-	in_file=s3://$bucket/$in_file
-	# Replace folder of last block with destination folder
-	out_file=${in_file/$S3_LAST_JOB_OUTPUT_esc:$i/$S3_RESULTS_PATH_esc\/final_output}
-	# Replace sim ID 000000001 with correct sim ID
-	printf -v sim "%09d" $(($i+1))
-	out_file=${out_file/000000001.$filetype.parquet/$sim.$filetype.parquet}
-	echo "Copying $in_file to $out_file"
-	aws s3 cp $in_file $out_file
 }
 
 for i in $(seq 0 $(($NSLOT-1)))
@@ -50,13 +50,12 @@ do
 
 	if [ ${#all_files[@]} -eq 0 ]; then
 		echo "No files found at $S3_LAST_JOB_OUTPUT:$i/"
-		exit 1
+	else
+		# Copy the data
+		copy_file_of_type $all_files "hosp" $i
+		copy_file_of_type $all_files "snpi" $i
+		copy_file_of_type $all_files "spar" $i
 	fi
-
-	# Copy the data
-	copy_file_of_type $all_files "hosp" $i
-	copy_file_of_type $all_files "snpi" $i
-	copy_file_of_type $all_files "spar" $i
 done
 
 echo "Done"
