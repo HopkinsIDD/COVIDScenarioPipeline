@@ -4,8 +4,8 @@ set -x
 
 # Expected environment variables from AWS Batch env
 # S3_MODEL_DATA_PATH location in S3 with the code, data, and dvc pipeline to run
-# DVC_TARGET the name of the dvc file in the model that should be reproduced locally.
 # DVC_OUTPUTS the names of the directories with outputs to save in S3, separated by a space
+# SIMS_PER_JOB is the number of sims to run per job
 # JOB_NAME the name of the job
 # S3_RESULTS_PATH location in S3 to store the results
 
@@ -52,7 +52,7 @@ if [ $local_install_ret -ne 0 ]; then
 fi
 
 
-(cd COVIDScenarioPipeline && python setup.py install)
+(cd COVIDScenarioPipeline && python setup.py build install)
 python_install_ret=$?
 
 if [ $python_install_ret -ne 0 ]; then
@@ -75,17 +75,12 @@ echo "---"
 find data
 echo "==="
 
-# Initialize dvc and run the pipeline to re-create the
-# dvc target
-# dvc init --no-scm
-# dvc repro $DVC_TARGET
-
 # NOTE(jwills): hard coding this for now
-Rscript COVIDScenarioPipeline/R/scripts/full_filter.R -p COVIDScenarioPipeline -n 1 -k 10 -j 1
+Rscript COVIDScenarioPipeline/R/scripts/full_filter.R -p COVIDScenarioPipeline -n 1 -k $SIMS_PER_JOB -j 1
 
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then
-        echo "Error code returned from dvc_repro: $dvc_ret"
+        echo "Error code returned from full_filter.R: $dvc_ret"
 	exit 1
 fi
 
