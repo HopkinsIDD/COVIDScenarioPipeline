@@ -1,0 +1,82 @@
+---
+title: "Inference Testing"
+output: html_notebook
+---
+
+## Test 1: Simple full epi curve fit
+
+
+
+
+```{r}
+
+## First generate an epi curve....seeded by 1 cases on March 1
+## with a 50% reduction srtarting March 21 and continuing.
+## indefinitely
+times<-seq(as.Date("2020-01-01"), as.Date("2020-8-01"),by="day")
+
+beta_mults <- rep(1, length(times))
+beta_mults[times>"2020-04-15"]<-0.5
+
+seed <- data_frame(date=as.Date(c("2020-03-01","2020-03-02","2020-03-03")),
+                   amount=c(3,5,2))
+
+
+
+
+to_fit <- simulate_single_epi(times, 
+                              seeding=seed,
+                              S0=100000,
+                              R0=2.5,
+                              gamma=1/4,
+                              sigma=1/5.2,
+                              alpha=1,
+                              beta_mults = beta_mults)
+
+
+
+
+
+
+#death distribution
+time_onset_death_pars = c(log(11.25), log(1.15))
+
+##Translate into deaths and hospitalizatoins
+to_fit <-to_fit %>% 
+  filter(comp=="incidI")%>%
+  rename(incidI=N)%>%
+  mutate(p_death_inf_scaled = 0.005,
+         p_hosp_inf_scaled = 0.05)%>%
+  mutate(uid="1")
+
+
+ to_fit <-inner_join(to_fit,
+                     hospitalization::hosp_create_delay_frame("incidI", 
+                                                              to_fit$p_death_inf_scaled, 
+                                            to_fit, time_onset_death_pars,"D"))
+ 
+ to_fit <- inner_join(to_fit,
+                     hospitalization::hosp_create_delay_frame("incidI", 
+                                                              to_fit$p_hosp_inf_scaled, 
+                                            to_fit, time_onset_death_pars,"H"))
+
+
+  
+
+
+ 
+##Plot the epidemic to fit
+to_fit%>%select(time, incidI, incidD, incidH)%>%
+  pivot_longer(-time, values_to="N", names_to="comp")%>%
+  ggplot(aes(x=time,y=N, color=comp, shape=comp))+
+  geom_line(alpha=.5)+
+  scale_y_sqrt()+
+  facet_wrap(~comp)
+
+```
+
+
+```{r}
+##Do the fit.
+  
+```
