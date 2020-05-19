@@ -1,0 +1,25 @@
+##### Health outcomes
+
+We use a statistical model to calculate several key health outcomes, including number of individuals who are hospitalized, admitted to the ICU, ventilatied, and who die, from transmission model output. These calculations account for the population age distribution in each location and differences in the risk of these health outcomes by age.
+
+Briefly, we assume some probabilty of death among all incident infections, $\mathbb{P}(death \mid infected)$, known as the infection fatality ratio, and a fixed average time from symptom onset to death, $d_{inf -> death}$. Here, we use IFR estimates: `r paste(config$report$formatting$pdeath_labels, sep=", ")`. The number of deaths that were infected at time $t_{inf}$ and died at time $t_{death}$ is denoted $n^{death}_{t_{inf},t_{death}}$, where
+
+\begin{eqnarray}
+n^{death}_{t_{inf},\cdot} &\sim Binomial(n^{inf}_{t_{inf}}, \mathbb{P}(death \mid infected)) \\
+t_{death} &= t_{inf} + d_{inf -> death} 
+\end{eqnarray}
+
+Similarly, those who are infected are at risk of hospitalization, those who are hospitalized are at risk of ICU admission, and those admitted to the ICU are at risk of ventilation.
+
+\begin{eqnarray}
+n^{hosp}_{t_{inf},\cdot} &\sim Binomial(n^{inf}_{t_{inf}}, \mathbb{P}(hosp \mid inf)) \\
+t_{hosp} &= t_{inf} + d_{inf -> hosp}  \\
+\\
+n^{ICU}_{t_{hosp},\cdot} &\sim Binomial(n^{hosp}_{t_{hosp}}, \mathbb{P}(ICU \mid hosp)) \\
+t_{ICU} &= t_{hosp} + d_{hosp -> ICU} \\
+\\
+n^{vent}_{t_{ICU},\cdot} &\sim Binomial(n^{ICU}_{t_{ICU}}, \mathbb{P}(vent \mid ICU)) \\
+t_{vent} &= t_{ICU} + d_{ICU -> vent} 
+\end{eqnarray}
+
+We estimate age-standardized probabilities of death, hospitalization, and ICU admission; there is currently limited data on the age-specific risk of ventilation among ICU patients, and thus a single, average estimate is used across all locations. We reviewed the literature for relevant age-specific estimates of risk of each health outcome, and use a logistic GAM with penalized cubic spline for age and random effect for study to estimate the risk for 10-year, aggregated age categories. We then apply these age-specific estimates to the population age distribution in each location to get location-specific, age-adjusted estimates. We assume that individuals of all ages are at equal risk of infection.
