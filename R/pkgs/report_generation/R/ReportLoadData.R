@@ -28,10 +28,13 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
                                       geoid_len = 0,
                                       padding_char = "0",
                                       file_extension = 'auto',
-                                      name_filter){
+                                      name_filter)
+{
   if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
     }
+  warning("This function loads infection data from hospitalization outputs. Only one IFR scenario is needed to load these data for a given set of model outputs because infection counts will be the same across IFR scenarios.")
+	  
   display_dates <- as.Date(display_dates)
   max_date <- max(display_dates)
 

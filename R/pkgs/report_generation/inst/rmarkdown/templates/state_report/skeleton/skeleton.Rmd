@@ -145,11 +145,11 @@ doParallel::registerDoParallel(ncores)
 cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
                                            num_files = nfiles,
                                            scenariolabels = config$report$formatting$scenario_labels,
-                                           name_filter= config$hospitalization$parameters$p_death_names[1],
+                                           name_filter= config$hospitalization$parameters$p_death_names[1], ## includes only one pdeath because interest is only in infections here
                                            incl_geoids = included_geoids,
                                            geoid_len = 5,
                                            file_extension="auto") %>%
-    mutate(pdeath=config$hospitalization$parameters$p_death[1])
+    mutate(pdeath=config$hospitalization$parameters$p_death[1]) 
 
 doParallel::stopImplicitCluster()
 registerDoSEQ()
