@@ -34,8 +34,7 @@ parent_tracker = {}
 queues = []
 queues_resp = batch.describe_job_queues()
 for q in queues_resp['jobQueues']:
-    if q['jobQueueName'].startswith('Inference-JQ-'):
-        queues.append(q['jobQueueName'])
+    queues.append(q['jobQueueName'])
 
 for q in queues:
   print(f"Processing job queue {q}...")
