@@ -46,33 +46,12 @@ def launch_batch(config_file, num_jobs, sims_per_job, num_blocks, outputs, s3_bu
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     job_name = f"{config['name']}-{timestamp}"
 
-    # Update and save the config file with the number of sims to run
-    if 'filtering' in config:
-        config['filtering']['simulations_per_slot'] = sims_per_job
-        if not os.path.exists(config['filtering']['data_path']):
-            print(f"ERROR: filtering.data_path path {config['filtering']['data_path']} does not exist!")
-            return 1
-    else:
-        print(f"WARNING: no filtering section found in {config_file}!")
-
     handler = BatchJobHandler(num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from)
 
     job_queues = get_job_queues(job_queue_prefix)
     scenarios = config['interventions']['scenarios']
     p_death_names = config['hospitalization']['parameters']['p_death_names']
-    p_deaths = config['hospitalization']['parameters']['p_death']
-    p_hosp_inf = config['hospitalization']['parameters']['p_hosp_inf']
-    ctr = 0
-    for (s, d) in itertools.product(scenarios, zip(p_death_names, p_deaths, p_hosp_inf)):
-        scenario_job_name = f"{job_name}-{s}-{d[0]}"
-        config['interventions']['scenarios'] = [s]
-        config['hospitalization']['parameters']['p_death_names'] = [d[0]]
-        config['hospitalization']['parameters']['p_death'] = [d[1]]
-        config['hospitalization']['parameters']['p_hosp_inf'] = [d[2]]
-        with open("config_runme.yml", "w") as launch_config_file:
-            yaml.dump(config, launch_config_file, sort_keys=False)
-        handler.launch(scenario_job_name, "config_runme.yml", job_queues[ctr % len(job_queues)])
-        ctr += 1
+    handler.launch(job_name, config_file, scenarios, p_death_names, job_queues)
 
     (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")
     print(txt)
@@ -91,6 +70,7 @@ def get_job_queues(job_queue_prefix):
     # Return the least-loaded queues first
     return sorted(queues_with_jobs, key=queues_with_jobs.get)
 
+
 class BatchJobHandler(object):
     def __init__(self, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from):
         self.num_jobs = num_jobs
@@ -103,12 +83,11 @@ class BatchJobHandler(object):
         self.memory = memory
         self.restart_from = restart_from
 
-    def launch(self, job_name, config_file, batch_job_queue):
+    def launch(self, job_name, config_file, scenarios, p_death_names, job_queues):
 
         manifest = {}
         manifest['cmd'] = " ".join(sys.argv[:])
         manifest['job_name'] = job_name
-        manifest['job_queue'] = batch_job_queue
         manifest['data_sha'] = subprocess.getoutput('git rev-parse HEAD')
         manifest['csp_sha'] = subprocess.getoutput('cd COVIDScenarioPipeline; git rev-parse HEAD')
 
@@ -137,14 +116,24 @@ class BatchJobHandler(object):
         s3_client.upload_file(tarfile_name, self.s3_bucket, tarfile_name)
         os.remove(tarfile_name)
 
+        # Save the manifest file to S3
+        with open('manifest.json', 'w') as f:
+            json.dump(manifest, f, indent=4)
+        s3_client.upload_file('manifest.json', self.s3_bucket, f"{job_name}/manifest.json")
+
+        # Create job to copy output to appropriate places
+        copy_script_name = f"{job_name}-copy.sh"
+        local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'inference_copy.sh')
+        s3_client.upload_file(local_runner_script, self.s3_bucket, copy_script_name)
+
         # Prepare and launch the num_jobs via AWS Batch.
         model_data_path = f"s3://{self.s3_bucket}/{tarfile_name}"
         results_path = f"s3://{self.s3_bucket}/{job_name}"
-        env_vars = [
-                {"name": "CONFIG_PATH", "value": config_file},
+        base_env_vars = [
                 {"name": "S3_MODEL_DATA_PATH", "value": model_data_path},
                 {"name": "DVC_OUTPUTS", "value": " ".join(self.outputs)},
                 {"name": "S3_RESULTS_PATH", "value": results_path},
+                {"name": "COVID_CONFIG_PATH", "value": config_file},
                 {"name": "SIMS_PER_JOB", "value": str(self.sims_per_job) }
         ]
 
@@ -159,38 +148,23 @@ class BatchJobHandler(object):
         cur_env_vars.append({"name": "JOB_NAME", "value": f"{job_name}_block0"})
 
         batch_client = boto3.client('batch')
-        print(f"Launching {job_name}_block0...")
-        last_job = batch_client.submit_job(
-            jobName=f"{job_name}_block0",
-            jobQueue=batch_job_queue,
-            arrayProperties={'size': self.num_jobs},
-            jobDefinition=self.batch_job_definition,
-            containerOverrides={
-                'vcpus': self.vcpus,
-                'memory': self.vcpus * self.memory,
-                'environment': cur_env_vars,
-                'command': command
-            },
-            retryStrategy = {'attempts': 3})
 
-        # Create all other jobs
-        block_idx = 1
-        while block_idx < self.num_blocks:
-            cur_env_vars = env_vars.copy()
-            cur_env_vars.append({
-                "name": "S3_LAST_JOB_OUTPUT",
-                "value": f"{results_path}/{last_job['jobName']}"
-            })
-            cur_env_vars.append({
-                "name": "JOB_NAME",
-                "value": f"{job_name}_block{block_idx}"
-            })
-            print(f"Launching {job_name}_block{block_idx}...")
-            cur_job = batch_client.submit_job(
-                jobName=f"{job_name}_block{block_idx}",
-                jobQueue=batch_job_queue,
+        ctr = 0
+        for (s, d) in itertools.product(scenarios, p_death_names):
+            cur_job_name = f"{job_name}_{s}_{d}"
+            # Create first job
+            cur_env_vars = base_env_vars.copy()
+            cur_env_vars.append({"name": "COVID_SCENARIOS", "value": s})
+            cur_env_vars.append({"name": "COVID_DEATHRATES", "value": d})
+            if self.restart_from:
+                cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from})
+            cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block0"})
+
+            cur_job_queue = job_queues[ctr % len(job_queues])
+            last_job = batch_client.submit_job(
+                jobName=f"{cur_job_name}_block0",
+                jobQueue=cur_job_queue,
                 arrayProperties={'size': self.num_jobs},
-                dependsOn=[{'jobId': last_job['jobId'], 'type': 'N_TO_N'}],
                 jobDefinition=self.batch_job_definition,
                 containerOverrides={
                     'vcpus': self.vcpus,
@@ -198,43 +172,63 @@ class BatchJobHandler(object):
                     'environment': cur_env_vars,
                     'command': command
                 },
-                retryStrategy={'attempts': 3})
-            last_job = cur_job
-            block_idx += 1
+                retryStrategy = {'attempts': 3})
 
-        # Save the manifest file to S3
-        with open('manifest.json', 'w') as f:
-            json.dump(manifest, f, indent=4)
-        s3_client.upload_file('manifest.json', self.s3_bucket, f"{job_name}/manifest.json")
+            # Create all other jobs
+            block_idx = 1
+            while block_idx < self.num_blocks:
+                cur_env_vars = base_env_vars.copy()
+                cur_env_vars.append({"name": "COVID_SCENARIOS", "value": s)
+                cur_env_vars.append({"name": "COVID_DEATHRATES", "value": d})
+                cur_env_vars.append({
+                    "name": "S3_LAST_JOB_OUTPUT",
+                    "value": f"{results_path}/{last_job['jobName']}"
+                })
+                cur_env_vars.append({
+                    "name": "JOB_NAME",
+                    "value": f"{job_name}_block{block_idx}"
+                })
+                cur_job = batch_client.submit_job(
+                    jobName=f"{cur_job_name}_block{block_idx}",
+                    jobQueue=cur_job_queue,
+                    arrayProperties={'size': self.num_jobs},
+                    dependsOn=[{'jobId': last_job['jobId'], 'type': 'N_TO_N'}],
+                    jobDefinition=self.batch_job_definition,
+                    containerOverrides={
+                        'vcpus': self.vcpus,
+                        'memory': self.vcpus * self.memory,
+                        'environment': cur_env_vars,
+                        'command': command
+                    },
+                    retryStrategy={'attempts': 3})
+                last_job = cur_job
+                block_idx += 1
 
-        # Create job to copy output to appropriate places
-        copy_script_name = f"{job_name}-copy.sh"
-        local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'inference_copy.sh')
-        s3_client.upload_file(local_runner_script, self.s3_bucket, copy_script_name)
 
-        # Prepare and launch the num_jobs via AWS Batch.
-        env_vars = [
-            {"name": "S3_RESULTS_PATH", "value": results_path},
-            {"name": "S3_LAST_JOB_OUTPUT", "value": f"{results_path}/{last_job['jobName']}"},
-            {"name": "NSLOT", "value": str(self.num_jobs)},
-        ]
+            # Prepare and launch the num_jobs via AWS Batch.
+            cp_env_vars = [
+                {"name": "S3_RESULTS_PATH", "value": results_path},
+                {"name": "S3_LAST_JOB_OUTPUT", "value": f"{results_path}/{last_job['jobName']}"},
+                {"name": "NSLOT", "value": str(self.num_jobs)},
+            ]
 
-        copy_script_path = f"s3://{self.s3_bucket}/{copy_script_name}"
-        s3_cp_run_script = f"aws s3 cp {copy_script_path} $PWD/run-covid-pipeline"
-        command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
+            copy_script_path = f"s3://{self.s3_bucket}/{copy_script_name}"
+            s3_cp_run_script = f"aws s3 cp {copy_script_path} $PWD/run-covid-pipeline"
+            cp_command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
 
-        print(f"Launching {job_name}_copy...")
-        copy_job = batch_client.submit_job(
-            jobName=f"{job_name}_copy",
-            jobQueue=batch_job_queue,
-            jobDefinition=self.batch_job_definition,
-            dependsOn=[{'jobId': last_job['jobId']}],
-            containerOverrides={
-                'vcpus': 1,
-                'environment': env_vars,
-                'command': command
-            },
-            retryStrategy = {'attempts': 3})
+            print(f"Launching {job_name}_copy...")
+            copy_job = batch_client.submit_job(
+                jobName=f"{cur_job_name}_copy",
+                jobQueue=cur_job_queue,
+                jobDefinition=self.batch_job_definition,
+                dependsOn=[{'jobId': last_job['jobId']}],
+                containerOverrides={
+                    'vcpus': 1,
+                    'environment': cp_env_vars,
+                    'command': cp_command
+                },
+                retryStrategy = {'attempts': 3})
+
         print(f"Final output will be: {results_path}/final_output/")
 
 
