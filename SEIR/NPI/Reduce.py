@@ -74,8 +74,6 @@ class Reduce(NPIBase):
                                                        np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T * \
                                                        np.tile(self.fatig_rate,               (len(period_range), 1)).T * \
                                                       (np.arange(0,len(period_range))/self.fatig_freq)).clip(self.fatig_min)
-        ax = self.npi.T.plot()
-        ax.figure.savefig('demo-file.pdf')
         # Validate
         if (self.npi == 0).all(axis=None):
             print(f"Warning: The intervention in config: {npi_config.name} does nothing.")
