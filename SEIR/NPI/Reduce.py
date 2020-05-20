@@ -54,11 +54,28 @@ class Reduce(NPIBase):
 
         if "fatigue_rate" in npi_config:
             self.fatig_rate = npi_config["fatigue_rate"].as_random_distribution()
-            self.fatig_rate = 1 - self.fatig_rate(size=len(affected))
+            if "fatigue_min" in npi_config:
+                self.fatig_min = npi_config["fatigue_min"].as_evaled_expression()
+            else:
+                self.fatig_min = 0
+            
             self.fatig_freq = npi_config["fatigue_frequency_days"].as_evaled_expression()
-            self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T  *  \
-                                                   np.tile(self.fatig_rate,               (len(period_range), 1)).T ** (np.arange(0,len(period_range))/self.fatig_freq)
+            if ("fatigue_type" in npi_config) and (npi_config["fatigue_type"].as_str() == 'geometric'):
+                print(f'geometric fatigue with min {self.fatig_min}')
+                self.fatig_rate = 1 - self.fatig_rate(size=len(affected))
+                self.npi.loc[affected, period_range] =(np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T  *  \
+                                                       np.tile(self.fatig_rate,               (len(period_range), 1)).T ** \
+                                                      (np.arange(0,len(period_range))/self.fatig_freq)).clip(self.fatig_min)
 
+            else:
+                print(f'normal fatigue with min {self.fatig_min}')
+                self.fatig_rate = self.fatig_rate(size=len(affected))
+                self.npi.loc[affected, period_range] =(np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T  -  \
+                                                       np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T * \
+                                                       np.tile(self.fatig_rate,               (len(period_range), 1)).T * \
+                                                      (np.arange(0,len(period_range))/self.fatig_freq)).clip(self.fatig_min)
+        ax = self.npi.T.plot()
+        ax.figure.savefig('demo-file.pdf')
         # Validate
         if (self.npi == 0).all(axis=None):
             print(f"Warning: The intervention in config: {npi_config.name} does nothing.")
