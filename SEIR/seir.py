@@ -76,22 +76,49 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         if s.write_csv:
-            npi.writeReductions(f"{s.paramdir}{sim_id_str}.snpi","csv")
-            setup.parameters_write(parameters, f"{s.paramdir}{sim_id_str}.spar", "csv")
-            #setup.seeding_write(parameters, f"{s.paramdir}{sim_id_str}.seed", "csv")
+            npi.writeReductions(
+                create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "snpi"),
+                "csv"
+            )
+            setup.parameters_write(
+                parameters,
+                create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "spar"),
+                "csv"
+            )
+            #if seeding method == poissondraw:
+            #    setup.seeding_write(
+            #        parameters,
+            #        create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "spar"),
+            #        "csv"
+            #    )
 
             out_df.to_csv(
-                f"{s.datadir}{sim_id}.seir.csv",
+                create_file_name(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "seir","csv")
                 index='time',
                 index_label='time')
         if s.write_parquet:
-            npi.writeReductions(f"{s.paramdir}{sim_id_str}.snpi", "parquet")
-            setup.parameters_write(p_draw, f"{s.paramdir}{sim_id_str}.spar", "parquet")
-            #setup.seeding_write(parameters, f"{s.paramdir}{sim_id_str}.seed", "parquet")
+            npi.writeReductions(
+                create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "seir"),
+                "parquet"
+            )
+            setup.parameters_write(
+                parameters,
+                create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "seir"),
+                "parquet"
+            )
+            #if seeding method == poissondraw:
+            #    setup.seeding_write(
+            #        parameters,
+            #        create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "spar"),
+            #        "parquet"
+            #    )
 
             out_df['time'] = out_df.index
             pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
-            pa.parquet.write_table(pa_df,f"{s.datadir}{sim_id_str}.seir.parquet")
+            pa.parquet.write_table(
+              pa_df,
+              create_file_name(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "seir","parquet")
+            )
     
     return out_df
 
