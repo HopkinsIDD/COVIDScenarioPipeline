@@ -54,7 +54,7 @@ class Reduce(NPIBase):
 
         for n in self.affected_geoids:
             if n not in self.geoids:
-                raise ValueError(f"Invalid config value {n.name} not in geoids")
+                raise ValueError(f"Invalid config value {n} not in geoids")
 
         if self.param_name not in REDUCE_PARAMS:
             raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
@@ -73,12 +73,9 @@ class Reduce(NPIBase):
         # Optional config field "affected_geoids"
         # If values of "affected_geoids" is "all" or unspecified, run on all geoids.
         # Otherwise, run only on geoids specified.
-        self.affected_geoids = self.geoids
-        if "affected_geoids" in npi_config and npi_config["affected_geoids"].get() != "all":
-            self.affected_geoids = []
-            for n in npi_config["affected_geoids"]:
-                node = str(n.get())  # because confuse may read as an int
-                self.affected_geoids.append(node)
+        self.affected_geoids = set(self.geoids)
+        if npi_config["affected_geoids"].exists() and npi_config["affected_geoids"].get() != "all":
+            self.affected_geoids = {str(n.get()) for n in npi_config["affected_geoids"]}
 
         self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids)]
         # Create reduction
@@ -90,13 +87,13 @@ class Reduce(NPIBase):
         self.parameters["end_date"] = npi_config["period_end_date"].as_date() \
             if npi_config["period_end_date"].exists() else self.end_date
         self.parameters["parameter"] = self.param_name
-        self.parameters["reduction"] = self.dist(size=len(self.affected_geoids))
+        self.parameters["reduction"] = self.dist(size=self.parameters.shape[0])
 
     def __createFromDf(self, loaded_df):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
         self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']]
-        self.affected_geoids = self.parameters.index
+        self.affected_geoids = set(self.parameters.index)
         self.param_name = self.parameters["parameter"].unique()
 
     def getReduction(self, param, default=0.0):
