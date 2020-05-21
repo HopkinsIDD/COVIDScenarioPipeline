@@ -2,7 +2,7 @@ library(dplyr)
 library(tidyr)
 
 option_list = list(
-  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
+  optparse::make_option(c("-c", "--config"), action="store", default="config.yml", type='character', help="path to the config file"),
   optparse::make_option(c("-p", "--path"), action="store", default=".", type='character', help="path to the spatial repository directory"),
   optparse::make_option(c("-w", "--wide_form"), action="store",default=FALSE,type='logical',help="Whether to generate the old wide format mobility or the new long format"),
   optparse::make_option(c("-n", "--population"), action="store",default="population_data.csv",type='character',help="Name of the popultion data file"),
@@ -10,7 +10,7 @@ option_list = list(
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
-config <- covidcommon::load_config(opt$c)
+config <- covidcommon::load_config(opt$config)
 if (is.na(config)) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
@@ -18,13 +18,13 @@ if (is.na(config)) {
 outdir <- config$spatial_setup$base_path
 filterADMIN1 <- config$spatial_setup$modeled_states
 
-commute_data <- readr::read_csv(file.path(opt$p,"data","geodata", opt$m))
-census_data <- readr::read_csv(file.path(opt$p,"data","geodata", opt$n))
+commute_data <- readr::read_csv(file.path(opt$path,"data","geodata", opt$mobility))
+census_data <- readr::read_csv(file.path(opt$path,"data","geodata", opt$population))
 
 
 census_data <- census_data %>%
-  filter(ADMIN1 %in% filterADMIN1) %>%
-  select(ADMIN1,GEOID,POP) #%>%  mutate(GEOID = substr(GEOID,1,5))
+  dplyr::filter(ADMIN1 %in% filterADMIN1) %>%
+  dplyr::select(ADMIN1,GEOID,POP) #%>%  mutate(GEOID = substr(GEOID,1,5))
 
 # name_changer <- setNames(
 #   unique(census_data$GEOID),
@@ -64,7 +64,7 @@ t_commute_table <- tibble(
 
 rc <- padding_table %>% bind_rows(commute_data) %>% bind_rows(t_commute_table)
 if(opt$w){
-  rc <- rc %>%pivot_wider(OGEOID,names_from=DGEOID,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
+  rc <- rc %>% pivot_wider(OGEOID, names_from=DGEOID, values_from=FLOW, values_fill=c("FLOW"=0), values_fn = list(FLOW=sum))
 }
 
 print(outdir)
@@ -82,3 +82,4 @@ if(opt$w){
 # Save population geodata
 names(census_data) <- c("geoid","admin1","pop")
 write.csv(file = file.path(outdir,'geodata.csv'), census_data,row.names=FALSE)
+
