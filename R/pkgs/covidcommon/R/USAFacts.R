@@ -74,41 +74,6 @@ get_islandareas_data <- function() {
   return(nyt_data)
 }
 
-# Fix counts that go negative
-fix_negative_counts <- function(df, cum_col_name, incid_col_name) {
-
-  df <- df %>% dplyr::mutate(incid_new=!!rlang::sym(incid_col_name),
-                              cum_new=!!rlang::sym(cum_col_name))
-
-  while(sum(df$incid_new<0)>0){
-            
-    # first try to just remove the row
-    df <- df %>% 
-        dplyr::arrange(FIPS, source, Update) 
-    df <- df %>% dplyr::filter(incid_new >= 0)
-    df <- df %>%
-        dplyr::group_by(FIPS, source) %>%
-        dplyr::mutate(incid_new = diff(c(0,cum_new))) %>% 
-        dplyr::ungroup()
-    
-    negs_ind <- which(df$incid_new < 0)
-    if (length(negs_ind)>0){
-        df <- df %>% 
-            dplyr::arrange(FIPS, source, Update) 
-        df$cum_new[negs_ind - 1] <- df$cum_new[negs_ind - 1] + df$incid_new[negs_ind]
-        df <- df %>%
-            dplyr::group_by(FIPS, source) %>%
-            dplyr::mutate(incid_new = diff(c(0,cum_new))) %>% 
-            dplyr::ungroup()
-    }
-  }
-
-  df <- df %>%
-    dplyr::select(-!!cum_col_name, -!!incid_col_name) %>%
-    rename(!!cum_col_name:=cum_new, !!incid_col_name:=incid_new)
-
-  return(df)
-}
 
 ##'
 ##' Pull case and death count data from USAFacts
@@ -149,18 +114,16 @@ get_USAFacts_data <- function(case_data_filename = "data/case_data/USAFacts_case
       usafacts_data,
       FIPS
     ),
+    # Cumulative counts are set to only increase
+    # This avoids negative incidence counts
     function(.x,.y){
-      # .x$Confirmed = cummax(.x$Confirmed) # cumulative column only increases; alternative way to avoid negative incidents
+      .x$Confirmed = cummax(.x$Confirmed)
       .x$incidI = c(.x$Confirmed[1],diff(.x$Confirmed))
-      # .x$Deaths = cummax(.x$Deaths) # cumulative column only increases; alternative way to avoid negative incidents
+      .x$Deaths = cummax(.x$Deaths)
       .x$incidDeath = c(.x$Deaths[1],diff(.x$Deaths,))
       return(.x)
     }
   )
-
-  # Fix counts that go negative
-  usafacts_data <- fix_negative_counts(usafacts_data, "Confirmed", "incidI")
-  usafacts_data <- fix_negative_counts(usafacts_data, "Deaths", "incidDeath")
 
   return(usafacts_data)
 }
