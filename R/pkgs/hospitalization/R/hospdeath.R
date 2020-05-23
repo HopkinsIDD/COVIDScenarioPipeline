@@ -365,10 +365,9 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   }
 
   ## scale prob_dat to match defined IFR, p_hosp_inf
-  prob_dat$p_death_inf_scaled <- prob_dat$rr_death_inf * p_death
-  prob_dat$p_hosp_inf_scaled <- prob_dat$rr_hosp_inf * p_hosp_inf
 
-
+  prob_dat <- tidyr::pivot_wider(prob_dat,geoid,'parameter')
+  
   print(paste("Running over",n_sim,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
@@ -389,7 +388,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
 
     # Add time things
     dat_H <- hosp_create_delay_frame('incidI',
-                                     dat_$p_hosp_inf_scaled,
+                                     dat_$p_hosp_inf,
                                      dat_,
                                      time_hosp_pars,"H")
     data_ICU <- hosp_create_delay_frame('incidH',
@@ -401,7 +400,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
                                          data_ICU,
                                          time_vent_pars,"Vent")
     data_D <- hosp_create_delay_frame('incidI',
-                                      dat_$p_death_inf_scaled,
+                                      dat_$p_death_inf,
                                       dat_,
                                       time_onset_death_pars,"D")
     R_delay_ <- round(exp(time_disch_pars[1]))

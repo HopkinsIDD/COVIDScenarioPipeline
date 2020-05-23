@@ -121,11 +121,12 @@ for(scenario in scenarios) {
   reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
   for(deathrate in deathrates) {
-      # Data -------------------------------------------------------------------------
-      # Load
-    first_param_file <- covidcommon::parameter_file_path(config,opt$this_slot, scenario)
-    first_npi_file <- covidcommon::npi_file_path(config,opt$this_slot, scenario)
+    # Data -------------------------------------------------------------------------
+    # Load
+    first_spar_file <- covidcommon::spar_file_path(config,opt$this_slot, scenario)
+    first_snpi_file <- covidcommon::snpi_file_path(config,opt$this_slot, scenario)
     first_hosp_file <- covidcommon::hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
+    first_hpar_file <- covidcommon::hpar_file_path(config,opt$this_slot, scenario, deathrate)
     first_seeding_file <- covidcommon::seeding_file_path(config,opt$this_slot)
 
     # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
@@ -145,7 +146,7 @@ for(scenario in scenarios) {
       suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file))
       write.csv(
         initial_seeding,
-        file =first_seeding_file 
+        file =first_seeding_file
       )
     }
     suppressMessages(initial_seeding <- readr::read_csv(first_seeding_file))
@@ -156,15 +157,20 @@ for(scenario in scenarios) {
 
     # FIX ME : this file won't exist in general
     # TODO CHANGE TO FIRST DRAW OF SEIR CODE
-    # lock <- flock::lock(paste('.lock',gsub('/','-',first_npi_file),sep='/'))
-    if((!file.exists(first_npi_file)) | (!file.exists(first_param_file))){
-      print(sprintf("Creating parameters (%s) from Scratch",first_npi_file))
+    # lock <- flock::lock(paste('.lock',gsub('/','-',first_snpi_file),sep='/'))
+    if((!file.exists(first_snpi_file)) | (!file.exists(first_spar_file))){
+      print(sprintf("Creating parameters (%s) from Scratch",first_snpi_file))
       py$onerun_SEIR(opt$this_slot,py$s)
     }
-    initial_npis <- arrow::read_parquet(first_npi_file)
-    initial_params <- arrow::read_parquet(first_param_file)
+    initial_snpi <- arrow::read_parquet(first_snpi_file)
+    initial_spar <- arrow::read_parquet(first_spar_file)
     # flock::unlock(lock)
 
+    if(!file.exists(first_hpar_file)){
+      print(sprintf("Creating hospitalization parameters (%s) from Scratch",first_hpar_file))
+      file.copy(config$hospitalization$paths$geoid_params_file,first_hpar_file)
+    }
+    initial_hpar <- arrow::read_parquet(first_hpar_file)
     if(!file.exists(first_hosp_file)){
       print(sprintf("Creating hospitalization (%s) from Scratch",first_hosp_file))
       ## Generate files
@@ -186,7 +192,8 @@ for(scenario in scenarios) {
         "-s",scenario,
         "-d",deathrate,
         "-n",1,
-        "-i",this_index
+        "-i",this_index,
+        "-g",first_hpar_file
       ))
       if(err != 0){
         stop("Hospitalization failed to run")
@@ -307,20 +314,25 @@ for(scenario in scenarios) {
       # Load sims -----------------------------------------------------------
 
       current_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
-      current_npis <- inference::perturb_npis(initial_npis, config$interventions$settings)
-      current_params <- initial_params
+      current_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
+      current_spar <- initial_spar
+      current_hpar <- inference::perturb_hpar(initial_hpar, config$hospitalization)
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
       write.csv(
         current_seeding,
         file = covidcommon::seeding_file_path(config,this_index)
       )
       arrow::write_parquet(
-        current_npis,
-        covidcommon::npi_file_path(config,this_index,scenario)
+        current_snpi,
+        covidcommon::snpi_file_path(config,this_index,scenario)
       )
       arrow::write_parquet(
-        current_params,
-        covidcommon::parameter_file_path(config,this_index,scenario)
+        current_spar,
+        covidcommon::spar_file_path(config,this_index,scenario)
+      )
+      arrow::write_parquet(
+        current_hpar,
+        covidcommon::hpar_file_path(config,this_index,scenario,deathrate)
       )
 
 
@@ -417,8 +429,8 @@ for(scenario in scenarios) {
           print("Removing old")
           file.remove(covidcommon::hospitalization_file_path(config,old_index,scenario,deathrate))
           file.remove(covidcommon::simulation_file_path(config,old_index,scenario))
-          file.remove(covidcommon::npi_file_path(config,old_index,scenario))
-          file.remove(covidcommon::parameter_file_path(config,old_index,scenario))
+          file.remove(covidcommon::snpi_file_path(config,old_index,scenario))
+          file.remove(covidcommon::spar_file_path(config,old_index,scenario))
         }
       } else {
         old_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
@@ -426,21 +438,24 @@ for(scenario in scenarios) {
           print("Removing new")
           file.remove(covidcommon::hospitalization_file_path(config,old_index,scenario,deathrate))
           file.remove(covidcommon::simulation_file_path(config,old_index,scenario))
-          file.remove(covidcommon::npi_file_path(config,old_index,scenario))
-          file.remove(covidcommon::parameter_file_path(config,old_index,scenario))
+          file.remove(covidcommon::snpi_file_path(config,old_index,scenario))
+          file.remove(covidcommon::spar_file_path(config,old_index,scenario))
         }
       }
 
       seeding_npis_list <- inference::accept_reject_new_seeding_npis(
         seeding_orig = initial_seeding,
         seeding_prop = current_seeding,
-        npis_orig = initial_npis,
-        npis_prop = current_npis,
+        snpi_orig = initial_snpi,
+        snpi_prop = current_snpi,
+        hpar_orig = initial_hpar,
+        hpar_prop = current_hpar,
         orig_lls = initial_likelihood_data,
         prop_lls = current_likelihood_data
       )
       initial_seeding <- seeding_npis_list$seeding
-      initial_npis <- seeding_npis_list$npis
+      initial_snpi <- seeding_npis_list$snpi
+      initial_hpar <- seeding_npis_list$hpar
       initial_likelihood_data <- seeding_npis_list$ll
       likelihood_filename <- paste0(config$filtering$likelihood_directory,"/",sprintf("%09d",this_index),".chim.parquet")
       arrow::write_parquet(initial_likelihood_data, likelihood_filename)
@@ -448,7 +463,7 @@ for(scenario in scenarios) {
       print(paste("Current index is ",current_index))
       # print(current_likelihood_data)
       # print(initial_likelihood_data)
-      rm(current_npis)
+      rm(current_snpi)
       rm(current_seeding)
     }
 
@@ -471,7 +486,7 @@ for(scenario in scenarios) {
 
 
     readr::write_csv(initial_seeding,first_seeding_file)
-    arrow::write_parquet(initial_npis,first_npi_file)
+    arrow::write_parquet(initial_snpi,first_snpi_file)
     arrow::write_parquet(initial_likelihood_data,first_likelihood_file)
   }
 }
