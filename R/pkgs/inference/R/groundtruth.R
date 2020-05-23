@@ -20,7 +20,9 @@ get_ground_truth_file <- function(data_path, cache = TRUE) {
         ),
         date = Update,
         cumConfirmed = Confirmed,
-        cumDeaths = Deaths
+        cumDeaths = Deaths,
+        confirmed_incid = incidI,
+        death_incid = incidDeath
       ),
       date
     )
@@ -30,19 +32,6 @@ get_ground_truth_file <- function(data_path, cache = TRUE) {
     if(any(is.na(cases_deaths$cumDeaths))){
       cases_deaths$cumDeaths[is.na(cases_deaths$cumDeaths)] <- 0
     }
-    cases_deaths <- dplyr::group_modify(
-      dplyr::group_by(
-        cases_deaths,
-        FIPS
-      ),
-      function(.x,.y){
-        .x$cumConfirmed = cummax(.x$cumConfirmed)
-        .x$conf_incid = c(.x$cumConfirmed[1],diff(.x$cumConfirmed))
-        .x$cumDeaths = cummax(.x$cumDeaths)
-        .x$death_incid = c(.x$cumDeaths[1],diff(.x$cumDeaths,))
-        return(.x)
-      }
-    )
     readr::write_csv(cases_deaths, data_path)
     rm(cases_deaths)
     message("*** DONE Loading Data \n")
