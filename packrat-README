@@ -1,0 +1,13 @@
+To add or update a package on the dev Docker using packrat:
+
+1) Run the docker with COVIDScenarioPipeline mounted
+
+docker run -it --rm -v "$(pwd)":/home/app/covidsp hopkinsidd/covidscenariopipeline:latest-dev
+
+2) Install the packages you want
+
+3) Run packrat::snapshot(infer.dependencies=FALSE)
+
+4) Delete the lib files
+
+5) Copy all files from the /home/app/packrat directory to the mounted /home/app/covidsp/packrat directory.
