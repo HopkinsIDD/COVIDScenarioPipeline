@@ -142,13 +142,13 @@ for(scenario in scenarios) {
             stop("Could not run seeding")
           }
       }
-      suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file))
+      suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file, col_types=readr::cols(place=readr::col_character())))
       write.csv(
         initial_seeding,
         file =first_seeding_file 
       )
     }
-    suppressMessages(initial_seeding <- readr::read_csv(first_seeding_file))
+    suppressMessages(initial_seeding <- readr::read_csv(first_seeding_file, col_types=readr::cols(place=readr::col_character())))
     # flock::unlock(lock)
     initial_seeding$amount <- as.integer(round(initial_seeding$amount))
 
@@ -169,7 +169,7 @@ for(scenario in scenarios) {
       print(sprintf("Creating hospitalization (%s) from Scratch",first_hosp_file))
       ## Generate files
       this_index <- opt$this_slot
-      # lock <- flock::lock(paste(".lock",paste("SEIR",this_index,scenario,sep='.'),sep='/'))
+                                        # lock <- flock::lock(paste(".lock",paste("SEIR",this_index,scenario,sep='.'),sep='/'))
       err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
       err <- ifelse(err == 1,0,1)
       if(err != 0){
@@ -217,13 +217,15 @@ for(scenario in scenarios) {
         initial_likelihood_data <- list()
         for(location in all_locations) {
 
-          local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
+            #local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
+            local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
+                dplyr::filter(time %in% unique(obs$date[obs$geoid == location]))
           initial_sim_stats <- inference::getStats(
             local_sim_hosp,
             "time",
             "sim_var",
-            end_date = max(obs$date[obs[[obs_nodename]] == location]),
-            config$filtering$statistics
+            #end_date = max(obs$date[obs[[obs_nodename]] == location]),
+            stat_list = config$filtering$statistics
           )
 
 
@@ -257,13 +259,15 @@ for(scenario in scenarios) {
       global_likelihood_data <- list()
       for(location in all_locations) {
 
-        local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
+          ##local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
+          local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
+              dplyr::filter(time %in% unique(obs$date[obs$geoid == location]))
         initial_sim_stats <- inference::getStats(
           local_sim_hosp,
           "time",
           "sim_var",
-          end_date = max(obs$date[obs[[obs_nodename]] == location]),
-          config$filtering$statistics
+          #end_date = max(obs$date[obs[[obs_nodename]] == location]),
+          stat_list = config$filtering$statistics
         )
 
 
@@ -369,8 +373,8 @@ for(scenario in scenarios) {
           local_sim_hosp,
           "time",
           "sim_var",
-          end_date = max(obs$date[obs[[obs_nodename]] == location]),
-          config$filtering$statistics
+          #end_date = max(obs$date[obs[[obs_nodename]] == location]),
+          stat_list=config$filtering$statistics
         )
 
 
