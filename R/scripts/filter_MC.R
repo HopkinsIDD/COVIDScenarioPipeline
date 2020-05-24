@@ -368,7 +368,7 @@ for(scenario in scenarios) {
       for(location in all_locations) {
 
         local_sim_hosp <- dplyr::filter(sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
-          dplyr::filter(time %in% all_dates)
+            dplyr::filter(time %in% unique(obs$date[obs$geoid == location]))
         sim_stats <- inference::getStats(
           local_sim_hosp,
           "time",
