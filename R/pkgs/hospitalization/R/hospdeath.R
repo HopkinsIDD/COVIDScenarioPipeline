@@ -337,6 +337,7 @@ build_hospdeath_par <- function(p_hosp,
 ##' @param root_out_dir Path to the directory to write the outputs of this analysis
 ##'
 ##' @export
+##' @importFrom foreach %dopar%
 build_hospdeath_geoid_fixedIFR_par <- function(
   prob_dat,
   p_death,
