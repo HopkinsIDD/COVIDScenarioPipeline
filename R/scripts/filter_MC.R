@@ -167,7 +167,7 @@ for(scenario in scenarios) {
     # flock::unlock(lock)
 
     if(!file.exists(first_hpar_file)){
-      print(sprintf("Creating hospitalization parameters (%s) from Scratch",first_hpar_file))
+      print(sprintf("Creating hospitalization parameters (%s) from config specified file %s",first_hpar_file,config$hospitalization$paths$geoid_params_file))
       file.copy(config$hospitalization$paths$geoid_params_file,first_hpar_file)
     }
     initial_hpar <- arrow::read_parquet(first_hpar_file)
@@ -207,13 +207,6 @@ for(scenario in scenarios) {
       lhs <- unique(initial_sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
-
-      lhs <- lubridate::ymd(unique(initial_sim_hosp$time))
-      rhs <- lubridate::ymd(unlist(Reduce(intersect,lapply(data_stats,function(x){lapply(x,function(y){y$date})}))))
-      all_dates <- rhs[rhs %in% lhs]
-      if(!all(all_dates == rhs)){
-        stop("This should not happen")
-      }
 
       if(!dir.exists(config$filtering$likelihood_directory)){
         dir.create(config$filtering$likelihood_directory)
@@ -354,7 +347,8 @@ for(scenario in scenarios) {
         "-s",scenario,
         "-d",deathrate,
         "-n",1,
-        "-i",this_index
+        "-i",this_index,
+        "-g",covidcommon::hpar_file_path(config,this_index,scenario,deathrate)
       ))
       if(err != 0){
         stop("Hospitalization failed to run")
@@ -376,7 +370,7 @@ for(scenario in scenarios) {
       for(location in all_locations) {
 
         local_sim_hosp <- dplyr::filter(sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
-          dplyr::filter(time %in% all_dates)
+          dplyr::filter(time %in% unique(obs$date[obs$geoid == location]))
         sim_stats <- inference::getStats(
           local_sim_hosp,
           "time",
@@ -431,6 +425,7 @@ for(scenario in scenarios) {
           file.remove(covidcommon::simulation_file_path(config,old_index,scenario))
           file.remove(covidcommon::snpi_file_path(config,old_index,scenario))
           file.remove(covidcommon::spar_file_path(config,old_index,scenario))
+          file.remove(covidcommon::hpar_file_path(config,old_index,scenario,deathrate))
         }
       } else {
         old_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
@@ -440,6 +435,7 @@ for(scenario in scenarios) {
           file.remove(covidcommon::simulation_file_path(config,old_index,scenario))
           file.remove(covidcommon::snpi_file_path(config,old_index,scenario))
           file.remove(covidcommon::spar_file_path(config,old_index,scenario))
+          file.remove(covidcommon::hpar_file_path(config,old_index,scenario,deathrate))
         }
       }
 
@@ -464,6 +460,7 @@ for(scenario in scenarios) {
       # print(current_likelihood_data)
       # print(initial_likelihood_data)
       rm(current_snpi)
+      rm(current_hpar)
       rm(current_seeding)
     }
 
@@ -487,6 +484,7 @@ for(scenario in scenarios) {
 
     readr::write_csv(initial_seeding,first_seeding_file)
     arrow::write_parquet(initial_snpi,first_snpi_file)
+    arrow::write_parquet(initial_hpar,first_hpar_file)
     arrow::write_parquet(initial_likelihood_data,first_likelihood_file)
   }
 }
