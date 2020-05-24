@@ -4,7 +4,7 @@ To add or update a package on the dev Docker using packrat:
 
 docker run -it --rm -v "$(pwd)":/home/app/covidsp hopkinsidd/covidscenariopipeline:latest-dev
 
-2) Install the packages you want
+2) Install the packages you want using R normally
 
 3) Run packrat::snapshot(infer.dependencies=FALSE)
 
