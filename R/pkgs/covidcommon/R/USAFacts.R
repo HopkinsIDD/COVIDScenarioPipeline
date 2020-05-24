@@ -208,7 +208,7 @@ get_USAFacts_data <- function(case_data_filename = "data/case_data/USAFacts_case
   usafacts_case <- download_USAFacts_data(case_data_filename, USAFACTS_CASE_DATA_URL, "Confirmed")
   usafacts_death <- download_USAFacts_data(death_data_filename, USAFACTS_DEATH_DATA_URL, "Deaths")
 
-  usafacts_data <- full_join(usafacts_case, usafacts_death)
+  usafacts_data <- dplyr::full_join(usafacts_case, usafacts_death)
   usafacts_data <- rbind(usafacts_data, get_islandareas_data()) # Append island areas
 
   # Create columns incidI and incidDeath
