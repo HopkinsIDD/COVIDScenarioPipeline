@@ -55,7 +55,7 @@ This project uses R, python, pandoc, and make
 
 #### R
 
-The code requires R version 3.6 or newer. You can download R from [cran](https://cran.rstudio.com/).  We also recommend [rstudio](https://rstudio.com/products/rstudio/download/), an R IDE.  We keep a list of [R packages](https://github.com/HopkinsIDD/COVIDScenarioPipeline/blob/dataseed/packages.R).  You can source the script to install the versions required (the most recent versions also likely work).
+The code requires R version 3.6 or newer. You can download R from [cran](https://cran.rstudio.com/).  We also recommend [rstudio](https://rstudio.com/products/rstudio/download/), an R IDE.  We use packrat to manage packages. See the packrat directory, especially the packrat.lock file. For more information on how to use packrat, use the official packrat documentation.  You can source the script to install the versions required (the most recent versions also likely work).
 
 #### python
 
@@ -273,7 +273,7 @@ Each intervention is associated with a start and end date and a range of values 
 ### None
 
 This is a non-intervention scenario. It does not reduce `R0`.
-```{r None}
+```{eval=FALSE}
 None:
       template: ReduceR0
       period_start_date: YYYY-MM-DD
@@ -287,7 +287,7 @@ None:
 
 This intervention represents school closures. It reduces `R0` by 16-30%.
 
-```{r School Closure}
+```{eval=FALSE}
 SchoolClosure:
       template: ReduceR0
       period_start_date: YYYY-MM-DD
@@ -306,7 +306,7 @@ SchoolClosure:
 
 This intervention represents the influence of different social distancing scenarios observed in the 1918 Influenza. It reduces `R0` by 44-65%, based on values observed in Milwaukee, Wisconsin. These values can be altered to reflect different cities and scenarios reported by M.Bootsma & N.M.Ferguson in https://www.pnas.org/content/104/18/7588.long
 
-```{r Influenza1918}
+```{eval=FALSE}
 Influenza1918:
       template: ReduceR0
       period_start_date: YYYY-MM-DD
@@ -321,7 +321,7 @@ Influenza1918:
 
 This intervention represents shelter in place similar to what was done in Wuhan at the beginning of the outbreak. It reduces `R0` by 81-89%.
 
-```{r Wuhan}
+```{eval=FALSE}
 Wuhan:
       template: ReduceR0
       period_start_date: YYYY-MM-DD
@@ -336,7 +336,7 @@ Wuhan:
 
 This intervention represents rapid testing and isolation of cases, similar to what was done in Wuhan at the beginning of the outbreak. It reduces `R0` by 45-96%.
 
-```{r TestIsolate}
+```{eval=FALSE}
 TestIsolate:
       template: ReduceR0
       period_start_date: YYYY-MM-DD
@@ -351,7 +351,7 @@ TestIsolate:
 
 This intervention has two sequential interventions: School closures followed by a Wuhan-style lockdown.
 
-```{r Mild}
+```{eval=FALSE}
 Mild:
     template: Stacked
     scenarios:
@@ -362,7 +362,7 @@ Mild:
 
 This intervention has three sequential interventions: School closures, followed by a Wuhan-style lockdown, followed by social distancing practices used during the 1918 Influenza pandemic.
 
-```{r Mid}
+```{eval=FALSE}
 Mid:
     template: Stacked
     scenarios:
@@ -375,7 +375,7 @@ Mid:
 
 This intervention has three sequential interventions: School closures, followed by a Wuhan-style lockdown, followed by rapid testing and isolation.
 
-```{r Severe}
+```{eval=FALSE}
 Severe:
     template: Stacked
     scenarios:
