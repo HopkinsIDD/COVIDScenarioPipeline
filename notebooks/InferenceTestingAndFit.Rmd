@@ -4,7 +4,7 @@ output:
   html_document:
     df_print: paged
 params:
-  redo_fit: FALSE
+  redo_fit: TRUE
 ---
 
 ## Test 1: Simple full epi curve fit
