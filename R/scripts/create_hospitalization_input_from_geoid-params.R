@@ -23,7 +23,7 @@ for(name in names){
 name <- 'confirmed_inf'
 rc[[name]] <- geoid_params[,'geoid']
 rc[[name]]$parameter <- paste('p',name,sep='_')
-rc[[name]]$value <- .9
+rc[[name]]$value <- .15
 
 rc <- do.call(rbind,rc)
 rc <- dplyr::filter(rc,gsub('...$','',geoid) == '36')
