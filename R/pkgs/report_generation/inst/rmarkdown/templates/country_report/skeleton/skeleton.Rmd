@@ -22,11 +22,12 @@ Updated `r Sys.Date()`
 ```{r setup, include=F}
 
 nfiles <- NA ## set to a number for test reports.
+ncores <- 25 ## number of cores to use for loading data
 
 
 
 ## Block with general knitr options, libray load, etc. Nothing specific to the project.
-knitr::opts_knit$set(root.dir = "../..") ##Assumes we are in a subdirectory of notebooks
+knitr::opts_knit$set(root.dir = "..") ##Assumes we are in the notebook directory
 knitr::opts_chunk$set(
     echo = FALSE,
     fig.align = "center",
@@ -50,10 +51,9 @@ library(ggpubr)
 library(tidyselect)
 library(ISOcodes)
 
-nfiles2 <- ifelse(nfiles <= 50, nfiles, 50) ## for plotting
+nfiles2 <- ifelse(nfiles >= 50, nfiles, 50) ## for plotting
 
 if (params$country_iso3=="[COUNTRY ISO3]") {stop("Must define a target country by ISO3 code.")}
-ncores <- 25 ## number of cores to use for loading data
 
 ```
 

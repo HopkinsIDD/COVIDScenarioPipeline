@@ -98,7 +98,6 @@ incident_cases <- incident_cases %>%
         date = date - lubridate::days(5),
         incidI = 10 * incidI + .05
       )
-    
   })
 
 names(incident_cases) <- c('place','date','amount')
