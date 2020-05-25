@@ -183,7 +183,16 @@ perturb_snpi <- function(snpi, intervention_settings) {
 ##' @export
 perturb_hpar <- function(hpar, intervention_settings) {
     ##Loop over all interventions
-    
+
+    interventions <- c('p_confirmed_inf')
+
+    for(intervention in interventions){
+      hpar[hpar$parameter == intervention,]$value <-
+        hpar[hpar$parameter == intervention,]$value +
+        rnorm(sum(hpar$parameter == intervention),0,.01)
+      hpar[hpar$parameter == intervention,]$value <- pmax(pmin(hpar$value[hpar$parameter == intervention],1),0)
+    }
+
     return(hpar)
 }
 ##' Function to go through to accept or reject seedings in a block manner based

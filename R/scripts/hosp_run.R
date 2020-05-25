@@ -141,6 +141,7 @@ if(is.null(run_age_adjust)){
   if(length(geoid_params_file) == 0 ){
     geoid_params_file <- paste(opt$p,"sample_data","geoid-params.csv",sep='/')
   }
+  print(paste("param file is ",geoid_params_file))
 }
 
 hosp_parameters = config$hospitalization$parameters

@@ -252,6 +252,7 @@ build_hospdeath_par <- function(p_hosp,
   print(paste("Running over",n_sim,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
+  library(foreach)
   foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
     sim_id <- start_sim + s - 1
     dat_ <- hosp_load_scenario_sim(data_dir,sim_id,
@@ -366,6 +367,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
 
   prob_dat <- tidyr::pivot_wider(prob_dat, geoid, "parameter")
   print(summary(prob_dat$p_confirmed_inf))
+
   print(paste("Running over",n_sim,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
