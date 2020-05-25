@@ -1,77 +1,297 @@
 ---
 title: "Inference Testing"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
+params:
+  redo_fit: TRUE
 ---
 
 ## Test 1: Simple full epi curve fit
 
+```{r preamble, message=FALSE, warning=FALSE, include=FALSE}
+
+library(tidyverse)
+library(xts)
+library(data.table)
+library(truncnorm)
+library(foreach)
+library(doSNOW)
+
+library(covidcommon)
+library(hospitalization)
+library(inference)
+
+
+# Load config file for the single epi test
+config <- covidcommon::load_config("config_test_inference.yml")
+
+# Number of cores to run
+ncores <- 8
+
+# Number of slots to run
+n_slots <- 24
+```
+
+
+
+```{r synthetic data, echo=FALSE}
+
+## Old setup:
+## First generate an epi curve....seeded by 1 cases on March 1
+## with a 50% reduction srtarting March 21 and continuing.
+## indefinitely
+
+# New setup in config_test_inference.yml
+# 70% reduction starting on March 25
+
+# Initial seeding used for synthetic data
+seeding <- tibble(date = as.Date("2020-01-15"), amount = 10, place = "1")
+
+# Old seeding
+# seeding <- data_frame(date=as.Date(c("2020-03-01","2020-03-02","2020-03-03")),
+#                    amount=c(3,5,2))
+
+# Observations are synthetic data
+S0 <- 1e5  # initial number of susceptibles in synthetic population
+
+data_file <- str_c(config$name, "_tofit.csv")
+if (params$redo_fit) {
+  to_fit <- synthetic_data(S0, seeding, config)
+  write_csv(to_fit, data_file)
+} else {
+  to_fit <- read_csv(data_file, col_types = cols())
+}
+
+
+##Plot the epidemic to fit
+to_fit %>% 
+  select(date, incidI, incidD, incidH)%>%
+  pivot_longer(-date, values_to="N", names_to="comp") %>%
+  ggplot(aes(x=date,y=N, color=comp, shape=comp)) +
+  geom_line(alpha=.5) +
+  scale_y_sqrt() +
+  facet_wrap(~comp) +
+  theme_bw()
+
+```
+
+
+```{r run_inference, echo=FALSE, message=FALSE, warning=FALSE}
+# Create directory for testint outputs
+dir_out <- paste0("../../model_output/", config$name, "/")
+if(!dir.exists(dir_out)) dir.create(dir_out)
+
+epi_dir <- paste0(dir_out, "sims/")  # path to accepted simulation outputs
+if(!dir.exists(epi_dir)) dir.create(epi_dir)
+
+npi_file <-  paste0(dir_out, "npi_samples.csv")  # path to all npis samples
+seeding_file <-  paste0(dir_out, "seeding_samples.csv")  # path to all seeding samples
+loglik_file <-  paste0(dir_out, "loglik_samples.csv")  # path to all neg log-likelihood samples
+
+# Bounds for initial seeding randomly
+date_bounds <- as.Date(c("2020-01-01", "2020-03-30"))
+
+if (params$redo_fit) {
+  ##Do the fit.
+  inference::single_loc_inference_test(to_fit = to_fit,
+                                       S0 = S0,
+                                       seeding = seeding,
+                                       config = config,
+                                       date_bounds = date_bounds,
+                                       n_slots = n_slots,
+                                       ncores = ncores,
+                                       npi_file = npi_file,
+                                       seeding_file = seeding_file,
+                                       loglik_file = loglik_file,
+                                       epi_dir = epi_dir)
+}
+```
+
+
+```{r unpack, echo=FALSE, message=FALSE, warning=FALSE}
+# Unpack results
+# Simulations
+sim_files <- list.files(epi_dir, full.names = T)
+sim_samples <- map_df(sim_files, function(x) read_csv(x, col_types = cols()) %>% 
+                        mutate(slot = str_extract(x, "(?<=slot_)[0-9]+(?=_)"),
+                               index = str_extract(x, "(?<=index_)[0-9]+(?=\\.)"))) %>%
+  mutate(slot = factor(slot)) %>% 
+  group_by(slot) %>% 
+  filter(index == max(index))
+
+long_sim_samples <- gather(sim_samples, var, value, -time, -geoid, -slot, -index) %>% 
+  mutate(type = "sim")
+
+# Seeding
+seeding_all_samples <- read_csv(seeding_file, col_types = cols()) %>% mutate(slot = factor(slot))
+seeding_samples <- seeding_all_samples %>%
+  group_by(slot) %>% 
+  filter(index == max(index))
+
+# NPIs
+npi_all_samples <- read_csv(npi_file, col_types = cols()) %>% mutate(slot = factor(slot))
+npi_samples <- npi_all_samples %>%
+  group_by(slot) %>% 
+  filter(index == max(index))
+
+# Logliks
+loglik_all_samples <- read_csv(loglik_file, col_types = cols()) %>% mutate(slot = factor(slot))
+loglik_samples <- loglik_all_samples %>%
+  group_by(slot) %>% 
+  filter(index == max(index))
+```
+
+
+```{r lltrace, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Neg-loglik traces per slot"}
+obs_data <- to_fit %>% 
+  gather(var, value, -date, -geoid) 
+
+# - - - - 
+# MCMC traces
+loglik_all_samples %>% 
+  filter(index > 15) %>% 
+  ggplot(aes(x = index, y = ll, group = slot)) +
+  geom_line(alpha = .1) +
+  theme_bw()
+```
+
+```{r seedtrace, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Seeding traces per slot (amount and date, horizontal red lines indicate values used to simulate)"}
+seeding_all_samples %>% 
+  gather(var, value, -place, -slot, -index) %>% 
+  ggplot(aes(x = index, y = value, group = slot)) +
+  geom_line(alpha = .1) +
+  geom_hline(data =  gather(seeding, var, value, -place),
+             aes(yintercept = value), color = "red", size = 1, lty = 2) +
+  facet_wrap(~var, scales = "free") +
+  theme_bw()
+```
+
+```{r npitrace, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="NPI traces per slot (reduction for basic R0 and subsequent NPI, horizontal red lines indicate values used to simulate)"}
+npis <- npis_dataframe(config)
+
+
+npi_all_samples %>% 
+  ggplot(aes(x = index, y = reduction, group = slot)) +
+  geom_line(alpha = .1) +
+  geom_hline(data =  distinct(npis, reduction, npi_name, geoid),
+             aes(yintercept = reduction), color = "red", size = 1, lty = 2) +
+  facet_wrap(~npi_name, scales = "free") +
+  theme_bw()
+```
+
+```{r seedhist, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Histogram of final sample per slot of seeding values, vertical red lines indicate values used to simulate"}
+seeding_samples %>% 
+  gather(var, value, -place, -slot, -index) %>% 
+  ggplot() +
+  geom_histogram(aes(x = value)) +
+  geom_vline(data =  gather(seeding, var, value, -place),
+             aes(xintercept = value), color = "red", size = 1, lty = 2) +
+  facet_wrap(~var, scales = "free") +
+  theme_bw()
+```
+
+```{r npihist, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Histogram of final sample per slot of NPI values, vertical red lines indicate values used to simulate"}
+
+ggplot(npi_samples) +
+  geom_histogram(aes(x = reduction)) +
+  geom_vline(data = distinct(npis, reduction, npi_name, geoid), 
+             aes(xintercept = reduction), color = "red", size = 1, lty = 2) +
+  facet_wrap(~npi_name, scales = "free") +
+  theme_bw()
+```
+
+```{r epidraws, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Draws of simulated epidemic trajectories (blue) and synthetic data on which calibration was done (black)."}
+ggplot(long_sim_samples, aes(x = time, y = value)) +
+  geom_line(aes(group = slot), alpha = .1, color = "blue") + 
+  geom_point(data = obs_data, aes(x = date), size = .1, alpha = .5) +
+  facet_wrap(~var, scales = "free") +
+  theme_bw()
+```
+
+```{r epiribbons, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Draws of simulated epidemic trajectories (blue ribbons, dark and light blues gives the 50% and 95% simulation envelops resepectively) and synthetic data on which calibration was done (black)."}
+long_sim_samples %>% 
+  group_by(time, geoid, var) %>% 
+  summarise(q025 = quantile(value, .025),
+            q25 = quantile(value, .25),
+            q75 = quantile(value, .75),
+            q975 = quantile(value, .975)) %>% 
+  ggplot(aes(x = time)) +
+  geom_ribbon(aes(ymin = q025, ymax = q975), alpha = .2, fill = "blue") + 
+  geom_ribbon(aes(ymin = q25, ymax = q75), alpha = .5, fill = "blue") + 
+  geom_line(data = obs_data, aes(x = date, y = value), size = .4) +
+  facet_wrap(~var, scales = "free") +
+  theme_bw()
+```
 
 
 
 ```{r}
-
-## First generate an epi curve....seeded by 1 cases on March 1
-## with a 50% reduction srtarting March 21 and continuing.
-## indefinitely
-times<-seq(as.Date("2020-01-01"), as.Date("2020-8-01"),by="day")
-
-beta_mults <- rep(1, length(times))
-beta_mults[times>"2020-04-15"]<-0.5
-
-seed <- data_frame(date=as.Date(c("2020-03-01","2020-03-02","2020-03-03")),
-                   amount=c(3,5,2))
-
-
-
-
-to_fit <- simulate_single_epi(times, 
-                              seeding=seed,
-                              S0=100000,
-                              R0=2.5,
-                              gamma=1/4,
-                              sigma=1/5.2,
-                              alpha=1,
-                              beta_mults = beta_mults)
-
-
-
-
-
-
-#death distribution
-time_onset_death_pars = c(log(11.25), log(1.15))
-
-##Translate into deaths and hospitalizatoins
-to_fit <-to_fit %>% 
-  filter(comp=="incidI")%>%
-  rename(incidI=N)%>%
-  mutate(p_death_inf_scaled = 0.005,
-         p_hosp_inf_scaled = 0.05)%>%
-  mutate(uid="1")
-
-
- to_fit <-inner_join(to_fit,
-                     hospitalization::hosp_create_delay_frame("incidI", 
-                                                              to_fit$p_death_inf_scaled, 
-                                            to_fit, time_onset_death_pars,"D"))
- 
- to_fit <- inner_join(to_fit,
-                     hospitalization::hosp_create_delay_frame("incidI", 
-                                                              to_fit$p_hosp_inf_scaled, 
-                                            to_fit, time_onset_death_pars,"H"))
-
-
-  
-
-
- 
-##Plot the epidemic to fit
-to_fit%>%select(time, incidI, incidD, incidH)%>%
-  pivot_longer(-time, values_to="N", names_to="comp")%>%
-  ggplot(aes(x=time,y=N, color=comp, shape=comp))+
-  geom_line(alpha=.5)+
-  scale_y_sqrt()+
-  facet_wrap(~comp)
+# PREVIOUS
+# 
+# 
+# ## First generate an epi curve....seeded by 1 cases on March 1
+# ## with a 50% reduction srtarting March 21 and continuing.
+# ## indefinitely
+# times<-seq(as.Date("2020-01-01"), as.Date("2020-8-01"),by="day")
+# 
+# beta_mults <- rep(1, length(times))
+# beta_mults[times>"2020-04-15"]<-0.5
+# 
+# seed <- data_frame(date=as.Date(c("2020-03-01","2020-03-02","2020-03-03")),
+#                    amount=c(3,5,2))
+# 
+# 
+# 
+# 
+# to_fit <- simulate_single_epi(times, 
+#                               seeding=seed,
+#                               S0=100000,
+#                               R0=2.5,
+#                               gamma=1/4,
+#                               sigma=1/5.2,
+#                               alpha=1,
+#                               beta_mults = beta_mults)
+# 
+# 
+# 
+# 
+# 
+# 
+# #death distribution
+# time_onset_death_pars = c(log(11.25), log(1.15))
+# 
+# ##Translate into deaths and hospitalizatoins
+# to_fit <-to_fit %>% 
+#   filter(comp=="incidI")%>%
+#   rename(incidI=N)%>%
+#   mutate(p_death_inf_scaled = 0.005,
+#          p_hosp_inf_scaled = 0.05)%>%
+#   mutate(uid="1")
+# 
+# 
+#  to_fit <-inner_join(to_fit,
+#                      hospitalization::hosp_create_delay_frame("incidI", 
+#                                                               to_fit$p_death_inf_scaled, 
+#                                             to_fit, time_onset_death_pars,"D"))
+#  
+#  to_fit <- inner_join(to_fit,
+#                      hospitalization::hosp_create_delay_frame("incidI", 
+#                                                               to_fit$p_hosp_inf_scaled, 
+#                                             to_fit, time_onset_death_pars,"H"))
+# 
+# 
+#   
+# 
+# 
+#  
+# ##Plot the epidemic to fit
+# to_fit%>%select(time, incidI, incidD, incidH)%>%
+#   pivot_longer(-time, values_to="N", names_to="comp")%>%
+#   ggplot(aes(x=time,y=N, color=comp, shape=comp))+
+#   geom_line(alpha=.5)+
+#   scale_y_sqrt()+
+#   facet_wrap(~comp)
 
 ```
 
