@@ -6,11 +6,13 @@ on:
       - master
       - dev
       - dataseed
+      - inference
   pull_request:
     branches:
       - master
       - dev
       - dataseed
+      - inference
 
 jobs:
   unit-tests:
