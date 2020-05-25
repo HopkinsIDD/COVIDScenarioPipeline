@@ -141,16 +141,8 @@ class BatchJobHandler(object):
         s3_cp_run_script = f"aws s3 cp {runner_script_path} $PWD/run-covid-pipeline"
         command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
 
-        # Create first job
-        cur_env_vars = env_vars.copy()
-        if self.restart_from:
-            cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from})
-        cur_env_vars.append({"name": "JOB_NAME", "value": f"{job_name}_block0"})
-
         batch_client = boto3.client('batch')
-
-        ctr = 0
-        for (s, d) in itertools.product(scenarios, p_death_names):
+        for ctr, (s, d) in enumerate(itertools.product(scenarios, p_death_names)):
             cur_job_name = f"{job_name}_{s}_{d}"
             # Create first job
             cur_env_vars = base_env_vars.copy()
@@ -160,7 +152,7 @@ class BatchJobHandler(object):
                 cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from})
             cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block0"})
 
-            cur_job_queue = job_queues[ctr % len(job_queues])
+            cur_job_queue = job_queues[ctr % len(job_queues)]
             last_job = batch_client.submit_job(
                 jobName=f"{cur_job_name}_block0",
                 jobQueue=cur_job_queue,
@@ -178,7 +170,7 @@ class BatchJobHandler(object):
             block_idx = 1
             while block_idx < self.num_blocks:
                 cur_env_vars = base_env_vars.copy()
-                cur_env_vars.append({"name": "COVID_SCENARIOS", "value": s)
+                cur_env_vars.append({"name": "COVID_SCENARIOS", "value": s})
                 cur_env_vars.append({"name": "COVID_DEATHRATES", "value": d})
                 cur_env_vars.append({
                     "name": "S3_LAST_JOB_OUTPUT",
@@ -216,7 +208,7 @@ class BatchJobHandler(object):
             s3_cp_run_script = f"aws s3 cp {copy_script_path} $PWD/run-covid-pipeline"
             cp_command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
 
-            print(f"Launching {job_name}_copy...")
+            print(f"Launching {cur_job_name}...")
             copy_job = batch_client.submit_job(
                 jobName=f"{cur_job_name}_copy",
                 jobQueue=cur_job_queue,
