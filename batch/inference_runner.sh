@@ -56,7 +56,7 @@ error_handler() {
 		aws s3 cp errorfile $S3_RESULTS_PATH/failures/$AWS_BATCH_JOB_ARRAY_INDEX
 		exit 0
 	else
-		echo $1
+		echo $msg
 		exit 1
 	fi
 }
