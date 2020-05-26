@@ -46,6 +46,11 @@ jobs:
           setwd("R/pkgs/report_generation")
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
+      - name: Run inference tests
+        run: |
+          setwd("R/pkgs/inference")
+          devtools::test(stop_on_failure=TRUE)
+        shell: Rscript {0}
       - name: Run integration tests
         env: 
           CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
