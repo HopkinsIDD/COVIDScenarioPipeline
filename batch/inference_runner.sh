@@ -12,7 +12,7 @@ set -x
 # Check to see if we should bail on this run because of accumulated errors in other runs
 failure_count=$(aws s3 ls $S3_RESULTS_PATH/failures/ | wc -l)
 if [ $failure_count -gt 10 ]; then
-	echo "Failing run because number of child job failurs is $failure_count"
+	echo "Failing run because total number of previous child job failures is $failure_count"
 	exit 1
 fi
 
