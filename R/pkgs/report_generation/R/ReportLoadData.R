@@ -702,6 +702,9 @@ load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
   require(magrittr)
   
   us_data_only = (countries == c("US"))
+  if(us_data_only) {
+    message("For US data, consider using load_usafacts_for_report() instead of load_jhu_csse_for_report().")
+  }
 
   jhu_cases <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
                                    case_data_dir = jhu_data_dir,
@@ -733,6 +736,40 @@ load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
                   NincidDeathsObs = NcumulDeathsObs - dplyr::lag(NcumulDeathsObs)) %>%
     na.omit()
   return(jhu_dat)
+}
+
+##' Load USAFacts data
+##'
+##' @param data_dir data directory to download raw USAFacts data to
+##' @param states character vector of states (state abbreviations is US-only)
+##' 
+##' @return a data frame with columns
+##'         - date
+##'         - NcumulConfirmed
+##'         - NcumulDeathsObs
+##'         - NincidConfirmed
+##'         - NincidDeathsObs
+##'         
+##' @export
+load_USAFacts_for_report <- function(data_dir = "data/case_data",
+                                     states) {
+
+  require(magrittr)
+
+  usaf_dat <- covidcommon::get_USAFacts_data(case_data_filename = file.path(data_dir,"USAFacts_case_data.csv"),
+                                              death_data_filename = file.path(data_dir, "USAFacts_death_data.csv"))
+  usaf_dat <- 
+    usaf_dat %>%
+    dplyr::mutate(date = as.Date(Update)) %>%
+    dplyr::filter(source %in% states) %>%
+    dplyr::group_by(date) %>%
+    dplyr::summarize(NcumulConfirmed = sum(Confirmed, na.rm = TRUE), NcumulDeathsObs = sum(Deaths, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(date) %>%
+    dplyr::mutate(NincidConfirmed  = NcumulConfirmed - dplyr::lag(NcumulConfirmed),
+                  NincidDeathsObs = NcumulDeathsObs - dplyr::lag(NcumulDeathsObs)) %>%
+    na.omit()
+  return(usaf_dat)
 }
 
 
