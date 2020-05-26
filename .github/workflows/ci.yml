@@ -6,17 +6,19 @@ on:
       - master
       - dev
       - dataseed
+      - inference
   pull_request:
     branches:
       - master
       - dev
       - dataseed
+      - inference
 
 jobs:
   unit-tests:
     runs-on: ubuntu-18.04
     container:
-      image: docker://hopkinsidd/covidscenariopipeline:latest-dev
+      image: docker://hopkinsidd/covidscenariopipeline:latest-inference
       options: --user root
     steps:
       - name: Checkout
