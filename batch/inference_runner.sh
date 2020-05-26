@@ -50,7 +50,7 @@ fi
 
 error_handler() {
 	msg=$1
-	if [ $AWS_BATCH_JOB_ATTEMPT -eq 3]; then
+	if [ $AWS_BATCH_JOB_ATTEMPT -eq 3 ]; then
 		echo $JOB_NAME >> errorfile
 		echo $msg >> errorfile
 		aws s3 cp errorfile $S3_RESULTS_PATH/failures/$AWS_BATCH_JOB_ARRAY_INDEX
