@@ -1,6 +1,8 @@
 
 
 library(tidyverse)
+library(covidImportation)
+
 
 
 ## make underreporting data
@@ -335,6 +337,53 @@ format(object.size(usa_oag_aggr_travel), "Mb")
 usethis::use_data(usa_oag_aggr_travel, overwrite = TRUE)
 #write_csv(dest_data_aggr_usa, paste0("data_other/", "usa_oag_aggr_lite.csv"))
 #save(dest_data_aggr_usa, file=paste0("data_other/", "usa_oag_aggr_lite.rda"))
+
+
+
+# ~ Make Monthly Mean USA Data ---------------------------------------------------------
+
+dest_data_aggr_orig <- readr::read_csv(paste0("data_other/", "complete_oag_aggr.csv"))
+#dest_data_aggr_orig <- make_aggr_oag_travel()
+usa_outbound_monthly <- dest_data_aggr_orig %>% 
+  as.data.frame() %>% 
+  dplyr::filter(dep_country=="USA") %>% 
+  group_by(arr_country, t_month) %>%
+  summarise(travelers=round(sum(travelers_mean, na.rm = TRUE), 1)) %>%
+  mutate(arr_country_name = globaltoolboxlite::get_country_name_ISO3(arr_country))
+
+format(object.size(usa_outbound_monthly), "Mb")
+
+usa_inbound_monthly <- dest_data_aggr_orig %>% 
+  as.data.frame() %>% 
+  dplyr::filter(arr_country=="USA") %>% 
+  group_by(dep_country, t_month) %>%
+  summarise(travelers=round(sum(travelers_mean, na.rm = TRUE), 1)) %>%
+  mutate(dep_country_name = globaltoolboxlite::get_country_name_ISO3(dep_country))
+
+usa_monthly_travel <- full_join(usa_inbound_monthly %>% rename(travelers_inbound = travelers, country = dep_country, country_name = dep_country_name), 
+                                usa_outbound_monthly %>% rename(travelers_outbound = travelers, country = arr_country, country_name = arr_country_name)) %>%
+  dplyr::select(t_month, country, country_name, everything())
+
+usa_monthly_travel <- usa_monthly_travel %>% 
+  mutate(region = globaltoolboxlite::get_region(country),
+         subregion = globaltoolboxlite::get_subregion(country),
+         whoregion = globaltoolboxlite::get_whoregion(country))
+
+write_csv(usa_monthly_travel, paste0("data_other/", "usa_monthly_travel.csv"))
+
+
+# annual
+
+usa_annual <- usa_monthly_travel %>% 
+  group_by(country, country_name) %>% 
+  summarise(travelers_inbound = sum(travelers_inbound), 
+            travelers_outbound = sum(travelers_outbound)) %>%
+  mutate(region = globaltoolboxlite::get_region(country),
+         subregion = globaltoolboxlite::get_subregion(country),
+         whoregion = globaltoolboxlite::get_whoregion(country))
+
+write_csv(usa_annual, paste0("data_other/", "usa_annual_travel.csv"))
+
 
 
 
