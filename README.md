@@ -6,7 +6,7 @@ We recommend that most new users use the code from the stable `master` branch. P
 
 For more information on getting started, please visit our [Getting Started wiki](https://github.com/HopkinsIDD/COVID19_Minimal/wiki/Getting-Started) at [HopkinsIDD/COVID19_Minimal](https://github.com/HopkinsIDD/COVID19_Minimal). We are trying to keep this page up-to-date for use with the `master` branch.
 
-This is an open-source code licensed under GPL v3.0. 
+This open-source project is licensed under GPL v3.0.
 
 
 # Tools for using this repository
