@@ -1,6 +1,8 @@
 ---
 title: "Setting up CSP for a Country (outside the US)"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 <br>
