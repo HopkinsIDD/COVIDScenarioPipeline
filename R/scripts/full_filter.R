@@ -52,6 +52,8 @@ if(is.na(opt$slots)) {
 }
 
 library(foreach)
+library(parallel)
+library(doParallel)
 cl <- parallel::makeCluster(opt$j)
 doParallel::registerDoParallel(cl)
 foreach(scenario = scenarios) %:%

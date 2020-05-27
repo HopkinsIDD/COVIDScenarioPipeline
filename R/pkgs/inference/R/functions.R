@@ -137,13 +137,13 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
 ##' Fuction perturbs an npi parameter file based on
 ##' user-specified distributions
 ##'
-##' @param npis the original npis.
+##' @param snpi the original npis.
 ##' @param intervention_settings a list of perturbation specificationss
 ##'
 ##'
 ##' @return a pertubed data frame
 ##' @export
-perturb_npis <- function(npis, intervention_settings) {
+perturb_snpi <- function(snpi, intervention_settings) {
     ##Loop over all interventions
     for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
 
@@ -155,31 +155,54 @@ perturb_npis <- function(npis, intervention_settings) {
             pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
 
             ##get the npi values for this distribution
-            ind <- (npis[["npi_name"]] == intervention)
+            ind <- (snpi[["npi_name"]] == intervention)
 
             ##add the pertubation...for now always parameterized in terms of a "reduction"
-            npis_new <- npis[["reduction"]][ind] + pert_dist(sum(ind))
+            snpi_new <- snpi[["reduction"]][ind] + pert_dist(sum(ind))
 
             ##check that this is in bounds (equivalent to having a positive probability)
             in_bounds_index <- covidcommon::as_density_distribution(
                                                 intervention_settings[[intervention]][['value']]
-                                            )(npis_new) > 0
+                                            )(snpi_new) > 0
 
             ##return all in bounds proposals
-            npis$reduction[ind][in_bounds_index] <- npis_new[in_bounds_index]
+            snpi$reduction[ind][in_bounds_index] <- snpi_new[in_bounds_index]
         }
     }
-    return(npis)
+    return(snpi)
 }
 
+##' Fuction perturbs an npi parameter file based on
+##' user-specified distributions
+##'
+##' @param hpar the original hospitalization parameters.
+##' @param intervention_settings a list of perturbation specifications
+##'
+##'
+##' @return a pertubed data frame
+##' @export
+perturb_hpar <- function(hpar, intervention_settings) {
+    ##Loop over all interventions
+
+    interventions <- c('p_confirmed_inf')
+
+    for(intervention in interventions){
+      hpar[hpar$parameter == intervention,]$value <-
+        hpar[hpar$parameter == intervention,]$value +
+        rnorm(sum(hpar$parameter == intervention),0,.01)
+      hpar[hpar$parameter == intervention,]$value <- pmax(pmin(hpar$value[hpar$parameter == intervention],1),0)
+    }
+
+    return(hpar)
+}
 ##' Function to go through to accept or reject seedings in a block manner based
 ##' on a geoid specific likelihood.
 ##'
 ##'
 ##' @param seeding_orig original seeding data frame (must have column place)
 ##' @param seeding_prop proposal seeding (must have column place)
-##' @param npis_orig original npi data frame  (must have column geoid)
-##' @param npis_prop proposal npi data frame  (must have column geoid)
+##' @param snpi_orig original npi data frame  (must have column geoid)
+##' @param snpi_prop proposal npi data frame  (must have column geoid)
 ##' @param orig_lls original ll data frame  (must have column ll and geoid)
 ##' @param prop_lls proposal ll fata frame (must have column ll and geoid)
 ##' @return a new data frame with the confirmed seedin.
@@ -187,13 +210,16 @@ perturb_npis <- function(npis, intervention_settings) {
 accept_reject_new_seeding_npis <- function(
   seeding_orig,
   seeding_prop,
-  npis_orig,
-  npis_prop,
+  snpi_orig,
+  snpi_prop,
+  hpar_orig,
+  hpar_prop,
   orig_lls,
   prop_lls
 ) {
   rc_seeding <- seeding_orig
-  rc_npis <- npis_orig
+  rc_snpi <- snpi_orig
+  rc_hpar <- hpar_orig
 
   if(!all(orig_lls$geoid == prop_lls$geoid)){stop("geoids must match")}
   ##draw accepts/rejects
@@ -205,10 +231,11 @@ accept_reject_new_seeding_npis <- function(
 
   for (place in orig_lls$geoid[accept]) {
     rc_seeding[rc_seeding$place ==place, ] <- seeding_prop[seeding_prop$place ==place, ]
-    rc_npis[rc_npis$geoid == place,] <- npis_prop[npis_prop$geoid == place, ]
+    rc_snpi[rc_snpi$geoid == place,] <- snpi_prop[snpi_prop$geoid == place, ]
+    rc_hpar[rc_hpar$geoid == place,] <- hpar_prop[hpar_prop$geoid == place, ]
   }
 
-  return(list(seeding=rc_seeding, npis=rc_npis, lls = orig_lls))
+  return(list(seeding=rc_seeding, snpi=rc_snpi, hpar = rc_hpar, lls = orig_lls))
 }
 
 
