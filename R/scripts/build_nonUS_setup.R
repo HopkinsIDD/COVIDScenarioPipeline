@@ -72,7 +72,7 @@ if(opt$w){
 }
 
 # Save population geodata
-names(census_data) <- c("geoid","ADMIN0","pop")
+names(census_data) <- c("geoid","admin0","pop")
 write.csv(file = file.path(outdir,'geodata.csv'), census_data,row.names=FALSE)
 
 

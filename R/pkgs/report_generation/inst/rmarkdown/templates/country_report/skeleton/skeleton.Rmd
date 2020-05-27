@@ -64,7 +64,7 @@ reportCountryISO3 <- params$country_iso3
 config <- covidcommon:::load_config(params$config_file)
 geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
                              geoid_len=config$spatial_setup$geoid_len)
-included_geoids <- (geodata %>% filter(ADMIN1==reportCountryISO3))$geoid
+included_geoids <- (geodata %>% filter(ADMIN0==reportCountryISO3))$geoid
 
 scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 
