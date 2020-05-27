@@ -1,0 +1,115 @@
+## This config file will not generate a makefile as currently configured.
+## We want to show all of the options available, even though some are not appropriately general for this scope
+## In particular, importation and the associated FolderDraw seeding method only work for sets of US states.
+## The comments in this file explain how to modify it based on your use case
+## Items that must be changed for the process to work are designated by < >.
+## Some items in the config can be removed, and we have tried to note these with comments as well.
+
+name: testInference
+start_date: 2020-01-01
+end_date: 2020-12-31
+dt: 0.25
+test_dir: model_output
+## dynfilter_path: data/filter.txt ## this method of filtering is not currently working
+seir:
+  parameters:
+    sigma: 1 / 5.2
+    gamma:
+      distribution: fixed
+      value: 1 / 4
+    R0s:
+      distribution: fixed
+      value: 2.5
+
+
+spatial_setup:
+  nodenames: geoid
+  
+seeding: ## If removing the importation, comment out this seeding block
+  method: FolderDraw
+  # method: PoissonDistributed
+  folder_path: importation/minimal/
+  lambda_file: data/minimal/seeding.csv
+  perturbation_sd: 1
+  
+interventions:
+  scenarios:
+    local_variation:
+      template: ReduceR0
+      value:
+        distribution: truncnorm
+        mean: 0
+        sd: .1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -.1
+        b: .1
+    test:
+      template: ReduceR0
+      period_start_date: 2020-03-25
+      value:
+        distribution: truncnorm
+        mean: 0.7
+        sd: .1
+        a: 0
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -.1
+        b: .1
+
+hospitalization:
+  paths:
+    output_path: hospitalization
+  parameters:
+    time_hosp: [log(7), 0.3]
+    time_disch: [log(11.5), log(1.22)]
+    time_ICU: [log(3), 0.3]
+    time_ICUdur: [log(8), 0.2]
+    time_ventdur: [log(7), 0.2]
+    time_vent: [log(1), 0.4]
+    time_onset_death: [2.84, 0.52]
+    p_death: [.01]
+    p_death_names: ["high"]
+    p_hosp_inf: [0.1]
+    p_ICU: [.2]
+    p_vent: [.8]
+    p_death_rate: [0.1]
+    time_hosp_death: [2.1, 1.2]
+
+
+filtering:
+  simulations_per_slot: 100
+  do_filtering: TRUE
+  data_path: data/test_data.csv
+  likelihood_directory: importation/likelihood/
+  statistics:
+    sum_deaths:
+      name: sum_deaths
+      aggregator: sum
+      period: "1 days"
+      sim_var: incidD
+      data_var: incidD
+      remove_na: TRUE
+      add_one: TRUE
+      likelihood:
+        dist: nbinom
+        param: [1]
+    sum_hosp:
+      name: sum_hosp
+      aggregator: sum
+      period: "1 days"
+      sim_var: incidH
+      data_var: incidH
+      remove_na: TRUE
+      add_one: TRUE
+      likelihood:
+        dist: nbinom
+        param: [1]
+

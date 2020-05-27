@@ -74,24 +74,130 @@ get_islandareas_data <- function() {
   return(nyt_data)
 }
 
+# There are three different ways of dealing with negative incidence counts, specified by the type argument
+# "high": highest estimate; this modifies the cumulative column to be the cummax of the previous cumulative counts
+# "low": method: Assume all negative incidents are corrections to previous reports.
+#               So, reduce previous reports to make incidents not decrease.
+# "mid" method: Combination of both low and high
+#               For consecutive negatives, the first negative will be modified so that the
+#               cumulative is the cummax so far.
+#               For the following negatives, use the low method: reduce previous reports.
+# For get_USAFacts_data(), this is always the default ("mid"), but the other code is here for posterity.
+fix_negative_counts_single_geoid <- function(.x,.y, incid_col_name, date_col_name, cum_col_name, type){
+  original_names <- names(.x)
+
+  .x <- dplyr::arrange(.x,!!rlang::sym(date_col_name))
+
+  # Calculate new cumulative column
+  calc_col_name <- paste(cum_col_name, type, sep="_")
+
+  if (type == "high") {
+
+    .x[[calc_col_name]] <- .x[[cum_col_name]]
+    .x[[calc_col_name]][is.na(.x[[calc_col_name]]) ] <- 0 # Fixes NA values
+    .x[[calc_col_name]] <- cummax(.x[[calc_col_name]])
+
+  } else if (type == "low") {
+
+    .x[[calc_col_name]] <- .x[[cum_col_name]]
+    .x[[calc_col_name]][is.na(.x[[calc_col_name]]) ] <- Inf # Fixes NA values
+    .x[[calc_col_name]] <- rev(cummin(rev(.x[[calc_col_name]])))
+    .x[[calc_col_name]][!is.finite(.x[[calc_col_name]]) ] <- 0 # In case last thing in row is NA/infinity
+    .x[[calc_col_name]] <- cummax(.x[[calc_col_name]]) # Replace 0's with cummax
+
+  } else if (type == "mid") {
+
+    .x[[calc_col_name]] <- .x[[cum_col_name]]
+
+    ## In mid, do a local max followed by a global min (like "low")
+
+    # Get indices where the cumulative count is bigger than the one after it
+    # i.e. where incidence is negative next time
+    unlagged <- .x[[calc_col_name]]
+    unlagged[is.na(.x[[calc_col_name]]) ] <- -Inf # Fixes NA values
+    lagged <- dplyr::lag(.x[[calc_col_name]])
+    lagged[is.na(.x[[calc_col_name]]) ] <- Inf # Fixes NA values
+
+    max_indices <- which(unlagged < lagged)
+    .x[[calc_col_name]][max_indices] <- lagged[max_indices]
+
+    # Global min
+    .x[[calc_col_name]][!is.finite(.x[[calc_col_name]]) ] <- Inf
+    .x[[calc_col_name]] <- rev(cummin(rev(.x[[calc_col_name]])))
+    .x[[calc_col_name]][!is.finite(.x[[calc_col_name]]) ] <- 0
+    .x[[calc_col_name]] <- cummax(.x[[calc_col_name]])
+
+  } else {
+
+    stop(paste("Invalid fix_negative_counts type. Must be ['low', 'med', 'high']. Actual: ", type))
+
+  }
+
+  .x[[cum_col_name]] <- .x[[calc_col_name]]
+
+  # Recover incidence from the new cumulative
+  .x[[incid_col_name]] <- c(.x[[calc_col_name]][[1]], diff(.x[[calc_col_name]]))
+
+  .x <- .x[,original_names]
+  for(col in names(.y)){
+    .x[[col]] <- .y[[col]]
+  }
+
+  return(.x)
+}
+
+# Add missing dates, fix counts that go negative, and fix NA values
+#
+# See fix_negative_counts_single_geoid() for more details on the algorithm,
+# specified by argument "type"
+fix_negative_counts <- function(
+  df,
+  cum_col_name,
+  incid_col_name,
+  date_col_name = "Update",
+  min_date = min(df[[date_col_name]]),
+  max_date = max(df[[date_col_name]]),
+  type="mid" # "low" or "high"
+  ) {
+
+  if(nrow(dplyr::filter(df, !!incid_col_name < 0)) > 0) {
+    return(df)
+  }
+
+  df <- df %>%
+    dplyr::group_by(FIPS,source) %>%
+    # Add missing dates
+    tidyr::complete(!!rlang::sym(date_col_name) := min_date + seq_len(max_date - min_date)-1) %>%
+    dplyr::group_map(fix_negative_counts_single_geoid,
+                          incid_col_name=incid_col_name, 
+                          date_col_name=date_col_name, 
+                          cum_col_name=cum_col_name,
+                          type=type) %>%
+    do.call(what=rbind)
+
+  return(df)
+}
 
 ##'
-##' Pull USAFacts data
+##' Pull case and death count data from USAFacts
 ##'
-##' Pulls the USAFacts total case count data and total death count data
+##' Pulls the USAFacts cumulative case count and death data. Calculates incident counts.
+##' USAFacts does not include data for all the territories (aka island areas). These data are pulled from NYTimes.
 ##'
 ##' Returned data preview:
-##' 'data.frame': 330225 obs. of  5 variables:
-##' $ FIPS     : chr  "01001" "01001" "01001" "01001" ...
-##' $ source   : chr  "AL" "AL" "AL" "AL" ...
-##' $ Update   : Date, format: "2020-01-22" "2020-01-23" ...
-##' $ Confirmed: num  0 0 0 0 0 0 0 0 0 0 ...
-##' $ Deaths   : num  0 0 0 0 0 0 0 0 0 0 ...
-##'
-##' @param case_data_filename where case data will be stored
-##' @param death_data_filename where death data will be stored
+##' tibble [352,466 × 7] (S3: grouped_df/tbl_df/tbl/data.frame)
+##'  $ FIPS       : chr [1:352466] "00001" "00001" "00001" "00001" ...
+##'  $ source     : chr [1:352466] "NY" "NY" "NY" "NY" ...
+##'  $ Update     : Date[1:352466], format: "2020-01-22" "2020-01-23" ...
+##'  $ Confirmed  : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ Deaths     : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ incidI     : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ incidDeath : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
 ##'
 ##' @return the case data frame
+##'
+##' @importFrom covidImportation est_daily_incidence
+##' @importFrom dplyr rename group_modify group_by
 ##'
 ##' @export
 ##' 
@@ -103,8 +209,26 @@ get_USAFacts_data <- function(case_data_filename = "data/case_data/USAFacts_case
   usafacts_case <- download_USAFacts_data(case_data_filename, USAFACTS_CASE_DATA_URL, "Confirmed")
   usafacts_death <- download_USAFacts_data(death_data_filename, USAFACTS_DEATH_DATA_URL, "Deaths")
 
-  usafacts_data <- cbind(usafacts_case, usafacts_death["Deaths"])
+  usafacts_data <- dplyr::full_join(usafacts_case, usafacts_death)
   usafacts_data <- rbind(usafacts_data, get_islandareas_data()) # Append island areas
+
+  # Create columns incidI and incidDeath
+  usafacts_data <- dplyr::group_modify(
+    dplyr::group_by(
+      usafacts_data,
+      FIPS
+    ),
+    function(.x,.y){
+      .x$incidI = c(.x$Confirmed[1],diff(.x$Confirmed))
+      .x$incidDeath = c(.x$Deaths[1],diff(.x$Deaths,))
+      return(.x)
+    }
+  )
+
+  # Fix incidence counts that go negative and NA values or missing dates
+  usafacts_data <- fix_negative_counts(usafacts_data, "Confirmed", "incidI")
+  usafacts_data <- fix_negative_counts(usafacts_data, "Deaths", "incidDeath")
+
   return(usafacts_data)
 }
 
