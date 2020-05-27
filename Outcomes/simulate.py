@@ -2,176 +2,103 @@
 
 ##
 # @file
-# @brief Runs hospitalization model
+# @brief Runs outcomes model after an SEIR run
 #
 # @details
 #
 # ## Configuration Items
 #
 # ```yaml
-# name: <string>
-# start_date: <date>
-# end_date: <date>
-# dt: float
-# dynfilter_path: <path to file> optional. Will not do filter step if not present
-# nsimulations: <integer> overridden by the -n/--nsim script parameter
-# spatial_setup:
-#   setup_name: <string>
-#   base_path: <path to directory>
-#   geodata: <path to file>
-#   mobility: <path to file>
-#   nodenames: <string>
-#   popnodes: <string>
-#
-# seir:
-#   parameters
-#     alpha: <float>
-#     sigma: <float>
-#     gamma: <random distribution>
-#     R0s: <random distribution>
-#
-# interventions:
-#   scenarios:
-#     - <scenario 1 name>
-#     - <scenario 2 name>
-#     - ...
-#   settings:
-#     <scenario 1 name>:
-#       template: choose one - "Reduce", ReduceR0", "Stacked"
-#       ...
-#     <scenario 2 name>:
-#       template: choose one - "Reduce", "ReduceR0", "Stacked"
-#       ...
-#
-# seeding:
-#   method: choose one - "PoissonDistributed", "FolderDraw"
-# ```
-#
-# ### interventions::scenarios::settings::<scenario name>
-#
-# If {template} is ReduceR0
-# ```yaml
-# interventions:
-#   scenarios:
-#     <scenario name>:
-#       template: Reduce
-#       parameter: choose one - "alpha, sigma, gamma, r0"
-#       period_start_date: <date>
-#       period_end_date: <date>
-#       value: <random distribution>
-#       affected_geoids: <list of strings> optional
-# ```
-#
-# If {template} is ReduceR0
-# ```yaml
-# interventions:
-#   scenarios:
-#     <scenario name>:
-#       template: ReduceR0
-#       period_start_date: <date>
-#       period_end_date: <date>
-#       value: <random distribution>
-#       affected_geoids: <list of strings> optional
-# ```
-#
-# If {template} is Stacked
-# ```yaml
-# interventions:
-#   scenarios:
-#     <scenario name>:
-#       template: Stacked
-#       scenarios: <list of scenario names>
-# ```
-#
-# ### seeding
-#
-# If {seeding::method} is PoissonDistributed
-# ```yaml
-# seeding:
-#   method: PoissonDistributed
-#   lambda_file: <path to file>
-# ```
-#
-# If {seeding::method} is FolderDraw
-# ```yaml
-# seeding:
-#   method: FolderDraw
-#   folder_path: \<path to dir\>; make sure this ends in a '/'
-# ```
+#outcomes:
+#  method: fast                   # Only fast is supported atm. Makes fast delay_table computations. Later agent-based method ?
+#  paths:
+#    param_from_file: TRUE               #
+#    param_place_file: <path.csv>       # OPTIONAL: File with param per csv. For each param in this file 
+#  scenarios:                           # Outcomes scenarios to run
+#    - low_death_rate
+#    - mid_death_rate
+#  settings:                            # Setting for each scenario
+#    low_death_rate:
+#      new_comp1:                               # New compartement name 
+#        source: incidence                      # Source of the new compartement: either an previously defined compartement or "incidence" for diffI of the SEIR
+#        probability:  <random distribution>           # Branching probability from source
+#        delay: <random distribution>                  # Delay from incidence of source to incidence of new_compartement
+#        duration: <random distribution>               # OPTIONAL ! Duration in new_comp. If provided, the model add to it's output "new_comp1_curr" with current amount in new_comp1
+#      new_comp2:                               # Example for a second compatiment
+#        source: new_comp1                      
+#        probability: <random distribution> 
+#        delay: <random distribution> 
+#        duration: <random distribution>
+#      death_tot:                               # Possibility to combine compartements for death.
+#        sum: ['death_hosp', 'death_ICU', 'death_incid']
+#         
+#    mid_death_rate:
+#      ...
 #
 # ## Input Data
 #
-# * <b>{spatial_setup::base_path}/{spatial_setup::geodata}</b> is a csv with columns {spatial_setup::nodenames} and {spatial_setup::popnodes}
-# * <b>{spatial_setup::base_path}/{spatial_setup::mobility}</b>
-#
-# If {seeding::method} is PoissonDistributed
-# * {seeding::lambda_file}
-#
-# If {seeding::method} is FolderDraw
-# * {seeding::folder_path}/importation_[number].csv
-#
+# * <b>{param_place_file}</b> is a csv with columns place, parameter, value. Parameter is constructed as:
+#                probability: Pnew_comp1|source
+#                delay:       Dnew_comp1
+#                duration:    Lnew_comp1
+
+
 # ## Output Data
-#
-# * model_output/{spatial_setup::setup_name}_[scenario]/[simulation ID].seir.[csv/parquet]
-# * model_parameters/{spatial_setup::setup_name}_[scenario]/[simulation ID].spar.[csv/parquet]
-# * model_parameters/{spatial_setup::setup_name}_[scenario]/[simulation ID].snpi.[csv/parquet]
+# * {output_path}/model_output/{spatial_setup::setup_name}_[scenario]/[simulation ID].hosp.parquet
+
 
 
 ## @cond
-
 import multiprocessing
 import pathlib
 import time
 
 import click
 
-from SEIR import seir, setup
-from SEIR.utils import config
-from SEIR.profile import profile_options
+from utils import config
 
 
-#@click.command()
-#@click.option("-c", "--config", "config_file", default="config_MD_reopening_20200516_mid.yml", type=click.Path(exists=True), #required=True,
-#              help="configuration file for this simulation")
-#@click.option("-s", "--scenario", "scenarios", type=str, default=[], multiple=True,
-#              help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]")
-#@click.option("-n", "--nsim", type=click.IntRange(min=1),
-#              help="override the # of simulation runs in the config file")
-#@click.option("-i", "--index", type=click.IntRange(min=1),
-#              default=1, show_default=True,
-#              help="The index of the first simulation")
-#@click.option("-j", "--jobs", type=click.IntRange(min=1),
-#              default=multiprocessing.cpu_count(), show_default=True,
-#              help="the parallelization factor")
-#@click.option("--interactive/--batch", default=False,
-#              help="run in interactive or batch mode [default: batch]")
-#@click.option("--write-csv/--no-write-csv", default=False, show_default=True,
-#              help="write CSV output at end of simulation")
-#@click.option("--write-parquet/--no-write-parquet", default=True, show_default=True,
-#              help="write parquet file output at end of simulation")
-#@profile_options
+@click.command()
+@click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
+              help="configuration file for this simulation")
+@click.option("-s", "--scenarios_seir", "scenarios_seir", type=str, default=[], multiple=True,
+              help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]")
+@click.option("-d", "--scenarios_outcomes", "scenarios_outcomes", type=str, default=[], multiple=True,
+              help="Scenario of outcomes to run")
+@click.option("-n", "--nsim", type=click.IntRange(min=1),
+              help="override the # of outcomes simulation to run runs in the config file")
+@click.option("-i", "--index", type=click.IntRange(min=1),
+              default=1, show_default=True,
+              help="he index of the first simulation to run against")
+@click.option("-j", "--jobs", type=click.IntRange(min=1),
+              default=multiprocessing.cpu_count(), show_default=True,
+              help="the parallelization factor")
 
-def simulate(config_file = 'config_new_hosp.yml', scenarios = ['low_death_rate'], nsim=1, jobs=1, interactive=True, write_csv=False, write_parquet=True,index=1):
+def simulate(config_file, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
     config.set_file(config_file)
+    if not scenarios_outcomes:
+        scenarios_outcomes = config["outcomes"]["scenarios"].as_str_seq()
+    print(f"Outcomes scenarios to be run: {', '.join(scenarios_outcomes)}")
 
-    if not scenarios:
-        scenarios = config["outcomes"]["scenarios"].as_str_seq()
-    print(f"Scenarios to be run: {', '.join(scenarios)}")
+    if not scenarios_seir:
+        scenarios_seir = config["interventions"]["scenarios"].as_str_seq()
+    print(f"SEIR Scenarios to be run: {', '.join(scenarios_seir)}")
 
     if not nsim:
         nsim = config["nsimulations"].as_number()
 
     start = time.monotonic()
-    for scenario in scenarios:
+    for scenario_seir in scenarios_seir:
+        for scenario_outcomes in scenarios_outcomes:
 
-        print(f"""
->> Scenario: {scenario}
+            print(f"""
+>> Scenario: {scenario_seir} -- {scenario_outcomes} 
 >> Starting {nsim} model runs beginning from {index} on {jobs} processes
->> writing to folder : {2}
+>> writing to folder : {config_file}
     """)
 
 
-        outcomes.run_parallel(s, n_jobs=jobs)
+            #outcomes.run_parallel(s, n_jobs=jobs)
 
     print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")
 
