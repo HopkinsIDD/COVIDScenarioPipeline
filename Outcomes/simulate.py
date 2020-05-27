@@ -51,7 +51,7 @@
 ## @cond
 import multiprocessing
 import pathlib
-import time
+import time, os
 
 import click
 
@@ -90,15 +90,18 @@ def simulate(config_file, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
     start = time.monotonic()
     for scenario_seir in scenarios_seir:
         for scenario_outcomes in scenarios_outcomes:
+            setup_name = config["name"].get() + "_" + str(scenario_seir)
+            outdir = f'hospitalization/model_output/{setup_name}/'
+            os.makedirs(outdir, exist_ok=True)
 
             print(f"""
 >> Scenario: {scenario_seir} -- {scenario_outcomes} 
 >> Starting {nsim} model runs beginning from {index} on {jobs} processes
->> writing to folder : {config_file}
+>> writing to folder : {outdir}
     """)
 
 
-            #outcomes.run_parallel(s, n_jobs=jobs)
+            outcomes.run_parallel(, n_jobs=jobs)
 
     print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")
 
