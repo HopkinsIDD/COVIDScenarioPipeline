@@ -16,58 +16,50 @@ if (is.na(config)) {
 }
 
 outdir <- config$spatial_setup$base_path
-filterADMIN1 <- config$spatial_setup$modeled_states
+filterADMIN0 <- config$spatial_setup$modeled_states
 
+
+# Read in needed data
 commute_data <- readr::read_csv(file.path(opt$path,"data","geodata", opt$mobility))
 census_data <- readr::read_csv(file.path(opt$path,"data","geodata", opt$population))
 
 
 census_data <- census_data %>%
-  dplyr::filter(ADMIN1 %in% filterADMIN1) %>%
-  dplyr::select(ADMIN1,GEOID,POP) #%>%  mutate(GEOID = substr(GEOID,1,5))
-
-# name_changer <- setNames(
-#   unique(census_data$GEOID),
-#   unique(census_data$GEOID)
-# )
-# name_changer[grepl("^60",name_changer)] <- "60000"
-# name_changer[grepl("^66",name_changer)] <- "66000"
-# name_changer[grepl("^69",name_changer)] <- "69000"
-# name_changer[grepl("^72",name_changer)] <- "72000"
-# name_changer[grepl("^78",name_changer)] <- "78000"
-
-census_data <- census_data %>%
-  #mutate(GEOID = name_changer[GEOID]) %>%
-  group_by(GEOID) %>%
-  summarize(ADMIN1 = unique(ADMIN1), POP = sum(POP)) %>%
-  arrange(POP)
+  dplyr::filter(ADMIN0 %in% filterADMIN0) %>%
+  dplyr::select(ADMIN0,GEOID,POP) %>%
+  dplyr::group_by(GEOID) %>%
+  dplyr::summarize(ADMIN0 = unique(ADMIN0), POP = sum(POP)) %>%
+  dplyr::arrange(POP)
 
 commute_data <- commute_data %>%
-  #mutate(OGEOID = substr(OGEOID,1,5), DGEOID = substr(DGEOID,1,5)) %>%
-  #mutate(OGEOID = name_changer[OGEOID], DGEOID = name_changer[DGEOID]) %>%
-  filter(OGEOID %in% census_data$GEOID, DGEOID %in% census_data$GEOID) %>%
-  group_by(OGEOID, DGEOID) %>%
-  summarize(FLOW = sum(FLOW)) %>%
-  filter(OGEOID != DGEOID)
+  dplyr::filter(OGEOID %in% census_data$GEOID, DGEOID %in% census_data$GEOID) %>%
+  dplyr::group_by(OGEOID, DGEOID) %>%
+  dplyr::summarize(FLOW = sum(FLOW)) %>%
+  dplyr::filter(OGEOID != DGEOID)
 
-padding_table <- tibble(
+padding_table <- tibble::tibble(
   OGEOID = census_data$GEOID,
   DGEOID = census_data$GEOID,
   FLOW = 0
 )
 
-t_commute_table <- tibble(
+t_commute_table <- tibble::tibble(
   OGEOID = commute_data$DGEOID,
   DGEOID = commute_data$OGEOID,
   FLOW = commute_data$FLOW
 )
 
-rc <- padding_table %>% bind_rows(commute_data) %>% bind_rows(t_commute_table)
+rc <- padding_table %>% 
+  dplyr::bind_rows(commute_data) %>% 
+  dplyr::bind_rows(t_commute_table)
+
+# Make wide if specified
 if(opt$w){
-  rc <- rc %>% pivot_wider(OGEOID, names_from=DGEOID, values_from=FLOW, values_fill=c("FLOW"=0), values_fn = list(FLOW=sum))
+  rc <- rc %>% tidyr::pivot_wider(OGEOID, names_from=DGEOID, values_from=FLOW, values_fill=c("FLOW"=0), values_fn = list(FLOW=sum))
 }
 
-print(outdir)
+
+
 if(opt$w){
   if(!isTRUE(all(rc$OGEOID == census_data$GEOID))){
     stop("There was a problem generating the mobility matrix")
@@ -80,6 +72,11 @@ if(opt$w){
 }
 
 # Save population geodata
-names(census_data) <- c("geoid","admin1","pop")
+names(census_data) <- c("geoid","ADMIN0","pop")
 write.csv(file = file.path(outdir,'geodata.csv'), census_data,row.names=FALSE)
+
+
+
+print(paste0("mobility.csv/.txt and geodata.csv saved to: \n", outdir))
+
 
