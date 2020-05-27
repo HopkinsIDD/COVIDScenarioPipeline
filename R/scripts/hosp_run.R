@@ -114,7 +114,9 @@ option_list = list(
   optparse::make_option(c("-i", "--index-from-sim"), action="store", default=1, type='numeric', help="The index of the first simulation to run against"),
 
   #' @param -n The number of simulations to run
-  optparse::make_option(c("-n", "--num-sims"), action="store", default=-1, type='numeric', help="number of simulations to run")
+  optparse::make_option(c("-n", "--num-sims"), action="store", default=-1, type='numeric', help="number of simulations to run"),
+
+  optparse::make_option(c("-g", "--geoid.params.file"), action="store", default="", type='character', help="number of simulations to run")
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
@@ -131,6 +133,15 @@ if(is.null(run_age_adjust)){
   warning("Not specified whether to run age adjusted hospitalization script.
           Defaults to running legacy script")
   run_age_adjust <- FALSE
+} else {
+  geoid_params_file <- opt$geoid.params.file
+  if(geoid_params_file == ''){
+    geoid_params_file <- config$hospitalization$paths$geoid_params_file
+  }
+  if(length(geoid_params_file) == 0 ){
+    geoid_params_file <- paste(opt$p,"sample_data","geoid-params.csv",sep='/')
+  }
+  print(paste("param file is ",geoid_params_file))
 }
 
 hosp_parameters = config$hospitalization$parameters
@@ -172,7 +183,14 @@ if(run_age_adjust){
 
   # read in probability file
   # NOTE(jwills): this file would ideally live inside of the hospitalization package as an .Rdata object
-  prob_dat <- readr::read_csv(paste(opt$p,"sample_data","geoid-params.csv",sep='/'))
+  prob_dat <- list()
+  if(gsub('.*[.]','',geoid_params_file) == 'csv'){
+    prob_dat <- readr::read_csv(geoid_params_file)
+  } else if(gsub('.*[.]','',geoid_params_file) == 'parquet'){
+    prob_dat <- arrow::read_parquet(geoid_params_file)
+  } else {
+    stop(paste("Unknown file extension",gsub('.*[.]','',geoid_params_file)))
+  }
 
   # Check that all geoids are in geoid-params.csv
   geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),5,'0',TRUE)
