@@ -7,28 +7,32 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from .utils import config
+from utils import config
 import pyarrow.parquet as pq
 import pyarrow as pa
 import pandas as pd
 
 
-def run_parallel(s, *, n_jobs=1):
+def run_parallel(config, setup_name, outdir, scenario_seir, scenario_outcomes, nsim = 1, index=1, n_jobs=1):
     start = time.monotonic()
-    sim_ids = np.arange(1, s.nsim + 1)
+    sim_ids = np.arange(index, index + nsim)
 
     if n_jobs == 1:          # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_Outcomes(sim_id, s)
+            onerun_Outcomes(sim_id, config, setup_name, outdir, scenario_seir, scenario_outcomes)
     else:
-        tqdm.contrib.concurrent.process_map(onerun_Outcomes, sim_ids, itertools.repeat(s),
+        tqdm.contrib.concurrent.process_map(onerun_Outcomes, sim_ids, itertools.repeat(config), 
+                                                                    itertools.repeat(setup_name), 
+                                                                    itertools.repeat(outdir), 
+                                                                    itertools.repeat(scenario_seir), 
+                                                                    itertools.repeat(scenario_outcomes),
                                             max_workers=n_jobs)
 
     print(f"""
->> {s.nsim} simulations completed in {time.monotonic()-start:.1f} seconds
+>> {s.nsim} outcomes simulations completed in {time.monotonic()-start:.1f} seconds
 """)
 
-def onerun_Outcomes(sim_id, s):
+def onerun_Outcomes(sim_id, config, setup_name, outdir, scenario_seir, scenario_outcomes):
     diffI = pd.read_parquet('model_output/east-coast_ImmediateCT_noSD/000000001.seir.parquet')
     diffI = diffI[diffI['comp'] == 'diffI']
     dates = diffI.time

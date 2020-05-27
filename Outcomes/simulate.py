@@ -56,6 +56,7 @@ import time, os
 import click
 
 from utils import config
+import outcomes
 
 
 @click.command()
@@ -99,9 +100,14 @@ def simulate(config_file, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
 >> Starting {nsim} model runs beginning from {index} on {jobs} processes
 >> writing to folder : {outdir}
     """)
-
-
-            outcomes.run_parallel(, n_jobs=jobs)
+            outcomes.run_parallel(config, 
+                            setup_name, 
+                            outdir, 
+                            scenario_seir, 
+                            scenario_outcomes,
+                            nsim, 
+                            index,
+                            jobs)
 
     print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")
 
