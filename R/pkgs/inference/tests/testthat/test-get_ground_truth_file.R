@@ -21,10 +21,10 @@ test_that("get_ground_truth returns an appropriate data frame",{
   expect_error({get_ground_truth(data_path,fips_codes,fips_column_name,start_date,end_date,FALSE)},NA)
   expect_error({get_ground_truth(data_path,fips_codes,fips_column_name,start_date,end_date,TRUE)},NA)
   expect_equal({
-    all(c(fips_column_name,"date","conf_incid","death_incid", "cumConfirmed", "cumDeaths") %in% names(get_ground_truth(data_path,fips_codes,fips_column_name,start_date,end_date,TRUE)))
+    all(c(fips_column_name,"date","confirmed_incid","death_incid", "cumConfirmed", "cumDeaths") %in% names(get_ground_truth(data_path,fips_codes,fips_column_name,start_date,end_date,TRUE)))
   },TRUE)
   expect_equal({
-    all(c(fips_column_name,"date","conf_incid","death_incid", "cumConfirmed", "cumDeaths") %in% names(get_ground_truth(data_path,fips_codes,fips_column_name,start_date,end_date,TRUE)))
+    all(c(fips_column_name,"date","confirmed_incid","death_incid", "cumConfirmed", "cumDeaths") %in% names(get_ground_truth(data_path,fips_codes,fips_column_name,start_date,end_date,TRUE)))
   },TRUE)
   expect_gt(nrow(get_ground_truth(data_path,fips_codes,fips_column_name,start_date,end_date,TRUE)),0)
   expect_equal(all(get_ground_truth(data_path,fips_codes,fips_column_name,start_date,end_date,TRUE)[[fips_column_name]] %in% fips_codes),TRUE)

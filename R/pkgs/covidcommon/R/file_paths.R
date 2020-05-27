@@ -73,7 +73,7 @@ seeding_file_path <- function(config,index, create_directory = TRUE){
   #   stop("Changes need to be made to the SEIR code to support more than one scenario (in paralllel)")
   # }
 
-  rc <- sprintf("%s/importation_%09d.csv",config$seeding$folder_path,index)
+  rc <- sprintf("%s/%09d.impa.csv",config$seeding$folder_path,index)
   if(create_directory){suppressWarnings(dir.create(dirname(rc),recursive = TRUE))}
   return(rc)
 }
