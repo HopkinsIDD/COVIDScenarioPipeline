@@ -29,11 +29,12 @@ def run_parallel(config, setup_name, outdir, scenario_seir, scenario_outcomes, n
                                             max_workers=n_jobs)
 
     print(f"""
->> {s.nsim} outcomes simulations completed in {time.monotonic()-start:.1f} seconds
+>> {nsim} outcomes simulations completed in {time.monotonic()-start:.1f} seconds
 """)
 
 def onerun_Outcomes(sim_id, config, setup_name, outdir, scenario_seir, scenario_outcomes):
-    diffI = pd.read_parquet('model_output/east-coast_ImmediateCT_noSD/000000001.seir.parquet')
+    sim_id_str = str(sim_id).zfill(9)
+    diffI = pd.read_parquet(f'model_output/{setup_name}/{sim_id_str}.seir.parquet')
     diffI = diffI[diffI['comp'] == 'diffI']
     dates = diffI.time
     diffI.drop(['comp'], inplace = True, axis = 1)
@@ -44,38 +45,45 @@ def onerun_Outcomes(sim_id, config, setup_name, outdir, scenario_seir, scenario_
     shape = all_data['incidence'].shape
 
     outcomes = pd.melt(diffI, id_vars='time', value_name = 'incidence', var_name='place')
-    config_outcomes = config["outcomes"]["settings"][scenario]
+    config_outcomes = config["outcomes"]["settings"][scenario_outcomes]
     for new_comp in config_outcomes:
-        # Read the config for this compartement
-        source = config_outcomes[new_comp]['source'].as_str()
-        probability = config_outcomes[new_comp]['probability']['value'].as_random_distribution()
-        delay = config_outcomes[new_comp]['delay']['value'].as_random_distribution()
-        
-        # Create new compartement
-        all_data[new_comp] = np.empty_like(all_data['incidence'])
-        # Draw with from source compartement
-        all_data[new_comp] = np.random.binomial(all_data[source], 
-                                                probability(size = shape))
-        
-        # Shift to account for the delay
-        all_data[new_comp] = shift(all_data[new_comp], int(delay(size=1)), fill_value=0)
-        
-        # Produce a dataframe an merge it
-        df = pd.DataFrame(all_data[new_comp], columns=places, index=dates)
-        df.reset_index(inplace=True)
-        df = pd.melt(df, id_vars='time', value_name = new_comp, var_name='place')
-        outcomes = pd.merge(outcomes, df)
-        
-        
-        # Make duration
-        if config_outcomes[new_comp]['duration'].exists():
-            duration = config_outcomes[new_comp]['duration']['value'].as_random_distribution()
-            all_data[new_comp+'_curr'] = np.cumsum(all_data[new_comp], axis = 0) - shift(np.cumsum(all_data[new_comp], axis=0), int(duration(size=1)))
+
+        if config_outcomes[new_comp]['source'].exists():
+            # Read the config for this compartement
+            source = config_outcomes[new_comp]['source'].as_str()
+            probability = config_outcomes[new_comp]['probability']['value'].as_random_distribution()
+            delay = config_outcomes[new_comp]['delay']['value'].as_random_distribution()
             
-            df = pd.DataFrame(all_data[new_comp+'_curr'], columns=places, index=dates)
+            # Create new compartement
+            all_data[new_comp] = np.empty_like(all_data['incidence'])
+            # Draw with from source compartement
+            all_data[new_comp] = np.random.binomial(all_data[source], 
+                                                    probability(size = shape))
+            
+            # Shift to account for the delay
+            all_data[new_comp] = shift(all_data[new_comp], int(delay(size=1)), fill_value=0)
+            
+            # Produce a dataframe an merge it
+            df = pd.DataFrame(all_data[new_comp], columns=places, index=dates)
             df.reset_index(inplace=True)
-            df = pd.melt(df, id_vars='time', value_name = new_comp+'_curr', var_name='place')
+            df = pd.melt(df, id_vars='time', value_name = new_comp, var_name='place')
             outcomes = pd.merge(outcomes, df)
+            
+            # Make duration
+            if config_outcomes[new_comp]['duration'].exists():
+                duration = config_outcomes[new_comp]['duration']['value'].as_random_distribution()
+                all_data[new_comp+'_curr'] = np.cumsum(all_data[new_comp], axis = 0) - shift(np.cumsum(all_data[new_comp], axis=0), int(duration(size=1)))
+                
+                df = pd.DataFrame(all_data[new_comp+'_curr'], columns=places, index=dates)
+                df.reset_index(inplace=True)
+                df = pd.melt(df, id_vars='time', value_name = new_comp+'_curr', var_name='place')
+                outcomes = pd.merge(outcomes, df)
+
+            elif config_outcomes[new_comp]['sum'].exists():
+                outcomes[new_comp] = outcomes[config_outcomes[new_comp]['sum'].as_str_seq()].sum(axis=1)
+
+    out_df = pa.Table.from_pandas(outcomes, preserve_index = False)
+    pa.parquet.write_table(out_df, f"{outdir}{scenario_outcomes}-{sim_id_str}.outcomes.parquet")
 
     return outcomes
 
