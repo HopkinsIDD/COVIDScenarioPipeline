@@ -84,7 +84,8 @@ def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_
             # Create new compartement
             all_data[new_comp] = np.empty_like(all_data['incidence'])
             # Draw with from source compartement
-            all_data[new_comp] = np.random.binomial(all_data[source], probability)
+            all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))  
+                                       # Check dimension for from file
             
             # Shift to account for the delay
             all_data[new_comp] = shift(all_data[new_comp], delay, fill_value=0)
