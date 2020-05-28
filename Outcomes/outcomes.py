@@ -29,11 +29,11 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
             parameters[new_comp]['source'] = config_outcomes[new_comp]['source'].as_str()
             parameters[new_comp]['probability'] = np.mean(
                 config_outcomes[new_comp]['probability']['value'].as_random_distribution()(size = 10000))
-            parameters[new_comp]['delay'] = int(np.mean(
+            parameters[new_comp]['delay'] = np.round(np.mean(
                 config_outcomes[new_comp]['delay']['value'].as_random_distribution()(size = 10000)))
             
             if config_outcomes[new_comp]['duration'].exists():
-                parameters[new_comp]['duration'] = int(np.mean(
+                parameters[new_comp]['duration'] = np.round(np.mean(
                     config_outcomes[new_comp]['duration']['value'].as_random_distribution()(size = 10000)))
             
             if (config["outcomes"]["param_from_file"].get()):
