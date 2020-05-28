@@ -1,13 +1,15 @@
 ---
 title: "Setting up CSP for a Country (outside the US)"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
-
+<br>
     
-
-***--> MODIFY COVID19_Minimal FOR THIS <--***    
-
+```
+*** TBD: modify COVID19_Minimal ***    
+```
 
 
 This is a tutorial for setting up the Hopkins IDD COVID Scenario Pipeline (CSP) for a country other than the United States. Because the main pipeline is setup for direct application to the U.S. or U.S. states, currently several parts need to be done manually for another country.
@@ -19,30 +21,37 @@ This is a tutorial for setting up the Hopkins IDD COVID Scenario Pipeline (CSP) 
 - ***Mobility data*** for movement between subunits    
 - ***Case data***, spatially resolved to the geographical subunit level (required for seeding and inference applications only)        
 
-    
+   
+--------------------------------------------------------------------------------------
 
 # Checkout projects from GitHub
 
 The COVIDScenarioPipeline repo will be put inside the COVID19_<spatial> repo. They are treated as independent, so push and pull code to them independently, and make sure they are both at the specific commit that you need.
 
-1. Create a spatial repo from the COVID19_Minimal template by navigating to [COVID19_Minimal](https://github.com/HopkinsIDD/COVID19_Minimal) and clicking "Use this template". For this example, we'll do Westeros. We will name it COVID19_Westeros and create the repository as <yourgithubuser>.
+1. Create a spatial repo from the COVID19_Minimal template by navigating to [COVID19_Minimal](https://github.com/HopkinsIDD/COVID19_Minimal) and clicking "Use this template". For this example, we'll do Westeros. We will name it COVID19_Westeros and create the repository as [yourgithubuser].
 
 2. Checkout the spatial repo you just created.
 
-`git clone https://github.com/yourgithubuser/COVID19_Westeros.git`
+    ```
+    git clone https://github.com/yourgithubuser/COVID19_Westeros.git
+    ```
 
 3. Checkout COVIDScenarioPipeline repo within the spatial repo.
 
-```
-cd COVID19_Westeros
-git clone https://github.com/HopkinsIDD/COVIDScenarioPipeline.git
-```
+    ```
+    cd COVID19_Westeros
+    git clone https://github.com/HopkinsIDD/COVIDScenarioPipeline.git
+    ```
+      
+
+
+--------------------------------------------------------------------------------------
 
 # Run Docker Image
 
 While working with this pipeline, we recommend editing files from your local machine and running scripts from the provided Docker container. The advantage of this container is that it already has all the packages installed, which takes some time.
 
-If you want to install all the packages on your local computer, in COVIDScenarioPipline, see the R requirements in packages.R and local_install.R, OS requirements in Dockerfile, and Python requirements in requirements.txt. Good luck.
+If you want to install all the packages on your local computer, in COVIDScenarioPipline, see the R requirements in packages.R and local_install.R, OS requirements in Dockerfile, and Python requirements in requirements.txt.
 
 1. Go to the Docker Hub website (https://hub.docker.com) and create an account.
 
@@ -52,34 +61,38 @@ If you want to install all the packages on your local computer, in COVIDScenario
 
 4. Pull the docker image from hub.docker.com. You'll only have to do this the first time.
 
-`docker pull hopkinsidd/covidscenariopipeline:latest`
+        docker pull hopkinsidd/covidscenariopipeline:latest
 
 5. Run the docker container with your current directory mounted as /home/app/covidsp
 
-On Linux or Mac:
+    On Linux or Mac:
+    
+        docker run -it --rm -v "$(pwd)":/home/app/covidsp hopkinsidd/covidscenariopipeline
+    
+    On Windows:
+    
+        docker run -it --rm -v %CD%:/home/app/covidsp hopkinsidd/covidscenariopipeline
 
-`docker run -it --rm -v "$(pwd)":/home/app/covidsp hopkinsidd/covidscenariopipeline`
+6. You are now in the docker container in /home/app. The directory you ran step #3 from is mapped to `/home/app/covidsp` in the container.
 
-On Windows:
-
-`docker run -it --rm -v %CD%:/home/app/covidsp hopkinsidd/covidscenariopipeline`
-
-6. You are now in the docker container in /home/app. The directory you ran step #3 from is mapped to /home/app/covidsp in the container.
-
-`cd covidsp`
+        cd covidsp
 
 7. For now, the Docker container needs some local R packages installed. Run this:
 
-`Rscript COVIDScenarioPipeline/local_install.R`
+        Rscript COVIDScenarioPipeline/local_install.R    
+        
+    *If there's a prompt `Enter one or more numbers, or an empty line to skip updates:`, just hit `<Enter>`.
 
-If there's a prompt `Enter one or more numbers, or an empty line to skip updates:`, just hit `<Enter>`.
 
 
 
+
+--------------------------------------------------------------------------------------
 
 # Edit the config
 
 The config file config.yml controls all of the options currently available. (See  [this page for more details](https://github.com/HopkinsIDD/COVID19_Minimal/wiki/Config-File-Options).) This file has a tabbed outline structure. We will refer to keys using their full position in the outline.  For example, we denote
+    
 ```
 spatial_setup:
   ...
@@ -89,120 +102,108 @@ spatial_setup:
   modeled_states:         # ISO3 codes of all countries to be included
   - WES
   - ESS
-  geoid_len: 5            # Since the user will create the `geoid` variable, length needs to be specified
+  geoid_len: 5            # User creates `geoid` variable, so length must be specified
   ...
 ```
 
-
+<br>
 
 | Config Item | Explanation of Value | Example | 
 |-------------|----------------------|---------|
-| name        | Give it a name       | westeros_essos  |
+| name        | Give it a name       | westeros  |
 | spatial_setup::modeled_states | This should be a list of the countries you want to simulate, with each country on it's own line preceded by `-` | modeled_states:<br>   - WES<br>   - ESS |
 | spatial_setup::popnodes | The name of the column in spatial_setup::geodata file that specifies population | pop |
 | spatial_setup::shapefile | A path to a shapefile relative to spatial_setup::base_path with a GEOID column. | geodata/Westeros/Westeros_Districts.shp |
-| spatial_setup::shapefile_name | same as spatial_setup::shapefile | geodata/Westeros/Westeros_Districts.shp |
+| spatial_setup::shapefile_name | same as spatial_setup::shapefile | geodata/Westeros/Westeros_Districts.shp |   
 
+<br>
 
-Delete the line `this_file_is_unedited`, or set it's value to FALSE. This is just to make sure people edit the config.yml.    
+$\rightarrow$  Delete the line `this_file_is_unedited`, or set it's value to FALSE. This is just to make sure people edit the config.yml.    
 
+<br>    
     
     
+--------------------------------------------------------------------------------------
     
 # Initial non-US Data Setup    
 
-In non-US CSP applications, setup data are not incorporated into the repositories so must be incorportated manually. For the user, this has been consolidated into a single script to format inputted data correctly for CSP use.
+In non-US CSP applications, setup data are not incorporated into the repositories so must be incorportated manually. For the user, this has been consolidated into a single script to format inputted data correctly for CSP use. As mentioned previously, these include:    
 
-
-
-
-## Get shapefile data
-
-This shapefile must have a GEOID column and be somewhere in the `data` directory. This is now done in the `setup_country_data.R` script.
-
-
-
-
-## Calculate Age-specific outcomes parameters
-
-To use age-specific outcomes adjusted for the age distributions with the nodes, users can use the [*covidSeverity*](https://github.com/HopkinsIDD/covidSeverity) R package. See the `age-adjustment-example.Rmd` in the vignettes for a detailed tutorial. This is all done automatically in the `setup_country_data.R` script.
-
-
-### Using WorldPop
-
-Using the `covidSeverity` package we can directly download and generate district-specific age distibutions of any country of interest.
-Users only need to provide their own shapefiles for this.
-
-
-#### 1. Get the age distributions by admin level 2 from WorldPop
-
-```{r, eval=FALSE}
-
-devtools::install_github(repo='HopkinsIDD/covidSeverity')
-library(covidSeverity)
-
-# Download the geotiffs
-filenames <- download_worldpop_agetifs(country="ZMB", year="2020", save_dir="../data", cores=4)
-
-# Combine data and consolidate to districts
-age_pop_data <- load_worldpop_age(shp="data/ZMB/bgd_admbnda_adm2_bbs_20180410/bgd_admbnda_adm2_bbs_20180410.shp", 
-                                  country="ZMB", year="2020", save_dir="data", cores=4)
-# Convert to 10-year age groups
-age_pop_10yr <- convert_wp_10yr(age_pop_data)
-readr::write_csv(age_pop_10yr, "data/ZMB/ZMB_age_pop_10yr.csv")
-readr::write_csv(age_pop_data, "data/ZMB/ZMB_age_pop_data.csv")
+- ***Shapefile*** of country and subunit boundaries    
+- ***Mobility data*** for movement between subunits    
+- ***Case data***, spatially resolved to the geographical subunit level (required for seeding and inference applications only)        
+    
+Only case data will need to be updated after the first setup.    
 
 ```
-
-#### Now estimate the severity parameters for all Admin 2 locations in the country
-```{r}
-
-# Get proportions
-age_pop_10yr <- age_pop_10yr %>% 
-    dplyr::group_by(adm2) %>%
-    dplyr::mutate(prop = pop / sum(pop)) %>%
-    dplyr::ungroup() 
-
-# make a geoid
-age_pop_10yr <- age_pop_10yr %>% 
-    dplyr::mutate(geoid = as.character(stringr::str_pad(as.integer(as.factor(adm2)), 5, "left", 0)))
-readr::write_csv(age_pop_10yr, "../raw_data/BDG/BDG_age_pop_10yr.csv")
+This full setup is done for the user by running the script below. 
+The user only needs to specify the variables in the beginning and 
+provide the necessary data.
+```    
+<br>
 
 
-# Estimate parameters
-geo_age_params <- get_ageadjustments(age_pop_10yr,
-                                     cores=4,
-                                     n_sims=40,
-                                     n_preds=1000,
-                                     age_grps=c(seq(0,80,by=10),100),
-                                     googlesheet_access=TRUE,
-                                     output_dir="../raw_data/BGD",
-                                     pop_name=NULL)
+#### 1. Setup preliminary data    
 
-# Save a list of names and geoids for matching
+    
+- *Shapefile*    
+   - Put shapefile data in the `data/geodata` directory of the spatial repo.    
+   - Check shapefile to determine the variable which identifies the name of the spatial units (e.g., "NAME" column). This will be specified as `shp_loc_var` in the script  below.
 
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Seeding
+- *Mobility OD matrix*    
+   - Matrix of origin-destination (OD) counts of daily movement between nodes (e.g., districts) is required    
+   - This should be saved as `data/geodata/mobility_data_counts.txt` so it works with the script below.     
+    
 
 <br>
+
+
+#### 2. Copy initial data setup script to spatial repo and modify
+
+- Copy setup file from COVIDScenarioPipeline
+
+    ```
+    cp ./COVIDScenarioPipeline/R/scripts/setup_initial_nonUS_data.R ./R/
+    ```
+
+- Modify `R/setup_initial_nonUS_data.R`    
+
+<br>
+
+#### 3. Run initial data setup
+
+- Install `covidSeverity` R package from github by running `devtools::install_github(repo='HopkinsIDD/covidSeverity')` in R.
+    
+- Run `R/setup_initial_nonUS_data.R` to generate standardized data needed by the model.
+
+    ```
+    Rscript R/setup_initial_nonUS_data.R
+    ```
+
+
+- This setup script does the following:   
+
+  *Generate district-specific 10-year age distributions*
+   This script downloads necessary geotiff files from WorldPop.org and uses the shapefile to aggregate data to districts. These data are combined to generate 10-year district-specific age distibutions of any country of interest. This is all done automatically in the `setup_initial_nonUS_data.R`. Users only need to provide their own shapefiles for this.
+    
+  *Calculate age-specific outcomes parameters for each district*     
+  Age-adjusted outcomes by nodes can be generated using the [*covidSeverity*](https://github.com/HopkinsIDD/covidSeverity) R package. See the `age-adjustment-example.Rmd` in the vignettes for a detailed tutorial. This is all done automatically in the `setup_initial_nonUS_data.R` script. The age distributions are applied to the severity probabilities to adjust severity and outcome parameters for each node.
+
+  *Modify shapefile for use with pipeline reports*
+  This script also modifies the shapefile to include the automtically generated `geoid` for each node/district.
+  
+  *Produce population data `population_data.csv` needed for the model*
+  The WorldPop data is used to generate total population estimates by district.
+
+
+
+<br>
+
+--------------------------------------------------------------------------------------
+
+# Seeding
+
+
 Users have three options for seeding:     
 
 - Importation *[not currently available for non-US locations]*    
@@ -236,9 +237,7 @@ Typically, a country setup currently will use the `PoissonDistributed` option, u
 
 ***-- User provided case data are required for this setup --***
 
-The COVID19_Minimal repository has an example seeding::lambda_file `data/minimal/seeding.csv`.
-
-This should have three columns to provide to a poisson distribution to determine the actual number of imported/seeded cases 
+The COVID19_Minimal repository has an example seeding::lambda_file `data/minimal/seeding.csv`. This file should have three columns to provide to a poisson distribution to determine the actual number of imported/seeded cases     
     - `place`:  geoid of seeded cases    
     - `date`:   date cases occur    
     - `amount`: percentage of population infected    
@@ -253,12 +252,16 @@ This should look like this, since you should be in the home directory of your re
 
 <br>
 
-# Generate **geodata.csv** and **mobility.csv**
+
+
+--------------------------------------------------------------------------------------
+
+# Generate *geodata.csv* and *mobility.csv*
 
 
 For non-US locations:
 
-1. Files for mobility data and population data for the nodes of the admin level 1 or 2 spatial areas in the directory `data/geodata`. These should both be .csv files, and GEOIDs must be consistent between them.
+1. Files for mobility data and population data for the nodes of the admin level 1 or 2 spatial areas in the directory `data/geodata`. These should both be .csv files, and GEOIDs must be consistent between them. These files will be used to generate the `geodata.csv` and `mobility.csv` files required for the CSP transmission model
     
     a. *Mobility data*:
         
@@ -280,7 +283,7 @@ For non-US locations:
         
         - Population of each node/geounit.
         - Column names:  
-            -- `ADMIN1`: Name or abbreviation for the spatial subunit one level up from the nodes (e.g., Province, State, or Country)  
+            -- `ADMIN0`: Name or abbreviation for the spatial subunit 1-2 levels up from the nodes (e.g., Province, State, or Country)  
             -- `GEOID`: Unique identifier for all admin level 2 areas that will be treated as nodes. Ideally this will be a 5-6 digit numeric code.  
             -- `POP`: Population of each node
         
@@ -290,10 +293,10 @@ For non-US locations:
 <br>
 
 2. From the home directory of the country repository, create long-form geodata and mobility files with:
-  `Rscript <path-to-COVIDScenarioPipeline>/COVIDScenarioPipeline/R/scripts/build_International_setup.R -c config.yml -p <path-to-spatial-repo> -w FALSE -n <name-of-population-data> -m <name-of-mobility-data>`
+  `Rscript <path-to-COVIDScenarioPipeline>/COVIDScenarioPipeline/R/scripts/build_nonUS_setup.R -c config.yml -p <path-to-spatial-repo> -w FALSE -n <name-of-population-data> -m <name-of-mobility-data>`
     
     This should look like this, since you should be in the home directory of your repository:
-        `Rscript ./COVIDScenarioPipeline/R/scripts/build_International_setup.R -c config.yml -w FALSE -n population_data.csv -m mobility_data.csv`
+        `Rscript ./COVIDScenarioPipeline/R/scripts/build_nonUS_setup.R -c config.yml -w FALSE -n population_data.csv -m mobility_data.csv`
   
 <br>  
   
@@ -301,6 +304,7 @@ For non-US locations:
 
 
 
+--------------------------------------------------------------------------------------
 
 # Build and run
 
@@ -329,6 +333,9 @@ For non-US locations:
 Tada! The data that you are looking for is in csv's in the folders `model_output` and `hospitalization`.
 
 The report you are looking for is in notebooks/HI_today/HI_report.html. View with a web browser.
+
+
+-----------------------------------
 
 # Exit the Docker container
 

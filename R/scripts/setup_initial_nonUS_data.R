@@ -1,12 +1,8 @@
 
 
 
+
 # SETUP -------------------------------------------------------------------
-
-library(tidyverse)
-library(covidSeverity)
-library(sf)
-
 
 country_code <- "ZMB"
 country_name <- "Zambia"
@@ -14,14 +10,18 @@ census_year <- 2020
 cores <- 4
 geoid_len <- 5
 shp <- "data/geodata/Districts2017_shapefiles/Zambian_Districts.shp" #"data/geodata/gadm36_ZMB_shp/gadm36_ZMB_2.shp"
-shp_loc_var <- "NAME"  # Admin 2 name or id in the shapefile
-download_worldpop <- FALSE # Set to TRUE for the first run. Otherwise false as this takes a while
+shp_loc_var <- "NAME"  # Admin2 variable name in the shapefile
+download_worldpop <- TRUE # Set to TRUE for the first run. Otherwise false as this takes a while
 
 # OD matrix of mobility with row
-mobility_od_matrix <- "data/geodata/mobility_data_counts.csv" 
+mobility_od_matrix <- "data/geodata/mobility_data_counts.txt" 
 
 
 
+
+library(tidyverse)
+library(covidSeverity)
+library(sf)
 
 
 
@@ -143,7 +143,7 @@ geoid_info <- adm2 %>%
 # - input data that will be further formatted
 # - this is an example 
 
-mobility <- read.table("data/geodata/mobility_data_counts.txt", stringsAsFactors = FALSE, row.names = 1)
+mobility <- read.table(mobility_od_matrix, stringsAsFactors = FALSE, row.names = 1)
 
 mobility <- mobility %>% 
     tibble::as_tibble(rownames = NA) %>% 
