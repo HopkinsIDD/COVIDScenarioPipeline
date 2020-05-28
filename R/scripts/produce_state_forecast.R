@@ -8,10 +8,10 @@ opt <- list()
 
 opt$jobs <- 20
 opt$forecast_date <- "2020-05-24"
-opt$end_date <- "2020-06-30"
+opt$end_date <- "2020-06-20"
 opt$geodata <- "COVID19_USA/data/geodata_territories.csv"
 opt$name_filter <- "low"
-opt$num_simulations <- 2000
+opt$num_simulationsulations <- 2000
 opt$outfile <- "2020-05-24-JHU_IDD-CovidSP_low.csv"
 
 arguments<- list()
@@ -278,6 +278,10 @@ if(opt$reichify) {
 if (opt$reichify) {
   full_forecast <- dplyr::bind_rows( weekly_inc_deaths,
                                      daily_inc_deaths,
-                                     cum_deaths)
+                                     cum_deaths)%>%
+    ungroup()%>%
+    filter(target_end_date<=opt$end_date)%>%
+    select(-USPS)
+  
   write_csv(full_forecast, opt$outfile)
   }
