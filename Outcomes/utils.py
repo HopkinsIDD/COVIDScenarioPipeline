@@ -62,7 +62,7 @@ def get_truncated_normal(*, mean=0, sd=1, a=0, b=10):
     return scipy.stats.truncnorm((a - mean) / sd, (b - mean) / sd, loc=mean, scale=sd)
 
 def get_log_normal(meanlog, sdlog):
-    return scipy.stats.lognorm(s = meanlog, scale = np.exp(sdlog), loc = 0)
+    return scipy.stats.lognorm(s = sdlog, scale = np.exp(meanlog), loc = 0)
 
 
 @add_method(confuse.ConfigView)
