@@ -17,28 +17,51 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
     start = time.monotonic()
     sim_ids = np.arange(index, index + nsim)
 
-    parameter_table = None
-    if (config["outcomes"]["param_from_file"].get()):
-        # stuff to put it in parameter table
-        raise('Loading not supported')
+    # Prepare the probability table:
+    # Either mean of probabilities given or from the file... This speeds up a bit the process.
+    # However needs an ordered dict, here we're abusing a bit the spec.
+    config_outcomes = config["outcomes"]["settings"][scenario_outcomes]
+    parameters = {}
+    for new_comp in config_outcomes:
+        parameters[new_comp] = {}
+        if config_outcomes[new_comp]['source'].exists():
+            # Read the config for this compartement
+            parameters[new_comp]['source'] = config_outcomes[new_comp]['source'].as_str()
+            parameters[new_comp]['probability'] = np.mean(
+                config_outcomes[new_comp]['probability']['value'].as_random_distribution()(size = 10000))
+            parameters[new_comp]['delay'] = int(np.mean(
+                config_outcomes[new_comp]['delay']['value'].as_random_distribution()(size = 10000)))
+            
+            if config_outcomes[new_comp]['duration'].exists():
+                parameters[new_comp]['duration'] = int(np.mean(
+                    config_outcomes[new_comp]['duration']['value'].as_random_distribution()(size = 10000)))
+            
+            if (config["outcomes"]["param_from_file"].get()):
+                # stuff to put it in parameter table
+                raise('Loading not supported')
+
+        elif config_outcomes[new_comp]['sum'].exists():
+            parameters[new_comp]['sum'] = config_outcomes[new_comp]['sum']
+            
+
 
     if n_jobs == 1:          # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_delayframe_outcomes(sim_id, config, setup_name, outdir, scenario_seir, scenario_outcomes, parameter_table)
+            onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_seir, scenario_outcomes)
     else:
-        tqdm.contrib.concurrent.process_map(onerun_delayframe_outcomes, sim_ids, itertools.repeat(config), 
+        tqdm.contrib.concurrent.process_map(onerun_delayframe_outcomes, sim_ids, 
+                                                                    itertools.repeat(parameters), 
                                                                     itertools.repeat(setup_name), 
                                                                     itertools.repeat(outdir), 
                                                                     itertools.repeat(scenario_seir), 
                                                                     itertools.repeat(scenario_outcomes),
-                                                                    itertools.repeat(parameter_table),
                                             max_workers=n_jobs)
 
     print(f"""
 >> {nsim} outcomes simulations completed in {time.monotonic()-start:.1f} seconds
 """)
 
-def onerun_delayframe_outcomes(sim_id, config, setup_name, outdir, scenario_seir, scenario_outcomes, parameter_table):
+def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_seir, scenario_outcomes):
     sim_id_str = str(sim_id).zfill(9)
     diffI = pd.read_parquet(f'model_output/{setup_name}/{sim_id_str}.seir.parquet')
     diffI = diffI[diffI['comp'] == 'diffI']
@@ -51,29 +74,20 @@ def onerun_delayframe_outcomes(sim_id, config, setup_name, outdir, scenario_seir
     shape = all_data['incidence'].shape
 
     outcomes = pd.melt(diffI, id_vars='time', value_name = 'incidence', var_name='place')
-    config_outcomes = config["outcomes"]["settings"][scenario_outcomes]
-    for new_comp in config_outcomes:
-        if config_outcomes[new_comp]['source'].exists():
+    for new_comp in parameters:
+        if 'source' in parameters[new_comp]:
             # Read the config for this compartement
-            source = config_outcomes[new_comp]['source'].as_str()
-            probability = config_outcomes[new_comp]['probability']['value'].as_random_distribution()
-            delay = config_outcomes[new_comp]['delay']['value'].as_random_distribution()
-
-            # Overwrite parameters with place specific one:
-            if (parameter_table):
-                if f'D{new_comp}' in parameter_table.keys:
-                    print('changing delay')
-                if f'L{new_comp}|{source}' in parameter_table.keys:
-                    print('Changing probablities')
+            source =      parameters[new_comp]['source']
+            probability = parameters[new_comp]['probability']
+            delay =       parameters[new_comp]['delay']
     
             # Create new compartement
             all_data[new_comp] = np.empty_like(all_data['incidence'])
             # Draw with from source compartement
-            all_data[new_comp] = np.random.binomial(all_data[source], 
-                                                    probability(size = shape))
+            all_data[new_comp] = np.random.binomial(all_data[source], probability)
             
             # Shift to account for the delay
-            all_data[new_comp] = shift(all_data[new_comp], int(delay(size=1)), fill_value=0)
+            all_data[new_comp] = shift(all_data[new_comp], delay, fill_value=0)
             
             # Produce a dataframe an merge it
             df = pd.DataFrame(all_data[new_comp], columns=places, index=dates)
@@ -82,20 +96,17 @@ def onerun_delayframe_outcomes(sim_id, config, setup_name, outdir, scenario_seir
             outcomes = pd.merge(outcomes, df)
             
             # Make duration
-            if config_outcomes[new_comp]['duration'].exists():
-                duration = config_outcomes[new_comp]['duration']['value'].as_random_distribution()
-                if (parameter_table):
-                    if f'L{new_comp}' in parameter_table.keys:
-                        print('changing durations')
-                all_data[new_comp+'_curr'] = np.cumsum(all_data[new_comp], axis = 0) - shift(np.cumsum(all_data[new_comp], axis=0), int(duration(size=1)))
+            if 'duration' in parameters[new_comp]:
+                duration = parameters[new_comp]['duration']
+                all_data[new_comp+'_curr'] = np.cumsum(all_data[new_comp], axis = 0) - shift(np.cumsum(all_data[new_comp], axis=0), duration)
                 
                 df = pd.DataFrame(all_data[new_comp+'_curr'], columns=places, index=dates)
                 df.reset_index(inplace=True)
                 df = pd.melt(df, id_vars='time', value_name = new_comp+'_curr', var_name='place')
                 outcomes = pd.merge(outcomes, df)
 
-            elif config_outcomes[new_comp]['sum'].exists():
-                outcomes[new_comp] = outcomes[config_outcomes[new_comp]['sum'].as_str_seq()].sum(axis=1)
+            elif 'sum' in parameters[new_comp]:
+                outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
 
     out_df = pa.Table.from_pandas(outcomes, preserve_index = False)
     pa.parquet.write_table(out_df, f"{outdir}{scenario_outcomes}-{sim_id_str}.outcomes.parquet")
