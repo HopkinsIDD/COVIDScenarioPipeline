@@ -77,6 +77,6 @@ write.csv(file = file.path(outdir,'geodata.csv'), census_data,row.names=FALSE)
 
 
 
-print(paste0("mobility.csv/.txt and geodata.csv saved to: \n", outdir))
+print(paste0("mobility.csv/.txt and geodata.csv saved to: ", outdir))
 
 
