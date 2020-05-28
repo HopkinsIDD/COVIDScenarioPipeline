@@ -1,3 +1,32 @@
+##
+# @file
+# @brief Creates mobility and geodata for non-US location
+#
+# @details
+#
+# ## Configuration Items
+#
+# ```yaml
+# spatial_setup:
+#   base_path: <path to directory>
+#   modeled_states: <list of country ISO3 codes> e.g. ZMB, BGD, CAN
+#   mobility: <path to file relative to base_path> optional; default is 'mobility.csv'
+#   geodata: <path to file relative to base_path> optional; default is 'geodata.csv'
+#   popnodes: <string> optional; default is 'pop'
+# 
+#
+# ## Input Data
+#
+# None
+#
+# ## Output Data
+#
+# * {spatial_setup::base_path}/{spatial_setup::mobility}
+# * {spatial_setup::base_path}/{spatial_setup::geodata}
+#
+
+## @cond
+
 library(dplyr)
 library(tidyr)
 

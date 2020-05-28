@@ -39,7 +39,7 @@ library(purrr)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
-  optparse::make_option(c("-d", "--data"), action="store", default=file.path("data","case_data","case_data.csv"), type='character', help="path to the case data file")
+  optparse::make_option(c("-d", "--data"), action="store", default=file.path(config$spatial_setup$base_path,"case_data","case_data.csv"), type='character', help="path to the case data file")
 )
 
 opts = optparse::parse_args(optparse::OptionParser(option_list=option_list))
