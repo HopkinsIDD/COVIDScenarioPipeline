@@ -10,7 +10,7 @@
 #
 # ```yaml
 #outcomes:
-#  method: fast                   # Only fast is supported atm. Makes fast delay_table computations. Later agent-based method ?
+#  method: delayframe                   # Only fast is supported atm. Makes fast delay_table computations. Later agent-based method ?
 #  paths:
 #    param_from_file: TRUE               #
 #    param_place_file: <path.csv>       # OPTIONAL: File with param per csv. For each param in this file 
@@ -37,7 +37,7 @@
 #
 # ## Input Data
 #
-# * <b>{param_place_file}</b> is a csv with columns place, parameter, value. Parameter is constructed as:
+# * <b>{param_place_file}</b> is a csv with columns place, parameter, value. Parameter is constructed as, e.g for comp1:
 #                probability: Pnew_comp1|source
 #                delay:       Dnew_comp1
 #                duration:    Lnew_comp1
@@ -100,7 +100,8 @@ def simulate(config_file, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
 >> Starting {nsim} model runs beginning from {index} on {jobs} processes
 >> writing to folder : {outdir}
     """)
-            outcomes.run_parallel(config, 
+            if (config["outcomes"]["method"].get() == 'delayframe'):
+                outcomes.run_delayframe_outcomes(config, 
                             setup_name, 
                             outdir, 
                             scenario_seir, 
@@ -108,6 +109,9 @@ def simulate(config_file, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
                             nsim, 
                             index,
                             jobs)
+            else:
+                 raise ValueError(f"Only method 'delayframe' is supported at the moment.")
+
 
     print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")
 
