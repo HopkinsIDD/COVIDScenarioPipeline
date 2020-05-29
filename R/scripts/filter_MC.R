@@ -11,6 +11,7 @@ suppressMessages(library(reticulate))
 suppressMessages(library(truncnorm))
 # suppressMessages(library(flock))
 options(warn=1)
+options(error=traceback)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
@@ -119,6 +120,7 @@ required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
 reticulate::py_run_string(paste0("run_id = '", opt$run_id, "'"))
 reticulate::import_from_path("SEIR", path=opt$pipepath)
+reticulate::py_run_string(paste0("index = ", 1))
 
 for(scenario in scenarios) {
 
@@ -137,7 +139,6 @@ for(scenario in scenarios) {
 
     ## pass prefix to python and use
     reticulate::py_run_string(paste0("prefix = '", block_prefix, "'"))
-    reticulate::py_run_string(paste0("index = ", opt$this_block - 1))
     reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
     
 
@@ -179,7 +180,7 @@ for(scenario in scenarios) {
     # lock <- flock::lock(paste('.lock',gsub('/','-',first_snpi_file),sep='/'))
     if((!file.exists(first_snpi_file)) | (!file.exists(first_spar_file))){
       print(sprintf("Creating parameters (%s) from Scratch",first_snpi_file))
-      py$onerun_SEIR(opt$this_slot,py$s)
+      py$onerun_SEIR(opt$this_block - 1,py$s)
     }
     initial_snpi <- arrow::read_parquet(first_snpi_file)
     initial_spar <- arrow::read_parquet(first_spar_file)
@@ -193,7 +194,7 @@ for(scenario in scenarios) {
     if(!file.exists(first_hosp_file)){
       print(sprintf("Creating hospitalization (%s) from Scratch",first_hosp_file))
       ## Generate files
-      this_index <- opt$this_slot
+      this_index <- opt$this_block - 1
 
       err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
       err <- ifelse(err == 1,0,1)
@@ -338,7 +339,6 @@ for(scenario in scenarios) {
       this_llik_file <- covidcommon::create_file_name(opt$run_id,local_prefix,this_index,'llik','parquet')
 
       ## Setup python
-      reticulate::py_run_string(paste0("index = ", 1))
       reticulate::py_run_string(paste0("prefix = '", local_prefix, "'"))
       reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
