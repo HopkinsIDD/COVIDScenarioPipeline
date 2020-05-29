@@ -10,11 +10,6 @@ option_list = list(
   optparse::make_option(c("-r", "--rpath"), action="store", default="Rscript", type = 'character', help = "path to R executable")
 )
 
-# install.packages('xts', repos='http://cran.us.r-project.org')
-# install.packages('zoo', repos='http://cran.us.r-project.org')
-# install.packages('covidImportation',type='source',repos=NULL)
-# devtools::install_github("HopkinsIDD/covidImportation")
-
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)
 
@@ -39,7 +34,7 @@ scenarios <- opt$scenarios
 if (all(scenarios == "all")){
   scenarios <- config$interventions$scenarios
 } else if (!all(scenarios %in% config$interventions$scenarios)) {
-  message(paste("Invalid scenario argument:",scenario, "did not match any of the named args in ", paste(config$interventions$scenarios, collapse = ", "), "\n"))
+  message(paste("Invalid scenario arguments: [",paste(setdiff(scenarios, config$interventions$scenarios)), "] did not match any of the named args in ", paste(config$interventions$scenarios, collapse = ", "), "\n"))
   quit("yes", status=1)
 }
 
