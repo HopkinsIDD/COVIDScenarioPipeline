@@ -79,7 +79,7 @@ geo_age_params <- get_ageadjustments(age_pop_10yr,
                                      n_sims=40,
                                      n_preds=1000,
                                      age_grps=c(seq(0,80,by=10),100),
-                                     googlesheet_access=TRUE,
+                                     googlesheet_access=FALSE,
                                      output_dir="data",
                                      pop_name=NULL)
 

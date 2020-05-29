@@ -7,10 +7,6 @@ output:
 
 <br>
     
-```
-*** TBD: modify COVID19_Minimal ***    
-```
-
 
 This is a tutorial for setting up the Hopkins IDD COVID Scenario Pipeline (CSP) for a country other than the United States. Because the main pipeline is setup for direct application to the U.S. or U.S. states, currently several parts need to be done manually for another country.
 
@@ -177,6 +173,7 @@ provide the necessary data.
 - Copy setup file from COVIDScenarioPipeline
 
     ```
+    mkdir R
     cp ./COVIDScenarioPipeline/R/scripts/setup_initial_nonUS_data.R ./R/
     ```
 
