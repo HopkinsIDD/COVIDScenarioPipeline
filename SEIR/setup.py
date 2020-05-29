@@ -9,6 +9,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .utils import config
+from . import file_paths
 
 
 # Number of components
@@ -90,8 +91,11 @@ class Setup:
                  write_csv=False,
                  write_parquet=False,
                  dt=1 / 6, # step size, in days
-                 nbetas=None,
-                 first_sim_index = 1): # # of betas, which are rates of infection
+                 nbetas=None, # # of betas, which are rates of infection
+                 first_sim_index = 1,
+                 run_id = None,
+                 prefix = None
+    ):
         self.setup_name = setup_name
         self.nsim = nsim
         self.dt = dt
@@ -106,6 +110,14 @@ class Setup:
         self.write_csv = write_csv
         self.write_parquet = write_parquet
         self.first_sim_index = first_sim_index
+
+        if run_id is None:
+            run_id = file_paths.run_id()
+        self.run_id = run_id
+
+        if prefix is None:
+            prefix = f'model_output/{setup_name}-{npi_scenario}-{run_id}/'
+        self.prefix = prefix
 
         if nbetas is None:
             nbetas = nsim
@@ -178,10 +190,11 @@ def seeding_draw(s, sim_id):
 
     elif (method == 'FolderDraw'):
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
-        folder_path = s.seeding_config["folder_path"].as_str()
-        seeding = pd.read_csv(f'{folder_path}{sim_id_str}.impa.csv',
-                              converters={'place': lambda x: str(x)},
-                              parse_dates=['date'])
+        seeding = pd.read_csv(
+            file_paths.create_file_name(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, s.seeding_config["seeding_file_type"],"csv"),
+            converters={'place': lambda x: str(x)},
+            parse_dates=['date']
+        )
         for  _, row in seeding.iterrows():
             importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
 
@@ -222,10 +235,11 @@ def seeding_load(s, sim_id):
     method = s.seeding_config["method"].as_str()
     if (method == 'FolderDraw'):
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
-        folder_path = s.seeding_config["folder_path"].as_str()
-        seeding = pd.read_csv(f'{folder_path}{sim_id_str}.impa.csv',
-                              converters={'place': lambda x: str(x)},
-                              parse_dates=['date'])
+        seeding = pd.read_csv(
+            file_paths.create_file_name(s.run_id,s.prefix,sim_id+s.first_sim_index - 1, s.seeding_config["seeding_file_type"],"csv"),
+            converters={'place': lambda x: str(x)},
+            parse_dates=['date']
+        )
         for  _, row in seeding.iterrows():
             importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
 

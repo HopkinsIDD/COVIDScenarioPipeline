@@ -1,5 +1,7 @@
 # File naming ------------------------------------------------------------------
 
+#' Create a unique identifier for a run via time stamp
+#' @export
 run_id <- function(){
   return(format(lubridate::now(),"%Y.%m.%d.%H:%M:%S.%Z"))
 }
@@ -22,11 +24,13 @@ create_prefix <- function(...,prefix='model_output/',sep='-',trailing_separator=
   return(prefix)
 }
 
-## Function for creating 
+## Function for creating file names from their components
 #' @export
 create_file_name <- function(run_id,prefix,index,type,extension='parquet'){
   return(sprintf("%s%09d.%s.%s.%s",prefix,index,run_id,type,extension))
 }
+
+## Function
 
 ##' Function for determining where to write the seeding.csv file
 ##' @param config The config for this run
