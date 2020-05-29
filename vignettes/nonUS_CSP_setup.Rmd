@@ -91,7 +91,17 @@ If you want to install all the packages on your local computer, in COVIDScenario
 
 # Edit the config
 
-The config file config.yml controls all of the options currently available. (See  [this page for more details](https://github.com/HopkinsIDD/COVID19_Minimal/wiki/Config-File-Options).) This file has a tabbed outline structure. We will refer to keys using their full position in the outline.  For example, we denote
+The config file config.yml controls all of the options currently available. (See  [this page for more details](https://github.com/HopkinsIDD/COVID19_Minimal/wiki/Config-File-Options).) 
+
+An example config file has been included int he COVID19_Minimal repository. 
+Start by replacing the US version with the non-US version using the following commands:
+
+```
+rm config.yml # remove US-specific config
+mv config_nonUS.yml config.yml # copy non-US version to the generic file name
+```
+
+This file has a tabbed outline structure. We will refer to keys using their full position in the outline. For example, we denote
     
 ```
 spatial_setup:
@@ -102,7 +112,6 @@ spatial_setup:
   us_model: FALSE         # Whether running model for United States or elsewhere
   modeled_states:         # ISO3 codes of all countries to be included
   - WES
-  - ESS
   geoid_len: 5            # User creates `geoid` variable, so length must be specified
   ...
   geoid_params_file: data/geoid_params.csv  # name of file of geounit-specific outcome parameters
@@ -115,7 +124,7 @@ spatial_setup:
 |-------------|----------------------|---------|
 | name        | Give it a name       | westeros  |
 | spatial_setup::us_model | Whether running a model for U.S. | FALSE |
-| spatial_setup::modeled_states | This should be a list of the countries you want to simulate, with each country on it's own line preceded by `-` | modeled_states:<br>   - WES<br>   - ESS |
+| spatial_setup::modeled_states | This should be a list of the countries you want to simulate, with each country on it's own line preceded by `-` | modeled_states:<br>   - WES |
 | spatial_setup::popnodes | The name of the column in spatial_setup::geodata file that specifies population | pop |
 | spatial_setup::shapefile | A path to a shapefile relative to spatial_setup::base_path with a GEOID column. | geodata/Westeros/Westeros_Districts.shp |
 | spatial_setup::shapefile_name | same as spatial_setup::shapefile | geodata/Westeros/Westeros_Districts.shp |   
@@ -321,15 +330,15 @@ For non-US locations:
 
 `mkdir notebooks`
 `cd notebooks`
-`mkdir HI_today`
+`mkdir WES_today`
 
 3. In R, make the initial R markdown (.Rmd) by running the following command.
 
-`Rscript -e 'rmarkdown::draft("notebooks/HI_today/HI_report.Rmd",template="state_report",package="report.generation",edit=FALSE)'`
+`Rscript -e 'rmarkdown::draft("notebooks/WES_today/WES_report.Rmd",template="country_report",package="report.generation",edit=FALSE)'`
 
 4. Write the render line into compile_Rmd.R. (compile_Rmd.R is later used by fancy automation.)
 
-`echo 'rmarkdown::render("notebooks/HI_today/HI_report.Rmd", params=list(state_usps="HI"))' >compile_Rmd.R`
+`echo 'rmarkdown::render("notebooks/WES_today/WES_report.Rmd", params=list(country_iso3="WES"))' >compile_Rmd.R`
 
 5. Build and run.
 
@@ -337,7 +346,7 @@ For non-US locations:
 
 Tada! The data that you are looking for is in csv's in the folders `model_output` and `hospitalization`.
 
-The report you are looking for is in notebooks/HI_today/HI_report.html. View with a web browser.
+The report you are looking for is in notebooks/WES_today/WES_report.html. View with a web browser.
 
 
 -----------------------------------
