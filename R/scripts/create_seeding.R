@@ -61,7 +61,7 @@ all_times <- lubridate::ymd(config$start_date) +
 
 # get data if a US model  ---------------------------------
 
-if (is.NULL(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRUE){
+if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRUE){
   # jhucsse <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
   #                                  last_date = as.POSIXct(lubridate::ymd(config$end_date)),
   #                                  case_data_dir = file.path('importation',config$spatial_setup$setup_name,"case_data"),

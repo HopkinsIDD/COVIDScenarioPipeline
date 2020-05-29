@@ -4,17 +4,21 @@
 
 # SETUP -------------------------------------------------------------------
 
+base_data_path <- "data"  # needs to be the same as in the config.yml
+
 country_code <- "ZMB"
 country_name <- "Zambia"
 census_year <- 2020
 cores <- 4
 geoid_len <- 5
-shp <- "data/geodata/Districts2017_shapefiles/Zambian_Districts.shp" #"data/geodata/gadm36_ZMB_shp/gadm36_ZMB_2.shp"
+shp <- file.path(base_data_path, "geodata/Districts_Zam/ZambiaDistricts.shp") #"data/geodata/gadm36_ZMB_shp/gadm36_ZMB_2.shp"
 shp_loc_var <- "NAME"  # Admin2 variable name in the shapefile
 download_worldpop <- TRUE # Set to TRUE for the first run. Otherwise false as this takes a while
 
+
+
 # OD matrix of mobility with row
-mobility_od_matrix <- "data/geodata/mobility_data_counts.txt" 
+mobility_od_matrix <- file.path(base_data_path, "geodata/mobility_data_counts.csv")
 
 
 
@@ -31,7 +35,7 @@ library(sf)
 
 #devtools::install_github(repo='HopkinsIDD/covidSeverity')
 library(covidSeverity)
-dir.create(file.path("data", country_code), recursive = TRUE)
+dir.create(file.path(base_data_path, country_code), recursive = TRUE)
 
 
 # Download the geotiffs
@@ -69,8 +73,8 @@ age_pop_10yr <- age_pop_10yr %>%
     dplyr::mutate(prop = pop / sum(pop)) %>%
     dplyr::ungroup() 
 
-readr::write_csv(age_pop_10yr, file.path("data", country_code, paste0(country_code, "_age_pop_10yr.csv")))
-readr::write_csv(age_pop_data, file.path("data", country_code, paste0(country_code, "_age_pop_data.csv")))
+readr::write_csv(age_pop_10yr, file.path(base_data_path, country_code, paste0(country_code, "_age_pop_10yr.csv")))
+readr::write_csv(age_pop_data, file.path(base_data_path, country_code, paste0(country_code, "_age_pop_data.csv")))
 
 
 # Estimate parameters
@@ -79,8 +83,8 @@ geo_age_params <- get_ageadjustments(age_pop_10yr,
                                      n_sims=40,
                                      n_preds=1000,
                                      age_grps=c(seq(0,80,by=10),100),
-                                     googlesheet_access=FALSE,
-                                     output_dir="data",
+                                     googlesheet_access=TRUE,
+                                     output_dir=base_data_path,
                                      pop_name=NULL)
 
 
@@ -89,7 +93,7 @@ geo_age_params <- get_ageadjustments(age_pop_10yr,
 # POPULATION_DATA.CSV -----------------------------------------------------
 # Use WorldPop data to get total population by geounit -- this is used by the mobility component
 
-age_pop_data <- readr::read_csv(file.path("data", country_code, paste0(country_code, "_age_pop_data.csv")))
+age_pop_data <- readr::read_csv(file.path(base_data_path, country_code, paste0(country_code, "_age_pop_data.csv")))
 
 population_data <- age_pop_data %>% 
     dplyr::group_by(geoid, adm2) %>%
@@ -98,7 +102,7 @@ population_data <- age_pop_data %>%
     dplyr::select(ADMIN0, ADMIN2=adm2, GEOID=geoid, POP)
 
 dir.create("data/geodata", recursive = TRUE, showWarnings = FALSE)
-readr::write_csv(population_data, "data/geodata/population_data.csv")
+readr::write_csv(population_data, file.path(base_data_path, "geodata/population_data.csv"))
 
 
 
@@ -108,7 +112,7 @@ readr::write_csv(population_data, "data/geodata/population_data.csv")
 
 # Read 
 adm2 <- sf::read_sf(shp) %>% dplyr::rename(setNames(shp_loc_var, "ADMIN2"))
-population_data <- readr::read_csv("data/geodata/population_data.csv")
+population_data <- readr::read_csv(file.path(base_data_path, "geodata/population_data.csv"))
 
 # Add population
 adm2 <- adm2 %>% 
@@ -140,25 +144,36 @@ geoid_info <- adm2 %>%
 
 
 # mobility_data.csv ------------------------------------------------------------
-# - input data that will be further formatted
-# - this is an example 
 
-mobility <- read.table(mobility_od_matrix, stringsAsFactors = FALSE, row.names = 1)
+mobility <- readr::read_csv(mobility_od_matrix) %>% as.data.frame()
+rownames_ <- as.character(mobility[,1])
+mobility <- as.matrix(mobility[,-1])
+row.names(mobility) <- rownames_
 
-mobility <- mobility %>% 
-    tibble::as_tibble(rownames = NA) %>% 
-    tibble::rownames_to_column(var="origin") %>%
-    tidyr::pivot_longer(cols = -origin, names_to = "destination", values_to = "FLOW")
-
-mobility <- mobility %>%
-    dplyr::full_join(population_data %>% dplyr::select(ADMIN2, POP, GEOID), by = c("origin"="ADMIN2")) %>%
-    rename(pop_orig = POP,
-           OGEOID = GEOID) %>%
-    dplyr::full_join(population_data %>% dplyr::select(ADMIN2, POP, GEOID), by = c("destination"="ADMIN2")) %>%
-    rename(pop_dest = POP, 
-           DGEOID = GEOID)
-
-readr::write_csv(mobility, "data/geodata/mobility_data.csv")    
+# first check that the names match those of the population data
+if(all.equal(sort(colnames(mobility)), sort(geoid_info$ADMIN2))==TRUE){
+    mobility <- mobility %>% 
+        tibble::as_tibble(rownames = NA) %>% 
+        tibble::rownames_to_column(var="origin") %>%
+        tidyr::pivot_longer(cols = -origin, names_to = "destination", values_to = "FLOW")
     
+    mobility <- mobility %>%
+        dplyr::full_join(population_data %>% dplyr::select(ADMIN2, POP, GEOID), by = c("origin"="ADMIN2")) %>%
+        rename(pop_orig = POP,
+               OGEOID = GEOID) %>%
+        dplyr::full_join(population_data %>% dplyr::select(ADMIN2, POP, GEOID), by = c("destination"="ADMIN2")) %>%
+        rename(pop_dest = POP, 
+               DGEOID = GEOID)
+    
+    readr::write_csv(mobility, file.path(base_data_path, "geodata/mobility_data.csv"))    
+    
+    print(paste0("SUCCESS: Mobility data saved to ", file.path(base_data_path, "geodata/mobility_data.csv")))
+    
+} else {
+    
+    print(paste0("ERROR: Location names not equal between ", mobility_od_matrix, " and population_data.csv. Please check and re-run MOBILITY setup."))
+    
+}
+
 
 
