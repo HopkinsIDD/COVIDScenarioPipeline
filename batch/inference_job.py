@@ -110,7 +110,8 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
 
             num_blocks = int(math.ceil(sims_per_slot / sims_per_job))
 
-            print(f"Setting sims per job to {sims_per_job} [estimated based on {num_geoids} geoids]")
+            print(f"Setting sims per job to {sims_per_job} "
+                  f"[estimated based on {num_geoids} geoids and {sims_per_slot} simulations_per_slot in config]")
             print(f"Setting number of blocks to {num_blocks} [via math]")
 
     if num_blocks is None:
