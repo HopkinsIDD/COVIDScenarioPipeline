@@ -50,6 +50,10 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
     ## Get the time period over whith to apply aggregation
     period_info <- strsplit(s$period, " ")[[1]]
 
+    if(!all(c(time_col, s[[var_col]]) %in% names(df)))
+    {
+      stop(paste0("At least one of columns: [",time_col,",", s[[var_col]],"] not in df columns: ", paste(names(df), collapse=",")))
+    }
 
     res <- inference::periodAggregate(df[[s[[var_col]]]],
                            df[[time_col]],
