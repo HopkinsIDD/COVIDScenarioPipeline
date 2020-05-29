@@ -105,7 +105,7 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
                 num_geoids = sum(1 for line in geoid_fp)
 
             # formula based on a simple regression of geoids (based on known good performant params)
-            sims_per_job = max(50 - num_geoids // 72, 10)
+            sims_per_job = max(60 - math.sqrt(num_geoids), 10)
             sims_per_job = 5 * int(math.ceil(sims_per_job / 5))  # multiple of 5
 
             num_blocks = int(math.ceil(sims_per_slot / sims_per_job))
