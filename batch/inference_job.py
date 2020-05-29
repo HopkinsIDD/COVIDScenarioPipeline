@@ -2,11 +2,11 @@
 
 import boto3
 import click
-import glob
 import itertools
 import json
+import math
 import os
-import re
+import pathlib
 import subprocess
 import sys
 import tarfile
@@ -16,11 +16,11 @@ import yaml
 @click.command()
 @click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
               help="configuration file for this run")
-@click.option("-n", "--num-jobs", "num_jobs", type=click.IntRange(min=1, max=1000), required=True,
+@click.option("-n", "--num-jobs", "num_jobs", type=click.IntRange(min=1, max=1000), default=None,
               help="number of output slots to generate")
-@click.option("-j", "--sims-per-job", "sims_per_job", type=click.IntRange(min=1), default=10, show_default=True,
+@click.option("-j", "--sims-per-job", "sims_per_job", type=click.IntRange(min=1), default=None,
               help="the number of sims to run on each child job")
-@click.option("-k", "--num-blocks", "num_blocks", type=click.IntRange(min=1), default=10, show_default=True,
+@click.option("-k", "--num-blocks", "num_blocks", type=click.IntRange(min=1), default=None,
               help="The number of sequential blocks of jobs to run; total sims per slot = sims-per-slot * num-blocks")
 @click.option("-o", "--output", "outputs", multiple=True, default=["model_output", "model_parameters", "importation", "hospitalization"],
               show_default=True, help="The output directories whose contents are captured and saved in S3")
@@ -45,6 +45,9 @@ def launch_batch(config_file, num_jobs, sims_per_job, num_blocks, outputs, s3_bu
     # A unique name for this job run, based on the config name and current time
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     job_name = f"{config['name']}-{timestamp}"
+
+    num_jobs, sims_per_job, num_blocks = autodetect_params(config, num_jobs=num_jobs, sims_per_job=sims_per_job,
+                                                           num_blocks=num_blocks)
 
     # Update and save the config file with the number of sims to run
     if 'filtering' in config:
@@ -77,6 +80,45 @@ def launch_batch(config_file, num_jobs, sims_per_job, num_blocks, outputs, s3_bu
     (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")
     print(txt)
     return rc
+
+
+def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=None):
+    if num_jobs and sims_per_job and num_blocks:
+        return (num_jobs, sims_per_job, num_blocks)
+
+    if "filtering" not in config or "simulations_per_slot" not in config["filtering"]:
+        raise click.UsageError("filtering::simulations_per_slot undefined in config, can't autodetect parameters")
+    sims_per_slot = int(config["filtering"]["simulations_per_slot"])
+
+    if num_jobs is None:
+        num_jobs = config["nsimulations"]
+        print(f"Setting number of output slots to {num_jobs} [via config file]")
+
+    if sims_per_job is None:
+        if num_blocks is not None:
+            sims_per_job = int(math.ceil(sims_per_slot / num_blocks))
+            print(f"Setting number of blocks to {num_blocks} [via num_blocks (-k) argument]")
+            print(f"Setting sims per job to {sims_per_job} [via {sims_per_slot} simulations_per_slot in config]")
+        else:
+            geoid_fname = pathlib.Path(config["spatial_setup"]["base_path"]) / config["spatial_setup"]["geodata"]
+            with open(geoid_fname) as geoid_fp:
+                num_geoids = sum(1 for line in geoid_fp)
+
+            # formula based on a simple regression of geoids (based on known good performant params)
+            sims_per_job = max(60 - math.sqrt(num_geoids), 10)
+            sims_per_job = 5 * int(math.ceil(sims_per_job / 5))  # multiple of 5
+
+            num_blocks = int(math.ceil(sims_per_slot / sims_per_job))
+
+            print(f"Setting sims per job to {sims_per_job} "
+                  f"[estimated based on {num_geoids} geoids and {sims_per_slot} simulations_per_slot in config]")
+            print(f"Setting number of blocks to {num_blocks} [via math]")
+
+    if num_blocks is None:
+        num_blocks = int(math.ceil(sims_per_slot / sims_per_job))
+        print(f"Setting number of blocks to {num_blocks} [via {sims_per_slot} simulations_per_slot in config]")
+
+    return (num_jobs, sims_per_job, num_blocks)
 
 
 def get_job_queues(job_queue_prefix):
