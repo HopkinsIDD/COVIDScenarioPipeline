@@ -78,8 +78,10 @@ run_daily_import_model
 run_daily_import_model_par
                         Run the full simulation of daily importations
 run_full_distrib_imports
-                        run_distrib_imports
+                        run_full_distrib_imports
 run_importations        Run importation sims
+setup_airport_attribution
+                        setup_airport_attribution
 setup_and_run_importations
                         Set up and run importation sims
 setup_importations      Set up importation sims

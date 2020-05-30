@@ -6,17 +6,19 @@ on:
       - master
       - dev
       - dataseed
+      - inference
   pull_request:
     branches:
       - master
       - dev
       - dataseed
+      - inference
 
 jobs:
   unit-tests:
     runs-on: ubuntu-18.04
     container:
-      image: docker://hopkinsidd/covidscenariopipeline:latest-dev
+      image: docker://hopkinsidd/covidscenariopipeline:latest-inference
       options: --user root
     steps:
       - name: Checkout
@@ -44,6 +46,11 @@ jobs:
       - name: Run report_generation tests
         run: |
           setwd("R/pkgs/report_generation")
+          devtools::test(stop_on_failure=TRUE)
+        shell: Rscript {0}
+      - name: Run inference tests
+        run: |
+          setwd("R/pkgs/inference")
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
       - name: Run integration tests

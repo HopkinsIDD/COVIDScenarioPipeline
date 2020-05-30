@@ -13,7 +13,6 @@ on:
       - dataseed
     paths:
       - 'requirements.txt'
-      - 'packages.R'
       - 'local_install.R'
       - 'Dockerfile'
       - 'R/pkgs/**'
