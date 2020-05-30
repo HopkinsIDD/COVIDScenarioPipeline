@@ -130,10 +130,12 @@ class Setup:
 
         if (self.write_csv or self.write_parquet):
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-            self.datadir = f'model_output/{self.setup_name}/'
+            self.datadir = file_paths.create_dir_name(self.run_id,self.prefix,'seir')
             os.makedirs(self.datadir, exist_ok=True)
-            self.paramdir = f'model_parameters/{self.setup_name}/'
+            self.paramdir = file_paths.create_dir_name(self.run_id,self.prefix,'spar')
             os.makedirs(self.paramdir, exist_ok=True)
+            self.npidir = file_paths.create_dir_name(self.run_id,self.prefix,'snpi')
+            os.makedirs(self.npidir, exist_ok=True)
 
     def build_setup(self):
         self.t_span = (self.tf - self.ti).days
