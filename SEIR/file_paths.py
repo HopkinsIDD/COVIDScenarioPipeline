@@ -1,3 +1,4 @@
+import os
 import datetime
 
 def create_file_name(run_id,prefix,index,type,extension):
@@ -8,3 +9,6 @@ def create_file_name_without_extension(run_id,prefix,index,type):
 
 def run_id():
     return(datetime.datetime.strftime(datetime.datetime.now(),"%Y.%m.%d.%H:%M:%S.%Z"))
+
+def create_dir_name(run_id,prefix,type):
+    return(os.path.dirname(prefix))

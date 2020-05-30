@@ -11,10 +11,10 @@ suppressMessages(library(reticulate))
 suppressMessages(library(truncnorm))
 # suppressMessages(library(flock))
 options(warn=1)
-options(error=traceback)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
+  optparse::make_option(c("-u","--run_id"), action="store", type='character', help="Unique identifier for this run", default = Sys.getenv("RUN_ID",covidcommon::run_id())),
   optparse::make_option(c("-s", "--scenarios"), action="store", default=Sys.getenv("COVID_SCENARIO", 'all'), type='character', help="name of the intervention to run, or 'all' to run all of them"),
   optparse::make_option(c("-d", "--deathrates"), action="store", default=Sys.getenv("COVID_DEATHRATE", 'all'), type='character', help="name of the death scenarios to run, or 'all' to run all of them"),
   optparse::make_option(c("-j", "--jobs"), action="store", default=Sys.getenv("COVID_JOBS", "8"), type='integer', help="Number of jobs to run in parallel"),
@@ -22,16 +22,15 @@ option_list = list(
   optparse::make_option(c("-n", "--number_of_simulations"), action="store", default=Sys.getenv("COVID_NUM_SLOTS", "1"), type='integer', help = "number of slots to run"),
   optparse::make_option(c("-i", "--this_slot"), action="store", default="1", type='integer', help = "id of this slot"),
   optparse::make_option(c("-b", "--this_block"), action="store", default="1", type='integer', help = "id of this block"),
-  optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable"),
-  optparse::make_option(c("-r", "--rpath"), action="store", default="Rscript", type = 'character', help = "path to R executable"),
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = "COVIDScenarioPipeline/"),
-  optparse::make_option(c("--clean"), action="store_true",default=FALSE,help="Remove old files if unused"),
-  optparse::make_option(c("--dontclean"), action="store_false",dest="clean",help="Don't remove old files if unused"),
-  optparse::make_option(c("-u","--run_id"), action="store", type='character', help="Unique identifier for this run", default = Sys.getenv("RUN_ID",covidcommon::run_id()))
+  optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable"),
+  optparse::make_option(c("-r", "--rpath"), action="store", default="Rscript", type = 'character', help = "path to R executable")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)
+
+print(opt)
 
 reticulate::use_python(Sys.which(opt$python),require=TRUE)
 ## Block loads the config file and geodata
