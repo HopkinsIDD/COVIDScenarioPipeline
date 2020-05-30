@@ -155,9 +155,9 @@ doParallel::stopImplicitCluster()
 registerDoSEQ()
 ```
 
-```{r load_csse_data}
-## load CSSE data 
-jhu_dat <- load_jhu_csse_for_report(states = modeled_states, update=TRUE) ## change to update=FALSE after the data is pulled for the first time
+```{r load_case_data}
+## load case data 
+usaf_dat <- load_USAFacts_for_report(states = modeled_states)
 ```
 
 
