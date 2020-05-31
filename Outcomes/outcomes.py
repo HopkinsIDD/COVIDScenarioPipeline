@@ -22,14 +22,12 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
     # However needs an ordered dict, here we're abusing a bit the spec.
     config_outcomes = config["outcomes"]["settings"][scenario_outcomes]
     if (config["outcomes"]["param_from_file"].get()):
-        print('ok file')
         # load a file from the seir model, to know how to filter the provided csv file
         sim_id_str = str(sim_ids[0]).zfill(9)
         diffI = pd.read_parquet(f'model_output/{setup_name}/{sim_id_str}.seir.parquet')
         diffI = diffI[diffI['comp'] == 'diffI']
         dates = diffI.time
         diffI.drop(['comp'], inplace = True, axis = 1)
-        print('ok input')
 
         # Load the actual csv file
         print()
@@ -110,10 +108,10 @@ def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_
             all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))  
                                        # Check dimension for from file
 
-            import matplotlib.pyplot as plt
-            plt.imshow(probability * np.ones_like(all_data[source]))
-            plt.title(np.mean(probability))
-            plt.savefig('P'+new_comp + '|' + source)
+            #import matplotlib.pyplot as plt
+            #plt.imshow(probability * np.ones_like(all_data[source]))
+            #plt.title(np.mean(probability))
+            #plt.savefig('P'+new_comp + '|' + source)
             
             # Shift to account for the delay
             all_data[new_comp] = shift(all_data[new_comp], delay, fill_value=0)
