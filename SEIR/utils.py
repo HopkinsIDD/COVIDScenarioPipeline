@@ -61,6 +61,11 @@ def get_truncated_normal(*, mean=0, sd=1, a=0, b=10):
 
     return scipy.stats.truncnorm((a - mean) / sd, (b - mean) / sd, loc=mean, scale=sd)
 
+def get_log_normal(meanlog, sdlog):
+    "Returns the log normal distribution"
+    return scipy.stats.lognorm(s = sdlog, scale = np.exp(meanlog), loc = 0)
+
+
 
 @add_method(confuse.ConfigView)
 def as_random_distribution(self):
@@ -81,5 +86,7 @@ def as_random_distribution(self):
         return get_truncated_normal(mean=self["mean"].as_evaled_expression(), sd=self["sd"].as_evaled_expression(),
                                     a=self["a"].as_evaled_expression(), b=self["b"].as_evaled_expression()
                                     ).rvs
+    elif dist == "lognorm":
+        return get_log_normal(meanlog=self["meanlog"].as_evaled_expression(), sdlog=self["sdlog"].as_evaled_expression()).rvs
     else:
         raise NotImplementedError(f"unknown distribution [got: {dist}]")

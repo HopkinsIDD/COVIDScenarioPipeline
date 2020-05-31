@@ -7,7 +7,7 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from utils import config
+from SEIR.utils import config 
 import pyarrow.parquet as pq
 import pyarrow as pa
 import pandas as pd

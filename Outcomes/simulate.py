@@ -55,7 +55,7 @@ import time, os
 
 import click
 
-from utils import config
+from SEIR.utils import config 
 import outcomes
 
 
