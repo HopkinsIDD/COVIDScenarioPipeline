@@ -21,6 +21,24 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
     # Either mean of probabilities given or from the file... This speeds up a bit the process.
     # However needs an ordered dict, here we're abusing a bit the spec.
     config_outcomes = config["outcomes"]["settings"][scenario_outcomes]
+    if (config["outcomes"]["param_from_file"].get()):
+        print('ok file')
+        # load a file from the seir model, to know how to filter the provided csv file
+        sim_id_str = str(sim_ids[0]).zfill(9)
+        diffI = pd.read_parquet(f'model_output/{setup_name}/{sim_id_str}.seir.parquet')
+        diffI = diffI[diffI['comp'] == 'diffI']
+        dates = diffI.time
+        diffI.drop(['comp'], inplace = True, axis = 1)
+        print('ok input')
+
+        # Load the actual csv file
+        print()
+        branching_file = config["outcomes"]["param_place_file"].as_str()
+        branching_data = pd.read_csv(branching_file, converters={"place": str})
+        branching_data = branching_data[branching_data['place'].isin(diffI.drop('time', axis=1).columns)]
+        if (branching_data.shape[0] != diffI.drop('time', axis=1).columns.shape[0]):
+            raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
+
     parameters = {}
     for new_comp in config_outcomes:
         parameters[new_comp] = {}
@@ -37,8 +55,13 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
                     config_outcomes[new_comp]['duration']['value'].as_random_distribution()(size = 10000))))
             
             if (config["outcomes"]["param_from_file"].get()):
-                # stuff to put it in parameter table
-                raise('Loading not supported')
+                colname = 'R'+new_comp+'|'+parameters[new_comp]['source']
+                if colname in branching_data.columns:
+                    print(f"Using 'param_from_file' for probability {colname}")
+                    parameters[new_comp]['probability'] = parameters[new_comp]['probability'] * \
+                        branching_data[colname].to_numpy()
+                else:
+                    print(f"NOT using 'param_from_file' for probability {colname}")
 
         elif config_outcomes[new_comp]['sum'].exists():
             parameters[new_comp]['sum'] = config_outcomes[new_comp]['sum']
