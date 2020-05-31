@@ -45,6 +45,7 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
             parameters[new_comp]['source'] = config_outcomes[new_comp]['source'].as_str()
             parameters[new_comp]['probability'] = np.mean(
                 config_outcomes[new_comp]['probability']['value'].as_random_distribution()(size = 10000))
+            
             parameters[new_comp]['delay'] = int(np.round(np.mean(
                 config_outcomes[new_comp]['delay']['value'].as_random_distribution()(size = 10000))))
             
@@ -91,10 +92,10 @@ def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_
     places = diffI.drop(['time'], axis=1).columns
     all_data = {}
     # We store them as numpy matrices. Dimensions is dates X places
-    all_data['incidence'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
-    shape = all_data['incidence'].shape
+    all_data['infection'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
+    shape = all_data['infection'].shape
 
-    outcomes = pd.melt(diffI, id_vars='time', value_name = 'incidence', var_name='place')
+    outcomes = pd.melt(diffI, id_vars='time', value_name = 'infection', var_name='place')
     for new_comp in parameters:
         if 'source' in parameters[new_comp]:
             # Read the config for this compartement
@@ -103,7 +104,7 @@ def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_
             delay =       parameters[new_comp]['delay']
     
             # Create new compartement
-            all_data[new_comp] = np.empty_like(all_data['incidence'])
+            all_data[new_comp] = np.empty_like(all_data['infection'])
             # Draw with from source compartement
             all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))  
                                        # Check dimension for from file
