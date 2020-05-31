@@ -23,8 +23,8 @@ for(name in names){
 name <- 'confirmed_inf'
 rc[[name]] <- geoid_params[,'geoid']
 rc[[name]]$parameter <- paste('p',name,sep='_')
-rc[[name]]$value <- .15
+rc[[name]]$value <- .1
 
 rc <- do.call(rbind,rc)
-rc <- dplyr::filter(rc,gsub('...$','',geoid) == '36')
+##rc <- dplyr::filter(rc,gsub('...$','',geoid) == '36')
 arrow::write_parquet(rc,"hospitalization.hpar.parquet")
