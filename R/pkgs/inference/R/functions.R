@@ -105,6 +105,79 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
 }
 
 
+##'
+##' Function to calculate a hierarchical adjustment to the LL
+##' contribution under the assumption that everything comes from
+##' a normal distribution with some variance.
+##'
+##' @param stat the statistic to calculate the penalty on
+##' @param infer_frame data frame with the statistics in it
+##' @param geodata geodata containing geoid from npi fram and the grouping column
+##' @param geo_group_col the column to group on
+##' @param stat_name_col column holding stats name...default is npi_name
+##' @param stat_col column hold the stat
+##' @param transform how should the data be transformed before calc
+##' @param min_sd what is the minimum SD to consider. Default is .1
+##'
+##' @return a data frame with geoids and a per geoid LL adjustment
+##'
+##' @export
+##'
+calc_hierarchical_likadj <- function (stat,
+                                      infer_frame,
+                                      geodata,
+                                      geo_group_column,
+                                      stat_name_col = "npi_name",
+                                      stat_col="reduction",
+                                      transform = "none",
+                                      min_sd=.1) {
+
+    require(dplyr)
+
+    if (transform!="none") {
+        stop("transforms not yet supported")
+    }
+
+    rc <- infer_frame%>%
+        filter(!!sym(stat_name_col)==stat)%>%
+        inner_join(geodata)%>%
+        group_by(!!sym(geo_group_column))%>%
+        mutate(likadj = dnorm(!!sym(stat_col),
+                              mean(!!sym(stat_col)),
+                              max(sd(!!sym(stat_col)), min_sd), log=TRUE))%>%
+        ungroup()%>%
+        select(geoid, likadj)
+
+    return(rc)
+}
+
+
+##'
+##'
+##' Function to calcualte the likelihood adjustment based on a prior
+##'
+##' @param params the parameters the claculate the likelihood adjust for
+##' @param dist the distribution to use
+##' @param dist_pars the parameters of the distribution
+##'
+##' @return a likelihood sdjustment per param
+##'
+##' @export
+##'
+calc_prior_likadj  <- function(params,
+                               dist,
+                               dist_pars) {
+
+    if (dist=="normal") {
+        rc <- dnorm(params, dist_pars[1], dist_pars[2], log=TRUE)
+    } else {
+        stop("This distribution is unsupported")
+    }
+
+    return(rc)
+}
+
+
 
 # MCMC stuff -------------------------------------------------------------------
 
