@@ -1,6 +1,6 @@
 context("perturb_npis")
 
-test_that("perturb_npis always stays within support", {
+test_that("perturb_snpi always stays within support", {
     N <- 10000
     npis <- data.frame(
         geoid = rep('00000',times=N),
@@ -28,11 +28,11 @@ test_that("perturb_npis always stays within support", {
           b = ".1"
         )
     ))
-    expect_equal(all(perturb_npis(npis,npi_settings)$reduction <= as.numeric(npi_settings$test_npi$value$b)),TRUE)
-    expect_equal(all(perturb_npis(npis,npi_settings)$reduction >= as.numeric(npi_settings$test_npi$value$a)),TRUE)
+    expect_equal(all(perturb_snpi(npis,npi_settings)$reduction <= as.numeric(npi_settings$test_npi$value$b)),TRUE)
+    expect_equal(all(perturb_snpi(npis,npi_settings)$reduction >= as.numeric(npi_settings$test_npi$value$a)),TRUE)
 })
 
-test_that("perturb_npis has a median of 0 after 10000 sims",{
+test_that("perturb_snpi has a median of 0 after 10000 sims",{
     N <- 10000
     npis <- data.frame(
         geoid = rep('00000',times=N),
@@ -63,20 +63,20 @@ test_that("perturb_npis has a median of 0 after 10000 sims",{
     expect_lt({
       local_npis <- npis
       for(i in seq_len(N)){
-        local_npis <- perturb_npis(local_npis,npi_settings)
+        local_npis <- perturb_snpi(local_npis,npi_settings)
       }
       abs(mean(local_npis$reduction))
     },0.1)
     expect_lt({
       local_npis <- npis
       for(i in seq_len(N)){
-        local_npis <- perturb_npis(local_npis,npi_settings)
+        local_npis <- perturb_snpi(local_npis,npi_settings)
       }
       abs(median(local_npis$reduction))
     },0.1)
 })
 
-test_that("perturb_npis does not perturb npis without a perturbation section", {
+test_that("perturb_snpi does not perturb npis without a perturbation section", {
     N <- 10000
     npis <- data.frame(
         geoid = rep('00000',times=N),
@@ -96,11 +96,11 @@ test_that("perturb_npis does not perturb npis without a perturbation section", {
           a = "-.11",
           b = "-.097"
         )
-    ))
+    )) 
     expect_equal({
       local_npis <- npis
       for(i in seq_len(N)){
-        local_npis <- perturb_npis(local_npis,npi_settings)
+        local_npis <- perturb_snpi(local_npis,npi_settings)
       }
       local_npis
     },npis)
