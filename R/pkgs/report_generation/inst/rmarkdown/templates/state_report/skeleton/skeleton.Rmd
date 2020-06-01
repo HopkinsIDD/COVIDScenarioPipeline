@@ -142,22 +142,22 @@ cap <- paste0("**Fig. ", fig_counter, "**: Daily hospital occupancy for 15 simul
 ```{r load_cum_inf_geounit_dates}
 ###Load cumulative infections on specific dates
 doParallel::registerDoParallel(ncores)
-
 cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
-                           num_files = nfiles,
-                           display_dates = config$report$formatting$display_dates,
-                           scenariolabels = config$report$formatting$scenario_labels,
-                           incl_geoids = included_geoids,
-                           geoid_len = 5,
-                           file_extension="auto")
+                                           num_files = nfiles,
+                                           scenariolabels = config$report$formatting$scenario_labels,
+                                           name_filter= config$hospitalization$parameters$p_death_names[1], ## includes only one pdeath because interest is only in infections here
+                                           incl_geoids = included_geoids,
+                                           geoid_len = 5,
+                                           file_extension="auto") %>%
+    mutate(pdeath=config$hospitalization$parameters$p_death[1]) 
 
 doParallel::stopImplicitCluster()
 registerDoSEQ()
 ```
 
-```{r load_csse_data}
-## load CSSE data 
-jhu_dat <- load_jhu_csse_for_report(states = modeled_states, update=TRUE) ## change to update=FALSE after the data is pulled for the first time
+```{r load_case_data}
+## load case data 
+usaf_dat <- load_USAFacts_for_report(states = modeled_states)
 ```
 
 
@@ -250,7 +250,7 @@ fig_counter <- fig_counter+1
 `r paste("**Tab.", tab_counter, "** State-level summary for", config$report$formatting$scenario_labels[1], "scenario reported for the period from", sim_start_date, "through the dates specified by the column headers.")`
 
 ```{r scn_state_table1}
-make_scn_state_table(config$report$formatting$scenario_labels[1],
+make_scn_state_table_withVent(config$report$formatting$scenario_labels[1],
                      state_hosp_totals,
                      table_dates = config$report$formatting$display_dates,
                      pdeath_labels = config$report$formatting$pdeath_labels,
@@ -282,7 +282,8 @@ ARmap3 <- plot_geounit_attack_rate_map(cum_inf_dates,
                             shp,
                             scenariolabel = config$report$formatting$scenario_labels[1],
                             display_date = config$report$formatting$display_dates[3],
-                            viridis_palette = "cividis")
+                            viridis_palette = "cividis",
+                            popnodes = config$spatial_setup$popnodes)
 cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3)
 
 cap <- paste("**Fig.", fig_counter, "** County-level map of infections per 10,000 for", config$report$formatting$scenario_labels[1], " strategy.")

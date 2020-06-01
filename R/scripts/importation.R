@@ -52,8 +52,8 @@
 # * importation/{spatial\_setup::setup\_name}/travel\_data\_monthly.csv
 # * importation/{spatial\_setup::setup\_name}/travel\_mean.csv
 # * importation/{spatial\_setup::setup\_name}/travel\_data_daily.csv
-# * importation/{spatial\_setup::setup\_name}/imports\_sim[simulation-id].csv
-# * importation/{spatial\_setup::setup\_name}/importation\_[simulation-id].csv
+# * importation/{spatial\_setup::setup\_name}/[simulation-id].imps.csv
+# * importation/{spatial\_setup::setup\_name}/[simulation-id].impa.csv
 # * {spatial\_setup::base\_path}/county\_pops\_{spatial\_setup::census\_year}
 # * {spatial\_setup::base\_path}/shp/counties\_{spatial\_setup::census\_year}\_{spatial\_setup::setup\_name}.shp
 # * {spatial\_setup::base\_path}/{spatial\_setup::setup\_name}/airport\_attribution\_{spatial\_setup::census\_year}.csv
@@ -62,6 +62,7 @@
 
 library(covidImportation)
 library(parallel)
+library(stringr)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
@@ -77,6 +78,7 @@ if (length(config) == 0) {
 }
 
 num_simulations <- ifelse(opts$n > 0, opts$n, config$nsimulations)
+last_sim_id <- stringr::str_pad(num_simulations, width=9, pad="0")
 
 dest <- sort(config$spatial_setup$modeled_states)
 print(dest)
@@ -118,8 +120,7 @@ if (!file.exists(file.path(outdir, "input_data.csv"))) {
   )
 }
 
-
-if (!file.exists(file.path(outdir, paste0("imports_sim", num_simulations, ".csv")))) {
+if (!file.exists(file.path(outdir, paste0(last_sim_id, "imps.csv")))) {
   print("IMPORT 2: RUN MODEL")
   run_importations(
     n_sim=num_simulations,
@@ -134,7 +135,7 @@ if (!file.exists(file.path(outdir, paste0("imports_sim", num_simulations, ".csv"
 }
 
 
-if (!file.exists(file.path(outdir, paste0("importation_", num_simulations, ".csv")))) {
+if (!file.exists(file.path(outdir, paste0(last_sim_id, "impa.csv")))) {
   print("IMPORT 3: DISTRIBUTE")
   run_full_distrib_imports(
     states_of_interest=dest,

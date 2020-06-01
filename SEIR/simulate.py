@@ -108,7 +108,7 @@
 # * {seeding::lambda_file}
 #
 # If {seeding::method} is FolderDraw
-# * {seeding::folder_path}/importation_[number].csv
+# * {seeding::folder_path}/[simulation ID].impa.csv
 #
 # ## Output Data
 #

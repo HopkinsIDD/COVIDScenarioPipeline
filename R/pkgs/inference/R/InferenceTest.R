@@ -1,0 +1,473 @@
+##'
+##' Function that does a rapid testing of the inference procedures on a single
+##' time series.
+##'
+##' @param seeding the initial seeding
+##' @param config the config file with inference info.
+##' @param date_bounds acceptable bounds for the seeding dates
+##' @param n_slots the number of slots to run, MCMC iterations per slot are in the config file
+##' @param ncores the number of cores to run
+##' @param npi_file file to write NPI samples to
+##' @param seeding_file file to write seeding samples to
+##' @param loglik_file file to write neg log-loglik samples to
+##' @param epi_dir file to write simulated trajectory samples to
+##' 
+##' @return inference run results on this particular area
+##'
+#' @export
+single_loc_inference_test <- function(to_fit,
+                                      S0, # TODO change to geodata.csv
+                                      seeding,
+                                      config,
+                                      date_bounds,
+                                      n_slots,
+                                      ncores, 
+                                      npi_file,
+                                      seeding_file,
+                                      loglik_file,
+                                      epi_dir) {
+
+    cl <- parallel::makeCluster(ncores)
+    registerDoSNOW(cl)
+    
+    # Column name that stores spatial unique id
+    obs_nodename <- config$spatial_setup$nodenames
+    
+    # Set number of simulations
+    simulations_per_slot <- config$filtering$simulations_per_slot
+    
+    # SEIR parameters for simulations
+    R0 <- covidcommon::as_evaled_expression(config$seir$parameters$R0s$value)
+    gamma <- covidcommon::as_evaled_expression(config$seir$parameters$gamma$value)
+    sigma <- covidcommon::as_evaled_expression(config$seir$parameters$sigma)
+    
+    # Data to fit
+    obs <- to_fit
+    
+    # Times based on config
+    sim_times <- seq.Date(as.Date(config$start_date), as.Date(config$end_date), by = "1 days")
+    
+    # Get unique geonames
+    geonames <- unique(obs[[obs_nodename]])
+    
+    # Compute statistics of observations
+    data_stats <- lapply(
+        geonames,
+        function(x) {
+            df <- obs[obs[[obs_nodename]] == x, ]
+            getStats(
+                df,
+                "date",
+                "data_var",
+                stat_list = config$filtering$statistics)
+        }) %>%
+        set_names(geonames)
+    
+    all_locations <- unique(obs[[obs_nodename]])
+    
+    # Filtering loops
+    required_packages <- c("dplyr", "magrittr", "xts", "zoo", "purrr", "stringr", "truncnorm",
+                           "readr", "covidcommon", "hospitalization", "data.table",
+                           "inference")  # packages required for dopar
+    
+    
+    # Loop over number of slots
+    res <- foreach(s = 1:n_slots, 
+                   .combine = rbind,
+                   .packages = required_packages,
+                   .inorder = F,
+                   .export = c("epi_dir")
+    ) %dopar% {
+        
+        npis_init <- npis_dataframe(config, random = T)
+        
+        seeding_init <- seeding
+        for (i in 1:nrow(seeding_init)) {
+            seeding_init$date[i] <- sample(sim_times[1:20], 1)
+            # TODO change amount based on data
+            seeding_init$amount[i] <- rpois(1, 10)
+        }
+        
+        initial_seeding <- perturb_seeding(seeding_init, config$seeding$perturbation_sd, date_bounds)
+        initial_npis <- perturb_expand_npis(npis_init, config$interventions$scenarios)
+        
+        # Write to file
+        initial_seeding %>% 
+            mutate(slot = s, index = 0) %>% 
+            write_csv(seeding_file, append = file.exists(seeding_file))
+        
+        initial_npis %>% 
+            distinct(reduction, npi_name, geoid) %>% 
+            mutate(slot = s, index = 0) %>% 
+            write_csv(npi_file, append = file.exists(npi_file))
+        
+        # Simulate initial hospitalizatoins
+        initial_sim_hosp <- simulate_single_epi(times = sim_times, 
+                                                seeding = initial_seeding,
+                                                R0 = R0, 
+                                                S0 = S0, 
+                                                gamma = gamma,
+                                                sigma = sigma,
+                                                beta_mults = 1-initial_npis$reduction) %>% 
+            single_hosp_run(config) %>% 
+            filter(time %in% obs$date)
+        
+        write_csv(initial_sim_hosp, glue::glue("{epi_dir}sim_slot_{s}_index_0.csv"))
+        
+        initial_sim_stats <- getStats(
+            initial_sim_hosp,
+            "time",
+            "sim_var",
+            end_date = max(obs$date),
+            config$filtering$statistics
+        )
+        
+        # Get observation statistics
+        log_likelihood <- list()
+        for(var in names(data_stats[[1]])) {
+            log_likelihood[[var]] <- logLikStat(
+                obs = data_stats[[1]][[var]]$data_var,
+                sim = initial_sim_stats[[var]]$sim_var,
+                dist = config$filtering$statistics[[var]]$likelihood$dist,
+                param = config$filtering$statistics[[var]]$likelihood$param,
+                add_one = config$filtering$statistics[[var]]$add_one
+            )
+        }
+        # Compute log-likelihoods
+        initial_log_likelihood_data <- dplyr::tibble(
+            ll = sum(unlist(log_likelihood)),
+            geoid = 1
+        )
+        
+        # Compute total loglik for each sim
+        likelihood <- initial_log_likelihood_data
+        
+        likelihood %>% 
+            mutate(slot = s, index = 0) %>% 
+            write_csv(loglik_file, append = file.exists(loglik_file))
+        
+        ## For logging
+        current_likelihood <- likelihood
+        current_index <- 0
+        previous_likelihood_data <- initial_log_likelihood_data
+        
+        for (index in seq_len(simulations_per_slot)) {
+            current_seeding <- perturb_seeding(initial_seeding, config$seeding$perturbation_sd, date_bounds)
+            current_npis <- perturb_expand_npis(initial_npis, config$interventions$scenarios)
+            
+            # Simulate  hospitalizatoins
+            sim_hosp <- simulate_single_epi(times = sim_times,
+                                            seeding = current_seeding,
+                                            R0 = R0,
+                                            S0 = S0,
+                                            gamma = gamma,
+                                            sigma = sigma,
+                                            beta_mults = 1-current_npis$reduction) %>% 
+                single_hosp_run(config) %>% 
+                filter(time %in% obs$date)
+            
+            sim_stats <- getStats(
+                sim_hosp,
+                "time",
+                "sim_var",
+                end_date = max(obs$date),
+                config$filtering$statistics
+            )
+            
+            # Get observation statistics
+            log_likelihood <- list()
+            for(var in names(data_stats[[1]])) {
+                log_likelihood[[var]] <- logLikStat(
+                    obs = data_stats[[1]][[var]]$data_var,
+                    sim = sim_stats[[var]]$sim_var,
+                    dist = config$filtering$statistics[[var]]$likelihood$dist,
+                    param = config$filtering$statistics[[var]]$likelihood$param,
+                    add_one = config$filtering$statistics[[var]]$add_one
+                )
+            }
+            # Compute log-likelihoods
+            log_likelihood_data <- dplyr::tibble(
+                ll = sum(unlist(log_likelihood)),
+                geoid = 1
+            )
+            
+            # Compute total loglik for each sim
+            likelihood <- log_likelihood_data
+            
+            ## For logging
+            print(paste("Current likelihood",current_likelihood$ll,"Proposed likelihood",likelihood$ll))
+            
+            # Update states
+            if(iterateAccept(current_likelihood, likelihood, 'll')){
+                current_index <- index
+                current_likelihood <- likelihood
+                
+                write_csv(sim_hosp, glue::glue("{epi_dir}sim_slot_{s}_index_{index}.csv"))
+            }
+            
+            # Upate seeding and NPIs by location
+            seeding_npis_list <- accept_reject_new_seeding_npis(
+                seeding_orig = initial_seeding,
+                seeding_prop = current_seeding,
+                npis_orig = distinct(initial_npis, reduction, npi_name, geoid),
+                npis_prop = distinct(current_npis, reduction, npi_name, geoid),
+                orig_lls = previous_likelihood_data,
+                prop_lls = log_likelihood_data
+            )
+            initial_seeding <- seeding_npis_list$seeding
+            initial_npis <- inner_join(seeding_npis_list$npis, select(current_npis, -reduction), by = c("geoid", "npi_name"))
+            previous_likelihood_data <- seeding_npis_list$ll
+            
+            # Write to file
+            initial_seeding %>% 
+                mutate(slot = s, index = index) %>% 
+                write_csv(seeding_file, append = file.exists(seeding_file))
+            
+            seeding_npis_list$npis %>% 
+                mutate(slot = s, index = index) %>% 
+                write_csv(npi_file, append = file.exists(npi_file))
+            
+            seeding_npis_list$ll %>% 
+                mutate(slot = s, index = index) %>% 
+                write_csv(loglik_file, append = file.exists(loglik_file))
+            
+        }
+        
+    }
+    parallel::stopCluster(cl)
+}
+
+
+
+##'
+##'
+##' Fill in the epi curve from a baseline state given current parameters
+##'
+##' TODO: Modify to just call python code
+##'
+##' @param times the times to run the epidemic on
+##' @param seeding the seeding to use
+##' @param R0 the reproductive number
+##' @param S0 the initial number susceptible
+##' @param gamma the time between compartments
+##' @param sigma the incubation period/latent period
+##' @param beta_mults multipliers to capture the impact of interventions
+##' @param alpha defaults to 1
+##'
+##' @return the epimic states
+##'
+##' @export
+simulate_single_epi <- function(times,
+                                seeding,
+                                S0,
+                                R0,
+                                gamma,
+                                sigma,
+                                beta_mults = rep(1, length(times)),
+                                alpha = 1) {
+
+    require(tidyverse)
+
+    ##Scale R0 to beta
+    beta <- R0 * gamma/3
+
+    ##set up return matrix
+    epi <- matrix(0, nrow=length(times), ncol=7)
+    colnames(epi) <- c("S","E","I1","I2","I3","R","incidI")
+
+
+    ##column indices for convenience
+    S <- 1
+    E <- 2
+    I1 <- 3
+    I2 <- 4
+    I3 <- 5
+    R  <- 6
+    incidI <- 7
+
+    ##seed the first case
+    epi[1,S] <- S0
+
+
+
+    ##get the indices where seeding occurs
+    seed_times <- which(times%in%seeding$date)
+
+    for (i in 1:(length(times)-1)) {
+        ##Seed if possible
+        if(i%in% seed_times) {
+            tmp <- seeding$amount[which(i==seed_times)]
+            epi[i,S] <- epi[i,S] - tmp
+            epi[i,E] <- epi[i,E] + tmp
+        }
+
+        ##Draw transitions
+        #print(beta)
+        dSE <- rbinom(1,epi[i,S],beta*beta_mults[i]*sum(epi[i,I1:I3])^alpha/S0)
+        dEI <- rbinom(1,epi[i,E],sigma)
+        dI12 <- rbinom(1, epi[i,I1], gamma)
+        dI23 <- rbinom(1, epi[i,I2], gamma)
+        dIR <- rbinom(1, epi[i,I3], gamma)
+
+        ##Make transitions
+        epi[i+1,S] <- epi[i,S] - dSE
+        epi[i+1,E] <- epi[i,E] + dSE - dEI
+        epi[i+1,I1] <- epi[i,I1] + dEI - dI12
+        epi[i+1,I2] <- epi[i,I2] + dI12 - dI23
+        epi[i+1,I3] <- epi[i,I3] + dI23 - dIR
+        epi[i+1,R] <- epi[i,R] + dIR
+        epi[i+1,incidI] <- dEI
+
+    }
+
+    epi <- as.data.frame(epi) %>%
+        mutate(time=times)%>%
+        pivot_longer(-time,values_to="N", names_to="comp")
+
+    return(epi)
+}
+
+##'
+##' Run hospitalizations and deaths for single epi curve
+##' Functions taken from the hospitalization package
+##'
+##' @param epi SEIR output
+##' @param config configuration file
+##'
+##' @return the epimic states
+##'
+##'
+##' @export
+single_hosp_run <- function(epi, config) {
+    
+    p_death <- config$hospitalization$parameters$p_death
+    p_death_rate <- config$hospitalization$parameters$p_death_rate
+    p_hosp <- p_death/p_death_rate
+    time_hosp_pars <- as_evaled_expression(config$hospitalization$parameters$time_hosp)
+    time_disch_pars <- as_evaled_expression(config$hospitalization$parameters$time_disch)
+    time_hosp_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_hosp_death)
+    dat_ <- filter(epi, comp == "incidI") %>% 
+        select(-comp) %>% 
+        rename(incidI = N) %>%
+        mutate(uid = 1) %>% 
+        as.data.table()
+    dat_H <- hosp_create_delay_frame('incidI',p_hosp,dat_,time_hosp_pars,"H")
+    data_D <- hosp_create_delay_frame('incidH',p_death_rate,dat_H,time_hosp_death_pars,"D")
+    R_delay_ <- round(exp(time_disch_pars[1]))
+    res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...),
+                  list(dat_, dat_H, data_D)) %>%
+        replace_na(
+            list(incidI = 0,
+                 incidH = 0,
+                 incidD = 0,
+                 hosp_curr = 0)) %>%
+        mutate(date_inds = as.integer(time - min(time) + 1)) %>%
+        arrange(date_inds) %>%
+        split(.$uid) %>%
+        purrr::map_dfr(function(.x){
+            .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),
+                                                    n=R_delay_,default=0)
+            return(.x)
+        }) %>%
+        replace_na(
+            list(hosp_curr = 0)) %>%
+        arrange(date_inds) %>% 
+        select(-date_inds) %>% 
+        rename(geoid = uid)
+    
+    return(res)
+}
+
+##'
+##' Create NPIs dataframe for a single location for input to SEIR code
+##'
+##' @param times vector of times to use
+##' @param config configuration file
+##'
+##' @return a dataframe with npi reduction values by date
+##'
+##'
+##' @export
+npis_dataframe <- function(config, random = F) {
+    
+    times <- seq.Date(as.Date(config$start_date), as.Date(config$end_date), by = "1 days")
+    npis <- tibble(date = times, reduction = 0, npi_name = "local_variation", geoid = "1")
+    interventions <- config$interventions$scenarios
+    date_changes <- map_chr(interventions, 
+                            ~ifelse(is.null(.$period_start_date),
+                                    config$start_date, 
+                                    .$period_start_date)) %>% as.Date() 
+    # Apply interventions
+    for (d in 1:length(date_changes)) {
+        npis$reduction[times >= date_changes[d]] <- interventions[[d]]$value$mean
+        npis$npi_name[times >= date_changes[d]] <- names(interventions)[d]
+    }
+    
+    if(random) {
+        # Randomly assign interventions
+        for (d in 1:length(date_changes)) {
+            if (names(interventions)[d] == "local_variation") {
+                npis$reduction[times >= date_changes[d]] <- runif(1, -.5, .5)
+            } else {
+                npis$reduction[times >= date_changes[d]] <- runif(1, 0, 1)
+            }
+        }
+    }
+    return(npis)
+}
+
+##'
+##' Create synthetic data to run inference on
+##' Runs an SEIR simulation and applies hospitalization and death on it
+##'
+##' @param S0 population size
+##' @param config configuration file
+##'
+##' @return the synthetic data
+##'
+##'
+##' @export
+synthetic_data <- function(S0, seeding, config) {
+    
+    # Simulate single epidemic 
+    times <- seq.Date(as.Date(config$start_date), as.Date(config$end_date), by = "1 days")
+    npis <- npis_dataframe(config)
+    R0 <- covidcommon::as_evaled_expression(config$seir$parameters$R0s$value)
+    gamma <- covidcommon::as_evaled_expression(config$seir$parameters$gamma$value)
+    sigma <- covidcommon::as_evaled_expression(config$seir$parameters$sigma)
+    
+    # Simulate epi
+    epi <- simulate_single_epi(times = times,
+                               seeding = seeding,
+                               R0 = R0,
+                               S0 = S0,
+                               gamma = gamma,
+                               sigma = sigma,
+                               beta_mults = 1-npis$reduction)
+    
+    # - - - -
+    # Setup fake data
+    fake_data <- single_hosp_run(epi, config) %>%
+        rename(date = time) %>% 
+        filter(date >= config$start_date,
+               date <= config$end_date)
+    
+    return(fake_data)
+}
+
+##'
+##' Expands the perturb npi into a dataframe with time
+##'
+##' @param npis the npis in "long" version (one value by npi, date and place)
+##' @param intervention_settings intervention_settings from the config file
+##'
+##' @return the perturbed npi dataframe
+##'
+##'
+##' @export
+perturb_expand_npis <- function(npis, intervention_settings) {
+    npis %>% 
+        distinct(reduction, npi_name) %>% 
+        perturb_npis(intervention_settings) %>% 
+        inner_join(select(npis, -reduction), by = c("npi_name"))
+}

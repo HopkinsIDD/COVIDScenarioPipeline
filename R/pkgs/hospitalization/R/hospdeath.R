@@ -167,7 +167,7 @@ hosp_load_scenario_sim <- function(scenario_dir,
         tmp$time <- lubridate::as_date(tz="GMT",tmp$time)
       }
     } else {
-      file <- paste0(file,'csv')
+      file <- paste0(file,'.csv')
       suppressMessages(tmp <- read_csv(file))
     }
     if (!is.null(keep_compartments)) {
@@ -337,6 +337,7 @@ build_hospdeath_par <- function(p_hosp,
 ##' @param root_out_dir Path to the directory to write the outputs of this analysis
 ##'
 ##' @export
+##' @importFrom foreach %dopar%
 build_hospdeath_geoid_fixedIFR_par <- function(
   prob_dat,
   p_death,
