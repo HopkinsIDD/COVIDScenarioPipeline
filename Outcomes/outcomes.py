@@ -67,8 +67,8 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
 
         elif config_outcomes[new_comp]['sum'].exists():
             parameters[new_comp]['sum'] = config_outcomes[new_comp]['sum']
-            
-
+        else:
+            raise ValueError(f"No 'source' or 'sum' specified for comp {new_comp}")
 
     if n_jobs == 1:          # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
