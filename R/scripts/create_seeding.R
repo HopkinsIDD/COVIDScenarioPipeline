@@ -39,12 +39,13 @@ library(purrr)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
+  optparse::make_option(c("-s", "--source"), action="store", default="CSSE", type='character', help="source of case data: USAFacts or CSSE"),
   optparse::make_option(c("-d", "--data"), action="store", default=file.path("data","case_data","case_data.csv"), type='character', help="path to the case data file")
 )
 
-opts = optparse::parse_args(optparse::OptionParser(option_list=option_list))
+opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
-config <- covidcommon::load_config(opts$c)
+config <- covidcommon::load_config(opt$c)
 if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
@@ -62,16 +63,20 @@ all_times <- lubridate::ymd(config$start_date) +
 # get data if a US model  ---------------------------------
 
 if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRUE){
-  # jhucsse <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
-  #                                  last_date = as.POSIXct(lubridate::ymd(config$end_date)),
-  #                                  case_data_dir = file.path('importation',config$spatial_setup$setup_name,"case_data"),
-  #                                  save_raw_data=TRUE,
-  #                                  us_data_only=FALSE)
-  # 
-  # print("Successfully pulled JHU CSSE data for seeding.")
-  # 
-  cases_deaths <- covidcommon::get_USAFacts_data()
-  print("Successfully pulled USAFacts data for seeding.")
+  
+  # Load either JHUCSSE or USAFacts data
+  if (tolower(opt$source) %in% c("csse", "jhucsse", "jhu csse")){
+    jhucsse <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID",
+                                     last_date = as.POSIXct(lubridate::ymd(config$end_date)),
+                                     case_data_dir = file.path('importation',config$spatial_setup$setup_name,"case_data"),
+                                     save_raw_data=TRUE,
+                                     us_data_only=FALSE)
+    print("Successfully pulled JHU CSSE data for seeding.")
+    
+  } else if (tolower(opt$source) %in% c("usafacts", "usa facts", "usa")){
+    cases_deaths <- covidcommon::get_USAFacts_data()
+    print("Successfully pulled USAFacts data for seeding.")
+  }
   
   geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),5,'0',TRUE)
 
@@ -105,8 +110,8 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
   
 } else {
   
-  case_data <- readr::read_csv(opts$data)
-  print(paste0("Case data from: ", opts$data))
+  case_data <- readr::read_csv(opt$data)
+  print(paste0("Case data from: ", opt$data))
   
   
   all_times <- lubridate::ymd(config$start_date) +

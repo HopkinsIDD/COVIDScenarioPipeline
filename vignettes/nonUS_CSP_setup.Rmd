@@ -210,6 +210,58 @@ provide the necessary data.
 
 <br>
 
+
+
+--------------------------------------------------------------------------------------
+
+# Generate *geodata.csv* and *mobility.csv*
+
+
+For non-US locations:
+
+1. Files for mobility data and population data for the nodes of the admin level 1 or 2 spatial areas in the directory `data/geodata`. These should both be .csv files, and GEOIDs must be consistent between them. These files will be used to generate the `geodata.csv` and `mobility.csv` files required for the CSP transmission model
+    
+    a. *Mobility data*:
+        
+        - Origin-destination table in long-form
+    
+        - Column names:  
+            -- `OGEOID`: GEOID of origin node  
+            -- `DGEOID`: GEOID of destination node   
+            -- `FLOW`: Number of individuals moving from origin to destination geounit on a daily basis
+        
+        - If this is not already produced, the `[ADD REPO/PACKAGE]` R package has been designed to generate these data. See the included R script `[ADD R SCRIPT]` to run this. 
+
+        - Default file name: `mobility_data.csv`    
+
+        
+        
+    b. *Population data*:    
+        These data can be generated automatically from WorldPop using the included R script `setup_coutry_data.R`.
+        
+        - Population of each node/geounit.
+        - Column names:  
+            -- `ADMIN0`: Name or abbreviation for the spatial subunit 1-2 levels up from the nodes (e.g., Province, State, or Country)  
+            -- `GEOID`: Unique identifier for all admin level 2 areas that will be treated as nodes. Ideally this will be a 5-6 digit numeric code.  
+            -- `POP`: Population of each node
+        
+        - Default file name: `population_data.csv`
+
+        
+<br>
+
+2. From the home directory of the country repository, create long-form geodata and mobility files with:
+  `Rscript <path-to-COVIDScenarioPipeline>/COVIDScenarioPipeline/R/scripts/build_nonUS_setup.R -c config.yml -p <path-to-spatial-repo> -w FALSE -n <name-of-population-data> -m <name-of-mobility-data>`
+    
+    This should look like this, since you should be in the home directory of your repository:
+        `Rscript ./COVIDScenarioPipeline/R/scripts/build_nonUS_setup.R -c config.yml -w FALSE -n population_data.csv -m mobility_data.csv`
+  
+<br>  
+  
+3. Check the contents of data/geodata.csv and data/mobility.csv. 
+
+
+
 --------------------------------------------------------------------------------------
 
 # Seeding
@@ -263,55 +315,6 @@ This should look like this, since you should be in the home directory of your re
 
 <br>
 
-
-
---------------------------------------------------------------------------------------
-
-# Generate *geodata.csv* and *mobility.csv*
-
-
-For non-US locations:
-
-1. Files for mobility data and population data for the nodes of the admin level 1 or 2 spatial areas in the directory `data/geodata`. These should both be .csv files, and GEOIDs must be consistent between them. These files will be used to generate the `geodata.csv` and `mobility.csv` files required for the CSP transmission model
-    
-    a. *Mobility data*:
-        
-        - Origin-destination table in long-form
-    
-        - Column names:  
-            -- `OGEOID`: GEOID of origin node  
-            -- `DGEOID`: GEOID of destination node   
-            -- `FLOW`: Number of individuals moving from origin to destination geounit on a daily basis
-        
-        - If this is not already produced, the `[ADD REPO/PACKAGE]` R package has been designed to generate these data. See the included R script `[ADD R SCRIPT]` to run this. 
-
-        - Default file name: `mobility_data.csv`    
-
-        
-        
-    b. *Population data*:    
-        These data can be generated automatically from WorldPop using the included R script `setup_coutry_data.R`.
-        
-        - Population of each node/geounit.
-        - Column names:  
-            -- `ADMIN0`: Name or abbreviation for the spatial subunit 1-2 levels up from the nodes (e.g., Province, State, or Country)  
-            -- `GEOID`: Unique identifier for all admin level 2 areas that will be treated as nodes. Ideally this will be a 5-6 digit numeric code.  
-            -- `POP`: Population of each node
-        
-        - Default file name: `population_data.csv`
-
-        
-<br>
-
-2. From the home directory of the country repository, create long-form geodata and mobility files with:
-  `Rscript <path-to-COVIDScenarioPipeline>/COVIDScenarioPipeline/R/scripts/build_nonUS_setup.R -c config.yml -p <path-to-spatial-repo> -w FALSE -n <name-of-population-data> -m <name-of-mobility-data>`
-    
-    This should look like this, since you should be in the home directory of your repository:
-        `Rscript ./COVIDScenarioPipeline/R/scripts/build_nonUS_setup.R -c config.yml -w FALSE -n population_data.csv -m mobility_data.csv`
-  
-<br>  
-  
-3. Check the contents of data/geodata.csv and data/mobility.csv. 
 
 
 
