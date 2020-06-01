@@ -7,15 +7,15 @@ setwd("~/COVIDWorking")
 opt <- list()
 
 opt$jobs <- 20
-opt$forecast_date <- "2020-05-24"
-opt$end_date <- "2020-06-20"
+opt$forecast_date <- "2020-05-31"
+opt$end_date <- "2020-06-27"
 opt$geodata <- "COVID19_USA/data/geodata_territories.csv"
 opt$name_filter <- "low"
 opt$num_simulationsulations <- 2000
-opt$outfile <- "2020-05-24-JHU_IDD-CovidSP_low.csv"
+opt$outfile <- "2020-05-31-JHU_IDD-CovidSP_low.csv"
 
 arguments<- list()
-arguments$args <- "USRun_2020-5-25_DeathW"
+arguments$args <- "USRun_2020-6-1_DeathW"
 
 
 opt$reichify <-TRUE
@@ -98,6 +98,7 @@ if (opt$reichify) {
     mutate(forecast_date=opt$forecast_date)%>%
     rename(target_end_date=time)%>%
     mutate(location=as.character(cdlTools::fips(USPS)))%>%
+    mutate(location=stringr::str_pad(location, width=2, side="left", pad="0"))%>%
     rename(value=cumDeaths)%>%
     mutate(target=sprintf("%d day ahead cum death", steps_ahead))%>%
     mutate(type="quantile")%>%
@@ -186,6 +187,7 @@ if (opt$reichify)  {
     mutate(forecast_date=opt$forecast_date)%>%
     rename(target_end_date=time)%>%
     mutate(location=as.character(cdlTools::fips(USPS)))%>%
+    mutate(location=stringr::str_pad(location, width=2, side="left", pad="0"))%>%
     rename(value=incidD)%>%
     mutate(target=sprintf("%d day ahead inc death", as.numeric(target_end_date-forecast_date)))%>%
     mutate(type="quantile")%>%
@@ -249,6 +251,7 @@ if(opt$reichify) {
     mutate(forecast_date=opt$forecast_date)%>%
     rename(target_end_date=time)%>%
     mutate(location=as.character(cdlTools::fips(USPS)))%>%
+    mutate(location=stringr::str_pad(location, width=2, side="left", pad="0"))%>%
     rename(value=incidD)%>%
     mutate(ahead=round(as.numeric(target_end_date - forecast_date)/7))%>%
     mutate(target=sprintf("%d wk ahead inc death", ahead)) %>%
