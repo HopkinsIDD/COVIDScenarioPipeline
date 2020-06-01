@@ -92,7 +92,8 @@ def simulate(config_file, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
     for scenario_seir in scenarios_seir:
         for scenario_outcomes in scenarios_outcomes:
             setup_name = config["name"].get() + "_" + str(scenario_seir)
-            outdir = f'model_output/outcomes/{setup_name}/'
+            #outdir = f'model_output/outcomes/{setup_name}/'
+            outdir = f'hospitalization/model_output/{setup_name}/'
             os.makedirs(outdir, exist_ok=True)
 
             print(f"""

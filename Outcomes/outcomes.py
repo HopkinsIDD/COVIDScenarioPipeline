@@ -30,7 +30,6 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
         diffI.drop(['comp'], inplace = True, axis = 1)
 
         # Load the actual csv file
-        print()
         branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pd.read_csv(branching_file, converters={"place": str})
         branching_data = branching_data[branching_data['place'].isin(diffI.drop('time', axis=1).columns)]
@@ -52,6 +51,10 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
             if config_outcomes[new_comp]['duration'].exists():
                 parameters[new_comp]['duration'] = int(np.round(np.mean(
                     config_outcomes[new_comp]['duration']['value'].as_random_distribution()(size = 10000))))
+                if config_outcomes[new_comp]['duration']['name'].exists():
+                    parameters[new_comp]['duration_name'] = config_outcomes[new_comp]['duration']['name'].as_str()
+                else:
+                    parameters[new_comp]['duration_name'] = new_comp+'_curr'
             
             if (config["outcomes"]["param_from_file"].get()):
                 colname = 'R'+new_comp+'|'+parameters[new_comp]['source']
@@ -92,10 +95,10 @@ def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_
     places = diffI.drop(['time'], axis=1).columns
     all_data = {}
     # We store them as numpy matrices. Dimensions is dates X places
-    all_data['infection'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
-    shape = all_data['infection'].shape
+    all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
+    shape = all_data['incidI'].shape
 
-    outcomes = pd.melt(diffI, id_vars='time', value_name = 'infection', var_name='place')
+    outcomes = pd.melt(diffI, id_vars='time', value_name = 'incidI', var_name='place')
     for new_comp in parameters:
         if 'source' in parameters[new_comp]:
             # Read the config for this compartement
@@ -104,7 +107,7 @@ def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_
             delay =       parameters[new_comp]['delay']
     
             # Create new compartement
-            all_data[new_comp] = np.empty_like(all_data['infection'])
+            all_data[new_comp] = np.empty_like(all_data['incidI'])
             # Draw with from source compartement
             all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))  
                                        # Check dimension for from file
@@ -126,18 +129,21 @@ def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_
             # Make duration
             if 'duration' in parameters[new_comp]:
                 duration = parameters[new_comp]['duration']
-                all_data[new_comp+'_curr'] = np.cumsum(all_data[new_comp], axis = 0) - shift(np.cumsum(all_data[new_comp], axis=0), duration)
+                all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis = 0) - \
+                    shift(np.cumsum(all_data[new_comp], axis=0), duration)
                 
-                df = pd.DataFrame(all_data[new_comp+'_curr'], columns=places, index=dates)
+                df = pd.DataFrame(all_data[parameters[new_comp]['duration_name']], columns=places, index=dates)
                 df.reset_index(inplace=True)
-                df = pd.melt(df, id_vars='time', value_name = new_comp+'_curr', var_name='place')
+                df = pd.melt(df, id_vars='time', value_name = parameters[new_comp]['duration_name'], var_name='place')
                 outcomes = pd.merge(outcomes, df)
 
             elif 'sum' in parameters[new_comp]:
                 outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
 
     out_df = pa.Table.from_pandas(outcomes, preserve_index = False)
-    pa.parquet.write_table(out_df, f"{outdir}{scenario_outcomes}-{sim_id_str}.outcomes.parquet")
+    #pa.parquet.write_table(out_df, f"{outdir}{scenario_outcomes}-{sim_id_str}.outcomes.parquet")
+    pa.parquet.write_table(out_df, f"{outdir}{scenario_outcomes}_death_death-{sim_id_str}.hosp.parquet")
+
 
     return outcomes
 
