@@ -1,7 +1,7 @@
 ---
 title: "Setting up CSP for a Country (outside the US)"
 output:
-  html_document:
+  html_notebook:
     df_print: paged
 ---
 
@@ -108,7 +108,7 @@ spatial_setup:
   us_model: FALSE         # Whether running model for United States or elsewhere
   modeled_states:         # ISO3 codes of all countries to be included
   - WES
-  geoid_len: 5            # User creates `geoid` variable, so length must be specified
+  geoid_len: 6            # User creates `geoid` variable, so length must be specified
   ...
   geoid_params_file: data/geoid_params.csv  # name of file of geounit-specific outcome parameters
 
@@ -152,8 +152,23 @@ provide the necessary data.
 ```    
 <br>
 
+#### 1. Install additional R packages     
 
-#### 1. Setup preliminary data    
+  Open R and run these:    
+  
+  ```
+  devtools::install_github("HopkinsIDD/globaltoolboxlite")
+  ```
+  
+  ```
+  devtools::install_github("HopkinsIDD/covidSeverity")
+  ```
+  
+  *If there's a prompt `Enter one or more numbers, or an empty line to skip updates:`, just hit `<Enter>`.    
+  
+<br>
+
+#### 2. Setup preliminary data    
 
     
 - *Shapefile*    
@@ -168,7 +183,21 @@ provide the necessary data.
 <br>
 
 
-#### 2. Copy initial data setup script to spatial repo and modify
+#### 3. Initial data setup - two options:
+<br>
+
+*OPTION A: Run setup script with arguments from command line*      
+
+```
+Rscript COVIDScenarioPipeline/R/scripts/setup_initial_nonUS_data.R -c config.yml -w TRUE -v ADMIN2 -j 4
+```
+   
+  * -w TRUE   (this tells it to download WorldPop geotiffs and only should be set TRUE on first run)
+  * -v ADMIN2 (the variable name for the district or other geounits in the shapefile which will serve as the nodes)
+  * -j 4      (number of cores to use in parallel)    
+<br>  
+    
+*OPTION B: Copy initial data setup script to spatial repo and modify*      
 
 - Copy setup file from COVIDScenarioPipeline
 
@@ -177,22 +206,17 @@ provide the necessary data.
     cp ./COVIDScenarioPipeline/R/scripts/setup_initial_nonUS_data.R ./R/
     ```
 
-- Modify `R/setup_initial_nonUS_data.R`    
+- Modify `R/setup_initial_nonUS_data.R`     
 
-<br>
-
-#### 3. Run initial data setup
-
-- Install `covidSeverity` R package from github by running `devtools::install_github(repo='HopkinsIDD/covidSeverity')` in R.
-    
-- Run `R/setup_initial_nonUS_data.R` to generate standardized data needed by the model.
+- Run `R/setup_initial_nonUS_data.R` to generate standardized data needed by the model.    
 
     ```
     Rscript R/setup_initial_nonUS_data.R
     ```
+    
+<br>
 
-
-- This setup script does the following:   
+*This setup script does the following:*   
 
   *Generate district-specific 10-year age distributions*
    This script downloads necessary geotiff files from WorldPop.org and uses the shapefile to aggregate data to districts. These data are combined to generate 10-year district-specific age distibutions of any country of interest. This is all done automatically in the `setup_initial_nonUS_data.R`. Users only need to provide their own shapefiles for this.

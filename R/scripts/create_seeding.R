@@ -76,9 +76,12 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
   } else if (tolower(opt$source) %in% c("usafacts", "usa facts", "usa")){
     cases_deaths <- covidcommon::get_USAFacts_data()
     print("Successfully pulled USAFacts data for seeding.")
+  } else { 
+    stop(paste(opt$source,"is not a recognized source of case data"))
   }
   
-  geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),5,'0',TRUE)
+  geodata <- report.generation::load_geodata_file(filename = file.path(config$spatial_setup$base_path, config$spatial_setup$geodata), 
+                                                  geoid_len = 5, geoid_pad = '0', to_lower = TRUE)
 
 
   all_geoids <- geodata[[config$spatial_setup$nodenames]]
@@ -117,8 +120,8 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
   all_times <- lubridate::ymd(config$start_date) +
     seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
   
-  geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
-                                                   config$spatial_setup$geoid_len,'0',TRUE)
+  geodata <- report.generation::load_geodata_file(filename = file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
+                                                   geoid_len = config$spatial_setup$geoid_len, geoid_pad = '0', to_lower = TRUE)
   
   all_geoids <- geodata[[config$spatial_setup$nodenames]]
   
