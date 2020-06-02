@@ -21,7 +21,7 @@ def _success(test_dir):
 
     # Make Makefile
     cmd = ["Rscript", "../../R/scripts/make_makefile.R",
-            "-c", f"config.yml",
+            "-c", "config.yml",
             "-p", "../..",
             "-n", str(multiprocessing.cpu_count()),
             "-y", sys.executable]
@@ -123,6 +123,8 @@ def test_simple():
 def test_importation():
     _success("test_importation")
 
+    assert_file("data/geodata.csv")
+    assert_file("data/mobility.txt")
     assert_file("data/filter.txt")
     assert_dir("data/shp")
     assert_dir("importation")
@@ -130,6 +132,8 @@ def test_importation():
 def test_report():
     _success("test_report")
 
+    assert_file("data/geodata.csv")
+    assert_file("data/mobility.csv")
     assert_file("data/filter.txt")
     assert_dir("data/shp")
     assert_dir("importation")
