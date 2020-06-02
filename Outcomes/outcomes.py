@@ -14,6 +14,21 @@ import pandas as pd
 
 def create_delay_frame(parameters,data_src, places, dates,compartment):
     # Read the config for this compartement
+    print("parameters")
+    print(type(parameters))
+    print(parameters)
+    print("data_src")
+    print(type(data_src))
+    print(data_src)
+    print("places")
+    print(type(places))
+    print(places)
+    print("dates")
+    print(type(dates))
+    print(dates)
+    print("compartment")
+    print(type(compartment))
+    print(compartment)
     probability = parameters['probability']
     delay =       parameters['delay']
 
