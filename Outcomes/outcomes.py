@@ -12,6 +12,33 @@ import pyarrow.parquet as pq
 import pyarrow as pa
 import pandas as pd
 
+def create_delay_frame(parameters,data_src, places, dates,compartment):
+    # Read the config for this compartement
+    probability = parameters['probability']
+    delay =       parameters['delay']
+
+    # Create new compartement
+    data = np.empty_like(data_src)
+    # Draw with from source compartement
+    data = np.random.binomial(data_src, probability * np.ones_like(data_src))  
+    # Shift to account for the delay
+    data = shift(data, delay, fill_value=0)
+
+    rc = pd.DataFrame(data, columns = places, index = dates)
+    rc.reset_index(inplace=True)
+    rc = pd.melt(rc, id_vars='time', value_name = compartment, var_name='geoid')
+
+    # Make duration
+    if 'duration' in parameters:
+         duration = parameters['duration']
+         data  = np.cumsum(data, axis = 0) - shift(np.cumsum(data, axis=0), duration)
+                
+         df = pd.DataFrame(data, columns=places, index=dates)
+         df.reset_index(inplace=True)
+         df = pd.melt(df, id_vars='time', value_name = parameters['duration_name'], var_name='geoid')
+         rc = pd.merge(rc,df)
+        
+    return(rc)
 
 def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_outcomes, nsim = 1, index=1, n_jobs=1):
     start = time.monotonic()
@@ -31,8 +58,8 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
 
         # Load the actual csv file
         branching_file = config["outcomes"]["param_place_file"].as_str()
-        branching_data = pd.read_csv(branching_file, converters={"place": str})
-        branching_data = branching_data[branching_data['place'].isin(diffI.drop('time', axis=1).columns)]
+        branching_data = pd.read_csv(branching_file, converters={"geoid": str})
+        branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
         if (branching_data.shape[0] != diffI.drop('time', axis=1).columns.shape[0]):
             raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
 
@@ -98,47 +125,18 @@ def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_
     all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
     shape = all_data['incidI'].shape
 
-    outcomes = pd.melt(diffI, id_vars='time', value_name = 'incidI', var_name='place')
+    outcomes = pd.melt(diffI, id_vars='time', value_name = 'incidI', var_name='geoid')
     for new_comp in parameters:
         if 'source' in parameters[new_comp]:
-            # Read the config for this compartement
-            source =      parameters[new_comp]['source']
-            probability = parameters[new_comp]['probability']
-            delay =       parameters[new_comp]['delay']
-    
-            # Create new compartement
-            all_data[new_comp] = np.empty_like(all_data['incidI'])
-            # Draw with from source compartement
-            all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))  
-                                       # Check dimension for from file
+            # Produce a dataframe
+            source = parameters[new_comp]['source']
+            df = create_delay_frame(parameters[new_comp], all_data[source], places, dates, new_comp)
 
-            #import matplotlib.pyplot as plt
-            #plt.imshow(probability * np.ones_like(all_data[source]))
-            #plt.title(np.mean(probability))
-            #plt.savefig('P'+new_comp + '|' + source)
-            
-            # Shift to account for the delay
-            all_data[new_comp] = shift(all_data[new_comp], delay, fill_value=0)
-            
-            # Produce a dataframe an merge it
-            df = pd.DataFrame(all_data[new_comp], columns=places, index=dates)
-            df.reset_index(inplace=True)
-            df = pd.melt(df, id_vars='time', value_name = new_comp, var_name='place')
+            # And merge it
             outcomes = pd.merge(outcomes, df)
-            
-            # Make duration
-            if 'duration' in parameters[new_comp]:
-                duration = parameters[new_comp]['duration']
-                all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis = 0) - \
-                    shift(np.cumsum(all_data[new_comp], axis=0), duration)
-                
-                df = pd.DataFrame(all_data[parameters[new_comp]['duration_name']], columns=places, index=dates)
-                df.reset_index(inplace=True)
-                df = pd.melt(df, id_vars='time', value_name = parameters[new_comp]['duration_name'], var_name='place')
-                outcomes = pd.merge(outcomes, df)
 
-            elif 'sum' in parameters[new_comp]:
-                outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
+        elif 'sum' in parameters[new_comp]:
+            outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
 
     out_df = pa.Table.from_pandas(outcomes, preserve_index = False)
     #pa.parquet.write_table(out_df, f"{outdir}{scenario_outcomes}-{sim_id_str}.outcomes.parquet")
