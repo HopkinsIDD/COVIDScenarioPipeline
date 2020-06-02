@@ -162,7 +162,7 @@ provide the necessary data.
 
 - *Mobility OD matrix*    
    - Matrix of origin-destination (OD) counts of daily movement between nodes (e.g., districts) is required    
-   - This should be saved as `data/geodata/mobility_data_counts.txt` so it works with the script below.     
+   - This should be saved as `data/geodata/mobility_data_counts.csv` so it works with the script below.     
     
 
 <br>
