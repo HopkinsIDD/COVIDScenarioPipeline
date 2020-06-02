@@ -114,13 +114,14 @@ data_stats <- lapply(
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 for(scenario in scenarios) {
 
-  ## One time setup for python
-  reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
-  reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
-  reticulate::import_from_path("SEIR", path=opt$pipepath)
-  reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
-
   for(deathrate in deathrates) {
+    ## One time setup for python
+    reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
+    reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
+    reticulate::py_run_string(paste0("deathrate = '", deathrate, "'"))
+    reticulate::import_from_path("SEIR", path=opt$pipepath)
+    reticulate::import_from_path("Outcomes", path=opt$pipepath)
+    reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
       # Data -------------------------------------------------------------------------
       # Load
     first_param_file <- covidcommon::parameter_file_path(config,opt$this_slot, scenario)
@@ -177,26 +178,21 @@ for(scenario in scenarios) {
       }
 
       ## Run hospitalization
-      err <- system(paste(
-        opt$rpath,
-        paste(opt$pipepath,"R","scripts","hosp_run.R", sep='/'),
-        "-j",opt$jobs,
-        "-c",opt$config,
-        "-p",opt$pipepath,
-        "-s",scenario,
-        "-d",deathrate,
-        "-n",1,
-        "-i",this_index
-      ))
-      if(err != 0){
-        stop("Hospitalization failed to run")
+      err <- py$onerun_HOSP(this_index)
+      err <- ifelse(err == 1,0,1)
+      if(length(err) == 0){
+        stop("HOSP failed to run")
       }
+      if(err != 0){
+        stop("HOSP failed to run")
+      }
+
     }
 
     initial_sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",first_hosp_file))(first_hosp_file) %>%
-        filter(time >= min(obs$date), time <= max(obs$date)) %>%
-        select(-date_inds)
+        filter(time >= min(obs$date), time <= max(obs$date))
 
+      if(!(obs_nodename %in% names(initial_sim_hosp))){stop(paste("Missing column",obs_nodename,"from hospitalization output"))}
       lhs <- unique(initial_sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
@@ -217,9 +213,9 @@ for(scenario in scenarios) {
         initial_likelihood_data <- list()
         for(location in all_locations) {
 
-            #local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
-            local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
-                dplyr::filter(time %in% unique(obs$date[obs$geoid == location]))
+          #local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
+          local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
+            dplyr::filter(time %in% unique(obs$date[obs$geoid == location]))
           initial_sim_stats <- inference::getStats(
             local_sim_hosp,
             "time",
@@ -336,27 +332,19 @@ for(scenario in scenarios) {
         stop("SEIR failed to run")
       }
 
-      ## Run hospitalization
-      err <- system(paste(
-        opt$rpath,
-        paste(opt$pipepath,"R","scripts","hosp_run.R", sep='/'),
-        "-j",opt$jobs,
-        "-c",opt$config,
-        "-p",opt$pipepath,
-        "-s",scenario,
-        "-d",deathrate,
-        "-n",1,
-        "-i",this_index
-      ))
+      err <- py$onerun_HOSP(this_index)
+      err <- ifelse(err == 1,0,1)
+      if(length(err) == 0){
+        stop("HOSP failed to run")
+      }
       if(err != 0){
-        stop("Hospitalization failed to run")
+        stop("HOSP failed to run")
       }
 
       file <- covidcommon::hospitalization_file_path(config,this_index,scenario,deathrate)
 
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>%
-        filter(time <= max(obs$date)) %>%
-        select(-date_inds)
+        filter(time <= max(obs$date))
       # flock::unlock(lock)
 
       current_likelihood_data <- list()
