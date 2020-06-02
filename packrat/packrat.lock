@@ -174,8 +174,8 @@ Hash: 6cc063b236e3bbc174a73959145488ef
 
 Package: covidImportation
 Source: github
-Version: 1.5
-Hash: 454a6a8c1e516fda25fc3a682a6a4f86
+Version: 1.6.1
+Hash: 3be3cebe75c236a2961ee7947d55805f
 Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
     dplyr, fitdistrplus, geosphere, ggplot2, ggvoronoi,
     globaltoolboxlite, gpclib, httr, igraph, lubridate, magrittr,
@@ -183,20 +183,20 @@ Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
     tidycensus, tidyr, truncnorm
 GithubRepo: covidImportation
 GithubUsername: HopkinsIDD
-GithubRef: v1.6
-GithubSha1: dc032809bbfe4e1a6b8f850da0c0f9336fcb8f3c
+GithubRef: v1.6.1
+GithubSha1: a8948fdad6465d2287fcfe51e0973460e078b0c0
 RemoteHost: api.github.com
 RemoteRepo: covidImportation
 RemoteUsername: HopkinsIDD
-RemoteRef: v1.6
-RemoteSha: dc032809bbfe4e1a6b8f850da0c0f9336fcb8f3c
+RemoteRef: v1.6.1
+RemoteSha: a8948fdad6465d2287fcfe51e0973460e078b0c0
 
 Package: covidcommon
 Source: source
 Version: 0.0.1
 Hash: 3323a11403ed0f021bf879d247fefbea
 Requires: purrr, yaml
-SourcePath: R/pkgs//covidcommon
+SourcePath: /home/app/R/pkgs//covidcommon
 
 Package: covr
 Source: CRAN
@@ -475,7 +475,7 @@ Version: 0.0.1
 Hash: 5e28fda73402d6283ec2507e9079c305
 Requires: data.table, doParallel, dplyr, flextable, foreach, ggfortify,
     ggplot2, gridExtra, knitr, magrittr, readr, tidyr
-SourcePath: R/pkgs//hospitalization
+SourcePath: /home/app/R/pkgs//hospitalization
 
 Package: htmltools
 Source: CRAN
@@ -782,7 +782,7 @@ Source: source
 Version: 0.0.1
 Hash: 165fc151c5735ca5f6a6608e528039da
 Requires: knitr, tidyverse
-SourcePath: R/pkgs//report.generation
+SourcePath: /home/app/R/pkgs//report.generation
 
 Package: reprex
 Source: CRAN
