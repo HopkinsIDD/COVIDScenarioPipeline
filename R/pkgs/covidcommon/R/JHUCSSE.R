@@ -150,7 +150,7 @@ read_JHUCSSE_cases <- function(last_date=Sys.Date(),
   rc <- fix_locations(rc)
   
   if (append_wiki) {
-    data("wikipedia_cases", package="covidImportation")
+    data("wikipedia_cases", package="covidcommon")
     rc <- dplyr::bind_rows(rc,wikipedia_cases)
   }
   # Remove any duplicate rows
@@ -208,7 +208,7 @@ update_JHUCSSE_github_data <- function(case_data_dir = "data/case_data",
   if (check_saved_data){
     
     # First check the data that comes with the package
-    data('jhucsse_case_data', package = 'covidImportation')
+    data('jhucsse_case_data', package = 'covidcommon')
     update_dates <- sort(unique(as.Date(jhucsse_case_data$Update)))
     tmp <- which.max(update_dates)
     update_dates <- update_dates[-tmp]
