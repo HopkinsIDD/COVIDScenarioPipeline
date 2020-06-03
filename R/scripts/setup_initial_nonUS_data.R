@@ -82,7 +82,7 @@ if (length(config) == 0) {
 # Pull variables from config
 base_data_path <- config$spatial_setup$base_path
 country_code <- config$spatial_setup$modeled_states
-country_name <- globaltoolbox::get_country_name_ISO3(country_code)
+country_name <- globaltoolboxlite::get_country_name_ISO3(country_code)
 # check that the codes is valid
 if(any(is.na(country_name))){
     # In case we are using fake countries
