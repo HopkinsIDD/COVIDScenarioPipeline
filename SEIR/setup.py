@@ -53,9 +53,6 @@ class SpatialSetup:
         else:
             raise ValueError(f"Mobility data must either be a .csv file in longform (recommended) or a .txt matrix file. Got {mobility_file}")
 
-        # if (self.mobility - self.mobility.T).nnz != 0:
-        #     raise ValueError(f"mobility data is not symmetric.")
-
         # Make sure mobility values <= the population of src node
         tmp = (self.mobility.T - self.popnodes).T
         tmp[tmp < 0] = 0
@@ -67,7 +64,7 @@ class SpatialSetup:
             raise ValueError(f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}")
 
 
-class Setup():
+class Setup:
     """
         This class hold a setup model setup.
     """
@@ -84,7 +81,8 @@ class Setup():
                  write_csv=False,
                  write_parquet=False,
                  dt=1 / 6, # step size, in days
-                 nbetas=None): # # of betas, which are rates of infection
+                 nbetas=None,
+                 first_sim_index = 1): # # of betas, which are rates of infection
         self.setup_name = setup_name
         self.nsim = nsim
         self.dt = dt
@@ -98,6 +96,7 @@ class Setup():
         self.interactive = interactive
         self.write_csv = write_csv
         self.write_parquet = write_parquet
+        self.first_sim_index = first_sim_index
 
         if nbetas is None:
             nbetas = nsim
@@ -133,6 +132,22 @@ class Setup():
 def seeding_draw(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
     method = s.seeding_config["method"].as_str()
+    if (method == 'NegativeBinomialDistributed'):
+        seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
+                              converters={'place': lambda x: str(x)},
+                              parse_dates=['date'])
+
+        dupes = seeding[seeding.duplicated(['place', 'date'])].index + 1
+        if not dupes.empty:
+            raise ValueError(f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file.")
+
+        for  _, row in seeding.iterrows():
+            if row['place'] not in s.spatset.nodenames:
+                raise ValueError(f"Invalid place '{row['place']}' in row {_ + 1} of seeding::lambda_file. Not found in geodata.")
+
+            importation[(row['date'].date()-s.ti).days][s.spatset.nodenames.index(row['place'])] = \
+                np.random.negative_binomial(n= 5, p = 5/(row['amount'] + 5))
+
     if (method == 'PoissonDistributed'):
         seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
                               converters={'place': lambda x: str(x)},
@@ -160,38 +175,69 @@ def seeding_draw(s, sim_id):
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
     return importation
 
-# Returns alpha, beta, sigma, and gamma parameters in a tuple
-# alpha, sigma and gamma are scalars
-# alpha is percentage of day spent commuting
-# beta is an array of shape (nt_inter, nnodes)
-def parameters_quick_draw(p_config, nt_inter, nnodes, dt, npi):
-    if nnodes <= 0 or nt_inter <= 0:
-        raise ValueError("Invalid nt_inter or nnodes")
-
+# Returns alpha, beta, sigma, and gamma parameters in a tuple.
+# All parameters are arrays of shape (nt_inter, nnodes).
+# They are returned as a tuple because it is numba-friendly for steps_SEIR_nb().
+#
+# These are drawn based on the seir::parameters section of the config, passed in as p_config.
+# In the config, alpha is optional with a default of 1.0.
+# The other parameters sigma, gamma, and R0s are required.
+def parameters_quick_draw(p_config, nt_inter, nnodes):
     alpha = 1.0
     if "alpha" in p_config:
         alpha = p_config["alpha"].as_evaled_expression()
+    alpha = np.full((nt_inter, nnodes), alpha)
 
     sigma = p_config["sigma"].as_evaled_expression()
+    sigma = np.full((nt_inter, nnodes), sigma)
+
     gamma = p_config["gamma"].as_random_distribution()() * n_Icomp
+    gamma = np.full((nt_inter, nnodes), gamma)
+
     R0s = p_config["R0s"].as_random_distribution()()
-
     beta = R0s * gamma / n_Icomp
+    beta = np.full((nt_inter, nnodes), beta)
 
-    beta = np.full((nnodes, nt_inter), beta)
+    return (alpha, beta, sigma, gamma)
 
-    npi.index = pd.to_datetime(npi.index.astype(str))
-    npi = npi.resample(str(dt * 24) + 'H').ffill()
-    beta = np.multiply(beta, np.ones_like(beta) - npi.to_numpy().T)
+# Returns alpha, beta, sigma, and gamma parameters in a tuple.
+# All parameters are arrays of shape (nt_inter, nnodes).
+# They are returned as a tuple because it is numba-friendly for steps_SEIR_nb().
+#
+# They are reduced according to the NPI provided.
+def parameters_reduce(p_draw, npi, dt):
+    alpha, beta, sigma, gamma = p_draw # tuple of dataframes
 
-    return (alpha, beta.T, sigma, gamma)
+    alpha = _parameter_reduce(alpha, npi.getReduction("alpha"), dt)
+    beta = _parameter_reduce(beta, npi.getReduction("r0"), dt)
+    sigma = _parameter_reduce(sigma, npi.getReduction("sigma"), dt)
+    gamma = _parameter_reduce(gamma, npi.getReduction("gamma"), dt)
 
+    return (alpha, beta, sigma, gamma)
+
+# Helper function
+def _parameter_reduce(parameter, reduction, dt):
+    reduction = reduction.T
+    reduction.index = pd.to_datetime(reduction.index.astype(str))
+    reduction = reduction.resample(str(dt * 24) + 'H').ffill().to_numpy()
+    return parameter * (1 - reduction)
+
+# Write parameters generated by parameters_quick_draw() to file
 def parameters_write(parameters, fname, extension):
-    out_df = pd.DataFrame([parameters[0], parameters[1][0][0]*n_Icomp / parameters[3], parameters[2], parameters[3]], index = ["alpha","R0","sigma","gamma"], columns = ["value"])
+    alpha, beta, sigma, gamma = parameters
+    out_df = pd.DataFrame([alpha[0][0],
+                            beta[0][0] * n_Icomp / gamma[0][0],
+                            sigma[0][0],
+                            gamma[0][0]], \
+                            index = ["alpha","R0","sigma","gamma"], columns = ["value"])
+
     if extension == "csv":
-        out_dict.to_csv(f"{fname}.{extension}", index_label="parameter")
-    if extension == "parquet":
+        out_df.to_csv(f"{fname}.{extension}", index_label="parameter")
+    elif extension == "parquet":
         out_df["parameter"] = out_df.index
         pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
         pa.parquet.write_table(pa_df,f"{fname}.{extension}")
+
+    else:
+        raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
 

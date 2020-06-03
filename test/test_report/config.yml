@@ -10,7 +10,7 @@ spatial_setup:
   base_path: data
   setup_name: test_report
   geodata: geodata.csv
-  mobility: mobility.txt
+  mobility: mobility.csv
   popnodes: pop2010
   nodenames: geoid
   census_year: 2018

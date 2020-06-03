@@ -59,6 +59,7 @@
 # * <b>model\_output/{name}\_[scenario]</b> is a directory of csv's. 
 #    + Each csv must have columns: "time", "comp", and each geoid of interest.
 #    + The "comp" column must have a value of "diffI" in at least one row. 
+# * <b>{spatial_setup::base_path}/{spatial_setup::geodata}</b> is a csv with columns {spatial_setup::nodenames} and {spatial_setup::popnodes}
 #
 # ## Output Data
 #
@@ -84,6 +85,7 @@
 library(devtools)
 library(covidcommon)
 library(hospitalization)
+library(report.generation)
 library(readr)
 library(dplyr)
 library(tidyr)
@@ -107,7 +109,13 @@ option_list = list(
   optparse::make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used"),
 
   #' @param -p The path to COVIDScenarioPipeline
-  optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory")
+  optparse::make_option(c("-p", "--path"), action="store", default="COVIDScenarioPipeline", type='character', help="path to the COVIDScenarioPipeline directory"),
+
+  #' @param -i The index of the first simulation to run against
+  optparse::make_option(c("-i", "--index-from-sim"), action="store", default=1, type='numeric', help="The index of the first simulation to run against"),
+
+  #' @param -n The number of simulations to run
+  optparse::make_option(c("-n", "--num-sims"), action="store", default=-1, type='numeric', help="number of simulations to run")
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
@@ -142,6 +150,8 @@ names(p_death) = hosp_parameters$p_death_names
 cmd <- opt$d
 scenario <- opt$s
 ncore <- opt$j
+start_sim <- opt$i
+num_sims <- opt$n
 
 # Verify that the cmd maps to a known p_death value
 if (cmd == "all") {
@@ -157,13 +167,22 @@ if (scenario == "all" ) {
   quit("yes", status=1)
 }
 
+is_international <- config$spatial_setup$us_model
+if(is.null(is_international)){
+  is_international <- FALSE
+}
+
 
 ## Running age-adjusted script
 if(run_age_adjust){
-
   # Specified geoparams or not (data for US model is included in CSP and does not need to be specified)
   if (is.null(config$spatial_setup$geoid_params_file)){
-    config$spatial_setup$geoid_params_file <- "COVIDScenarioPipeline/sample_data/geoid-params.csv"
+    if(!is_international) stop("International models require spatial_setup::geoid_params_file specified in the config")
+    config$spatial_setup$geoid_params_file <- paste(opt$p,"sample_data","geoid-params.csv",sep='/')
+  }
+  if (is.null(config$spatial_setup$geoid_len)){
+    if(!is_international) stop("International models require spatial_setup::geoid_params_file specified in the config")
+    config$spatial_setup$geoid_len <- 5
   }
   
   # Throw some warnings and errors.
@@ -171,42 +190,48 @@ if(run_age_adjust){
   
   if (!file.exists(config$spatial_setup$geoid_params_file)){
     
-    print(paste0("ERROR: ", config$spatial_setup$geoid_params_file, " does not exist."))
+    stop(paste0("ERROR: ", config$spatial_setup$geoid_params_file, " does not exist."))
     
-  } else {
+  }
+  # read in probability file
+  prob_dat <- readr::read_csv(config$spatial_setup$geoid_params_file)
+  
+  geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),config$spatial_setup$geoid_len,'0',TRUE)
+  in_geoids <- geodata[[config$spatial_setup$nodenames]]
+  missing_geoids <- setdiff(in_geoids, prob_dat$geoid)
+  if(length(missing_geoids) > 0) {
+    warning(paste("The hospitalization outcomes will not be calculated for geoids not present in geoid-params.csv:", missing_geoids))
+  }
 
-    # read in probability file
-    prob_dat <- readr::read_csv(config$spatial_setup$geoid_params_file)
+  time_onset_death_pars <- as_evaled_expression(hosp_parameters$time_onset_death)
+  p_hosp_inf <- as_evaled_expression(hosp_parameters$p_hosp_inf)
+  time_ventdur_pars <- as_evaled_expression(hosp_parameters$time_ventdur)
+  names(p_hosp_inf) = hosp_parameters$p_death_names
+  if (length(p_death)!=length(p_hosp_inf)) {
+    stop("Number of IFR and p_hosp_inf values do not match")
+  }
   
-    time_onset_death_pars <- as_evaled_expression(hosp_parameters$time_onset_death)
-    p_hosp_inf <- as_evaled_expression(hosp_parameters$p_hosp_inf)
-    time_ventdur_pars <- as_evaled_expression(hosp_parameters$time_ventdur)
-    names(p_hosp_inf) = hosp_parameters$p_death_names
-    if (length(p_death)!=length(p_hosp_inf)) {
-      stop("Number of IFR and p_hosp_inf values do not match")
-    }
-  
-    for (scn0 in scenario) {
-      data_dir <- paste0("model_output/",config$name,"_",scn0)
-      cat(paste(data_dir, "\n"))
-      for (cmd0 in cmd) {
-        cat(paste("Running hospitalization scenario: ", cmd0, "with IFR", p_death[cmd0], "\n"))
-        res_npi3 <- build_hospdeath_geoid_fixedIFR_par(prob_dat=prob_dat,
-                                                       p_death= p_death[cmd0],
-                                                       p_hosp_inf = p_hosp_inf[cmd0],
-                                                       time_hosp_pars=time_hosp_pars,
-                                                       time_onset_death_pars=time_onset_death_pars,
-                                                       time_disch_pars=time_disch_pars,
-                                                       time_ICU_pars = time_ICU_pars,
-                                                       time_vent_pars = time_vent_pars,
-                                                       time_ventdur_pars = time_ventdur_pars,
-                                                       time_ICUdur_pars = time_ICUdur_pars,
-                                                       cores = ncore,
-                                                       data_dir = data_dir,
-                                                       dscenario_name = cmd0,
-                                                       use_parquet = TRUE
-        )
-      }
+  for (scn0 in scenario) {
+    data_dir <- paste0("model_output/",config$name,"_",scn0)
+    cat(paste(data_dir, "\n"))
+    for (cmd0 in cmd) {
+      cat(paste("Running hospitalization scenario: ", cmd0, "with IFR", p_death[cmd0], "\n"))
+      res_npi3 <- build_hospdeath_geoid_fixedIFR_par(prob_dat=prob_dat,
+                                                     p_death= p_death[cmd0],
+                                                     p_hosp_inf = p_hosp_inf[cmd0],
+                                                     time_hosp_pars=time_hosp_pars,
+                                                     time_onset_death_pars=time_onset_death_pars,
+                                                     time_disch_pars=time_disch_pars,
+                                                     time_ICU_pars = time_ICU_pars,
+                                                     time_vent_pars = time_vent_pars,
+                                                     time_ventdur_pars = time_ventdur_pars,
+                                                     time_ICUdur_pars = time_ICUdur_pars,
+                                                     cores = ncore,
+                                                     data_dir = data_dir,
+                                                     dscenario_name = cmd0,
+                                                     use_parquet = TRUE,
+                                                     sum_sims
+      )
     }
   }
 } else {
@@ -249,7 +274,9 @@ if(run_age_adjust){
                                       cores = ncore,
                                       data_dir = data_dir,
                                       dscenario_name = cmd0,
-                                      use_parquet = TRUE
+                                      use_parquet = TRUE,
+                                      start_sim = start_sim,
+                                      num_sims = num_sims
       )
     }
   }

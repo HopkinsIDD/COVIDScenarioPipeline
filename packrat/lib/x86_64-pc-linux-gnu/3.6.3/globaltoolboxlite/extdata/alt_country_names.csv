@@ -1,0 +1,282 @@
+"ID","ISO3","name1","name2","name3","name4","name5","name6","name7","name8"
+1,"afg","Afghanistan","Islamic State of Afghanistan","","","","","",NA
+2,"ala","Aland Islands","","","","","","",NA
+3,"alb","Albania","Republic of Albania","","","","","",NA
+4,"dza","Algeria","People's Democratic Republic of Algeria","","","","","",NA
+5,"asm","American Samoa","Territory of American Samoa","","","","","",NA
+6,"and","Andorra","Principality of Andorra","","","","","",NA
+7,"ago","Angola","Republic of Angola","","","","","",NA
+8,"aia","Anguilla","","","","","","",NA
+9,"ata","Antarctica","","","","","","",NA
+10,"atg","Antigua and Barbuda","","","","","","",NA
+11,"arg","Argentina","Argentine Republic","","","","","",NA
+12,"arm","Armenia","Republic of Armenia","","","","","",NA
+13,"abw","Aruba","","","","","","",NA
+277,"","Ascension Island","","","","","","",NA
+253,"","Ashmore and Cartier Islands","Territory of Ashmore and Cartier Islands","","","","","",NA
+14,"aus","Australia","Commonwealth of Australia","","","","","",NA
+15,"aut","Austria","Republic of Austria","","","","","",NA
+16,"aze","Azerbaijan","Republic of Azerbaijan","","","","","",NA
+17,"bhs","Bahamas","Bahamas, The","Commonwealth of the Bahamas","The Bahamas","","","",NA
+18,"bhr","Bahrain","State of Bahrain","","","","","",NA
+254,"","Baker Island","","","","","","",NA
+19,"bgd","Bangladesh","People's Republic of Bangladesh","","","","","",NA
+20,"brb","Barbados","","","","","","",NA
+255,"","Bassas da India","","","","","","",NA
+21,"blr","Belarus","Republic of Belarus","","","","","",NA
+22,"bel","Belgium","Kingdom of Belgium","","","","","",NA
+23,"blz","Belize","","","","","","",NA
+24,"ben","Benin","Republic of Benin","","","","","",NA
+25,"bmu","Bermuda","","","","","","",NA
+26,"btn","Bhutan","Kingdom of Bhutan","","","","","",NA
+27,"bol","Bolivia, Plurinational State of","Bolivia (Plurinational State of)","Bolivia","Republic of Bolivia","","","",NA
+28,"bes","Bonaire, Saint Eustatius and Saba","","","","","","",NA
+278,"","Bonaire, Sint Eustatius and Saba","","","","","","",NA
+29,"bih","Bosnia and Herzegovina","Bosnia-Herzegovina","Bosnia Herzegovena","","","","",NA
+30,"bwa","Botswana","Republic of Botswana","","","","","",NA
+31,"","Bouvet Island","","","","","","",NA
+32,"bra","Brazil","Federative Republic of Brazil","","","","","",NA
+33,"iot","British Indian Ocean Territory","","","","","","",NA
+34,"brn","Brunei Darussalam","Brunei","Negara Brunei Darussalam","","","","",NA
+35,"bgr","Bulgaria","","","","","","",NA
+36,"bfa","Burkina Faso","","","","","","",NA
+37,"bdi","Burundi","Republic of Burundi","","","","","",NA
+38,"khm","Cambodia","Kingdom of Cambodia","","","","","",NA
+39,"cmr","Cameroon","Republic of Cameroon","","","","","",NA
+40,"can","Canada","","","","","","",NA
+41,"cpv","Cape Verde","Republic of Cape Verde","","","","","",NA
+42,"cym","Cayman Islands","","","","","","",NA
+43,"caf","Central African Republic","Central African Rep.","","","","","",NA
+44,"tcd","Chad","Republic of Chad","","","","","",NA
+250,"","Channel Islands","","","","","","",NA
+45,"chl","Chile","Republic of Chile","","","","","",NA
+46,"chn","China","People's Republic of China","PRC","","","","",NA
+47,"","Christmas Island","Territory of Christmas Island","","","","","",NA
+256,"clp","Clipperton Island","","","","","","",NA
+48,"","Cocos (Keeling) Islands","Territory of Cocos (Keeling) Islands","Keeling Islands","Cocos Islands","","","",NA
+49,"col","Colombia","Republic of Colombia","","","","","",NA
+50,"com","Comoros","Federal Islamic Republic of the Comoros","","","","","",NA
+51,"cog","Congo","Congo (Brazzaville)","Republic of the Congo","Congo, Republic of the","The Republic of the Congo","Congo, Rep.","Republic of Congo","Congo, Republic of"
+52,"cod","Congo, The Democratic Republic of the","Democratic Republic of the Congo","Congo (Kinshasa)","Congo, Democratic Republic of the","The Democratic Republic of the Congo","Congo, Dem. Rep.","Democratic Republic of Congo","Congo, Democratic Republic of"
+53,"cok","Cook Islands","","","","","","",NA
+257,"","Coral Sea Islands","Coral Sea Islands Territory","","","","","",NA
+54,"cri","Costa Rica","Republic of Costa Rica","","","","","",NA
+55,"civ","Cote d'Ivoire","Republic of Cote D'Ivoire","Ivory Coast","Cote d Ivoire","","","",NA
+56,"hrv","Croatia","Republic of Croatia","","","","","",NA
+57,"cub","Cuba","Republic of Cuba","","","","","",NA
+58,"cuw","Curacao","","","","","","",NA
+59,"cyp","Cyprus","Republic of Cyprus","","","","","",NA
+60,"cze","Czech Republic","","","","","","",NA
+61,"dnk","Denmark","Kingdom of Denmark","","","","","",NA
+62,"dji","Djibouti","Republic of Djibouti","","","","","",NA
+63,"dma","Dominica","Commonwealth of Dominica","","","","","",NA
+64,"dom","Dominican Republic","","","","","","",NA
+65,"ecu","Ecuador","Republic of Ecuador","","","","","",NA
+66,"egy","Egypt","Arab Republic of Egypt","Egypt, Arab Rep.","","","","",NA
+67,"slv","El Salvador","Republic of El Salvador","","","","","",NA
+68,"gnq","Equatorial Guinea","Republic of Equatorial Guinea","","","","","",NA
+69,"eri","Eritrea","State of Eritrea","","","","","",NA
+70,"est","Estonia","Republic of Estonia","","","","","",NA
+71,"eth","Ethiopia","Federal Democratic Republic of Ethiopia","","","","","",NA
+258,"","Europa Island","","","","","","",NA
+279,"","European Union","","","","","","",NA
+72,"flk","Falkland Islands (Malvinas)","Falkland Islands (Islas Malvinas)","","","","","",NA
+73,"fro","Faroe Islands","Faeroe Islands","","","","","",NA
+74,"fji","Fiji","Republic of the Fiji Islands","","","","","",NA
+75,"fin","Finland","Republic of Finland","","","","","",NA
+76,"fra","France","French Republic","France (metropolitan)","","","","",NA
+77,"guf","French Guiana","Department of Guiana","French Guyana","","","","",NA
+78,"pyf","French Polynesia","Territory of French Polynesia","","","","","",NA
+79,"atf","French Southern Territories","French Southern and Antarctic Lands","Territory of the French Southern and Antarctic Lands","","","","",NA
+80,"gab","Gabon","Gabonese Republic","","","","","",NA
+81,"gmb","Gambia","Gambia, The","Republic of the Gambia","The Gambia","","","",NA
+259,"gaza","Gaza Strip","Gaza","","","","","",NA
+82,"geo","Georgia","","","","","","",NA
+83,"deu","Germany","Federal Republic of Germany","","","","","",NA
+84,"gha","Ghana","Republic of Ghana","","","","","",NA
+85,"gib","Gibraltar","","","","","","",NA
+260,"","Glorioso Islands","","","","","","",NA
+86,"grc","Greece","Hellenic Republic","","","","","",NA
+87,"grl","Greenland","","","","","","",NA
+88,"grd","Grenada","","","","","","",NA
+89,"glp","Guadeloupe","Department of Guadeloupe","France, Guadeloupe","","","","",NA
+90,"gum","Guam","Territory of Guam","","","","","",NA
+91,"gtm","Guatemala","Republic of Guatemala","","","","","",NA
+92,"ggy","Guernsey","Bailiwick of Guernsey","","","","","",NA
+93,"gin","Guinea","Republic of Guinea","","","","","",NA
+94,"gnb","Guinea-Bissau","Republic of Guinea-Bissau","Guinea Bissau","","","","",NA
+95,"guy","Guyana","Co-operative Republic of Guyana","","","","","",NA
+96,"hti","Haiti","Republic of Haiti","","","","","",NA
+97,"","Heard Island and Mcdonald Islands","Territory of Heard Island and McDonald Islands","","","","","",NA
+98,"vat","Holy See (Vatican City State)","Holy See","Vatican City","State of the Vatican City","Holy See (Vatican City)","","",NA
+99,"hnd","Honduras","Republic of Honduras","","","","","",NA
+100,"hkg","Hong Kong","China, Hong Kong Special Administrative Region","Hong Kong S.A.R.","Hong Kong Special Administrative Region","Hong Kong Special Administrative Region of China","Hong Kong SAR, China","",NA
+261,"","Howland Island","","","","","","",NA
+101,"hun","Hungary","Republic of Hungary","","","","","",NA
+102,"isl","Iceland","Republic of Iceland","","","","","",NA
+103,"ind","India","Republic of India","","","","","",NA
+104,"idn","Indonesia","Republic of Indonesia","","","","","",NA
+105,"irn","Iran, Islamic Republic of","Iran (Islamic Republic of)","Iran","Islamic Republic of Iran","Iran, Islamic Rep.","","",NA
+106,"irq","Iraq","Republic of Iraq","","","","","",NA
+107,"irl","Ireland","","","","","","",NA
+108,"imn","Isle of Man","","","","","","",NA
+109,"isr","Israel","State of Israel","","","","","",NA
+110,"ita","Italy","Italian Republic","","","","","",NA
+111,"jam","Jamaica","","","","","","",NA
+262,"","Jan Mayen","","","","","","",NA
+112,"jpn","Japan","","","","","","",NA
+263,"","Jarvis Island","","","","","","",NA
+113,"jey","Jersey","Bailiwick of Jersey","","","","","",NA
+264,"","Johnston Atoll","","","","","","",NA
+114,"jor","Jordan","Hashemite Kingdom of Jordan","","","","","",NA
+265,"","Juan De Nova Island","","","","","","",NA
+115,"kaz","Kazakhstan","Republic of Kazakhstan","Kazakstan","","","","",NA
+116,"ken","Kenya","Republic of Kenya","","","","","",NA
+266,"","Kingman Reef","","","","","","",NA
+117,"kir","Kiribati","Republic of Kiribati","","","","","",NA
+118,"prk","Korea, Democratic People's Republic of","Democratic People's Republic of Korea","Korea, North","North Korea","Korea, Dem. Rep.","Korea, Democratic Republic of","",NA
+119,"kor","Korea, Republic of","Republic of Korea","Korea, South","South Korea","Korea","Korea, Rep.","",NA
+282,"kos","Kosovo","","","","","","",NA
+120,"kwt","Kuwait","State of Kuwait","","","","","",NA
+121,"kgz","Kyrgyzstan","Kyrgyz Republic","","","","","",NA
+122,"lao","Lao People's Democratic Republic","Laos","Lao PDR","","","","",NA
+123,"lva","Latvia","Republic of Latvia","","","","","",NA
+124,"lbn","Lebanon","Lebanese Republic","","","","","",NA
+125,"lso","Lesotho","Republic of Lesotho","","","","","",NA
+126,"lbr","Liberia","Republic of Liberia","","","","","",NA
+127,"lby","Libya","Great Socialist People's Libyan Arab Jamahiriya","","","","","",NA
+128,"lie","Liechtenstein","Principality of Liechtenstein","","","","","",NA
+129,"ltu","Lithuania","Republic of Lithuania","","","","","",NA
+130,"lux","Luxembourg","Grand Duchy of Luxembourg","","","","","",NA
+131,"mac","Macao","China, Macao Special Administrative Region","Macau S.A.R","Macau Special Administrative Region","Macau S.A.R.","Macau","Macao Special Administrative Region of China","Macao SAR, China                              "
+132,"mkd","Macedonia, The Former Yugoslav Republic of","The former Yugoslav Republic of Macedonia","Macedonia","Republic of Macedonia","Macedonia, Former Yugoslav Republic of","Macedonia, FYR","FYR Macedonia",NA
+133,"mdg","Madagascar","Republic of Madagascar","","","","","",NA
+134,"mwi","Malawi","Republic of Malawi","","","","","",NA
+135,"mys","Malaysia","","","","","","",NA
+136,"mdv","Maldives","Republic of Maldives","","","","","",NA
+137,"mli","Mali","Republic of Mali","","","","","",NA
+138,"mlt","Malta","Republic of Malta","","","","","",NA
+139,"mhl","Marshall Islands","Republic of the Marshall Islands","","","","","",NA
+140,"mtq","Martinique","Department of Martinique","France, Martinique","","","","",NA
+141,"mrt","Mauritania","Islamic Republic of Mauritania","","","","","",NA
+142,"mus","Mauritius","Republic of Mauritius","","","","","",NA
+143,"myt","Mayotte","Territorial Collectivity of Mayotte","","","","","",NA
+144,"mex","Mexico","United Mexican States","","","","","",NA
+145,"fsm","Micronesia, Federated States of","Micronesia (Federated States of)","Federated States of Micronesia","Micronesia, Fed. States","Micronesia, Fed. Sts.                       ","","",NA
+267,"","Midway Islands","","","","","","",NA
+146,"mda","Moldova, Republic of","Republic of Moldova","Moldova","","","","",NA
+147,"mco","Monaco","Principality of Monaco","","","","","",NA
+148,"mng","Mongolia","","","","","","",NA
+149,"mne","Montenegro","","","","","","",NA
+150,"msr","Montserrat","","","","","","",NA
+151,"mar","Morocco","Kingdom of Morocco","","","","","",NA
+152,"moz","Mozambique","Republic of Mozambique","","","","","",NA
+153,"mmr","Myanmar","Burma","Union of Burma","","","","",NA
+154,"nam","Namibia","Republic of Namibia","","","","","",NA
+155,"nru","Nauru","Republic of Nauru","","","","","",NA
+268,"","Navassa Island","","","","","","",NA
+156,"npl","Nepal","Kingdom of Nepal","","","","","",NA
+157,"nld","Netherlands","Kingdom of the Netherlands","The Netherlands","","","","",NA
+269,"","Netherlands Antilles","","","","","","",NA
+158,"ncl","New Caledonia","Territory of New Caledonia and Dependencies","","","","","",NA
+159,"nzl","New Zealand","","","","","","",NA
+160,"nic","Nicaragua","Republic of Nicaragua","","","","","",NA
+161,"ner","Niger","Republic of Niger","","","","","",NA
+162,"nga","Nigeria","Federal Republic of Nigeria","","","","","",NA
+163,"niu","Niue","","","","","","",NA
+164,"nfk","Norfolk Island","Territory of Norfolk Island","","","","","",NA
+165,"mnp","Northern Mariana Islands","Commonwealth of the Northern Mariana Islands","","","","","",NA
+166,"nor","Norway","Kingdom of Norway","","","","","",NA
+167,"omn","Oman","Sultanate of Oman","","","","","",NA
+168,"pak","Pakistan","Islamic Republic of Pakistan","","","","","",NA
+169,"plw","Palau","Republic of Palau","","","","","",NA
+270,"","Palmyra Atoll","","","","","","",NA
+171,"pan","Panama","Republic of Panama","","","","","",NA
+172,"png","Papua New Guinea","Independent State of Papua New Guinea","","","","","",NA
+271,"","Paracel Islands","","","","","","",NA
+173,"pry","Paraguay","Republic of Paraguay","","","","","",NA
+174,"per","Peru","Republic of Peru","","","","","",NA
+175,"phl","Philippines","Republic of the Philippines","","","","","",NA
+176,"pcn","Pitcairn","Pitcairn Islands","Pitcairn, Henderson, Ducie and Oeno Islands","Pitcairn Island","","","",NA
+177,"pol","Poland","Republic of Poland","","","","","",NA
+178,"prt","Portugal","Portuguese Republic","","","","","",NA
+281,"","Portuguese Timor","","","","","","",NA
+179,"pri","Puerto Rico","Commonwealth of Puerto Rico","","","","","",NA
+180,"qat","Qatar","State of Qatar","","","","","",NA
+181,"reu","Reunion","Department of Reunion","","","","","",NA
+182,"rou","Romania","","","","","","",NA
+183,"rus","Russian Federation","Russia","","","","","",NA
+184,"rwa","Rwanda","Rwandese Republic","","","","","",NA
+185,"blm","Saint Barthelemy","Saint-Barthelemy","","","","","",NA
+186,"shn","Saint Helena, Ascension and Tristan da Cunha","Saint Helena","St. Helena","","","","",NA
+187,"kna","Saint Kitts and Nevis","Federation of Saint Kitts and Nevis","St. Kitts-Nevis","St. Kitts and Nevis","St. Kitts & Nevis","Saint Kitts & Nevis","",NA
+188,"lca","Saint Lucia","St. Lucia","","","","","",NA
+189,"maf","Saint Martin (French part)","Saint-Martin (French part)","Saint-Martin","Saint Martin","St. Martin (French part)                      ","","",NA
+190,"spm","Saint Pierre and Miquelon","Territorial Collectivity of Saint Pierre and Miquelon","","","","","",NA
+191,"vct","Saint Vincent and the Grenadines","St.Vincent & Grenadines","St. Vincent and the Grenadines","","","","",NA
+192,"wsm","Samoa","Independent State of Samoa","","","","","",NA
+193,"smr","San Marino","Republic of San Marino","","","","","",NA
+194,"stp","Sao Tome and Principe","Democratic Republic of Sao Tome and Principe","Sao Tome & Principe","","","","",NA
+251,"","Sark","","","","","","",NA
+195,"sau","Saudi Arabia","Kingdom of Saudi Arabia","","","","","",NA
+196,"sen","Senegal","Republic of Senegal","","","","","",NA
+197,"srb","Serbia","","","","","","",NA
+252,"","Serbia and Montenegro","","","","","","",NA
+198,"syc","Seychelles","Republic of Seychelles","","","","","",NA
+199,"sle","Sierra Leone","Republic of Sierra Leone","","","","","",NA
+200,"sgp","Singapore","Republic of Singapore","","","","","",NA
+201,"sxm","Sint Maarten (Dutch part)","","","","","","",NA
+202,"svk","Slovakia","Slovak Republic","","","","","",NA
+203,"svn","Slovenia","Republic of Slovenia","","","","","",NA
+204,"slb","Solomon Islands","","","","","","",NA
+205,"som","Somalia","","","","","","",NA
+206,"zaf","South Africa","Republic of South Africa","South African Republic","","","","",NA
+207,"","South Georgia and the South Sandwich Islands","South Georgia and the Islands","","","","","",NA
+208,"ssd","South Sudan","","","","","","",NA
+280,"","Soviet Union","","","","","","",NA
+209,"esp","Spain","Kingdom of Spain","","","","","",NA
+272,"","Spratly Islands","","","","","","",NA
+210,"lka","Sri Lanka","Democratic Socialist Republic of Sri Lanka","","","","","",NA
+211,"sdn","Sudan","Republic of the Sudan","","","","","",NA
+212,"sur","Suriname","Republic of Suriname","","","","","",NA
+273,"","Svalbard","","","","","","",NA
+213,"sjm","Svalbard and Jan Mayen","Svalbard and Jan Mayen Islands","","","","","",NA
+214,"swz","Swaziland","Kingdom of Swaziland","","","","","",NA
+215,"swe","Sweden","Kingdom of Sweden","","","","","",NA
+216,"che","Switzerland","Swiss Confederation","","","","","",NA
+217,"syr","Syrian Arab Republic","Syria","Golan Heights (Israeli-occupied)","","","","",NA
+218,"twn","Taiwan, Province of China","Taiwan","Chinese Taipei","Republic of China","ROC","","",NA
+219,"tjk","Tajikistan","Republic of Tajikistan","","","","","",NA
+220,"tza","Tanzania, United Republic of","United Republic of Tanzania","Tanzania","","","","",NA
+221,"tha","Thailand","Kingdom of Thailand","","","","","",NA
+222,"tls","Timor-Leste","East Timor","","","","","",NA
+223,"tgo","Togo","Togolese Republic","","","","","",NA
+224,"tkl","Tokelau","","","","","","",NA
+225,"ton","Tonga","Kingdom of Tonga","","","","","",NA
+226,"tto","Trinidad and Tobago","Republic of Trinidad and Tobago","","","","","",NA
+274,"","Tromelin Island","","","","","","",NA
+227,"tun","Tunisia","Republic of Tunisia","","","","","",NA
+228,"tur","Turkey","Republic of Turkey","","","","","",NA
+229,"tkm","Turkmenistan","","","","","","",NA
+230,"tca","Turks and Caicos Islands","","","","","","",NA
+231,"tuv","Tuvalu","","","","","","",NA
+232,"uga","Uganda","","","","","","",NA
+233,"ukr","Ukraine","","","","","","",NA
+234,"are","United Arab Emirates","","","","","","",NA
+235,"gbr","United Kingdom","United Kingdom of Great Britain and Northern Ireland","Great Britain","UK","","","",NA
+236,"usa","United States","United States of America","US","USA","U.S.A.","U.S.","",NA
+237,"umi","United States Minor Outlying Islands","","","","","","",NA
+238,"ury","Uruguay","Oriental Republic of Uruguay","","","","","",NA
+239,"uzb","Uzbekistan","Republic of Uzbekistan","","","","","",NA
+240,"vut","Vanuatu","Republic of Vanuatu","","","","","",NA
+241,"ven","Venezuela, Bolivarian Republic of","Venezuela (Bolivarian Republic of)","Venezuela","Bolivarian Republic of Venezuela","Venezuela, RB","","",NA
+242,"vnm","Viet Nam","Vietnam","Socialist Republic of Vietnam","","","","",NA
+243,"vgb","Virgin Islands, British","British Virgin Islands","Virgin Islands (UK)","","","","",NA
+244,"vir","Virgin Islands, U.S.","United States Virgin Islands","Virgin Islands","Virgin Islands of the United States","Virgin Islands (US)","Virgin Islands (U.S.)","",NA
+275,"","Wake Atoll","","","","","","",NA
+245,"wlf","Wallis and Futuna","Wallis and Futuna Islands","Territory of the Wallis and Futuna Islands","","","","",NA
+276,"pse","Palestine", "West Bank","West Bank and Gaza","Palestinian Territory, Occupied","Occupied Palestinian Territory","","",NA
+246,"esh","Western Sahara","","","","","","",NA
+247,"yem","Yemen","Republic of Yemen","Yemen, Rep.","","","","",NA
+248,"zmb","Zambia","Republic of Zambia","","","","","",NA
+249,"zwe","Zimbabwe","Republic of Zimbabwe","","","","","",NA
