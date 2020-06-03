@@ -21,7 +21,7 @@ def _success(test_dir):
 
     # Make Makefile
     cmd = ["Rscript", "../../R/scripts/make_makefile.R",
-            "-c", f"config.yml",
+            "-c", "config.yml",
             "-p", "../..",
             "-n", str(multiprocessing.cpu_count()),
             "-y", sys.executable]
@@ -53,6 +53,8 @@ def test_simple():
 def test_importation():
     _success("test_importation")
 
+    assert_file("data/geodata.csv")
+    assert_file("data/mobility.txt")
     assert_file("data/filter.txt")
     assert_dir("data/shp")
     assert_dir("importation")
@@ -60,6 +62,8 @@ def test_importation():
 def test_report():
     _success("test_report")
 
+    assert_file("data/geodata.csv")
+    assert_file("data/mobility.csv")
     assert_file("data/filter.txt")
     assert_dir("data/shp")
     assert_dir("importation")
@@ -69,3 +73,35 @@ def test_report():
 
 def test_hosp_age_adjust():
     _success("test_hosp_age_adjust")
+
+def test_inference():
+    os.chdir("test_inference")
+
+    # build_US_setup.R
+    cmd = ["Rscript", "../../R/scripts/build_US_setup.R",
+                "-c", "config.yml",
+                "-p", "../.."]
+
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"build_US_setup.R failed with code {complete.returncode}"
+
+    assert_file("data/geodata.csv")
+    assert_file("data/mobility.csv")
+
+    # full_filter.R
+    cmd = ["Rscript", "../../R/scripts/full_filter.R",
+            "-c", "config.yml",
+            "-p", "../..",
+            "-j", "1",
+            "-y", sys.executable]
+
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"full_filter.R failed with code {complete.returncode}"
+
+    assert_file("data/test1/seeding.csv")
+    assert_file("data/us_data.csv")
+    assert_dir("importation")
+    assert_dir("hospitalization")
+    assert_dir("data/case_data")
+    assert_dir("model_output")
+    assert_dir("model_parameters")

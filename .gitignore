@@ -54,3 +54,9 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+packrat/lib*/
+
+# Python build dirs
+build/
+dist/
+SEIR.egg-info/

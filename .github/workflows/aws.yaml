@@ -13,10 +13,11 @@ on:
       - dataseed
     paths:
       - 'requirements.txt'
-      - 'packages.R'
       - 'local_install.R'
       - 'Dockerfile'
       - 'R/pkgs/**'
+      - '.Rprofile'
+      - 'packrat/**'
 
 name: Deploy to Amazon ECR
 

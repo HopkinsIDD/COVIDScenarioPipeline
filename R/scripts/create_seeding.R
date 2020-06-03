@@ -8,7 +8,6 @@
 # ## Configuration Items
 # 
 # ```yaml
-# dynfilter_path: <path to file>
 # start_date: <date>
 # end_date: <date>
 #
@@ -17,6 +16,9 @@
 #   base_path: <path to directory>
 #   geodata: <path to file>
 #   nodenames: <string>
+#
+# seeding:
+#   lambda_file: <path to file>
 # ```
 #
 # ## Input Data
@@ -25,12 +27,14 @@
 #
 # ## Output Data
 #
-# * <b>importation/{spatial_setup::setup_name}/case_data/jhucsse_case_data.csv</b> is a csv with case data from JHU CSSE
-# * <b>{dynfilter_path}</b>: filter file
+# * <b>data/case_data/USAFacts_case_data.csv</b> is the case csv downloaded from USAFacts
+# * <b>data/case_data/USAFacts_death_data.csv</b> is the death csv downloaded from USAFacts
+# * <b>{seeding::lambda_file}</b>: filter file
 #
 
 ## @cond
 
+library(covidcommon)
 library(magrittr)
 library(dplyr)
 library(readr)
@@ -48,13 +52,9 @@ if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
-jhucsse <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
-                                   last_date = as.POSIXct(lubridate::ymd(config$end_date)),
-                                   case_data_dir = file.path('importation',config$spatial_setup$setup_name,"case_data"),
-                                   save_raw_data=TRUE,
-                                   us_data_only=FALSE)
+cases_deaths <- covidcommon::get_USAFacts_data()
 
-print("Successfully pulled JHU CSSE data for seeding.")
+print("Successfully pulled USAFacts data for seeding.")
 
 all_times <- lubridate::ymd(config$start_date) +
   seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
@@ -63,7 +63,7 @@ geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$
 
 all_geoids <- geodata[[config$spatial_setup$nodenames]]
 
-incident_cases <- jhucsse %>%
+incident_cases <- cases_deaths %>%
   dplyr::filter(FIPS %in% all_geoids) %>%
   dplyr::select(Update, FIPS, incidI)
 
@@ -88,11 +88,17 @@ names(incident_cases) <- c('place','date','amount')
 incident_cases <- incident_cases %>%
   dplyr::filter(!is.na(amount) | !is.na(date))
 
+lambda_dir <- dirname(config$seeding$lambda_file)
+if(!dir.exists(lambda_dir)){
+  suppressWarnings(dir.create(lambda_dir,recursive=TRUE))
+}
+
 write.csv(
   incident_cases,
   file=file.path(config$seeding$lambda_file),
-  row.names=FALSE,
-  col.names=TRUE,
+  row.names=FALSE
 )
+
+print(paste("Saved seeding to",config$seeding$lambda_file))
 
 ## @endcond

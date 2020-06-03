@@ -9,12 +9,14 @@ on:
       - master
       - dev
       - dataseed
+      - inference
     paths:
       - 'requirements.txt'
-      - 'packages.R'
       - 'local_install.R'
       - 'Dockerfile'
       - 'R/pkgs/**'
+      - '.Rprofile'
+      - 'packrat/**'
 
 name: Deploy to DockerHub
 
@@ -63,3 +65,12 @@ jobs:
         repository: hopkinsidd/covidscenariopipeline
         tags: latest-dataseed,${{steps.tags.outputs.shashort}},${{steps.tags.outputs.reftag}},${{ github.sha }}
       if: contains( github.ref , 'dataseed') || contains( github.base_ref, 'dataseed' )
+
+    - name: Build Push Inference
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: hopkinsidd/covidscenariopipeline
+        tags: latest-inference,${{steps.tags.outputs.shashort}},${{steps.tags.outputs.reftag}},${{ github.sha }}
+      if: contains( github.ref , 'inference') || contains( github.base_ref, 'inference' )

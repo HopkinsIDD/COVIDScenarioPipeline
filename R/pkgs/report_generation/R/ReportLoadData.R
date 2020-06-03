@@ -7,15 +7,17 @@
 ##' @param incl_geoids character vector of geoids that are included in the report
 ##' @param geoid_len in defined, this we want to make geoids all the same length
 ##' @param padding_char character to add to the front of geoids if fixed length
+##' @param file_extension string indicating type of model output files (parquet or csv or auto)
+##' @param name_filter string that indicates which pdeath level to import for the source files (from the hosp file name)
 ##'
 ##' @return a data frame with columns
 ##'          - time
-##'          - comp
 ##'          - geoid
-##'          - N
 ##'          - sim_num
+##'          - N
 ##'          - scenario_num
 ##'          - scenario_name
+##'          - pdeath
 ##'
 ##' @export
 load_cum_inf_geounit_dates <- function(scn_dirs,
@@ -25,50 +27,53 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
                                       incl_geoids=NULL,
                                       geoid_len = 0,
                                       padding_char = "0",
-                                      file_extension = 'auto'){
-
+                                      file_extension = 'auto',
+                                      name_filter)
+{
   if(is.null(scenariolabels)){
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
     }
-
+  warning("This function loads infection data from hospitalization outputs. Only one IFR scenario is needed to load these data for a given set of model outputs because infection counts will be the same across IFR scenarios.")
+	  
   display_dates <- as.Date(display_dates)
-  inf_pre_process <- function(x) {
-    x %>%
-      dplyr::filter(comp == "cumI") %>%
-      dplyr::filter(time %in% display_dates)
-  }
+  max_date <- max(display_dates)
 
+  ##filter to munge the data at the scenario level
   if (!is.null(incl_geoids)) {
-      inf_post_process <- function(x) {
+       hosp_post_process <- function(x) {
           x %>%
-              ungroup %>%
-              dplyr::filter(!is.na(time), geoid %in% incl_geoids)
+              dplyr::filter(!is.na(time) & geoid %in% incl_geoids, time <= max_date) %>%
+              group_by(geoid, sim_num) %>%
+              dplyr::mutate(N = cumsum(incidI)) %>%
+              ungroup() %>%
+              dplyr::filter(time %in% display_dates)
       }
   } else {
-      inf_post_process <- function(x) {
+      hosp_post_process <- function(x) {
           x %>%
-              ungroup %>%
-              dplyr::filter(!is.na(time))
+              dplyr::filter(!is.na(time) & time <= max_date) %>%
+              group_by(geoid, sim_num) %>%
+              dplyr::mutate(N = cumsum(incidI)) %>%
+              ungroup() %>%
+              dplyr::filter(time %in% display_dates)
       }
   }
-
+  
   rc <- list()
   for (i in 1:length(scn_dirs)) {
-      rc[[i]] <- load_scenario_sims_filtered(scn_dirs[i],
-                                             num_files = num_files,
-                                             pre_process = inf_pre_process,
-                                             post_process = inf_post_process,
-                                             geoid_len = geoid_len,
-                                             padding_char = padding_char,
-                                             file_extension = file_extension)
-      
+      rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
+                                         num_files = num_files,
+                                         name_filter = name_filter,
+                                         post_process = hosp_post_process,
+                                         geoid_len = geoid_len,
+                                         padding_char = padding_char,
+                                         file_extension = file_extension)
       rc[[i]]$scenario_num <- i
       rc[[i]]$scenario_name <- scenariolabels[[i]]
   }
-
   return(dplyr::bind_rows(rc))
-
 }
+
 
 
 ##' Convenience function to load cumulative geounit hosp outcomes at a specific date for the given scenario
@@ -680,44 +685,91 @@ load_shape_file<- function(
 ##'
 ##' @param jhu_data_dir data directory
 ##' @param countries character vector of countries
-##' @param states character vector of states 
-##' @param updateJHUData logical on whether JHU data should be udpated
+##' @param states character vector of states (state abbreviations is US-only)
 ##' 
 ##' @return a data frame with columns
-##'         - 
+##'         - date
+##'         - NcumulConfirmed
+##'         - NcumulDeathsObs
+##'         - NincidConfirmed
+##'         - NincidDeathsObs
+##'         
 ##' @export
 load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
                                      countries = c("US"),
-                                     states,
-                                     updateJHUData = TRUE,
-                                     ...) {
-  if(!dir.exists(jhu_data_dir)) {
-    ### Download JHU data
-    pull_JHUCSSE_github_data(jhu_data_dir) 
-  } else {
-    ### Get updated version
-    if(updateJHUData) {
-      covidImportation:::update_JHUCSSE_github_data(jhu_data_dir) 
-    }
+                                     states) {
+
+  require(magrittr)
+  
+  us_data_only = (countries == c("US"))
+  if(us_data_only) {
+    message("For US data, consider using load_usafacts_for_report() instead of load_jhu_csse_for_report().")
   }
-  
-  ### Read in JHU data
-  jhu_dat <- read_JHUCSSE_cases(case_data_dir = jhu_data_dir, ...)
-  
-  
+
+  jhu_cases <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
+                                   case_data_dir = jhu_data_dir,
+                                   save_raw_data=TRUE,
+                                   us_data_only=us_data_only)
+
+  jhu_deaths <- covidImportation::get_clean_JHUCSSE_deaths(aggr_level = "UID", 
+                                   case_data_dir = jhu_data_dir,
+                                   save_raw_data=TRUE,
+                                   us_data_only=us_data_only)
+
+  jhu_dat <- dplyr::full_join(jhu_cases, jhu_deaths)
+
+  if(us_data_only)
+  {
+    jhu_dat <- jhu_dat %>% dplyr::mutate(Province_State=state_abb)
+  }
+
   jhu_dat <- 
     jhu_dat %>%
     dplyr::mutate(date = as.Date(Update)) %>%
     dplyr::filter(Country_Region %in% countries) %>%
     dplyr::filter(Province_State %in% states) %>%
-    group_by(date) %>%
-    dplyr::summarize(NcumulConfirmed = sum(Confirmed), NcumulDeathsObs = sum(Deaths, na.rm = TRUE)) %>%
-    ungroup() %>%
+    dplyr::group_by(date) %>%
+    dplyr::summarize(NcumulConfirmed = sum(Confirmed, na.rm = TRUE), NcumulDeathsObs = sum(Deaths, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
     dplyr::arrange(date) %>%
     dplyr::mutate(NincidConfirmed  = NcumulConfirmed - dplyr::lag(NcumulConfirmed),
                   NincidDeathsObs = NcumulDeathsObs - dplyr::lag(NcumulDeathsObs)) %>%
     na.omit()
   return(jhu_dat)
+}
+
+##' Load USAFacts data
+##'
+##' @param data_dir data directory to download raw USAFacts data to
+##' @param states character vector of states (state abbreviations is US-only)
+##' 
+##' @return a data frame with columns
+##'         - date
+##'         - NcumulConfirmed
+##'         - NcumulDeathsObs
+##'         - NincidConfirmed
+##'         - NincidDeathsObs
+##'         
+##' @export
+load_USAFacts_for_report <- function(data_dir = "data/case_data",
+                                     states) {
+
+  require(magrittr)
+
+  usaf_dat <- covidcommon::get_USAFacts_data(case_data_filename = file.path(data_dir,"USAFacts_case_data.csv"),
+                                              death_data_filename = file.path(data_dir, "USAFacts_death_data.csv"))
+  usaf_dat <- 
+    usaf_dat %>%
+    dplyr::mutate(date = as.Date(Update)) %>%
+    dplyr::filter(source %in% states) %>%
+    dplyr::group_by(date) %>%
+    dplyr::summarize(NcumulConfirmed = sum(Confirmed, na.rm = TRUE), NcumulDeathsObs = sum(Deaths, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(date) %>%
+    dplyr::mutate(NincidConfirmed  = NcumulConfirmed - dplyr::lag(NcumulConfirmed),
+                  NincidDeathsObs = NcumulDeathsObs - dplyr::lag(NcumulDeathsObs)) %>%
+    na.omit()
+  return(usaf_dat)
 }
 
 
