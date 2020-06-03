@@ -93,6 +93,7 @@ library(magrittr)
 library(data.table)
 library(parallel)
 library(stringr)
+library(doParallel)
 
 option_list = list(
 
@@ -195,6 +196,7 @@ if(run_age_adjust){
   }
   # read in probability file
   prob_dat <- readr::read_csv(config$spatial_setup$geoid_params_file)
+  prob_dat <- prob_dat %>% mutate(geoid = as.character(geoid)) # so it matches
   
   geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),config$spatial_setup$geoid_len,'0',TRUE)
   in_geoids <- geodata[[config$spatial_setup$nodenames]]
@@ -230,7 +232,8 @@ if(run_age_adjust){
                                                      data_dir = data_dir,
                                                      dscenario_name = cmd0,
                                                      use_parquet = TRUE,
-                                                     sum_sims
+                                                     start_sim = start_sim,
+                                                     num_sims = num_sims
       )
     }
   }
