@@ -16,6 +16,7 @@ if (length(config) == 0) {
 outdir <- config$spatial_setup$base_path
 filterUSPS <- config$spatial_setup$modeled_states
 
+dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
 census_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","census_tracts_2010.csv", sep = '/'))
 

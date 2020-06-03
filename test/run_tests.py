@@ -141,7 +141,7 @@ def test_hosp_age_adjust():
     _success("test_hosp_age_adjust")
     
 def test_build_US():
-    _success_success_build_nonUS_setup("test_build_US_setup")
+    _success_build_nonUS_setup("test_build_US_setup")
 
 def test_build_nonUS():
     _success_build_nonUS_setup("test_build_nonUS_setup")

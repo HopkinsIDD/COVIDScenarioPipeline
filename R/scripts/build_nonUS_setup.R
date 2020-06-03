@@ -47,6 +47,7 @@ if (length(config) == 0) {
 outdir <- config$spatial_setup$base_path
 filterADMIN0 <- config$spatial_setup$modeled_states
 
+dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 # Read in needed data
 commute_data <- readr::read_csv(file.path(opt$path,"data","geodata", opt$mobility))
