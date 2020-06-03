@@ -109,8 +109,8 @@ report:
     scenario_labels:
       - Uncontrolled
       - Scenario1
-    scenario_colors: ["#D95F02", "#7570B3"]
-    pdeath_labels: ["0.25% IFR", "0.5% IFR"]
+    scenario_colors: ["#D95F02", "#7570B3", "#111111"]
+    pdeath_labels: ["0.25% IFR", "0.5% IFR","1% IFR"]
     display_dates: ["2020-04-01", "2020-05-01"]
     display_dates2: ["2020-05-01"]
   continue_on_error: FALSE
