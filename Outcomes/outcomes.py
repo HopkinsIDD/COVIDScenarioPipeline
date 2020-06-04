@@ -177,10 +177,13 @@ def dataframe_from_array(data, places, dates, comp_name):
 """ Quite fast shift implementation, along the first axis, 
     which is date. num is an integer not negative nor zero """
 def shift(arr, num, fill_value=0):
-    result = np.empty_like(arr)
+    if (num == 0):
+        return arr
+    else:
+        result = np.empty_like(arr)
     #if num > 0:
-    result[:num] = fill_value
-    result[num:] = arr[:-num]
+        result[:num] = fill_value
+        result[num:] = arr[:-num]
     #elif num < 0:
     #    result[num:] = fill_value
     #    result[:num] = arr[-num:]
