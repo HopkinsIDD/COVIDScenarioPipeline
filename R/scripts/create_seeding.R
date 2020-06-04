@@ -40,7 +40,8 @@ library(purrr)
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
   optparse::make_option(c("-s", "--source"), action="store", default="CSSE", type='character', help="source of case data: USAFacts or CSSE"),
-  optparse::make_option(c("-d", "--data"), action="store", default=file.path("data","case_data","case_data.csv"), type='character', help="path to the case data file")
+  optparse::make_option(c("-d", "--data"), action="store", default=file.path("data","case_data","case_data.csv"), type='character', help="path to the case data file"),
+  optparse::make_option(c("-i", "--incid_x"), action="store", default=10, type='integer', help="incidence multiplier for reported cases")
 )
 
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
@@ -52,7 +53,7 @@ if (length(config) == 0) {
 
 all_times <- lubridate::ymd(config$start_date) +
   seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
-
+incid_x <- opt$incid_x
 
 
 
@@ -101,7 +102,7 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
         .[seq_len(min(nrow(.x),5)),] %>%
         dplyr::mutate(
           Update = Update - lubridate::days(5),
-          incidI = 10 * incidI + .05
+          incidI = incid_x * incidI + .05
         )
         
     })
@@ -140,7 +141,7 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
         .[seq_len(min(nrow(.x),5)),] %>%
         dplyr::mutate(
           date = date - lubridate::days(5),
-          incidI = 10 * incidI + .05
+          incidI = incid_x * incidI + .05
         )
     })
 }

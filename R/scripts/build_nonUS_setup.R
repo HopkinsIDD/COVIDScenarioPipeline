@@ -56,8 +56,8 @@ census_data <- readr::read_csv(file.path(opt$path,"data","geodata", opt$populati
 
 census_data <- census_data %>%
   dplyr::filter(ADMIN0 %in% filterADMIN0) %>%
-  dplyr::select(ADMIN0,GEOID,POP) %>%
-  dplyr::group_by(GEOID) %>%
+  dplyr::select(ADMIN0,GEOID,ADMIN2,POP) %>%
+  dplyr::group_by(GEOID,ADMIN2) %>%
   dplyr::summarize(ADMIN0 = unique(ADMIN0), POP = sum(POP)) %>%
   dplyr::arrange(POP)
 
@@ -102,7 +102,7 @@ if(opt$w){
 }
 
 # Save population geodata
-names(census_data) <- c("geoid","admin0","pop")
+names(census_data) <- c("geoid","admin2","admin0","pop")
 write.csv(file = file.path(outdir,'geodata.csv'), census_data,row.names=FALSE)
 
 
