@@ -63,9 +63,9 @@ download_worldpop <- opts$worldpop # Set to TRUE for the first run. Otherwise fa
 #.................................................................
 
 # ## IF RUNNING FROM THE SCRIPT AND NOT COMMAND LINE, UNCOMMENT THIS SECTION, COMMENT OUT THE ABOVE SECTION, AND SET THESE PARAMETERS
-# config <- "config.yml"
+# config <- covidcommon::load_config("config.yml")
 # cores <- 4
-# shp_loc_var <- "NAME"  # Admin2 variable name in the shapefile
+# shp_loc_var <- "ADMIN2"  # Admin2 variable name in the shapefile
 # download_worldpop <- TRUE # Set to TRUE for the first run. Otherwise false as this takes a while
 
 #.................................................................
@@ -139,7 +139,6 @@ if (download_worldpop){
 
 age_pop_data <- NULL
 age_pop_10yr <- NULL
-geo_age_params <- NULL
 
 
 for (c in seq_len(length(country_code))){
@@ -149,7 +148,7 @@ for (c in seq_len(length(country_code))){
                                       year=census_year, 
                                       loc_var=shp_loc_var,
                                       save_dir=file.path(base_data_path,"worldpop"), 
-                                      add_pop_to_shapefile = FALSE,
+                                      add_pop_to_shapefile = TRUE,
                                       cores=cores)
     
     # Setup geoids
@@ -183,18 +182,20 @@ for (c in seq_len(length(country_code))){
 
 }
 
+readr::write_csv(age_pop_10yr, file.path(base_data_path, paste0("age_pop_10yr.csv")))
+readr::write_csv(age_pop_data, file.path(base_data_path, paste0("age_pop_data.csv")))
+
+
 # Estimate parameters - All included countries done at once
-geo_age_params_ <- covidSeverity::get_ageadjustments(age_pop_10yr_,
+geo_age_params <- covidSeverity::get_ageadjustments(age_pop_10yr,
                                                      cores=cores,
                                                      n_sims=40,
                                                      n_preds=1000,
                                                      age_grps=c(seq(0,80,by=10),100),
-                                                     googlesheet_access=TRUE,
+                                                     googlesheet_access=FALSE,
                                                      output_dir=base_data_path,
                                                      pop_name=NULL)
 
-readr::write_csv(age_pop_10yr, file.path(base_data_path, paste0("age_pop_10yr.csv")))
-readr::write_csv(age_pop_data, file.path(base_data_path, paste0("age_pop_data.csv")))
 
 
 
@@ -228,7 +229,8 @@ if ("pop" %in% colnames(adm2)){
     adm2 <- adm2 %>% dplyr::select(-pop)
 }
 adm2 <- adm2 %>% 
-    dplyr::left_join(population_data %>% dplyr::select(POP, GEOID, ADMIN0, ADMIN2), by="ADMIN2")
+    dplyr::left_join(population_data %>% dplyr::select(POP, GEOID, ADMIN0, ADMIN2), 
+                     by=c("ADMIN2"))
 adm2 <- adm2 %>% dplyr::rename(pop=POP, geoid=GEOID) 
 
 
