@@ -105,6 +105,12 @@ Version: 0.9-7
 Hash: 4b195615d19ba49c114eb04e09e30a96
 Requires: bit
 
+Package: blob
+Source: CRAN
+Version: 1.2.1
+Hash: de88fed092924767ccb739b695f35d2b
+Requires: rlang, vctrs
+
 Package: brew
 Source: CRAN
 Version: 1.0-6
@@ -175,21 +181,21 @@ Hash: 6cc063b236e3bbc174a73959145488ef
 Package: covidImportation
 Source: github
 Version: 1.6.1
-Hash: 3be3cebe75c236a2961ee7947d55805f
+Hash: 583495445ef6143fcbb33c712e2d39f7
 Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
     dplyr, fitdistrplus, geosphere, ggplot2, ggvoronoi,
     globaltoolboxlite, gpclib, httr, igraph, lubridate, magrittr,
     maptools, purrr, raster, readr, reshape2, rgdal, rlist, sf, tibble,
-    tidycensus, tidyr, truncnorm
+    tidycensus, tidyr, tidyverse, truncnorm
 GithubRepo: covidImportation
 GithubUsername: HopkinsIDD
 GithubRef: v1.6.1
-GithubSha1: a8948fdad6465d2287fcfe51e0973460e078b0c0
+GithubSha1: 824d3102afb23f5b4ae6c5104fe5303dbbd7cca2
 RemoteHost: api.github.com
 RemoteRepo: covidImportation
 RemoteUsername: HopkinsIDD
 RemoteRef: v1.6.1
-RemoteSha: a8948fdad6465d2287fcfe51e0973460e078b0c0
+RemoteSha: 824d3102afb23f5b4ae6c5104fe5303dbbd7cca2
 
 Package: covidcommon
 Source: source
