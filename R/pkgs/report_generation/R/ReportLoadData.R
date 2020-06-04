@@ -209,6 +209,10 @@ load_hosp_geounit_threshold <- function(
       warning("You have not specified scenario labels for this function. You may encounter future errors.")  
     }
 
+    if(!variable %in% c("incidI", "incidH",  "hosp_curr", "incidICU", "icu_curr", "incidVent", "vent_curr", "incidD")){
+      warning("You have specified a variable name that may not be supported in the current output. You may encounter future errors")
+    }
+    
     end_date <- as.Date(end_date)
     if (!is.null(incl_geoids)) {
          hosp_post_process <- function(x) {
