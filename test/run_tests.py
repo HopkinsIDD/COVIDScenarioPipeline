@@ -70,11 +70,10 @@ def _success_build_nonUS_setup(test_dir):
 
     # Make Makefile
     cmd = ["Rscript", "../../R/scripts/build_nonUS_setup.R",
-            "-c", f"config.yml",
-            "-p", ".",
+            "-c", "config.yml",
             "-w", "FALSE",
-            "-n", f"data/geodata/population_data.csv",
-            "-m", f"data/geodata/mobility_data.csv"
+            "-n", "data/geodata/population_data.csv",
+            "-m", "data/geodata/mobility_data.csv"
             ]
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"build_nonUS_setup.R failed with code {complete.returncode}"
@@ -143,16 +142,16 @@ def test_report():
 
 def test_hosp_age_adjust():
     _success("test_hosp_age_adjust")
-    
+
 def test_build_US():
-    _success_build_nonUS_setup("test_build_US_setup")
+    _success_build_US_setup("test_build_US_setup")
 
 def test_build_nonUS():
     _success_build_nonUS_setup("test_build_nonUS_setup")
 
 def test_create_seeding_US():
     _success_create_seeding_US("test_create_seeding_US")
-    
+
 def test_create_seeding_nonUS():
     _success_create_seeding_nonUS("test_create_seeding_nonUS")
-    
+

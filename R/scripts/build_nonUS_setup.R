@@ -32,7 +32,6 @@ library(tidyr)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default="config.yml", type='character', help="path to the config file"),
-  optparse::make_option(c("-p", "--path"), action="store", default=".", type='character', help="path to the spatial repository directory"),
   optparse::make_option(c("-w", "--wide_form"), action="store",default=FALSE,type='logical',help="Whether to generate the old wide format mobility or the new long format"),
   optparse::make_option(c("-n", "--population"), action="store",default="population_data.csv",type='character',help="Name of the popultion data file"),
   optparse::make_option(c("-m", "--mobility"), action="store",default="mobility_data.csv",type='character',help="Name of the mobility data file")
@@ -50,8 +49,8 @@ filterADMIN0 <- config$spatial_setup$modeled_states
 dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 # Read in needed data
-commute_data <- readr::read_csv(file.path(opt$path,"data","geodata", opt$mobility))
-census_data <- readr::read_csv(file.path(opt$path,"data","geodata", opt$population))
+commute_data <- readr::read_csv(file.path(opt$mobility))
+census_data <- readr::read_csv(file.path(opt$population))
 
 
 census_data <- census_data %>%
