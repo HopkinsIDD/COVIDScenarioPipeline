@@ -156,9 +156,9 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
                                     dates, parameters[new_comp]['duration_name'])
                 outcomes = pd.merge(outcomes, df)
 
-            elif 'sum' in parameters[new_comp]:
-                # Sum all concerned compartiment.
-                outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
+        elif 'sum' in parameters[new_comp]:
+            # Sum all concerned compartiment.
+            outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
 
     return outcomes
 
