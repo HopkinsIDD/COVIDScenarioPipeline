@@ -13,7 +13,7 @@ def test_outcomes():
     # Create some input from SEIR
     places = ['Paris','Lausanne','Baltimore']
     dates = pd.Series(pd.date_range("2020-01-01","2020-02-09"),name='time')
-    diffI = pd.DataFrame(np.zeros((40,3), columns = places, index = dates)
+    diffI = pd.DataFrame(np.zeros((40,3)), columns = places, index = dates)
     diffI['time'] = diffI.index
     
     # Config definition:
