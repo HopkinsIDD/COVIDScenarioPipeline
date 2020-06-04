@@ -12,48 +12,7 @@ import pyarrow.parquet as pq
 import pyarrow as pa
 import pandas as pd
 
-def create_delay_frame(parameters,data_src, places, dates,compartment):
-    # Read the config for this compartement
-    print("parameters")
-    print(type(parameters))
-    print(parameters)
-    print("data_src")
-    print(type(data_src))
-    print(data_src)
-    print("places")
-    print(type(places))
-    print(places)
-    print("dates")
-    print(type(dates))
-    print(dates)
-    print("compartment")
-    print(type(compartment))
-    print(compartment)
-    probability = parameters['probability']
-    delay =       parameters['delay']
 
-    # Create new compartement
-    data = np.empty_like(data_src)
-    # Draw with from source compartement
-    data = np.random.binomial(data_src, probability * np.ones_like(data_src))  
-    # Shift to account for the delay
-    data = shift(data, delay, fill_value=0)
-
-    rc = pd.DataFrame(data, columns = places, index = dates)
-    rc.reset_index(inplace=True)
-    rc = pd.melt(rc, id_vars='time', value_name = compartment, var_name='geoid')
-
-    # Make duration
-    if 'duration' in parameters:
-         duration = parameters['duration']
-         data  = np.cumsum(data, axis = 0) - shift(np.cumsum(data, axis=0), duration)
-                
-         df = pd.DataFrame(data, columns=places, index=dates)
-         df.reset_index(inplace=True)
-         df = pd.melt(df, id_vars='time', value_name = parameters['duration_name'], var_name='geoid')
-         rc = pd.merge(rc,df)
-        
-    return(rc)
 
 def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_outcomes, nsim = 1, index=1, n_jobs=1):
     start = time.monotonic()
@@ -114,13 +73,12 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
 
     if n_jobs == 1:          # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_seir, scenario_outcomes)
+            onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_outcomes)
     else:
         tqdm.contrib.concurrent.process_map(onerun_delayframe_outcomes, sim_ids, 
                                                                     itertools.repeat(parameters), 
                                                                     itertools.repeat(setup_name), 
                                                                     itertools.repeat(outdir), 
-                                                                    itertools.repeat(scenario_seir), 
                                                                     itertools.repeat(scenario_outcomes),
                                             max_workers=n_jobs)
 
@@ -128,37 +86,93 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
 >> {nsim} outcomes simulations completed in {time.monotonic()-start:.1f} seconds
 """)
 
-def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_seir, scenario_outcomes):
+
+
+def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_outcomes):
     sim_id_str = str(sim_id).zfill(9)
+    
+    # Read files
+    diffI, places, dates = read_seir_sim(sim_id_str, setup_name)
+    
+    # Compute outcomes
+    outcomes = compute_all_delayframe_outcomes(parameters, diffI, places, dates)
+
+    # Write output
+    write_outcome_sim(outcomes, outdir, scenario_outcomes, sim_id_str)
+
+
+def read_seir_sim(sim_id_str, setup_name):
     diffI = pd.read_parquet(f'model_output/{setup_name}/{sim_id_str}.seir.parquet')
     diffI = diffI[diffI['comp'] == 'diffI']
     dates = diffI.time
     diffI.drop(['comp'], inplace = True, axis = 1)
     places = diffI.drop(['time'], axis=1).columns
-    all_data = {}
-    # We store them as numpy matrices. Dimensions is dates X places
-    all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
-    shape = all_data['incidI'].shape
+    return diffI, places, dates
 
-    outcomes = pd.melt(diffI, id_vars='time', value_name = 'incidI', var_name='geoid')
-    for new_comp in parameters:
-        if 'source' in parameters[new_comp]:
-            # Produce a dataframe
-            source = parameters[new_comp]['source']
-            df = create_delay_frame(parameters[new_comp], all_data[source], places, dates, new_comp)
-
-            # And merge it
-            outcomes = pd.merge(outcomes, df)
-
-        elif 'sum' in parameters[new_comp]:
-            outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
-
+def write_outcome_sim(outcomes, outdir, scenario_outcomes, sim_id_str):
     out_df = pa.Table.from_pandas(outcomes, preserve_index = False)
     #pa.parquet.write_table(out_df, f"{outdir}{scenario_outcomes}-{sim_id_str}.outcomes.parquet")
     pa.parquet.write_table(out_df, f"{outdir}{scenario_outcomes}_death_death-{sim_id_str}.hosp.parquet")
 
 
+def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
+    all_data = {}
+    # We store them as numpy matrices. Dimensions is dates X places
+    all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
+
+    outcomes = pd.melt(diffI, id_vars='time', value_name = 'incidI', var_name='geoid')
+    for new_comp in parameters:
+        if 'source' in parameters[new_comp]:
+            # Read the config for this compartement: if a source is specified, we
+            # 1. compute incidence from binomial draw
+            # 2. compute duration if needed
+            source =      parameters[new_comp]['source']
+            probability = parameters[new_comp]['probability']
+            delay =       parameters[new_comp]['delay']
+    
+            # Create new compartement incidence:
+            all_data[new_comp] = np.empty_like(all_data['incidI'])
+            # Draw with from source compartement
+            all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))  
+            
+            #import matplotlib.pyplot as plt
+            #plt.imshow(probability * np.ones_like(all_data[source]))
+            #plt.title(np.mean(probability))
+            #plt.savefig('P'+new_comp + '|' + source)
+            
+            # Shift to account for the delay
+            all_data[new_comp] = shift(all_data[new_comp], delay, fill_value=0)
+            # Produce a dataframe an merge it
+            df = dataframe_from_array(all_data[new_comp], places, dates, new_comp)
+            outcomes = pd.merge(outcomes, df)
+            
+            # Make duration
+            if 'duration' in parameters[new_comp]:
+                duration = parameters[new_comp]['duration']
+                all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis = 0) - \
+                    shift(np.cumsum(all_data[new_comp], axis=0), duration)
+
+                df = dataframe_from_array(all_data[parameters[new_comp]['duration_name']], places, 
+                                    dates, parameters[new_comp]['duration_name'])
+                outcomes = pd.merge(outcomes, df)
+
+            elif 'sum' in parameters[new_comp]:
+                # Sum all concerned compartiment.
+                outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
+
     return outcomes
+
+def dataframe_from_array(data, places, dates, comp_name):
+    """ 
+        Produce a dataframe in long form from a numpy matrix of 
+    dimensions: dates * places. This dataframe are merged together 
+    to produce the final output
+    """
+    df = pd.DataFrame(data.astype(np.double), columns=places, index=dates)
+    df.reset_index(inplace=True)
+    df = pd.melt(df, id_vars='time', value_name = comp_name, var_name='geoid')
+    return df
+
 
 """ Quite fast shift implementation, along the first axis, 
     which is date. num is an integer not negative nor zero """
