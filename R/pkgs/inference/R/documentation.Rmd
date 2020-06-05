@@ -1,0 +1,160 @@
+# Overview
+
+This documentation describes the new YAML configuration file options that may be used when performing inference on model runs. As compared to previous model releases, there are additions to the `seeding` and `interventions` sections, and there is a new `filtering` section added to the file. 
+
+Models may be calibrated to any available time series data that is also an outcome of the model (COVID-19 confirmed cases, deaths, hospitalization or ICU admissions, hospital or ICU occupancy, and ventilator use). Our typical usage has calibrated the model to deaths, confirmed cases, or both.
+
+We describe these options below and present default values in the example configuration sections.
+
+# Modifications to `seeding`
+
+The model can perform inference on the seeding date and initial number of seeding infections in each geoid. An example of this new config section is:
+
+```
+seeding:
+  method: FolderDraw
+  folder_path: importation/minimal/
+  lambda_file: data/minimal/seeding.csv
+  perturbation_sd: 3
+```
+
+| Config Item | Required?                | Type/Format                   | Description |
+|-------------|--------------------------|-------------------------------|-------------|
+| method          | **required**  | "FolderDraw" | |
+| folder_path     | required      | path to folder where importation inference files will be saved | |
+| lambda_file     | required      | path to seeding file | |
+| perturbation_sd | required      | standard deviation for the proposal value of the seeding date, in number of days | |
+
+The method for determining the proposal distribution for the seeding amount is hard-coded in the inference package (`R/pkgs/inference/R/functions/perturb_seeding.R`). It is pertubed with a normal distribution where the mean of the distribution 10 times the number of confirmed cases on a given date and the standard deviation is 1.
+
+# Modifications to `interventions`
+
+The model can perform inference on the effectiveness of interventions as long as there is at least some calibration health outcome data that overlaps with the intervention period. For example, if calibrating to deaths, there should be data from time points where it would be possible to observe deaths from infections that occurred during the intervention period (e.g., assuming 10-18 day delay between infection and death, on average). 
+
+An example configuration file where inference is performed on scenario planning interventions is as follows:
+
+```
+interventions:
+  scenarios:
+    - Scenario1
+  settings:
+    local_variance:
+      template: ReduceR0
+      value:
+        distribution: truncnorm
+        mean: 0
+        sd: .1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: .1
+        a: -1
+        b: 1
+    stayhome:
+      template: ReduceR0
+      period_start_date: 2020-04-04
+      period_end_date: 2020-04-30
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: .1
+        a: -1
+        b: 1
+    Scenario1:
+      template: Stacked
+      scenarios: 
+        - local_variance
+        - stayhome
+```
+
+## `interventions::settings::[setting_name]`
+
+This configuration allows us to infer geoid-level baseline R0 estimates by adding a `local_variance` intervention. The baseline geoid-specific R0 estimate may be calculated as $$R0*(1-local_variance),$$ where R0 is the baseline simulation R0 value, and local_variance is an estimated geoid-specific value.
+
+Interventions may be specified in the same way as before, or with an added `perturbation` section that indicates that inference should be performed on a given intervention's effectiveness. As previously, interventions with perturbations may be specified for all modeled locations or for explicit `affected_geoids.` In this setup, both the prior distribution and the range of the support of the final inferred value are specified by the `value` section. In the configuration above, the inference algorithm will search 0 to 0.9 for all geoids to estimate the effectiveness of the `stayhome` intervention period. The prior distribution on intervention effectiveness follows a truncated normal distribution with a mean of 0.6 and a standard deviation of 0.3. The `perturbation` section specifies the perturbation/step size between the previously-accepted values and the next proposal value.
+
+| Item              | Required?             | Type/Format                                     | 
+|-------------------|-----------------------|-------------------------------------------------|
+| template          | **required**          | "ReduceR0" or "Stacked"                         |
+| period_start_date | optional for ReduceR0 | date between global `start_date` and `end_date`; default is global `start_date` |
+| period_end_date   | optional for ReduceR0 | date between global `start_date` and `end_date`; default is global `end_date`  |
+| value             | required for ReduceR0 | specifies both the prior distribution and range of support for the final inferred values |
+| perturbation      | optional for ReduceR0 | this option indicates whether inference will be performed on this setting and how the proposal value will be identified from the last accepted value |
+| affected_geoids   | optional for ReduceR0 | list of geoids, which must be in geodata        |
+
+
+# New `filtering` section
+
+This section configures the settings for the inference algorithm. The below example shows the settings for some typical default settings, where the model is calibrated to the weekly incident deaths and weekly incident confirmed cases for each geoid.
+
+```
+filtering:
+  simulations_per_slot: 350
+  do_filtering: TRUE
+  data_path: data/observed_data.csv
+  likelihood_directory: importation/likelihood/
+  statistics:
+    sum_deaths:
+      name: sum_deaths
+      aggregator: sum ## function applied over the period
+      period: "1 weeks"
+      sim_var: incidD
+      data_var: death_incid
+      remove_na: TRUE
+      add_one: FALSE
+      likelihood:
+        dist: sqrtnorm
+        param: [.1]
+    sum_confirmed:
+      name: sum_confirmed
+      aggregator: sum
+      period: "1 weeks"
+      sim_var: incidC
+      data_var: confirmed_incid
+      remove_na: TRUE
+      add_one: FALSE
+      likelihood:
+        dist: sqrtnorm
+        param: [.2]
+```
+
+## `filtering` settings
+
+With inference model runs, the number of simulations `nsimulations` refers to the number of final model simulations that will be produced. The `filtering$simulations_per_slot` setting refers to the number of iterative simulations that will be run in order to produce a single final simulation (i.e., number of simulations in a single MCMC chain).
+
+
+| Item              | Required?             | Type/Format                                     | 
+|-------------------|-----------------------|-------------------------------------------------|
+| simulations_per_slot  | **required**    | number of iterations in a single MCMC inference chain |
+| do_filtering          | required        | TRUE if inference should be performed |
+| data_path             | required        | file path where observed data are saved  |
+| likelihood_directory  | required        | folder path where likelihood evaluations will be stored as the inference algorithm runs |
+| statistics            | required        | specifies which data will be used to calibrate the model. see `filtering::statistics::[statistics settings]` for details |
+
+
+## `filtering::statistics::[statistics settings]`
+
+The statistics specified here are used to calibrate the model to empirical data. If multiple statistics are specified, this inference is performed jointly
+and they are weighted in the likelihood according to the number of data points and the variance of the proposal distribution.
+
+
+| Item              | Required?             | Type/Format                                     | 
+|-------------------|-----------------------|-------------------------------------------------|
+| name        | **required**    | name of statistic, user defined |
+| aggregator  | required        | function used to aggregate data over the `period`, usually sum or mean |
+| period      | required        | duration over which data should be aggregated prior to use in the likelihood, may be specified in any number of `days`, `weeks`, `months` |
+| sim_var     | required        | column name where model data can be found, from the hospitalization outcomes files |
+| data_var    | required        | column where data can be found in data_path file |
+| remove_na   | required        | logical |
+| add_one     | required        | logical, TRUE if evaluating the log likelihood|
+| likelihood::dist  | required        | distribution of the likelihood |
+| likelihood::param | required        | parameter value(s) for the likelihood distribution. These differ by distribution so check the code in `inference/R/functions.R/logLikStat` function. |
+
