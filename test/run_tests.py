@@ -73,3 +73,9 @@ def test_report():
 
 def test_hosp_age_adjust():
     _success("test_hosp_age_adjust")
+
+def test_hospitalization_branching():
+    _success("test_hospitalization_branching")
+
+    assert_dir("hospitalization")
+    assert_dir("model_output")
