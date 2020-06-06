@@ -142,7 +142,7 @@ def seeding_draw(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
     y0 = np.zeros((ncomp, s.nnodes))
     y0[S, :] = s.popnodes
-    
+
     method = s.seeding_config["method"].as_str()
     if (method == 'NegativeBinomialDistributed'):
         seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
@@ -179,7 +179,7 @@ def seeding_draw(s, sim_id):
     elif (method == 'FolderDraw'):
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         folder_path = s.seeding_config["folder_path"].as_str()
-        seeding = pd.read_csv(f'{folder_path}importation_{sim_id_str}.csv',
+        seeding = pd.read_csv(f'{folder_path}{sim_id_str}.impa.csv',
                               converters={'place': lambda x: str(x)},
                               parse_dates=['date'])
         for  _, row in seeding.iterrows():
@@ -207,10 +207,10 @@ def seeding_draw(s, sim_id):
                 y0[S, pl_idx] = s.popnodes[pl_idx]
             else:
                 raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-            
+
     else:
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
-    
+
 
     return y0, importation
 
@@ -223,7 +223,7 @@ def seeding_load(s, sim_id):
     if (method == 'FolderDraw'):
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         folder_path = s.seeding_config["folder_path"].as_str()
-        seeding = pd.read_csv(f'{folder_path}importation_{sim_id_str}.csv',
+        seeding = pd.read_csv(f'{folder_path}{sim_id_str}.impa.csv',
                               converters={'place': lambda x: str(x)},
                               parse_dates=['date'])
         for  _, row in seeding.iterrows():
@@ -343,17 +343,17 @@ def parameters_load(fname, extension, nt_inter, nnodes):
         pars = pq.read_table(f"{fname}.{extension}").to_pandas()
     else:
         raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
-        
+
     alpha = float(pars[pars['parameter'] == 'alpha'].value)
     sigma = float(pars[pars['parameter'] == 'sigma'].value)
     gamma = float(pars[pars['parameter'] == 'gamma'].value) * n_Icomp
     beta =  float(pars[pars['parameter'] == 'R0'].value) * gamma / n_Icomp
-    
+
     alpha = np.full((nt_inter, nnodes), alpha)
     sigma = np.full((nt_inter, nnodes), sigma)
     gamma = np.full((nt_inter, nnodes), gamma)
     beta =  np.full((nt_inter, nnodes), beta)
-    
+
     return (alpha, beta, sigma, gamma)
 
 

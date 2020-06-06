@@ -1,10 +1,6 @@
-# This workflow will build and push a new container image to Amazon ECR
-# The following information will need to be included in your Github secrets:
-# - AWS_ACCESS_KEY_ID: dedicated user AWS key ID
-# - AWS_SECRET_ACCESS_KEY: dedicated user AWS access key
-# - AWS_REGION: your AWS region, ex: us-east-1, us-west-2...
-# - ECR_REPOSITORY_NAME: name of the ECR repository, ex: myrepo
-
+# This workflow will build and push a new container image to Amazon ECR The following information will need to be included in your Github secrets: - AWS_ACCESS_KEY_ID: dedicated 
+# user AWS key ID - AWS_SECRET_ACCESS_KEY: dedicated user AWS access key - AWS_REGION: your AWS region, ex: us-east-1, us-west-2... - ECR_REPOSITORY_NAME: name of the ECR 
+# repository, ex: myrepo
 on:
   push:
     branches:
@@ -13,52 +9,39 @@ on:
       - dataseed
     paths:
       - 'requirements.txt'
+      - 'packages.R'
       - 'local_install.R'
       - 'Dockerfile'
-      - 'R/pkgs/**'
-      - '.Rprofile'
-      - 'packrat/**'
-
-name: Deploy to Amazon ECR
-
-jobs:
+      - 'R/pkgs/**' name: Deploy to Amazon ECR APL jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
-
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_APL }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_APL }}
+        aws-region: ${{ secrets.AWS_REGION_APL }}
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
+        ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME_APL }}
         IMAGE_TAG_SHA: ${{ github.sha }}
         IMAGE_TAG_RUN: ${{ github.run_number }}
         IMAGE_TAG_REF: ${{ github.ref }}
       run: |
-        # Build a docker container and
-        # push it to ECR so that it can
-        # be deployed to ECS.
+        # Build a docker container and push it to ECR so that it can be deployed to ECS.
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA .
-
         # Add new tags
         docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:$(git log -1 --pretty=%h)
         docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:${IMAGE_TAG_REF##*/}-r$IMAGE_TAG_RUN
-
         if [[ $IMAGE_TAG_REF == *master* ]]; then
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_SHA $ECR_REGISTRY/$ECR_REPOSITORY:latest-master
@@ -70,10 +53,8 @@ jobs:
           echo "Error, branch not recognized"
           exit 1
         fi
-
         docker push $ECR_REGISTRY/$ECR_REPOSITORY
         echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY"
-
     - name: Logout of Amazon ECR
       if: always()
       run: docker logout ${{ steps.login-ecr.outputs.registry }}

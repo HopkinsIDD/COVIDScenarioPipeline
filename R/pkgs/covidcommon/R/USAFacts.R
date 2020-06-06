@@ -182,6 +182,7 @@ fix_negative_counts <- function(
 ##' Pull case and death count data from USAFacts
 ##'
 ##' Pulls the USAFacts cumulative case count and death data. Calculates incident counts.
+##' USAFacts does not include data for all the territories (aka island areas). These data are pulled from NYTimes.
 ##'
 ##' Returned data preview:
 ##' tibble [352,466 × 7] (S3: grouped_df/tbl_df/tbl/data.frame)
