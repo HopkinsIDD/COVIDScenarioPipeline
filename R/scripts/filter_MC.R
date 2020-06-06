@@ -303,7 +303,7 @@ for(scenario in scenarios) {
       current_likelihood_data <- initial_likelihood_data
 
     for( index in seq_len(opt$simulations_per_slot)) {
-      print(index)
+      print(paste("Running simulation", index))
       # Load sims -----------------------------------------------------------
 
       current_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
@@ -437,9 +437,7 @@ for(scenario in scenarios) {
       likelihood_filename <- paste0(config$filtering$likelihood_directory,"/",sprintf("%09d",this_index),".chim.parquet")
       arrow::write_parquet(initial_likelihood_data, likelihood_filename)
 
-      print(paste("Current index is ",current_index))
-      # print(current_likelihood_data)
-      # print(initial_likelihood_data)
+      print(paste("Current index is",current_index))
       rm(current_npis)
       rm(current_seeding)
     }
