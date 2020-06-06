@@ -10,7 +10,7 @@ get_ground_truth_file <- function(data_path, cache = TRUE) {
     suppressWarnings(dir.create(data_dir,recursive=TRUE))
   }
   if(!(file.exists(data_path) & cache)){
-    message("*** Loading Data from USA facts\n")
+    message("*** Loading Data from USAFacts\n")
     cases_deaths <- suppressMessages(covidcommon::get_USAFacts_data(tempfile(),tempfile()))
     cases_deaths  <- dplyr::arrange(
       dplyr::rename(
