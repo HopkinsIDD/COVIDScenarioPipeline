@@ -117,12 +117,14 @@ hospitalization_target_name <- function(simulation,scenario,deathrate, prefix = 
 hospitalization_make_command <- function(simulation,scenario,deathrate, prefix = '', method = hospitalization_method){
   target_name <- hospitalization_target_name(simulation,scenario,deathrate, prefix = prefix)
   dependency_name <- simulation_target_name(simulation,scenario, prefix = prefix)
-  if(method == 'adj_adjusted'){
+  if(method == 'age_adjusted'){
     command_name <- paste("$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s",scenario,
                             "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) -p $(PIPELINE)")
-  } else {
+  } else if(method == 'branching_age_adjusted') {
     command_name <- paste("$(PYTHON) $(PIPELINE)/Outcomes/simulate.py -s", scenario,
                             "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG)")
+  } else {
+    stop(paste("method",method,"note recognized"))
   }
   touch_name <- paste0("touch ",target_name)
   return(paste0(
