@@ -174,22 +174,22 @@ Hash: 6cc063b236e3bbc174a73959145488ef
 
 Package: covidImportation
 Source: github
-Version: 1.5
-Hash: 454a6a8c1e516fda25fc3a682a6a4f86
+Version: 1.7
+Hash: aea7a82752e3bb6e16b660971684dd80
 Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
     dplyr, fitdistrplus, geosphere, ggplot2, ggvoronoi,
     globaltoolboxlite, gpclib, httr, igraph, lubridate, magrittr,
-    maptools, purrr, raster, readr, reshape2, rgdal, rlist, sf, tibble,
-    tidycensus, tidyr, truncnorm
+    maptools, nnls, purrr, raster, readr, reshape2, rgdal, rlist, sf,
+    splines2, tibble, tidycensus, tidyr, truncnorm
 GithubRepo: covidImportation
 GithubUsername: HopkinsIDD
-GithubRef: v1.6
-GithubSha1: dc032809bbfe4e1a6b8f850da0c0f9336fcb8f3c
+GithubRef: v1.7
+GithubSha1: 8552fe5040a2a9f3a72ddab455eec9fc3edc775b
 RemoteHost: api.github.com
 RemoteRepo: covidImportation
 RemoteUsername: HopkinsIDD
-RemoteRef: v1.6
-RemoteSha: dc032809bbfe4e1a6b8f850da0c0f9336fcb8f3c
+RemoteRef: v1.7
+RemoteSha: 8552fe5040a2a9f3a72ddab455eec9fc3edc775b
 
 Package: covidcommon
 Source: source

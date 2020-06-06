@@ -89,7 +89,7 @@ ENV HOME /home/app
 # R
 #####
 
-# TODO: use packrat (or something else) for R package management
+# Use packrat for R package management
 RUN Rscript -e "install.packages('packrat',repos='https://cloud.r-project.org/')" \
     && Rscript -e "install.packages('arrow',repos='https://cloud.r-project.org/')" \
     && Rscript -e 'arrow::install_arrow()'
