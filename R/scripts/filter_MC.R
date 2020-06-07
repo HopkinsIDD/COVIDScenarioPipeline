@@ -128,8 +128,8 @@ for(scenario in scenarios) {
     reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
       # Data -------------------------------------------------------------------------
       # Load
-    first_param_file <- covidcommon::parameter_file_path(config,opt$this_slot, scenario)
-    first_npi_file <- covidcommon::npi_file_path(config,opt$this_slot, scenario)
+    first_param_file <- covidcommon::spar_file_path(config,opt$this_slot, scenario)
+    first_npi_file <- covidcommon::snpi_file_path(config,opt$this_slot, scenario)
     first_hosp_file <- covidcommon::hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
     first_hpar_file <- covidcommon::hpar_file_path(config,opt$this_slot, scenario, deathrate)
     first_seeding_file <- covidcommon::seeding_file_path(config,opt$this_slot)
@@ -172,8 +172,8 @@ for(scenario in scenarios) {
     # flock::unlock(lock)
 
     if(!file.exists(first_hpar_file)){
-      print(sprintf("Creating hospitalization parameters (%s) from config specified file %s",first_hpar_file,config$hospitalization$paths$geoid_params_file))
-      file.copy(config$hospitalization$paths$geoid_params_file,first_hpar_file)
+      print(sprintf("Creating hospitalization parameters (%s) from config specified file %s",first_hpar_file,config$outcomes$param_place_file))
+      file.copy(config$outcomes$param_place_file,first_hpar_file)
     }
     initial_hpar <- arrow::read_parquet(first_hpar_file)
     if(!file.exists(first_hosp_file)){
@@ -309,7 +309,7 @@ for(scenario in scenarios) {
       current_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
       current_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
       current_spar <- initial_spar
-      current_hpar <- inference::perturb_hpar(initial_hpar, config$hospitalization)
+      current_hpar <- inference::perturb_hpar(initial_hpar, config$outcomes)
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
       write.csv(
         current_seeding,
