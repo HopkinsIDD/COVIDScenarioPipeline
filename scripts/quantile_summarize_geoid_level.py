@@ -43,7 +43,7 @@ def process(config_file, scenarios, output, start_date, end_date, name_filter):
     config = confuse.Configuration("COVIDScenarioPipeline")
     config.set_file(config_file)
 
-    input_paths = (f"{config['spatial_setup']['setup_name'].get()}_{scenario}" for scenario in scenarios)
+    input_paths = (f"{config['name'].get()}_{scenario}" for scenario in scenarios)
     paths = itertools.chain(*(pathlib.Path("hospitalization/model_output").glob(p + "/**/*.parquet")
                             for p in input_paths))
     paths = (str(p) for p in paths if p.is_file())
@@ -62,10 +62,17 @@ def process(config_file, scenarios, output, start_date, end_date, name_filter):
     df = df.withColumn("cum_death", F.sum(df.death).over(
         Window.partitionBy(df.geoid).orderBy(df.time, df.uid)))
 
+    metrics = METRICS
+    if 'incidC' in df.columns:
+        df = df.withColumnRenamed("incidC", "confirmed") \
+               .withColumn("cum_confirmed", F.sum(df.confirmed).over(
+                  Window.partitionBy(df.geoid).orderBy(df.time, df.uid)))
+        metrics += ["confirmed", "cum_confirmed"]
+
     # construct gnarly spark sql statement to compute quantiles via percentile_approx()
     df.registerTempTable("df")
     metric_probs = [(metric, prob, f"{metric}__{str(round(prob, 3)).replace('.', '_')}")
-                    for metric, prob in itertools.product(METRICS, PROBS)]
+                    for metric, prob in itertools.product(metrics, PROBS)]
     agg_sql = ", ".join(f"percentile_approx({metric}, {prob}, 100) AS {name}"
                         for metric, prob, name in metric_probs)
     rollup_df = sqlContext.sql(f"""\

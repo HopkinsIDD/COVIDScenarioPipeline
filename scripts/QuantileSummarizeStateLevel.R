@@ -14,14 +14,15 @@ option_list <- list(
     make_option(c("-d", "--name_filter"), type="character", default="", help="filename filter, usually deaths"),
     make_option(c("-o","--outfile"), type="character", default=NULL, help="file to save output"),
     make_option("--start_date", type="character", default=NULL, help="earliest date to include"),
-    make_option("--end_date",  type="character", default=NULL, help="latest date to include")
+    make_option("--end_date",  type="character", default=NULL, help="latest date to include"),
+    make_option(c("--geodata"), type="character", default=NULL, help="location of geodata"),
+    make_option(c("--week","-w"), action="store_true", default=FALSE, help="Aggregate to epi week")
 )
 
 opt_parser <- OptionParser(option_list = option_list, usage="%prog [options] [one or more scenarios]")
-
-## Paerse the
 arguments <- parse_args(opt_parser, positional_arguments=c(1,Inf))
 opt <- arguments$options
+
 scenarios <- arguments$args
 
 if(is.null(opt$outfile)) {
@@ -29,16 +30,35 @@ if(is.null(opt$outfile)) {
 }
 
 config <- covidcommon::load_config(opt$c)
-if (length(config) == 0) {
-  stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
+
+if(length(scenarios) == 0) {
+  setup_name <- config$spatial_setup$setup_name
+  scenarios <- config$interventions$scenarios %>% lapply(function(x) { paste0(setup_name,"_",x)}) %>% unlist()
+}
+
+if(opt$num_simulations == -1) {
+  opt$num_simulations <- config$nsimulations
+}
+
+if(opt$name_filter == "") {
+  warning("name_filter is empty. Did you mean to filter by death rate?")
+}
+
+if(is.null(opt$geodata)) {
+  if(length(config) > 0) {
+    opt$geodata <- file.path(config$spatial_setup$base_path, config$spatial_setup$geodata)
+  } else {
+    opt$geodata <- "data/geodata.csv"
+  }
 }
 
 ##Load the geodata file
-suppressMessages(geodata <- readr::read_csv(paste0(config$spatial_setup$base_path,"/",config$spatial_setup$geodata)))
+suppressMessages(geodata <- readr::read_csv(opt$geodata))
 geodata <- geodata %>% mutate(geoid=as.character(geoid))
 
 ## Register the parallel backend
-doParallel::registerDoParallel(opt$jobs)
+cl <- parallel::makeCluster(opt$jobs)
+doParallel::registerDoParallel(cl)
 
 
 ##Convert times to date objects
@@ -54,35 +74,78 @@ opt$end_date <- as.Date(opt$end_date)
 
 
 ##Per file filtering code
-post_proc <- function(x,geodata,opt) {
+if (!opt$week) {
+    post_proc <- function(x,geodata,opt) {
 
+        if (!("incidC" %in% names(x))) {
+          x$incidC <- as.numeric(NA)
+        }
+        x%>%
+            group_by(geoid) %>%
+            mutate(cum_infections=cumsum(incidI)) %>%
+            mutate(cum_death=cumsum(incidD)) %>%
+            mutate(cum_confirmed=cumsum(incidC)) %>%
+            ungroup()%>%
+            filter(time>=opt$start_date& time<=opt$end_date) %>%
+            inner_join(geodata%>%select(geoid, USPS)) %>%
+            group_by(USPS, time) %>%
+            summarize(hosp_curr=sum(hosp_curr),
+                      cum_death=sum(cum_death),
+                      death=sum(incidD),
+                      hosp=sum(incidH),
+                      infections=sum(incidI),
+                      confirmed=sum(incidC),
+                      cum_confirmed = sum(cum_confirmed),
+                      cum_infections=sum(cum_infections)) %>%
+            ungroup()
+    }
+} else {
+    post_proc <- function(x,geodata,opt) {
 
-  x%>%
-    group_by(geoid) %>%
-      mutate(cum_infections=cumsum(incidI)) %>%
-      mutate(cum_death=cumsum(incidD)) %>%
-      ungroup()%>%
-      filter(time>=opt$start_date& time<=opt$end_date) %>%
-      inner_join(geodata%>%select(geoid, USPS)) %>%
-      group_by(USPS, time) %>%
-      summarize(hosp_curr=sum(hosp_curr),
-                cum_death=sum(cum_death),
-                death=sum(incidD),
-                hosp=sum(incidH),
-                infections=sum(incidI),
-                cum_infections=sum(cum_infections)) %>%
-      ungroup()
+        if (!("incidC" %in% names(x))) {
+          x$incidC <- as.numeric(NA)
+        }
+        x%>%
+            group_by(geoid) %>%
+            mutate(cum_infections=cumsum(incidI)) %>%
+            mutate(cum_death=cumsum(incidD)) %>%
+            mutate(cum_confirmed=cumsum(incidC)) %>%
+            ungroup()%>%
+            filter(time>=opt$start_date& time<=opt$end_date) %>%
+            inner_join(geodata%>%select(geoid, USPS)) %>%
+            group_by(USPS, time) %>%
+            summarize(hosp_curr=sum(hosp_curr),
+                      cum_death=sum(cum_death),
+                      death=sum(incidD),
+                      hosp=sum(incidH),
+                      infections=sum(incidI),
+                      confirmed=sum(incidC),
+                      cum_confirmed = sum(cum_confirmed),
+                      cum_infections=sum(cum_infections)) %>%
+            ungroup()%>%
+            mutate(week=lubridate::epiweek(time))%>%
+            group_by(USPS, week)%>%
+            summarize(hosp_curr=mean(hosp_curr),
+                      cum_death=max(cum_death),
+                      hosp=sum(hosp),
+                      death=sum(death),
+                      infections=sum(infections),
+                      cum_infections=max(cum_infections),
+                      confirmed=sum(confirmed),
+                      cum_confirmed=max(cum_confirmed),
+                      time = max(time))%>%
+            ungroup()
+    }    
 }
 
 ##Run over scenarios and death rates as appropriate. Note that
 ##Final results will average accross whatever is included
 res_state <-list()
-setup_name <- config$spatial_setup$setup_name
 for (i in 1:length(scenarios)) {
-    scenario_dir = paste0(setup_name,"_",scenarios[i])
+    scenario_dir = scenarios[i]
     res_state[[i]] <- report.generation::load_hosp_sims_filtered(scenario_dir,
                                                                  name_filter = opt$name_filter,
-                                                                 ifelse(opt$num_simulations > 0, opt$num_simulations, config$nsimulations),
+                                                                 num_files = opt$num_simulations,
                                                                  post_process = post_proc,
                                                                  geodata=geodata,
                                                                  opt=opt)%>%
@@ -95,15 +158,17 @@ for (i in 1:length(scenarios)) {
 res_state<-dplyr::bind_rows(res_state)
 
 ##deregister backend
-doParallel::stopImplicitCluster()
+parallel::stopCluster(cl)
+
 
 
 ## Extract quantiles
 tmp_col <- function(x, col) {
     x%>%
         group_by(time,USPS) %>%
-        summarize(x=list(enframe(quantile(!!sym(col), probs=c(0.01, 0.025,
-                                                              seq(0.05, 0.95, by = 0.05), 0.975, 0.99)),
+        summarize(x=list(enframe(c(quantile(!!sym(col), probs=c(0.01, 0.025,
+                                                                seq(0.05, 0.95, by = 0.05), 0.975, 0.99)),
+                                   mean(!!sym(col))),
                                  "quantile",col))) %>%
         unnest(x)
 
@@ -116,6 +181,12 @@ to_save_st <- inner_join(tmp_col(res_state,"hosp_curr"),
     inner_join(tmp_col(res_state,"infections"))%>%
     inner_join(tmp_col(res_state,"cum_infections"))%>%
     inner_join(tmp_col(res_state,"hosp"))
+
+if(!(any(is.na(res_state$confirmed)))) {
+    to_save_st <- to_save_st %>%
+    inner_join(tmp_col(res_state,"confirmed"))%>%
+    inner_join(tmp_col(res_state,"cum_confirmed"))
+}
 
 
 write_csv(to_save_st, path=opt$outfile)
