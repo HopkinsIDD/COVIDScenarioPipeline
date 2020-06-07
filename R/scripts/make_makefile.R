@@ -27,7 +27,14 @@ if(isTRUE(config$this_file_is_unedited)){
 
 simulations = config$nsimulations
 scenarios = config$interventions$scenarios
-deathrates = config$hospitalization$parameters$p_death_names
+hospitalization_method <- "error"
+if('hospitalization' %in% names(config)){
+  deathrates = config$hospitalization$parameters$p_death_names
+  hospitalization_method <- 'age_adjusted'
+} else if('outcomes' %in% names(config)) {
+  deathrates <- config$outcomes$scenarios
+  hospitalization_method <- "branching_age_adjusted"
+}
 
 cat(simulations)
 cat("\n")
@@ -107,11 +114,18 @@ hospitalization_target_name <- function(simulation,scenario,deathrate, prefix = 
   paste0(".files/",prefix,simulation,"_hospitalization_",scenario,"_",deathrate)
 }
 
-hospitalization_make_command <- function(simulation,scenario,deathrate, prefix = ''){
+hospitalization_make_command <- function(simulation,scenario,deathrate, prefix = '', method = hospitalization_method){
   target_name <- hospitalization_target_name(simulation,scenario,deathrate, prefix = prefix)
   dependency_name <- simulation_target_name(simulation,scenario, prefix = prefix)
-  command_name <- paste("$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s",scenario,
-                          "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) -p $(PIPELINE)")
+  if(method == 'age_adjusted'){
+    command_name <- paste("$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s",scenario,
+                            "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) -p $(PIPELINE)")
+  } else if(method == 'branching_age_adjusted') {
+    command_name <- paste("$(PYTHON) $(PIPELINE)/Outcomes/simulate.py -s", scenario,
+                            "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG)")
+  } else {
+    stop(paste("method",method,"note recognized"))
+  }
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files/directory_exists ",
