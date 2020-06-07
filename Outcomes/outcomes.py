@@ -32,8 +32,11 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
 
         # Load the actual csv file
         branching_file = config["outcomes"]["param_place_file"].as_str()
-        branching_data = pd.read_csv(branching_file, converters={"geoid": str})
+        branching_data = pa.parquet.read_table(branching_file,).to_pandas()
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
+        branching_data["colname"] = "R" + branching_data["outcome"] + "|" + branching_data["source"]
+        branching_data = branching_data[["geoid","colname","value"]]
+        branching_data = pd.pivot(branching_data, index="geoid",columns="colname",values="value")
         if (branching_data.shape[0] != diffI.drop('time', axis=1).columns.shape[0]):
             raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
 
