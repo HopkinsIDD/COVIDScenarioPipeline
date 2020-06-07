@@ -14,6 +14,7 @@
 ##' @param hierarchical_states the hierarchical stats to use
 ##' @param geodata the geographics data to help with hierarchies
 ##' @param snpi the file with the npi information
+##' @param hpar data frame of hospitalization parameters
 ##' 
 ##' @return a data frame of likelihood data.
 ##'
@@ -28,7 +29,8 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
                                                hosp_file,
                                                hierarchical_stats,
                                                geodata,
-                                               snpi) {
+                                               snpi=NULL,
+                                               hpar=NULL) {
 
     ##Holds the likelihoods for all locations
     likelihood_data <- list()
@@ -50,10 +52,13 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
                                     stat_list = config$filtering$statistics
                                 )
         
+
+  
         
         ## Get observation statistics
         log_likelihood <- list()
-        for(var in names(data_stats[[location]])) {           
+        for(var in names(data_stats[[location]])) {
+          
             log_likelihood[[var]] <- inference::logLikStat(
                                                     obs = data_stats[[location]][[var]]$data_var,
                                                     sim = sim_stats[[var]]$sim_var,
@@ -77,7 +82,7 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
     
     ##Update  liklihood data
     for (stat in names(hierarchical_stats)) {
-        print(hierarchical_stats[[stat]])
+        
         if (hierarchical_stats[[stat]]$module=="seir") {
             ll_adjs <- inference::calc_hierarchical_likadj(stat=hierarchical_stats[[stat]]$name,
                                                            infer_frame = snpi,
@@ -86,8 +91,19 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
                                                            transform = hierarchical_stats[[stat]]$transform
                                                            )
             
+        } else  if (hierarchical_stats[[stat]]$module=="hospitalization") {
+
+            ll_adjs <- inference::calc_hierarchical_likadj(stat=hierarchical_stats[[stat]]$name,
+                                                           infer_frame = hpar,
+                                                           geodata = geodata,
+                                                           geo_group_column = hierarchical_stats[[stat]]$geo_group_col,
+                                                           transform = hierarchical_stats[[stat]]$transform,
+                                                           stat_col = "value",
+                                                           stat_name_col="parameter"
+                                                           )
+            
         } else {
-            stop("hospitalization TBI")
+            stop("unsupported hierarchical stat")
         }
             
         ##probably a more efficient what to do this, but unclear...

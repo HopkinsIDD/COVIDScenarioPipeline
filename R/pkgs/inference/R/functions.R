@@ -134,8 +134,12 @@ calc_hierarchical_likadj <- function (stat,
 
     require(dplyr)
 
-    if (transform!="none") {
-        stop("transforms not yet supported")
+    if (transform == "logit") {
+        infer_frame <- infer_frame  %>%
+            #mutate(value = value)
+            mutate(!!sym(stat_col) := qlogis(!!sym(stat_col)))
+    } else if (transform!="none") {
+        stop("specified transform not yet supported")
     }
 
     rc <- infer_frame%>%
@@ -156,7 +160,7 @@ calc_hierarchical_likadj <- function (stat,
 ##'
 ##' Function to calcualte the likelihood adjustment based on a prior
 ##'
-##' @param params the parameters the claculate the likelihood adjust for
+##' @param params the parameter values to calculate the likelihood adjust for
 ##' @param dist the distribution to use
 ##' @param dist_pars the parameters of the distribution
 ##'

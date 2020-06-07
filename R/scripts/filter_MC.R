@@ -349,7 +349,8 @@ for(scenario in scenarios) {
                                                                           first_hosp_file,
                                                                           hierarchical_stats,
                                                                           geodata,
-                                                                          initial_snpi)
+                                                                          initial_snpi,
+                                                                          initial_hpar)
       
       
       if(!file.exists(first_likelihood_file)){
@@ -493,7 +494,8 @@ for(scenario in scenarios) {
                                                                          file,
                                                                          hierarchical_stats,
                                                                          geodata,
-                                                                         current_snpi)
+                                                                         current_snpi,
+                                                                         current_hpar)
                                       
       
       rm(sim_hosp)
