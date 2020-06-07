@@ -188,13 +188,24 @@ perturb_snpi <- function(snpi, intervention_settings) {
 perturb_hpar <- function(hpar, intervention_settings) {
     ##Loop over all interventions
 
-    interventions <- c('p_confirmed_inf')
+    for(intervention in names(intervention_settings)){
+      for(quantity in names(intervention_settings[[intervention]])){
+        if('perturbation' %in% names(intervention_settings[[intervention]][[quantity]])){
+          intervention_quantity <- intervention_settings[[intervention]][[quantity]]
+          ## get the random distribution from covidcommon package
+          pert_dist <- covidcommon::as_random_distribution(intervention_quantity[['perturbation']])
 
-    for(intervention in interventions){
-      hpar[hpar$parameter == intervention,]$value <-
-        hpar[hpar$parameter == intervention,]$value +
-        rnorm(sum(hpar$parameter == intervention),0,.01)
-      hpar[hpar$parameter == intervention,]$value <- pmax(pmin(hpar$value[hpar$parameter == intervention],1),0)
+          ##get the hpar values for this distribution
+          ind <- (hpar[["outcome"]] == intervention) & (hpar[["quantity"]] == quantity) # & (hpar[['source']] == intervention_settings[[intervention]][['source']])
+
+          ## add the perturbation...
+          hpar_new <- hpar[["value"]][ind] + pert_dist(sum(ind))
+
+          ## Check that this is in the support of the original distribution
+          in_bounds_index <- covidcommon::as_density_distribution(intervention_quantity[['value']])(hpar_new) > 0
+          hpar$value[ind][in_bounds_index] <- hpar_new[in_bounds_index]
+        }
+      }
     }
 
     return(hpar)
