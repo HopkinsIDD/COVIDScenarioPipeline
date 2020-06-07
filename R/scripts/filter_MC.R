@@ -77,8 +77,8 @@ if(!dir.exists(data_dir)){
 ##If death rates are specified check their existence
 deathrates <- opt$deathrates
 if(all(deathrates == "all")) {
-  deathrates<- config$hospitalization$parameters$p_death_names
-} else if (!(deathrates %in% config$hospitalization$parameters$p_death_names)) {
+  deathrates<- config$outcomes$scenarios
+} else if (!(deathrates %in% config$outcomes$scenarios)) {
   message(paste("Invalid death rate argument:", deathrate, "did not match any of the named args in", paste( p_death, collapse = ", "), "\n"))
   quit("yes", status=1)
 }
@@ -114,17 +114,22 @@ data_stats <- lapply(
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 for(scenario in scenarios) {
 
-  ## One time setup for python
-  reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
-  reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
-  reticulate::import_from_path("SEIR", path=opt$pipepath)
-  reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
-
   for(deathrate in deathrates) {
     # Data -------------------------------------------------------------------------
     # Load
     first_spar_file <- covidcommon::spar_file_path(config,opt$this_slot, scenario)
     first_snpi_file <- covidcommon::snpi_file_path(config,opt$this_slot, scenario)
+    ## One time setup for python
+    reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
+    reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
+    reticulate::py_run_string(paste0("deathrate = '", deathrate, "'"))
+    reticulate::import_from_path("SEIR", path=opt$pipepath)
+    reticulate::import_from_path("Outcomes", path=opt$pipepath)
+    reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
+      # Data -------------------------------------------------------------------------
+      # Load
+    first_param_file <- covidcommon::parameter_file_path(config,opt$this_slot, scenario)
+    first_npi_file <- covidcommon::npi_file_path(config,opt$this_slot, scenario)
     first_hosp_file <- covidcommon::hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
     first_hpar_file <- covidcommon::hpar_file_path(config,opt$this_slot, scenario, deathrate)
     first_seeding_file <- covidcommon::seeding_file_path(config,opt$this_slot)
@@ -143,13 +148,13 @@ for(scenario in scenarios) {
             stop("Could not run seeding")
           }
       }
-      suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file, col_types = list(place = readr::col_character())))
+      suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file, col_types=readr::cols(place=readr::col_character())))
       write.csv(
         initial_seeding,
         file =first_seeding_file
       )
     }
-      suppressMessages(initial_seeding <- readr::read_csv(first_seeding_file, col_types = list(place = readr::col_character())))
+    suppressMessages(initial_seeding <- readr::read_csv(first_seeding_file, col_types=readr::cols(place=readr::col_character())))
     # flock::unlock(lock)
     initial_seeding$amount <- as.integer(round(initial_seeding$amount))
 
@@ -175,7 +180,7 @@ for(scenario in scenarios) {
       print(sprintf("Creating hospitalization (%s) from Scratch",first_hosp_file))
       ## Generate files
       this_index <- opt$this_slot
-      # lock <- flock::lock(paste(".lock",paste("SEIR",this_index,scenario,sep='.'),sep='/'))
+                                        # lock <- flock::lock(paste(".lock",paste("SEIR",this_index,scenario,sep='.'),sep='/'))
       err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
       err <- ifelse(err == 1,0,1)
       if(err != 0){
@@ -183,27 +188,21 @@ for(scenario in scenarios) {
       }
 
       ## Run hospitalization
-      err <- system(paste(
-        opt$rpath,
-        paste(opt$pipepath,"R","scripts","hosp_run.R", sep='/'),
-        "-j",opt$jobs,
-        "-c",opt$config,
-        "-p",opt$pipepath,
-        "-s",scenario,
-        "-d",deathrate,
-        "-n",1,
-        "-i",this_index,
-        "-g",first_hpar_file
-      ))
-      if(err != 0){
-        stop("Hospitalization failed to run")
+      err <- py$onerun_HOSP(this_index)
+      err <- ifelse(err == 1,0,1)
+      if(length(err) == 0){
+        stop("HOSP failed to run")
       }
+      if(err != 0){
+        stop("HOSP failed to run")
+      }
+
     }
 
     initial_sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",first_hosp_file))(first_hosp_file) %>%
-        filter(time >= min(obs$date), time <= max(obs$date)) %>%
-        select(-date_inds)
+        filter(time >= min(obs$date), time <= max(obs$date))
 
+      if(!(obs_nodename %in% names(initial_sim_hosp))){stop(paste("Missing column",obs_nodename,"from hospitalization output"))}
       lhs <- unique(initial_sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
@@ -217,7 +216,9 @@ for(scenario in scenarios) {
         initial_likelihood_data <- list()
         for(location in all_locations) {
 
-          local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
+          #local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
+          local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
+            dplyr::filter(time %in% unique(obs$date[obs$geoid == location]))
           initial_sim_stats <- inference::getStats(
             local_sim_hosp,
             "time",
@@ -302,7 +303,7 @@ for(scenario in scenarios) {
       current_likelihood_data <- initial_likelihood_data
 
     for( index in seq_len(opt$simulations_per_slot)) {
-      print(index)
+      print(paste("Running simulation", index))
       # Load sims -----------------------------------------------------------
 
       current_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
@@ -336,28 +337,19 @@ for(scenario in scenarios) {
         stop("SEIR failed to run")
       }
 
-      ## Run hospitalization
-      err <- system(paste(
-        opt$rpath,
-        paste(opt$pipepath,"R","scripts","hosp_run.R", sep='/'),
-        "-j",opt$jobs,
-        "-c",opt$config,
-        "-p",opt$pipepath,
-        "-s",scenario,
-        "-d",deathrate,
-        "-n",1,
-        "-i",this_index,
-        "-g",covidcommon::hpar_file_path(config,this_index,scenario,deathrate)
-      ))
+      err <- py$onerun_HOSP(this_index)
+      err <- ifelse(err == 1,0,1)
+      if(length(err) == 0){
+        stop("HOSP failed to run")
+      }
       if(err != 0){
-        stop("Hospitalization failed to run")
+        stop("HOSP failed to run")
       }
 
       file <- covidcommon::hospitalization_file_path(config,this_index,scenario,deathrate)
 
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",file))(file) %>%
-        filter(time <= max(obs$date)) %>%
-        select(-date_inds)
+        filter(time <= max(obs$date))
       # flock::unlock(lock)
 
       current_likelihood_data <- list()
@@ -374,7 +366,7 @@ for(scenario in scenarios) {
           local_sim_hosp,
           "time",
           "sim_var",
-          stat_list = config$filtering$statistics
+          stat_list=config$filtering$statistics
         )
 
 

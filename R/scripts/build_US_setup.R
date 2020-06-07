@@ -109,8 +109,7 @@ census_data <- census_data %>%
 if (!is.null(config$spatial_setup$popnodes)) {
   names(census_data)[names(census_data) == "population"] <- config$spatial_setup$popnodes
 }
-
-dir.create(dirname(outdir), showWarnings = FALSE, recursive = TRUE)
+dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 if (length(config$spatial_setup$geodata) > 0) {
   geodata_file <- config$spatial_setup$geodata
@@ -130,21 +129,6 @@ commute_data <- commute_data %>%
   summarize(FLOW = sum(FLOW)) %>%
   filter(OFIPS != DFIPS)
 
-padding_table <- tibble(
-  OFIPS = census_data$geoid,
-  DFIPS = census_data$geoid,
-  FLOW = 0
-)
-
-t_commute_table <- tibble(
-  OFIPS = commute_data$DFIPS,
-  DFIPS = commute_data$OFIPS,
-  FLOW = commute_data$FLOW
-)
-
-rc <- padding_table %>% bind_rows(commute_data) %>% bind_rows(t_commute_table)
-rc <- commute_data
-
 if(opt$w){
   mobility_file <- 'mobility.txt'
 } else if (length(config$spatial_setup$mobility) > 0) {
@@ -154,6 +138,15 @@ if(opt$w){
 }
 
 if(endsWith(mobility_file, '.txt')) {
+  # Pads 0's for every geoid and itself, so that nothing gets dropped on the pivot
+  padding_table <- tibble(
+    OFIPS = census_data$geoid,
+    DFIPS = census_data$geoid,
+    FLOW = 0
+  )
+
+  rc <- padding_table %>% bind_rows(commute_data)
+  rc <- rc %>% arrange(match(OFIPS, census_data$geoid), match(DFIPS, census_data$geoid))
   rc <- rc %>% pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
   if(!isTRUE(all(rc$OFIPS == census_data$geoid))){
     print(rc$OFIPS)
@@ -162,6 +155,7 @@ if(endsWith(mobility_file, '.txt')) {
   }
   write.table(file = file.path(outdir, mobility_file), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
 } else if(endsWith(mobility_file, '.csv')) {
+  rc <- commute_data
   names(rc) <- c("ori","dest","amount")
   rc <- rc[rc$ori != rc$dest,]
   write.csv(file = file.path(outdir, mobility_file), rc, row.names=FALSE)
