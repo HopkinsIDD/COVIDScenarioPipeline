@@ -107,9 +107,17 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
         } else {
             stop("unsupported hierarchical stat module")
         }
-            
+
+
+        
+        ##print(stat) 
+        ##print(ll_adjs)
+        ##print(range(ll_adjs$likadj))
+        ##print(ll_adjs%>%filter(is.na(likadj)))
+        
         ##probably a more efficient what to do this, but unclear...
         likelihood_data<- left_join(likelihood_data, ll_adjs) %>%
+            replace_na(list(likadj=0))%>% ##avoid unmatched location probles
             mutate(ll = ll + likadj) %>%
             select(-likadj)
             
@@ -140,6 +148,10 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
         } else {
             stop("unsupported prior module")
         }
+
+        ##print(prior) 
+        ##print(ll_adjs)
+        ##print(range(ll_adjs$likadj))
         
         ##probably a more efficient what to do this, but unclear...
         likelihood_data<- left_join(likelihood_data, ll_adjs) %>%

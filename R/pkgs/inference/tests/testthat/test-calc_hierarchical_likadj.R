@@ -195,3 +195,34 @@ test_that("transforms give the appropriate likelihoods", {
                                         transform="nonesense"))
     
 })
+
+
+test_that("sensible things are returned whern there is only 1 geoid in a location", {
+    
+    val<- runif(4,0,1)
+
+    ##makes data frame with stats
+    infer_frame <- tibble(geoid=c("01001", "06001", "06002","06003"),
+                              npi_name=rep("val1", 4),
+                              value=val)
+
+
+    ##make geodata dataframe
+    geodata <- tibble(geoid=c("01001","01002","01003",
+                                  "06001", "06002","06003"),
+                          USPS=rep(c("HI","CA"), each=3))
+
+
+    ##no trandform
+    adj <- calc_hierarchical_likadj("val1", infer_frame, geodata, "USPS",
+                                        stat_col="value",
+                                        transform="none")
+
+    
+    
+    ##print(adj)
+    
+    ##make sure that the one geoid thing is zero
+    expect_true(!is.na(adj$likadj[adj$geoid=="01001"]))
+    
+})
