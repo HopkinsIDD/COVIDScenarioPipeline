@@ -19,21 +19,28 @@ seir:
       value: 1 / 4
     R0s:
       distribution: fixed
-      value: 2.5
+      value: 3
 
 
 spatial_setup:
+  setup_name: test
   nodenames: geoid
+  base_path: COVIDScenarioPipeline/notebooks/data
+  geodata: geodata.csv
+  mobility: mobility.csv
+  popnodes: pop
   
 seeding: ## If removing the importation, comment out this seeding block
   method: FolderDraw
   # method: PoissonDistributed
-  folder_path: importation/minimal/
-  lambda_file: data/minimal/seeding.csv
+  folder_path: COVIDScenarioPipeline/notebooks/
+  lambda_file: data/seeding.csv
   perturbation_sd: 1
   
 interventions:
   scenarios:
+    - test
+  settings:
     local_variation:
       template: ReduceR0
       value:
@@ -48,7 +55,7 @@ interventions:
         sd: 0.1
         a: -.1
         b: .1
-    test:
+    npi:
       template: ReduceR0
       period_start_date: 2020-03-25
       value:
@@ -63,6 +70,9 @@ interventions:
         sd: 0.1
         a: -.1
         b: .1
+    test:
+      template: Stacked
+      scenarios: ["local_variation","npi"]
 
 hospitalization:
   paths:
@@ -85,7 +95,7 @@ hospitalization:
 
 
 filtering:
-  simulations_per_slot: 100
+  simulations_per_slot: 250 
   do_filtering: TRUE
   data_path: data/test_data.csv
   likelihood_directory: importation/likelihood/
