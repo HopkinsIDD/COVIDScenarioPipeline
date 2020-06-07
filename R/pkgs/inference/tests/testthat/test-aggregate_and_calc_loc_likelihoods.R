@@ -113,14 +113,14 @@ get_minimal_setup <- function () {
                    reduction = runif(6,-.5, .5))
 
     npi2A <- tibble(geoid = geoids[1:3],
-                    npi_name = "full_lockdown",
+                    npi_name = "full_lockdown_CA",
                     start_date = "2020-03-25",
                     end_date = "2020-06-01",
                     parameter = "r0",
                     reduction = runif(3,-.8, -.5))
 
     npi2B <- tibble(geoid = geoids[4:6],
-                    npi_name = "full_lockdown",
+                    npi_name = "full_lockdown_NY",
                     start_date = "2020-03-15",
                     end_date = "2020-05-22",
                     parameter = "r0",
@@ -431,7 +431,7 @@ test_that("likelihood is senstive to changes to correct npi paramerers when mult
 
 
     snpi3 <- stuff$snpi
-    snpi3$reduction[snpi3$npi_name=="full_lockdown"] <- snpi3$reduction[snpi3$npi_name=="full_lockdown"]*runif(6)
+    snpi3$reduction[snpi3$npi_name=="full_lockdown_NY"] <- snpi3$reduction[snpi3$npi_name=="full_lockdown_NY"]*runif(3)
 
     
     tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
@@ -564,7 +564,7 @@ test_that("when prior is specified, likilhood is higher when nearer prior mean f
 
 
     snpi3 <- stuff$snpi
-    snpi3$reduction[snpi3$npi_name=="full_lockdown"] <- snpi3$reduction[snpi3$npi_name=="full_lockdown"]/4
+    snpi3$reduction[snpi3$npi_name=="full_lockdown_NY"] <- snpi3$reduction[snpi3$npi_name=="full_lockdown_NY"]/4
 
 
       tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
@@ -680,3 +680,92 @@ test_that("when prior is specified, likilhood is higher when nearer prior mean f
     
 
 })
+
+
+test_that("Hierarchical structure works on interventions not defined for all locations (npis)", {
+    stuff <- get_minimal_setup()
+
+     stuff$hierarchical_stats$local_var_hierarchy <- list(
+        name="full_lockdown_NY",
+        module="seir",
+        geo_group_col = "USPS",
+        transform= "none"
+     )
+
+
+    snpi2 <- stuff$snpi
+    snpi2$reduction[snpi2$npi_name=="local_variance"] <- snpi2$reduction[snpi2$npi_name=="local_variance"]*runif(6)
+
+
+    snpi3 <- stuff$snpi
+    snpi3$reduction[snpi3$npi_name=="full_lockdown_NY"] <- snpi3$reduction[snpi3$npi_name=="full_lockdown_NY"]*runif(3)
+
+    snpi4 <- stuff$snpi
+    snpi4$reduction[snpi3$npi_name=="full_lockdown_CA"] <- snpi3$reduction[snpi3$npi_name=="full_lockdown_CA"]*runif(3)
+
+
+    tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
+                                               stuff$sim_hosp,
+                                               stuff$obs_nodename,
+                                               stuff$config,
+                                               stuff$obs,
+                                               stuff$data_stats,
+                                               stuff$hosp_file,
+                                               stuff$hierarchical_stats,
+                                               stuff$defined_priors,
+                                               stuff$geodata,
+                                               stuff$snpi)
+
+    
+    
+    tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
+                                               stuff$sim_hosp,
+                                               stuff$obs_nodename,
+                                               stuff$config,
+                                               stuff$obs,
+                                               stuff$data_stats,
+                                               stuff$hosp_file,
+                                               stuff$hierarchical_stats,
+                                               stuff$defined_priors,
+                                               stuff$geodata,
+                                               snpi2)
+
+
+    tmp3 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
+                                               stuff$sim_hosp,
+                                               stuff$obs_nodename,
+                                               stuff$config,
+                                               stuff$obs,
+                                               stuff$data_stats,
+                                               stuff$hosp_file,
+                                               stuff$hierarchical_stats,
+                                               stuff$defined_priors,
+                                               stuff$geodata,
+                                               snpi3)
+
+
+    tmp4 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
+                                               stuff$sim_hosp,
+                                               stuff$obs_nodename,
+                                               stuff$config,
+                                               stuff$obs,
+                                               stuff$data_stats,
+                                               stuff$hosp_file,
+                                               stuff$hierarchical_stats,
+                                               stuff$defined_priors,
+                                               stuff$geodata,
+                                               snpi4)
+
+
+
+    ##print(tmp1)
+    ##print(tmp3)
+
+    expect_equal(sum(tmp1$ll), sum(tmp2$ll))
+    expect_true(sum(tmp1$ll)!=sum(tmp3$ll))
+    expect_equal(sum(tmp1$ll), sum(tmp4$ll))
+    
+    
+})
+
+

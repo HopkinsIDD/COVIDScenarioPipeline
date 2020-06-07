@@ -148,7 +148,7 @@ calc_hierarchical_likadj <- function (stat,
         group_by(!!sym(geo_group_column))%>%
         mutate(likadj = dnorm(!!sym(stat_col),
                               mean(!!sym(stat_col)),
-                              max(sd(!!sym(stat_col)), min_sd), log=TRUE))%>%
+                              max(sd(!!sym(stat_col)), min_sd, na.rm=T), log=TRUE))%>%
         ungroup()%>%
         select(geoid, likadj)
 
