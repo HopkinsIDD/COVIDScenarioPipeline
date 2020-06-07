@@ -173,7 +173,9 @@ calc_prior_likadj  <- function(params,
                                dist_pars) {
 
     if (dist=="normal") {
-        rc <- dnorm(params, dist_pars[1], dist_pars[2], log=TRUE)
+        rc <- dnorm(params, dist_pars[[1]], dist_pars[[2]], log=TRUE)
+    } else  if (dist=="logit_normal") {
+        rc <- dnorm(qlogis(params), qlogis(dist_pars[[1]]), dist_pars[[2]], log=TRUE)
     } else {
         stop("This distribution is unsupported")
     }

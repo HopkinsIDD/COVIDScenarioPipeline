@@ -95,6 +95,10 @@ get_minimal_setup <- function () {
     hierarchical_stats <- list()
 
 
+    ##List of defined priors. Black place holder by default
+    defined_priors <- list()
+
+
     ##geodata data frame
     geodata <- tibble(geoid = geoids,
                       USPS = USPS)
@@ -145,6 +149,7 @@ get_minimal_setup <- function () {
                 data_stats=data_stats,
                 hosp_file=hosp_file,
                 hierarchical_stats=hierarchical_stats,
+                defined_priors=defined_priors,
                 geodata = geodata,
                 snpi=snpi,
                 hpar=hpar))
@@ -164,6 +169,7 @@ test_that("aggregate_and_calc_loc_likelihoods returns a likelihood per location 
                                               stuff$data_stats,
                                               stuff$hosp_file,
                                               stuff$hierarchical_stats,
+                                              stuff$defined_priors,
                                               stuff$geodata,
                                               stuff$snpi)
 
@@ -191,6 +197,7 @@ test_that("likelihood of perfect data is less that likelihood of imperfect data"
                                               stuff$data_stats,
                                               stuff$hosp_file,
                                               stuff$hierarchical_stats,
+                                              stuff$defined_priors,
                                               stuff$geodata,
                                               stuff$snpi)
 
@@ -202,6 +209,7 @@ test_that("likelihood of perfect data is less that likelihood of imperfect data"
                                               stuff$data_stats,
                                               stuff$hosp_file,
                                               stuff$hierarchical_stats,
+                                              stuff$defined_priors,
                                               stuff$geodata,
                                               stuff$snpi)
 
@@ -235,6 +243,7 @@ test_that("removing deaths as a stat makes the likelihood invariant to changes i
                                                stuff$data_stats,
                                                stuff$hosp_file,
                                                stuff$hierarchical_stats,
+                                               stuff$defined_priors,
                                                stuff$geodata,
                                                stuff$snpi)
 
@@ -248,6 +257,7 @@ test_that("removing deaths as a stat makes the likelihood invariant to changes i
                                                 stuff$data_stats,
                                                 stuff$hosp_file,
                                                 stuff$hierarchical_stats,
+                                                stuff$defined_priors,
                                                 stuff$geodata,
                                                 stuff$snpi)
 
@@ -264,6 +274,7 @@ test_that("removing deaths as a stat makes the likelihood invariant to changes i
                                                stuff$data_stats,
                                                stuff$hosp_file,
                                                stuff$hierarchical_stats,
+                                               stuff$defined_priors,
                                                stuff$geodata,
                                                stuff$snpi)
 
@@ -277,6 +288,7 @@ test_that("removing deaths as a stat makes the likelihood invariant to changes i
                                                 stuff$data_stats,
                                                 stuff$hosp_file,
                                                 stuff$hierarchical_stats,
+                                                stuff$defined_priors,
                                                 stuff$geodata,
                                                 stuff$snpi)
 
@@ -309,6 +321,7 @@ test_that("removing confirmed as a stat makes the likelihood invariant to change
                                                stuff$data_stats,
                                                stuff$hosp_file,
                                                stuff$hierarchical_stats,
+                                               stuff$defined_priors,
                                                stuff$geodata,
                                                stuff$snpi)
 
@@ -322,6 +335,7 @@ test_that("removing confirmed as a stat makes the likelihood invariant to change
                                                 stuff$data_stats,
                                                 stuff$hosp_file,
                                                 stuff$hierarchical_stats,
+                                                stuff$defined_priors,
                                                 stuff$geodata,
                                                 stuff$snpi)
 
@@ -338,6 +352,7 @@ test_that("removing confirmed as a stat makes the likelihood invariant to change
                                                stuff$data_stats,
                                                stuff$hosp_file,
                                                stuff$hierarchical_stats,
+                                               stuff$defined_priors,
                                                stuff$geodata,
                                                stuff$snpi)
 
@@ -351,6 +366,7 @@ test_that("removing confirmed as a stat makes the likelihood invariant to change
                                                 stuff$data_stats,
                                                 stuff$hosp_file,
                                                 stuff$hierarchical_stats,
+                                                stuff$defined_priors,
                                                 stuff$geodata,
                                                 stuff$snpi)
 
@@ -376,6 +392,7 @@ test_that("likelihoood insenstive to parameters with no multi-level compoenent o
                                                stuff$data_stats,
                                                stuff$hosp_file,
                                                stuff$hierarchical_stats,
+                                               stuff$defined_priors,
                                                stuff$geodata,
                                                stuff$snpi)
 
@@ -389,6 +406,7 @@ test_that("likelihoood insenstive to parameters with no multi-level compoenent o
                                                 stuff$data_stats,
                                                 stuff$hosp_file,
                                                 stuff$hierarchical_stats,
+                                                stuff$defined_priors,
                                                 stuff$geodata,
                                                 snpi2)
 
@@ -424,6 +442,7 @@ test_that("likelihood is senstive to changes to correct npi paramerers when mult
                                                stuff$data_stats,
                                                stuff$hosp_file,
                                                stuff$hierarchical_stats,
+                                               stuff$defined_priors,
                                                stuff$geodata,
                                                stuff$snpi)
 
@@ -437,6 +456,7 @@ test_that("likelihood is senstive to changes to correct npi paramerers when mult
                                                stuff$data_stats,
                                                stuff$hosp_file,
                                                stuff$hierarchical_stats,
+                                               stuff$defined_priors,
                                                stuff$geodata,
                                                snpi2)
 
@@ -449,6 +469,7 @@ test_that("likelihood is senstive to changes to correct npi paramerers when mult
                                                stuff$data_stats,
                                                stuff$hosp_file,
                                                stuff$hierarchical_stats,
+                                               stuff$defined_priors,
                                                stuff$geodata,
                                                snpi3)
 
@@ -486,6 +507,7 @@ test_that("likelihood is sensitive to changes to correct hpar parameters when mu
                                                stuff$data_stats,
                                                stuff$hosp_file,
                                                stuff$hierarchical_stats,
+                                               stuff$defined_priors,
                                                stuff$geodata,
                                                stuff$snpi,
                                                stuff$hpar)
@@ -500,6 +522,7 @@ test_that("likelihood is sensitive to changes to correct hpar parameters when mu
                                                stuff$data_stats,
                                                stuff$hosp_file,
                                                stuff$hierarchical_stats,
+                                               stuff$defined_priors,
                                                stuff$geodata,
                                                stuff$snpi,
                                                hpar2)
@@ -513,6 +536,7 @@ test_that("likelihood is sensitive to changes to correct hpar parameters when mu
                                                stuff$data_stats,
                                                stuff$hosp_file,
                                                stuff$hierarchical_stats,
+                                               stuff$defined_priors,
                                                stuff$geodata,
                                                stuff$snpi,
                                                hpar3)
@@ -525,6 +549,134 @@ test_that("likelihood is sensitive to changes to correct hpar parameters when mu
 })
 
 
-          
+test_that("when prior is specified, likilhood is higher when nearer prior mean for npis and insensitive to non specified pars", {
+    stuff <- get_minimal_setup()
 
-         
+    stuff$defined_priors$local_var_prior <-list(name="local_variance",
+                                                module="seir",
+                                                likelihood=list(
+                                                    dist="normal",
+                                                    param=c(0,1)))
+
+    #makes it closer to 0
+    snpi2 <- stuff$snpi
+    snpi2$reduction[snpi2$npi_name=="local_variance"] <- snpi2$reduction[snpi2$npi_name=="local_variance"]/4
+
+
+    snpi3 <- stuff$snpi
+    snpi3$reduction[snpi3$npi_name=="full_lockdown"] <- snpi3$reduction[snpi3$npi_name=="full_lockdown"]/4
+
+
+      tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
+                                               stuff$sim_hosp,
+                                               stuff$obs_nodename,
+                                               stuff$config,
+                                               stuff$obs,
+                                               stuff$data_stats,
+                                               stuff$hosp_file,
+                                               stuff$hierarchical_stats,
+                                               stuff$defined_priors,
+                                               stuff$geodata,
+                                               stuff$snpi)
+
+    
+    
+    tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
+                                               stuff$sim_hosp,
+                                               stuff$obs_nodename,
+                                               stuff$config,
+                                               stuff$obs,
+                                               stuff$data_stats,
+                                               stuff$hosp_file,
+                                               stuff$hierarchical_stats,
+                                               stuff$defined_priors,
+                                               stuff$geodata,
+                                               snpi2)
+
+
+    tmp3 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
+                                               stuff$sim_hosp,
+                                               stuff$obs_nodename,
+                                               stuff$config,
+                                               stuff$obs,
+                                               stuff$data_stats,
+                                               stuff$hosp_file,
+                                               stuff$hierarchical_stats,
+                                               stuff$defined_priors,
+                                               stuff$geodata,
+                                               snpi3)
+
+
+
+    expect_lte(sum(tmp1$ll), sum(tmp2$ll))
+    expect_equal(sum(tmp1$ll), sum(tmp3$ll))
+})
+
+
+test_that("when prior is specified, likilhood is higher when nearer prior mean for hpar and insensitive to non specified", {
+
+    stuff <- get_minimal_setup()
+
+    stuff$defined_priors$conf_rate_prior <- list(name="p_confirmed_inf",
+                                                 module="hospitalization",
+                                                 likelihood=list(
+                                                     dist="logit_normal",
+                                                     param=c(.1,4))) 
+
+
+    hpar2 <- stuff$hpar
+    hpar2$value[hpar2$parameter=="p_confirmed_inf"] <- .1 ##sure there is something more cleverl that could be done
+
+
+    hpar3 <- stuff$hpar
+    hpar3$value[hpar3$parameter=="p_hosp_inf"] <- .1
+
+    
+    tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
+                                               stuff$sim_hosp,
+                                               stuff$obs_nodename,
+                                               stuff$config,
+                                               stuff$obs,
+                                               stuff$data_stats,
+                                               stuff$hosp_file,
+                                               stuff$hierarchical_stats,
+                                               stuff$defined_priors,
+                                               stuff$geodata,
+                                               stuff$snpi,
+                                               stuff$hpar)
+
+    
+    
+    tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
+                                               stuff$sim_hosp,
+                                               stuff$obs_nodename,
+                                               stuff$config,
+                                               stuff$obs,
+                                               stuff$data_stats,
+                                               stuff$hosp_file,
+                                               stuff$hierarchical_stats,
+                                               stuff$defined_priors,
+                                               stuff$geodata,
+                                               stuff$snpi,
+                                               hpar2)
+
+
+    tmp3 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
+                                               stuff$sim_hosp,
+                                               stuff$obs_nodename,
+                                               stuff$config,
+                                               stuff$obs,
+                                               stuff$data_stats,
+                                               stuff$hosp_file,
+                                               stuff$hierarchical_stats,
+                                               stuff$defined_priors,
+                                               stuff$geodata,
+                                               stuff$snpi,
+                                               hpar3)
+
+
+    expect_lte(sum(tmp1$ll), sum(tmp2$ll))
+    expect_equal(sum(tmp1$ll), sum(tmp3$ll))
+    
+
+})
