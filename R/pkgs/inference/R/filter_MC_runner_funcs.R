@@ -11,7 +11,8 @@
 ##' @param obs the full observed data
 ##' @param data_stat the data we are going to compare to aggregated to the right statistic
 ##' @param hosp_file the filename of the hosp file being used (unclear if needed in scope)
-##' @param hierarchical_states the hierarchical stats to use
+##' @param hierarchical_stats the hierarchical stats to use
+##' @param defined_priors information on defined priors. 
 ##' @param geodata the geographics data to help with hierarchies
 ##' @param snpi the file with the npi information
 ##' @param hpar data frame of hospitalization parameters
@@ -28,6 +29,7 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
                                                data_stats,
                                                hosp_file,
                                                hierarchical_stats,
+                                               defined_priors,
                                                geodata,
                                                snpi=NULL,
                                                hpar=NULL) {
@@ -80,7 +82,7 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
     
     likelihood_data <- likelihood_data %>% do.call(what=rbind)
     
-    ##Update  liklihood data
+    ##Update  liklihood data based on hierarchical_stats 
     for (stat in names(hierarchical_stats)) {
         
         if (hierarchical_stats[[stat]]$module=="seir") {
@@ -103,7 +105,7 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
                                                            )
             
         } else {
-            stop("unsupported hierarchical stat")
+            stop("unsupported hierarchical stat module")
         }
             
         ##probably a more efficient what to do this, but unclear...
@@ -112,6 +114,40 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
             select(-likadj)
             
     }
+
+
+    ##Update lieklihoods based on priors
+    for (prior in names(defined_priors)) {
+        if (defined_priors[[prior]]$module=="seir") {
+            ll_adjs <- snpi %>%
+                filter(npi_name==defined_priors[[prior]]$name)%>%
+                mutate(likadj=calc_prior_likadj(reduction,
+                                                defined_priors[[prior]]$likelihood$dist,
+                                                defined_priors[[prior]]$likelihood$param
+                                                ))%>%
+                select(geoid, likadj)
+            
+        }  else if (defined_priors[[prior]]$module=="hospitalization") {
+
+            ll_adjs <- hpar %>%
+                filter(parameter==defined_priors[[prior]]$name)%>%
+                mutate(likadj=calc_prior_likadj(value,
+                                                defined_priors[[prior]]$likelihood$dist,
+                                                defined_priors[[prior]]$likelihood$param
+                                                ))%>%
+                select(geoid, likadj)
+            
+        } else {
+            stop("unsupported prior module")
+        }
+        
+        ##probably a more efficient what to do this, but unclear...
+        likelihood_data<- left_join(likelihood_data, ll_adjs) %>%
+            mutate(ll = ll + likadj) %>%
+            select(-likadj)
+    }
+
+    
 
     return(likelihood_data)
 }

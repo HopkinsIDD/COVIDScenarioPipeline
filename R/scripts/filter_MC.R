@@ -101,6 +101,13 @@ if("hierarchical_stats_geo"%in%names(config$filtering)) {
 }
 
 
+if("priors"%in%names(config$filtering)) {
+    defined_priors <- config$filtering$priors 
+} else {
+    defined_priors <- list() ##no stats
+}
+
+
 
 ## Runner Script---------------------------------------------------------------------
 
@@ -348,6 +355,7 @@ for(scenario in scenarios) {
                                                                           data_stats,
                                                                           first_hosp_file,
                                                                           hierarchical_stats,
+                                                                          defined_priors,
                                                                           geodata,
                                                                           initial_snpi,
                                                                           initial_hpar)
@@ -493,6 +501,7 @@ for(scenario in scenarios) {
                                                                          data_stats,
                                                                          file,
                                                                          hierarchical_stats,
+                                                                         defined_priors,
                                                                          geodata,
                                                                          current_snpi,
                                                                          current_hpar)
