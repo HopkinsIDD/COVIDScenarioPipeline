@@ -24,8 +24,8 @@ config <- covidcommon::load_config(opt$config)
 
 deathrates <- opt$deathrates
 if(all(deathrates == "all")) {
-  deathrates<- config$hospitalization$parameters$p_death_names
-} else if (!(deathrates %in% config$hospitalization$parameters$p_death_names)) {
+  deathrates<- config$outcomes$scenarios
+} else if (!(deathrates %in% config$outcomes$scenarios)){
   message(paste("Invalid death rate argument:", deathrate, "did not match any of the named args in", paste( p_death, collapse = ", "), "\n"))
   quit("yes", status=1)
 }
