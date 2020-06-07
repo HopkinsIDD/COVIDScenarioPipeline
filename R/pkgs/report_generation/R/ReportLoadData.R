@@ -685,44 +685,91 @@ load_shape_file<- function(
 ##'
 ##' @param jhu_data_dir data directory
 ##' @param countries character vector of countries
-##' @param states character vector of states 
-##' @param updateJHUData logical on whether JHU data should be udpated
+##' @param states character vector of states (state abbreviations is US-only)
 ##' 
 ##' @return a data frame with columns
-##'         - 
+##'         - date
+##'         - NcumulConfirmed
+##'         - NcumulDeathsObs
+##'         - NincidConfirmed
+##'         - NincidDeathsObs
+##'         
 ##' @export
 load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
                                      countries = c("US"),
-                                     states,
-                                     updateJHUData = TRUE,
-                                     ...) {
-  if(!(dir.exists(jhu_data_dir) & length(list.files(jhu_data_dir) > 0))) {
-    ### Download JHU data
-    pull_JHUCSSE_github_data(jhu_data_dir) 
-  } else {
-    ### Get updated version
-    if(updateJHUData) {
-      covidImportation:::update_JHUCSSE_github_data(jhu_data_dir) 
-    }
+                                     states) {
+
+  require(magrittr)
+  
+  us_data_only = (countries == c("US"))
+  if(us_data_only) {
+    message("For US data, consider using load_usafacts_for_report() instead of load_jhu_csse_for_report().")
   }
-  
-  ### Read in JHU data
-  jhu_dat <- read_JHUCSSE_cases(case_data_dir = jhu_data_dir, ...)
-  
-  
+
+  jhu_cases <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
+                                   case_data_dir = jhu_data_dir,
+                                   save_raw_data=TRUE,
+                                   us_data_only=us_data_only)
+
+  jhu_deaths <- covidImportation::get_clean_JHUCSSE_deaths(aggr_level = "UID", 
+                                   case_data_dir = jhu_data_dir,
+                                   save_raw_data=TRUE,
+                                   us_data_only=us_data_only)
+
+  jhu_dat <- dplyr::full_join(jhu_cases, jhu_deaths)
+
+  if(us_data_only)
+  {
+    jhu_dat <- jhu_dat %>% dplyr::mutate(Province_State=state_abb)
+  }
+
   jhu_dat <- 
     jhu_dat %>%
     dplyr::mutate(date = as.Date(Update)) %>%
     dplyr::filter(Country_Region %in% countries) %>%
     dplyr::filter(Province_State %in% states) %>%
-    group_by(date) %>%
-    dplyr::summarize(NcumulConfirmed = sum(Confirmed), NcumulDeathsObs = sum(Deaths, na.rm = TRUE)) %>%
-    ungroup() %>%
+    dplyr::group_by(date) %>%
+    dplyr::summarize(NcumulConfirmed = sum(Confirmed, na.rm = TRUE), NcumulDeathsObs = sum(Deaths, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
     dplyr::arrange(date) %>%
     dplyr::mutate(NincidConfirmed  = NcumulConfirmed - dplyr::lag(NcumulConfirmed),
                   NincidDeathsObs = NcumulDeathsObs - dplyr::lag(NcumulDeathsObs)) %>%
     na.omit()
   return(jhu_dat)
+}
+
+##' Load USAFacts data
+##'
+##' @param data_dir data directory to download raw USAFacts data to
+##' @param states character vector of states (state abbreviations is US-only)
+##' 
+##' @return a data frame with columns
+##'         - date
+##'         - NcumulConfirmed
+##'         - NcumulDeathsObs
+##'         - NincidConfirmed
+##'         - NincidDeathsObs
+##'         
+##' @export
+load_USAFacts_for_report <- function(data_dir = "data/case_data",
+                                     states) {
+
+  require(magrittr)
+
+  usaf_dat <- covidcommon::get_USAFacts_data(case_data_filename = file.path(data_dir,"USAFacts_case_data.csv"),
+                                              death_data_filename = file.path(data_dir, "USAFacts_death_data.csv"))
+  usaf_dat <- 
+    usaf_dat %>%
+    dplyr::mutate(date = as.Date(Update)) %>%
+    dplyr::filter(source %in% states) %>%
+    dplyr::group_by(date) %>%
+    dplyr::summarize(NcumulConfirmed = sum(Confirmed, na.rm = TRUE), NcumulDeathsObs = sum(Deaths, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(date) %>%
+    dplyr::mutate(NincidConfirmed  = NcumulConfirmed - dplyr::lag(NcumulConfirmed),
+                  NincidDeathsObs = NcumulDeathsObs - dplyr::lag(NcumulDeathsObs)) %>%
+    na.omit()
+  return(usaf_dat)
 }
 
 

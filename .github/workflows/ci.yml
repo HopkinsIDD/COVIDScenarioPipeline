@@ -6,17 +6,19 @@ on:
       - master
       - dev
       - dataseed
+      - inference
   pull_request:
     branches:
       - master
       - dev
       - dataseed
+      - inference
 
 jobs:
   unit-tests:
     runs-on: ubuntu-18.04
     container:
-      image: docker://hopkinsidd/covidscenariopipeline:latest-dev
+      image: docker://hopkinsidd/covidscenariopipeline:latest-inference
       options: --user root
     steps:
       - name: Checkout
@@ -24,12 +26,16 @@ jobs:
       - name: Set up Rprofile
         run: cp Docker.Rprofile $HOME/.Rprofile
         shell: bash
-      - name: Install SEIR package
+      - name: Install SEIR and Outcomes packages
         run: /home/app/python_venv/bin/python setup.py install
         shell: bash
       - name: Run pytest SEIR
         run: |
           /home/app/python_venv/bin/pytest SEIR/
+        shell: bash
+      - name: Run pytest Outcomes
+        run: |
+          /home/app/python_venv/bin/pytest Outcomes/
         shell: bash
       - name: Run covidcommon tests
         run: |
@@ -44,6 +50,11 @@ jobs:
       - name: Run report_generation tests
         run: |
           setwd("R/pkgs/report_generation")
+          devtools::test(stop_on_failure=TRUE)
+        shell: Rscript {0}
+      - name: Run inference tests
+        run: |
+          setwd("R/pkgs/inference")
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
       - name: Run integration tests
