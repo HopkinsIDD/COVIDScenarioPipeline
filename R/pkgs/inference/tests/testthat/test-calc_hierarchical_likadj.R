@@ -146,3 +146,52 @@ test_that("equal values use minimum variance", {
                                          min_sd=.2)$likadj,
                 equals(dnorm(npi1, mean(npi1), .2, log=TRUE)))
 })
+
+
+
+test_that("transforms give the appropriate likelihoods", {
+    
+
+    val<- runif(3,0,1)
+
+    ##makes data frame with stats
+    infer_frame <- tibble(geoid=c("01001","01002","01003"),
+                              npi_name=rep("val1", each=3),
+                              value=val)
+
+
+    ##make geodata dataframe
+    geodata <- tibble(geoid=c("01001","01002","01003",
+                                  "06001", "06002","06003"),
+                          USPS=rep(c("HI","CA"), each=3))
+
+
+    ##no trandform
+    untrans <- calc_hierarchical_likadj("val1", infer_frame, geodata, "USPS",
+                                        stat_col="value",
+                                        transform="none")
+
+    
+    expect_equal(untrans$likadj,
+                  dnorm(val, mean(val), max(sd(val, .1)), log=TRUE))
+    
+
+    ##logit transmform
+    logit <-  calc_hierarchical_likadj("val1", infer_frame, geodata, "USPS",
+                                        stat_col="value",
+                                        transform="logit")
+
+    
+    tmp <- log(val/(1-val))
+
+
+    expect_equal(logit$likadj,
+                 dnorm(tmp, mean(tmp), max(sd(tmp, .1)), log=TRUE))
+    
+
+    ##nonsense transform
+    expect_error(  calc_hierarchical_likadj("val1", infer_frame, geodata, "USPS",
+                                        stat_col="value",
+                                        transform="nonesense"))
+    
+})
