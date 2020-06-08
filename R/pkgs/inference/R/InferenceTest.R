@@ -89,7 +89,7 @@ single_loc_inference_test <- function(to_fit,
         }
         
         initial_seeding <- perturb_seeding(seeding_init, config$seeding$perturbation_sd, date_bounds)
-        initial_npis <- perturb_expand_npis(npis_init, config$interventions$scenarios)
+        initial_npis <- perturb_expand_npis(npis_init, config$interventions$settings)
         
         # Write to file
         initial_seeding %>% 
@@ -153,7 +153,7 @@ single_loc_inference_test <- function(to_fit,
         
         for (index in seq_len(simulations_per_slot)) {
             current_seeding <- perturb_seeding(initial_seeding, config$seeding$perturbation_sd, date_bounds)
-            current_npis <- perturb_expand_npis(initial_npis, config$interventions$scenarios)
+            current_npis <- perturb_expand_npis(initial_npis, config$interventions$settings)
             
             # Simulate  hospitalizatoins
             sim_hosp <- simulate_single_epi(times = sim_times,
@@ -321,9 +321,13 @@ multi_loc_inference_test <- function(to_fit,
                    .export = c("epi_dir")
     ) %dopar% {
         
-        npis_init <- map_df(1:N, ~npis_dataframe(config, 
-                                                 geoid = .,
-                                                 random = T)) 
+        npis_init <- pmap(list(x = 1:N, y = offsets),
+                     function(x,y) 
+                         npis_dataframe(config, 
+                                        geoid = x,
+                                        offset = y,
+                                        random = T)) %>% 
+            bind_rows()
         
         seeding_init <- seedings
         for (i in 1:nrow(seeding_init)) {
@@ -333,7 +337,7 @@ multi_loc_inference_test <- function(to_fit,
         }
         
         initial_seeding <- perturb_seeding(seeding_init, config$seeding$perturbation_sd, date_bounds)
-        initial_npis <- perturb_expand_npis(npis_init, config$interventions$scenarios, multi = T)
+        initial_npis <- perturb_expand_npis(npis_init, config$interventions$settings, multi = T)
         
         # Write to file
         initial_seeding %>% 
@@ -416,7 +420,7 @@ multi_loc_inference_test <- function(to_fit,
         
         for (index in seq_len(simulations_per_slot)) {
             current_seeding <- perturb_seeding(initial_seeding, config$seeding$perturbation_sd, date_bounds)
-            current_npis <- perturb_expand_npis(initial_npis, config$interventions$scenarios, multi = T)
+            current_npis <- perturb_expand_npis(initial_npis, config$interventions$settings, multi = T)
             
             npi_mat <- select(current_npis, date, geoid, reduction) %>% 
                 pivot_wider(values_from = "reduction", names_from = "geoid", id_cols = "date")
