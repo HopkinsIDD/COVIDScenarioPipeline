@@ -178,11 +178,11 @@ if(is.null(is_international)){
 if(run_age_adjust){
   # Specified geoparams or not (data for US model is included in CSP and does not need to be specified)
   if (is.null(config$spatial_setup$geoid_params_file)){
-    if(!is_international) stop("International models require spatial_setup::geoid_params_file specified in the config")
+    if(is_international) stop("International models require spatial_setup::geoid_params_file specified in the config")
     config$spatial_setup$geoid_params_file <- paste(opt$p,"sample_data","geoid-params.csv",sep='/')
   }
   if (is.null(config$spatial_setup$geoid_len)){
-    if(!is_international) stop("International models require spatial_setup::geoid_params_file specified in the config")
+    if(is_international) stop("International models require spatial_setup::geoid_params_file specified in the config")
     config$spatial_setup$geoid_len <- 5
   }
   
