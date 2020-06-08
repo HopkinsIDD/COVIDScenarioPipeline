@@ -137,10 +137,17 @@ calc_hierarchical_likadj <- function (stat,
     if (transform == "logit") {
         infer_frame <- infer_frame  %>%
             #mutate(value = value)
-            mutate(!!sym(stat_col) := qlogis(!!sym(stat_col)))
+            mutate(!!sym(stat_col) := qlogis(!!sym(stat_col)),
+                   !!sym(stat_col):=ifelse(!!sym(stat_col)< -2*10^12, -2*10^12, !!sym(stat_col)),
+                   !!sym(stat_col):=ifelse(!!sym(stat_col)> 2*10^12, 2*10^12, !!sym(stat_col)))
     } else if (transform!="none") {
         stop("specified transform not yet supported")
     }
+
+    ##print(stat)
+    ##cat("sd=",max(sd(infer_frame[[stat_col]]), min_sd,na.rm=T),"\n")
+    ##cat("mean=",mean(infer_frame[[stat_col]]),"\n")
+    ##print(range(infer_frame[[stat_col]]))
 
     rc <- infer_frame%>%
         filter(!!sym(stat_name_col)==stat)%>%
@@ -175,6 +182,8 @@ calc_prior_likadj  <- function(params,
     if (dist=="normal") {
         rc <- dnorm(params, dist_pars[[1]], dist_pars[[2]], log=TRUE)
     } else  if (dist=="logit_normal") {
+        params <- pmax(params, 10^-12)
+        params <- pmin(params, 1-10^-12)
         rc <- dnorm(qlogis(params), qlogis(dist_pars[[1]]), dist_pars[[2]], log=TRUE)
     } else {
         stop("This distribution is unsupported")
