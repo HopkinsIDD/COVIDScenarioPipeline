@@ -9,9 +9,11 @@ params:
 ---
 
 ```{r setup, include=FALSE}
-library(covidImportation)
+library(covidcommon)
 library(report.generation)
 library(tidyverse)
+library(cdlTools)
+library(doParallel)
 
 knitr::opts_chunk$set(
     echo = FALSE,
@@ -22,9 +24,10 @@ knitr::opts_chunk$set(
     bitmapType = "cairo"
     )
 
-knitr::opts_knit$set(root.dir = "../..") # assumes in notebook subdirectory
+knitr::opts_knit$set(eval.after = 'fig.cap', 
+                     root.dir = "../..") # assumes in notebook subdirectory
 
-knitr::opts_knit$set(eval.after = 'fig.cap')
+options(scipen=999)
 ```
 
 ```{r load_config}
@@ -41,7 +44,7 @@ shp <- rgdal::readOGR(paste0(config$spatial_setup$base_path, "/", config$spatial
 scn_dir <- paste(config$name,config$interventions$scenarios[1],sep='_') # sanity check on first scenario only
 scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 run <- as.character(config$sanity$run) # either state, states/region or country
-country <- config$sanity$country # US 
+country <- "US" 
 state <- {if(run=="state") config$sanity$state else(config$spatial_setup$modeled_states)} 
 geogroup <- case_when(run=="state" ~ "geoid",
                       run=="country" ~ "USPS")
@@ -52,7 +55,7 @@ included_geoids <- geodata %>%
   distinct() %>%
   unlist(use.names = FALSE)
 
-infer <- config$sanity$inference # used by eval for R figs/loading
+infer <- exists("filtering", where = config) ## is there inference in the runs?
 nfiles <-  NA 
 pdeath_levels <- c("high", "med", "low") #can also specify with config$hospitalization$parameters$p_death_names
 pdeath_labels <- 0
@@ -78,8 +81,7 @@ geo_names <- geo_names %>%
   distinct() %>%
   tibble()
 
-npi_names <- NA #must specify npi's used before projections
-#npi_names <- names(config$interventions$settings)[which(str_detect(names(config$interventions$settings),fixed("intervention_inference", ignore_case = TRUE)))] 
+npi_names <- names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="perturbation"))]) # periods with inference 
 npi_label <- NA # can specify, will otherwise equal npi_names
 # npi_label <- rep("Lockdown", length(npi_names)) #can specify
 
@@ -396,6 +398,9 @@ jhu_data_dir = "JHU_CSSE_Data" #check
 #   select(!!as.symbol(key)) %>%
 #   unlist(use.names = FALSE)
 
+  hosp <- if_else(is.null(jhu_CSSE_dat$hosp),FALSE,TRUE)
+
+
 ```
 
 ```{r model_res_load}
@@ -494,23 +499,34 @@ deaths <- res_state %>% #group_by(scenario, death_Rate, !!as.symbol(geogroup)) %
 #          adjI_95pct = if_else(adjI_95pct<0, NA_real_, adjI_95pct))%>%
 #   ungroup()
 
-res_state %>% #group_by(scenario, death_Rate, !!as.symbol(geogroup)) %>%
-  inner_join(jhu_CSSE_dat%>%rename(time=date), by=c(geogroup,"time")) %>%
-  group_by(death_Rate, time) %>%
-  summarize(cum_case=sum(cum_case),
-            cum_case_5pct=sum(cum_case_5pct),
-            cum_case_95pct=sum(cum_case_95pct),
-            cumConfirmed=sum(cumConfirmed)) %>%
+infects<-group_by(death_Rate, !!as.symbol(geogroup)) %>%
+  mutate(confirmed=c(0,diff(cumConfirmed)))%>%
+  group_by(death_Rate, week=lubridate::floor_date(time, unit="week", week_start=1)) %>%
+  summarize(#cum_case=sum(cum_case),
+  #           cum_case_5pct=sum(cum_case_5pct),
+  #           cum_case_95pct=sum(cum_case_95pct),
+  #           cumConfirmed=sum(cumConfirmed),
+            incidC=sum(incidC),
+            incidC_5pct=sum(incidC_5pct),
+            incidC_95pct=sum(incidC_95pct),
+            confirmed=sum(confirmed)) %>%
   group_by(death_Rate) %>%
-  mutate(error = abs(cum_case-cumConfirmed),
-         relative = abs(cum_case-cumConfirmed)/cumConfirmed,
-         within = if_else(cumConfirmed>cum_case_95pct |
-                            cumConfirmed<cum_case_5pct, 0, 1)) %>%
+  mutate(#error = abs(cum_case-cumConfirmed),
+         # relative = abs(cum_case-cumConfirmed)/cumConfirmed,
+         # within = if_else(cumConfirmed>cum_case_95pct |
+         #                    cumConfirmed<cum_case_5pct, 0, 1),
+         error = abs(incidC-confirmed),
+         within = if_else(confirmed>incidC_95pct |
+                            confirmed<incidC_5pct, 0, 1),
+         confirmed=if_else(confirmed==0, 1, confirmed),
+         incidC=if_else(incidC==0,1,incidC),
+         relative = abs(incidC-confirmed)/confirmed) %>%
   summarize(mae = round(sum(error)/n(),2),
             relative = round(sum(relative)/n(),3),
             within = round(sum(within)/n(),2)) %>%
-  mutate(Comparison = "Modeled Infections vs Confirmed Cases") %>%
-  bind_rows(deaths) %>%
+  mutate(Comparison = "Estimated vs Confirmed Cases (aggregated by week)") 
+
+  bind_rows(deaths,infects) %>%
   mutate(death_Rate = case_when(death_Rate == "low death rate" ~ "Low",
                                 death_Rate == "med death rate" ~ "Med",
                                 death_Rate == "high death rate" ~ "High")) %>%
@@ -527,7 +543,7 @@ tab_counter<- tab_counter+1
 
 ## Check 1: Deaths vs. National/State Report
 
-```{r mdl_v_ob_death, fig.width=12, fig.cap=cap}
+```{r mdl_v_ob_death, fig.width=20, fig.height10 fig.cap=cap}
 cap<-paste0("**Fig.", fig_counter, "**: Modeled deaths vs. latest reported deaths by death rate with a 14-day delay.")
 
 map1 <- res_state%>%
@@ -537,7 +553,7 @@ map1 <- res_state%>%
   filter(time==max(jhu_CSSE_dat$date))%>%
   inner_join(jhu_CSSE_dat%>%rename(time=date)) %>% # 
   ggplot(aes(x=cumDeaths, y=cum_death, col=death_Rate, label = {if(run=="state") Admin2 else(USPS)})) +
-  ggrepel::geom_text_repel(segment.size = 0.2, alpha = 0.55) +
+  ggrepel::geom_text_repel(segment.size = 0.2, alpha = 0.75, segment.alpha=0.5, label.size=9) +
   geom_point() +
   scale_y_sqrt()+
   scale_x_sqrt()+
@@ -768,7 +784,9 @@ mae_deaths %>%
         ) +
   xlab("Relative mean absolute error for deaths") +
   coord_cartesian(xlim = c(0, max((filter(mae_deaths, !is.na(relative), relative!=Inf))$relative))) +
-  scale_x_continuous(trans = "log1p", breaks = c(0, 0.25, 0.5, 1, 2, 4))
+  scale_x_continuous(trans = "log1p", breaks = c(0, 0.25, 0.5, 1, 2, 4))+
+    geom_vline(xintercept = 1, linetype="dashed")
+
 
 fig_counter <- fig_counter+1
 
@@ -776,7 +794,7 @@ fig_counter <- fig_counter+1
 
 ```{r within_deaths, fig.height=10, fig.weight=10, fig.cap=cap}
 
-cap<-paste0("**Fig.", fig_counter, "**: Proportion of confirmed deaths outside the 95% prediction interval", if_else(run=="country", " by state", " by county "))
+cap<-paste0("**Fig.", fig_counter, "**: Proportion of confirmed deaths outside the 95% prediction interval", if_else(run=="country", " by state.", " by county."), " Dashed line represents the overall mean.")
 
 mae_deaths %>%
     {if(run=="state") rename(., group=Admin2) else(rename(.,group=!!as.symbol(geogroup)))} %>%
@@ -790,7 +808,8 @@ mae_deaths %>%
         ) +
   xlab("% of infections outside the 95% prediction interval") +
   scale_x_continuous(expand = c(0,0))+
-  coord_cartesian(xlim = c(0, 1.05))
+  coord_cartesian(xlim = c(0, 1.05))+
+    geom_vline(xintercept = 1-(mae_deaths%>%ungroup()%>%summarize(m=mean(within)))$m, linetype="dashed")
 
 fig_counter <- fig_counter+1
 
@@ -833,16 +852,16 @@ fig_counter <- fig_counter+1
 ```
 
 
-`r paste0("### Check 2: Hospitalization vs Confirmed Cases", {if(run=="country") " (National" else(" (State")}, "  Report)")`
+`r if_else(hosp==TRUE,paste0("### Check 2: Hospitalization vs Confirmed Cases", {if(run=="country") " - National" else(" - State")}, "  Report"),"")`
 
-```{r mdl_v_ob_hosp, fig.width=12, fig.cap=cap}
+```{r mdl_v_ob_hosp, fig.width=20, fig.height=10, fig.cap=cap}
 cap<-paste0("**Fig.", fig_counter, "**: Modeled hospitalization vs. confirmed cases by death rate")
   
 res_state%>%filter(time==max(jhu_CSSE_dat$date))%>%
   inner_join(jhu_CSSE_dat%>%rename(time=date)) %>%
   {if(run=="state") rename(., group=Admin2) else(rename(.,group=!!as.symbol(geogroup)))} %>%
   ggplot(aes(x=cumConfirmed, y=cum_hosp, col=death_Rate, label=group)) +
-  ggrepel::geom_text_repel(segment.size = 0.2, alpha = 0.55) +
+  ggrepel::geom_text_repel(segment.size = 0.2, alpha = 0.75, segment.alpha=0.5) +
   geom_point()+
   scale_y_sqrt()+
   scale_x_sqrt()+
@@ -914,24 +933,30 @@ fig_counter<-fig_counter+1
 ## Compare estimated and reported cases   
 
 ```{r lagged_inc_compare, fig.cap=cap}
-cap<-paste0("**Fig.", fig_counter, "**: Estimated and confirmed cases over time by death rate.")
+cap<-paste0("**Fig.", fig_counter, "**: Estimated and confirmed cases over time by death rate. Cases aggregated by week.")
 ##Compare to confirmed cases at a national level
 usa_sum <-res_state%>%inner_join(jhu_CSSE_dat%>%rename(time=date))%>%
   #filter(death_Rate=="low")%>%
-  group_by(scenario, death_Rate, time)%>%
-  summarize(cum_case=sum(cum_case),
-            cum_case_5pct=sum(cum_case_5pct),
-            cum_case_95pct=sum(cum_case_95pct),
-            cumConfirmed=sum(cumConfirmed)) %>%
+  group_by(death_Rate, !!as.symbol(geogroup)) %>%
+  mutate(confirmed=c(0,diff(cumConfirmed)))%>%
+  group_by(death_Rate, week=lubridate::floor_date(time, unit="week", week_start=1)) %>%
+  summarize(#cum_case=sum(cum_case),
+  #           cum_case_5pct=sum(cum_case_5pct),
+  #           cum_case_95pct=sum(cum_case_95pct),
+  #           cumConfirmed=sum(cumConfirmed),
+            incidC=sum(incidC),
+            incidC_5pct=sum(incidC_5pct),
+            incidC_95pct=sum(incidC_95pct),
+            confirmed=sum(confirmed)) %>%
   ungroup() %>%
   group_by(scenario, death_Rate)%>%
   arrange(time)%>%
   ungroup
 
-usa_sum%>%ggplot(aes(x=time, y=cum_case, ymin=cum_case_5pct, ymax=cum_case_95pct, linetype=death_Rate))+
+usa_sum%>%ggplot(aes(x=week, y=incidC, ymin=incidC_5pct, ymax=incidC_95pct, linetype=death_Rate))+
   geom_line(col = "red ")+
   geom_ribbon(alpha=.1, aes(fill = death_Rate)) +
-  geom_point(aes(y=cumConfirmed), color="black")+
+  geom_point(aes(y=confirmed), color="black")+
   ylab("approximate cases") + 
   theme(legend.title = element_text("death rate"))+
   theme_bw()
@@ -944,13 +969,21 @@ fig_counter<-fig_counter+1
 ```{r mae_infect, fig.height=10, fig.wdith=10, fig.cap=cap}
 cap<-paste0("**Fig.", fig_counter, "**: Mean absolute error comparing estimated and confirmed cases in", {if(run=="state") " counties" else(" states")}," by death rate")
 
-mae_infect <-res_state%>%
-  group_by(scenario, death_Rate, !!as.symbol(geogroup)) %>%
-  inner_join(jhu_CSSE_dat%>%rename(time=date), by = c(geogroup, "time")) %>%
-  mutate(error = abs(cum_case-cumConfirmed), 
-         relative = abs(cum_case-cumConfirmed)/cumConfirmed,
-         within = if_else(cumConfirmed>cum_case_95pct |
-                            cumConfirmed<cum_case_5pct, 0, 1)) %>%
+mae_infect <-res_state %>%
+    inner_join(jhu_CSSE_dat%>%rename(time=date), by = c(geogroup, "time")) %>%
+    group_by(death_Rate, !!as.symbol(geogroup), week=lubridate::floor_date(time, unit="week", week_start=1)) %>%
+  {if(run=="state") group_by(.,death_Rate, !!as.symbol(geogroup), Admin2, week) else(.)} %>%
+    summarize(cumConfirmed=max(cumConfirmed),
+             incidC=sum(incidC),
+             incidC_5pct=sum(incidC_5pct),
+             incidC_95pct=sum(incidC_95pct)) %>%
+    mutate(confirmed=c(0,diff(cumConfirmed))) %>%
+    mutate(error=abs(incidC-confirmed), 
+         within = if_else(confirmed>incidC_95pct |
+                            confirmed<incidC_5pct, 0, 1),
+         incidC=if_else(incidC==0,1,incidC),
+         confirmed=if_else(confirmed==0,1,confirmed),
+         relative = abs(incidC-confirmed)/confirmed) %>%
   {if(run=="state") group_by(.,scenario, death_Rate, !!as.symbol(geogroup), Admin2) else(.)} %>%
   filter(!is.na(error)) %>%
   summarize(mae = sum(error)/n(),
@@ -1008,7 +1041,8 @@ mae_infect %>%
         ) +
   xlab("% of infections outside the 95% prediction interval") +
   scale_x_continuous(expand = c(0,0))+
-  coord_cartesian(xlim = c(0, 1.05))
+  coord_cartesian(xlim = c(0, 1.05))+
+  geom_vline(xintercept = 1-(mae_infect%>%ungroup()%>%summarize(m=mean(within)))$m, linetype="dashed")
 
 fig_counter<-fig_counter+1
 
@@ -1018,22 +1052,27 @@ fig_counter<-fig_counter+1
 cap<-paste0("**Fig.", fig_counter, "**: Estimated vs confirmed cases over time in the four", {if(run=="state") " counties" else(" states")}," with the largest MAE by death rate")
 
 key_group <- mae_infect %>%
-  group_by(death_Rate, scenario) %>%
+  group_by(death_Rate) %>%
   top_n(4, mae) %>%
   mutate(mae = round(mae, 2)) %>%
   {if(run=="state") unite(., "group_mae", Admin2:mae, sep=": ", remove = FALSE) else(unite(., group_mae, !!as.symbol(geogroup):mae, sep=": ", remove = FALSE))}
 
 res_state %>%
-  left_join(key_group, by = c(geogroup, "death_Rate", "scenario")) %>%
+  left_join(key_group, by = c(geogroup, "death_Rate")) %>%
   filter(!is.na(group_mae)) %>%
   inner_join(jhu_CSSE_dat%>%rename(time=date))%>%
   # {if(run=="state") rename(., group=Admin2) else(rename(.,group=!!as.symbol(geogroup)))} %>%
-  group_by(scenario, death_Rate, group_mae)%>%
-  ungroup() %>%
-  ggplot(aes(x=time, y=cum_case, ymin=cum_case_5pct, ymax=cum_case_95pct))+
+  group_by(death_Rate, group_mae, week=lubridate::floor_date(time, unit="week", week_start=1))%>%
+  summarize(cumConfirmed=max(cumConfirmed),
+             incidC=sum(incidC),
+             incidC_5pct=sum(incidC_5pct),
+             incidC_95pct=sum(incidC_95pct)) %>%
+  group_by(death_Rate, group_mae)%>%
+  mutate(confirmed=c(0,diff(cumConfirmed)))%>%
+  ggplot(aes(x=time, y=incidC, ymin=incidC_5pct, ymax=incidC_95pct))+
   geom_line(color = "red")+
   geom_ribbon(alpha=0.1, fill="red") +
-  geom_point(aes(y=cumConfirmed), color="black")+
+  geom_point(aes(y=confirmed), color="black")+
   facet_wrap(~death_Rate+group_mae, nrow=3) +
   scale_y_sqrt()+
   theme_bw()+
@@ -1055,7 +1094,7 @@ res_state%>%
   mutate(death_hosp_ratio = cum_death/cum_hosp)%>%
   ggplot(aes(x=time, y=death_hosp_ratio, color=death_Rate)) +
     geom_point(alpha=.01) +
-    geom_hline(yintercept=.1) +
+    geom_hline(yintercept=config$hospitalization$parameters$p_death[1]/config$hospitalization$parameters$p_hosp_inf[1]) +
   theme_bw()
 
 fig_counter<-fig_counter+1
@@ -1072,7 +1111,7 @@ res_state%>%
   mutate(death_hosp_ratio = lead_death/cum_hosp)%>%
   ggplot(aes(x=time, y=death_hosp_ratio, color=death_Rate)) +
     geom_point(alpha=.01) +
-    geom_hline(yintercept=.1)+
+    geom_hline(yintercept=config$hospitalization$parameters$p_death[1]/config$hospitalization$parameters$p_hosp_inf[1])+
   theme_bw()
 
 fig_counter<-fig_counter+1
@@ -1118,15 +1157,21 @@ fig_counter<-fig_counter+1
 cap<-paste0("**Fig.", fig_counter, "**: Estimated vs confirmed cases over time across", {if(run=="state") " counties " else(" states ")} ,"by death rate.")
 
 res_state %>%
-  left_join(mae_infect, by = c(geogroup, "death_Rate", "scenario")) %>%
+  left_join(mae_infect, by = c(geogroup, "death_Rate")) %>%
   {if(run=="state") unite(., "name_mae", Admin2:mae, sep=": ", remove = FALSE) else(unite(., "name_mae", !!as.symbol(geogroup):mae, sep=": ", remove = FALSE))} %>%
   inner_join(jhu_CSSE_dat%>%rename(time=date))%>%
-  group_by(scenario, death_Rate, name_mae)%>%
+{if(run=="state") group_by(.,death_Rate, name_mae, week=lubridate::floor_date(time, unit="week", week_start=1), Admin2) else(group_by(.,death_Rate, name_mae, week=lubridate::floor_date(time, unit="week", week_start=1), USPS))}%>%
+  summarize(cumConfirmed=max(cumConfirmed),
+             incidC=sum(incidC),
+             incidC_5pct=sum(incidC_5pct),
+             incidC_95pct=sum(incidC_95pct)) %>%
+  group_by(death_Rate, name_mae)%>%
+  mutate(confirmed=c(0,diff(cumConfirmed)))%>%
   ungroup() %>%
-  ggplot(aes(x=time, y=cum_case, ymin=cum_case_5pct, ymax=cum_case_95pct))+
+  ggplot(aes(x=week, y=incidC, ymin=incidC_5pct, ymax=incidC_95pct))+
   geom_line(color= "red")+
   geom_ribbon(alpha=0.1, fill="red") +
-  geom_point(aes(y=cumConfirmed), color="black")+
+  geom_point(aes(y=confirmed), color="black")+
   facet_grid({if(run=="state") Admin2 else(USPS)} ~ death_Rate, scales = "free")+
   #scale_y_sqrt()+
   theme_bw()+
