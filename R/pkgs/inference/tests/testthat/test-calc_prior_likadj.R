@@ -18,4 +18,13 @@ test_that("The log likelihood is correct for the given distirbution", {
 
 })
 
+test_that("logit_normal behaves sensibly with  0s and 1s (i.e., does not return NAs", {
+    
+    tmp <- calc_prior_likadj(c(0,1),
+                             "logit_normal",
+                             c(0,1))
 
+    print(tmp)
+
+    expect_false(is.nan(sum(tmp)))
+})

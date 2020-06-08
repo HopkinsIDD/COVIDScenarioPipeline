@@ -226,3 +226,32 @@ test_that("sensible things are returned whern there is only 1 geoid in a locatio
     expect_true(!is.na(adj$likadj[adj$geoid=="01001"]))
     
 })
+
+
+test_that("logit transform does not blow up on 0 or 1", {
+    val<- runif(3,0,1)
+    val[1] <- 0
+    val[2] <- 1
+
+    ##makes data frame with stats
+    infer_frame <- tibble(geoid=c("01001","01002","01003"),
+                              npi_name=rep("val1", each=3),
+                              value=val)
+
+
+    ##make geodata dataframe
+    geodata <- tibble(geoid=c("01001","01002","01003",
+                                  "06001", "06002","06003"),
+                          USPS=rep(c("HI","CA"), each=3))
+
+
+    logit <-  calc_hierarchical_likadj("val1", infer_frame, geodata, "USPS",
+                                       stat_col="value",
+                                       transform="logit")
+    
+ 
+    expect_false(is.nan(max(logit$likadj)))
+    expect_false(is.nan(min(logit$likadj)))
+       
+
+})
