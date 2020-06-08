@@ -90,7 +90,7 @@ def _success_create_seeding_US(test_dir):
     # Make Makefile
     cmd = ["Rscript", "../../R/scripts/create_seeding.R",
             "-c", f"config.yml",
-            "-s", "CSSE",
+            "-s", "CSSE"
             ]
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"create_seeding.R failed for US setup using JHU CSSE data with code {complete.returncode}"
