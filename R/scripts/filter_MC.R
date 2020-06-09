@@ -132,24 +132,31 @@ for(scenario in scenarios) {
     # Load
 
     slot_prefix <- covidcommon::create_prefix(config$name,scenario,deathrate,opt$run_id,sep='/',trailing_separator='/')
-    block_prefix <- covidcommon::create_prefix(prefix=slot_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
-    local_prefix <- covidcommon::create_prefix(prefix=block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
-    if(!dir.exists(dirname(local_prefix))){
-      dir.create(dirname(local_prefix),recursive=TRUE)
-    }
 
+    gf_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','final',sep='/',trailing_separator='/')
+    ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/')
+    gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/')
+
+
+    chimeric_block_prefix <- covidcommon::create_prefix(prefix=ci_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
+    chimeric_local_prefix <- covidcommon::create_prefix(prefix=chimeric_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
+
+    global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
+    global_local_prefix <- covidcommon::create_prefix(prefix=global_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
+    
+    
     ## pass prefix to python and use
     reticulate::py_run_string(paste0("deathrate = '", deathrate, "'"))
-    reticulate::py_run_string(paste0("prefix = '", block_prefix, "'"))
+    reticulate::py_run_string(paste0("prefix = '", chimeric_block_prefix, "'"))
     reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
     
 
-    first_spar_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'spar','parquet')
-    first_snpi_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'snpi','parquet')
-    first_hosp_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'hosp.global','parquet')
-    first_hpar_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'hpar','parquet')
-    first_seed_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'seed','csv')
-    first_chim_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'chim','parquet')
+    first_spar_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'spar','parquet')
+    first_snpi_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'snpi','parquet')
+    first_hosp_file <- covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'hosp','parquet')
+    first_hpar_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'hpar','parquet')
+    first_seed_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'seed','csv')
+    first_chim_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'llik','parquet')
 
     # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
     err <- 0
@@ -215,7 +222,7 @@ for(scenario in scenarios) {
       }
 
       file.copy(
-        covidcommon::create_file_name(opt$run_id,block_prefix,this_index,'hosp','parquet'),
+        covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,this_index,'hosp','parquet'),
         first_hosp_file
       )
     }
@@ -324,16 +331,16 @@ for(scenario in scenarios) {
       print(paste("Running simulation", this_index))
 
       ## Create filenames
-      this_spar_file <- covidcommon::create_file_name(opt$run_id,local_prefix,this_index,'spar','parquet')
-      this_snpi_file <- covidcommon::create_file_name(opt$run_id,local_prefix,this_index,'snpi','parquet')
-      this_hosp_file <- covidcommon::create_file_name(opt$run_id,local_prefix,this_index,'hosp','parquet')
-      this_hpar_file <- covidcommon::create_file_name(opt$run_id,local_prefix,this_index,'hpar','parquet')
-      this_seed_file <- covidcommon::create_file_name(opt$run_id,local_prefix,this_index,'seed','csv')
-      this_chim_file <- covidcommon::create_file_name(opt$run_id,local_prefix,this_index,'chim','parquet')
-      this_llik_file <- covidcommon::create_file_name(opt$run_id,local_prefix,this_index,'llik','parquet')
+      this_spar_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'spar','parquet')
+      this_snpi_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'snpi','parquet')
+      this_hosp_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'hosp','parquet')
+      this_hpar_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'hpar','parquet')
+      this_seed_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'seed','csv')
+      this_chim_file <- covidcommon::create_file_name(opt$run_id,chimeric_local_prefix,this_index,'llik','parquet')
+      this_llik_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'llik','parquet')
 
       ## Setup python
-      reticulate::py_run_string(paste0("prefix = '", local_prefix, "'"))
+      reticulate::py_run_string(paste0("prefix = '", global_local_prefix, "'"))
       reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
       ## Do perturbations from accepted
@@ -454,53 +461,73 @@ for(scenario in scenarios) {
 
     if(current_index != 0){
       file.copy(
-        covidcommon::create_file_name(opt$run_id,local_prefix,current_index,'hosp','parquet'),
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'hosp.global','parquet')
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'hosp','parquet'),
+        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'hosp','parquet')
       )
       file.copy(
-        covidcommon::create_file_name(opt$run_id,local_prefix,current_index,'llik','parquet'),
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'llik.global','parquet')
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'llik','parquet'),
+        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'llik','parquet')
       )
       file.copy(
-        covidcommon::create_file_name(opt$run_id,local_prefix,current_index,'snpi','parquet'),
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'snpi.global','parquet')
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'snpi','parquet'),
+        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'snpi','parquet')
       )
       file.copy(
-        covidcommon::create_file_name(opt$run_id,local_prefix,current_index,'spar','parquet'),
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'spar.global','parquet')
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'spar','parquet'),
+        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'spar','parquet')
       )
       file.copy(
-        covidcommon::create_file_name(opt$run_id,local_prefix,current_index,'hpar','parquet'),
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'hpar.global','parquet')
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'hpar','parquet'),
+        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'hpar','parquet')
+      )
+      file.copy(
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'hosp','parquet'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'hosp','parquet')
+      )
+      file.copy(
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'llik','parquet'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'llik','parquet')
+      )
+      file.copy(
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'snpi','parquet'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'snpi','parquet')
+      )
+      file.copy(
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'spar','parquet'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'spar','parquet')
+      )
+      file.copy(
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'hpar','parquet'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'hpar','parquet')
       )
     } else {
       file.copy(
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1 ,'hosp.global','parquet'),
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'hosp.global','parquet')
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1 ,'hosp','parquet'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'hosp','parquet')
       )
       file.copy(
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'llik.global','parquet'),
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'llik.global','parquet')
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'llik','parquet'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'llik','parquet')
       )
       file.copy(
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'snpi.global','parquet'),
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'snpi.global','parquet')
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'snpi','parquet'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'snpi','parquet')
       )
       file.copy(
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'spar.global','parquet'),
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'spar.global','parquet')
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'spar','parquet'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'spar','parquet')
       )
       file.copy(
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'hpar.global','parquet'),
-        covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'hpar.global','parquet')
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'hpar','parquet'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'hpar','parquet')
       )
     }
 
 
-    readr::write_csv(initial_seeding,covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'seed','csv'))
-    arrow::write_parquet(initial_snpi,covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'snpi','parquet'))
-    arrow::write_parquet(initial_spar,covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'spar','parquet'))
-    arrow::write_parquet(initial_hpar,covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'hpar','parquet'))
-    arrow::write_parquet(initial_likelihood_data,covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'chim','parquet'))
+    readr::write_csv(initial_seeding,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'seed','csv'))
+    arrow::write_parquet(initial_snpi,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'snpi','parquet'))
+    arrow::write_parquet(initial_spar,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'spar','parquet'))
+    arrow::write_parquet(initial_hpar,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'hpar','parquet'))
+    arrow::write_parquet(initial_likelihood_data,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'llik','parquet'))
   }
 }
