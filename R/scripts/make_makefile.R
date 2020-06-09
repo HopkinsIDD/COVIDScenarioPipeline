@@ -166,13 +166,45 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   ))
 }
 
+quantile_state_target_name <- function(scenario, deathrate) {
+  return(sprintf("quantile/%s_%s_state.csv", scenario, deathrate))
+}
+
+quantile_state_make_command <- function(scenario, simulations, deathrate) {
+  s <- paste0(": ", hospitalization_target_name(simulations, scenario, deathrate))
+
+  scenario_dir <- paste0(config$name, "_", scenario)
+  command_name <- paste("\t$(RSCRIPT) $(PIPELINE)/scripts/QuantileSummarizeStateLevel.R",
+                            "-d",deathrate,"-o",quantile_extent_target_name(scenario, deathrate),
+                            "-j $(NCOREPER) -c $(CONFIG)", scenario_dir)
+
+  s <- paste0(s, "\n", command_name, "\n")
+  return(s)
+}
+
+quantile_extent_target_name <- function(scenario, deathrate) {
+  return(sprintf("quantile/%s_%s_extent.csv", scenario, deathrate))
+}
+
+quantile_extent_make_command <- function(scenario, simulations, deathrate) {
+  s <- paste0(": ", hospitalization_target_name(simulations, scenario, deathrate))
+
+  scenario_dir <- paste0(config$name, "_", scenario)
+  command_name <- paste("\t$(RSCRIPT) $(PIPELINE)/scripts/QuantileSummarizeGeoExtent.R",
+                            "-d",deathrate,"-o",quantile_extent_target_name(scenario, deathrate),
+                            "-j $(NCOREPER) -c $(CONFIG)", scenario_dir)
+
+  s <- paste0(s, "\n", command_name, "\n")
+  return(s)
+}
+
 report_html_target_name <- function(report_name) {
   return(sprintf("notebooks/%s/%s_report.html", report_name, report_name))
 }
 
 report_html_make_command <- function(report_name, scenarios, simulations, deathrates, config) {
   rmd_file = report_rmd_target_name(report_name)
-  s <- run_dependencies(scenarios, simulations, deathrates)
+  s <- paste(":", run_dependencies(scenarios, simulations, deathrates))
   s <- paste0(s, " ", rmd_file,"\n")
 
   renderCmd = sprintf("\t$(RSCRIPT) -e 'rmarkdown::render(\"%s\"", rmd_file)
@@ -200,14 +232,27 @@ report_rmd_target_name(report_name), report_name))
 }
 
 run_dependencies <- function(scenarios, simulations, deathrates) {
-  s <- ":"
+  s <- ""
   for(scenario in scenarios)
   {
-    s <- paste0(s, " ", simulation_target_name(simulations, scenario))
+    s <- paste(s, simulation_target_name(simulations, scenario))
     for(deathrate in deathrates)
     {
-      s <- paste0(s, " ", hospitalization_target_name(simulations, scenario, deathrate))
+      s <- paste(s, hospitalization_target_name(simulations, scenario, deathrate))
     }
+  }
+  return(s)
+}
+
+quantile_dependencies <- function(scenarios, deathrates) {
+  s <- ""
+  for(scenario in scenarios)
+  {
+    for(deathrate in deathrates)
+    {
+      s <- paste(s, quantile_extent_target_name(scenario, deathrate), quantile_state_target_name(scenario, deathrate))
+    }
+    s <- paste0(s, "\\\n\t")
   }
   return(s)
 }
@@ -229,12 +274,17 @@ cat(paste0("CONFIG=",opt$config,"\n\n"))
 # If generating report, first target is the html file.
 # Otherwise, first target is run.
 # For both, the dependencies include all the simulation targets.
+cat("run: ")
+cat(quantile_dependencies(scenarios, deathrates))
 if(generating_report) {
+  dependencies <- paste(report_html_target_name(report_name))
+  cat(dependencies)
+  cat("\n")
   cat(report_html_target_name(report_name))
   cat(report_html_make_command(report_name, scenarios, simulations, deathrates, config))
   cat(report_rmd_make_command(report_name))
 } else {
-  cat("run")
+  cat("\\\n\t")
   cat(run_dependencies(scenarios, simulations, deathrates))
 }
 
@@ -268,14 +318,24 @@ for(sim_idx in seq_len(length(simulations))){
   }
 }
 
+for(scenario in scenarios){
+  for (deathrate in deathrates){
+    cat(quantile_extent_target_name(scenario, deathrate))
+    cat(quantile_extent_make_command(scenario, simulations, deathrate))
+    cat(quantile_state_target_name(scenario, deathrate))
+    cat(quantile_state_make_command(scenario, simulations, deathrate))
+  }
+}
+
 cat("
 .files/directory_exists:
 \tmkdir -p .files
 \ttouch .files/directory_exists
 ")
 
-
-cat("\n\nrerun: rerun_simulations rerun_hospitalization")
+# Reruns and cleans
+# TODO: This section needs some TLC
+cat("\n\nrerun: rerun_simulations rerun_hospitalization rerun_quantiles")
 
 if(using_importation){
   cat(" rerun_importation")
@@ -306,7 +366,8 @@ rerun_simulations: clean_simulations
 \trm -f .files/*_simulation*
 rerun_hospitalization:
 \trm -f .files/*_hospitalization*
-clean: clean_simulations clean_hospitalization"))
+rerun_quantiles: clean_quantiles
+clean: clean_simulations clean_hospitalization clean_quantiles"))
 if(using_importation){
   cat(" clean_importation")
 }
@@ -323,6 +384,8 @@ clean_simulations: rerun_simulations
 \trm -rf model_output
 clean_hospitalization: rerun_hospitalization
 \trm -rf hospitalization
+clean_quantiles:
+\trm -rf quantile
 ")
 if(generating_report)
 {
