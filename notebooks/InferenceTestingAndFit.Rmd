@@ -168,7 +168,8 @@ seeding_all_samples %>%
 ```
 
 ```{r npitrace, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="NPI traces per slot (reduction for basic R0 and subsequent NPI, horizontal red lines indicate values used to simulate)"}
-npis <- npis_dataframe(config)
+npis <- npis_dataframe(config) %>% 
+  mutate(npi_name = ifelse(npi_name == "npi", "test", npi_name))
 
 
 npi_all_samples %>% 
@@ -281,7 +282,7 @@ to_fit %>%
   theme_bw()
 
 ```
-```{r}
+```{r echo=FALSE}
 npi_file <-  paste0(dir_out, "npi_multi_samples.csv")  # path to all npis samples
 seeding_file <-  paste0(dir_out, "seeding_multi_samples.csv")  # path to all seeding samples
 loglik_file <-  paste0(dir_out, "loglik_multi_samples.csv")  # path to all neg log-likelihood samples
@@ -373,11 +374,11 @@ location_loglik_samples %>%
   facet_wrap(~geoid, scales = "free") +
   theme_bw()
 
-location_loglik_samples %>% 
-  select(-index) %>% 
-  pivot_wider(values_from = "ll", names_from = "geoid") %>% 
-  select(-slot) %>% 
-  pairs()
+# location_loglik_samples %>% 
+#   select(-index) %>% 
+#   pivot_wider(values_from = "ll", names_from = "geoid") %>% 
+#   select(-slot) %>% 
+#   pairs()
 ```
 
 ```{r seedtrace2, echo=FALSE, fig.height=8, fig.width=8, message=FALSE, warning=FALSE, fig.cap="Seeding traces per slot (amount and date, horizontal red lines indicate values used to simulate)"}
@@ -431,11 +432,11 @@ ggplot(npi_samples) +
   theme_bw()
 ```
 
-```{r epidraws2, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Draws of simulated epidemic trajectories (blue) and synthetic data on which calibration was done (black)."}
+```{r epidraws2, echo=FALSE, fig.height=14, fig.width=16, message=FALSE, warning=FALSE, fig.cap="Draws of simulated epidemic trajectories (blue) and synthetic data on which calibration was done (black)."}
 ggplot(long_sim_samples, aes(x = time, y = value)) +
   geom_line(aes(group = slot), alpha = .1, color = "blue") + 
   geom_point(data = obs_data, aes(x = date), size = .1, alpha = .5) +
-  facet_grid(geoid~var, scales = "free") +
+  facet_grid(var~geoid, scales = "free") +
   theme_bw()
 ```
 
@@ -455,7 +456,7 @@ long_sim_samples %>%
 ```
 
 
-```{r mse, fig.width=10, fig.height=5}
+```{r mse, echo=FALSE, fig.cap="Mean squared error trajectories for each variable. Fitting was done using only death (incidD) and hospitalization (incidH) incidence.", fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
 
 mse_traj <- map_df(sim_files, function(x) read_csv(x, col_types = cols()) %>% 
                         mutate(slot = str_extract(x, "(?<=slot_)[0-9]+(?=_)"),
@@ -476,7 +477,7 @@ mse_traj %>%
 ```
 
 
-```{r acceptance2, fig.width=10, fig.height=5}
+```{r acceptance2, echo=FALSE, fig.height=5, fig.width=10, fig.cap="MCMC simulation trajectory acceptance rate."}
 # Get acceptance IDs
 sim_samples <- map_df(sim_files, function(x) read_csv(x, col_types = cols()) %>% 
                         mutate(slot = str_extract(x, "(?<=slot_)[0-9]+(?=_)"),
