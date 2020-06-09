@@ -11,10 +11,11 @@ from SEIR.utils import config
 import pyarrow.parquet as pq
 import pyarrow as pa
 import pandas as pd
+from SEIR import file_paths
 
 
 
-def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_outcomes, branching_file, nsim = 1, index=1, n_jobs=1):
+def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching_file, nsim = 1, index=1, n_jobs=1):
     start = time.monotonic()
     sim_ids = np.arange(index, index + nsim)
 
@@ -24,8 +25,13 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
     config_outcomes = config["outcomes"]["settings"][scenario_outcomes]
     if (config["outcomes"]["param_from_file"].get()):
         # load a file from the seir model, to know how to filter the provided csv file
-        sim_id_str = str(sim_ids[0]).zfill(9)
-        diffI = pd.read_parquet(f'model_output/{setup_name}/{sim_id_str}.seir.parquet')
+        diffI = pd.read_parquet(file_paths.create_file_name(
+          run_id,
+          prefix,
+          sim_ids[0],
+          'seir',
+          'parquet'
+        ))
         diffI = diffI[diffI['comp'] == 'diffI']
         dates = diffI.time
         diffI.drop(['comp'], inplace = True, axis = 1)
@@ -76,14 +82,16 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
 
     if n_jobs == 1:          # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_outcomes)
+            onerun_delayframe_outcomes(run_id, prefix, sim_id, parameters)
     else:
-        tqdm.contrib.concurrent.process_map(onerun_delayframe_outcomes, sim_ids, 
-                                                                    itertools.repeat(parameters), 
-                                                                    itertools.repeat(setup_name), 
-                                                                    itertools.repeat(outdir), 
-                                                                    itertools.repeat(scenario_outcomes),
-                                            max_workers=n_jobs)
+        tqdm.contrib.concurrent.process_map(
+            onerun_delayframe_outcomes,
+            itertools.repeat(run_id), 
+            itertools.repeat(prefix), 
+            sim_ids, 
+            itertools.repeat(parameters), 
+            max_workers=n_jobs
+        )
 
     print(f"""
 >> {nsim} outcomes simulations completed in {time.monotonic()-start:.1f} seconds
@@ -91,32 +99,44 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
 
 
 
-def onerun_delayframe_outcomes(sim_id, parameters, setup_name, outdir, scenario_outcomes):
-    sim_id_str = str(sim_id).zfill(9)
+def onerun_delayframe_outcomes(run_id, prefix, sim_id, parameters):
     
     # Read files
-    diffI, places, dates = read_seir_sim(sim_id_str, setup_name)
+    diffI, places, dates = read_seir_sim(run_id, prefix, sim_id)
     
     # Compute outcomes
     outcomes = compute_all_delayframe_outcomes(parameters, diffI, places, dates)
 
     # Write output
-    write_outcome_sim(outcomes, outdir, scenario_outcomes, sim_id_str)
+    write_outcome_sim(outcomes, run_id, prefix, sim_id)
 
 
-def read_seir_sim(sim_id_str, setup_name):
-    diffI = pd.read_parquet(f'model_output/{setup_name}/{sim_id_str}.seir.parquet')
+def read_seir_sim(run_id, prefix, sim_id):
+    diffI = pd.read_parquet(file_paths.create_file_name(
+        run_id,
+        prefix,
+        sim_id,
+        'seir',
+        'parquet'
+    ))
     diffI = diffI[diffI['comp'] == 'diffI']
     dates = diffI.time
     diffI.drop(['comp'], inplace = True, axis = 1)
     places = diffI.drop(['time'], axis=1).columns
     return diffI, places, dates
 
-def write_outcome_sim(outcomes, outdir, scenario_outcomes, sim_id_str):
+def write_outcome_sim(outcomes, run_id, prefix, sim_id):
     out_df = pa.Table.from_pandas(outcomes, preserve_index = False)
-    #pa.parquet.write_table(out_df, f"{outdir}{scenario_outcomes}-{sim_id_str}.outcomes.parquet")
-    pa.parquet.write_table(out_df, f"{outdir}{scenario_outcomes}_death_death-{sim_id_str}.hosp.parquet")
-
+    pa.parquet.write_table(
+        out_df,
+        file_paths.create_file_name(
+            run_id,
+            prefix,
+            sim_id,
+            'hosp',
+            'parquet'
+        )
+    )
 
 def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
     all_data = {}

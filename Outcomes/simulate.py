@@ -74,8 +74,10 @@ from Outcomes import outcomes
 @click.option("-j", "--jobs", type=click.IntRange(min=1),
               default=multiprocessing.cpu_count(), show_default=True,
               help="the parallelization factor")
+@click.option("--id","--id", "run_id", envvar="COVID_RUNID", type = str, default=run_id(),show_default=TRUE, help= "unique identifier for the run")
+@click.option("--prefix","--prefix", "prefix", envvar="COVID_PREFIX", type = str, default=run_id(),show_default=TRUE, help= "unique identifier for the run")
 
-def simulate(config_file, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
+def simulate(config_file, run_id, prefix, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
     config.set_file(config_file)
     if not scenarios_outcomes:
         scenarios_outcomes = config["outcomes"]["scenarios"].as_str_seq()
@@ -103,9 +105,8 @@ def simulate(config_file, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
     """)
             if (config["outcomes"]["method"].get() == 'delayframe'):
                 outcomes.run_delayframe_outcomes(config, 
-                            setup_name, 
-                            outdir, 
-                            scenario_seir, 
+                            run_id(),
+                            prefix,
                             scenario_outcomes,
                             config["outcomes"]["param_place_file"],
                             nsim, 

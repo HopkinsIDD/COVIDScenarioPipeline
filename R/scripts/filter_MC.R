@@ -119,9 +119,12 @@ required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
 reticulate::py_run_string(paste0("run_id = '", opt$run_id, "'"))
 reticulate::import_from_path("SEIR", path=opt$pipepath)
+reticulate::import_from_path("Outcomes", path=opt$pipepath)
 reticulate::py_run_string(paste0("index = ", 1))
 
 for(scenario in scenarios) {
+
+  reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
 
   for(deathrate in deathrates) {
     # Data -------------------------------------------------------------------------
@@ -129,12 +132,6 @@ for(scenario in scenarios) {
     first_spar_file <- covidcommon::spar_file_path(config,opt$this_slot, scenario)
     first_snpi_file <- covidcommon::snpi_file_path(config,opt$this_slot, scenario)
     ## One time setup for python
-    reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
-    reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
-    reticulate::py_run_string(paste0("deathrate = '", deathrate, "'"))
-    reticulate::import_from_path("SEIR", path=opt$pipepath)
-    reticulate::import_from_path("Outcomes", path=opt$pipepath)
-    reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
       # Data -------------------------------------------------------------------------
       # Load
     first_param_file <- covidcommon::spar_file_path(config,opt$this_slot, scenario)
@@ -142,6 +139,7 @@ for(scenario in scenarios) {
     first_hosp_file <- covidcommon::hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
     first_hpar_file <- covidcommon::hpar_file_path(config,opt$this_slot, scenario, deathrate)
     first_seeding_file <- covidcommon::seeding_file_path(config,opt$this_slot)
+
     slot_prefix <- covidcommon::create_prefix(config$name,scenario,deathrate,opt$run_id,trailing_separator='/')
     block_prefix <- covidcommon::create_prefix(prefix=slot_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
     local_prefix <- covidcommon::create_prefix(prefix=block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
@@ -150,6 +148,7 @@ for(scenario in scenarios) {
     }
 
     ## pass prefix to python and use
+    reticulate::py_run_string(paste0("deathrate = '", deathrate, "'"))
     reticulate::py_run_string(paste0("prefix = '", block_prefix, "'"))
     reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
     
@@ -216,7 +215,6 @@ for(scenario in scenarios) {
 
       ## Run hospitalization
       err <- py$onerun_HOSP(this_index)
-      err <- py$onerun_HOSP(this_index,block_prefix,opt$run_id)
       err <- ifelse(err == 1,0,1)
       if(length(err) == 0){
         stop("HOSP failed to run")
@@ -365,7 +363,7 @@ for(scenario in scenarios) {
         stop("SEIR failed to run")
       }
 
-      err <- py$onerun_HOSP(this_index,local_prefix,opt$run_id)
+      err <- py$onerun_HOSP(this_index)
       err <- ifelse(err == 1,0,1)
       if(length(err) == 0){
         stop("HOSP failed to run")
