@@ -181,7 +181,6 @@ Hash: 6cc063b236e3bbc174a73959145488ef
 Package: covidImportation
 Source: github
 Version: 1.6.1
-Hash: 583495445ef6143fcbb33c712e2d39f7
 Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
     dplyr, fitdistrplus, geosphere, ggplot2, ggvoronoi,
     globaltoolboxlite, gpclib, httr, igraph, lubridate, magrittr,
@@ -190,12 +189,12 @@ Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
 GithubRepo: covidImportation
 GithubUsername: HopkinsIDD
 GithubRef: v1.6.1
-GithubSha1: 824d3102afb23f5b4ae6c5104fe5303dbbd7cca2
+GithubSha1: 3cf2341907d23e1b19a3a3190dfca29b50d22218 
 RemoteHost: api.github.com
 RemoteRepo: covidImportation
 RemoteUsername: HopkinsIDD
 RemoteRef: v1.6.1
-RemoteSha: 824d3102afb23f5b4ae6c5104fe5303dbbd7cca2
+RemoteSha: 3cf2341907d23e1b19a3a3190dfca29b50d22218 
 
 Package: covidcommon
 Source: source
