@@ -1,6 +1,6 @@
 ##
 # @file
-# @brief Creates a filter file
+# @brief Creates a seeding file
 #
 # @details
 #
@@ -8,7 +8,6 @@
 # ## Configuration Items
 # 
 # ```yaml
-# dynfilter_path: <path to file>
 # start_date: <date>
 # end_date: <date>
 #
@@ -17,6 +16,8 @@
 #   base_path: <path to directory>
 #   geodata: <path to file>
 #   nodenames: <string>
+#   lambda_file: <string>
+
 # ```
 #
 # ## Input Data
@@ -26,7 +27,7 @@
 # ## Output Data
 #
 # * <b>importation/{spatial_setup::setup_name}/case_data/jhucsse_case_data.csv</b> is a csv with case data from JHU CSSE
-# * <b>{dynfilter_path}</b>: filter file
+# * <b>{spatial_setup::lambda_file}</b>: seeding file
 #
 
 ## @cond
@@ -46,19 +47,19 @@ option_list = list(
 
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
-config <- covidcommon::load_config(opt$c)
+config <- covidcommon::load_config(opt$config)
 if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
 all_times <- lubridate::ymd(config$start_date) +
   seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
+
 incid_x <- opt$incid_x
 
 
 
 # Get the data
-
 
 
 # get data if a US model  ---------------------------------
@@ -67,6 +68,8 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
   
   # Load either JHUCSSE or USAFacts data
   if (tolower(opt$source) %in% c("csse", "jhucsse", "jhu csse")){
+    
+    print("Pulling case data from JHU CSSE for US seeding.")
     cases_deaths <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID",
                                      last_date = as.POSIXct(lubridate::ymd(config$end_date)),
                                      case_data_dir = file.path('importation',config$spatial_setup$setup_name,"case_data"),
@@ -75,6 +78,7 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
     print("Successfully pulled JHU CSSE data for seeding.")
     
   } else if (tolower(opt$source) %in% c("usafacts", "usa facts", "usa")){
+    print("Pulling case data from USA Facts for US seeding.")
     cases_deaths <- covidcommon::get_USAFacts_data()
     print("Successfully pulled USAFacts data for seeding.")
   } else { 
@@ -104,22 +108,20 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
           Update = Update - lubridate::days(5),
           incidI = incid_x * incidI + .05
         )
-        
     })
 
 
-  
   
 # from file ---------------------------------
   
 } else {
   
+  print(paste0("Using case data from ", opt$data, "for seeding ", config$spatial_setup$setup_name))
+  
   case_data <- readr::read_csv(opt$data)
-  print(paste0("Case data from: ", opt$data))
-  
-  
-  all_times <- lubridate::ymd(config$start_date) +
-    seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
+  if (!exists("case_data") || is.null(case_data)){
+      stop(paste0("ERROR: ", opt$data, "does not exist!"))
+  }
   
   geodata <- report.generation::load_geodata_file(filename = file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
                                                    geoid_len = config$spatial_setup$geoid_len, geoid_pad = '0', to_lower = TRUE)
