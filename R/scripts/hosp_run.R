@@ -122,7 +122,7 @@ opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
 #' @description Run the hospitalization results.
 #' @importFrom covidcommon load_config
-config <- covidcommon::load_config(opt$c)
+config <- covidcommon::load_config(opt$config)
 if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
