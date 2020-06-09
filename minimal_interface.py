@@ -74,29 +74,32 @@ nsim = 10
 interactive = False
 write_csv = False
 write_parquet = True
-index = 1
 
 
 
-s = setup.Setup(setup_name=config["name"].get() + "_" + str(scenario),
-                        spatial_setup=setup.SpatialSetup(
-                            setup_name=spatial_config["setup_name"].get(),
-                            geodata_file=spatial_base_path / spatial_config["geodata"].get(),
-                            mobility_file=spatial_base_path / spatial_config["mobility"].get(),
-                            popnodes_key=spatial_config["popnodes"].get(),
-                            nodenames_key=spatial_config["nodenames"].get()
-                        ),
-                        nsim=nsim,
-                        npi_scenario=scenario,
-                        npi_config=config["interventions"]["settings"][scenario],
-                        seeding_config=config["seeding"],
-                        ti=config["start_date"].as_date(),
-                        tf=config["end_date"].as_date(),
-                        interactive=interactive,
-                        write_csv=write_csv,
-                        write_parquet=write_parquet,
-                        dt=config["dt"].as_number(),
-                        first_sim_index = index)
+s = setup.Setup(
+    setup_name=config["name"].get() + "_" + str(scenario),
+    spatial_setup=setup.SpatialSetup(
+        setup_name=spatial_config["setup_name"].get(),
+        geodata_file=spatial_base_path / spatial_config["geodata"].get(),
+        mobility_file=spatial_base_path / spatial_config["mobility"].get(),
+        popnodes_key=spatial_config["popnodes"].get(),
+        nodenames_key=spatial_config["nodenames"].get()
+    ),
+    nsim=nsim,
+    npi_scenario=scenario,
+    npi_config=config["interventions"]["settings"][scenario],
+    seeding_config=config["seeding"],
+    ti=config["start_date"].as_date(),
+    tf=config["end_date"].as_date(),
+    interactive=interactive,
+    write_csv=write_csv,
+    write_parquet=write_parquet,
+    dt=config["dt"].as_number(),
+    first_sim_index = index,
+    run_id = run_id,
+    prefix = prefix
+)
 
 
 

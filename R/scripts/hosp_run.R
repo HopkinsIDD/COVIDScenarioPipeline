@@ -116,7 +116,9 @@ option_list = list(
   #' @param -n The number of simulations to run
   optparse::make_option(c("-n", "--num-sims"), action="store", default=-1, type='numeric', help="number of simulations to run"),
 
-  optparse::make_option(c("-g", "--geoid.params.file"), action="store", default="", type='character', help="number of simulations to run")
+  optparse::make_option(c("-g", "--geoid.params.file"), action="store", default="", type='character', help="number of simulations to run"),
+  optparse::make_option(c("--prefix"), action="store", default="", type='character', help="text to use as part of filenames"),
+  optparse::make_option(c("--run_id"), action="store", default="", type='character', help="unique identifier for the run")
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
@@ -209,26 +211,26 @@ if(run_age_adjust){
   }
 
   for (scn0 in scenario) {
-    data_dir <- paste0("model_output/",config$name,"_",scn0)
-    cat(paste(data_dir, "\n"))
     for (cmd0 in cmd) {
       cat(paste("Running hospitalization scenario: ", cmd0, "with IFR", p_death[cmd0], "\n"))
-      res_npi3 <- build_hospdeath_geoid_fixedIFR_par(prob_dat=prob_dat,
-                                                     p_death= p_death[cmd0],
-                                                     p_hosp_inf = p_hosp_inf[cmd0],
-                                                     time_hosp_pars=time_hosp_pars,
-                                                     time_onset_death_pars=time_onset_death_pars,
-                                                     time_disch_pars=time_disch_pars,
-                                                     time_ICU_pars = time_ICU_pars,
-                                                     time_vent_pars = time_vent_pars,
-                                                     time_ventdur_pars = time_ventdur_pars,
-                                                     time_ICUdur_pars = time_ICUdur_pars,
-                                                     cores = ncore,
-                                                     data_dir = data_dir,
-                                                     dscenario_name = paste(cmd,"death",sep="_"),
-                                                     use_parquet = TRUE,
-                                                     start_sim = start_sim,
-                                                     num_sims = num_sims
+      res_npi3 <- build_hospdeath_geoid_fixedIFR_par(
+        prob_dat=prob_dat,
+        p_death= p_death[cmd0],
+        p_hosp_inf = p_hosp_inf[cmd0],
+        time_hosp_pars=time_hosp_pars,
+        time_onset_death_pars=time_onset_death_pars,
+        time_disch_pars=time_disch_pars,
+        time_ICU_pars = time_ICU_pars,
+        time_vent_pars = time_vent_pars,
+        time_ventdur_pars = time_ventdur_pars,
+        time_ICUdur_pars = time_ICUdur_pars,
+        cores = ncore,
+        dscenario_name = paste(cmd,"death",sep="_"),
+        use_parquet = TRUE,
+        start_sim = start_sim,
+        num_sims = num_sims,
+        run_id = opt$run_id,
+        prefix = opt$prefix
       )
     }
   }

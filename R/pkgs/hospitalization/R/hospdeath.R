@@ -143,15 +143,17 @@ hosp_create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
 #' @param geod_len The minimum length each geoid should be
 #' @param padding_char If geoids need to be increased in length, which character should be used to add length
 #' @param use_parquet Whether to save to parquet files rather than csvs
-hosp_load_scenario_sim <- function(scenario_dir,
-                                   sim_id,
-                                   keep_compartments=NULL,
-                                   time_filter_low = -Inf,
-                                   time_filter_high = Inf,
-                                   geoid_len = 0,
-                                   padding_char = "0",
-                                   use_parquet = FALSE
-    ) {
+hosp_load_scenario_sim <- function(
+  prefix,
+  run_id,
+  sim_id,
+  keep_compartments = NULL,
+  time_filter_low = -Inf,
+  time_filter_high = Inf,
+  geoid_len = 0,
+  padding_char = "0",
+  use_parquet = FALSE
+) {
 
     if (geoid_len > 0) {
       padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width=geoid_len,pad=padding_char))}
@@ -159,15 +161,14 @@ hosp_load_scenario_sim <- function(scenario_dir,
       padfn <- function(x) {x}
     }
 
-    file <- paste0(scenario_dir,'/',str_pad(sim_id, width=9, pad="0"),'.seir')
+    extension <- ifelse(use_parquet,'parquet','csv')
+    file <- covidcommon::create_file_name(run_id=run_id,prefix=prefix,index=sim_id,type='seir',extension=extension)
     if(use_parquet){
-      file <- paste0(file,'.parquet')
       tmp <- arrow::read_parquet(file)
       if("POSIXct" %in% class(tmp$time)){
         tmp$time <- lubridate::as_date(tz="GMT",tmp$time)
       }
     } else {
-      file <- paste0(file,'.csv')
       suppressMessages(tmp <- read_csv(file))
     }
     if (!is.null(keep_compartments)) {
@@ -183,19 +184,16 @@ hosp_load_scenario_sim <- function(scenario_dir,
     return(tmp)
 }
 
-write_hosp_output <- function(root_out_dir, data_dir, dscenario_name, sim_id, res, use_parquet)
-{
-  # Write output
-  outdir <- paste0(root_out_dir,'/', data_dir,'/')
+write_hosp_output <- function(res,run_id,prefix,index,use_parquet){
+  extension <- ifelse(use_parquet,"parquet","csv")
+  outfile <- covidcommon::create_file_name(run_id=run_id,prefix=prefix,index=index,type='hosp',extension=extension)
+  outdir <- dirname(outfile)
   if(!dir.exists(outdir)){
     dir.create(outdir,recursive=TRUE)
   }
-  outfile <- paste0(outdir,dscenario_name,"_death-",str_pad(sim_id, width=9, pad="0"),'.hosp')
   if(use_parquet){
-    outfile <- paste0(outfile, '.parquet')
     arrow::write_parquet(res,outfile)
   } else {
-    outfile <- paste0(outfile,'.csv')
     data.table::fwrite(res,outfile)
   }
 }
@@ -241,24 +239,28 @@ build_hospdeath_par <- function(p_hosp,
                                 start_sim = 1,
                                 num_sims = -1) {
 
-  n_sim <- ifelse(num_sims < 0, length(list.files(data_dir)), num_sims)
+  num_sims <- ifelse(num_sims < 0, length(list.files(data_dir)), num_sims)
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
 
-  if(n_sim == 0){
+  if(num_sims == 0){
     stop("No simulations selected to run")
   }
 
-  print(paste("Running over",n_sim,"simulations"))
+  print(paste("Running over",num_sims,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   library(foreach)
-  foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
+  foreach::foreach(s=seq_len(num_sims), .packages=pkgs) %dopar% {
     sim_id <- start_sim + s - 1
-    dat_ <- hosp_load_scenario_sim(data_dir,sim_id,
-                                   keep_compartments = "diffI",
-                                   geoid_len = 5,
-                                   use_parquet = use_parquet) %>%
+    dat_ <- hosp_load_scenario_sim(
+      run_id = run_id,
+      prefix = prefix,
+      sim_id = sim_id,
+      keep_compartments = "diffI",
+      geoid_len = 5,
+      use_parquet = use_parquet
+   ) %>%
       mutate(hosp_curr = 0,
              icu_curr = 0,
              vent_curr = 0,
@@ -312,7 +314,7 @@ build_hospdeath_par <- function(p_hosp,
              icu_curr = 0,
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
-    write_hosp_output(root_out_dir, data_dir, dscenario_name, sim_id, res, use_parquet)
+    write_hosp_output(res=res,run_id=run_id,prefix=prefix,index=sim_id,use_parquet=use_parquet)
     NULL
   }
   doParallel::stopImplicitCluster()
@@ -343,7 +345,6 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   prob_dat,
   p_death,
   p_hosp_inf,
-  data_dir,
   dscenario_name,
   time_hosp_pars = c(1.23, 0.79),
   time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
@@ -356,27 +357,35 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   root_out_dir='hospitalization',
   use_parquet = FALSE,
   start_sim = 1,
-  num_sims = -1
+  num_sims = -1,
+  run_id = covidcommon::run_id(),
+  prefix = covidcommon::create_prefix(dscenario_name,run_id,trailing_sep='/') # Don't love this
 ) {
-  n_sim <- ifelse(num_sims < 0, length(list.files(data_dir)), num_sims)
+  if(num_sims < 0){
+    num_sims <- covidcommon::count_files_of_type(run_id,prefix,'hosp',ifelse(use_parquet,'parquet','csv'))
+  }
+
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
 
-  if(n_sim == 0){
+  if(num_sims == 0){
     stop("No simulations selected to run")
   }
 
   prob_dat <- tidyr::pivot_wider(prob_dat, geoid, "parameter")
   print(summary(prob_dat$p_confirmed_inf))
 
-  print(paste("Running over",n_sim,"simulations"))
+  print(paste("Running over",num_sims,"simulations"))
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   library(foreach)
-  foreach::foreach(s=seq_len(n_sim), .packages=pkgs) %dopar% {
+  # foreach::foreach(s=seq_len(num_sims), .packages=pkgs) %dopar% {
+  for(s in seq_len(num_sims)){
     sim_id <- start_sim + s - 1
     dat_I <- hosp_load_scenario_sim(
-      data_dir, sim_id,
+      run_id = run_id,
+      prefix = prefix,
+      sim_id = sim_id,
       keep_compartments = "diffI",
       geoid_len=5,
       use_parquet = use_parquet
@@ -487,7 +496,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
       ) %>%
       arrange(date_inds, geo_ind)
 
-    write_hosp_output(root_out_dir, data_dir, dscenario_name, sim_id, res, use_parquet)
+    write_hosp_output(res=res,run_id=run_id,prefix=prefix,index=sim_id,use_parquet=use_parquet)
     NULL
   }
   doParallel::stopImplicitCluster()
