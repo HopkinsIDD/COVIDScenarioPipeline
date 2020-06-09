@@ -188,7 +188,7 @@ if(!(any(is.na(res_state$confirmed)))) {
     inner_join(tmp_col(res_state,"cum_confirmed"))
 }
 
-
+suppressWarnings(dir.create(dirname(opt$outfile), recursive=TRUE))
 write_csv(to_save_st, path=opt$outfile)
 
 
