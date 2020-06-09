@@ -50,7 +50,34 @@ class Reduce(NPIBase):
                                     columns=pd.date_range(self.start_date, self.end_date))
         self.dist = npi_config["value"].as_random_distribution()
         period_range = pd.date_range(self.period_start_date, self.period_end_date)
-        self.npi.loc[affected, period_range] = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T
+        npi_draw = np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T
+        self.npi.loc[affected, period_range] = npi_draw
+
+        if "fatigue_rate" in npi_config:
+            self.fatig_rate = npi_config["fatigue_rate"].as_random_distribution()
+            if "fatigue_min" in npi_config:
+                self.fatig_min = npi_config["fatigue_min"].as_evaled_expression()
+            else:
+                self.fatig_min = 0
+            
+            self.fatig_freq = npi_config["fatigue_frequency_days"].as_evaled_expression()
+            if ("fatigue_type" in npi_config) and (npi_config["fatigue_type"].as_str() == 'geometric'):
+                self.fatig_rate = 1 - self.fatig_rate(size=len(affected))
+                self.npi.loc[affected, period_range] =(  npi_draw *  \
+                                                       np.tile(self.fatig_rate,               (len(period_range), 1)).T ** \
+                                                      (np.arange(0,len(period_range))/self.fatig_freq) \
+                                                      ).clip(self.fatig_min)
+
+            else:
+                self.fatig_rate = self.fatig_rate(size=len(affected))
+                self.npi.loc[affected, period_range] =(npi_draw  -  \
+                                                       np.tile(self.dist(size=len(affected)), (len(period_range), 1)).T * \
+                                                       np.tile(self.fatig_rate,               (len(period_range), 1)).T * \
+                                                      (np.arange(0,len(period_range))/self.fatig_freq)).clip(self.fatig_min)
+
+            if "fatigue_min_relative" in npi_config:
+                fatig_relmin = npi_config["fatigue_min_relative"].as_evaled_expression()
+                self.npi.loc[affected, period_range] = self.npi.loc[affected, period_range].clip(npi_draw*fatig_relmin)
 
         # Validate
         if (self.npi == 0).all(axis=None):
