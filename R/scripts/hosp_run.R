@@ -188,12 +188,10 @@ if(run_age_adjust){
   
   # Throw some warnings and errors.
   print(paste0("Using ", config$spatial_setup$geoid_params_file, " for geounit-specific outcomes."))
-  
   if (!file.exists(config$spatial_setup$geoid_params_file)){
-    
-    stop(paste0("ERROR: ", config$spatial_setup$geoid_params_file, " does not exist."))
-    
+      stop(paste0("ERROR: ", config$spatial_setup$geoid_params_file, " does not exist."))
   }
+  
   # read in probability file
   prob_dat <- readr::read_csv(config$spatial_setup$geoid_params_file)
   prob_dat <- prob_dat %>% mutate(geoid = as.character(geoid)) # so it matches
