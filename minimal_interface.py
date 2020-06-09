@@ -57,7 +57,7 @@ import time
 
 import click
 
-from SEIR import seir, setup
+from SEIR import seir, setup, file_paths
 from SEIR.utils import config
 from SEIR.profile import profile_options
 from Outcomes import outcomes
@@ -113,15 +113,13 @@ print(f"""
 
 
 setup_name = s.setup_name
-outdir = f"hospitalization/model_output/{config['name'].as_str()}_{scenario}/"
 def onerun_HOSP(index):
     outcomes.run_delayframe_outcomes(
         config,
-        setup_name,
-        outdir,
-        scenario,
+        run_id,
+        prefix,
         deathrate,
-        f"hospitalization/model_output/{config['name'].as_str()}_{scenario}/{deathrate}_death_death-{'%09d'% int(index)}.hpar.parquet",
+        file_paths.create_file_name(run_id, prefix, int(index), 'hpar', 'parquet'),
         1,
         int(index),
         1
