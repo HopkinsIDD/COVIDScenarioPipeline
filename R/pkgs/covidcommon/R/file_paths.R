@@ -11,7 +11,7 @@ run_id <- function(){
 ##' @param .dots A set of strings, or lists of value,format (see sprintf).
 ##' @param sep A character to use to separate different components of the scenario in the tag.  This argument cannot appear in any of the  .dots arguments.
 #' @export
-create_prefix <- function(...,prefix='model_output/',sep='-',trailing_separator=""){
+create_prefix <- function(...,prefix='',sep='-',trailing_separator=""){
   args <- list(...)
   formats <- sapply(args,function(x){x[2]})
   formats[is.na(formats)] <- '%s'
@@ -26,8 +26,14 @@ create_prefix <- function(...,prefix='model_output/',sep='-',trailing_separator=
 
 ## Function for creating file names from their components
 #' @export
-create_file_name <- function(run_id,prefix,index,type,extension='parquet'){
-  return(sprintf("%s%09d.%s.%s.%s",prefix,index,run_id,type,extension))
+create_file_name <- function(run_id,prefix,index,type,extension='parquet',create_directory = TRUE){
+  rc <- sprintf("model_output/%s/%s%09d.%s.%s.%s",type,prefix,index,run_id,type,extension)
+  if(create_directory){
+    if(!dir.exists(dirname(rc))){
+      dir.create(dirname(rc), recursive = TRUE)
+    }
+  }
+  return(rc)
 }
 
 ## Function

@@ -131,7 +131,7 @@ for(scenario in scenarios) {
     # Data -------------------------------------------------------------------------
     # Load
 
-    slot_prefix <- covidcommon::create_prefix(config$name,scenario,deathrate,opt$run_id,trailing_separator='/')
+    slot_prefix <- covidcommon::create_prefix(config$name,scenario,deathrate,opt$run_id,sep='/',trailing_separator='/')
     block_prefix <- covidcommon::create_prefix(prefix=slot_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
     local_prefix <- covidcommon::create_prefix(prefix=block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
     if(!dir.exists(dirname(local_prefix))){
