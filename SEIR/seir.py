@@ -7,7 +7,7 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from . import NPI, setup
+from . import NPI, setup, file_paths
 from .utils import config
 import pyarrow.parquet as pq
 import pyarrow as pa
@@ -76,22 +76,39 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
         out_df['comp'].replace(ncomp, 'diffI', inplace=True)
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         if s.write_csv:
-            npi.writeReductions(f"{s.paramdir}{sim_id_str}.snpi","csv")
-            setup.parameters_write(parameters, f"{s.paramdir}{sim_id_str}.spar", "csv")
-            #setup.seeding_write(parameters, f"{s.paramdir}{sim_id_str}.seed", "csv")
+            npi.writeReductions(
+                file_paths.create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "snpi"),
+                "csv"
+            )
+            setup.parameters_write(
+                p_draw,
+                file_paths.create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "spar"),
+                "csv"
+            )
 
             out_df.to_csv(
-                f"{s.datadir}{sim_id}.seir.csv",
+                file_paths.create_file_name(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "seir","csv"),
                 index='time',
                 index_label='time')
+
         if s.write_parquet:
-            npi.writeReductions(f"{s.paramdir}{sim_id_str}.snpi", "parquet")
-            setup.parameters_write(p_draw, f"{s.paramdir}{sim_id_str}.spar", "parquet")
-            #setup.seeding_write(parameters, f"{s.paramdir}{sim_id_str}.seed", "parquet")
+            npi.writeReductions(
+                file_paths.create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "snpi"),
+                "parquet"
+            )
+
+            setup.parameters_write(
+                p_draw,
+                file_paths.create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "spar"),
+                "parquet"
+            )
 
             out_df['time'] = out_df.index
             pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
-            pa.parquet.write_table(pa_df,f"{s.datadir}{sim_id_str}.seir.parquet")
+            pa.parquet.write_table(
+              pa_df,
+              file_paths.create_file_name(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "seir","parquet")
+            )
     
     return out_df
 
@@ -107,8 +124,20 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
 
     scipy.random.seed()
 
-    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config,
-        geoids=s.spatset.nodenames, loaded_df = setup.npi_load(f"{s.paramdir}{sim_id_str}.snpi", extension))
+    npi = NPI.NPIBase.execute(
+        npi_config=s.npi_config,
+        global_config=config,
+        geoids=s.spatset.nodenames,
+        loaded_df = setup.npi_load(
+            file_paths.create_file_name_without_extension(
+                s.run_id,
+                s.prefix,
+                sim_id2load + s.first_sim_index - 1,
+                "snpi"
+            ),
+            extension
+        )
+    )
 
     y0, seeding = setup.seeding_load(s, sim_id2load)
 
@@ -116,7 +145,17 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
     
-    p_draw = setup.parameters_load(f"{s.paramdir}{sim_id_str}.spar", extension, len(s.t_inter), s.nnodes)
+    p_draw = setup.parameters_load(
+        file_paths.create_file_name_without_extension(
+            s.run_id,
+            s.prefix,
+            sim_id2load + s.first_sim_index - 1,
+            "spar"
+        ),
+        extension,
+        len(s.t_inter),
+        s.nnodes
+    )
     
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
