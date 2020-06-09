@@ -15,7 +15,7 @@ options(warn=1)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
-  optparse::make_option(c("-u","--run_id"), action="store", type='character', help="Unique identifier for this run", default = Sys.getenv("RUN_ID",covidcommon::run_id())),
+  optparse::make_option(c("-u","--run_id"), action="store", type='character', help="Unique identifier for this run", default = Sys.getenv("COVID_RUN_INDEX",covidcommon::run_id())),
   optparse::make_option(c("-s", "--scenarios"), action="store", default=Sys.getenv("COVID_SCENARIOS", 'all'), type='character', help="name of the intervention to run, or 'all' to run all of them"),
   optparse::make_option(c("-d", "--deathrates"), action="store", default=Sys.getenv("COVID_DEATHRATES", 'all'), type='character', help="name of the death scenarios to run, or 'all' to run all of them"),
   optparse::make_option(c("-j", "--jobs"), action="store", default=Sys.getenv("COVID_NJOBS", parallel::detectCores()), type='integer', help="Number of jobs to run in parallel"),
@@ -130,16 +130,6 @@ for(scenario in scenarios) {
   for(deathrate in deathrates) {
     # Data -------------------------------------------------------------------------
     # Load
-    first_spar_file <- covidcommon::spar_file_path(config,opt$this_slot, scenario)
-    first_snpi_file <- covidcommon::snpi_file_path(config,opt$this_slot, scenario)
-    ## One time setup for python
-      # Data -------------------------------------------------------------------------
-      # Load
-    first_param_file <- covidcommon::spar_file_path(config,opt$this_slot, scenario)
-    first_npi_file <- covidcommon::snpi_file_path(config,opt$this_slot, scenario)
-    first_hosp_file <- covidcommon::hospitalization_file_path(config,opt$this_slot, scenario, deathrate)
-    first_hpar_file <- covidcommon::hpar_file_path(config,opt$this_slot, scenario, deathrate)
-    first_seeding_file <- covidcommon::seeding_file_path(config,opt$this_slot)
 
     slot_prefix <- covidcommon::create_prefix(config$name,scenario,deathrate,opt$run_id,trailing_separator='/')
     block_prefix <- covidcommon::create_prefix(prefix=slot_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
@@ -156,7 +146,7 @@ for(scenario in scenarios) {
 
     first_spar_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'spar','parquet')
     first_snpi_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'snpi','parquet')
-    first_hosp_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'hosp','parquet')
+    first_hosp_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'hosp.global','parquet')
     first_hpar_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'hpar','parquet')
     first_seed_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'seed','csv')
     first_chim_file <- covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block - 1,'chim','parquet')
@@ -191,7 +181,7 @@ for(scenario in scenarios) {
     # TODO CHANGE TO FIRST DRAW OF SEIR CODE
     # lock <- flock::lock(paste('.lock',gsub('/','-',first_snpi_file),sep='/'))
     if((!file.exists(first_snpi_file)) | (!file.exists(first_spar_file))){
-      print(sprintf("Creating parameters (%s) from Scratch",first_snpi_file))
+      print(sprintf("Creating parameters (%s) and (%s) from Scratch",first_snpi_file, first_spar_file))
       py$onerun_SEIR(opt$this_block - 1,py$s)
     }
     initial_snpi <- arrow::read_parquet(first_snpi_file)
@@ -224,6 +214,10 @@ for(scenario in scenarios) {
         stop("HOSP failed to run")
       }
 
+      file.copy(
+        covidcommon::create_file_name(opt$run_id,block_prefix,this_index,'hosp','parquet'),
+        first_hosp_file
+      )
     }
 
     initial_sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",first_hosp_file))(first_hosp_file) %>%
@@ -503,8 +497,9 @@ for(scenario in scenarios) {
     }
 
 
-    readr::write_csv(initial_seeding,covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'seed','parquet'))
+    readr::write_csv(initial_seeding,covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'seed','csv'))
     arrow::write_parquet(initial_snpi,covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'snpi','parquet'))
+    arrow::write_parquet(initial_spar,covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'spar','parquet'))
     arrow::write_parquet(initial_hpar,covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'hpar','parquet'))
     arrow::write_parquet(initial_likelihood_data,covidcommon::create_file_name(opt$run_id,block_prefix,opt$this_block,'chim','parquet'))
   }

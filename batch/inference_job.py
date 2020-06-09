@@ -12,10 +12,13 @@ import sys
 import tarfile
 from datetime import datetime, timezone
 import yaml
+from SEIR import file_paths
 
 @click.command()
 @click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
               help="configuration file for this run")
+@click.option("--id","--id", "run_id", envvar="COVID_RUN_INDEX", type=str, default=file_paths.run_id(),
+              help="Unique identifier for this run")
 @click.option("-n", "--num-jobs", "num_jobs", type=click.IntRange(min=1, max=1000), default=None,
               help="number of output slots to generate")
 @click.option("-j", "--sims-per-job", "sims_per_job", type=click.IntRange(min=1), default=None,
@@ -36,7 +39,7 @@ import yaml
               help="The amount of RAM in megabytes needed per CPU running simulations")
 @click.option("-r", "--restart-from", "restart_from", type=str, default=None,
               help="The location of an S3 run to use as the initial to the first block of the current run")
-def launch_batch(config_file, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from):
+def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from):
 
     config = None
     with open(config_file) as f:
@@ -58,7 +61,7 @@ def launch_batch(config_file, num_jobs, sims_per_job, num_blocks, outputs, s3_bu
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
 
-    handler = BatchJobHandler(num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from)
+    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from)
 
     job_queues = get_job_queues(job_queue_prefix)
     scenarios = config['interventions']['scenarios']
@@ -124,7 +127,8 @@ def get_job_queues(job_queue_prefix):
 
 
 class BatchJobHandler(object):
-    def __init__(self, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from):
+    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from):
+        self.run_id = run_id
         self.num_jobs = num_jobs
         self.sims_per_job = sims_per_job
         self.num_blocks = num_blocks
@@ -201,6 +205,7 @@ class BatchJobHandler(object):
             cur_env_vars.append({"name": "COVID_SCENARIOS", "value": s})
             cur_env_vars.append({"name": "COVID_DEATHRATES", "value": d})
             cur_env_vars.append({"name": "COVID_BLOCK_INDEX", "value": "1"})
+            cur_env_vars.append({"name": "COVID_RUN_INDEX", "value": f"{self.run_id}"})
             if self.restart_from:
                 cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from})
             cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block0"})
@@ -226,6 +231,7 @@ class BatchJobHandler(object):
                 cur_env_vars.append({"name": "COVID_SCENARIOS", "value": s})
                 cur_env_vars.append({"name": "COVID_DEATHRATES", "value": d})
                 cur_env_vars.append({"name": "COVID_BLOCK_INDEX", "value": f"{block_idx+1}"})
+                cur_env_vars.append({"name": "COVID_RUN_INDEX", "value": f"{self.run_id}"})
                 cur_env_vars.append({
                     "name": "S3_LAST_JOB_OUTPUT",
                     "value": f"{results_path}/{last_job['jobName']}"
