@@ -14,7 +14,7 @@ import pandas as pd
 
 
 
-def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_outcomes, nsim = 1, index=1, n_jobs=1):
+def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_outcomes, branching_file, nsim = 1, index=1, n_jobs=1):
     start = time.monotonic()
     sim_ids = np.arange(index, index + nsim)
 
@@ -31,7 +31,7 @@ def run_delayframe_outcomes(config, setup_name, outdir, scenario_seir, scenario_
         diffI.drop(['comp'], inplace = True, axis = 1)
 
         # Load the actual csv file
-        branching_file = config["outcomes"]["param_place_file"].as_str()
+        # branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pa.parquet.read_table(branching_file,).to_pandas()
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
         branching_data["colname"] = "R" + branching_data["outcome"] + "|" + branching_data["source"]

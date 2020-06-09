@@ -309,7 +309,10 @@ for(scenario in scenarios) {
       current_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
       current_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
       current_spar <- initial_spar
-      current_hpar <- inference::perturb_hpar(initial_hpar, config$outcomes)
+      if(!deathrate %in% names(config$outcomes$settings)){
+        stop(paste("Deathrate",deathrate,"does not appear in outcomes::settings in the config"))
+      }
+      current_hpar <- inference::perturb_hpar(initial_hpar, config$outcomes$settings[[deathrate]])
       this_index <- opt$simulations_per_slot * (opt$this_slot - 1) + opt$number_of_simulations + index
       write.csv(
         current_seeding,

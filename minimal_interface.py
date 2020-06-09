@@ -118,6 +118,7 @@ def onerun_HOSP(index):
         outdir,
         scenario,
         deathrate,
+        f"hospitalization/model_output/{config['name'].as_str()}_{scenario}/{deathrate}_death_death-{'%09d'% int(index)}.hpar.parquet",
         1,
         int(index),
         1

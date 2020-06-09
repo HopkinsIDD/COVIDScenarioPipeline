@@ -62,16 +62,12 @@ def launch_batch(config_file, num_jobs, sims_per_job, num_blocks, outputs, s3_bu
 
     job_queues = get_job_queues(job_queue_prefix)
     scenarios = config['interventions']['scenarios']
-    p_death_names = config['hospitalization']['parameters']['p_death_names']
-    p_deaths = config['hospitalization']['parameters']['p_death']
-    p_hosp_inf = config['hospitalization']['parameters']['p_hosp_inf']
+    p_death_names = config['outcomes']['scenarios']
     ctr = 0
-    for (s, d) in itertools.product(scenarios, zip(p_death_names, p_deaths, p_hosp_inf)):
+    for (s, d) in itertools.product(scenarios, p_death_names):
         scenario_job_name = f"{job_name}-{s}-{d[0]}"
         config['interventions']['scenarios'] = [s]
-        config['hospitalization']['parameters']['p_death_names'] = [d[0]]
-        config['hospitalization']['parameters']['p_death'] = [d[1]]
-        config['hospitalization']['parameters']['p_hosp_inf'] = [d[2]]
+        config['outcomes']['scenarios'] = [d]
         with open("config_runme.yml", "w") as launch_config_file:
             yaml.dump(config, launch_config_file, sort_keys=False)
         handler.launch(scenario_job_name, "config_runme.yml", job_queues[ctr % len(job_queues)])
