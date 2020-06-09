@@ -107,6 +107,7 @@ def simulate(config_file, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
                             outdir, 
                             scenario_seir, 
                             scenario_outcomes,
+                            config["outcomes"]["param_place_file"],
                             nsim, 
                             index,
                             jobs)
