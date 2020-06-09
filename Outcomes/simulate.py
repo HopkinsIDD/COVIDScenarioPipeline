@@ -60,18 +60,18 @@ from Outcomes import outcomes
 
 
 @click.command()
-@click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
+@click.option("-c", "--config", "config_file", envvar=["COVID_CONFIG_PATH", "CONFIG_PATH"], type=click.Path(exists=True), required=True,
               help="configuration file for this simulation")
-@click.option("-s", "--scenarios_seir", "scenarios_seir", type=str, default=[], multiple=True,
+@click.option("-s", "--scenario", "scenarios", envvar="COVID_SCENARIOS", type=str, default=[], multiple=True,
               help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]")
-@click.option("-d", "--scenarios_outcomes", "scenarios_outcomes", type=str, default=[], multiple=True,
+@click.option("-d", "--scenarios_outcomes", "scenarios_outcomes", envvar="COVID_DEATHRATES", type=str, default=[], multiple=True,
               help="Scenario of outcomes to run")
-@click.option("-n", "--nsim", type=click.IntRange(min=1),
+@click.option("-n", "--nsim", envvar="COVID_NSIMULATIONS", type=click.IntRange(min=1),
               help="override the # of outcomes simulation to run runs in the config file")
-@click.option("-i", "--index", type=click.IntRange(min=1),
+@click.option("-i", "--index", envvar="COVID_INDEX", type=click.IntRange(min=1),
               default=1, show_default=True,
               help="he index of the first simulation to run against")
-@click.option("-j", "--jobs", type=click.IntRange(min=1),
+@click.option("-j", "--jobs", envvar="COVID_NJOBS", type=click.IntRange(min=1),
               default=multiprocessing.cpu_count(), show_default=True,
               help="the parallelization factor")
 @click.option("--id","--id", "run_id", envvar="COVID_RUNID", type = str, default=run_id(),show_default=TRUE, help= "unique identifier for the run")

@@ -131,16 +131,16 @@ from SEIR.profile import profile_options
 
 
 @click.command()
-@click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
+@click.option("-c", "--config", "config_file", envvar=["COVID_CONFIG_PATH", "CONFIG_PATH"], type=click.Path(exists=True), required=True,
               help="configuration file for this simulation")
-@click.option("-s", "--scenario", "scenarios", type=str, default=[], multiple=True,
+@click.option("-s", "--scenario", "scenarios", envvar="COVID_SCENARIOS", type=str, default=[], multiple=True,
               help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]")
-@click.option("-n", "--nsim", type=click.IntRange(min=1),
+@click.option("-n", "--nsim", envvar="COVID_NSIMULATIONS", type=click.IntRange(min=1),
               help="override the # of simulation runs in the config file")
-@click.option("-i", "--index", type=click.IntRange(min=1),
+@click.option("-i", "--index", envvar="COVID_INDEX", type=click.IntRange(min=1),
               default=1, show_default=True,
               help="The index of the first simulation")
-@click.option("-j", "--jobs", type=click.IntRange(min=1),
+@click.option("-j", "--jobs", envvar="COVID_NJOBS", type=click.IntRange(min=1),
               default=multiprocessing.cpu_count(), show_default=True,
               help="the parallelization factor")
 @click.option("--interactive/--batch", default=False,
