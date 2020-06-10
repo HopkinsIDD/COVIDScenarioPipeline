@@ -92,6 +92,8 @@ library(magrittr)
 library(data.table)
 library(parallel)
 library(stringr)
+library(doParallel)
+library(foreach)
 
 option_list = list(
 

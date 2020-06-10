@@ -166,22 +166,6 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   ))
 }
 
-quantile_state_target_name <- function(scenario, deathrate) {
-  return(sprintf("quantile/%s_%s_state.csv", scenario, deathrate))
-}
-
-quantile_state_make_command <- function(scenario, simulations, deathrate) {
-  s <- paste0(": ", hospitalization_target_name(simulations, scenario, deathrate))
-
-  scenario_dir <- paste0(config$name, "_", scenario)
-  command_name <- paste("\t$(RSCRIPT) $(PIPELINE)/scripts/QuantileSummarizeStateLevel.R",
-                            "-d",deathrate,"-o",quantile_extent_target_name(scenario, deathrate),
-                            "-j $(NCOREPER) -c $(CONFIG)", scenario_dir)
-
-  s <- paste0(s, "\n", command_name, "\n")
-  return(s)
-}
-
 quantile_extent_target_name <- function(scenario, deathrate) {
   return(sprintf("quantile/%s_%s_extent.csv", scenario, deathrate))
 }
@@ -250,9 +234,8 @@ quantile_dependencies <- function(scenarios, deathrates) {
   {
     for(deathrate in deathrates)
     {
-      s <- paste(s, quantile_extent_target_name(scenario, deathrate), quantile_state_target_name(scenario, deathrate))
+      s <- paste(s, quantile_extent_target_name(scenario, deathrate))
     }
-    s <- paste0(s, "\\\n\t")
   }
   return(s)
 }
@@ -276,6 +259,7 @@ cat(paste0("CONFIG=",opt$config,"\n\n"))
 # For both, the dependencies include all the simulation targets.
 cat("run: ")
 cat(quantile_dependencies(scenarios, deathrates))
+cat(" ")
 if(generating_report) {
   dependencies <- paste(report_html_target_name(report_name))
   cat(dependencies)
@@ -322,8 +306,6 @@ for(scenario in scenarios){
   for (deathrate in deathrates){
     cat(quantile_extent_target_name(scenario, deathrate))
     cat(quantile_extent_make_command(scenario, simulations, deathrate))
-    cat(quantile_state_target_name(scenario, deathrate))
-    cat(quantile_state_make_command(scenario, simulations, deathrate))
   }
 }
 
