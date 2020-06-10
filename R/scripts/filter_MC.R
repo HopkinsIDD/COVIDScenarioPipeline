@@ -21,7 +21,7 @@ option_list = list(
   optparse::make_option(c("-j", "--jobs"), action="store", default=Sys.getenv("COVID_NJOBS", parallel::detectCores()), type='integer', help="Number of jobs to run in parallel"),
   optparse::make_option(c("-k", "--simulations_per_slot"), action="store", default=Sys.getenv("COVID_SIMULATIONS_PER_SLOT"), type='integer', help = "number of simulations to run for this slot"),
   optparse::make_option(c("-n", "--number_of_simulations"), action="store", default=Sys.getenv("COVID_NSIMULATIONS", 1), type='integer', help = "number of slots to run"),
-  optparse::make_option(c("-i", "--this_slot"), action="store", default=Sys.getenv("COVID_INDEX", 1), type='integer', help = "id of this slot"),
+  optparse::make_option(c("-i", "--this_slot"), action="store", default=Sys.getenv("COVID_SLOT_INDEX", 1), type='integer', help = "id of this slot"),
   optparse::make_option(c("-b", "--this_block"), action="store", default=Sys.getenv("COVID_BLOCK_INDEX",1), type='integer', help = "id of this block"),
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
   optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
@@ -178,6 +178,13 @@ for(scenario in scenarios) {
     # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
     err <- 0
     if(!file.exists(first_seed_file)){
+      if(opt$this_block > 1){
+        print("Looking for")
+        print(first_seed_file)
+        print("Found")
+        print(list.files(dirname(first_seed_file)))
+        stop("Problem resuming seeding after first block")
+      }
       print(sprintf("Creating Seeding (%s) from Scratch",first_seed_file))
       if(!file.exists(config$seeding$lambda_file)){
         err <- system(paste(
@@ -213,11 +220,13 @@ for(scenario in scenarios) {
     # flock::unlock(lock)
 
     if(!file.exists(first_hpar_file)){
+      if(opt$this_block > 1){stop("Problem resuming hospitalization parameters after first block")}
       print(sprintf("Creating hospitalization parameters (%s) from config specified file %s",first_hpar_file,config$outcomes$param_place_file))
       file.copy(config$outcomes$param_place_file,first_hpar_file)
     }
     initial_hpar <- arrow::read_parquet(first_hpar_file)
     if(!file.exists(first_hosp_file)){
+      if(opt$this_block > 1){stop("Problem resuming hospitalization after first block")}
       print(sprintf("Creating hospitalization (%s) from Scratch",first_hosp_file))
       ## Generate files
       this_index <- opt$this_block - 1
@@ -264,10 +273,11 @@ for(scenario in scenarios) {
       defined_priors,
       geodata,
       initial_snpi,
-      dplyr::mutate(initial_hpar,parameter=paste(quantity,source,outcome))
+      dplyr::mutate(initial_hpar,parameter=paste(quantity,source,outcome,sep='_'))
     )
 
     if(!file.exists(first_chim_file)){
+      if(opt$this_block > 1){stop("Problem resuming likelihood after first block")}
       print(sprintf("Creating likelihood (%s) from Scratch",first_chim_file))
       arrow::write_parquet(global_likelihood_data,first_chim_file)
     }
