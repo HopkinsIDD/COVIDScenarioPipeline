@@ -137,13 +137,14 @@ load_hosp_sims_filtered <- function(scenario_dir,
                                     geoid_len = 0,
                                     padding_char = "0",
                                     file_extension = 'auto',
-                                    ...) {
+                                    ...,
+                                    legacy=TRUE) {
   
   require(tidyverse)
   require(foreach)
   
 
-  
+  if(legacy){name_filter = paste0("/",name_filter,"/")}
   files <- dir(sprintf("hospitalization/model_output/%s", scenario_dir),full.names = TRUE)
   files <- files[grepl(name_filter,gsub('^.*[/]','',files))]
   if(length(files) == 0){stop(paste0("There were no files in ",getwd(),"/",sprintf("hospitalization/model_output/%s", scenario_dir)," matching name filter |",name_filter,"|"))}
