@@ -95,6 +95,22 @@ if (all(scenarios == "all")){
   quit("yes", status=1)
 }
 
+
+##Creat heirarchical stats object if specified
+hierarchical_stats <- list()
+if("hierarchical_stats_geo"%in%names(config$filtering)) {
+    hierarchical_stats <- config$filtering$hierarchical_stats_geo    
+}
+
+
+##Create priors if specified
+defined_priors <- list()
+if("priors"%in%names(config$filtering)) {
+    defined_priors <- config$filtering$priors 
+}
+
+
+
 ## Runner Script---------------------------------------------------------------------
 
 obs <- inference::get_ground_truth(data_path,geodata[[obs_nodename]],obs_nodename, config$start_date, config$end_date)
@@ -157,6 +173,7 @@ for(scenario in scenarios) {
     first_hpar_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'hpar','parquet')
     first_seed_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'seed','csv')
     first_chim_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'llik','parquet')
+    first_llik_file <- covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'llik','parquet')
 
     # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
     err <- 0
@@ -183,7 +200,7 @@ for(scenario in scenarios) {
     initial_seeding$amount <- as.integer(round(initial_seeding$amount))
 
     current_index <- 0
-
+      
     # FIX ME : this file won't exist in general
     # TODO CHANGE TO FIRST DRAW OF SEIR CODE
     # lock <- flock::lock(paste('.lock',gsub('/','-',first_snpi_file),sep='/'))
@@ -230,102 +247,41 @@ for(scenario in scenarios) {
     initial_sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",first_hosp_file))(first_hosp_file) %>%
         filter(time >= min(obs$date), time <= max(obs$date))
 
-      if(!(obs_nodename %in% names(initial_sim_hosp))){stop(paste("Missing column",obs_nodename,"from hospitalization output"))}
-      lhs <- unique(initial_sim_hosp[[obs_nodename]])
-      rhs <- unique(names(data_stats))
-      all_locations <- rhs[rhs %in% lhs]
+    if(!(obs_nodename %in% names(initial_sim_hosp))){stop(paste("Missing column",obs_nodename,"from hospitalization output"))}
+    lhs <- unique(initial_sim_hosp[[obs_nodename]])
+    rhs <- unique(names(data_stats))
+    all_locations <- rhs[rhs %in% lhs]
 
-      if(!file.exists(first_chim_file)){
-        print(sprintf("Creating likelihood (%s) from Scratch",first_chim_file))
-        initial_likelihood_data <- list()
-        for(location in all_locations) {
+    global_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
+      all_locations,
+      initial_sim_hosp,
+      obs_nodename,
+      config,
+      obs,
+      data_stats,
+      first_llik_file,
+      hierarchical_stats,
+      defined_priors,
+      geodata,
+      initial_snpi,
+      dplyr::mutate(initial_hpar,parameter=paste(quantity,source,outcome))
+    )
 
-          #local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location)
-          local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
-            dplyr::filter(time %in% unique(obs$date[obs$geoid == location]))
-          initial_sim_stats <- inference::getStats(
-            local_sim_hosp,
-            "time",
-            "sim_var",
-            stat_list = config$filtering$statistics
-          )
+    if(!file.exists(first_chim_file)){
+      print(sprintf("Creating likelihood (%s) from Scratch",first_chim_file))
+      arrow::write_parquet(global_likelihood_data,first_chim_file)
+    }
+    rm(initial_sim_hosp)
+    # Compute total loglik for each sim
+    initial_likelihood <- global_likelihood_data %>%
+      summarise(ll = sum(ll, na.rm = T)) %>%
+      mutate(pdeath = deathrate, scenario = scenario)
+    current_likelihood <- initial_likelihood
 
-
-          # Get observation statistics
-          log_likelihood <- list()
-          for(var in names(data_stats[[location]])) {
-            log_likelihood[[var]] <- inference::logLikStat(
-              obs = data_stats[[location]][[var]]$data_var,
-              sim = initial_sim_stats[[var]]$sim_var,
-              dist = config$filtering$statistics[[var]]$likelihood$dist,
-              param = config$filtering$statistics[[var]]$likelihood$param,
-              add_one = config$filtering$statistics[[var]]$add_one
-            )
-          }
-          # Compute log-likelihoods
-
-          initial_likelihood_data[[location]] <- dplyr::tibble(
-            ll = sum(unlist(log_likelihood)),
-            filename = first_hosp_file,
-            geoid = location
-          )
-          names(initial_likelihood_data)[names(initial_likelihood_data) == 'geoid'] <- obs_nodename
-        }
-
-        initial_likelihood_data <- initial_likelihood_data %>% do.call(what=rbind)
-        arrow::write_parquet(initial_likelihood_data,first_chim_file)
-      }
-
-
-### BEFORE
-      global_likelihood_data <- list()
-      for(location in all_locations) {
-
-        local_sim_hosp <- dplyr::filter(initial_sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
-          dplyr::filter(time %in% unique(obs$date[obs$geoid == location]))
-
-        initial_sim_stats <- inference::getStats(
-          local_sim_hosp,
-          "time",
-          "sim_var",
-          stat_list = config$filtering$statistics
-        )
-
-
-          # Get observation statistics
-        log_likelihood <- list()
-        for(var in names(data_stats[[location]])) {
-          log_likelihood[[var]] <- inference::logLikStat(
-            obs = data_stats[[location]][[var]]$data_var,
-            sim = initial_sim_stats[[var]]$sim_var,
-            dist = config$filtering$statistics[[var]]$likelihood$dist,
-            param = config$filtering$statistics[[var]]$likelihood$param,
-            add_one = config$filtering$statistics[[var]]$add_one
-          )
-        }
-        # Compute log-likelihoods
-
-        global_likelihood_data[[location]] <- dplyr::tibble(
-          ll = sum(unlist(log_likelihood)),
-          filename = first_hosp_file,
-          geoid = location
-        )
-        names(global_likelihood_data)[names(global_likelihood_data) == 'geoid'] <- obs_nodename
-      }
-      rm(initial_sim_hosp)
-
-      global_likelihood_data <- global_likelihood_data %>% do.call(what=rbind)
-      # Compute total loglik for each sim
-      initial_likelihood <- global_likelihood_data %>%
-        summarise(ll = sum(ll, na.rm = T)) %>%
-        mutate(pdeath = deathrate, scenario = scenario)
-      current_likelihood <- initial_likelihood
-
-### AFTER
-      initial_likelihood_data <- arrow::read_parquet(first_chim_file)
-      ## For logging
-      current_index <- 0
-      current_likelihood_data <- initial_likelihood_data
+    initial_likelihood_data <- arrow::read_parquet(first_chim_file)
+    ## For logging
+    current_index <- 0
+    current_likelihood_data <- initial_likelihood_data
 
     for( this_index in seq_len(opt$simulations_per_slot)) {
       print(paste("Running simulation", this_index))
@@ -377,52 +333,36 @@ for(scenario in scenarios) {
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_hosp_file))(this_hosp_file) %>%
         filter(time <= max(obs$date))
 
-      current_likelihood_data <- list()
+     
 
       lhs <- unique(sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
 
-      for(location in all_locations) {
-
-        local_sim_hosp <- dplyr::filter(sim_hosp, !!rlang::sym(obs_nodename) == location) %>%
-          dplyr::filter(time %in% unique(obs$date[obs$geoid == location]))
-        sim_stats <- inference::getStats(
-          local_sim_hosp,
-          "time",
-          "sim_var",
-          stat_list = config$filtering$statistics
-        )
-
-
-        # Get observation statistics
-        log_likelihood <- list()
-        for(var in names(data_stats[[location]])) {
-        # log_likelihood <- foreach (var = names(data_stats[[location]]), .combine = sum) %do% {
-
-          log_likelihood[[var]] <- inference::logLikStat(
-            obs = data_stats[[location]][[var]]$data_var,
-            sim = sim_stats[[var]]$sim_var,
-            dist = config$filtering$statistics[[var]]$likelihood$dist,
-            param = config$filtering$statistics[[var]]$likelihood$param,
-            add_one = config$filtering$statistics[[var]]$add_one
-          )
-        # }
-        }
-         # Compute log-likelihoods
-
-        current_likelihood_data[[location]] <- dplyr::tibble(
-          ll = sum(unlist(log_likelihood)),
-          filename = this_hosp_file,
-          geoid = location
-        )
-        names(current_likelihood_data)[names(current_likelihood_data) == 'geoid'] <- obs_nodename
-      }
+      current_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
+        all_locations,
+        sim_hosp,
+        obs_nodename,
+        config,
+        obs,
+        data_stats,
+        this_llik_file,
+        hierarchical_stats,
+        defined_priors,
+        geodata,
+        current_snpi,
+        dplyr::mutate(current_hpar,parameter=paste(quantity,source,outcome))
+      )
+                                      
+      
       rm(sim_hosp)
 
-      current_likelihood_data <- current_likelihood_data %>% do.call(what=rbind)
-
-      # Compute total loglik for each sim
+      ## UNCOMMENT TO DEBUG
+      ## print(global_likelihood_data)
+      ## print(initial_likelihood_data)
+      ## print(current_likelihood_data)     
+      
+      ## Compute total loglik for each sim
       current_likelihood <- current_likelihood_data %>%
         summarise(ll = sum(ll, na.rm = T)) %>%
         mutate(pdeath = deathrate, scenario = scenario)
@@ -435,6 +375,8 @@ for(scenario in scenarios) {
         initial_likelihood <- current_likelihood
       }
 
+  
+      
       seeding_npis_list <- inference::accept_reject_new_seeding_npis(
         seeding_orig = initial_seeding,
         seeding_prop = current_seeding,

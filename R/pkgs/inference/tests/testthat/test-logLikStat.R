@@ -114,3 +114,21 @@ test_that("Identical timeseries are the MLE for all log like stats",{
     expect_that(which.max(lik), equals(50), info="not scaled sqrtnorm plus 1 failed")
 
 })
+
+
+
+test_that("logLikStat returns errors on null parameters when appropriate", {
+
+    obs <- c(0,1,2,3)
+    sim <- c(0,1,2,3)
+
+    logLikStat(obs,sim,"pois") #should run error free
+
+    expect_error( logLikStat(obs,sim,"norm"))
+    expect_error( logLikStat(obs,sim,"norm_cov"))
+    expect_error( logLikStat(obs,sim,"nnbinom"))
+    expect_error( logLikStat(obs,sim,"sqrtnorm"))
+    expect_error( logLikStat(obs,sim,"sqrtnorm_scale_sim"))
+    
+                 
+})

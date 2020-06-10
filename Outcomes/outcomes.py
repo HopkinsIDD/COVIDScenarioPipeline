@@ -70,8 +70,8 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
                 colname = 'R'+new_comp+'|'+parameters[new_comp]['source']
                 if colname in branching_data.columns:
                     print(f"Using 'param_from_file' for probability {colname}")
-                    parameters[new_comp]['probability'] = parameters[new_comp]['probability'] * \
-                        branching_data[colname].to_numpy()
+                    print(new_comp)
+                    parameters[new_comp]['probability'] = branching_data[colname].to_numpy()
                 else:
                     print(f"NOT using 'param_from_file' for probability {colname}")
 
