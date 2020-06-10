@@ -69,7 +69,7 @@ importation_target_name <- function(simulation, prefix = ""){
 importation_make_command <- function(simulation,prefix=""){
   target_name <- importation_target_name(simulation,prefix)
   dependency_name <- ""
-  command_name <- "$(RSCRIPT) $(PIPELINE)/R/scripts/importation.R -c $(CONFIG) -j $(NCOREPER)"
+  command_name <- "$(RSCRIPT) $(PIPELINE)/R/scripts/importation.R -c $(CONFIG) -j $(NCOREPER) --id $(RUN_ID)"
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": ",
@@ -100,7 +100,8 @@ filter_make_command <- function(simulation,prefix=""){
   if(building_US_setup) {
     dependency_name <- paste(dependency_name, build_US_setup_target_name())
   }
-  command_name<- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/create_filter.R -c $(CONFIG)")
+  warning("Create filter is deprecated")
+  command_name<- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/create_filter.R -c $(CONFIG) --id $(RUN_ID)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files/directory_exists ",
@@ -119,10 +120,10 @@ hospitalization_make_command <- function(simulation,scenario,deathrate, prefix =
   dependency_name <- simulation_target_name(simulation,scenario, prefix = prefix)
   if(method == 'age_adjusted'){
     command_name <- paste("$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s",scenario,
-                            "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) -p $(PIPELINE)")
+                            "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) -p $(PIPELINE) --id $(RUN_ID)")
   } else if(method == 'branching_age_adjusted') {
     command_name <- paste("$(PYTHON) $(PIPELINE)/Outcomes/simulate.py -s", scenario,
-                            "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG)")
+                            "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) --id $(RUN_ID)")
   } else {
     stop(paste("method",method,"note recognized"))
   }
@@ -156,7 +157,7 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   if(using_static_filter){
     dependency_name <- paste(dependency_name, filter_target_name(simulation,prefix))
   }
-  command_name <- paste0("$(PYTHON) -m SEIR -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER)")
+  command_name <- paste0("$(PYTHON) -m SEIR -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER) --id $(RUN_ID)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files/directory_exists ",
@@ -223,7 +224,8 @@ RSCRIPT=Rscript
 cat(paste0("PYTHON=",opt$python,"\n"))
 cat(paste0("NCOREPER=",opt$ncoreper,"\n"))
 cat(paste0("PIPELINE=",opt$pipepath,"\n"))
-cat(paste0("CONFIG=",opt$config,"\n\n"))
+cat(paste0("CONFIG=",opt$config,"\n"))
+cat(paste0("RUN_ID=",covidcommon::run_id(),"\n\n"))
 
 # Generate first target
 # If generating report, first target is the html file.
