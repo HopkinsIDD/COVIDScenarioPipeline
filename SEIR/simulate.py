@@ -125,7 +125,7 @@ import time
 
 import click
 
-from SEIR import seir, setup
+from SEIR import seir, setup, file_paths
 from SEIR.utils import config
 from SEIR.profile import profile_options
 
@@ -143,6 +143,9 @@ from SEIR.profile import profile_options
 @click.option("-j", "--jobs", envvar="COVID_NJOBS", type=click.IntRange(min=1),
               default=multiprocessing.cpu_count(), show_default=True,
               help="the parallelization factor")
+@click.option("--id", "--id", "run_id", envvar="COVID_RUN_INDEX", type=str,
+              default=file_paths.run_id(), show_default=True,
+              help="Unique identifier for the run")
 @click.option("--interactive/--batch", default=False,
               help="run in interactive or batch mode [default: batch]")
 @click.option("--write-csv/--no-write-csv", default=False, show_default=True,
@@ -150,7 +153,7 @@ from SEIR.profile import profile_options
 @click.option("--write-parquet/--no-write-parquet", default=True, show_default=True,
               help="write parquet file output at end of simulation")
 @profile_options
-def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_parquet,index):
+def simulate(config_file, run_id, scenarios, nsim, jobs, interactive, write_csv, write_parquet,index):
     config.set_file(config_file)
 
     spatial_config = config["spatial_setup"]
@@ -184,7 +187,9 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_p
                         write_csv=write_csv,
                         write_parquet=write_parquet,
                         dt=config["dt"].as_number(),
-                        first_sim_index = index)
+                        first_sim_index = index,
+                        run_id = run_id,
+                        prefix = config["name"].get() + "_" + str(scenario))
         try:
             s.load_filter(config["dynfilter_path"].get())
             print(' We are using a filter')

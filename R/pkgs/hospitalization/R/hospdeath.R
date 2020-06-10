@@ -220,26 +220,32 @@ write_hosp_output <- function(res,run_id,prefix,index,use_parquet){
 ##' @param use_parquet Whether to save to parquet files rather than csvs
 ##'
 ##' @export
-build_hospdeath_par <- function(p_hosp,
-                                p_death,
-                                p_ICU,
-                                p_vent,
-                                data_dir,
-                                dscenario_name,
-                                time_hosp_pars = c(1.23, 0.79),
-                                time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
-                                time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
-                                time_hosp_death_pars = c(log(11.25), log(1.15)),
-                                time_disch_pars = c(log(11.5), log(1.22)),
-                                time_ICUdur_pars = c(log(17.46), log(4.044)),
-                                time_ventdur_pars = log(17),
-                                cores=8,
-                                root_out_dir='hospitalization',
-                                use_parquet = FALSE,
-                                start_sim = 1,
-                                num_sims = -1) {
+build_hospdeath_par <- function(
+  p_hosp,
+  p_death,
+  p_ICU,
+  p_vent,
+  data_dir,
+  dscenario_name,
+  time_hosp_pars = c(1.23, 0.79),
+  time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
+  time_vent_pars = c(log(10.5), log((10.5-8)/1.35)),
+  time_hosp_death_pars = c(log(11.25), log(1.15)),
+  time_disch_pars = c(log(11.5), log(1.22)),
+  time_ICUdur_pars = c(log(17.46), log(4.044)),
+  time_ventdur_pars = log(17),
+  cores=8,
+  root_out_dir='hospitalization',
+  use_parquet = FALSE,
+  start_sim = 1,
+  num_sims = -1,
+  run_id = covidcommon::run_id(),
+  prefix = covidcommon::create_prefix(dscenario_name,run_id,trailing_sep='/') # Don't love this
+) {
 
-  num_sims <- ifelse(num_sims < 0, length(list.files(data_dir)), num_sims)
+  if(num_sims < 0){
+    num_sims <- covidcommon::count_files_of_type(run_id,prefix,'hosp',ifelse(use_parquet,'parquet','csv'))
+  }
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
 

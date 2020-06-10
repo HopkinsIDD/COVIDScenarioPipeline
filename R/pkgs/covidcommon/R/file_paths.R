@@ -36,6 +36,15 @@ create_file_name <- function(run_id,prefix,index,type,extension='parquet',create
   return(rc)
 }
 
+
+#' @export
+count_files_of_type <- function(run_id, prefix, type,extension){
+  all_files <- list.files(
+    dirname(create_file_name(run_id,prefix,1,type,'test'))
+  )
+  all_files <- all_files[grepl(paste0(extension,'$'),all_files)]
+  return(length(all_files))
+}
 ## Function
 
 ##' Function for determining where to write the seeding.csv file
