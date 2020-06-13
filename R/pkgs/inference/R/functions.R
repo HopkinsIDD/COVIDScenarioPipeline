@@ -351,6 +351,11 @@ accept_reject_new_seeding_npis <- function(
 ##' @return a new data frame with the confirmed seedin.
 ##' @export
 iterateAccept <- function(ll_ref,ll_new,ll_col) {
+    if (nrow(ll_ref) != 1 | nrow(ll_new) !=1) {
+        stop("Iterate accept currently on works with single row data frames")
+    }
+
+
   ll_new <- ll_new[[ll_col]]
   ll_ref <- ll_ref[[ll_col]]
   ll_ratio <- exp(min(c(0, ll_new - ll_ref)))
