@@ -60,6 +60,7 @@ import click
 from SEIR import seir, setup
 from SEIR.utils import config
 from SEIR.profile import profile_options
+from Outcomes import outcomes
 
 config.set_file(config_path)
 
@@ -68,6 +69,7 @@ config.set_file(config_path)
 spatial_config = config["spatial_setup"]
 spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 scenario = scenario
+deathrate = deathrate
 nsim = 10
 interactive = False
 write_csv = False
@@ -97,6 +99,8 @@ s = setup.Setup(setup_name=config["name"].get() + "_" + str(scenario),
                         first_sim_index = index)
 
 
+
+
 print(f"""
 >> Scenario: {scenario}
 >> Starting {s.nsim} model runs beginning from {s.first_sim_index}
@@ -104,5 +108,22 @@ print(f"""
 >> writing to folder : {s.datadir}{s.setup_name}
     """)
 
+
+setup_name = s.setup_name
+outdir = f"hospitalization/model_output/{config['name'].as_str()}_{scenario}/"
+def onerun_HOSP(index):
+    outcomes.run_delayframe_outcomes(
+        config,
+        setup_name,
+        outdir,
+        scenario,
+        deathrate,
+        1,
+        int(index),
+        1
+    )
+    return(1)
+
 onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load))
 onerun_SEIR = lambda sim_id2write, s: seir.onerun_SEIR(int(sim_id2write), s)
+
