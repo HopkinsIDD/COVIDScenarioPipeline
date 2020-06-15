@@ -3,7 +3,7 @@
 A faster and distributed version of QuantileSummarizeGeoidLevel.R, which uses Apache Spark as its execution engine
 
 This script can be executed from the command line in the container by running Apache Spark locally:
-% /opt/spark/bin/spark-submit --driver-memory 20g --executor-memory 20g \
+% /opt/spark/bin/spark-submit --driver-memory 1g --executor-memory 8g \
         quantile_summarize_geoid_level.py USA_None -c config.yml -o usa_none.csv
 """
 
@@ -64,21 +64,27 @@ def process(config_file, scenarios, output, start_date, end_date, name_filter):
 
     # construct gnarly spark sql statement to compute quantiles via percentile_approx()
     df.registerTempTable("df")
-    agg_sql = ", ".join(f"percentile_approx({metric}, {prob}, 100) AS {metric}__{str(round(prob, 3)).replace('.', '_')}"
-                        for metric, prob in itertools.product(METRICS, PROBS))
+    metric_probs = [(metric, prob, f"{metric}__{str(round(prob, 3)).replace('.', '_')}")
+                    for metric, prob in itertools.product(METRICS, PROBS)]
+    agg_sql = ", ".join(f"percentile_approx({metric}, {prob}, 100) AS {name}"
+                        for metric, prob, name in metric_probs)
     rollup_df = sqlContext.sql(f"""\
 SELECT geoid, time, {agg_sql} FROM df
 GROUP BY geoid, time
 """)
 
-    # perform the final transform from column-wise to row-wise on the driver node
-    result_df = rollup_df.coalesce(1).toPandas()
-    result_df = result_df.melt(id_vars=["geoid", "time"])
-    result_df["variable"], result_df["quantile"] = result_df["variable"].apply(lambda x: x.split("__")).str
-    result_df["quantile"] = result_df["quantile"].apply(lambda x: float(x.replace("_", ".")))
-    result_df = result_df.pivot_table(index=["geoid", "time", "quantile"], columns=["variable"], values="value")
+    # melt dataframe from column-wise to row-wise
+    exprs = [F.struct(
+        F.lit(metric).alias("metric"),
+        F.lit(str(prob)).alias("quantile"),
+        F.col(name).alias("value"))
+        for metric, prob, name in metric_probs]
+    final_df = (rollup_df.select("geoid", "time", F.explode(F.array(exprs)).alias("q"))
+                         .select("geoid", "time", F.col("q.quantile").alias("quantile"),
+                                 F.col("q.metric").alias("metric"), F.col("q.value").alias("value"))
+                         .groupBy(["geoid", "time", "quantile"]).pivot("metric").sum("value"))
 
-    result_df.to_csv(output)
+    final_df.write.option("header", "true").csv(str(output))
 
 
 process()
