@@ -49,9 +49,11 @@ filterADMIN0 <- config$spatial_setup$modeled_states
 dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 # Read in needed data
-commute_data <- readr::read_csv(file.path(opt$mobility))
-census_data <- readr::read_csv(file.path(opt$population))
-
+commute_data <- readr::read_csv(file.path(config$spatial_setup$base_path, "geodata", opt$mobility)) %>% 
+  mutate(OGEOID = as.character(OGEOID),
+         DGEOID = as.character(DGEOID))
+census_data <- readr::read_csv(file.path(config$spatial_setup$base_path, "geodata", opt$population)) %>%
+  mutate(GEOID = as.character(GEOID))
 
 census_data <- census_data %>%
   dplyr::filter(ADMIN0 %in% filterADMIN0) %>%
@@ -88,7 +90,6 @@ if(opt$w){
 }
 
 
-
 if(opt$w){
   if(!isTRUE(all(rc$OGEOID == census_data$GEOID))){
     stop("There was a problem generating the mobility matrix")
@@ -104,7 +105,10 @@ if(opt$w){
 names(census_data) <- c("geoid","admin2","admin0","pop")
 write.csv(file = file.path(outdir,'geodata.csv'), census_data,row.names=FALSE)
 
-
+print("Census Data Check")
+print(head(census_data))
+print("Commute Data Check")
+print(head(commute_data))
 
 print(paste0("mobility.csv/.txt and geodata.csv saved to: ", outdir))
 
