@@ -275,14 +275,14 @@ if(using_static_filter){
 cat("\n")
 
 if(using_static_filter){
-  cat(paste0("clean_filter: rerun_filter
+cat(paste0("clean_filter: rerun_filter
 \trm -rf ",config$dynfilter_path,"
 rerun_filter:
 \trm -f .files/*_filter
 "))
 }
 if(using_importation){
-  cat(paste0("
+cat(paste0("
 clean_importation: rerun_importation
 \trm -rf data/case_data
 \trm -rf importation
@@ -291,19 +291,21 @@ rerun_importation:
 "))
 }
 if(use_file_prefix){
-  cat(paste0("
-  rerun_simulations: clean_simulations
-  \trm -f .files/*", file_prefix, scenario, "_simulation*
-  rerun_hospitalization:
-  \trm -f .files/*", file_prefix, simulations, "_hospitalization*
-  clean: clean_simulations clean_hospitalization")) 
+cat(paste0("
+rerun_simulations: clean_simulations
+\trm -f .files/*", file_prefix, scenario, "_simulation*
+rerun_hospitalization:
+\trm -f .files/*", file_prefix, simulations, "_hospitalization*
+clean: clean_simulations clean_hospitalization"
+)) 
 }else{
-  cat(paste0("
-  rerun_simulations: clean_simulations
-  \trm -f .files/*_simulation*
-  rerun_hospitalization:
-  \trm -f .files/*_hospitalization*
-  clean: clean_simulations clean_hospitalization"))  
+cat(paste0("
+rerun_simulations: clean_simulations
+\trm -f .files/*_simulation*
+rerun_hospitalization:
+\trm -f .files/*_hospitalization*
+clean: clean_simulations clean_hospitalization"
+))  
 }
 if(using_importation){
   cat(" clean_importation")
@@ -316,27 +318,26 @@ if(generating_report)
   cat(" clean_reports")
 }
 if(use_file_prefix){
-  cat("
-  \trm -rf .files
-  clean_simulations: rerun_simulations
-  \trm -rf model_output/", file_prefix,
-  "clean_hospitalization: rerun_hospitalization
-  \trm -rf hospitalization/", file_prefix
-  )
+cat("
+\trm -rf .files
+clean_simulations: rerun_simulations
+\trm -rf model_output/", file_prefix, 
+"clean_hospitalization: rerun_hospitalization
+\trm -rf hospitalization/", file_prefix)
 }else{
-  cat("
-  \trm -rf .files
-  clean_simulations: rerun_simulations
-  \trm -rf model_output
-  clean_hospitalization: rerun_hospitalization
-  \trm -rf hospitalization
-  ")
+cat("
+\trm -rf .files
+clean_simulations: rerun_simulations
+\trm -rf model_output
+clean_hospitalization: rerun_hospitalization
+\trm -rf hospitalization
+")
 }
 if(generating_report)
 {
-  cat(paste0("
-  clean_reports:
-  \trm -f ",report_html_target_name(report_name)))
+cat(paste0("
+clean_reports:
+\trm -f ",report_html_target_name(report_name)))
 }
 
 
