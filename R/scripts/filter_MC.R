@@ -19,8 +19,7 @@ option_list = list(
   optparse::make_option(c("-s", "--scenarios"), action="store", default=Sys.getenv("COVID_SCENARIOS", 'all'), type='character', help="name of the intervention to run, or 'all' to run all of them"),
   optparse::make_option(c("-d", "--deathrates"), action="store", default=Sys.getenv("COVID_DEATHRATES", 'all'), type='character', help="name of the death scenarios to run, or 'all' to run all of them"),
   optparse::make_option(c("-j", "--jobs"), action="store", default=Sys.getenv("COVID_NJOBS", parallel::detectCores()), type='integer', help="Number of jobs to run in parallel"),
-  optparse::make_option(c("-k", "--simulations_per_slot"), action="store", default=Sys.getenv("COVID_SIMULATIONS_PER_SLOT"), type='integer', help = "number of simulations to run for this slot"),
-  optparse::make_option(c("-n", "--number_of_simulations"), action="store", default=Sys.getenv("COVID_NSIMULATIONS", 1), type='integer', help = "number of slots to run"),
+  optparse::make_option(c("-k", "--simulations_per_slot"), action="store", default=Sys.getenv("COVID_SIMULATIONS_PER_SLOT", NA), type='integer', help = "number of simulations to run for this slot"),
   optparse::make_option(c("-i", "--this_slot"), action="store", default=Sys.getenv("COVID_SLOT_INDEX", 1), type='integer', help = "id of this slot"),
   optparse::make_option(c("-b", "--this_block"), action="store", default=Sys.getenv("COVID_BLOCK_INDEX",1), type='integer', help = "id of this block"),
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
@@ -68,6 +67,7 @@ obs_nodename <- config$spatial_setup$nodenames
 if(is.na(opt$simulations_per_slot)){
   opt$simulations_per_slot <- config$filtering$simulations_per_slot
 }
+print(paste("Running",opt$simulations_per_slot,"simulations"))
 
 ##Define data directory and create if it does not exist
 data_path <- config$filtering$data_path
@@ -261,23 +261,35 @@ for(scenario in scenarios) {
     rhs <- unique(names(data_stats))
     all_locations <- rhs[rhs %in% lhs]
 
-    global_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
-      all_locations,
-      initial_sim_hosp,
-      obs_nodename,
-      config,
-      obs,
-      data_stats,
-      first_llik_file,
-      hierarchical_stats,
-      defined_priors,
-      geodata,
-      initial_snpi,
-      dplyr::mutate(initial_hpar,parameter=paste(quantity,source,outcome,sep='_'))
-    )
+    if(!file.exists(first_llik_file)){
+      if(opt$this_block > 1){
+        print(paste("Looking for",first_llik_file,"found",paste(list.files("model_output/llik",recursive=TRUE),collapse=', ')))
+        stop("Problem resuming global likelihood after first block")
+      }
+      print(sprintf("Creating likelihood (%s) from Scratch",first_llik_file))
+      global_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
+        all_locations,
+        initial_sim_hosp,
+        obs_nodename,
+        config,
+        obs,
+        data_stats,
+        first_llik_file,
+        hierarchical_stats,
+        defined_priors,
+        geodata,
+        initial_snpi,
+        dplyr::mutate(initial_hpar,parameter=paste(quantity,source,outcome,sep='_'))
+      )
+      arrow::write_parquet(global_likelihood_data,first_llik_file)
+    }
+    global_likelihood_data <- arrow::read_parquet(first_llik_file)
 
     if(!file.exists(first_chim_file)){
-      if(opt$this_block > 1){stop("Problem resuming likelihood after first block")}
+      if(opt$this_block > 1){
+        print(paste("Looking for",first_llik_file,"found",paste(list.files("model_output/llik",recursive=TRUE),collapse=', ')))
+        stop("Problem resuming chimeric likelihood after first block")
+      }
       print(sprintf("Creating likelihood (%s) from Scratch",first_chim_file))
       arrow::write_parquet(global_likelihood_data,first_chim_file)
     }
@@ -368,9 +380,9 @@ for(scenario in scenarios) {
       rm(sim_hosp)
 
       ## UNCOMMENT TO DEBUG
-      ## print(global_likelihood_data)
-      ## print(initial_likelihood_data)
-      ## print(current_likelihood_data)     
+      # print(global_likelihood_data)
+      print(initial_likelihood_data)
+      print(current_likelihood_data)     
       
       ## Compute total loglik for each sim
       current_likelihood <- current_likelihood_data %>%
@@ -404,8 +416,6 @@ for(scenario in scenarios) {
       arrow::write_parquet(initial_likelihood_data, this_llik_file)
 
       print(paste("Current index is ",current_index))
-      # print(current_likelihood_data)
-      # print(initial_likelihood_data)
       rm(current_snpi)
       rm(current_hpar)
       rm(current_seeding)
@@ -433,6 +443,10 @@ for(scenario in scenarios) {
         covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'hpar','parquet')
       )
       file.copy(
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'seed','csv'),
+        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'seed','csv')
+      )
+      file.copy(
         covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'hosp','parquet'),
         covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'hosp','parquet')
       )
@@ -451,6 +465,10 @@ for(scenario in scenarios) {
       file.copy(
         covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'hpar','parquet'),
         covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'hpar','parquet')
+      )
+      file.copy(
+        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'seed','csv'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'seed','csv')
       )
     } else {
       file.copy(
@@ -473,6 +491,10 @@ for(scenario in scenarios) {
         covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'hpar','parquet'),
         covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'hpar','parquet')
       )
+      file.copy(
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'seed','csv'),
+        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'seed','csv')
+      )
     }
 
 
@@ -481,5 +503,6 @@ for(scenario in scenarios) {
     arrow::write_parquet(initial_spar,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'spar','parquet'))
     arrow::write_parquet(initial_hpar,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'hpar','parquet'))
     arrow::write_parquet(initial_likelihood_data,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'llik','parquet'))
+    arrow::write_parquet(global_likelihood_data,covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'llik','parquet'))
   }
 }

@@ -83,7 +83,12 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX-1,'$type','csv'))")
 		aws s3 cp --quiet $S3_RESULTS_PATH/$FILENAME $FILENAME
 	done
-	for type in "hosp"
+	for type in "seed"
+	do
+		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX-1,'$type','csv'))")
+		aws s3 cp --quiet $S3_RESULTS_PATH/$FILENAME $FILENAME
+	done
+	for type in "hosp" "llik" "spar" "snpi" "hpar"
 	do
 		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX-1,'$type','parquet'))")
 		aws s3 cp --quiet $S3_RESULTS_PATH/$FILENAME $FILENAME
@@ -116,9 +121,19 @@ done
 		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','csv'))")
 	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
 done
-for type in "hosp"
+	for type in "seed"
+	do
+		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','csv'))")
+	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
+done
+	for type in "hosp" "llik" "spar" "snpi" "hpar"
 do
 	export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','parquet'))")
+	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
+done
+	for type in "hosp" "llik" "spar" "snpi" "hpar"
+do
+	export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/final/', $COVID_SLOT_INDEX,'$type','parquet'))")
 	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
 done
 
