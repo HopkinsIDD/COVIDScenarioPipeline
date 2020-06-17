@@ -55,8 +55,13 @@ commute_data <- readr::read_csv(file.path(config$spatial_setup$base_path, "geoda
 census_data <- readr::read_csv(file.path(config$spatial_setup$base_path, "geodata", opt$population)) %>%
   mutate(GEOID = as.character(GEOID))
 
+# Filter if needed
+if (!(is.null(filterADMIN0) || is.na(filterADMIN0))){
+  census_data <- census_data %>%
+    dplyr::filter(ADMIN0 %in% filterADMIN0)
+}
+
 census_data <- census_data %>%
-  dplyr::filter(ADMIN0 %in% filterADMIN0) %>%
   dplyr::select(ADMIN0,GEOID,ADMIN2,POP) %>%
   dplyr::group_by(GEOID,ADMIN2) %>%
   dplyr::summarize(ADMIN0 = unique(ADMIN0), POP = sum(POP)) %>%
@@ -105,9 +110,9 @@ if(opt$w){
 names(census_data) <- c("geoid","admin2","admin0","pop")
 write.csv(file = file.path(outdir,'geodata.csv'), census_data,row.names=FALSE)
 
-print("Census Data Check")
+print("Census Data Check (up to 6 rows)")
 print(head(census_data))
-print("Commute Data Check")
+print("Commute Data Check (up to 6 rows)")
 print(head(commute_data))
 
 print(paste0("mobility.csv/.txt and geodata.csv saved to: ", outdir))
