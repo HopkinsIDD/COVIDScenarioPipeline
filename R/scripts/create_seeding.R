@@ -70,6 +70,8 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
   # Load either JHUCSSE or USAFacts data
   if (tolower(opt$source) %in% c("csse", "jhucsse", "jhu csse")){
     
+    dir.create(file.path('importation',config$spatial_setup$setup_name,"case_data"), showWarnings = FALSE, recursive = TRUE)
+    
     print("Pulling case data from JHU CSSE for US seeding.")
     cases_deaths <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID",
                                      last_date = as.POSIXct(lubridate::ymd(config$end_date)),

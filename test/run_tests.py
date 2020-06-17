@@ -52,7 +52,7 @@ def teardown_function(self):
 def _success_build_US_setup(test_dir):
     os.chdir(test_dir)
 
-    # Make Makefile
+    # Run Build Script
     cmd = ["Rscript", "../../R/scripts/build_US_setup.R",
             "-c", "config.yml",
             "-p", "../..",
@@ -68,12 +68,12 @@ def _success_build_US_setup(test_dir):
 def _success_build_nonUS_setup(test_dir):
     os.chdir(test_dir)
 
-    # Make Makefile
+    # Run Build script
     cmd = ["Rscript", "../../R/scripts/build_nonUS_setup.R",
             "-c", "config.yml",
             "-w", "FALSE",
-            "-n", "data/geodata/population_data.csv",
-            "-m", "data/geodata/mobility_data.csv"]
+            "-n", "population_data.csv",
+            "-m", "mobility_data.csv"]
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"build_nonUS_setup.R failed with code {complete.returncode}"
 
@@ -86,11 +86,10 @@ def _success_build_nonUS_setup(test_dir):
 def _success_create_seeding_US(test_dir):
     os.chdir(test_dir)
 
-    # Make Makefile
+    # Run Seeding script
     cmd = ["Rscript", "../../R/scripts/create_seeding.R",
             "-c", "config.yml",
-            "-s", "CSSE"
-            ]
+            "-s", "CSSE"]
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"create_seeding.R failed for US setup using JHU CSSE data with code {complete.returncode}"
 
@@ -104,8 +103,7 @@ def _success_create_seeding_nonUS(test_dir):
     # Make Makefile
     cmd = ["Rscript", "../../R/scripts/create_seeding.R",
             "-c", "config.yml",
-            "-d", "data/case_data/case_data.csv"
-            ]
+            "-d", "data/case_data/case_data.csv"]
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"create_seeding.R failed for non-US setup with code {complete.returncode}"
 
