@@ -24,12 +24,12 @@ get_minimal_setup <- function () {
     
     obs_sims <- list()
     for (i in 1:length(geoids)) {
-        obs_sims[[i]] <- tibble(date = times,
+        obs_sims[[i]] <- dplyr::tibble(date = times,
                               geoid = geoids[i],
                               death_incid = rpois(length(day), 1000*dnorm(day, 32, 10)),
                               confirmed_incid = rpois(length(day), 10000*dnorm(day, 32, 10)))
     }
-    obs <- bind_rows(obs_sims)
+    obs <- dplyr::bind_rows(obs_sims)
     
 
     ##Aggregate the observed data to the appropriate level
@@ -74,14 +74,14 @@ get_minimal_setup <- function () {
                            "data_var",
                            stat_list = config$filtering$statistics)
         }) %>%
-        set_names(geonames)
+        setNames(geonames)
     
     ##Simulated data per geoid, multiple vars. Just perturb obs  by default
     sim_hosp <- obs %>%
-        rename(incidD = death_incid, incidC = confirmed_incid) %>%
-        mutate(incidD = incidD + rpois(length(incidD), incidD))%>%
-        mutate(incidC = incidC + rpois(length(incidC), incidC))%>%
-        rename(time=date)
+        dplyr::rename(incidD = death_incid, incidC = confirmed_incid) %>%
+        dplyr::mutate(incidD = incidD + rpois(length(incidD), incidD))%>%
+        dplyr::mutate(incidC = incidC + rpois(length(incidC), incidC))%>%
+        dplyr::rename(time=date)
     
     ##the observed node name.
     obs_nodename <- "geoid"
@@ -100,45 +100,45 @@ get_minimal_setup <- function () {
 
 
     ##geodata data frame
-    geodata <- tibble(geoid = geoids,
+    geodata <- dplyr::tibble(geoid = geoids,
                       USPS = USPS)
 
 
     ##The file containing information on the given npis. Creating 2 by default.
-    npi1 <- tibble(geoid=geoids,
+    npi1 <- dplyr::tibble(geoid=geoids,
                    npi_name = "local_variance",
                    start_date = "2020-01-01",
                    end_date = "2020-06-30",
                    parameter = "r0",
                    reduction = runif(6,-.5, .5))
 
-    npi2A <- tibble(geoid = geoids[1:3],
+    npi2A <- dplyr::tibble(geoid = geoids[1:3],
                     npi_name = "full_lockdown_CA",
                     start_date = "2020-03-25",
                     end_date = "2020-06-01",
                     parameter = "r0",
                     reduction = runif(3,-.8, -.5))
 
-    npi2B <- tibble(geoid = geoids[4:6],
+    npi2B <- dplyr::tibble(geoid = geoids[4:6],
                     npi_name = "full_lockdown_NY",
                     start_date = "2020-03-15",
                     end_date = "2020-05-22",
                     parameter = "r0",
                     reduction = runif(3,-.8, -.5))
              
-    snpi <- bind_rows(npi1, npi2A, npi2B)
+    snpi <- dplyr::bind_rows(npi1, npi2A, npi2B)
 
 
     ##Set up hospitalizatoin params.
-    hpar1 <- tibble(geoid=geoids,
+    hpar1 <- dplyr::tibble(geoid=geoids,
                     parameter="p_confirmed_inf",
                     value=0.1)
 
-    hpar2 <- tibble(geoid=geoids,
+    hpar2 <- dplyr::tibble(geoid=geoids,
                     parameter="p_hosp_inf",
                     value=.07)
 
-    hpar <- bind_rows(hpar1, hpar2)
+    hpar <- dplyr::bind_rows(hpar1, hpar2)
     
 
     return(list(all_locations=all_locations,
