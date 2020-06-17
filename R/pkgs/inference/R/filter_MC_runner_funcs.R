@@ -116,10 +116,10 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
         ##print(ll_adjs%>%filter(is.na(likadj)))
         
         ##probably a more efficient what to do this, but unclear...
-        likelihood_data<- left_join(likelihood_data, ll_adjs) %>%
-            replace_na(list(likadj=0))%>% ##avoid unmatched location probles
-            mutate(ll = ll + likadj) %>%
-            select(-likadj)
+        likelihood_data<- dplyr::left_join(likelihood_data, ll_adjs) %>%
+            tidyr::replace_na(list(likadj=0))%>% ##avoid unmatched location probles
+            dplyr::mutate(ll = ll + likadj) %>%
+            dplyr::select(-likadj)
             
     }
 
@@ -128,8 +128,8 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
     for (prior in names(defined_priors)) {
         if (defined_priors[[prior]]$module=="seir") {
             ll_adjs <- snpi %>%
-                filter(npi_name==defined_priors[[prior]]$name)%>%
-                mutate(likadj=calc_prior_likadj(reduction,
+                dplyr::filter(npi_name==defined_priors[[prior]]$name)%>%
+                dplyr::mutate(likadj=calc_prior_likadj(reduction,
                                                 defined_priors[[prior]]$likelihood$dist,
                                                 defined_priors[[prior]]$likelihood$param
                                                 ))%>%
@@ -138,12 +138,12 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
         }  else if (defined_priors[[prior]]$module=="hospitalization") {
 
             ll_adjs <- hpar %>%
-                filter(parameter==defined_priors[[prior]]$name)%>%
-                mutate(likadj=calc_prior_likadj(value,
+                dplyr::filter(parameter==defined_priors[[prior]]$name)%>%
+                dplyr::mutate(likadj=calc_prior_likadj(value,
                                                 defined_priors[[prior]]$likelihood$dist,
                                                 defined_priors[[prior]]$likelihood$param
                                                 ))%>%
-                select(geoid, likadj)
+                dplyr::select(geoid, likadj)
             
         } else {
             stop("unsupported prior module")
@@ -154,9 +154,9 @@ aggregate_and_calc_loc_likelihoods <- function(all_locations,
         ##print(range(ll_adjs$likadj))
         
         ##probably a more efficient what to do this, but unclear...
-        likelihood_data<- left_join(likelihood_data, ll_adjs) %>%
-            mutate(ll = ll + likadj) %>%
-            select(-likadj)
+        likelihood_data<- dplyr::left_join(likelihood_data, ll_adjs) %>%
+            dplyr::mutate(ll = ll + likadj) %>%
+            dplyr::select(-likadj)
     }
 
     
