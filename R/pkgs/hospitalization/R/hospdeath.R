@@ -108,7 +108,7 @@ create_delay_frame <- function(data, name, local_config){
       geoid %in% all_geoids
     ) %>%
     dplyr::arrange(geoid,time) %>%
-    ungroup()
+    dplyr::ungroup()
 
   data <- dplyr::arrange(data,geoid,time)
 
@@ -119,6 +119,9 @@ create_delay_frame <- function(data, name, local_config){
 
   return(data)
 }
+
+
+
 
 hosp_create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
     X_ <- rbinom(length(data_[[X]]),data_[[X]],p_X)
@@ -388,6 +391,11 @@ build_hospdeath_geoid_fixedIFR_par <- function(
       left_join(prob_dat, by="geoid")
 
     # Add time things
+    dat_Mild <- hosp_create_delay_frame('incidI',
+                                     dat_$p_mild_inf,
+                                     dat_,
+                                     c(-Inf, 0), # we dont want a delay here, so this is the easiest way
+                                     "Mild") 
     dat_H <- hosp_create_delay_frame('incidI',
                                      dat_$p_hosp_inf_scaled,
                                      dat_,
@@ -408,13 +416,14 @@ build_hospdeath_geoid_fixedIFR_par <- function(
     ICU_dur_ <- round(exp(time_ICUdur_pars[1]))
     Vent_dur_ <- round(exp(time_ventdur_pars[1]))
 
-    stopifnot(is.data.table(dat_I) && is.data.table(dat_H) && is.data.table(data_ICU) && is.data.table(data_Vent) && is.data.table(data_D))
+    stopifnot(is.data.table(dat_I) && is.data.table(dat_Mild) && is.data.table(dat_H) && is.data.table(data_ICU) && is.data.table(data_Vent) && is.data.table(data_D))
 
     # Using `merge` instead of full_join for performance reasons
     res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...),
-                  list(dat_I, dat_H, data_ICU, data_Vent, data_D)) %>%
+                  list(dat_I, dat_Mild, dat_H, data_ICU, data_Vent, data_D)) %>%
       replace_na(
         list(incidI = 0,
+             incidMild = 0,
              incidH = 0,
              incidICU = 0,
              incidVent = 0,

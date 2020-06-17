@@ -10,6 +10,7 @@
 # name
 #
 # spatial_setup:
+#   us_model: <TRUE or FALSE> [Defaults to TRUE if not specified]
 #   base_path: <path to directory>
 #   geodata: <path to file>
 #   nodenames: <string>
@@ -92,6 +93,7 @@ library(magrittr)
 library(data.table)
 library(parallel)
 library(stringr)
+library(doParallel)
 
 option_list = list(
 
@@ -120,7 +122,7 @@ opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
 #' @description Run the hospitalization results.
 #' @importFrom covidcommon load_config
-config <- covidcommon::load_config(opt$c)
+config <- covidcommon::load_config(opt$config)
 if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
@@ -166,16 +168,35 @@ if (scenario == "all" ) {
   quit("yes", status=1)
 }
 
+is_international <- config$spatial_setup$us_model
+if(is.null(is_international)){
+  is_international <- FALSE
+}
+
 
 ## Running age-adjusted script
 if(run_age_adjust){
-
+  # Specified geoparams or not (data for US model is included in CSP and does not need to be specified)
+  if (is.null(config$spatial_setup$geoid_params_file)){
+    if(is_international) stop("International models require spatial_setup::geoid_params_file specified in the config")
+    config$spatial_setup$geoid_params_file <- paste(opt$p,"sample_data","geoid-params.csv",sep='/')
+  }
+  if (is.null(config$spatial_setup$geoid_len)){
+    if(is_international) stop("International models require spatial_setup::geoid_len specified in the config")
+    config$spatial_setup$geoid_len <- 5
+  }
+  
+  # Throw some warnings and errors.
+  print(paste0("Using ", config$spatial_setup$geoid_params_file, " for geounit-specific outcomes."))
+  if (!file.exists(config$spatial_setup$geoid_params_file)){
+      stop(paste0("ERROR: ", config$spatial_setup$geoid_params_file, " does not exist."))
+  }
+  
   # read in probability file
-  # NOTE(jwills): this file would ideally live inside of the hospitalization package as an .Rdata object
-  prob_dat <- readr::read_csv(paste(opt$p,"sample_data","geoid-params.csv",sep='/'))
-
-  # Check that all geoids are in geoid-params.csv
-  geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),5,'0',TRUE)
+  prob_dat <- readr::read_csv(config$spatial_setup$geoid_params_file)
+  prob_dat <- prob_dat %>% mutate(geoid = as.character(geoid)) # so it matches
+  
+  geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),config$spatial_setup$geoid_len,'0',TRUE)
   in_geoids <- geodata[[config$spatial_setup$nodenames]]
   missing_geoids <- setdiff(in_geoids, prob_dat$geoid)
   if(length(missing_geoids) > 0) {
@@ -189,7 +210,7 @@ if(run_age_adjust){
   if (length(p_death)!=length(p_hosp_inf)) {
     stop("Number of IFR and p_hosp_inf values do not match")
   }
-
+  
   for (scn0 in scenario) {
     data_dir <- paste0("model_output/",config$name,"_",scn0)
     cat(paste(data_dir, "\n"))
@@ -207,7 +228,7 @@ if(run_age_adjust){
                                                      time_ICUdur_pars = time_ICUdur_pars,
                                                      cores = ncore,
                                                      data_dir = data_dir,
-                                                     dscenario_name = paste(cmd,"death",sep="_"),
+                                                     dscenario_name = cmd0,
                                                      use_parquet = TRUE,
                                                      start_sim = start_sim,
                                                      num_sims = num_sims

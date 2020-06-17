@@ -45,6 +45,72 @@ def teardown_function(self):
     os.chdir("..")
 
 
+
+# Test other scripts  ------------------------------------------------------------
+
+# Test build_US_setup
+def _success_build_US_setup(test_dir):
+    os.chdir(test_dir)
+
+    # Run Build Script
+    cmd = ["Rscript", "../../R/scripts/build_US_setup.R",
+            "-c", "config.yml",
+            "-p", "../..",
+            "-w", "FALSE"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"build_US_setup.R failed with code {complete.returncode}"
+
+    assert_file("data/mobility.csv")
+    assert_file("data/geodata.csv")
+
+
+# Test build_nonUS_setup
+def _success_build_nonUS_setup(test_dir):
+    os.chdir(test_dir)
+
+    # Run Build script
+    cmd = ["Rscript", "../../R/scripts/build_nonUS_setup.R",
+            "-c", "config.yml",
+            "-w", "FALSE",
+            "-n", "population_data.csv",
+            "-m", "mobility_data.csv"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"build_nonUS_setup.R failed with code {complete.returncode}"
+
+    assert_file("data/mobility.csv")
+    assert_file("data/geodata.csv")
+
+
+
+# Test create_seeding_US
+def _success_create_seeding_US(test_dir):
+    os.chdir(test_dir)
+
+    # Run Seeding script
+    cmd = ["Rscript", "../../R/scripts/create_seeding.R",
+            "-c", "config.yml",
+            "-s", "CSSE"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"create_seeding.R failed for US setup using JHU CSSE data with code {complete.returncode}"
+
+    assert_file("data/seeding.csv")
+
+
+# Test create_seeding_nonUS
+def _success_create_seeding_nonUS(test_dir):
+    os.chdir(test_dir)
+
+    # Make Makefile
+    cmd = ["Rscript", "../../R/scripts/create_seeding.R",
+            "-c", "config.yml",
+            "-d", "data/case_data/case_data.csv"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"create_seeding.R failed for non-US setup with code {complete.returncode}"
+
+    assert_file("data/seeding.csv")
+
+
+
 # Test definitions
 
 def test_simple():
@@ -73,3 +139,16 @@ def test_report():
 
 def test_hosp_age_adjust():
     _success("test_hosp_age_adjust")
+
+def test_build_US():
+    _success_build_US_setup("test_build_US_setup")
+
+def test_build_nonUS():
+    _success_build_nonUS_setup("test_build_nonUS_setup")
+
+def test_create_seeding_US():
+    _success_create_seeding_US("test_create_seeding_US")
+
+def test_create_seeding_nonUS():
+    _success_create_seeding_nonUS("test_create_seeding_nonUS")
+
