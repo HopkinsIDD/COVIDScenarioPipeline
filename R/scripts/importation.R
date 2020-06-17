@@ -65,9 +65,9 @@ library(parallel)
 library(stringr)
 
 option_list = list(
-  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
-  optparse::make_option(c("-j", "--jobs"), action="store", default=detectCores(), type='numeric', help="number of cores used"),
-  optparse::make_option(c("-n", "--num_simulations"), action="store", default=-1, type='numeric', help="number of simulations to run, overrides config file value")
+  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
+  optparse::make_option(c("-j", "--jobs"), action="store", default=Sys.getenv("COVID_NJOBS", detectCores()), type='numeric', help="number of cores used"),
+  optparse::make_option(c("-n", "--num_simulations"), action="store", default=Sys.getenv("COVID_NSIMULATIONS" -1), type='numeric', help="number of simulations to run, overrides config file value")
 )
 
 opts = optparse::parse_args(optparse::OptionParser(option_list=option_list))
