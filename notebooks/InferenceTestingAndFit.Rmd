@@ -30,7 +30,7 @@ config <- covidcommon::load_config("config_test_inference.yml")
 ncores <- 8
 
 # Number of slots to run
-n_slots <- 500
+n_slots <- 300
 ```
 
 
@@ -79,7 +79,7 @@ to_fit %>%
 
 ```{r run_inference, echo=FALSE, message=FALSE, warning=FALSE}
 # Create directory for testint outputs
-dir_out <- paste0("../../model_output/", config$name, "/")
+dir_out <- paste0("../../model_output/", config$name, "_single/")
 if(!dir.exists(dir_out)) dir.create(dir_out)
 
 epi_dir <- paste0(dir_out, "sims/")  # path to accepted simulation outputs
@@ -168,7 +168,8 @@ seeding_all_samples %>%
 ```
 
 ```{r npitrace, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="NPI traces per slot (reduction for basic R0 and subsequent NPI, horizontal red lines indicate values used to simulate)"}
-npis <- npis_dataframe(config)
+npis <- npis_dataframe(config) %>% 
+  mutate(npi_name = ifelse(npi_name == "npi", "test", npi_name))
 
 
 npi_all_samples %>% 
@@ -230,9 +231,13 @@ long_sim_samples %>%
 
 
 ```{r synthetic data multi, echo=FALSE}
+# Create directory for testint outputs
+dir_out <- paste0("../../model_output/", config$name, "/")
+if(!dir.exists(dir_out)) dir.create(dir_out)
 
-# New setup in config_test_inference.yml
-# 70% reduction starting on March 25
+epi_dir <- paste0(dir_out, "sims/")  # path to accepted simulation outputs
+if(!dir.exists(epi_dir)) dir.create(epi_dir)
+
 
 # Initial seeding used for synthetic data
 set.seed(123)
@@ -277,7 +282,7 @@ to_fit %>%
   theme_bw()
 
 ```
-```{r}
+```{r echo=FALSE}
 npi_file <-  paste0(dir_out, "npi_multi_samples.csv")  # path to all npis samples
 seeding_file <-  paste0(dir_out, "seeding_multi_samples.csv")  # path to all seeding samples
 loglik_file <-  paste0(dir_out, "loglik_multi_samples.csv")  # path to all neg log-likelihood samples
@@ -289,6 +294,7 @@ if (params$redo_fit) {
                            S0s = S0s,
                            seedings = seedings,
                            mob = mob,
+                           offsets = offsets,
                            config = config,
                            date_bounds = date_bounds,
                            n_slots = n_slots,
@@ -303,7 +309,7 @@ if (params$redo_fit) {
 ```
 
 
-```{r unpack, echo=FALSE, message=FALSE, warning=FALSE}
+```{r unpack2, echo=FALSE, message=FALSE, warning=FALSE}
 # Unpack results
 # Simulations
 sim_files <- list.files(epi_dir, full.names = T)
@@ -320,13 +326,13 @@ long_sim_samples <- gather(sim_samples, var, value, -time, -geoid, -slot, -index
 # Seeding
 seeding_all_samples <- read_csv(seeding_file, col_types = cols()) %>% mutate(slot = factor(slot))
 seeding_samples <- seeding_all_samples %>%
-  group_by(slot) %>% 
+  group_by(slot, place) %>% 
   filter(index == max(index))
 
 # NPIs
 npi_all_samples <- read_csv(npi_file, col_types = cols()) %>% mutate(slot = factor(slot))
 npi_samples <- npi_all_samples %>%
-  group_by(slot) %>% 
+  group_by(slot, geoid) %>% 
   filter(index == max(index))
 
 # Logliks
@@ -343,7 +349,7 @@ location_loglik_samples <- location_loglik_all_samples %>%
 ```
 
 
-```{r lltrace, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Neg-loglik traces per slot"}
+```{r lltrace2, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Neg-loglik traces per slot"}
 obs_data <- to_fit %>% 
   gather(var, value, -date, -geoid) 
 
@@ -368,14 +374,14 @@ location_loglik_samples %>%
   facet_wrap(~geoid, scales = "free") +
   theme_bw()
 
-location_loglik_samples %>% 
-  select(-index) %>% 
-  pivot_wider(values_from = "ll", names_from = "geoid") %>% 
-  select(-slot) %>% 
-  pairs()
+# location_loglik_samples %>% 
+#   select(-index) %>% 
+#   pivot_wider(values_from = "ll", names_from = "geoid") %>% 
+#   select(-slot) %>% 
+#   pairs()
 ```
 
-```{r seedtrace, echo=FALSE, fig.height=8, fig.width=8, message=FALSE, warning=FALSE, fig.cap="Seeding traces per slot (amount and date, horizontal red lines indicate values used to simulate)"}
+```{r seedtrace2, echo=FALSE, fig.height=8, fig.width=8, message=FALSE, warning=FALSE, fig.cap="Seeding traces per slot (amount and date, horizontal red lines indicate values used to simulate)"}
 seeding_all_samples %>% 
   gather(var, value, -place, -slot, -index) %>% 
   ggplot(aes(x = index, y = value, group = slot)) +
@@ -386,7 +392,7 @@ seeding_all_samples %>%
   theme_bw()
 ```
 
-```{r npitrace, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="NPI traces per slot (reduction for basic R0 and subsequent NPI, horizontal red lines indicate values used to simulate)"}
+```{r npitrace2, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="NPI traces per slot (reduction for basic R0 and subsequent NPI, horizontal red lines indicate values used to simulate)"}
 npis <-  pmap(list(x = 1:N, y = offsets, z = interventions_multi),
               function(x,y,z) 
                 npis_dataframe(config, 
@@ -405,7 +411,7 @@ npi_all_samples %>%
   theme_bw()
 ```
 
-```{r seedhist, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Histogram of final sample per slot of seeding values, vertical red lines indicate values used to simulate"}
+```{r seedhist2, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Histogram of final sample per slot of seeding values, vertical red lines indicate values used to simulate"}
 seeding_samples %>% 
   gather(var, value, -place, -slot, -index) %>% 
   ggplot() +
@@ -416,7 +422,7 @@ seeding_samples %>%
   theme_bw()
 ```
 
-```{r npihist, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Histogram of final sample per slot of NPI values, vertical red lines indicate values used to simulate"}
+```{r npihist2, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Histogram of final sample per slot of NPI values, vertical red lines indicate values used to simulate"}
 
 ggplot(npi_samples) +
   geom_histogram(aes(x = reduction)) +
@@ -426,15 +432,15 @@ ggplot(npi_samples) +
   theme_bw()
 ```
 
-```{r epidraws, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Draws of simulated epidemic trajectories (blue) and synthetic data on which calibration was done (black)."}
+```{r epidraws2, echo=FALSE, fig.height=14, fig.width=16, message=FALSE, warning=FALSE, fig.cap="Draws of simulated epidemic trajectories (blue) and synthetic data on which calibration was done (black)."}
 ggplot(long_sim_samples, aes(x = time, y = value)) +
   geom_line(aes(group = slot), alpha = .1, color = "blue") + 
   geom_point(data = obs_data, aes(x = date), size = .1, alpha = .5) +
-  facet_grid(geoid~var, scales = "free") +
+  facet_grid(var~geoid, scales = "free") +
   theme_bw()
 ```
 
-```{r epiribbons, echo=FALSE, fig.height=14, fig.width=16, message=FALSE, warning=FALSE, fig.cap="Draws of simulated epidemic trajectories (blue ribbons, dark and light blues gives the 50% and 95% simulation envelops resepectively) and synthetic data on which calibration was done (black)."}
+```{r epiribbons2, echo=FALSE, fig.height=14, fig.width=16, message=FALSE, warning=FALSE, fig.cap="Draws of simulated epidemic trajectories (blue ribbons, dark and light blues gives the 50% and 95% simulation envelops resepectively) and synthetic data on which calibration was done (black)."}
 long_sim_samples %>% 
   group_by(time, geoid, var) %>% 
   summarise(q025 = quantile(value, .025),
@@ -448,6 +454,54 @@ long_sim_samples %>%
   facet_grid(var~geoid, scales = "free") +
   theme_bw()
 ```
+
+
+```{r mse, echo=FALSE, fig.cap="Mean squared error trajectories for each variable. Fitting was done using only death (incidD) and hospitalization (incidH) incidence.", fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+
+mse_traj <- map_df(sim_files, function(x) read_csv(x, col_types = cols()) %>% 
+                        mutate(slot = str_extract(x, "(?<=slot_)[0-9]+(?=_)"),
+                               index = str_extract(x, "(?<=index_)[0-9]+(?=_m)"))) %>%
+  mutate(slot = factor(slot)) %>% 
+  gather(var, value, -time, -geoid, -slot, -index) %>% 
+  inner_join(obs_data, by = c("time" = "date", "geoid", "var"), 
+             suffix = c(".sim", ".obs")) %>% 
+  mutate(index = as.numeric(index)) %>% 
+  group_by(index, slot, geoid, var) %>% 
+  summarise(mse = sum((value.obs-value.sim)^2)/n())
+
+mse_traj %>% 
+  ggplot(aes(x = index, y = mse, group = slot)) +
+  geom_line(alpha = .05) +
+  facet_grid(var~geoid, scales = "free") +
+  theme_bw()
+```
+
+
+```{r acceptance2, echo=FALSE, fig.height=5, fig.width=10, fig.cap="MCMC simulation trajectory acceptance rate."}
+# Get acceptance IDs
+sim_samples <- map_df(sim_files, function(x) read_csv(x, col_types = cols()) %>% 
+                        mutate(slot = str_extract(x, "(?<=slot_)[0-9]+(?=_)"),
+                               index = str_extract(x, "(?<=index_)[0-9]+(?=_m)"))) %>%
+  mutate(slot = factor(slot)) %>% 
+  group_by(slot, index) %>% 
+  slice(1) %>% 
+  distinct(slot, index)
+
+accept_rate <- sim_samples %>% 
+  ungroup() %>% 
+  mutate(index = as.numeric(index),
+         accepted = 1) %>% 
+  group_by(slot) %>% 
+  tidyr::complete(index = seq(0, 250)) %>% 
+  arrange(slot, index) %>% 
+  mutate(accept_rate = cumsum(!is.na(accepted))/row_number())
+
+ggplot(accept_rate, aes(x = index, y = accept_rate, group = index)) +
+  geom_boxplot(outlier.shape = NA)  +
+  theme_bw()
+```
+
+
 
 ```{r eval=FALSE, include=FALSE}
 # PREVIOUS

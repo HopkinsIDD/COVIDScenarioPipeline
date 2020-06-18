@@ -1,5 +1,6 @@
 ###PREAMBLE
 library(inference)
+library(tidyverse)
 
 setwd("~/COVIDWorking")
 
@@ -7,15 +8,16 @@ setwd("~/COVIDWorking")
 opt <- list()
 
 opt$jobs <- 20
-opt$forecast_date <- "2020-05-31"
-opt$end_date <- "2020-06-27"
+opt$forecast_date <- "2020-06-14"
+opt$end_date <- "2020-07-11"
 opt$geodata <- "COVID19_USA/data/geodata_territories.csv"
 opt$name_filter <- "low"
 opt$num_simulationsulations <- 2000
-opt$outfile <- "2020-05-31-JHU_IDD-CovidSP_low.csv"
+opt$outfile <- "2020-06-14-JHU_IDD-CovidSP_low.csv"
+opt$include_hosp <- TRUE
 
 arguments<- list()
-arguments$args <- "USRun_2020-6-1_DeathW"
+arguments$args <- "USRun-2020-6-15"
 
 
 opt$reichify <-TRUE
@@ -41,7 +43,8 @@ post_proc <- function(x,geodata,opt) {
     filter(time>=opt$forecast_date& time<=opt$end_date) %>%
     inner_join(geodata%>%select(geoid, USPS)) %>%
     group_by(USPS, time) %>%
-    summarize(incidD=sum(incidD)) %>%
+    summarize(incidD=sum(incidD),
+              incidH=sum(incidH)) %>%
     ungroup()
 }
 
@@ -120,7 +123,8 @@ if (opt$reichify) {
 ##Make the cumdeaths for nation
 res_us <- res_state%>%
   group_by(time, sim_num)%>%
-  summarize(incidD=sum(incidD))%>%
+  summarize(incidD=sum(incidD),
+            incidH=sum(incidH))%>%
   ungroup()%>%
   mutate(location="US")
   
@@ -277,11 +281,71 @@ if(opt$reichify) {
   weekly_inc_deaths <-dplyr::bind_rows(tmp_weekly_state_incident_deaths, tmp_weekly_us_incident_deaths)
 }
 
+if (opt$include_hosp) {
 
+  state_daily_incident_hosps <- res_state%>%
+    group_by(time, USPS)%>% 
+    summarize(x=list(enframe(c(quantile(incidH, probs=c(0.01, 0.025,
+                                                        seq(0.05, 0.95, by = 0.05), 0.975, 0.99)),
+                               mean=mean(incidH)),
+                             "quantile","incidH"))) %>%
+    unnest(x)
+  
+  us_daily_incident_hosps <- res_us %>%
+    group_by(time) %>%
+    summarize(x=list(enframe(c(quantile(incidH, probs=c(0.01, 0.025,
+                                                        seq(0.05, 0.95, by = 0.05), 0.975, 0.99)),
+                               mean=mean(incidH)),
+                             "quantile","incidH"))) %>%
+    unnest(x)
+  
+  
+  if (opt$reichify)  {
+    tmp_state_daily_incident_hosps<- state_daily_incident_hosps%>%
+      filter(time>opt$forecast_date)%>%
+      mutate(forecast_date=opt$forecast_date)%>%
+      rename(target_end_date=time)%>%
+      mutate(location=as.character(cdlTools::fips(USPS)))%>%
+      mutate(location=stringr::str_pad(location, width=2, side="left", pad="0"))%>%
+      rename(value=incidH)%>%
+      mutate(target=sprintf("%d day ahead inc hosp", as.numeric(target_end_date-forecast_date)))%>%
+      mutate(type="quantile")%>%
+      mutate(type=replace(type, quantile=="mean","point"))%>%
+      mutate(quantile=readr::parse_number(quantile)/100)%>%
+      select(forecast_date, target, target_end_date,location,type, quantile, value)
+    
+    tmp_us_daily_incident_hosps<- us_daily_incident_hosps%>%
+      filter(time>opt$forecast_date)%>%
+      mutate(forecast_date=opt$forecast_date)%>%
+      rename(target_end_date=time)%>%
+      mutate(location="US")%>%
+      rename(value=incidH)%>%
+      mutate(target=sprintf("%d day ahead inc hosp", as.numeric(target_end_date-forecast_date)))%>%
+      mutate(type="quantile")%>%
+      mutate(type=replace(type, quantile=="mean","point"))%>%
+      mutate(quantile=readr::parse_number(quantile)/100)%>%
+      select(forecast_date, target, target_end_date,location,type, quantile, value)
+    
+    
+    daily_inc_hosps <-dplyr::bind_rows(tmp_state_daily_incident_hosps, tmp_us_daily_incident_hosps)
+  }
+  
+  
+  
+}  
+  
 if (opt$reichify) {
   full_forecast <- dplyr::bind_rows( weekly_inc_deaths,
                                      daily_inc_deaths,
-                                     cum_deaths)%>%
+                                     cum_deaths)
+  
+  if(opt$include_hosp) {
+    full_forecast<- dplyr::bind_rows(full_forecast,
+                     daily_inc_hosps)
+    
+  }
+  
+  full_forecast<- full_forecast%>%
     ungroup()%>%
     filter(target_end_date<=opt$end_date)%>%
     select(-USPS)
