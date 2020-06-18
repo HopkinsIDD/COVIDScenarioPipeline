@@ -14,6 +14,11 @@ doc/latex
 
 # ^Joseph's stuff
 
+# Virtual envs
+.venv 
+
+# VS code settings
+.vscode
 
 # History files
 .Rhistory
