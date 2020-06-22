@@ -109,6 +109,94 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
 }
 
 
+##'
+##' Function to calculate a hierarchical adjustment to the LL
+##' contribution under the assumption that everything comes from
+##' a normal distribution with some variance.
+##'
+##' @param stat the statistic to calculate the penalty on
+##' @param infer_frame data frame with the statistics in it
+##' @param geodata geodata containing geoid from npi fram and the grouping column
+##' @param geo_group_col the column to group on
+##' @param stat_name_col column holding stats name...default is npi_name
+##' @param stat_col column hold the stat
+##' @param transform how should the data be transformed before calc
+##' @param min_sd what is the minimum SD to consider. Default is .1
+##'
+##' @return a data frame with geoids and a per geoid LL adjustment
+##'
+##' @export
+##'
+calc_hierarchical_likadj <- function (stat,
+                                      infer_frame,
+                                      geodata,
+                                      geo_group_column,
+                                      stat_name_col = "npi_name",
+                                      stat_col="reduction",
+                                      transform = "none",
+                                      min_sd=.1) {
+
+    require(dplyr)
+
+    if (transform == "logit") {
+        infer_frame <- infer_frame  %>%
+            #mutate(value = value)
+            mutate(!!sym(stat_col) := qlogis(!!sym(stat_col)),
+                   !!sym(stat_col):=ifelse(!!sym(stat_col)< -2*10^12, -2*10^12, !!sym(stat_col)),
+                   !!sym(stat_col):=ifelse(!!sym(stat_col)> 2*10^12, 2*10^12, !!sym(stat_col)))
+    } else if (transform!="none") {
+        stop("specified transform not yet supported")
+    }
+
+    ##print(stat)
+    ##cat("sd=",max(sd(infer_frame[[stat_col]]), min_sd,na.rm=T),"\n")
+    ##cat("mean=",mean(infer_frame[[stat_col]]),"\n")
+    ##print(range(infer_frame[[stat_col]]))
+
+    rc <- infer_frame%>%
+        filter(!!sym(stat_name_col)==stat)%>%
+        inner_join(geodata)%>%
+        group_by(!!sym(geo_group_column))%>%
+        mutate(likadj = dnorm(!!sym(stat_col),
+                              mean(!!sym(stat_col)),
+                              max(sd(!!sym(stat_col)), min_sd, na.rm=T), log=TRUE))%>%
+        ungroup()%>%
+        select(geoid, likadj)
+
+    return(rc)
+}
+
+
+##'
+##'
+##' Function to calcualte the likelihood adjustment based on a prior
+##'
+##' @param params the parameter values to calculate the likelihood adjust for
+##' @param dist the distribution to use
+##' @param dist_pars the parameters of the distribution
+##'
+##' @return a likelihood sdjustment per param
+##'
+##' @export
+##'
+calc_prior_likadj  <- function(params,
+                               dist,
+                               dist_pars) {
+
+    if (dist=="normal") {
+        rc <- dnorm(params, dist_pars[[1]], dist_pars[[2]], log=TRUE)
+    } else  if (dist=="logit_normal") {
+        params <- pmax(params, 10^-12)
+        params <- pmin(params, 1-10^-12)
+        rc <- dnorm(qlogis(params), qlogis(dist_pars[[1]]), dist_pars[[2]], log=TRUE)
+    } else {
+        stop("This distribution is unsupported")
+    }
+
+    return(rc)
+}
+
+
 
 # MCMC stuff -------------------------------------------------------------------
 
@@ -141,13 +229,13 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
 ##' Fuction perturbs an npi parameter file based on
 ##' user-specified distributions
 ##'
-##' @param npis the original npis.
+##' @param snpi the original npis.
 ##' @param intervention_settings a list of perturbation specificationss
 ##'
 ##'
 ##' @return a pertubed data frame
 ##' @export
-perturb_npis <- function(npis, intervention_settings) {
+perturb_snpi <- function(snpi, intervention_settings) {
     ##Loop over all interventions
     for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
 
@@ -159,31 +247,65 @@ perturb_npis <- function(npis, intervention_settings) {
             pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
 
             ##get the npi values for this distribution
-            ind <- (npis[["npi_name"]] == intervention)
+            ind <- (snpi[["npi_name"]] == intervention)
 
             ##add the pertubation...for now always parameterized in terms of a "reduction"
-            npis_new <- npis[["reduction"]][ind] + pert_dist(sum(ind))
+            snpi_new <- snpi[["reduction"]][ind] + pert_dist(sum(ind))
 
             ##check that this is in bounds (equivalent to having a positive probability)
             in_bounds_index <- covidcommon::as_density_distribution(
                                                 intervention_settings[[intervention]][['value']]
-                                            )(npis_new) > 0
+                                            )(snpi_new) > 0
 
             ##return all in bounds proposals
-            npis$reduction[ind][in_bounds_index] <- npis_new[in_bounds_index]
+            snpi$reduction[ind][in_bounds_index] <- snpi_new[in_bounds_index]
         }
     }
-    return(npis)
+    return(snpi)
 }
 
+##' Fuction perturbs an npi parameter file based on
+##' user-specified distributions
+##'
+##' @param hpar the original hospitalization parameters.
+##' @param intervention_settings a list of perturbation specifications
+##'
+##'
+##' @return a pertubed data frame
+##' @export
+perturb_hpar <- function(hpar, intervention_settings) {
+    ##Loop over all interventions
+
+    for(intervention in names(intervention_settings)){
+      for(quantity in names(intervention_settings[[intervention]])){
+        if('perturbation' %in% names(intervention_settings[[intervention]][[quantity]])){
+          intervention_quantity <- intervention_settings[[intervention]][[quantity]]
+          ## get the random distribution from covidcommon package
+          pert_dist <- covidcommon::as_random_distribution(intervention_quantity[['perturbation']])
+
+          ##get the hpar values for this distribution
+          ind <- (hpar[["outcome"]] == intervention) & (hpar[["quantity"]] == quantity) # & (hpar[['source']] == intervention_settings[[intervention]][['source']])
+
+          ## add the perturbation...
+          hpar_new <- hpar[["value"]][ind] + pert_dist(sum(ind))
+
+          ## Check that this is in the support of the original distribution
+          in_bounds_index <- covidcommon::as_density_distribution(intervention_quantity[['value']])(hpar_new) > 0
+          hpar$value[ind][in_bounds_index] <- hpar_new[in_bounds_index]
+        }
+      }
+    }
+
+    return(hpar)
+}
 ##' Function to go through to accept or reject seedings in a block manner based
 ##' on a geoid specific likelihood.
 ##'
 ##'
 ##' @param seeding_orig original seeding data frame (must have column place)
 ##' @param seeding_prop proposal seeding (must have column place)
-##' @param npis_orig original npi data frame  (must have column geoid)
-##' @param npis_prop proposal npi data frame  (must have column geoid)
+##' @param snpi_orig original npi data frame  (must have column geoid)
+##' @param snpi_prop proposal npi data frame  (must have column geoid)
 ##' @param orig_lls original ll data frame  (must have column ll and geoid)
 ##' @param prop_lls proposal ll fata frame (must have column ll and geoid)
 ##' @return a new data frame with the confirmed seedin.
@@ -191,13 +313,16 @@ perturb_npis <- function(npis, intervention_settings) {
 accept_reject_new_seeding_npis <- function(
   seeding_orig,
   seeding_prop,
-  npis_orig,
-  npis_prop,
+  snpi_orig,
+  snpi_prop,
+  hpar_orig,
+  hpar_prop,
   orig_lls,
   prop_lls
 ) {
   rc_seeding <- seeding_orig
-  rc_npis <- npis_orig
+  rc_snpi <- snpi_orig
+  rc_hpar <- hpar_orig
 
   if(!all(orig_lls$geoid == prop_lls$geoid)){stop("geoids must match")}
   ##draw accepts/rejects
@@ -209,10 +334,11 @@ accept_reject_new_seeding_npis <- function(
 
   for (place in orig_lls$geoid[accept]) {
     rc_seeding[rc_seeding$place ==place, ] <- seeding_prop[seeding_prop$place ==place, ]
-    rc_npis[rc_npis$geoid == place,] <- npis_prop[npis_prop$geoid == place, ]
+    rc_snpi[rc_snpi$geoid == place,] <- snpi_prop[snpi_prop$geoid == place, ]
+    rc_hpar[rc_hpar$geoid == place,] <- hpar_prop[hpar_prop$geoid == place, ]
   }
 
-  return(list(seeding=rc_seeding, npis=rc_npis, lls = orig_lls))
+  return(list(seeding=rc_seeding, snpi=rc_snpi, hpar = rc_hpar, lls = orig_lls))
 }
 
 

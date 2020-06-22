@@ -1,0 +1,84 @@
+
+
+
+##### Base principle
+
+The epidemiological model is an stochastic spatial 'SEIR model' where the population of each node is divided in categories depending on their situation with regard to the diseases. The compartments are:
+
+* $S$ Susceptible individuals that may contracts COVID-19.
+* $E$ Exposed individuals that are incubating the disease, after being in contact with another infected.
+* $I$ Infected and infectious individuals.
+* $R$ Recovered individuals with immunity to re-infection.
+
+
+##### Dynamics and parameters
+
+In practice, this translate into $k = 3$ compartments of infected, $I_1, I_2, I_3$ in 
+order to have an infectious period shaped as Erlang distribution.
+Then the rates of the different compartments are given in the table below:
+
+  -------------------------- -------------------------------------- ----------
+          Transition                     rate parameter                Unit
+     $S\longrightarrow E$     $\beta = R_0 \cdot \gamma$   d$^{-1}$
+    $E\longrightarrow I_1$          $\sigma = \frac{1}{5.2}$         d$^{-1}$
+   $I_1\longrightarrow I_2$       $\gamma_1 = \gamma \cdot k$        d$^{-1}$
+   $I_2\longrightarrow I_3$       $\gamma_1 = \gamma \cdot k$        d$^{-1}$
+    $I_3\longrightarrow R$        $\gamma_1 = \gamma \cdot k$        d$^{-1}$
+  -------------------------- -------------------------------------- ----------
+
+
+For such epidemiological model, two meta-parameters are important in reproducing 
+the dynamics and final size of an epidemic: the serial interval $SI$, which is 
+the interval between two subsequent infections, and the basic reproductive number 
+$R_0$ representing the number of newly infected per infected, in a fully susceptible population.
+
+
+The serial interval (SI) of COVID-19 is currently estimated to be in range
+$6.5-8.2$. We draw uniformly from this range, and we solve
+$SI = \frac{1}{2}(\frac{1}{\gamma})+\frac{1}{\sigma}$ for the inverse of the total infectious period,
+$\gamma$.
+
+The basic reproductive number, $R_0$, is drawn for each simulation and we obtain parameter beta from
+$\beta= R_0 \cdot \gamma$.
+
+The model is fixed time step, and the transitions (without mobility here) at each time step
+$\Delta t$ are: 
+
+\begin{eqnarray}
+p_{expose} &=&  1 - \exp(-\Delta t \cdot FOI) \\
+p_{infect} &=&  1 - \exp(-\Delta t \cdot \sigma)\\
+p_{recover} &=& 1 - \exp(-\Delta t \cdot \gamma)
+\end{eqnarray}
+
+At each time step, we draw in a binomial distribution, e.g 
+\begin{equation}
+N_{I_1\longrightarrow I_2}(t) = \text{Binom}(I_1, 1 - \exp(-\Delta t \cdot \gamma_1))
+\end{equation}
+
+
+The force of infection without mobility is defined as: 
+\begin{equation}
+FOI = \beta \frac{(I_1 + I_2 + I_3)^\alpha}{H} 
+\end{equation}
+
+where $\alpha$ is a coefficient that dampens disease transmission when its value is below 1, thus more accurately representing non-homogeneous mixing in the population. Although we were unable to find $\alpha$ estimates for SARS-CoV-2, we expect disease transmission to be similar to that of other respiratory diseases and typical estimated values for $\alpha$ for respiratory diseases range from 0.87 to 0.97. We used an $\alpha$ value of `r ifelse(is.null(config$seir$parameters$alpha), 1, config$seir$parameters$alpha)` in these models.
+
+
+In our model, individuals move from one node to another. A mobility matrix $M$ where
+$M(o,d)$ is the amount of individuals moving daily from origin $o$ to
+destination $d$. At each time step, and for each $(o,d)$ pair, we draw a force of infection 
+for node $i$ to account for mobility:
+
+\begin{eqnarray}
+FOI_i &=& \left(1 - \sum_{j\neq i} p_{away} \frac{M_{i,j}}{H_i} \right) \cdot \beta_i(t) \frac{(I_1^{i} + I_2^{i} + I_3^{i})^\alpha}{H_i} + \\
+&&  \sum_{j \neq i} \left(p_{away} \frac{M_{i,j}}{H_i} \cdot \beta_j(t) \frac{(I_1^j + I_2^j + I_3^j)^\alpha}{H_j} \right)
+\end{eqnarray}
+
+with $p_{away}$ the percent of the time individuals that move spend away; $p_{away} \approx 0.5$ in the case of commuting. $H_i$ is the population of node $i$. Then, the transition is:
+
+\begin{equation}
+N_{S_i \longrightarrow I_1^{i}}(t) = Binom(S^i, 1 - \exp(-\Delta t \cdot FOI_i))
+\end{equation}
+
+The model is implemented in python, just-in-time compiled to machine code using Numba.
+

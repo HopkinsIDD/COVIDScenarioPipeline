@@ -16,6 +16,7 @@ spatial_setup:
     - HI
 
 seeding:
+  seeding_file_type: seed
   method: FolderDraw
   folder_path: importation/test1/
   lambda_file: data/test1/seeding.csv
@@ -58,7 +59,7 @@ interventions:
 outcomes:
   method: delayframe
   param_from_file: TRUE
-  param_place_file: ../../Outcomes/data/usa-geoid-params-output.csv
+  param_place_file: ../../Outcomes/data/usa-geoid-params-output.parquet
   scenarios:
     - high_death_rate
   settings:
