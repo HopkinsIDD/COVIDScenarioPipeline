@@ -42,7 +42,7 @@ library(tidyr)
 library(purrr)
 
 option_list = list(
-  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file")
+  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file")
 )
 
 opts = optparse::parse_args(optparse::OptionParser(option_list=option_list))

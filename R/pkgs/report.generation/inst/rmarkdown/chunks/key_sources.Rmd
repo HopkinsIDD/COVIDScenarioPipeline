@@ -1,0 +1,12 @@
+- Impact of broad scale non-pharmaceutical intervetions is based on the observed impact of such programs in 1918 as reported in [@Bootsma2007]. We took parameter estimates on the effectiveness of interventions from Milwaukee in this study.
+
+- School closure impacts based on data from [@Jackson2020], [@Cauchemez2008] and [@Litvinova2019]
+
+- Approximate generation time is based on data from [@Bi2020]
+
+- Range of $R_0$ selected to be consistent with the early stages of the Wuhan epidemic and is broadly consistent
+  with estimates from Imperial College (https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-2019-nCoV-transmissibility.pdf), [@Riou2020], [@Majumder2020], [@Zhao2020]
+
+- Assumption on ICU occupancy in the United States [@Halpern2015]
+
+- Estimates of the transmission dampening parameter $\alpha$ range from 0.87 to 0.97 for respiratory viruses from [@Metcalf2011], [@Word2012], [@Finkenstadt2002], [@Becker2017]

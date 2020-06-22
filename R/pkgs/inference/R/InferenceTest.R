@@ -110,7 +110,7 @@ single_loc_inference_test <- function(to_fit,
                                                 sigma = sigma,
                                                 beta_mults = 1-initial_npis$reduction) %>% 
             single_hosp_run(config) %>% 
-            filter(time %in% obs$date)
+            dplyr::filter(time %in% obs$date)
         
         write_csv(initial_sim_hosp, glue::glue("{epi_dir}sim_slot_{s}_index_0.csv"))
         
@@ -164,7 +164,7 @@ single_loc_inference_test <- function(to_fit,
                                             sigma = sigma,
                                             beta_mults = 1-current_npis$reduction) %>% 
                 single_hosp_run(config) %>% 
-                filter(time %in% obs$date)
+                dplyr::filter(time %in% obs$date)
             
             sim_stats <- getStats(
                 sim_hosp,
@@ -364,7 +364,7 @@ multi_loc_inference_test <- function(to_fit,
                                                mob = mob,
                                                beta_mults = 1-as.matrix(npi_mat[,-1])) %>% 
             multi_hosp_run(N, config) %>% 
-            filter(time %in% obs$date)
+            dplyr::filter(time %in% obs$date)
         
         write_csv(initial_sim_hosp, glue::glue("{epi_dir}sim_slot_{s}_index_0_multi.csv"))
         
@@ -437,7 +437,7 @@ multi_loc_inference_test <- function(to_fit,
                                            mob = mob,
                                            beta_mults = 1-as.matrix(npi_mat[,-1])) %>% 
                 multi_hosp_run(N, config) %>% 
-                filter(time %in% obs$date)
+                dplyr::filter(time %in% obs$date)
             
             current_likelihood_data <- list()
             
@@ -739,7 +739,7 @@ single_hosp_run <- function(epi, config) {
     time_hosp_pars <- as_evaled_expression(config$hospitalization$parameters$time_hosp)
     time_disch_pars <- as_evaled_expression(config$hospitalization$parameters$time_disch)
     time_hosp_death_pars <- as_evaled_expression(config$hospitalization$parameters$time_hosp_death)
-    dat_ <- filter(epi, comp == "incidI") %>% 
+    dat_ <- dplyr::filter(epi, comp == "incidI") %>% 
         select(-comp) %>% 
         rename(incidI = N) %>%
         mutate(uid = epi$geoid[1]) %>% 
@@ -754,13 +754,13 @@ single_hosp_run <- function(epi, config) {
     R_delay_ <- round(exp(time_disch_pars[1]))
     res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...),
                   list(dat_, dat_H, data_D)) %>%
-        replace_na(
+        tidyr::replace_na(
             list(incidI = 0,
                  incidH = 0,
                  incidD = 0,
                  hosp_curr = 0)) %>%
-        mutate(date_inds = as.integer(time - min(time) + 1)) %>%
-        arrange(date_inds) %>%
+        dplyr::mutate(date_inds = as.integer(time - min(time) + 1)) %>%
+        dplyr::arrange(date_inds) %>%
         split(.$uid) %>%
         purrr::map_dfr(function(.x){
             .x$hosp_curr <- cumsum(.x$incidH) - lag(cumsum(.x$incidH),
@@ -780,8 +780,8 @@ single_hosp_run <- function(epi, config) {
 ##' @export
 multi_hosp_run <- function(epi, N, config) {
     map_df(1:N, 
-           ~ single_hosp_run(filter(epi, geoid == .), config)) %>%
-        filter(time >= config$start_date,
+           ~ single_hosp_run(dplyr::filter(epi, geoid == .), config)) %>%
+        dplyr::filter(time >= config$start_date,
                time <= config$end_date)
 }
 
@@ -859,7 +859,7 @@ synthetic_data <- function(S0, seeding, config) {
     # Setup fake data
     fake_data <- single_hosp_run(epi, config) %>%
         rename(date = time) %>% 
-        filter(date >= config$start_date,
+        dplyr::filter(date >= config$start_date,
                date <= config$end_date)
     
     return(fake_data)
@@ -912,9 +912,9 @@ synthetic_data_multi <- function(S0s, seedings, mob, config, offsets, interventi
     # - - - -
     # Setup fake data
     fake_data <- map_df(1:N, 
-                        ~ single_hosp_run(filter(epi, geoid == .), config)) %>%
+                        ~ single_hosp_run(dplyr::filter(epi, geoid == .), config)) %>%
         rename(date = time) %>% 
-        filter(date >= config$start_date,
+        dplyr::filter(date >= config$start_date,
                date <= config$end_date)
     
     return(fake_data)

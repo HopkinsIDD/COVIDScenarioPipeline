@@ -106,8 +106,8 @@ def test_inference():
 
     assert_file("data/test1/seeding.csv")
     assert_file("data/us_data.csv")
-    assert_dir("importation")
-    assert_dir("hospitalization")
-    assert_dir("data/case_data")
     assert_dir("model_output")
-    assert_dir("model_parameters")
+    assert_dir("model_output/seed")
+    assert_dir("model_output/hosp")
+    assert_dir("model_output/hpar")
+    assert_dir("model_output/llik")

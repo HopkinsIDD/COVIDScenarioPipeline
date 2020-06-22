@@ -1,0 +1,19 @@
+Package: report.generation
+Title: Tools for generation reports from scenario pipeline outputs
+Version: 0.0.1
+Imports:
+    knitr,
+    tidyverse
+Authors@R: 
+    person(given = "Justin",
+           family = "Lessler",
+           role = c("aut", "cre"),
+           email = "justin@jhu.edu")
+Description: Contains data load utilities and report templates for fast development
+    and compilation of reports on scenario simulations. 
+License: What license it uses
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.0
+Suggests: 
+    testthat (>= 2.1.0)
