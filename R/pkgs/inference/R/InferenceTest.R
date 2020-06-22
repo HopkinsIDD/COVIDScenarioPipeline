@@ -258,6 +258,7 @@ multi_loc_inference_test <- function(to_fit,
                                      S0s, # TODO change to geodata.csv
                                      seedings,
                                      mob,
+                                     offsets,
                                      config,
                                      date_bounds,
                                      n_slots,
