@@ -1,23 +1,63 @@
 import os
+import s3fs
 import logging
 import datetime
 import pandas as pd
 import pyarrow.parquet as pq
 
-# from utils import init_final_obj
-# from constants import severities, parameters 
+from constants import severities, parameters 
 
  #pytest
-from preprocessor.utils import init_final_obj
-from preprocessor.constants import severities, parameters
+# from preprocessor.constants import severities, parameters
+def init_obj(geoids: list, scenarios: list, severities: list, parameters: list, dates: list) -> dict:
+    # build structure of final Dict obj
+    final = {}
 
-def parse_sim(path: str, final: dict, geoids: list, scenario: list,
+    for geoid in geoids:
+        final[geoid] = {}
+
+        for scenario in scenarios:
+            final[geoid][scenario] = {'dates': dates}
+
+            for sev in severities:
+                final[geoid][scenario][sev] = {}
+
+                for param in parameters:
+                    final[geoid][scenario][sev][param] = {
+                        'peak': 0,
+                        'sims': {},
+                        'conf': {}
+                    }
+    return final
+
+def get_parquet(bucket: str, base_path: str, config: str, scenario: str, 
+    severity: str, run_id: str, sim: str):
+    # file path: {prefix}{index}.{run_id}.{file_type}.parquet
+    # prefix: {config_name}/{npi_scenario}/{severity_scenario}/{run_id}/global/final/
+    # index: sim number + leading zeros
+    # key: USA-20200618T024241/model_output/hosp/USA/pld_inf/high/2020.06.18.02:53:08./
+    #      global/final/000000245.2020.06.18.02:53:08..hosp.parquet
+
+    # build parquet filename path key
+    head = base_path + '/model_output/hosp/'
+    prefix = '/'.join([config, scenario, severity, run_id, 'global/final/'])
+    index = '0' * (9 - len(sim)) + sim
+    key = head + prefix + index + '.' + run_id + '.hosp.parquet'
+
+    # read into pandas df
+    s3 = s3fs.S3FileSystem()
+    path = 's3://' + bucket + '/' + key
+    df = pq.ParquetDataset(path, filesystem=s3).read_pandas().to_pandas()
+
+    return df
+
+def parse_sim(df, final: dict, geoids: list, scenario: list,
               severity: list, parameters: list, sim: str):
     # reads file at path and populates final Dict Obj via mutation
     # returns None
 
     cols = ['time', 'geoid'] + parameters
-    df = pq.read_table(path, columns=cols).to_pandas()
+    # df = pq.read_table(path, columns=cols).to_pandas()
 
     # include all geoids if user did not designate specific geoids
     geoids = df.geoid.unique().tolist() if geoids == [] else geoids
@@ -32,7 +72,7 @@ def parse_dirs(dir: str, geoids: list, scenarios: list, dates: list) -> dict:
     # May be able to eliminate this step with final model structure
 
     logging.info('start:', datetime.datetime.now())
-    final = init_final_obj(geoids, scenarios, severities, parameters, dates)
+    final = init_obj(geoids, scenarios, severities, parameters, dates)
 
     for scenario in scenarios:
         logging.info('-----> parsing scenario...', scenario)

@@ -1,31 +1,54 @@
 import os
+import s3fs
 import logging
 import datetime
-from validate import validate_files
-from constants import parameters, severities, geoidsCA, geoidsNY
-from utils import get_dates, init_final_obj, aggregate_by_state, join_r0, write_to_file
-from parse import parse_dirs, d3_transform
+import pyarrow.parquet as pq
+
+from constants import parameters, geoidsCA, geoidsNY   # severities
+from utils import get_configs, aggregate_by_state, join_r0, write_to_file
+from parse import init_obj, get_parquet, parse_sim, d3_transform
 from quantiles import calc_quantiles, transform_quantiles
 from geo import stats_for_county_boundaries
 
-def main(dir: str, geoids = []):
-    # geoids default to all geoids unless designated
-    # TODO: once file structure is set, update which functions need path, update dir
 
-    scenarios = [sim for sim in os.listdir(dir) if sim != '.DS_Store']
+def main(bucket: str, base_path: str, geoids = []):
+    # bucket: s3 bucket name, e.g., 'idd-dashboard-runs'
+    # base_path: top-level model file directory, e.g., 'USA-20200618T024241'
+    # geoids [optional]: list of geoids to save, default is all geoids
 
-    # validate input files
-    validate_files(dir)
+    configs, \
+    scenarios, \
+    severities, \
+    runs, \
+    dates, \
+    sims = get_configs(bucket, base_path)
 
-    # grab dates for populating init_final_obj function
-    dates = get_dates(dir, scenarios)
+    # ---------------
+    logging.info('start:', datetime.datetime.now())
+    final = init_obj(geoids, scenarios, severities, parameters, dates)
+
+    for config in configs:
+        for scenario in scenarios:
+            for severity in severities:
+                for run in runs:
+                    for sim in range(1, sims + 1):
+                        df = get_parquet(
+                            bucket, \
+                            base_path, \
+                            config, \
+                            scenario, \
+                            severity, \
+                            run, \
+                            str(sim)) 
+
+                        parse_sim(df, final, geoids, parameters, sim)
 
     # parse all sim files in scenario directories
-    final = parse_dirs(dir, geoids, scenarios, dates)
+    # final = parse_dirs(path, geoids, scenarios, dates)
  
     # add state-level sims, init obj that just contains states to pass in
     states = list(set([geoid[0:2] for geoid in geoids]))
-    state_dict = init_final_obj(states, scenarios, severities, parameters, dates)
+    state_dict = init_obj(states, scenarios, severities, parameters, dates)
     aggregate_by_state(final, state_dict, states)
 
     # join r0 values from model parameters
@@ -56,8 +79,17 @@ def main(dir: str, geoids = []):
 
 
 if __name__ == "__main__":
-    dir = 'store/'
-    geoids = geoidsCA + geoidsNY
+    # path location to s3 bucket or to local file directory
+    # file_location = '/Users/lxu213/Documents/COVIDScenarioPipeline/batch/dashboard_preprocessor/inference_runs'
 
-    main(dir, geoids)
+    geoids = geoidsCA + geoidsNY
+    bucket = 'idd-dashboard-runs'
+    base_path = 'USA-20200618T024241'
+    # runs_to_process = ['2020.06.18.02:53:08.', '2020.06.18.02:42:40.']
+    
+    # list all objects with certain directory 'USA-20200618T024241/' and runs_to_process...?
+
+    # get_configs(bucket, base_path)
+    main(bucket, base_path, geoids)
+    # get_parquet('s3://idd-dashboard-runs/', 'USA-20200618T024241', 'USA', 'pld_inf', 'high', '2020.06.18.02:53:08.', '245')
 

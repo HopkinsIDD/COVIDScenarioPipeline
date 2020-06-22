@@ -1,46 +1,68 @@
 import os
 import copy
+import boto3
 import json
 import logging
 import datetime
 import pandas as pd
 import pyarrow.parquet as pq
 
-# from constants import severities, parameters  
+from constants import severities, parameters  
+from parse import get_parquet
 # pytest
-from preprocessor.constants import severities, parameters 
+# from preprocessor.constants import severities, parameters 
 
-def init_final_obj(geoids: list, scenarios: list, severities: list, parameters: list, dates: list) -> dict:
-    # build structure of final Dict obj
-    final = {}
+def get_configs(bucket: str, base_path: str) -> list:
+    # return list of configurations, including config_names, scenarios, sevs, 
+    # run_ids, dates, and number of scenes that appear in base_path dir
 
-    for geoid in geoids:
-        final[geoid] = {}
+    s3 = boto3.resource('s3')
+    s3_bucket = s3.Bucket(bucket)
 
-        for scenario in scenarios:
-            final[geoid][scenario] = {'dates': dates}
+    configs, scenarios, sevs, runs = [], [], [], []
+    prefix = base_path + '/model_output/hosp/USA'
 
-            for sev in severities:
-                final[geoid][scenario][sev] = {}
+    for file_obj in s3_bucket.objects.filter(Prefix=prefix):
+        key_string = file_obj.key.split('/')
 
-                for param in parameters:
-                    final[geoid][scenario][sev][param] = {
-                        'peak': 0,
-                        'sims': {},
-                        'conf': {}
-                    }
-    return final
+        configs.append(key_string[3])       # idx of "config_name" 
+        scenarios.append(key_string[4])     # idx of "npi_scenario" 
+        sevs.append(key_string[5])          # idx of "scenario_severity" 
+        runs.append(key_string[6])          # idx of "run_id" 
 
-def get_dates(dir: str, scenarios: list) -> list:
-    # returns list of dates from first file in scenario dir
+    # validation
+    validate(key_string, configs, scenarios, sevs, runs)
 
-    files =  [f for f in os.listdir(dir + scenarios[0] + '/') if f != '.DS_Store']
-    file_path = dir + scenarios[0] + '/' + files[0]
+    # TODO: probably a better way to do this
+    num_of_sims = int(len(sevs) / len(list(set(sevs))))
 
-    df = pq.read_table(file_path, columns=['time']).to_pandas()
-    dates = sorted(df.time.unique().tolist())
-    
-    return [date.strftime('%Y-%m-%d') for date in dates]
+    # get dates from first file
+    first_file = get_parquet(
+        bucket, base_path, configs[0], scenarios[0], sevs[0], runs[0], '1')
+    datetimes = pd.to_datetime(first_file.time.unique())
+    dates = [date.strftime('%Y-%m-%d') for date in datetimes]
+
+    logging.info('Configurations returned')
+
+    return list(set(configs)), list(set(scenarios)), list(set(sevs)), \
+           list(set(runs)), dates, num_of_sims
+
+def validate(key_string: str, configs: list, scenarios: list, sevs: list, runs: list):
+    # raise errors if input files are faulty
+    format = 'config_name/npi_scenario/severity/run_id/global/final/index.run_id.file_type.parquet'
+
+    if len(key_string) != 10 or \
+        key_string[1] != 'model_output' or \
+        key_string[8] != 'final':
+        logging.error('Filename key must follow the format:', format)
+
+    if key_string[9].split('.')[-1] != 'parquet':
+        logging.error('Simulation files must be .parquet')
+
+    if not configs or not scenarios or not sevs or not runs:
+        logging.error('Error in file structure. Missing configs, scenarios, sevs, or runs.')
+
+    logging.info('File structure validation complete')
 
 def aggregate_by_state(final: dict, state_dict: dict, states: list):
     # final: dict with county-level geoids

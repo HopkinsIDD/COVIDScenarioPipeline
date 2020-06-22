@@ -1,9 +1,10 @@
 import logging
-from preprocessor.constants import severities, parameters 
+from constants import severities, parameters 
+# from preprocessor.constants import severities, parameters 
 
 def init_geo_obj(geoids: list, scenarios: list, parameters: list) -> dict:
     # build structure of Dict Obj for stats to populate county boundaries
-    # differs from init_final_obj as it includes state and geoid key but not severity
+    # differs from init_obj as it includes state and geoid key but not severity
 
     obj = {}
     states = list(set([geoid[0:2] for geoid in geoids]))

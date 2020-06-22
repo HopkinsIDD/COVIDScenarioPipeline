@@ -1,6 +1,6 @@
 import json
 from preprocessor.parse import parse_sim, d3_transform
-from preprocessor.utils import init_final_obj
+from preprocessor.utils import init_obj
 
 class TestParse:
     def test_parse_sim(self):
@@ -16,7 +16,7 @@ class TestParse:
 
         with open('tests/resources/parse_sim_in.json') as f:
             final = json.load(f)
-        # final = init_final_obj(geoids, [scenario], [severity], parameters, dates)
+        # final = init_obj(geoids, [scenario], [severity], parameters, dates)
         parse_sim(file_path, final, geoids, scenario, severity, parameters, sim)
 
         with open('tests/resources/parse_sim_out.json') as f:
