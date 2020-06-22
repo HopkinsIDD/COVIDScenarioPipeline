@@ -105,6 +105,6 @@ def write_to_file(final: dict, geoids_to_save: list):
     # TODO: where is this getting written to?
     
     for geoid in geoids_to_save:
-        with open('geo' + geoid + '.json', 'w') as f:
+        with open('dashboard_preprocessor/results/geo' + geoid + '.json', 'w') as f:
             json.dump(final[geoid], f)
 
