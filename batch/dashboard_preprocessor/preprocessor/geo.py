@@ -1,6 +1,6 @@
 import logging
-from constants import severities, parameters 
-# from preprocessor.constants import severities, parameters 
+# from constants import severities, parameters 
+from preprocessor.constants import severities, parameters 
 
 def init_geo_obj(geoids: list, scenarios: list, parameters: list) -> dict:
     # build structure of Dict Obj for stats to populate county boundaries

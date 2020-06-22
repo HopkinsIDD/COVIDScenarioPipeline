@@ -7,10 +7,11 @@ import datetime
 import pandas as pd
 import pyarrow.parquet as pq
 
-from constants import severities, parameters  
-from parse import get_parquet
+# from constants import severities, parameters  
+# from parse import get_parquet
 # pytest
-# from preprocessor.constants import severities, parameters 
+from preprocessor.constants import severities, parameters  
+from preprocessor.parse import get_parquet
 
 def get_configs(bucket: str, base_path: str) -> list:
     # return list of configurations, including config_names, scenarios, sevs, 
@@ -99,11 +100,6 @@ def aggregate_by_state(final: dict, state_dict: dict, states: list):
 
     return
 
-def join_r0(final: dict):
-
-    # TODO
-    return
-    
 def write_to_file(final: dict, geoids_to_save: list):
     # save each geoid as an individual json
     # TODO: where is this getting written to?

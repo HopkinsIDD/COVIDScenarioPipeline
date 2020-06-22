@@ -35,7 +35,7 @@ def calc_quantiles(final: dict):
 
                     final[geoid][scenario][sev][param]['conf'] = conf_obj
 
-    logging.info(datetime.datetime.now(), 'Quantiles added' )
+    logging.info('Quantiles added' )
 
 def transform_quantiles(final: dict):
     # transform confidence bounds of final dict to D3-friendly format

@@ -20,6 +20,9 @@ doc/latex
 # VS code settings
 .vscode
 
+# store for testing dashboard preprocessor
+batch/dashboard_preprocessor/store/
+
 # History files
 .Rhistory
 .Rapp.history

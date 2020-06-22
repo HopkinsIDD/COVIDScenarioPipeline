@@ -5,11 +5,12 @@ import datetime
 import pandas as pd
 import pyarrow.parquet as pq
 
-from constants import severities, parameters 
+# from constants import severities, parameters 
+# pytest
+from preprocessor.constants import severities, parameters
 
- #pytest
-# from preprocessor.constants import severities, parameters
-def init_obj(geoids: list, scenarios: list, severities: list, parameters: list, dates: list) -> dict:
+def init_obj(geoids: list, scenarios: list, severities: list, 
+             parameters: list, dates: list) -> dict:
     # build structure of final Dict obj
     final = {}
 
@@ -31,7 +32,8 @@ def init_obj(geoids: list, scenarios: list, severities: list, parameters: list, 
     return final
 
 def get_parquet(bucket: str, base_path: str, config: str, scenario: str, 
-    severity: str, run_id: str, sim: str):
+    severity: str, run: str, sim: str):
+    # returns parquet sim file pd.DataFrame and associated r0 float 
     # file path: {prefix}{index}.{run_id}.{file_type}.parquet
     # prefix: {config_name}/{npi_scenario}/{severity_scenario}/{run_id}/global/final/
     # index: sim number + leading zeros
@@ -40,64 +42,40 @@ def get_parquet(bucket: str, base_path: str, config: str, scenario: str,
 
     # build parquet filename path key
     head = base_path + '/model_output/hosp/'
-    prefix = '/'.join([config, scenario, severity, run_id, 'global/final/'])
+    prefix = '/'.join([config, scenario, severity, run, 'global/final/'])
     index = '0' * (9 - len(sim)) + sim
-    key = head + prefix + index + '.' + run_id + '.hosp.parquet'
+    key = head + prefix + index + '.' + run + '.hosp.parquet'
 
-    # read into pandas df
+    # path of sim file and spar file where associated r0 lives
     s3 = s3fs.S3FileSystem()
     path = 's3://' + bucket + '/' + key
-    df = pq.ParquetDataset(path, filesystem=s3).read_pandas().to_pandas()
+    r0_path = path.replace('hosp', 'spar')
 
-    return df
+    try:
+        df = pq.ParquetDataset(path, filesystem=s3).read_pandas().to_pandas()
+        spar_df = pq.ParquetDataset(r0_path, filesystem=s3).read_pandas().to_pandas()
+        r0 = round(float(spar_df[spar_df['parameter'] == 'R0']['value']), 2)
+        return (df, r0)
 
-def parse_sim(df, final: dict, geoids: list, scenario: list,
-              severity: list, parameters: list, sim: str):
-    # reads file at path and populates final Dict Obj via mutation
-    # returns None
+    except OSError:
+        non_path = '/'.join([config, scenario, severity, run, str(sim)])
+        logging.warning('Obj does not exist in bucket %s', non_path)
+        return (None, None)
 
-    cols = ['time', 'geoid'] + parameters
-    # df = pq.read_table(path, columns=cols).to_pandas()
+def parse_sim(df, final: dict, geoids: list, scenario: str, 
+              severity: str, parameters: list, sim: str):
+    # reads sim pd.DataFrame and populates data into final Dict Obj 
 
     # include all geoids if user did not designate specific geoids
     geoids = df.geoid.unique().tolist() if geoids == [] else geoids
+    cols = ['time', 'geoid'] + parameters
+
     for geoid in geoids:
         for param in parameters:
             vals = [int(val) for val in df[df.geoid == geoid][param].tolist()]
             final[geoid][scenario][severity][param]['sims'][sim] = vals
 
-    return
-
-def parse_dirs(dir: str, geoids: list, scenarios: list, dates: list) -> dict:
-    # May be able to eliminate this step with final model structure
-
-    logging.info('start:', datetime.datetime.now())
-    final = init_obj(geoids, scenarios, severities, parameters, dates)
-
-    for scenario in scenarios:
-        logging.info('-----> parsing scenario...', scenario)
-
-        scenario_dir = dir + scenario + '/'
-        files =  [f for f in os.listdir(scenario_dir) if f != '.DS_Store']
-
-        # parse by simulation file
-        for sim_file in files:
-            # TODO: clean up with final structure
-            # scenario, severity, sim = file.split('_')
-            config, scenario, severity, simstr = sim_file.split('_')
-            # severity = sim_file.split('_')[1].split('-')[0]
-            sim = simstr.split('.')[0].lstrip('0')
-            file_path = scenario_dir + sim_file
-            logging.info(sim_file)
-
-            parse_sim(file_path, final, geoids, scenario, severity, parameters, sim)
-
-    return final
-
-# dates = ['2020-05-05', '2020-05-06', '2020-05-07', '2020-05-08', '2020-05-09']
-# final = parse_dirs('store/', ['06085', '06019'], ['Inference', 'Lockdown'], dates)
-
-def d3_transform(final: dict):
+def d3_transform(final: dict, r0_map: dict):
     # transforms each nested simulation dict object into d3-friendly format
 
     geoids = list(final.keys())
@@ -122,9 +100,15 @@ def d3_transform(final: dict):
                         d3_sim['vals'] = obj_to_transform[sim]
                         d3_sim['over'] = False
                         d3_sim['max'] = max(d3_sim['vals'])
-                        d3_sim['r0'] = 0  # TODO: add separate function to populate r0
+                        d3_sim['r0'] = return_r0(r0_map, scenario, sev, sim)
                         d3_all_sims.append(d3_sim)
 
                     # sort dict objs by ascending sim num
                     d3_all_sims = sorted(d3_all_sims, key=lambda k: k['name'])
                     final[geoid][scenario][sev][param]['sims'] = d3_all_sims
+
+def return_r0(r0_map: dict, scenario: str, severity: str, sim: str) -> float:
+    # returns r0 float from r0_map dict based on provided arguments
+
+    key = '/'.join([scenario, severity, str(sim)])
+    return r0_map[key]
