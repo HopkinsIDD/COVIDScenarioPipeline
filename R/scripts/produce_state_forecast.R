@@ -8,17 +8,17 @@ setwd("~/COVIDWorking")
 opt <- list()
 
 opt$jobs <- 20
-opt$forecast_date <- "2020-06-14"
-opt$end_date <- "2020-07-11"
+opt$forecast_date <- "2020-06-21"
+opt$end_date <- "2020-07-18"
 opt$geodata <- "COVID19_USA/data/geodata_territories.csv"
-opt$name_filter <- "low"
+opt$death_filter <- "low"
 opt$num_simulationsulations <- 2000
-opt$outfile <- "2020-06-14-JHU_IDD-CovidSP_low.csv"
+opt$outfile <- "2020-06-21-JHU_IDD-CovidSP_low.csv"
 opt$include_hosp <- TRUE
 
 arguments<- list()
-arguments$args <- "USRun-2020-6-15"
-
+arguments$args <- "usa_runs_2020-06-23"
+#arguments$args <- "usa_runs_2020-06-18_mergedinfer"
 
 opt$reichify <-TRUE
 
@@ -28,49 +28,74 @@ scenarios <- arguments$args
 suppressMessages(geodata <- readr::read_csv(opt$geodata, col_types = readr::cols(geoid=readr::col_character())))
 
 
-##Load all of the sims
-## Register the parallel backend
-cl <- parallel::makeCluster(opt$jobs)
-doParallel::registerDoParallel(cl)
+res_state <- arrow::open_dataset(sprintf("%s/hosp",arguments$args), 
+                                 partitioning =c("location", 
+                                                 "scenario", 
+                                                 "death_rate", 
+                                                 "date", "
+                                                 lik_type", 
+                                                 "is_final", 
+                                                 "sim_id"))%>%
+  select(time, geoid, incidD, incidH, death_rate, sim_id)%>%
+  filter(time>=opt$forecast_date& time<=opt$end_date)%>%
+  collect()%>%
+  filter(stringr::str_detect(death_rate,opt$death_filter))%>%
+  mutate(time=as.Date(time))%>%
+  mutate(sim_num = sim_id)
+  
 
+
+res_state <- res_state %>%
+  filter(time>=opt$forecast_date& time<=opt$end_date) %>%
+  inner_join(geodata%>%select(geoid, USPS)) %>%
+  group_by(USPS, time, sim_num) %>%
+  summarize(incidD=sum(incidD),
+                 incidH=sum(incidH)) %>%
+  ungroup()
+  
+# ##Load all of the sims
+# ## Register the parallel backend
+# cl <- parallel::makeCluster(opt$jobs)
+# doParallel::registerDoParallel(cl)
+# 
 opt$forecast_date <- as.Date(opt$forecast_date)
 opt$end_date <- as.Date(opt$end_date)
+# 
 
-
-##Per file filtering code
-post_proc <- function(x,geodata,opt) {
-    x%>%
-    filter(time>=opt$forecast_date& time<=opt$end_date) %>%
-    inner_join(geodata%>%select(geoid, USPS)) %>%
-    group_by(USPS, time) %>%
-    summarize(incidD=sum(incidD),
-              incidH=sum(incidH)) %>%
-    ungroup()
-}
-
-
-##Run over scenarios and death rates as appropriate. Note that
-##Final results will average accross whatever is included
-res_state <-list()
-#setup_name <- config$spatial_setup$setup_name
-for (i in 1:length(scenarios)) {
-  scenario_dir = scenarios[i]
-  res_state[[i]] <- report.generation::load_hosp_sims_filtered(scenario_dir,
-                                                               name_filter = opt$name_filter,
-                                                               num_files = opt$num_simulations,
-                                                               post_process = post_proc,
-                                                               geodata=geodata,
-                                                               opt=opt)%>%
-    mutate(scenario=scenarios[i])
-  
-  
-}
-
-##Put in one data frame
-res_state<-dplyr::bind_rows(res_state)
-
-##deregister backend
-parallel::stopCluster(cl)
+# ##Per file filtering code
+# post_proc <- function(x,geodata,opt) {
+#     x%>%
+#     filter(time>=opt$forecast_date& time<=opt$end_date) %>%
+#     inner_join(geodata%>%select(geoid, USPS)) %>%
+#     group_by(USPS, time) %>%
+#     summarize(incidD=sum(incidD),
+#               incidH=sum(incidH)) %>%
+#     ungroup()
+# }
+# 
+# 
+# ##Run over scenarios and death rates as appropriate. Note that
+# ##Final results will average accross whatever is included
+# res_state <-list()
+# #setup_name <- config$spatial_setup$setup_name
+# for (i in 1:length(scenarios)) {
+#   scenario_dir = scenarios[i]
+#   res_state[[i]] <- report.generation::load_hosp_sims_filtered(scenario_dir,
+#                                                                name_filter = opt$name_filter,
+#                                                                num_files = opt$num_simulations,
+#                                                                post_process = post_proc,
+#                                                                geodata=geodata,
+#                                                                opt=opt)%>%
+#     mutate(scenario=scenarios[i])
+#   
+#   
+# }
+# 
+# ##Put in one data frame
+# res_state<-dplyr::bind_rows(res_state)
+# 
+# ##deregister backend
+# parallel::stopCluster(cl)
 
 ##For now get the USA Facts data
 usa_facts_deaths <- read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv") %>%
