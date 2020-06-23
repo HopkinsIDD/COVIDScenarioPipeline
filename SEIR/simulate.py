@@ -125,24 +125,27 @@ import time
 
 import click
 
-from SEIR import seir, setup
+from SEIR import seir, setup, file_paths
 from SEIR.utils import config
 from SEIR.profile import profile_options
 
 
 @click.command()
-@click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=True,
+@click.option("-c", "--config", "config_file", envvar=["COVID_CONFIG_PATH", "CONFIG_PATH"], type=click.Path(exists=True), required=True,
               help="configuration file for this simulation")
-@click.option("-s", "--scenario", "scenarios", type=str, default=[], multiple=True,
+@click.option("-s", "--scenario", "scenarios", envvar="COVID_SCENARIOS", type=str, default=[], multiple=True,
               help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]")
-@click.option("-n", "--nsim", type=click.IntRange(min=1),
+@click.option("-n", "--nsim", envvar="COVID_NSIMULATIONS", type=click.IntRange(min=1),
               help="override the # of simulation runs in the config file")
-@click.option("-i", "--index", type=click.IntRange(min=1),
+@click.option("-i", "--index", envvar="COVID_INDEX", type=click.IntRange(min=1),
               default=1, show_default=True,
               help="The index of the first simulation")
-@click.option("-j", "--jobs", type=click.IntRange(min=1),
+@click.option("-j", "--jobs", envvar="COVID_NJOBS", type=click.IntRange(min=1),
               default=multiprocessing.cpu_count(), show_default=True,
               help="the parallelization factor")
+@click.option("--id", "--id", "run_id", envvar="COVID_RUN_INDEX", type=str,
+              default=file_paths.run_id(), show_default=True,
+              help="Unique identifier for the run")
 @click.option("--interactive/--batch", default=False,
               help="run in interactive or batch mode [default: batch]")
 @click.option("--write-csv/--no-write-csv", default=False, show_default=True,
@@ -150,7 +153,7 @@ from SEIR.profile import profile_options
 @click.option("--write-parquet/--no-write-parquet", default=True, show_default=True,
               help="write parquet file output at end of simulation")
 @profile_options
-def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_parquet,index):
+def simulate(config_file, run_id, scenarios, nsim, jobs, interactive, write_csv, write_parquet,index):
     config.set_file(config_file)
 
     spatial_config = config["spatial_setup"]
@@ -184,7 +187,9 @@ def simulate(config_file, scenarios, nsim, jobs, interactive, write_csv, write_p
                         write_csv=write_csv,
                         write_parquet=write_parquet,
                         dt=config["dt"].as_number(),
-                        first_sim_index = index)
+                        first_sim_index = index,
+                        run_id = run_id,
+                        prefix = config["name"].get() + "_" + str(scenario))
         try:
             s.load_filter(config["dynfilter_path"].get())
             print(' We are using a filter')

@@ -1,0 +1,224 @@
+---
+title: "Hierarchical and Prior Checkup"
+output: html_notebook
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+knitr::opts_knit$set(root.dir = "~/COVIDWorking")
+
+library(tidyverse)
+```
+
+
+
+```{r}
+snpi_dat <- arrow::open_dataset("hierarchical_test/schema_snpi", partitioning = c("death_Rate", "sim"))%>%
+  collect()%>%
+  mutate(sim=as.numeric(stringr::str_extract(sim, "00000[0-9][0-9][0-9][0-9]")))
+
+spar_dat <- arrow::open_dataset("hierarchical_test/schema_spar", partitioning = c("death_Rate", "sim"))%>%
+  collect()%>%
+  mutate(sim=as.numeric(stringr::str_extract(sim, "00000[0-9][0-9][0-9][0-9]")))#%>%
+  #pivot_wider(names_from=parameter, values_from = value)
+
+
+#comb_dat <- inner_join(snpi_dat, spar_dat)
+```
+
+
+```{r}
+
+  ##Load USA Facts data
+usa_facts_cases <- read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_confirmed_usafacts.csv") %>%
+  pivot_longer(c(-countyFIPS, -`County Name`, -State, -stateFIPS), names_to = "date", values_to="cumConfirmed")%>%
+  mutate(date=lubridate::mdy(date))%>%
+  mutate(geoid=stringr::str_pad(countyFIPS, width=5,pad="0"))%>%
+  rename(USPS=State, county=`County Name`)
+
+
+usa_facts_deaths <- read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv") %>%
+#  select(-X119)%>%
+ pivot_longer(c(-countyFIPS, -`County Name`, -State, -stateFIPS), names_to = "date", values_to="cumDeaths")%>%
+  mutate(date=lubridate::mdy(date))%>%
+  mutate(geoid=stringr::str_pad(countyFIPS, width=5,pad="0"))%>%
+  rename(USPS=State, county=`County Name`)
+  
+usa_facts_state<- usa_facts_cases %>%
+  inner_join(usa_facts_deaths)%>%
+  group_by(USPS, date)%>%
+  summarize(cumConfirmed=sum(cumConfirmed),
+            cumDeaths=sum(cumDeaths))%>%
+  ungroup()
+  
+  
+usa_facts_county<- usa_facts_cases %>%
+  inner_join(usa_facts_deaths)%>%
+  filter(countyFIPS>0)%>%
+  ungroup()
+
+usa_facts_cnty_tots <- usa_facts_county%>%
+  group_by(geoid)%>%
+  summarize(cumDeaths=max(cumDeaths), cumConfirmed=max(cumConfirmed))%>%
+  ungroup()
+
+```
+
+
+County Baseline $R_t$
+
+```{r}
+
+cnty_baseline_R0 <- snpi_dat%>%
+    filter(npi_name=="local_variance")%>%
+    select(geoid, reduction, death_Rate,sim)%>%
+    collect()%>%
+    inner_join(spar_dat%>%filter(parameter=="R0"))%>%
+    mutate(R0=value*(1-reduction))%>%
+    inner_join(usa_facts_cnty_tots)
+```
+
+```{r}
+map_dat <- cnty_baseline_R0%>%
+  #filter(cumConfirmed>10)%>%
+  #mutate(R0=ifelse(cumConfirmed>10,R0, NA))%>%
+  group_by(geoid, death_Rate)%>%
+  summarize(R0=mean(R0))%>%
+  ungroup()%>%
+  rename(fips=geoid)
+
+
+usmap::plot_usmap(data=map_dat, values="R0", color=NA, include="WA")+
+  scale_fill_gradient2(trans="log10",midpoint = 0, low="blue",high="red", limits=c(1/5,5),name="R0")+
+  facet_wrap(~death_Rate)+
+  theme_gray()
+
+```
+
+```{r}
+cnty_baseline_R0%>%ggplot(aes(x=reduction))+
+  geom_histogram()+
+  facet_wrap(~sim)
+
+cnty_baseline_R0%>%ggplot(aes(x=reduction))+
+  geom_histogram()+
+  facet_wrap(~geoid)
+
+```
+
+
+```{r}
+hpar_dat <- arrow::open_dataset("hierarchical_test/schema_hpar", partitioning = c("death_Rate", "sim"))%>%
+  collect()%>%
+  mutate(sim=as.numeric(stringr::str_extract(sim, "00000[0-9][0-9][0-9][0-9]")))
+```
+
+
+```{r}
+map_dat_conf <- hpar_dat %>%
+  inner_join(usa_facts_cnty_tots)%>%
+  #mutate(value=ifelse(cumDeaths>=1 &cumConfirmed>=10,value, NA))%>%
+  group_by(geoid, death_Rate)%>%
+  summarize(value=median(value))%>%
+  ungroup()%>%
+  rename(fips=geoid)
+
+
+usmap::plot_usmap(data=map_dat_conf, values="value", color=NA, include="WA")+
+  scale_fill_viridis_c()+
+  facet_wrap(~death_Rate)+
+  theme_gray()
+```
+
+```{r}
+hpar_dat%>%
+  filter(parameter=="p_confirmed_inf")%>%
+  filter(stringr::str_starts(geoid,"53"))%>%
+  ggplot(aes(x=value))+
+  geom_histogram()+
+  facet_wrap(~sim)
+
+hpar_dat%>%
+  filter(parameter=="p_confirmed_inf")%>%
+  filter(stringr::str_starts(geoid,"53"))%>%
+  ggplot(aes(x=value))+
+  geom_histogram()+
+  facet_wrap(~geoid)
+```
+
+
+Look at case trajectories
+
+```{r}
+sims <-arrow::open_dataset("hierarchical_test/schema_hosp", partitioning = c("death_Rate", "sim"))%>%
+  collect()%>%
+  mutate(sim=as.numeric(stringr::str_extract(sim, "00000[0-9][0-9][0-9][0-9]")))
+```
+
+```{r}
+st_sims <-sims%>%
+  inner_join(usa_facts_county%>%filter(stringr::str_starts(geoid,"53"))%>%rename(time=date))%>%
+  group_by(geoid, sim)%>%
+  mutate(conf=c(0,diff(cumConfirmed)),
+         death=c(0,diff(cumDeaths)))%>%
+  ungroup()%>%
+  group_by(time, sim)%>%
+  summarize(incidD=sum(incidD),
+            incidC=sum(incidC),
+            conf=sum(conf),
+            death=sum(death),
+            cumConfirmed=sum(cumConfirmed))%>%
+  ungroup()
+
+```
+
+
+```{r}
+st_sims %>%
+  ggplot(aes(x=time, y=incidD, group=sim)) +
+    geom_line(alpha=.1)+
+  geom_point(aes(y=death), color="red")+
+  scale_y_sqrt()
+
+st_sims %>%
+  ggplot(aes(x=time, y=incidC, group=sim)) +
+    geom_line(alpha=.1)+
+  geom_point(aes(y=conf), color="red")+
+  scale_y_sqrt()
+
+```
+```{r, fig.height=10}
+sims%>%
+  inner_join(usa_facts_county%>%filter(stringr::str_starts(geoid,"53"))%>%rename(time=date))%>%
+  group_by(geoid, sim)%>%
+  mutate(conf=c(0,diff(cumConfirmed)),
+         death=c(0,diff(cumDeaths)))%>%
+  ungroup()%>%
+  ggplot(aes(x=time, y=incidD, group=sim)) +
+    geom_line(alpha=.1)+
+  geom_point(aes(y=death), color="red")+
+  scale_y_sqrt()+
+  facet_wrap(~geoid)
+
+
+sims%>%
+  inner_join(usa_facts_county%>%filter(stringr::str_starts(geoid,"53"))%>%rename(time=date))%>%
+  group_by(geoid, sim)%>%
+  mutate(conf=c(0,diff(cumConfirmed)),
+         death=c(0,diff(cumDeaths)))%>%
+  ungroup()%>%
+  ggplot(aes(x=time, y=incidC, group=sim)) +
+    geom_line(alpha=.1)+
+  geom_point(aes(y=conf), color="red")+
+  scale_y_sqrt()+
+  facet_wrap(~geoid)
+
+
+```
+
+
+
+
+
