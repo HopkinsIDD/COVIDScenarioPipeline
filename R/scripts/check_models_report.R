@@ -5,8 +5,8 @@ library(covidcommon)
 library(tidyverse)
 
 option_list = list(
-  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
-  optparse::make_option(c("-s", "--scenario"), action="store", default='all', type='character', help="name of the intervention to check, or 'all' to check all of them")
+  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
+  optparse::make_option(c("-s", "--scenario"), action="store", default=Sys.getenv("COVID_SCENARIOS", 'all'), type='character', help="name of the intervention to check, or 'all' to check all of them")
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
