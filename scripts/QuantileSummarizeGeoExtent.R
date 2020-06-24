@@ -129,9 +129,9 @@ if (!opt$week) {
 ##Final results will average accross whatever is included
 res_all <-list()
 for (i in 1:length(scenarios)) {
-    scenario_dir = scenarios[i]
+    scenario_dir = "hosp"
     res_all[[i]] <- report.generation::load_hosp_sims_filtered(scenario_dir,
-                                                                 name_filter = opt$name_filter,
+                                                                 name_filter = c(scenarios[[i]],opt$name_filter),
                                                                  num_files = opt$num_simulations,
                                                                  post_process = post_proc,
                                                                  opt=opt)%>%

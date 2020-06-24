@@ -145,9 +145,9 @@ load_hosp_sims_filtered <- function(scenario_dir,
   
 
   if(legacy){name_filter = paste0("/",name_filter,"/")}
-  files <- dir(sprintf("hospitalization/model_output/%s", scenario_dir),full.names = TRUE)
-  files <- files[grepl(name_filter,gsub('^.*[/]','',files))]
-  if(length(files) == 0){stop(paste0("There were no files in ",getwd(),"/",sprintf("hospitalization/model_output/%s", scenario_dir)," matching name filter |",name_filter,"|"))}
+  files <- dir(sprintf("%s", scenario_dir),full.names = TRUE)
+  files <- files[grepl(name_filter,files)]
+  if(length(files) == 0){stop(paste0("There were no files in ",getwd(),"/",sprintf("%s", scenario_dir)," matching name filter |",name_filter,"|"))}
 
   if(is.null(num_files) | is.na(num_files) ){
     num_files <- length(files)
