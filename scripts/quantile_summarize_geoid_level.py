@@ -4,7 +4,7 @@ A faster and distributed version of QuantileSummarizeGeoidLevel.R, which uses Ap
 
 This script can be executed from the command line in the container by running Apache Spark locally:
 % /opt/spark/bin/spark-submit --driver-memory 1g --executor-memory 8g \
-        quantile_summarize_geoid_level.py hosp/USA/pld_inf/low/2020.06.21.19_54_06/global/final/ -o usa_none.csv
+        quantile_summarize_geoid_level.py hosp/USA/pld_inf/low/2020.06.21.19_54_06/global/final/ -o quantile_pld_inf_low
 
 NOTE: The hospitalization filenames must not contain colons ":". See R/scripts/remove_colons_from_filenames.R
 """
@@ -39,8 +39,7 @@ sqlContext = SQLContext(sc)
               help="latest date to include")
 @click.argument("scenarios", type=str, nargs=-1, required=True)
 def process(scenarios, output, start_date, end_date, name_filter):
-
-    # scenarios are not actually scenario names, but paths to the directory with .hosp.parquet files
+    """SCENARIOS are not actually scenario names, but paths to directories with *.hosp.parquet files"""
     # TODO: Test more than one scenario at a time
     paths = itertools.chain(*(pathlib.Path(p).glob("*.hosp.parquet")
                             for p in scenarios))
@@ -93,7 +92,7 @@ GROUP BY geoid, time
                                  F.col("q.metric").alias("metric"), F.col("q.value").alias("value"))
                          .groupBy(["geoid", "time", "quantile"]).pivot("metric").sum("value"))
 
-    final_df.write.option("header", "true").csv(str(output))
+    final_df.write.option("header", "true").mode("overwrite").csv(str(output))
 
 
 process()
