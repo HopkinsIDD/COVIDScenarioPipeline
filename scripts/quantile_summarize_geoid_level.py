@@ -6,6 +6,11 @@ This script can be executed from the command line in the container by running Ap
 % /opt/spark/bin/spark-submit --driver-memory 1g --executor-memory 8g \
         quantile_summarize_geoid_level.py hosp/USA/pld_inf/low/2020.06.21.19_54_06/global/final/ -o quantile_pld_inf_low
 
+To combine and sort the csv's at the end with Linux command-line:
+cd [OUTPUT_DIRECTORY]
+awk '(NR == 1) || (FNR > 1)' part-*.csv temp.csv
+(head -n1 temp.csv && tail -n+2 temp.csv | sort -k1 -k2 -k3) >final_output.csv
+
 NOTE: The hospitalization filenames must not contain colons ":". See R/scripts/remove_colons_from_filenames.R
 """
 
@@ -57,7 +62,7 @@ def process(scenarios, output, start_date, end_date, name_filter):
     df = df.withColumnRenamed("incidI", "infections") \
            .withColumnRenamed("incidD", "death") \
            .withColumnRenamed("incidH", "hosp")
-    df = df.filter((df.time > start_date.date()) & (df.time <= end_date.date()))
+    df = df.filter((df.time >= start_date.date()) & (df.time <= end_date.date()))
     df = df.withColumn("cum_infections", F.sum(df.infections).over(
         Window.partitionBy(df.geoid).orderBy(df.time, df.geoid)))
     df = df.withColumn("cum_death", F.sum(df.death).over(
