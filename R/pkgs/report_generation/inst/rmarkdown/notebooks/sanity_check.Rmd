@@ -102,14 +102,14 @@ if(is.na(npi_label)){
 `r paste0("**Tab.", tab_counter, "**: Summary of hospitalization and SEIR parameters")`
 ```{r param_summary, eval=FALSE}
 
-hosp <- config$hospitalization$parameters
-
-hosp <- tibble(value = unlist(hosp), names = names(unlist(hosp))) %>%
-    mutate(names = str_remove(names, '\\d$')) %>%
-    group_by(names) %>%
-    summarise_all(funs(paste0(.,collapse=', '))) %>%
-    right_join(hosp%>%names()%>%tibble(names=.)) %>%
-    mutate(section = "Hospitalization")
+# hosp <- config$hospitalization$parameters
+# 
+# hosp <- tibble(value = unlist(hosp), names = names(unlist(hosp))) %>%
+#     mutate(names = str_remove(names, '\\d$')) %>%
+#     group_by(names) %>%
+#     summarise_all(funs(paste0(.,collapse=', '))) %>%
+#     right_join(hosp%>%names()%>%tibble(names=.)) %>%
+#     mutate(section = "Hospitalization")
 
 seir <- config$seir$parameters
 
@@ -121,27 +121,28 @@ seir <- tibble(value = unlist(seir), names = names(unlist(seir))) %>%
     summarise_all(funs(paste0(.,collapse='\n'))) %>%
     right_join(seir%>%names()%>%tibble(names=.)) %>%
     mutate(section= "SEIR") 
-
-import <- config$importation
-
-if(!is.null(import)) {
-importation <- tibble(value = unlist(import), names = names(unlist(import))) %>%
-  select(-census_api_key, cache_work, update_case_data, print_progress) %>% 
-  mutate(section = "Importation")
-
-import <- config$importation$param_list
-
-importation <- tibble(value = unlist(import), names = names(unlist(import))) %>%
-  mutate(names = str_remove(names, '\\d$')) %>%
-  group_by(names) %>%
-  summarise_all(funs(paste0(.,collapse=', '))) %>%
-  right_join(import%>%names()%>%tibble(names=.)) %>%
-  mutate(section = "Importation") %>%
-  bind_rows(importation, .)
-}
-
-hosp %>%
-  {if(is.null(import)) bind_rows(., seir) else(bind_rows(., seir, importation))} %>%
+# 
+# import <- config$importation
+# 
+# if(!is.null(import)) {
+# importation <- tibble(value = unlist(import), names = names(unlist(import))) %>%
+#   select(-census_api_key, cache_work, update_case_data, print_progress) %>% 
+#   mutate(section = "Importation")
+# 
+# import <- config$importation$param_list
+# 
+# importation <- tibble(value = unlist(import), names = names(unlist(import))) %>%
+#   mutate(names = str_remove(names, '\\d$')) %>%
+#   group_by(names) %>%
+#   summarise_all(funs(paste0(.,collapse=', '))) %>%
+#   right_join(import%>%names()%>%tibble(names=.)) %>%
+#   mutate(section = "Importation") %>%
+#   bind_rows(importation, .)
+# }
+# 
+# hosp %>%
+  # {if(is.null(import)) bind_rows(., seir) else(bind_rows(., seir, importation))} %>%
+seir%>%
     select(Section = section, Parameters = names, Value = value) %>%
     flextable::flextable() %>%
     flextable::merge_v(j="Section") %>%
@@ -150,6 +151,51 @@ hosp %>%
 
 tab_counter <- tab_counter+1
 ```
+
+
+`r paste0("**Tab.", tab_counter, "**: Summary of Outcome parameters")`
+
+```{r}
+
+hpar<- arrow::open_dataset(paste0(run_folder,"/hpar/"), 
+                               partitioning = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")) %>%
+  select(geoid, outcome, value, death_rate) %>%
+  collect() 
+
+hpar%>%
+    left_join(geodata%>%select(USPS, geoid))%>%
+    group_by(outcome, death_rate, !!as.symbol(geogroup))%>%
+    summarize(value_lo=quantile(value,pi_lo),
+              value_hi=quantile(value,pi_hi),
+              value=mean(value)) %>%
+    {if(run=="state") left_join(., shp%>%sf::st_drop_geometry()%>%select(name, geoid))
+        else(rename(., name=USPS))} %>%
+    ggplot(aes(x=value, y=name, col=outcome)) +
+    geom_point(position=position_dodge(0.75))+
+    geom_linerange(aes(xmin=value_lo, xmax=value_hi), position=position_dodge(0.75),alpha=0.6)+
+    facet_wrap(~death_rate)+
+    theme_minimal()+
+    scale_x_sqrt()
+
+hpar%>%
+    mutate(death_rate=factor(death_rate, levels=pdeath_levels))%>%
+    group_by(outcome, death_rate)%>%
+    summarize(value_lo=quantile(value,pi_lo),
+              value_hi=quantile(value,pi_hi),
+              value=mean(value)) %>%
+    select(outcome, death_rate, value, value_lo, value_hi) %>%
+    mutate_if(is.numeric, function(x) round(x*100,2))%>%
+    mutate(value_hi=str_replace(value_hi, '$', '\\)'),
+           value_lo=str_replace(value_lo, '^', '\\(')) %>%
+    unite(col=ci, value_lo:value_hi, sep="-") %>%
+    flextable::flextable()%>%
+    flextable::autofit()%>%
+    flextable::set_header_labels(outcome="Outcome", death_rate="IFR", value="Probability", ci=paste0((pi_hi-pi_lo)*100, "% PI")) %>%
+    flextable::merge_v(j=1)
+
+tab_counter<-tab_counter+1
+```
+
 
 `r if_else(run=="state", paste0("**Tab.", tab_counter, "**: Scenario summary"),"")` 
 ````{r scen_summary, eval = FALSE}
