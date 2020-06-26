@@ -15,7 +15,7 @@ from SEIR import file_paths
 
 
 
-def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching_file, nsim = 1, index=1, n_jobs=1):
+def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix, scenario_outcomes, branching_file, nsim = 1, index=1, n_jobs=1):
     start = time.monotonic()
     sim_ids = np.arange(index, index + nsim)
 
@@ -26,8 +26,8 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
     if (config["outcomes"]["param_from_file"].get()):
         # load a file from the seir model, to know how to filter the provided csv file
         diffI = pd.read_parquet(file_paths.create_file_name(
-          run_id,
-          prefix,
+          out_run_id,
+          out_prefix,
           sim_ids[0],
           'seir',
           'parquet'
@@ -70,7 +70,6 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
                 colname = 'R'+new_comp+'|'+parameters[new_comp]['source']
                 if colname in branching_data.columns:
                     print(f"Using 'param_from_file' for probability {colname}")
-                    print(new_comp)
                     parameters[new_comp]['probability'] = branching_data[colname].to_numpy()
                 else:
                     print(f"NOT using 'param_from_file' for probability {colname}")
@@ -80,14 +79,16 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
         else:
             raise ValueError(f"No 'source' or 'sum' specified for comp {new_comp}")
 
-    if n_jobs == 1:          # run single process for debugging/profiling purposes
+    if (n_jobs == 1) or (len(sim_ids) == 1):          # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_delayframe_outcomes(run_id, prefix, sim_id, parameters)
+            onerun_delayframe_outcomes(in_run_id, in_prefix, out_run_id, out_prefix, sim_id, parameters)
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
-            itertools.repeat(run_id), 
-            itertools.repeat(prefix), 
+            itertools.repeat(in_run_id), 
+            itertools.repeat(in_prefix), 
+            itertools.repeat(out_run_id), 
+            itertools.repeat(out_prefix), 
             sim_ids, 
             itertools.repeat(parameters), 
             max_workers=n_jobs
@@ -99,16 +100,16 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
 
 
 
-def onerun_delayframe_outcomes(run_id, prefix, sim_id, parameters):
+def onerun_delayframe_outcomes(in_run_id, in_prefix, out_run_id, out_prefix, sim_id, parameters):
     
     # Read files
-    diffI, places, dates = read_seir_sim(run_id, prefix, sim_id)
+    diffI, places, dates = read_seir_sim(in_run_id, in_prefix, sim_id)
     
     # Compute outcomes
     outcomes = compute_all_delayframe_outcomes(parameters, diffI, places, dates)
 
     # Write output
-    write_outcome_sim(outcomes, run_id, prefix, sim_id)
+    write_outcome_sim(outcomes, out_run_id, out_prefix, sim_id)
 
 
 def read_seir_sim(run_id, prefix, sim_id):
