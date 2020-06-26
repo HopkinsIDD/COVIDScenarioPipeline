@@ -143,7 +143,10 @@ from SEIR.profile import profile_options
 @click.option("-j", "--jobs", envvar="COVID_NJOBS", type=click.IntRange(min=1),
               default=multiprocessing.cpu_count(), show_default=True,
               help="the parallelization factor")
-@click.option("--id", "--id", "run_id", envvar="COVID_RUN_INDEX", type=str,
+@click.option("--in-id", "--in-id", "in_run_id", envvar="COVID_RUN_INDEX", type=str,
+              default=file_paths.run_id(), show_default=True,
+              help="Unique identifier for the run") # Default does not make sense here
+@click.option("--out-id", "--out-id", "out_run_id", envvar="COVID_RUN_INDEX", type=str,
               default=file_paths.run_id(), show_default=True,
               help="Unique identifier for the run")
 @click.option("--interactive/--batch", default=False,
@@ -153,7 +156,7 @@ from SEIR.profile import profile_options
 @click.option("--write-parquet/--no-write-parquet", default=True, show_default=True,
               help="write parquet file output at end of simulation")
 @profile_options
-def simulate(config_file, run_id, scenarios, nsim, jobs, interactive, write_csv, write_parquet,index):
+def simulate(config_file, in_run_id, out_run_id, scenarios, nsim, jobs, interactive, write_csv, write_parquet,index):
     config.set_file(config_file)
 
     spatial_config = config["spatial_setup"]
@@ -175,7 +178,7 @@ def simulate(config_file, run_id, scenarios, nsim, jobs, interactive, write_csv,
 
     start = time.monotonic()
     for scenario in scenarios:
-        s = setup.Setup(setup_name=config["name"].get() + "_" + str(scenario),
+        s = setup.Setup(setup_name=config["name"].get() + "/" + str(scenario) + "/",
                         spatial_setup=spatial_setup,
                         nsim=nsim,
                         npi_scenario=scenario,
@@ -188,8 +191,10 @@ def simulate(config_file, run_id, scenarios, nsim, jobs, interactive, write_csv,
                         write_parquet=write_parquet,
                         dt=config["dt"].as_number(),
                         first_sim_index = index,
-                        run_id = run_id,
-                        prefix = config["name"].get() + "_" + str(scenario))
+                        in_run_id = in_run_id,
+                        in_prefix = config["name"].get() + "/",
+                        out_run_id = out_run_id,
+                        out_prefix = config["name"].get() + "/" + str(scenario) + "/")
         try:
             s.load_filter(config["dynfilter_path"].get())
             print(' We are using a filter')

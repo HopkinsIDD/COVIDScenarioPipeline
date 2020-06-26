@@ -97,8 +97,10 @@ s = setup.Setup(
     write_parquet=write_parquet,
     dt=config["dt"].as_number(),
     first_sim_index = index,
-    run_id = run_id,
-    prefix = prefix
+    in_run_id = run_id,
+    in_prefix = prefix,
+    out_run_id = run_id,
+    out_prefix = prefix
 )
 
 
@@ -116,10 +118,12 @@ setup_name = s.setup_name
 def onerun_HOSP(index):
     outcomes.run_delayframe_outcomes(
         config,
-        run_id,
-        prefix,
+        run_id, # input
+        prefix, # input
+        run_id, # output
+        prefix, # output
         deathrate,
-        file_paths.create_file_name(run_id, prefix, int(index), 'hpar', 'parquet'),
+        file_paths.create_file_name(run_id, prefix, int(index), 'hpar', 'parquet'), # output
         1,
         int(index),
         1

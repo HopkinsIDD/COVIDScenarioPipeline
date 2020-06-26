@@ -35,9 +35,8 @@ def _success(test_dir):
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"make failed with code {complete.returncode}"
 
-    assert_dir("model_parameters")
-    assert_dir("model_output")
-    assert_dir("hospitalization")
+    assert_dir("model_output/seir")
+    assert_dir("model_output/hosp")
 
 # teardown
 def teardown_function(self):
@@ -48,6 +47,9 @@ def teardown_function(self):
 # Test definitions
 
 def test_simple():
+    _success("test_simple")
+
+def test_sold_hospitalization():
     _success("test_simple")
 
 def test_importation():
