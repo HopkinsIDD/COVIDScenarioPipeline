@@ -248,6 +248,9 @@ perturb_snpi <- function(snpi, intervention_settings) {
 
             ##get the npi values for this distribution
             ind <- (snpi[["npi_name"]] == intervention)
+	    if(!any(ind)){
+              next
+	    }
 
             ##add the pertubation...for now always parameterized in terms of a "reduction"
             snpi_new <- snpi[["reduction"]][ind] + pert_dist(sum(ind))
@@ -285,6 +288,9 @@ perturb_hpar <- function(hpar, intervention_settings) {
 
           ##get the hpar values for this distribution
           ind <- (hpar[["outcome"]] == intervention) & (hpar[["quantity"]] == quantity) # & (hpar[['source']] == intervention_settings[[intervention]][['source']])
+	  if(!any(ind)){
+            next
+	  }
 
           ## add the perturbation...
           hpar_new <- hpar[["value"]][ind] + pert_dist(sum(ind))

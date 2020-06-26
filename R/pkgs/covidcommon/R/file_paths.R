@@ -3,7 +3,11 @@
 #' Create a unique identifier for a run via time stamp
 #' @export
 run_id <- function(){
-  return(format(lubridate::now(),"%Y.%m.%d.%H:%M:%S.%Z"))
+  rc <- "test"
+  try({
+    rc <- format(lubridate::now(),"%Y.%m.%d.%H:%M:%S.%Z")
+  }, silent=TRUE)
+  return(rc)
 }
 
 ## Function for creating scenario tags from components
