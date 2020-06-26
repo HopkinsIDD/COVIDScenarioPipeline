@@ -162,7 +162,6 @@ hosp_load_scenario_sim <- function(
     }
 
     extension <- ifelse(use_parquet,'parquet','csv')
-    print("1")
     file <- covidcommon::create_file_name(run_id=run_id,prefix=prefix,index=sim_id,type='seir',extension=extension)
     if(!file.exists(file)){
       stop(sprintf("File %s expected, but does not exist",file))
@@ -190,7 +189,6 @@ hosp_load_scenario_sim <- function(
 
 write_hosp_output <- function(res,run_id,prefix,index,use_parquet){
   extension <- ifelse(use_parquet,"parquet","csv")
-  print("2")
   outfile <- covidcommon::create_file_name(run_id=run_id,prefix=prefix,index=index,type='hosp',extension=extension)
   outdir <- dirname(outfile)
   if(!dir.exists(outdir)){
@@ -249,13 +247,8 @@ build_hospdeath_par <- function(
   out_prefix = covidcommon::create_prefix(dscenario_name,out_run_id,trailing_separator='/')
 ) {
 
-  print(in_run_id)
-  print(in_prefix)
-  print(out_run_id)
-  print(out_prefix)
-  
   if(num_sims < 0){
-    num_sims <- covidcommon::count_files_of_type(in_run_id,in_prefix,'hosp',ifelse(use_parquet,'parquet','csv'))
+    num_sims <- covidcommon::count_files_of_type(in_run_id,in_prefix,'seir',ifelse(use_parquet,'parquet','csv'))
   }
 
   print(paste("Creating cluster with",cores,"cores"))
@@ -269,7 +262,8 @@ build_hospdeath_par <- function(
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   library(foreach)
-  foreach::foreach(s=seq_len(num_sims), .packages=pkgs) %dopar% {
+  # foreach::foreach(s=seq_len(num_sims), .packages=pkgs) %dopar% {
+  for(s in seq_len(num_sims)) {
     sim_id <- start_sim + s - 1
     dat_ <- hosp_load_scenario_sim(
       run_id = in_run_id,
@@ -382,7 +376,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   out_prefix = covidcommon::create_prefix(dscenario_name,run_id,trailing_separator ='/')
 ) {
   if(num_sims < 0){
-    num_sims <- covidcommon::count_files_of_type(in_run_id,in_prefix,'hosp',ifelse(use_parquet,'parquet','csv'))
+    num_sims <- covidcommon::count_files_of_type(in_run_id,in_prefix,'seir',ifelse(use_parquet,'parquet','csv'))
   }
 
   print(paste("Creating cluster with",cores,"cores"))

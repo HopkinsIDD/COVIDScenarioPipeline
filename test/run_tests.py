@@ -49,8 +49,8 @@ def teardown_function(self):
 def test_simple():
     _success("test_simple")
 
-def test_sold_hospitalization():
-    _success("test_simple")
+def test_old_hospitalization():
+    _success("test_old_hospitalization")
 
 def test_importation():
     _success("test_importation")
