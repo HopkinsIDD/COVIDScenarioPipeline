@@ -97,35 +97,33 @@ def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenario
 
 
     start = time.monotonic()
-    for scenario_seir in scenarios_seir:
-        for scenario_outcomes in scenarios_outcomes:
-            print(f"Scenario {scenario_seir}, outcome {scenario_outcomes}")
-            if out_prefix is None:
-                prefix = config["name"].get() + "/" + str(scenario_seir) + "/" + str(scenario_outcomes) + "/"
-            if in_prefix is None:
-                in_prefix = config["name"].get() + "/" + str(scenario_seir) + "/"
-            outdir = file_paths.create_dir_name(out_run_id, out_prefix,"hosp")
-            os.makedirs(outdir, exist_ok=True)
+    for scenario_outcomes in scenarios_outcomes:
+        print(f"outcome {scenario_outcomes}")
+        if out_prefix is None:
+            out_prefix = config["name"].get() + "/" + str(scenario_outcomes) + "/"
+        if in_prefix is None:
+            raise ValueError(f"in_prefix must be provided")
+        outdir = file_paths.create_dir_name(out_run_id, out_prefix,"hosp")
+        os.makedirs(outdir, exist_ok=True)
 
 
-            print(f"""
->> Scenario: {scenario_seir} -- {scenario_outcomes} 
+        print(f"""
 >> Starting {nsim} model runs beginning from {index} on {jobs} processes
 >> writing to folder : {outdir}
     """)
-            if (config["outcomes"]["method"].get() == 'delayframe'):
-                outcomes.run_delayframe_outcomes(config, 
-                            in_run_id,
-                            in_prefix,
-                            out_run_id,
-                            out_prefix,
-                            scenario_outcomes,
-                            config["outcomes"]["param_place_file"],
-                            nsim, 
-                            index,
-                            jobs)
-            else:
-                 raise ValueError(f"Only method 'delayframe' is supported at the moment.")
+        if (config["outcomes"]["method"].get() == 'delayframe'):
+            outcomes.run_delayframe_outcomes(config, 
+                        in_run_id,
+                        in_prefix,
+                        out_run_id,
+                        out_prefix,
+                        scenario_outcomes,
+                        config["outcomes"]["param_place_file"],
+                        nsim, 
+                        index,
+                        jobs)
+        else:
+             raise ValueError(f"Only method 'delayframe' is supported at the moment.")
 
 
     print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")

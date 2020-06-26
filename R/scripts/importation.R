@@ -67,7 +67,8 @@ library(stringr)
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
   optparse::make_option(c("-j", "--jobs"), action="store", default=Sys.getenv("COVID_NJOBS", detectCores()), type='numeric', help="number of cores used"),
-  optparse::make_option(c("-n", "--num_simulations"), action="store", default=Sys.getenv("COVID_NSIMULATIONS" -1), type='numeric', help="number of simulations to run, overrides config file value")
+  optparse::make_option(c("-n", "--num_simulations"), action="store", default=Sys.getenv("COVID_NSIMULATIONS",-1), type='numeric', help="number of simulations to run, overrides config file value"),
+  optparse::make_option(c("-u","--run_id"), action="store", type='character', help="Unique identifier for this run", default = Sys.getenv("COVID_RUN_INDEX",covidcommon::run_id()))
 )
 
 opts = optparse::parse_args(optparse::OptionParser(option_list=option_list))
@@ -77,11 +78,14 @@ if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
+prefix <- covidcommon::create_prefix(config$name,trailing_separator='/')
+
 num_simulations <- ifelse(opts$n > 0, opts$n, config$nsimulations)
 last_sim_id <- stringr::str_pad(num_simulations, width=9, pad="0")
 
 dest <- sort(config$spatial_setup$modeled_states)
 print(dest)
+
 
 outdir <- file.path('importation',config$spatial_setup$setup_name)
 print(outdir)
@@ -156,4 +160,23 @@ if (!file.exists(file.path(outdir, paste0(last_sim_id, "impa.csv")))) {
   )
  } 
 
+## Move files
+for(simulation in seq_len(num_simulations)){
+  source_file <- sprintf("%s/%09d.impa.csv",outdir,simulation)
+  dest_file <- covidcommon::create_file_name(
+    run_id = opts$run_id,
+    prefix = prefix,
+    type = config$seeding$seeding_file_type,
+    index = simulation,
+    extension = "csv"
+  )
+  config$spatial_setup$base_path
+  if(!file.exists(source_file)){
+    stop(sprintf("Importation did not create file %s, but expected to",source_file))
+  }
+  if(!dir.exists(dirname(dest_file))){
+    dir.create(dest_file)
+  }
+  file.rename(source_file,dest_file)
+}
 ## @endcond
