@@ -127,7 +127,7 @@ opt = optparse::parse_args(optparse::OptionParser(option_list = option_list))
 
 #' @description Run the hospitalization results.
 #' @importFrom covidcommon load_config
-config <- covidcommon::load_config(opt$c)
+config <- covidcommon::load_config(opt[['config']])
 if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
@@ -139,12 +139,12 @@ if(is.null(run_age_adjust)){
           Defaults to running legacy script")
   run_age_adjust <- FALSE
 } else {
-  geoid_params_file <- opt$geoid.params.file
+  geoid_params_file <- opt[['geoid.params.file']]
   if(geoid_params_file == ''){
     geoid_params_file <- config$hospitalization$paths$geoid_params_file
   }
   if(length(geoid_params_file) == 0 ){
-    geoid_params_file <- paste(opt$p,"sample_data","geoid-params.csv",sep = '/')
+    geoid_params_file <- paste(opt[['path']],"sample_data","geoid-params.csv",sep = '/')
   }
   print(paste("param file is ",geoid_params_file))
 }
@@ -168,11 +168,11 @@ time_vent_pars <- as_evaled_expression(hosp_parameters$time_vent)
 p_death <- as_evaled_expression(hosp_parameters$p_death)
 names(p_death) = hosp_parameters$p_death_names
 
-cmd <- opt$d
-scenario <- opt$s
-ncore <- opt$j
-start_sim <- opt$i
-num_sims <- opt$n
+cmd <- opt[['deathrate']]
+scenario <- opt[['scenario']]
+ncore <- opt[['jobs']]
+start_sim <- opt[['index-from-sim']]
+num_sims <- opt[['num-sims']]
 
 # Verify that the cmd maps to a known p_death value
 if (cmd == "all") {
