@@ -14,7 +14,6 @@ import pandas as pd
 from SEIR import file_paths
 
 
-
 def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching_file, nsim = 1, index=1, n_jobs=1):
     start = time.monotonic()
     sim_ids = np.arange(index, index + nsim)
@@ -82,14 +81,14 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
 
     if n_jobs == 1:          # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_delayframe_outcomes(run_id, prefix, sim_id, parameters)
+            onerun_delayframe_outcomes(sim_id, run_id, prefix, parameters)
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
+            sim_ids,
             itertools.repeat(run_id), 
-            itertools.repeat(prefix), 
-            sim_ids, 
-            itertools.repeat(parameters), 
+            itertools.repeat(prefix),
+            itertools.repeat(parameters),
             max_workers=n_jobs
         )
 
@@ -99,7 +98,7 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
 
 
 
-def onerun_delayframe_outcomes(run_id, prefix, sim_id, parameters):
+def onerun_delayframe_outcomes(sim_id, run_id, prefix, parameters):
     
     # Read files
     diffI, places, dates = read_seir_sim(run_id, prefix, sim_id)
