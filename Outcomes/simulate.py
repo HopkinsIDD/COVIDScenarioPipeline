@@ -98,7 +98,7 @@ def simulate(config_file, run_id, prefix, scenarios_seir, scenarios_outcomes, ns
     for scenario_seir in scenarios_seir:
         for scenario_outcomes in scenarios_outcomes:
             if prefix is None:
-                prefix = config["name"].get() + "_" + str(scenario_seir) + "_" + str(scenario_outcomes)
+                prefix = config["name"].get() + "_" + str(scenario_seir) #+ "_" + str(scenario_outcomes)
             setup_name = config["name"].get() + "_" + str(scenario_seir)
             # outdir = f'model_output/outcomes/{setup_name}/'
             outdir = f'hospitalization/model_output/{setup_name}/'
