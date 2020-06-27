@@ -9,7 +9,7 @@
 # ## Configuration Items
 #
 # ```yaml
-#outcomes:
+# outcomes:
 #  method: delayframe                   # Only fast is supported atm. Makes fast delay_table computations. Later agent-based method ?
 #  paths:
 #    param_from_file: TRUE               #
@@ -23,7 +23,8 @@
 #        source: incidence                      # Source of the new compartement: either an previously defined compartement or "incidence" for diffI of the SEIR
 #        probability:  <random distribution>           # Branching probability from source
 #        delay: <random distribution>                  # Delay from incidence of source to incidence of new_compartement
-#        duration: <random distribution>               # OPTIONAL ! Duration in new_comp. If provided, the model add to it's output "new_comp1_curr" with current amount in new_comp1
+#        duration: <random distribution>               # OPTIONAL ! Duration in new_comp. If provided, the model add to it's
+#                                                      #output "new_comp1_curr" with current amount in new_comp1
 #      new_comp2:                               # Example for a second compatiment
 #        source: new_comp1                      
 #        probability: <random distribution> 
@@ -47,7 +48,6 @@
 # * {output_path}/model_output/{spatial_setup::setup_name}_[scenario]/[simulation ID].hosp.parquet
 
 
-
 ## @cond
 import multiprocessing
 import pathlib
@@ -56,16 +56,18 @@ import time, os
 import click
 
 from SEIR import file_paths
-from SEIR.utils import config 
+from SEIR.utils import config
 from Outcomes import outcomes
 
 
 @click.command()
-@click.option("-c", "--config", "config_file", envvar=["COVID_CONFIG_PATH", "CONFIG_PATH"], type=click.Path(exists=True), required=True,
+@click.option("-c", "--config", "config_file", envvar=["COVID_CONFIG_PATH", "CONFIG_PATH"],
+              type=click.Path(exists=True), required=True,
               help="configuration file for this simulation")
 @click.option("-s", "--scenario", "scenarios_seir", envvar="COVID_SCENARIOS", type=str, default=[], multiple=True,
               help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]")
-@click.option("-d", "--scenarios_outcomes", "scenarios_outcomes", envvar="COVID_DEATHRATES", type=str, default=[], multiple=True,
+@click.option("-d", "--scenarios_outcomes", "scenarios_outcomes", envvar="COVID_DEATHRATES", type=str, default=[],
+              multiple=True,
               help="Scenario of outcomes to run")
 @click.option("-n", "--nsim", envvar="COVID_NSIMULATIONS", type=click.IntRange(min=1),
               help="override the # of outcomes simulation to run runs in the config file")
@@ -75,10 +77,11 @@ from Outcomes import outcomes
 @click.option("-j", "--jobs", envvar="COVID_NJOBS", type=click.IntRange(min=1),
               default=multiprocessing.cpu_count(), show_default=True,
               help="the parallelization factor")
-@click.option("-I","--id", "run_id", envvar="COVID_RUN_INDEX", type = str, default=file_paths.run_id(),show_default=True, help= "unique identifier for the run")
-@click.option("--prefix","--prefix", "prefix", envvar="COVID_PREFIX", type = str, default=None, show_default=True, help= "unique identifier for the run")
-
-def simulate(config_file, run_id, prefix, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
+@click.option("-I", "--id", "run_id", envvar="COVID_RUN_INDEX", type=str, default=file_paths.run_id(),
+              show_default=True, help="unique identifier for the run")
+@click.option("--prefix", "--prefix", "prefix", envvar="COVID_PREFIX", type=str, default=None, show_default=True,
+              help="unique identifier for the run")
+def simulate(config_file, run_id, prefix, scenarios_seir, scenarios_outcomes, nsim, jobs, index):
     config.set_file(config_file)
     if not scenarios_outcomes:
         scenarios_outcomes = config["outcomes"]["scenarios"].as_str_seq()
@@ -91,14 +94,13 @@ def simulate(config_file, run_id, prefix, scenarios_seir, scenarios_outcomes, ns
     if not nsim:
         nsim = config["nsimulations"].as_number()
 
-
     start = time.monotonic()
     for scenario_seir in scenarios_seir:
         for scenario_outcomes in scenarios_outcomes:
             if prefix is None:
                 prefix = config["name"].get() + "_" + str(scenario_seir) + "_" + str(scenario_outcomes)
             setup_name = config["name"].get() + "_" + str(scenario_seir)
-            #outdir = f'model_output/outcomes/{setup_name}/'
+            # outdir = f'model_output/outcomes/{setup_name}/'
             outdir = f'hospitalization/model_output/{setup_name}/'
             os.makedirs(outdir, exist_ok=True)
 
@@ -108,17 +110,16 @@ def simulate(config_file, run_id, prefix, scenarios_seir, scenarios_outcomes, ns
 >> writing to folder : {outdir}
     """)
             if (config["outcomes"]["method"].get() == 'delayframe'):
-                outcomes.run_delayframe_outcomes(config, 
-                            run_id,
-                            prefix,
-                            scenario_outcomes,
-                            config["outcomes"]["param_place_file"],
-                            nsim, 
-                            index,
-                            jobs)
+                outcomes.run_delayframe_outcomes(config,
+                                                 run_id,
+                                                 prefix,
+                                                 scenario_outcomes,
+                                                 config["outcomes"]["param_place_file"],
+                                                 nsim,
+                                                 index,
+                                                 jobs)
             else:
-                 raise ValueError(f"Only method 'delayframe' is supported at the moment.")
-
+                raise ValueError(f"Only method 'delayframe' is supported at the moment.")
 
     print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")
 
