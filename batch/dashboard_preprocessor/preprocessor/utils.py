@@ -2,27 +2,26 @@ import os
 import copy
 import boto3
 import json
-import logging
 import datetime
 import pandas as pd
 import pyarrow.parquet as pq
 
-# from constants import severities, parameters  
-# from parse import get_parquet
+from constants import severities, parameters  
+from parse import get_parquet
 # pytest
-from preprocessor.constants import severities, parameters  
-from preprocessor.parse import get_parquet
+# from preprocessor.constants import severities, parameters  
+# from preprocessor.parse import get_parquet
 
-def get_configs(bucket: str, base_path: str) -> list:
+def get_configs(bucket: str, folder: str) -> list:
     # return list of configurations, including config_names, scenarios, sevs, 
-    # run_ids, dates, and number of scenes that appear in base_path dir
+    # run_ids, dates, and number of scenes that appear in base folder dir
 
     s3 = boto3.resource('s3')
     s3_bucket = s3.Bucket(bucket)
 
+    # get configs from s3 bucket key filenames
     configs, scenarios, sevs, runs = [], [], [], []
-    prefix = base_path + '/model_output/hosp/USA'
-
+    prefix = folder + '/model_output/hosp/USA'
     for file_obj in s3_bucket.objects.filter(Prefix=prefix):
         key_string = file_obj.key.split('/')
 
@@ -31,39 +30,55 @@ def get_configs(bucket: str, base_path: str) -> list:
         sevs.append(key_string[5])          # idx of "scenario_severity" 
         runs.append(key_string[6])          # idx of "run_id" 
 
-    # validation
-    validate(key_string, configs, scenarios, sevs, runs)
+    # validation TODO: uncomment
+    # validate(key_string, configs, scenarios, sevs, runs)
 
-    # TODO: probably a better way to do this
+    # TODO: probably a better way to do this, decide with more test data how
     num_of_sims = int(len(sevs) / len(list(set(sevs))))
 
-    # get dates from first file
-    first_file = get_parquet(
-        bucket, base_path, configs[0], scenarios[0], sevs[0], runs[0], '1')
-    datetimes = pd.to_datetime(first_file.time.unique())
-    dates = [date.strftime('%Y-%m-%d') for date in datetimes]
+    # get configs from first ParquetDataset
+    first_file, r0 = get_parquet(
+        bucket, folder, configs[0], scenarios[0], sevs[0], runs[0], '1')
 
-    logging.info('Configurations returned')
+    # get dates
+    timestamps = []
+    seen = set() # optimized to loop over minimum number of timestamps
+    for ts in first_file.read(columns=['time'])[0]:
+        if ts in seen:
+            break
+        timestamps.append(ts)
+        seen.add(ts)
+    dates = [ts.as_py().strftime('%Y-%m-%d') for ts in timestamps]
 
+    # get geoids and row index to geoid mapping for parsing function
+    geoids = [] #, geoid_map = [], {}
+    geoids_chunk = first_file.read(columns=['geoid'])[0]
+    # i = 0
+    for idx in range(0, len(geoids_chunk), len(dates)): 
+        geoids.append(geoids_chunk[idx].as_py())    # build geoids list
+        # geoid_map[i] = geoids_chunk[idx]            # build idx-to-geoid mapping
+        # i+=1
+        
+    print('Configurations returned')
     return list(set(configs)), list(set(scenarios)), list(set(sevs)), \
-           list(set(runs)), dates, num_of_sims
+           list(set(runs)), geoids, dates, num_of_sims
 
 def validate(key_string: str, configs: list, scenarios: list, sevs: list, runs: list):
     # raise errors if input files are faulty
-    format = 'config_name/npi_scenario/severity/run_id/global/final/index.run_id.file_type.parquet'
+    path = 'config_name/npi_scenario/severity/run_id/global/final/index.run_id.file_type.parquet'
 
     if len(key_string) != 10 or \
         key_string[1] != 'model_output' or \
         key_string[8] != 'final':
-        logging.error('Filename key must follow the format:', format)
+        print('Filename key must follow the format:', path)
 
     if key_string[9].split('.')[-1] != 'parquet':
-        logging.error('Simulation files must be .parquet')
+        print('Simulation files must be .parquet')
 
     if not configs or not scenarios or not sevs or not runs:
-        logging.error('Error in file structure. Missing configs, scenarios, sevs, or runs.')
+        print('Error in file structure. Missing configs, scenarios, sevs, or runs.')
 
-    logging.info('File structure validation complete')
+    print('File structure validation complete')
 
 def aggregate_by_state(final: dict, state_dict: dict, states: list):
     # final: dict with county-level geoids
@@ -103,8 +118,9 @@ def aggregate_by_state(final: dict, state_dict: dict, states: list):
 def write_to_file(final: dict, geoids_to_save: list):
     # save each geoid as an individual json
     # TODO: where is this getting written to?
-    
+    path = 'batch/dashboard_preprocessor/results/geo'
+
     for geoid in geoids_to_save:
-        with open('dashboard_preprocessor/results/geo' + geoid + '.json', 'w') as f:
+        with open(path + geoid + '.json', 'w') as f:
             json.dump(final[geoid], f)
 
