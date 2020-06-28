@@ -63,7 +63,6 @@ def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_i
         # Load the actual csv file
         branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pa.parquet.read_table(branching_file, ).to_pandas()
-        #branching_data = pd.read_csv(branching_file, converters={"geoid": str})
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
         branching_data["colname"] = "R" + branching_data["outcome"] + "|" + branching_data["source"]
         branching_data = branching_data[["geoid", "colname", "value"]]
@@ -78,13 +77,14 @@ def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_i
         if config_outcomes[new_comp]['source'].exists():
             # Read the config for this compartment
             parameters[new_comp]['source'] = config_outcomes[new_comp]['source'].as_str()
-            parameters[new_comp]['probability'] = config_outcomes[new_comp]['probability']['value'].as_random_distribution()
+            parameters[new_comp]['probability'] = config_outcomes[new_comp]['probability'][
+                'value'].as_random_distribution()
 
             parameters[new_comp]['delay'] = config_outcomes[new_comp]['delay']['value'].as_random_distribution()
 
-
             if config_outcomes[new_comp]['duration'].exists():
-                parameters[new_comp]['duration'] =  config_outcomes[new_comp]['duration']['value'].as_random_distribution()
+                parameters[new_comp]['duration'] = config_outcomes[new_comp]['duration'][
+                    'value'].as_random_distribution()
                 if config_outcomes[new_comp]['duration']['name'].exists():
                     parameters[new_comp]['duration_name'] = config_outcomes[new_comp]['duration']['name'].as_str()
                 else:
@@ -111,10 +111,11 @@ def onerun_delayframe_outcomes(sim_id, run_id, prefix, parameters):
     diffI, places, dates = read_seir_sim(run_id, prefix, sim_id)
 
     # Compute outcomes
-    outcomes = compute_all_delayframe_outcomes(parameters, diffI, places, dates)
+    outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates)
 
     # Write output
     write_outcome_sim(outcomes, run_id, prefix, sim_id)
+    write_outcome_hpar(hpar, run_id, prefix, sim_id)
 
 
 def read_seir_sim(run_id, prefix, sim_id):
@@ -145,11 +146,25 @@ def write_outcome_sim(outcomes, run_id, prefix, sim_id):
         )
     )
 
+def write_outcome_hpar(hpar, run_id, prefix, sim_id):
+    out_hpar = pa.Table.from_pandas(hpar, preserve_index=False)
+    pa.parquet.write_table(out_hpar,
+                           file_paths.create_file_name(
+                               run_id,
+                               prefix,
+                               sim_id,
+                               'hpar',
+                               'parquet'
+                           )
+    )
+
 
 def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
     all_data = {}
     # We store them as numpy matrices. Dimensions is dates X places
     all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
+
+    hpar = pd.DataFrame(columns=['geoid', 'quantity', 'outcome', 'source', 'value'])
 
     outcomes = pd.melt(diffI, id_vars='time', value_name='incidI', var_name='geoid')
     for new_comp in parameters:
@@ -180,6 +195,22 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
             df = dataframe_from_array(all_data[new_comp], places, dates, new_comp)
             outcomes = pd.merge(outcomes, df)
 
+            hpar = pd.concat([hpar,
+                              pd.DataFrame.from_dict(
+                                {'geoid':    places,
+                                 'quantity': ['probability'] * len(places),
+                                 'outcome':  [new_comp] * len(places),
+                                 'source':   [source] * len(places),
+                                 'value':    probability * np.ones(len(places))}),
+                              pd.DataFrame.from_dict(
+                                  {'geoid':    places,
+                                   'quantity': ['delay'] * len(places),
+                                   'outcome':  [new_comp] * len(places),
+                                   'source':   [source] * len(places),
+                                   'value':    delay * np.ones(len(places))})
+                              ],
+                             axis=0)
+
             # Make duration
             if 'duration' in parameters[new_comp]:
                 duration = int(np.round(parameters[new_comp]['duration'](size=1)))
@@ -190,11 +221,19 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
                                           dates, parameters[new_comp]['duration_name'])
                 outcomes = pd.merge(outcomes, df)
 
+                hpar = pd.concat([hpar, pd.DataFrame.from_dict(
+                    {'geoid': places,
+                     'quantity': ['duration'] * len(places),
+                     'outcome': [new_comp] * len(places),
+                     'source': [source] * len(places),
+                     'value': duration * np.ones(len(places))})],
+                                 axis=0)
+
         elif 'sum' in parameters[new_comp]:
             # Sum all concerned compartment.
             outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
 
-    return outcomes
+    return outcomes, hpar
 
 
 def dataframe_from_array(data, places, dates, comp_name):
