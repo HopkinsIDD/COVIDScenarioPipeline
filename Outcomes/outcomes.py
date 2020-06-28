@@ -14,10 +14,35 @@ import pandas as pd
 from SEIR import file_paths
 
 
-def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching_file, nsim=1, index=1, n_jobs=1):
+def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching_file, nsim=1, index=1, n_jobs=1,
+                            from_config=True):
     start = time.monotonic()
     sim_ids = np.arange(index, index + nsim)
 
+    if from_config:
+        parameters = read_parameters_from_config(config, run_id, prefix, scenario_outcomes, branching_file)
+    else:
+        parameters = read_parameters_from_previous_run()
+
+    if n_jobs == 1:  # run single process for debugging/profiling purposes
+        for sim_id in tqdm.tqdm(sim_ids):
+            onerun_delayframe_outcomes(sim_id, run_id, prefix, parameters)
+    else:
+        tqdm.contrib.concurrent.process_map(
+            onerun_delayframe_outcomes,
+            sim_ids,
+            itertools.repeat(run_id),
+            itertools.repeat(prefix),
+            itertools.repeat(parameters),
+            max_workers=n_jobs
+        )
+
+    print(f"""
+>> {nsim} outcomes simulations completed in {time.monotonic() - start:.1f} seconds
+""")
+
+
+def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, branching_file):
     # Prepare the probability table:
     # Either mean of probabilities given or from the file... This speeds up a bit the process.
     # However needs an ordered dict, here we're abusing a bit the spec.
@@ -36,8 +61,8 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
         diffI.drop(['comp'], inplace=True, axis=1)
 
         # Load the actual csv file
-        # branching_file = config["outcomes"]["param_place_file"].as_str()
-        branching_data = pa.parquet.read_table(branching_file, ).to_pandas()
+        branching_file = config["outcomes"]["param_place_file"].as_str()
+        # branching_data = pa.parquet.read_table(branching_file, ).to_pandas()
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
         branching_data["colname"] = "R" + branching_data["outcome"] + "|" + branching_data["source"]
         branching_data = branching_data[["geoid", "colname", "value"]]
@@ -52,15 +77,13 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
         if config_outcomes[new_comp]['source'].exists():
             # Read the config for this compartment
             parameters[new_comp]['source'] = config_outcomes[new_comp]['source'].as_str()
-            parameters[new_comp]['probability'] = np.mean(
-                config_outcomes[new_comp]['probability']['value'].as_random_distribution()(size=10000))
+            parameters[new_comp]['probability'] = config_outcomes[new_comp]['probability']['value'].as_random_distribution()
 
-            parameters[new_comp]['delay'] = int(np.round(np.mean(
-                config_outcomes[new_comp]['delay']['value'].as_random_distribution()(size=10000))))
+            parameters[new_comp]['delay'] = config_outcomes[new_comp]['delay']['value'].as_random_distribution()
+
 
             if config_outcomes[new_comp]['duration'].exists():
-                parameters[new_comp]['duration'] = int(np.round(np.mean(
-                    config_outcomes[new_comp]['duration']['value'].as_random_distribution()(size=10000))))
+                parameters[new_comp]['duration'] =  config_outcomes[new_comp]['duration']['value'].as_random_distribution()
                 if config_outcomes[new_comp]['duration']['name'].exists():
                     parameters[new_comp]['duration_name'] = config_outcomes[new_comp]['duration']['name'].as_str()
                 else:
@@ -79,22 +102,7 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
         else:
             raise ValueError(f"No 'source' or 'sum' specified for comp {new_comp}")
 
-    if n_jobs == 1:  # run single process for debugging/profiling purposes
-        for sim_id in tqdm.tqdm(sim_ids):
-            onerun_delayframe_outcomes(sim_id, run_id, prefix, parameters)
-    else:
-        tqdm.contrib.concurrent.process_map(
-            onerun_delayframe_outcomes,
-            sim_ids,
-            itertools.repeat(run_id),
-            itertools.repeat(prefix),
-            itertools.repeat(parameters),
-            max_workers=n_jobs
-        )
-
-    print(f"""
->> {nsim} outcomes simulations completed in {time.monotonic() - start:.1f} seconds
-""")
+    return parameters
 
 
 def onerun_delayframe_outcomes(sim_id, run_id, prefix, parameters):
@@ -145,16 +153,16 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
     outcomes = pd.melt(diffI, id_vars='time', value_name='incidI', var_name='geoid')
     for new_comp in parameters:
         if 'source' in parameters[new_comp]:
-            # Read the config for this compartement: if a source is specified, we
+            # Read the config for this compartment: if a source is specified, we
             # 1. compute incidence from binomial draw
             # 2. compute duration if needed
             source = parameters[new_comp]['source']
-            probability = parameters[new_comp]['probability']
-            delay = parameters[new_comp]['delay']
+            probability = parameters[new_comp]['probability'](size=1)
+            delay = int(np.round(parameters[new_comp]['delay'](size=1)))
 
-            # Create new compartement incidence:
+            # Create new compartment incidence:
             all_data[new_comp] = np.empty_like(all_data['incidI'])
-            # Draw with from source compartement
+            # Draw with from source compartment
             all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))
 
             # import matplotlib.pyplot as plt
@@ -170,7 +178,7 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
 
             # Make duration
             if 'duration' in parameters[new_comp]:
-                duration = parameters[new_comp]['duration']
+                duration = int(np.round(parameters[new_comp]['duration'](size=1)))
                 all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis=0) - \
                                                                   shift(np.cumsum(all_data[new_comp], axis=0), duration)
 
@@ -179,7 +187,7 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
                 outcomes = pd.merge(outcomes, df)
 
         elif 'sum' in parameters[new_comp]:
-            # Sum all concerned compartiment.
+            # Sum all concerned compartment.
             outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
 
     return outcomes
