@@ -20,7 +20,7 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
     sim_ids = np.arange(index, index + nsim)
 
     if from_config:
-        parameters = read_parameters_from_config(config, run_id, prefix, scenario_outcomes, branching_file)
+        parameters = read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_ids)
     else:
         parameters = read_parameters_from_previous_run()
 
@@ -42,7 +42,7 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
 """)
 
 
-def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, branching_file):
+def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_ids):
     # Prepare the probability table:
     # Either mean of probabilities given or from the file... This speeds up a bit the process.
     # However needs an ordered dict, here we're abusing a bit the spec.
@@ -62,7 +62,8 @@ def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, branc
 
         # Load the actual csv file
         branching_file = config["outcomes"]["param_place_file"].as_str()
-        # branching_data = pa.parquet.read_table(branching_file, ).to_pandas()
+        branching_data = pa.parquet.read_table(branching_file, ).to_pandas()
+        #branching_data = pd.read_csv(branching_file, converters={"geoid": str})
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
         branching_data["colname"] = "R" + branching_data["outcome"] + "|" + branching_data["source"]
         branching_data = branching_data[["geoid", "colname", "value"]]
@@ -93,7 +94,7 @@ def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, branc
                 colname = 'R' + new_comp + '|' + parameters[new_comp]['source']
                 if colname in branching_data.columns:
                     print(f"Using 'param_from_file' for probability {colname}")
-                    parameters[new_comp]['probability'] = branching_data[colname].to_numpy()
+                    parameters[new_comp]['rel_probability'] = branching_data[colname].to_numpy()
                 else:
                     print(f"NOT using 'param_from_file' for probability {colname}")
 
@@ -158,6 +159,9 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
             # 2. compute duration if needed
             source = parameters[new_comp]['source']
             probability = parameters[new_comp]['probability'](size=1)
+            if 'rel_probability' in parameters[new_comp]:
+                probability = probability * parameters[new_comp]['rel_probability']
+
             delay = int(np.round(parameters[new_comp]['delay'](size=1)))
 
             # Create new compartment incidence:
