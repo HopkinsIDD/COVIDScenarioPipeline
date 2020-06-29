@@ -8,16 +8,16 @@ setwd("~/COVIDWorking")
 opt <- list()
 
 opt$jobs <- 20
-opt$forecast_date <- "2020-06-21"
-opt$end_date <- "2020-07-18"
-opt$geodata <- "COVID19_USA/data/geodata_territories.csv"
+opt$forecast_date <- "2020-06-28"
+opt$end_date <- "2020-07-25"
+opt$geodata <- "geodata_territories.csv"
 opt$death_filter <- "low"
 opt$num_simulationsulations <- 2000
-opt$outfile <- "2020-06-21-JHU_IDD-CovidSP_low.csv"
+opt$outfile <- "2020-06-28-JHU_IDD-CovidSP_low.csv"
 opt$include_hosp <- TRUE
 
 arguments<- list()
-arguments$args <- "usa_runs_2020-06-23"
+arguments$args <- "usa_runs_2020_06_29"
 #arguments$args <- "usa_runs_2020-06-18_mergedinfer"
 
 opt$reichify <-TRUE
@@ -98,17 +98,22 @@ opt$end_date <- as.Date(opt$end_date)
 # parallel::stopCluster(cl)
 
 ##For now get the USA Facts data
-usa_facts_deaths <- read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv") %>%
-  #  select(-X119)%>%
-  pivot_longer(c(-countyFIPS, -`County Name`, -State, -stateFIPS), names_to = "date", values_to="cumDeaths")%>%
-  mutate(date=lubridate::mdy(date))%>%
-  mutate(geoid=stringr::str_pad(countyFIPS, width=5,pad="0"))%>%
-  rename(USPS=State, county=`County Name`)%>%
-  group_by(USPS, date)%>%
-  summarize(cumDeaths=sum(cumDeaths))%>%
-  ungroup()%>%
-  rename(time=date)
+# usa_facts_deaths <- read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv") %>%
+#   #  select(-X119)%>%
+#   pivot_longer(c(-countyFIPS, -`County Name`, -State, -stateFIPS), names_to = "date", values_to="cumDeaths")%>%
+#   mutate(date=lubridate::mdy(date))%>%
+#   mutate(geoid=stringr::str_pad(countyFIPS, width=5,pad="0"))%>%
+#   rename(USPS=State, county=`County Name`)%>%
+#   group_by(USPS, date)%>%
+#   summarize(cumDeaths=sum(cumDeaths))%>%
+#   ungroup()%>%
+#   rename(time=date)
 
+usa_facts_deaths <- covidcommon::get_USAFacts_data() %>%
+  rename(geoid=FIPS, time=Update, cumDeaths=Deaths, USPS=source)%>%
+  group_by(USPS,time)%>%
+  summarize(cumDeaths=sum(cumDeaths))%>%
+  ungroup()
 
 ##Make the forecast for daily cumlative cases
 state_cum_deaths<- create_cum_death_forecast(res_state,
