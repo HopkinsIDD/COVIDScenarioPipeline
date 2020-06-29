@@ -64,7 +64,7 @@ from Outcomes import outcomes
 
 config.set_file(config_path)
 
-#config.set_file('config.yml')
+# config.set_file('config.yml')
 
 spatial_config = config["spatial_setup"]
 spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
@@ -74,8 +74,6 @@ nsim = 10
 interactive = False
 write_csv = False
 write_parquet = True
-
-
 
 s = setup.Setup(
     setup_name=config["name"].get() + "_" + str(scenario),
@@ -96,13 +94,10 @@ s = setup.Setup(
     write_csv=write_csv,
     write_parquet=write_parquet,
     dt=config["dt"].as_number(),
-    first_sim_index = index,
-    run_id = run_id,
-    prefix = prefix
+    first_sim_index=index,
+    run_id=run_id,
+    prefix=prefix
 )
-
-
-
 
 print(f"""
 >> Scenario: {scenario}
@@ -111,21 +106,14 @@ print(f"""
 >> writing to folder : {s.datadir}{s.setup_name}
     """)
 
-
 setup_name = s.setup_name
-def onerun_HOSP(index):
-    outcomes.run_delayframe_outcomes(
-        config,
-        run_id,
-        prefix,
-        deathrate,
-        file_paths.create_file_name(run_id, prefix, int(index), 'hpar', 'parquet'),
-        1,
-        int(index),
-        1
-    )
-    return(1)
 
-onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load))
+
+
+onerun_OUTCOMES = lambda sim_id2write, sim_id2load: outcomes.onerun_delayframe_outcomes_load_hpar(config, run_id,
+                                                                                                  prefix, deathrate,
+                                                                                                  sim_id2write,
+                                                                                                  sim_id2load)
+onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s,
+                                                                                  int(sim_id2load))
 onerun_SEIR = lambda sim_id2write, s: seir.onerun_SEIR(int(sim_id2write), s)
-
