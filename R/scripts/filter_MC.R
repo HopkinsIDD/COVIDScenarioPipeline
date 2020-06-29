@@ -399,6 +399,7 @@ for(scenario in scenarios) {
 
   
       
+      arrow::write_parquet(current_likelihood_data, this_llik_file)
       seeding_npis_list <- inference::accept_reject_new_seeding_npis(
         seeding_orig = initial_seeding,
         seeding_prop = current_seeding,
@@ -413,7 +414,7 @@ for(scenario in scenarios) {
       initial_snpi <- seeding_npis_list$snpi
       initial_hpar <- seeding_npis_list$hpar
       initial_likelihood_data <- seeding_npis_list$ll
-      arrow::write_parquet(initial_likelihood_data, this_llik_file)
+      arrow::write_parquet(initial_likelihood_data, this_chim_file)
 
       print(paste("Current index is ",current_index))
       rm(current_snpi)

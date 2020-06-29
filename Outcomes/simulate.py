@@ -63,8 +63,6 @@ from Outcomes import outcomes
 @click.command()
 @click.option("-c", "--config", "config_file", envvar=["COVID_CONFIG_PATH", "CONFIG_PATH"], type=click.Path(exists=True), required=True,
               help="configuration file for this simulation")
-@click.option("-s", "--scenario", "scenarios_seir", envvar="COVID_SCENARIOS", type=str, default=[], multiple=True,
-              help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]")
 @click.option("-d", "--scenarios_outcomes", "scenarios_outcomes", envvar="COVID_DEATHRATES", type=str, default=[], multiple=True,
               help="Scenario of outcomes to run")
 @click.option("-n", "--nsim", envvar="COVID_NSIMULATIONS", type=click.IntRange(min=1),
@@ -80,16 +78,12 @@ from Outcomes import outcomes
 @click.option("--out-prefix", "--out-prefix", "out_prefix", envvar="COVID_PREFIX", type = str, default=None, show_default=True, help= "unique identifier for the run")
 @click.option("--in-prefix", "--in-prefix", "in_prefix", envvar="COVID_PREFIX", type = str, default=None, show_default=True, help= "unique identifier for the run")
 
-def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenarios_seir, scenarios_outcomes, nsim, jobs,index):
+def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenarios_outcomes, nsim, jobs,index):
     print("HERE")
     config.set_file(config_file)
     if not scenarios_outcomes:
         scenarios_outcomes = config["outcomes"]["scenarios"].as_str_seq()
     print(f"Outcomes scenarios to be run: {', '.join(scenarios_outcomes)}")
-
-    if not scenarios_seir:
-        scenarios_seir = config["interventions"]["scenarios"].as_str_seq()
-    print(f"SEIR Scenarios to be run: {', '.join(scenarios_seir)}")
 
     if not nsim:
         nsim = config["nsimulations"].as_number()

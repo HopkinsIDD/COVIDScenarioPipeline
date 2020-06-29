@@ -210,7 +210,6 @@ write_hosp_output <- function(res,run_id,prefix,index,use_parquet){
 ##' @param p_death probability of death, among infections (hospitalization is required for death)
 ##' @param p_ICU probability of needing the ICU among hospitalized patients
 ##' @param p_vent probability of needing a ventilator among ICU patients
-##' @param data_dir Path to the directory that contains the CSV output of the simulation model
 ##' @param dscenario_name The name of the death scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_ICU_pars parameters for time from hospitalization to ICU
@@ -228,7 +227,6 @@ build_hospdeath_par <- function(
   p_death,
   p_ICU,
   p_vent,
-  data_dir,
   dscenario_name,
   time_hosp_pars = c(1.23, 0.79),
   time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
@@ -340,7 +338,6 @@ build_hospdeath_par <- function(
 ##' @param prob_dat df of p_hosp, p_death, p_ICU, p_vent, GEOID
 ##' @param p_death probability of death, among infections (user-defined)
 ##' @param p_hosp_inf probability of hospitalization among infections (user-defined)
-##' @param data_dir Path to the directory that contains the CSV output of the simulation model
 ##' @param dscenario_name The name of the scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_ICU_pars parameters for time from hospitalization to ICU
