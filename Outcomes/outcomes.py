@@ -14,15 +14,15 @@ import pandas as pd
 from SEIR import file_paths
 
 
-def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, nsim=1, index=1, n_jobs=1):
+def run_delayframe_outcomes(config, run_id, prefix, setup_name, scenario_outcomes, nsim=1, index=1, n_jobs=1):
     start = time.monotonic()
     sim_ids = np.arange(index, index + nsim)
 
-    parameters = read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_ids)
+    parameters = read_parameters_from_config(config, run_id, prefix, setup_name, scenario_outcomes, sim_ids)
 
     if n_jobs == 1:  # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_delayframe_outcomes(sim_id, sim_id, run_id, prefix, parameters)
+            onerun_delayframe_outcomes(sim_id, sim_id, run_id, prefix, setup_name, parameters)
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
@@ -30,6 +30,7 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, nsim=1, i
             sim_ids,
             itertools.repeat(run_id),
             itertools.repeat(prefix),
+            itertools.repeat(setup_name),
             itertools.repeat(parameters),
             max_workers=n_jobs
         )
@@ -39,8 +40,8 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, nsim=1, i
 """)
 
 
-def onerun_delayframe_outcomes_load_hpar(config, run_id, prefix, scenario_outcomes, sim_id2write, sim_id2load):
-    parameters = read_parameters_from_config(config, run_id, prefix, scenario_outcomes, [sim_id2load])
+def onerun_delayframe_outcomes_load_hpar(config, run_id, prefix, setup_name, scenario_outcomes, sim_id2write, sim_id2load):
+    parameters = read_parameters_from_config(config, run_id, prefix, setup_name, scenario_outcomes, [sim_id2load])
 
     loaded_values = pq.read_table(file_paths.create_file_name(
         run_id,
@@ -50,10 +51,10 @@ def onerun_delayframe_outcomes_load_hpar(config, run_id, prefix, scenario_outcom
         'parquet'
     )).to_pandas()
 
-    onerun_delayframe_outcomes(sim_id2write, sim_id2load, run_id, prefix, parameters, loaded_values)
+    onerun_delayframe_outcomes(sim_id2write, sim_id2load, run_id, prefix, setup_name, parameters, loaded_values)
 
 
-def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_ids):
+def read_parameters_from_config(config, run_id, prefix, setup_name, scenario_outcomes, sim_ids):
     # Prepare the probability table:
     # Either mean of probabilities given or from the file... This speeds up a bit the process.
     # However needs an ordered dict, here we're abusing a bit the spec.
@@ -62,7 +63,7 @@ def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_i
         # load a file from the seir model, to know how to filter the provided csv file
         diffI = pd.read_parquet(file_paths.create_file_name(
             run_id,
-            prefix,
+            setup_name,
             sim_ids[0],
             'seir',
             'parquet'
@@ -116,10 +117,10 @@ def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_i
     return parameters
 
 
-def onerun_delayframe_outcomes(sim_id2write, sim_id2load, run_id, prefix, parameters, loaded_values=None):
+def onerun_delayframe_outcomes(sim_id2write, sim_id2load, run_id, prefix, setup_name, parameters, loaded_values=None):
 
     # Read files
-    diffI, places, dates = read_seir_sim(run_id, prefix, sim_id2load)
+    diffI, places, dates = read_seir_sim(run_id, setup_name, sim_id2load)
 
     # Compute outcomes
     outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values)
@@ -129,10 +130,10 @@ def onerun_delayframe_outcomes(sim_id2write, sim_id2load, run_id, prefix, parame
     write_outcome_hpar(hpar, run_id, prefix, sim_id2write)
 
 
-def read_seir_sim(run_id, prefix, sim_id):
+def read_seir_sim(run_id, setup_name, sim_id):
     diffI = pd.read_parquet(file_paths.create_file_name(
         run_id,
-        prefix,
+        setup_name,
         sim_id,
         'seir',
         'parquet'
