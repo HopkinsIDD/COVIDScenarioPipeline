@@ -89,13 +89,12 @@ def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_i
             # Read the config for this compartment
             parameters[new_comp]['source'] = config_outcomes[new_comp]['source'].as_str()
             parameters[new_comp]['probability'] = config_outcomes[new_comp]['probability'][
-                'value'].as_random_distribution()
+                'value']
 
-            parameters[new_comp]['delay'] = config_outcomes[new_comp]['delay']['value'].as_random_distribution()
+            parameters[new_comp]['delay'] = config_outcomes[new_comp]['delay']['value']
 
             if config_outcomes[new_comp]['duration'].exists():
-                parameters[new_comp]['duration'] = config_outcomes[new_comp]['duration'][
-                    'value'].as_random_distribution()
+                parameters[new_comp]['duration'] = config_outcomes[new_comp]['duration']['value']
                 if config_outcomes[new_comp]['duration']['name'].exists():
                     parameters[new_comp]['duration_name'] = config_outcomes[new_comp]['duration']['name'].as_str()
                 else:
@@ -173,6 +172,8 @@ def write_outcome_hpar(hpar, run_id, prefix, sim_id):
 
 
 def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values=None):
+    scipy.random.seed()
+
     all_data = {}
     # We store them as numpy matrices. Dimensions is dates X places
     all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
@@ -195,12 +196,11 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
                         loaded_values[(loaded_values['quantity'] == 'delay') & (loaded_values['outcome'] == new_comp)
                                       & (loaded_values['source'] == source)]['value'].to_numpy())))
             else:
-                probability = parameters[new_comp]['probability'](size=1)
-                if new_comp == 'incidH': print(parameters[new_comp]['probability'](2))
+                probability = parameters[new_comp]['probability'].as_random_distribution()(size=1)
                 if 'rel_probability' in parameters[new_comp]:
                     probability = probability * parameters[new_comp]['rel_probability']
 
-                delay = int(np.round(parameters[new_comp]['delay'](size=1)))
+                delay = int(np.round(parameters[new_comp]['delay'].as_random_distribution()(size=1)))
 
             # Create new compartment incidence:
             all_data[new_comp] = np.empty_like(all_data['incidI'])
@@ -242,7 +242,7 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
                                      (loaded_values['quantity'] == 'duration') & (loaded_values['outcome'] == new_comp)
                                      & (loaded_values['source'] == source)]['value'].to_numpy())))
                 else:
-                    duration = int(np.round(parameters[new_comp]['duration'](size=1)))
+                    duration = int(np.round(parameters[new_comp]['duration'].as_random_distribution()(size=1)))
                 all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis=0) - \
                                                                   shift(np.cumsum(all_data[new_comp], axis=0), duration)
 
