@@ -4,8 +4,7 @@
         "high": {
           "incidI": {
             "sims": {},
-            "peak": 0,
-            "conf": {}
+            "peak": 0
           }
         },
         "dates": [
@@ -18,8 +17,7 @@
         "high": {
           "incidI": {
             "sims": {},
-            "peak": 0,
-            "conf": {}
+            "peak": 0
           }
         },
         "dates": [

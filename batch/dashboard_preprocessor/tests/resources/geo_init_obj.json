@@ -1,0 +1,27 @@
+{
+  "06": {
+    "06019": {
+      "ScenarioA": {
+        "incidD": [],
+        "incidH": [],
+        "incidI": []
+      }
+    },
+    "06085": {
+      "ScenarioA": {
+        "incidD": [],
+        "incidH": [],
+        "incidI": []    
+      }
+    }
+  },
+  "36": {
+    "36005": {
+      "ScenarioA": {
+        "incidD": [],
+        "incidH": [],
+        "incidI": []    
+      }
+    }
+  }
+}

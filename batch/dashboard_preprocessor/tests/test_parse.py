@@ -1,17 +1,19 @@
 import json
-import pandas as pd
+import pyarrow.parquet as pq
+
 from preprocessor.parse import init_obj, parse_sim, d3_transform
+from preprocessor.geoids import all_geoids
 
 class TestParse:
 
     def test_init_obj(self):
         # returns expected final initialized object
 
-        geoids = ['06085', '06019']
+        geoids = all_geoids
         scenarios = ['ScenarioA']
         severities = ['high']
-        parameters = ['incidD',  'incidH',  'incidI']
-        dates = ['2020-05-05', '2020-05-06', '2020-05-07', '2020-05-08', '2020-05-09']
+        parameters = ['incidH', 'incidI']
+        dates = ['2020-01-01', '2020-01-02', '2020-01-03']
 
         final = init_obj(geoids, scenarios, severities, parameters, dates)
 
@@ -20,35 +22,49 @@ class TestParse:
 
         assert final == expected
 
-    # def test_parse_sim(self):
-    #     # returns expected populated final dict object after parsing sim file
+    def test_parse_sim(self):
+        # returns expected populated final dict object after parsing sim file
 
-    #     df = pd.read_csv('tests/fixtures/ScenarioA/Config_ScenarioA_high_1.csv')
-    #     scenario = 'ScenarioA'
-    #     geoids = ['06085', '06019']
-    #     dates = ['2020-05-05', '2020-05-06', '2020-05-07', '2020-05-08', '2020-05-09']
-    #     parameters = ['incidD',  'incidH',  'incidI']
-    #     severity = 'high'
-    #     sim = '1'
+        path = 'tests/fixtures/pld_inf/000000001.2020.06.18.02:53:08..hosp.parquet'
+        pq_dataset = pq.ParquetDataset(path) 
+        scenario = 'ScenarioA'
+        parameters = ['incidH', 'incidI']
+        severity = 'high'
+        sim = '1'
+        date_len = 230
 
-    #     with open('tests/resources/parse_sim_in.json') as f:
-    #         final = json.load(f)
+        # test must include all geoids ordered based on input parquet as the
+        # chunk indexing optimization is contingent on all ordered geoids
+        geoids = all_geoids
 
-    #     parse_sim(df, final, geoids, scenario, severity, parameters, sim)
+        with open('tests/resources/init_obj.json') as f:
+            final = json.load(f)
 
-    #     with open('tests/resources/parse_sim_out.json') as f:
-    #         expected = json.load(f)
-            
-    #     assert final == expected
+        parse_sim(pq_dataset, final, geoids, scenario, severity, parameters, sim, date_len)
 
-    # def test_d3_transform(self):
-    #     # returns expected transformed d3 format
+        with open('tests/resources/parse_sim_06085.json') as f:
+            expected_06085 = json.load(f)
+        with open('tests/resources/parse_sim_06019.json') as f:
+            expected_06019 = json.load(f)
 
-    #     with open('tests/resources/transform_in.json') as f:
-    #         final = json.load(f)
-    #     with open('tests/resources/transform_out.json') as f:
-    #         expected = json.load(f)
+        assert final['06085']['ScenarioA']['high']['incidI']['sims']['1'] == expected_06085
+        assert final['06019']['ScenarioA']['high']['incidI']['sims']['1'] == expected_06019
 
-    #     d3_transform(final)
+    def test_d3_transform(self):
+        # returns expected transformed d3 format
 
-    #     assert final == expected
+        r0_map = {
+            "ScenarioA/low/1": 2.2, 
+            "ScenarioA/low/10": 2.8, 
+            "ScenarioA/high/1": 2.76, 
+            "ScenarioA/high/10": 2.42, 
+            }
+
+        with open('tests/resources/transform_in.json') as f:
+            final = json.load(f)
+        with open('tests/resources/transform_out.json') as f:
+            expected = json.load(f)
+
+        d3_transform(final, r0_map)
+
+        assert final == expected
