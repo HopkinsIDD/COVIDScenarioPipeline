@@ -86,6 +86,7 @@ def aggregate_by_state(final: dict, state_dict: dict, states: list):
     geoids = list(final.keys())
 
     for state in states:
+        print('state...', state)
         state_geoids = [g for g in geoids if g[0:2] == state]
 
         for geoid in state_geoids:
@@ -121,6 +122,7 @@ def write_to_file(final: dict, geoids_to_save: list):
     path = 'batch/dashboard_preprocessor/results/geo'
 
     for geoid in geoids_to_save:
+        print('geoid', geoid)
         with open(path + geoid + '.json', 'w') as f:
             json.dump(final[geoid], f)
 
