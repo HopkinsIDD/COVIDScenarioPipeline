@@ -111,7 +111,8 @@ setup_name = s.setup_name
 
 
 onerun_OUTCOMES = lambda sim_id2write, sim_id2load: outcomes.onerun_delayframe_outcomes_load_hpar(config, run_id,
-                                                                                                  prefix, deathrate,
+                                                                                                  prefix, s.setup_name,
+                                                                                                  deathrate,
                                                                                                   sim_id2write,
                                                                                                   sim_id2load)
 onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s,
