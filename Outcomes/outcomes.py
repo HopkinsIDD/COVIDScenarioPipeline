@@ -8,7 +8,7 @@ import scipy
 import tqdm.contrib.concurrent
 
 from SEIR.utils import config 
-import pyarrow.parquet as pq
+import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
 from SEIR import file_paths
@@ -26,8 +26,8 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
     if (config["outcomes"]["param_from_file"].get()):
         # load a file from the seir model, to know how to filter the provided csv file
         diffI = pd.read_parquet(file_paths.create_file_name(
-          out_run_id,
-          out_prefix,
+          in_run_id,
+          in_prefix,
           sim_ids[0],
           'seir',
           'parquet'
@@ -37,8 +37,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
         diffI.drop(['comp'], inplace = True, axis = 1)
 
         # Load the actual csv file
-        # branching_file = config["outcomes"]["param_place_file"].as_str()
-        branching_data = pa.parquet.read_table(branching_file,).to_pandas()
+        branching_data = pa.parquet.read_table(branching_file).to_pandas()
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
         branching_data["colname"] = "R" + branching_data["outcome"] + "|" + branching_data["source"]
         branching_data = branching_data[["geoid","colname","value"]]

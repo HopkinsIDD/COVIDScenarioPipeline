@@ -123,14 +123,14 @@ hospitalization_make_command <- function(simulation,scenario,deathrate, prefix =
   dependency_name <- simulation_target_name(simulation,scenario, prefix = prefix)
   if(method == 'age_adjusted'){
     command_name <- paste(
-      "$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s",scenario,
+      "$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R",
       "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) -p $(PIPELINE) --in-id $(RUN_ID) --out-id $(RUN_ID)",
       "--in-prefix",covidcommon::create_prefix(config_name,scenario,run_id,trailing_separator='/', sep='/'),
       "--out-prefix",covidcommon::create_prefix(config_name,scenario,deathrate,run_id,trailing_separator='/', sep='/')
     )
   } else if(method == 'branching_age_adjusted') {
     command_name <- paste(
-      "$(PYTHON) $(PIPELINE)/Outcomes/simulate.py -s", scenario,
+      "$(PYTHON) $(PIPELINE)/Outcomes/simulate.py",
       "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) --in-id $(RUN_ID) --out-id $(RUN_ID)",
       "--in-prefix", covidcommon::create_prefix(config_name,scenario,run_id,trailing_separator='/', sep='/'),
       "--out-prefix", covidcommon::create_prefix(config_name,scenario,deathrate,run_id,trailing_separator='/', sep='/')

@@ -40,8 +40,9 @@ importation:
     delta: 1
 
 seeding:
- method: FolderDraw
- folder_path: importation/test_importation/
+  method: FolderDraw
+  folder_path: importation/test_importation/
+  seeding_file_type: seed
 
 seir:
   parameters:
