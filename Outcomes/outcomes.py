@@ -1,5 +1,5 @@
 import itertools
-import time
+import time, random
 import warnings
 
 import numpy as np
@@ -14,22 +14,19 @@ import pandas as pd
 from SEIR import file_paths
 
 
-def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching_file, nsim=1, index=1, n_jobs=1,
-                            from_config=True):
+def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, nsim=1, index=1, n_jobs=1):
     start = time.monotonic()
     sim_ids = np.arange(index, index + nsim)
 
-    if from_config:
-        parameters = read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_ids)
-    else:
-        parameters = read_parameters_from_previous_run()
+    parameters = read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_ids)
 
     if n_jobs == 1:  # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_delayframe_outcomes(sim_id, run_id, prefix, parameters)
+            onerun_delayframe_outcomes(sim_id, sim_id, run_id, prefix, parameters)
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
+            sim_ids,
             sim_ids,
             itertools.repeat(run_id),
             itertools.repeat(prefix),
@@ -40,6 +37,20 @@ def run_delayframe_outcomes(config, run_id, prefix, scenario_outcomes, branching
     print(f"""
 >> {nsim} outcomes simulations completed in {time.monotonic() - start:.1f} seconds
 """)
+
+
+def onerun_delayframe_outcomes_load_hpar(config, run_id, prefix, scenario_outcomes, sim_id2write, sim_id2load):
+    parameters = read_parameters_from_config(config, run_id, prefix, scenario_outcomes, [sim_id2load])
+
+    loaded_values = pq.read_table(file_paths.create_file_name(
+        run_id,
+        prefix,
+        sim_id2load,
+        'hpar',
+        'parquet'
+    )).to_pandas()
+
+    onerun_delayframe_outcomes(sim_id2write, sim_id2load, run_id, prefix, parameters, loaded_values)
 
 
 def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_ids):
@@ -106,16 +117,17 @@ def read_parameters_from_config(config, run_id, prefix, scenario_outcomes, sim_i
     return parameters
 
 
-def onerun_delayframe_outcomes(sim_id, run_id, prefix, parameters):
+def onerun_delayframe_outcomes(sim_id2write, sim_id2load, run_id, prefix, parameters, loaded_values=None):
+
     # Read files
-    diffI, places, dates = read_seir_sim(run_id, prefix, sim_id)
+    diffI, places, dates = read_seir_sim(run_id, prefix, sim_id2load)
 
     # Compute outcomes
-    outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates)
+    outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values)
 
     # Write output
-    write_outcome_sim(outcomes, run_id, prefix, sim_id)
-    write_outcome_hpar(hpar, run_id, prefix, sim_id)
+    write_outcome_sim(outcomes, run_id, prefix, sim_id2write)
+    write_outcome_hpar(hpar, run_id, prefix, sim_id2write)
 
 
 def read_seir_sim(run_id, prefix, sim_id):
@@ -146,6 +158,7 @@ def write_outcome_sim(outcomes, run_id, prefix, sim_id):
         )
     )
 
+
 def write_outcome_hpar(hpar, run_id, prefix, sim_id):
     out_hpar = pa.Table.from_pandas(hpar, preserve_index=False)
     pa.parquet.write_table(out_hpar,
@@ -156,10 +169,10 @@ def write_outcome_hpar(hpar, run_id, prefix, sim_id):
                                'hpar',
                                'parquet'
                            )
-    )
+                           )
 
 
-def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
+def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values=None):
     all_data = {}
     # We store them as numpy matrices. Dimensions is dates X places
     all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
@@ -173,11 +186,21 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
             # 1. compute incidence from binomial draw
             # 2. compute duration if needed
             source = parameters[new_comp]['source']
-            probability = parameters[new_comp]['probability'](size=1)
-            if 'rel_probability' in parameters[new_comp]:
-                probability = probability * parameters[new_comp]['rel_probability']
+            if loaded_values is not None:
+                probability = \
+                    loaded_values[(loaded_values['quantity'] == 'probability') & (loaded_values['outcome'] == new_comp)
+                                  & (loaded_values['source'] == source)]['value'].to_numpy()
+                delay = int(
+                    np.round(np.mean(
+                        loaded_values[(loaded_values['quantity'] == 'delay') & (loaded_values['outcome'] == new_comp)
+                                      & (loaded_values['source'] == source)]['value'].to_numpy())))
+            else:
+                probability = parameters[new_comp]['probability'](size=1)
+                if new_comp == 'incidH': print(parameters[new_comp]['probability'](2))
+                if 'rel_probability' in parameters[new_comp]:
+                    probability = probability * parameters[new_comp]['rel_probability']
 
-            delay = int(np.round(parameters[new_comp]['delay'](size=1)))
+                delay = int(np.round(parameters[new_comp]['delay'](size=1)))
 
             # Create new compartment incidence:
             all_data[new_comp] = np.empty_like(all_data['incidI'])
@@ -197,23 +220,29 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
 
             hpar = pd.concat([hpar,
                               pd.DataFrame.from_dict(
-                                {'geoid':    places,
-                                 'quantity': ['probability'] * len(places),
-                                 'outcome':  [new_comp] * len(places),
-                                 'source':   [source] * len(places),
-                                 'value':    probability * np.ones(len(places))}),
+                                  {'geoid': places,
+                                   'quantity': ['probability'] * len(places),
+                                   'outcome': [new_comp] * len(places),
+                                   'source': [source] * len(places),
+                                   'value': probability * np.ones(len(places))}),
                               pd.DataFrame.from_dict(
-                                  {'geoid':    places,
+                                  {'geoid': places,
                                    'quantity': ['delay'] * len(places),
-                                   'outcome':  [new_comp] * len(places),
-                                   'source':   [source] * len(places),
-                                   'value':    delay * np.ones(len(places))})
+                                   'outcome': [new_comp] * len(places),
+                                   'source': [source] * len(places),
+                                   'value': delay * np.ones(len(places))})
                               ],
                              axis=0)
 
             # Make duration
             if 'duration' in parameters[new_comp]:
-                duration = int(np.round(parameters[new_comp]['duration'](size=1)))
+                if loaded_values is not None:
+                    duration = int(
+                        np.round(np.mean(loaded_values[
+                                     (loaded_values['quantity'] == 'duration') & (loaded_values['outcome'] == new_comp)
+                                     & (loaded_values['source'] == source)]['value'].to_numpy())))
+                else:
+                    duration = int(np.round(parameters[new_comp]['duration'](size=1)))
                 all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis=0) - \
                                                                   shift(np.cumsum(all_data[new_comp], axis=0), duration)
 

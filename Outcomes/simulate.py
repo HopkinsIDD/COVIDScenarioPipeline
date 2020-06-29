@@ -114,7 +114,7 @@ def simulate(config_file, run_id, prefix, scenarios_seir, scenarios_outcomes, ns
                                                  run_id,
                                                  prefix,
                                                  scenario_outcomes,
-                                                 config["outcomes"]["param_place_file"],
+                                                 #config["outcomes"]["param_place_file"],
                                                  nsim,
                                                  index,
                                                  jobs)
