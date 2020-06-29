@@ -98,21 +98,22 @@ def simulate(config_file, run_id, prefix, scenarios_seir, scenarios_outcomes, ns
     for scenario_seir in scenarios_seir:
         for scenario_outcomes in scenarios_outcomes:
             if prefix is None:
-                prefix = config["name"].get() + "_" + str(scenario_seir) #+ "_" + str(scenario_outcomes)
+                prefix = config["name"].get() + "_" + str(scenario_seir) + "_" + str(scenario_outcomes)
             setup_name = config["name"].get() + "_" + str(scenario_seir)
             # outdir = f'model_output/outcomes/{setup_name}/'
-            outdir = f'hospitalization/model_output/{setup_name}/'
-            os.makedirs(outdir, exist_ok=True)
+            #outdir = f'hospitalization/model_output/{setup_name}/'
+            #os.makedirs(outdir, exist_ok=True)
 
             print(f"""
 >> Scenario: {scenario_seir} -- {scenario_outcomes} 
 >> Starting {nsim} model runs beginning from {index} on {jobs} processes
->> writing to folder : {outdir}
+>> writing to folder : {prefix}
     """)
             if (config["outcomes"]["method"].get() == 'delayframe'):
                 outcomes.run_delayframe_outcomes(config,
                                                  run_id,
                                                  prefix,
+                                                 setup_name,
                                                  scenario_outcomes,
                                                  #config["outcomes"]["param_place_file"],
                                                  nsim,
@@ -120,6 +121,9 @@ def simulate(config_file, run_id, prefix, scenarios_seir, scenarios_outcomes, ns
                                                  jobs)
             else:
                 raise ValueError(f"Only method 'delayframe' is supported at the moment.")
+
+            # Allow to change prefix:
+            prefix = None
 
     print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")
 
