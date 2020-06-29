@@ -25,8 +25,7 @@ def init_obj(geoids: list, scenarios: list, severities: list,
                 for param in parameters:
                     final[geoid][scenario][sev][param] = {
                         'peak': 0,
-                        'sims': {},
-                        'conf': {}
+                        'sims': {}
                     }
     return final
 
@@ -36,7 +35,7 @@ def get_parquet(bucket: str, folder: str, config: str, scenario: str,
     # file path: {prefix}{index}.{run_id}.{file_type}.parquet
     # prefix: {config_name}/{npi_scenario}/{severity_scenario}/{run_id}/global/final/
     # index: sim number + leading zeros
-    # key: USA-20200618T024241/model_output/hosp/USA/pld_inf/high/2020.06.18.02:53:08./
+    # ex: USA-20200618T024241/model_output/hosp/USA/pld_inf/high/2020.06.18.02:53:08./
     #      global/final/000000245.2020.06.18.02:53:08..hosp.parquet
 
     # build parquet filename path key
@@ -51,8 +50,9 @@ def get_parquet(bucket: str, folder: str, config: str, scenario: str,
     r0_path = path.replace('hosp', 'spar')
 
     try:
-        pq_dataset = pq.ParquetDataset(path, filesystem=s3) #.read_pandas().to_pandas()
-        r0 = pq.ParquetDataset(r0_path, filesystem=s3).read(columns=['value'])[0][1].as_py() #.read_pandas().to_pandas()
+        pq_dataset = pq.ParquetDataset(path, filesystem=s3) 
+        r0 = pq.ParquetDataset(r0_path, filesystem=s3) \
+            .read(columns=['value'])[0][1].as_py() 
         return (pq_dataset, round(r0, 2))
 
     except OSError:
@@ -65,11 +65,8 @@ def parse_sim(pq_dataset, final: dict, geoids: list, scenario: str,
     # parameter dataset is pyarrow.parquet.ParquetDataset 
     # function populates data into final Dict Obj 
 
-    # TODO: geoid_map can be a tuple for further optimization ('3505','6023','2022')
     arrow_table = pq_dataset.read(columns=parameters)
-    # geoid_idx = 0
-    # geoid = geoid_map[geoid_idx]
-
+    
     for p_idx, parameter in enumerate(parameters):
         param_chunk = arrow_table[p_idx]
         
@@ -83,6 +80,7 @@ def d3_transform(final: dict, r0_map: dict):
 
     geoids = list(final.keys())
     for geoid in geoids:
+        print('geoid', geoid)
         scenarios = list(final[geoid].keys())
 
         for scenario in scenarios:
