@@ -196,7 +196,48 @@ calc_prior_likadj  <- function(params,
     return(rc)
 }
 
+##'
+##'
+##' Function to compute cumulative counts across geoids
+##'
+##' @param sim_hosp output of ouctomes branching process
+##'
+##' @return dataframe with the added columns for cumulative counts
+##'
+##' @export
+##'
+compute_cumulative_counts <- function(sim_hosp) {
+  res <- sim_hosp %>% 
+    gather(var, value, -time, -geoid) %>% 
+    group_by(geoid, var) %>% 
+    arrange(time) %>% 
+    mutate(cumul = cumsum(value)) %>% 
+    ungroup() %>% 
+    pivot_wider(names_from = "var", values_from = c("value", "cumul")) %>% 
+    select(-(contains("cumul") & contains("curr")))
+  
+  colnames(res) <- str_replace_all(colnames(res), c("value_" = "", "cumul_incid" = "cumul"))
+  return(res)
+}
 
+##'
+##'
+##' Function to compute cumulative counts across geoids
+##'
+##' @param sim_hosp output of ouctomes branching process
+##'
+##' @return dataframe with the added rows for all counts
+##'
+##' @export
+##'
+compute_totals <- function(sim_hosp) {
+  sim_hosp %>% 
+    group_by(time) %>%
+    summarise_if(is.numeric, sum, na.rm = TRUE) %>% 
+    mutate(geoid = "all") %>% 
+    select(all_of(colnames(sim_hosp))) %>% 
+    rbind(sim_hosp)
+}
 
 # MCMC stuff -------------------------------------------------------------------
 
