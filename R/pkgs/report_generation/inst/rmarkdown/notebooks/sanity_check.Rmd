@@ -272,12 +272,11 @@ inference_r <- arrow::open_dataset(paste0(run_folder,"/spar/"),
                     partitioning = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")) %>%
     collect() %>%             
     filter(parameter=="R0") %>%
-    group_by(death_rate, scenario)%>%
-    mutate(sim_id_num = order(sim_id)) %>%
-    group_by(sim_id_num, scenario)%>%
-    summarize(value=mean(value)) %>%
-    mutate(parameter = "r0") %>%
-    rename(state_r0 = value) 
+    group_by(scenario)%>%
+    mutate(sim_num = order(sim_id),
+           parameter="r0") %>%
+    rename(state_r0 = value) %>%
+    select(sim_num, scenario, death_rate, state_r0, parameter)
 
 snpi<- arrow::open_dataset(paste0(run_folder,"/snpi/"), 
                                    partitioning = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")) %>%
@@ -292,7 +291,8 @@ snpi<- arrow::open_dataset(paste0(run_folder,"/snpi/"),
                              TRUE~USPS)) else(.)} %>%
    group_by(geoid, npi_name, scenario)%>%
    mutate(sim_num = order(sim_id)) %>%
-   group_by(sim_num, scenario, !!as.symbol(geogroup), npi_name, parameter, start_date, end_date)%>%
+   group_by(sim_num, scenario, !!as.symbol(geogroup), npi_name, 
+            parameter, start_date, end_date, death_rate) %>%
    summarize(reduction=mean(reduction))
 
 inference_r <- inference_r %>%
@@ -308,8 +308,6 @@ inference_r <- inference_r %>%
   summarize(r = mean(r_eff, na.rm=TRUE), 
             rq1 = quantile(r_eff, 0.25, na.rm=TRUE), 
             rq3 = quantile(r_eff, 0.75, na.rm=TRUE),
-            lower=quantile(r_eff, 0.025, na.rm=TRUE),
-            upper=quantile(r_eff,0.975, na.rm=TRUE),
             reduc = mean(reduction, na.rm=TRUE), 
             reducq1 = quantile(reduction, 0.25, na.rm=TRUE), 
             reducq3 = quantile(reduction, 0.75, na.rm=TRUE)) %>%
