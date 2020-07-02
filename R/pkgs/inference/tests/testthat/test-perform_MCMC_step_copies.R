@@ -51,7 +51,7 @@ test_that("MCMC step copies are correctly performed when we are not at the start
 
     ##clean up
     setwd("..")
-    #unlink("MCMC_step_copy_test", recursive=TRUE)
+    unlink("MCMC_step_copy_test", recursive=TRUE)
 
 
 })
@@ -106,7 +106,7 @@ test_that("MCMC step copies are correctly performed when we are at the start of 
 
     ##clean up
     setwd("..")
-    #unlink("MCMC_step_copy_test", recursive=TRUE)
+    unlink("MCMC_step_copy_test", recursive=TRUE)
 
 
 })

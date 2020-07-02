@@ -194,27 +194,32 @@ perform_MCMC_step_copies <- function(current_index,
     if(current_index != 0){
         rc$hosp_gf <- file.copy(
             covidcommon::create_file_name(run_id,global_local_prefix,current_index,'hosp','parquet'),
-            covidcommon::create_file_name(run_id,gf_prefix,slot,'hosp','parquet')
+            covidcommon::create_file_name(run_id,gf_prefix,slot,'hosp','parquet'),
+	    overwrite = TRUE
         )
 
         rc$llik_gf <- file.copy(
             covidcommon::create_file_name(run_id,global_local_prefix,current_index,'llik','parquet'),
-            covidcommon::create_file_name(run_id,gf_prefix,slot,'llik','parquet')
+            covidcommon::create_file_name(run_id,gf_prefix,slot,'llik','parquet'),
+	    overwrite = TRUE
         )
 
         rc$snpi_gf <- file.copy(
             covidcommon::create_file_name(run_id,global_local_prefix,current_index,'snpi','parquet'),
-            covidcommon::create_file_name(run_id,gf_prefix,slot,'snpi','parquet')
+            covidcommon::create_file_name(run_id,gf_prefix,slot,'snpi','parquet'),
+	    overwrite = TRUE
         )
 
         rc$spar_gf <-file.copy(
             covidcommon::create_file_name(run_id,global_local_prefix,current_index,'spar','parquet'),
-            covidcommon::create_file_name(run_id,gf_prefix,slot,'spar','parquet')
+            covidcommon::create_file_name(run_id,gf_prefix,slot,'spar','parquet'),
+	    overwrite = TRUE
         )
 
         rc$hpar_gf <- file.copy(
             covidcommon::create_file_name(run_id,global_local_prefix,current_index,'hpar','parquet'),
-            covidcommon::create_file_name(run_id,gf_prefix,slot,'hpar','parquet')
+            covidcommon::create_file_name(run_id,gf_prefix,slot,'hpar','parquet'),
+	    overwrite = TRUE
         )
 
         rc$hosp_block <- file.copy(
@@ -254,7 +259,7 @@ perform_MCMC_step_copies <- function(current_index,
             covidcommon::create_file_name(run_id,global_block_prefix,block,'llik','parquet')
         )
 
-        rc$snmp_prvblk <-file.copy(
+        rc$snpi_prvblk <-file.copy(
             covidcommon::create_file_name(run_id,global_block_prefix,block - 1,'snpi','parquet'),
             covidcommon::create_file_name(run_id,global_block_prefix,block,'snpi','parquet')
         )
