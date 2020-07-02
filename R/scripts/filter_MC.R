@@ -189,8 +189,8 @@ for(scenario in scenarios) {
           hierarchical_stats = hierarchical_stats,
           defined_priors = defined_priors,
           geodata = geodata,
-          snpi = initial_snpi,
-          hpar = dplyr::mutate(initial_hpar,parameter=paste(quantity,source,outcome,sep='_'))
+	  snpi = arrow::read_parquet(first_global_files[['snpi_filename']]),
+	  hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,source,outcome,sep='_'))
         )
       }
     )
