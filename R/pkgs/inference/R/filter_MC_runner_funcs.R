@@ -280,4 +280,136 @@ perform_MCMC_step_copies <- function(current_index,
 
 }
 
+## Create a list with a filename of each type/extension.  A convenience function for consistency in file names
+#' @export
+create_filename_list <- function(
+  run_id,
+  prefix,
+  index,
+  types = c("seed", "seir", "snpi", "spar", "hosp", "hpar", "llik"),
+  extensions = c("csv","parquet","parquet","parquet","parquet","parquet", "parquet")
+) {
+  if(length(types) != length(extensions)){
+    stop("Please specify the same number of types and extensions.  Given",length(types),"and",length(extensions))
+  }
+  rc <- mapply(
+    x=types,
+    y=extensions,
+    function(x,y){
+      covidcommon::create_file_name(run_id,prefix,index,x,y)
+    }
+  )
+  names(rc) <- paste(names(rc),"filename",sep='_')
+  return(rc)
+}
 
+## Create 
+##'@param slot what is the current slot numbe
+##'@param block what is the current block
+##'@param run_id what is the id of this run
+##'@param global_prefix the prefix to use for global files
+##'@param chimeric_prefix the prefix to use for chimeric files
+##'@param python_reticulate An already initialized copy of python set up to do hospitalization runs
+#' @export
+initialize_mcmc_first_block <- function(
+  run_id,
+  block,
+  global_prefix,
+  chimeric_prefix,
+  python_reticulate,
+  likelihood_calculation_function
+) {
+
+  ## Only works on these files:
+  types <- c("seed", "seir", "snpi", "spar", "hosp", "hpar","llik")
+  extensions <- c("csv","parquet","parquet","parquet","parquet","parquet","parquet")
+
+  global_files <- create_filename_list(run_id,global_prefix,block-1,types,extensions)
+  chimeric_files <- create_filename_list(run_id,chimeric_prefix,block-1,types,extensions)
+
+  if(block > 1){
+    global_check <- sapply(global_files, file.exists)
+    chimeric_check <- sapply(chimeric_files, file.exists)
+
+    if(any(!global_check)){
+      stop(paste("Could not find file",names(global_files)[!global_check],"needed to resume", collapse = "\n"))
+    }
+    if(any(!chimeric_check)){
+      stop(paste("Could not find file",names(chimeric_files)[!chimeric_check],"needed to resume", collapse = "\n"))
+    }
+    return(TRUE)
+  }
+
+  global_check <- sapply(global_files, file.exists)
+  chimeric_check <- sapply(chimeric_files, file.exists)
+
+  if(any(global_check)){
+    warning(paste("Found file",names(global_files)[!global_check],"when creating first block, using that", collapse = "\n"))
+  }
+  if(any(chimeric_check)){
+    warning(paste("Found file",names(global_files)[!global_check],"when creating first block, ignoring that file and replacing with global", collapse = "\n"))
+  }
+
+  global_file_names <- names(global_files[!global_check])
+
+  ## seed 
+  if("seed_filename" %in% global_file_names) {
+    err <- system(paste(
+      opt$rpath,
+      paste(opt$pipepath,"R","scripts","create_seeding.R", sep='/'),
+      "-c",opt$config
+    ))
+    if(err != 0){
+      stop("Could not run seeding")
+    }
+    err <- !(file.copy(config$seeding$lambda_file,global_files[['seed_filename']]))
+    suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file, col_types=readr::cols(place=readr::col_character())))
+    write.csv(
+      initial_seeding,
+      file = global_files[['seed_filename']]
+    )
+  }
+
+  ## seir, snpi, spar
+  if(any(c("seir_filename","snpi_filename","spar_filename") %in% global_file_names)) {
+    if(!all(c("seir_filename","snpi_filename","spar_filename") %in% global_file_names)) {
+      stop("Some but not all SEIR outputs found.  Please specify all SEIR outputs by hand, or none")
+    }
+
+    ## Not sure this will work at all:
+    python_reticulate$onerun_SEIR(block - 1,python_reticulate$s)
+
+  }
+
+  ## hpar
+  # This will change with the chode joseph is pushing
+  if("hpar_filename" %in% global_file_names) {
+    if(!("hosp_filename" %in% global_file_names)){
+       stop("Found hospitalization output without associated hpar file")
+    }
+    file.copy(config$outcomes$param_place_file,global_files[['hpar_filename']])
+  }
+
+  ## hosp
+  if("hosp_filename" %in% global_file_names) {
+    ## Not sure this will work at all
+    python_reticulate$onerun_SEIR(block - 1,python_reticulate$s)
+    python_reticulate$onerun_HOSP(block - 1)
+  }
+
+  ## llik
+  if(!("llik_filename" %in% global_file_names)) {
+    stop("Please do not provide a likelihood file")
+  }
+
+  hosp_data <- report.generation:::read_file_of_type(gsub(".*[.]","",global_files[['hosp_filename']]))(global_files[['hosp_filename']])
+
+  ## Refactor me later:
+  global_likelihood_data <- likelihood_calculation_function(hosp_data)
+  arrow::write_parquet(global_likelihood_data,global_files[['llik_filename']])
+
+  for(type in names(chimeric_files)){
+    file.copy(global_files[[type]],chimeric_files[[type]],overwrite=TRUE)
+  }
+  return()
+}

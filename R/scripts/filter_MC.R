@@ -163,179 +163,53 @@ for(scenario in scenarios) {
 
     ## pass prefix to python and use
     reticulate::py_run_string(paste0("deathrate = '", deathrate, "'"))
-    reticulate::py_run_string(paste0("prefix = '", chimeric_block_prefix, "'"))
+    reticulate::py_run_string(paste0("prefix = '", global_block_prefix, "'"))
     reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
 
-    first_chimeric_spar_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'spar','parquet')
-    first_chimeric_snpi_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'snpi','parquet')
-    first_chimeric_hpar_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'hpar','parquet')
-    first_chimeric_seed_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'seed','csv')
-    first_chimeric_llik_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'llik','parquet')
-    first_chimeric_hosp_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'hosp','parquet')
 
-    first_global_hosp_file <- covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'hosp','parquet')
-    first_global_llik_file <- covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'llik','parquet')
-    first_global_spar_file <- covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'spar','parquet')
-    first_global_snpi_file <- covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'snpi','parquet')
-    first_global_hpar_file <- covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'hpar','parquet')
-    first_global_seed_file <- covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'seed','csv')
+    first_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block - 1)
+    first_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block - 1)
 
-    # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
-    err <- 0
-    if(!file.exists(first_chimeric_seed_file)){
-      if(opt$this_block > 1){
-        print("Looking for")
-        print(first_chimeric_seed_file)
-        print("Found")
-        print(list.files(dirname(first_chimeric_seed_file)))
-        stop("Problem resuming seeding after first block")
+    inference::initialize_mcmc_first_block(
+      opt$run_id,
+      opt$this_block,
+      global_block_prefix,
+      chimeric_block_prefix,
+      py,
+      function(x){
+        inference::aggregate_and_calc_loc_likelihoods(
+          dplyr::filter(x,x$time >= min(obs$date),x$time <= max(obs$date)),
+	  all_locations = unique(names(data_stats)),
+          obs_nodename = obs_nodename,
+          config = config,
+          obs = obs,
+          data_stats = data_stats,
+          hosp_file = first_global_files[['hosp_filename']],
+          hierarchical_stats = hierarchical_stats,
+          defined_priors = defined_priors,
+          geodata = geodata,
+          snpi = initial_snpi,
+          hpar = dplyr::mutate(initial_hpar,parameter=paste(quantity,source,outcome,sep='_'))
+        )
       }
-      print(sprintf("Creating Seeding (%s) from Scratch",first_chimeric_seed_file))
-      if(!file.exists(config$seeding$lambda_file)){
-        err <- system(paste(
-          opt$rpath,
-          paste(opt$pipepath,"R","scripts","create_seeding.R", sep='/'),
-          "-c",opt$config
-        ))
-          if(err != 0){
-            stop("Could not run seeding")
-          }
-      }
-      suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file, col_types=readr::cols(place=readr::col_character())))
-      write.csv(
-        initial_seeding,
-        file = first_chimeric_seed_file
-      )
-      ## global is equal to chimeric before we do any inference
-      write.csv(
-        initial_seeding,
-        file = first_global_seed_file
-      )
-    }
+    )
 
-    ##read first seeding file.
-    suppressMessages(initial_seeding <- readr::read_csv(first_chimeric_seed_file, col_types=readr::cols(place=readr::col_character())))
-    # flock::unlock(lock)
-    initial_seeding$amount <- as.integer(round(initial_seeding$amount))
 
+    ## So far no acceptances have occurred
     current_index <- 0
-
-##### Load or create first NPI file
-    # FIX ME : this file won't exist in general
-    # TODO CHANGE TO FIRST DRAW OF SEIR CODE
-    # lock <- flock::lock(paste('.lock',gsub('/','-',first_chimeric_snpi_file),sep='/'))
-    if((!file.exists(first_chimeric_snpi_file)) | (!file.exists(first_chimeric_spar_file))){
-      print(sprintf("Creating parameters (%s) and (%s) from Scratch",first_chimeric_snpi_file, first_chimeric_spar_file))
-      py$onerun_SEIR(opt$this_block - 1,py$s)
-
-      ## Before inference, global and chimeric are the same
-      file.copy(first_chimeric_spar_file,first_global_spar_file)
-      file.copy(first_chimeric_snpi_file,first_global_snpi_file)
-    }
-    initial_snpi <- arrow::read_parquet(first_chimeric_snpi_file)
-    initial_spar <- arrow::read_parquet(first_chimeric_spar_file)
-    # flock::unlock(lock)
-
-##### Load or create first hapr file.
-    if(!file.exists(first_chimeric_hpar_file)){
-      if(opt$this_block > 1){stop("Problem resuming hospitalization parameters after first block")}
-      print(sprintf("Creating hospitalization parameters (%s) from config specified file %s",first_chimeric_hpar_file,config$outcomes$param_place_file))
-      ## Before inference, global and chimeric are the same
-      file.copy(config$outcomes$param_place_file,first_chimeric_hpar_file)
-      file.copy(config$outcomes$param_place_file,first_global_hpar_file)
-    }
-    initial_hpar <- arrow::read_parquet(first_chimeric_hpar_file)
-
-
-##### Load or create first hospitalization file
-    if(!file.exists(first_global_hosp_file)){
-      if(opt$this_block > 1){stop("Problem resuming hospitalization after first block")}
-      print(sprintf("Creating hospitalization (%s) from Scratch",first_global_hosp_file))
-      ## Generate files
-      this_index <- opt$this_block - 1
-
-      err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
-      err <- ifelse(err == 1,0,1)
-      if(err != 0){
-        stop("SEIR failed to run")
-      }
-
-      ## Run hospitalization
-      err <- py$onerun_HOSP(this_index)
-      err <- ifelse(err == 1,0,1)
-      if(length(err) == 0){
-        stop("HOSP failed to run")
-      }
-      if(err != 0){
-        stop("HOSP failed to run")
-      }
-
-      ## Before inference, global and chimeric are the same
-      file.copy(
-        first_chimeric_hosp_file,
-        first_global_hosp_file
-      )
-    }
-
-
-    if(!file.exists(first_global_llik_file)){
-      if(opt$this_block > 1){
-        print(paste("Looking for",first_chimeric_llik_file,"found",paste(list.files("model_output/llik",recursive=TRUE),collapse=', ')))
-        stop("Problem resuming global likelihood after first block")
-      }
-      initial_sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",first_global_hosp_file))(first_global_hosp_file) %>%
-          filter(time >= min(obs$date), time <= max(obs$date))
-
-#####Aligning location names between observations and hosptial sims
-      if(!(obs_nodename %in% names(initial_sim_hosp))){stop(paste("Missing column",obs_nodename,"from hospitalization output"))}
-      lhs <- unique(initial_sim_hosp[[obs_nodename]])
-      rhs <- unique(names(data_stats))
-      all_locations <- rhs[rhs %in% lhs]
-
-      print(sprintf("Creating likelihood (%s) from Scratch",first_chimeric_llik_file))
-      global_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
-        all_locations,
-        initial_sim_hosp,
-        obs_nodename,
-        config,
-        obs,
-        data_stats,
-        first_chimeric_llik_file,
-        hierarchical_stats,
-        defined_priors,
-        geodata,
-        initial_snpi,
-        dplyr::mutate(initial_hpar,parameter=paste(quantity,source,outcome,sep='_'))
-      )
-      arrow::write_parquet(global_likelihood_data,first_global_llik_file)
-    }
-    global_likelihood_data <- arrow::read_parquet(first_global_llik_file)
-
-#####Create fist chimeric liklihoo dwith global_likelihood if it does not exist. Load from disk if needed
-    if(!file.exists(first_chimeric_llik_file)){
-      if(opt$this_block > 1){
-        print(paste("Looking for",first_chimeric_llik_file,"found",paste(list.files("model_output/llik",recursive=TRUE),collapse=', ')))
-        stop("Problem resuming chimeric likelihood after first block")
-      }
-      print(sprintf("Creating likelihood (%s) from Scratch",first_chimeric_llik_file))
-      ## global_likelihood_data is the same as chimeric before we've done any inference
-      arrow::write_parquet(global_likelihood_data,first_chimeric_llik_file)
-    }
-
-    chimeric_likelihood_data <- arrow::read_parquet(first_chimeric_llik_file)
-
+### Load initial files
+    suppressMessages(initial_seeding <- readr::read_csv(first_chimeric_files[['seed_filename']], col_types=readr::cols(place=readr::col_character())))
+    initial_seeding$amount <- as.integer(round(initial_seeding$amount))
+    initial_snpi <- arrow::read_parquet(first_chimeric_files[['snpi_filename']])
+    initial_spar <- arrow::read_parquet(first_chimeric_files[['spar_filename']])
+    initial_hpar <- arrow::read_parquet(first_chimeric_files[['hpar_filename']])
+    chimeric_likelihood_data <- arrow::read_parquet(first_chimeric_files[['llik_filename']])
+    global_likelihood_data <- arrow::read_parquet(first_global_files[['llik_filename']])
 
 #####Get the full likelihood (WHY IS THIS A DATA FRAME)
     # Compute total loglik for each sim
-    global_likelihood <- global_likelihood_data %>%
-      summarise(ll = sum(ll, na.rm = T)) %>%
-      mutate(pdeath = deathrate, scenario = scenario)
-
-
-    ## For logging
-    current_index <- 0
-
+    global_likelihood <- sum(global_likelihood_data$ll)
 
 #####LOOP NOTES
 ### current means proposed
@@ -423,14 +297,12 @@ for(scenario in scenarios) {
       ## print(proposed_likelihood_data)
 
       ## Compute total loglik for each sim
-      proposed_likelihood <- proposed_likelihood_data %>%
-        summarise(ll = sum(ll, na.rm = T)) %>%
-        mutate(pdeath = deathrate, scenario = scenario)
+      proposed_likelihood <- sum(proposed_likelihood_data$ll)
 
       ## For logging
       print(paste("Current likelihood",global_likelihood,"Proposed likelihood",proposed_likelihood))
 
-      if(inference::iterateAccept(global_likelihood, proposed_likelihood, 'll')){
+      if(inference::iterateAccept(global_likelihood, proposed_likelihood)){
         print("****ACCEPT****")
         current_index <- this_index
         global_likelihood <- proposed_likelihood
