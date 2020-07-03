@@ -20,6 +20,8 @@ test_that("MCMC step copies are correctly performed when we are not at the start
     dir.create("MCMC_step_copy_test")
     setwd("MCMC_step_copy_test")
     ##get file names
+    seed_src <- covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seed','csv')
+    seir_src <- covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seir','parquet')
     hosp_src <- covidcommon::create_file_name(run_id,global_local_prefix,current_index,'hosp','parquet')
     llik_src <- covidcommon::create_file_name(run_id,global_local_prefix,current_index,'llik','parquet')
     snpi_src <- covidcommon::create_file_name(run_id,global_local_prefix,current_index,'snpi','parquet')
@@ -29,6 +31,8 @@ test_that("MCMC step copies are correctly performed when we are not at the start
 
 
     ##create the copy from  files
+    arrow::write_parquet(data.frame(file="seed"), seed_src)
+    arrow::write_parquet(data.frame(file="seir"), seir_src)
     arrow::write_parquet(data.frame(file="hosp"), hosp_src)
     arrow::write_parquet(data.frame(file="llik"), llik_src)
     arrow::write_parquet(data.frame(file="snpi"), snpi_src)
@@ -75,6 +79,8 @@ test_that("MCMC step copies are correctly performed when we are at the start of 
     dir.create("MCMC_step_copy_test")
     setwd("MCMC_step_copy_test")
     ##get file names
+    seed_src <- covidcommon::create_file_name(run_id,global_block_prefix,block-1,'seed','csv')
+    seir_src <- covidcommon::create_file_name(run_id,global_block_prefix,block-1,'seir','parquet')
     hosp_src <- covidcommon::create_file_name(run_id,global_block_prefix,block-1,'hosp','parquet')
     llik_src <- covidcommon::create_file_name(run_id,global_block_prefix,block-1,'llik','parquet')
     snpi_src <- covidcommon::create_file_name(run_id,global_block_prefix,block-1,'snpi','parquet')
@@ -84,6 +90,8 @@ test_that("MCMC step copies are correctly performed when we are at the start of 
 
 
     ##create the copy from  files
+    arrow::write_parquet(data.frame(file="seed"), seed_src)
+    arrow::write_parquet(data.frame(file="seir"), seir_src)
     arrow::write_parquet(data.frame(file="hosp"), hosp_src)
     arrow::write_parquet(data.frame(file="llik"), llik_src)
     arrow::write_parquet(data.frame(file="snpi"), snpi_src)
