@@ -198,7 +198,7 @@ perform_MCMC_step_copies <- function(current_index,
 	    overwrite = TRUE
         )
 
-        rc$hosp_gf <- file.copy(
+        rc$seir_gf <- file.copy(
             covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seir','parquet'),
             covidcommon::create_file_name(run_id,gf_prefix,slot,'seir','parquet'),
 	    overwrite = TRUE
@@ -239,7 +239,7 @@ perform_MCMC_step_copies <- function(current_index,
             covidcommon::create_file_name(run_id,global_block_prefix,block,'seed','csv')
         )
 
-        rc$seed_block <- file.copy(
+        rc$seir_block <- file.copy(
             covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seir','parquet'),
             covidcommon::create_file_name(run_id,global_block_prefix,block,'seir','parquet')
         )
@@ -271,6 +271,16 @@ perform_MCMC_step_copies <- function(current_index,
             covidcommon::create_file_name(run_id,global_block_prefix,block,'hpar','parquet')
         )
     } else {
+        rc$seed_prevblk <- file.copy(
+            covidcommon::create_file_name(run_id,global_block_prefix,block - 1 ,'seed','csv'),
+            covidcommon::create_file_name(run_id,global_block_prefix,block,'seed','csv')
+        )
+
+        rc$seir_prevblk <- file.copy(
+            covidcommon::create_file_name(run_id,global_block_prefix,block - 1 ,'seir','parquet'),
+            covidcommon::create_file_name(run_id,global_block_prefix,block,'seir','parquet')
+        )
+
         rc$hosp_prevblk <- file.copy(
             covidcommon::create_file_name(run_id,global_block_prefix,block - 1 ,'hosp','parquet'),
             covidcommon::create_file_name(run_id,global_block_prefix,block,'hosp','parquet')
@@ -354,10 +364,10 @@ initialize_mcmc_first_block <- function(
     chimeric_check <- sapply(chimeric_files, file.exists)
 
     if(any(!global_check)){
-      stop(paste("Could not find file",names(global_files)[!global_check],"needed to resume", collapse = "\n"))
+      stop(paste("Could not find file",names(global_files)[!global_check],":",global_files[!global_check],"needed to resume", collapse = "\n"))
     }
     if(any(!chimeric_check)){
-      stop(paste("Could not find file",names(chimeric_files)[!chimeric_check],"needed to resume", collapse = "\n"))
+      stop(paste("Could not find file",names(chimeric_files)[!chimeric_check],":",chimeric_files[!chimeric_check],"needed to resume", collapse = "\n"))
     }
     return(TRUE)
   }
