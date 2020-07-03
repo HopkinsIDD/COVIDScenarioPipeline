@@ -192,6 +192,18 @@ perform_MCMC_step_copies <- function(current_index,
     rc <- list()
 
     if(current_index != 0){
+        rc$seed_gf <- file.copy(
+            covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seed','csv'),
+            covidcommon::create_file_name(run_id,gf_prefix,slot,'seed','csv'),
+	    overwrite = TRUE
+        )
+
+        rc$hosp_gf <- file.copy(
+            covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seir','parquet'),
+            covidcommon::create_file_name(run_id,gf_prefix,slot,'seir','parquet'),
+	    overwrite = TRUE
+        )
+
         rc$hosp_gf <- file.copy(
             covidcommon::create_file_name(run_id,global_local_prefix,current_index,'hosp','parquet'),
             covidcommon::create_file_name(run_id,gf_prefix,slot,'hosp','parquet'),
@@ -220,6 +232,16 @@ perform_MCMC_step_copies <- function(current_index,
             covidcommon::create_file_name(run_id,global_local_prefix,current_index,'hpar','parquet'),
             covidcommon::create_file_name(run_id,gf_prefix,slot,'hpar','parquet'),
 	    overwrite = TRUE
+        )
+
+        rc$seed_block <- file.copy(
+            covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seed','csv'),
+            covidcommon::create_file_name(run_id,global_block_prefix,block,'seed','csv')
+        )
+
+        rc$seed_block <- file.copy(
+            covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seir','parquet'),
+            covidcommon::create_file_name(run_id,global_block_prefix,block,'seir','parquet')
         )
 
         rc$hosp_block <- file.copy(
