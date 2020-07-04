@@ -352,7 +352,7 @@ for(scenario in scenarios) {
     arrow::write_parquet(initial_spar,output_chimeric_files[['spar_filename']])
     arrow::write_parquet(initial_hpar,output_chimeric_files[['hpar_filename']])
     arrow::write_parquet(chimeric_likelihood_data,output_chimeric_files[['llik_filename']])
-    arrow::write_parquet(global_likelihood_data,output_global_files[['llik_filename']])
+    # arrow::write_parquet(global_likelihood_data,output_global_files[['llik_filename']])
     warning("Chimeric hosp and seir files not yet supported, just using the most recently generated file of each type")
     file.copy(last_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
     file.copy(last_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])

@@ -36,9 +36,22 @@ seir:
 
 interventions:
   scenarios:
-    - None
     - Scenario1
   settings:
+    local_variation:
+      template: ReduceR0
+      value:
+        distribution: truncnorm
+        mean: 0
+        sd: .1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: .1
+        a: -1
+        b: 1
     None:
       template: ReduceR0
       value:
@@ -50,26 +63,32 @@ interventions:
         distribution: uniform
         low: .14
         high: .33
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: .05
+        a: -1
+        b: 1
     Scenario1:
       template: Stacked
       scenarios:
+        - local_variation
         - Place1
-        - None
         
 outcomes:
   method: delayframe
   param_from_file: TRUE
   param_place_file: ../../Outcomes/data/usa-geoid-params-output.parquet
   scenarios:
-    - high_death_rate
+    - low
   settings:
-    high_death_rate:
+    low:
       incidH:
         source: incidI
         probability:
           value:
             distribution: fixed
-            value: .1
+            value: .0175
         delay:
           value:
             distribution: fixed
@@ -84,24 +103,63 @@ outcomes:
         probability:
           value:
             distribution: fixed
-            value: .01
+            value: .0025
+        delay:
+          value:
+            distribution: fixed
+            value: 20
+      incidICU:
+        source: incidH
+        probability: 
+          value:
+            distribution: fixed
+            value: 0.167
+        delay:
+          value:
+            distribution: fixed
+            value: 3
+        duration:
+          value:
+            distribution: fixed
+            value: 8
+          name: icu_curr
+      incidVent:
+        source: incidICU
+        probability: 
+          value:
+            distribution: fixed
+            value: 0.463
+        delay:
+          value:
+            distribution: fixed
+            value: 1
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: vent_curr
+      incidC:
+        source: incidI
+        probability:
+          value:
+            distribution: truncnorm
+            mean: .1
+            sd: .1
+            a: 0
+            b: 1
+          perturbation:
+            distribution: truncnorm
+            mean: 0
+            sd: .01
+            a: -1
+            b: 1
         delay:
           value:
             distribution: fixed
             value: 7
-      incidICU:
-        source: incidH
-        probability:
-          value:
-            distribution: fixed
-            value: .1
-        delay:
-          value:
-            distribution: fixed
-            value: 0
 
 filtering:
-  simulations_per_slot: 2
+  simulations_per_slot: 10
   do_filtering: TRUE
   data_path: data/us_data.csv
   likelihood_directory: importation/likelihood/
@@ -112,19 +170,39 @@ filtering:
       period: "1 weeks"
       sim_var: incidD
       data_var: death_incid
-      remove_na: TRUE
+      remove_na: FALSE
       add_one: FALSE
       likelihood:
         dist: sqrtnorm
         param: [.1]
-    sum_hosp:
-      name: sum_hosp
+    sum_confirmed:
+      name: sum_confirmed
       aggregator: sum
-      period: "1 days"
-      sim_var: incidH
-      data_var : confirmed_incid
-      remove_na: TRUE
+      period: "1 weeks"
+      sim_var: incidC
+      data_var: confirmed_incid
+      remove_na: FALSE
       add_one: FALSE
       likelihood:
         dist: sqrtnorm
-        param: [.5]
+        param: [.2]
+  hierarchical_stats_geo:
+    local_var_hierarchy:
+      name: local_variation
+      module: seir
+      geo_group_col: USPS
+      transform: none
+    local_conf:
+      name: probability_incidI_incidC
+      module: hospitalization
+      geo_group_col: USPS
+      transform: logit
+  priors:
+    local_var_prior:
+      name: local_variation
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - 0
+        - 1
