@@ -8,16 +8,16 @@ setwd("~/COVIDWorking")
 opt <- list()
 
 opt$jobs <- 20
-opt$forecast_date <- "2020-06-28"
-opt$end_date <- "2020-07-25"
+opt$forecast_date <- "2020-07-05"
+opt$end_date <- "2020-08-08"
 opt$geodata <- "geodata_territories.csv"
 opt$death_filter <- "low"
 opt$num_simulationsulations <- 2000
-opt$outfile <- "2020-06-28-JHU_IDD-CovidSP_low.csv"
+opt$outfile <- "2020-07-05-JHU_IDD-CovidSP_low.csv"
 opt$include_hosp <- TRUE
 
 arguments<- list()
-arguments$args <- "usa_runs_2020_06_29"
+arguments$args <- "usa_runs_2020-7-6"
 #arguments$args <- "usa_runs_2020-06-18_mergedinfer"
 
 opt$reichify <-TRUE
@@ -28,7 +28,7 @@ scenarios <- arguments$args
 suppressMessages(geodata <- readr::read_csv(opt$geodata, col_types = readr::cols(geoid=readr::col_character())))
 
 
-res_state <- arrow::open_dataset(sprintf("%s/hosp",arguments$args), 
+res_geoid <- arrow::open_dataset(sprintf("%s/hosp",arguments$args), 
                                  partitioning =c("location", 
                                                  "scenario", 
                                                  "death_rate", 
@@ -36,7 +36,7 @@ res_state <- arrow::open_dataset(sprintf("%s/hosp",arguments$args),
                                                  lik_type", 
                                                  "is_final", 
                                                  "sim_id"))%>%
-  select(time, geoid, incidD, incidH, death_rate, sim_id)%>%
+  select(time, geoid, incidD, incidH, incidC, death_rate, sim_id)%>%
   filter(time>=opt$forecast_date& time<=opt$end_date)%>%
   collect()%>%
   filter(stringr::str_detect(death_rate,opt$death_filter))%>%
@@ -45,12 +45,13 @@ res_state <- arrow::open_dataset(sprintf("%s/hosp",arguments$args),
   
 
 
-res_state <- res_state %>%
+res_state <- res_geoid %>%
   filter(time>=opt$forecast_date& time<=opt$end_date) %>%
   inner_join(geodata%>%select(geoid, USPS)) %>%
   group_by(USPS, time, sim_num) %>%
   summarize(incidD=sum(incidD),
-                 incidH=sum(incidH)) %>%
+            incidH=sum(incidH),
+            incidC=sum(incidC)) %>%
   ungroup()
   
 # ##Load all of the sims
@@ -62,52 +63,6 @@ opt$forecast_date <- as.Date(opt$forecast_date)
 opt$end_date <- as.Date(opt$end_date)
 # 
 
-# ##Per file filtering code
-# post_proc <- function(x,geodata,opt) {
-#     x%>%
-#     filter(time>=opt$forecast_date& time<=opt$end_date) %>%
-#     inner_join(geodata%>%select(geoid, USPS)) %>%
-#     group_by(USPS, time) %>%
-#     summarize(incidD=sum(incidD),
-#               incidH=sum(incidH)) %>%
-#     ungroup()
-# }
-# 
-# 
-# ##Run over scenarios and death rates as appropriate. Note that
-# ##Final results will average accross whatever is included
-# res_state <-list()
-# #setup_name <- config$spatial_setup$setup_name
-# for (i in 1:length(scenarios)) {
-#   scenario_dir = scenarios[i]
-#   res_state[[i]] <- report.generation::load_hosp_sims_filtered(scenario_dir,
-#                                                                name_filter = opt$name_filter,
-#                                                                num_files = opt$num_simulations,
-#                                                                post_process = post_proc,
-#                                                                geodata=geodata,
-#                                                                opt=opt)%>%
-#     mutate(scenario=scenarios[i])
-#   
-#   
-# }
-# 
-# ##Put in one data frame
-# res_state<-dplyr::bind_rows(res_state)
-# 
-# ##deregister backend
-# parallel::stopCluster(cl)
-
-##For now get the USA Facts data
-# usa_facts_deaths <- read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv") %>%
-#   #  select(-X119)%>%
-#   pivot_longer(c(-countyFIPS, -`County Name`, -State, -stateFIPS), names_to = "date", values_to="cumDeaths")%>%
-#   mutate(date=lubridate::mdy(date))%>%
-#   mutate(geoid=stringr::str_pad(countyFIPS, width=5,pad="0"))%>%
-#   rename(USPS=State, county=`County Name`)%>%
-#   group_by(USPS, date)%>%
-#   summarize(cumDeaths=sum(cumDeaths))%>%
-#   ungroup()%>%
-#   rename(time=date)
 
 usa_facts_deaths <- covidcommon::get_USAFacts_data() %>%
   rename(geoid=FIPS, time=Update, cumDeaths=Deaths, USPS=source)%>%
@@ -146,7 +101,7 @@ if (opt$reichify) {
     mutate(target=sprintf("%d wk ahead cum death", ahead))%>%
   select(-day_of_week, -ahead)
   
-  state_cum_deaths <- dplyr::bind_rows(state_daily_cum_deaths, state_week_cum_deaths)
+  state_cum_deaths <- dplyr::bind_rows(state_week_cum_deaths)
 }
   
 
@@ -154,7 +109,8 @@ if (opt$reichify) {
 res_us <- res_state%>%
   group_by(time, sim_num)%>%
   summarize(incidD=sum(incidD),
-            incidH=sum(incidH))%>%
+            incidH=sum(incidH),
+            incidC=sum(incidC))%>%
   ungroup()%>%
   mutate(location="US")
   
@@ -182,7 +138,7 @@ if (opt$reichify) {
     mutate(type=replace(type, quantile=="mean","point"))%>%
     mutate(quantile=readr::parse_number(quantile)/100)%>%
     select(forecast_date, target, target_end_date,location,type, quantile, value)
-  
+
 us_week_cum_deaths <- us_daily_cum_deaths%>%
     mutate(day_of_week=lubridate::wday(target_end_date, label=T))%>%
     filter(day_of_week=="Sat")%>%
@@ -190,7 +146,7 @@ us_week_cum_deaths <- us_daily_cum_deaths%>%
     mutate(target=sprintf("%d wk ahead cum death", ahead)) %>%
   select(-day_of_week, -ahead)
   
-  us_cum_deaths <- dplyr::bind_rows(us_daily_cum_deaths, us_week_cum_deaths)
+  us_cum_deaths <- dplyr::bind_rows(us_week_cum_deaths)
 }
 
 
@@ -198,52 +154,52 @@ cum_deaths <- dplyr::bind_rows(us_cum_deaths, state_cum_deaths)
 
 
 ## Incident Deaths Daily
-state_daily_incident_deaths <- res_state%>%
-  group_by(time, USPS)%>% 
-  summarize(x=list(enframe(c(quantile(incidD, probs=c(0.01, 0.025,
-                                                               seq(0.05, 0.95, by = 0.05), 0.975, 0.99)),
-                             mean=mean(incidD)),
-                           "quantile","incidD"))) %>%
-  unnest(x)
-
-us_daily_incident_deaths <- res_us %>%
-  group_by(time) %>%
-  summarize(x=list(enframe(c(quantile(incidD, probs=c(0.01, 0.025,
-                                                      seq(0.05, 0.95, by = 0.05), 0.975, 0.99)),
-                             mean=mean(incidD)),
-                           "quantile","incidD"))) %>%
-  unnest(x)
-
-
-if (opt$reichify)  {
-  tmp_state_daily_incident_deaths<- state_daily_incident_deaths%>%
-    filter(time>opt$forecast_date)%>%
-    mutate(forecast_date=opt$forecast_date)%>%
-    rename(target_end_date=time)%>%
-    mutate(location=as.character(cdlTools::fips(USPS)))%>%
-    mutate(location=stringr::str_pad(location, width=2, side="left", pad="0"))%>%
-    rename(value=incidD)%>%
-    mutate(target=sprintf("%d day ahead inc death", as.numeric(target_end_date-forecast_date)))%>%
-    mutate(type="quantile")%>%
-    mutate(type=replace(type, quantile=="mean","point"))%>%
-    mutate(quantile=readr::parse_number(quantile)/100)%>%
-    select(forecast_date, target, target_end_date,location,type, quantile, value)
-  
-  tmp_us_daily_incident_deaths<- us_daily_incident_deaths%>%
-    filter(time>opt$forecast_date)%>%
-    mutate(forecast_date=opt$forecast_date)%>%
-    rename(target_end_date=time)%>%
-    mutate(location="US")%>%
-    rename(value=incidD)%>%
-    mutate(target=sprintf("%d day ahead inc death", as.numeric(target_end_date-forecast_date)))%>%
-    mutate(type="quantile")%>%
-    mutate(type=replace(type, quantile=="mean","point"))%>%
-    mutate(quantile=readr::parse_number(quantile)/100)%>%
-    select(forecast_date, target, target_end_date,location,type, quantile, value)
-  
-  
-  daily_inc_deaths <-dplyr::bind_rows(tmp_state_daily_incident_deaths, tmp_us_daily_incident_deaths)
-}
+# state_daily_incident_deaths <- res_state%>%
+#   group_by(time, USPS)%>% 
+#   summarize(x=list(enframe(c(quantile(incidD, probs=c(0.01, 0.025,
+#                                                                seq(0.05, 0.95, by = 0.05), 0.975, 0.99)),
+#                              mean=mean(incidD)),
+#                            "quantile","incidD"))) %>%
+#   unnest(x)
+# 
+# us_daily_incident_deaths <- res_us %>%
+#   group_by(time) %>%
+#   summarize(x=list(enframe(c(quantile(incidD, probs=c(0.01, 0.025,
+#                                                       seq(0.05, 0.95, by = 0.05), 0.975, 0.99)),
+#                              mean=mean(incidD)),
+#                            "quantile","incidD"))) %>%
+#   unnest(x)
+# 
+# 
+# if (opt$reichify)  {
+#   tmp_state_daily_incident_deaths<- state_daily_incident_deaths%>%
+#     filter(time>opt$forecast_date)%>%
+#     mutate(forecast_date=opt$forecast_date)%>%
+#     rename(target_end_date=time)%>%
+#     mutate(location=as.character(cdlTools::fips(USPS)))%>%
+#     mutate(location=stringr::str_pad(location, width=2, side="left", pad="0"))%>%
+#     rename(value=incidD)%>%
+#     mutate(target=sprintf("%d day ahead inc death", as.numeric(target_end_date-forecast_date)))%>%
+#     mutate(type="quantile")%>%
+#     mutate(type=replace(type, quantile=="mean","point"))%>%
+#     mutate(quantile=readr::parse_number(quantile)/100)%>%
+#     select(forecast_date, target, target_end_date,location,type, quantile, value)
+#   
+#   tmp_us_daily_incident_deaths<- us_daily_incident_deaths%>%
+#     filter(time>opt$forecast_date)%>%
+#     mutate(forecast_date=opt$forecast_date)%>%
+#     rename(target_end_date=time)%>%
+#     mutate(location="US")%>%
+#     rename(value=incidD)%>%
+#     mutate(target=sprintf("%d day ahead inc death", as.numeric(target_end_date-forecast_date)))%>%
+#     mutate(type="quantile")%>%
+#     mutate(type=replace(type, quantile=="mean","point"))%>%
+#     mutate(quantile=readr::parse_number(quantile)/100)%>%
+#     select(forecast_date, target, target_end_date,location,type, quantile, value)
+#   
+#   
+#   daily_inc_deaths <-dplyr::bind_rows(tmp_state_daily_incident_deaths, tmp_us_daily_incident_deaths)
+# }
 
 
 
@@ -364,10 +320,102 @@ if (opt$include_hosp) {
   
 }  
   
+
+
+##Incident Cases weekly
+weekly_state_incident_cases <- res_state %>%
+  mutate(week=lubridate::epiweek(time))%>%
+  mutate(tmp_time = as.numeric(time))%>%
+  group_by(USPS, sim_num, week)%>%
+  summarize(incidC=sum(incidC),
+            time=max(tmp_time))%>%
+  ungroup() %>%
+  mutate(time=lubridate::as_date(time))%>%
+  group_by(time, USPS, week) %>%
+  summarize(x=list(enframe(c(quantile(incidC, probs=c(0.025, 0.100, 0.250, 0.500, 0.750, 0.900, 0.975)),
+                             mean=mean(incidC)),
+                           "quantile","incidC"))) %>%
+  unnest(x)
+
+
+
+weekly_us_incident_cases <- res_us %>%
+  mutate(week=lubridate::epiweek(time))%>%
+  group_by(sim_num, week)%>%
+  summarize(incidC=sum(incidC),
+            time=max(time))%>%
+  ungroup() %>%
+  group_by(time,week) %>%
+  summarize(x=list(enframe(c(quantile(incidC, probs=c(0.025, 0.100, 0.250, 0.500, 0.750, 0.900, 0.975)),
+                             mean=mean(incidC)),
+                           "quantile","incidC"))) %>%
+  unnest(x)
+
+
+weekly_geoid_incident_cases <- res_geoid %>%
+  mutate(week=lubridate::epiweek(time))%>%
+  group_by(sim_num, week, geoid)%>%
+  summarize(incidC=sum(incidC),
+            time=max(time))%>%
+  ungroup() %>%
+  group_by(time,week,geoid) %>%
+  summarize(x=list(enframe(c(quantile(incidC, probs=c(0.025, 0.100, 0.250, 0.500, 0.750, 0.900, 0.975)),
+                             mean=mean(incidC)),
+                           "quantile","incidC"))) %>%
+  unnest(x)
+
+if(opt$reichify) {
+  tmp_weekly_state_incident_cases <-
+    weekly_state_incident_cases%>%
+    mutate(forecast_date=opt$forecast_date)%>%
+    rename(target_end_date=time)%>%
+    mutate(location=as.character(cdlTools::fips(USPS)))%>%
+    mutate(location=stringr::str_pad(location, width=2, side="left", pad="0"))%>%
+    rename(value=incidC)%>%
+    mutate(ahead=round(as.numeric(target_end_date - forecast_date)/7))%>%
+    mutate(target=sprintf("%d wk ahead inc case", ahead)) %>%
+    mutate(type="quantile")%>%
+    mutate(type=replace(type, quantile=="mean","point"))%>%
+    mutate(quantile=readr::parse_number(quantile)/100)%>%
+    select(forecast_date, target, target_end_date,location,type, quantile, value)
+  
+  tmp_weekly_us_incident_cases <-
+    weekly_us_incident_cases%>%
+    mutate(forecast_date=opt$forecast_date)%>%
+    rename(target_end_date=time)%>%
+    mutate(location="US")%>%
+    rename(value=incidC)%>%
+    mutate(ahead=round(as.numeric(target_end_date - forecast_date)/7))%>%
+    mutate(target=sprintf("%d wk ahead inc case", ahead)) %>%
+    mutate(type="quantile")%>%
+    mutate(type=replace(type, quantile=="mean","point"))%>%
+    mutate(quantile=readr::parse_number(quantile)/100)%>%
+    select(forecast_date, target, target_end_date,location,type, quantile, value)
+  
+  tmp_weekly_geoid_incident_cases <-
+    weekly_geoid_incident_cases%>%
+    mutate(forecast_date=opt$forecast_date)%>%
+    rename(target_end_date=time)%>%
+    mutate(location=geoid)%>%
+    rename(value=incidC)%>%
+    mutate(ahead=round(as.numeric(target_end_date - forecast_date)/7))%>%
+    mutate(target=sprintf("%d wk ahead inc case", ahead)) %>%
+    mutate(type="quantile")%>%
+    mutate(type=replace(type, quantile=="mean","point"))%>%
+    mutate(quantile=readr::parse_number(quantile)/100)%>%
+    select(forecast_date, target, target_end_date,location,type, quantile, value)
+  
+  weekly_inc_cases <-dplyr::bind_rows(tmp_weekly_state_incident_cases, tmp_weekly_us_incident_cases, 
+                                      tmp_weekly_geoid_incident_cases)%>%
+    select(-week)
+}
+
+
+
 if (opt$reichify) {
   full_forecast <- dplyr::bind_rows( weekly_inc_deaths,
-                                     daily_inc_deaths,
-                                     cum_deaths)
+                                     cum_deaths,
+                                     weekly_inc_cases)
   
   if(opt$include_hosp) {
     full_forecast<- dplyr::bind_rows(full_forecast,
