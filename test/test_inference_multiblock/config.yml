@@ -1,6 +1,6 @@
 name: test_inference
-start_date: 2020-04-01
-end_date: 2020-05-15
+start_date: 2020-01-01
+end_date: 2020-08-17
 nsimulations: 1
 dt: 0.25
 
@@ -13,7 +13,7 @@ spatial_setup:
   nodenames: geoid
   census_year: 2018
   modeled_states:
-    - HI
+    - NY
 
 seeding:
   seeding_file_type: seed
@@ -24,6 +24,7 @@ seeding:
 
 seir:
   parameters:
+    alpha: 0.99
     sigma: 1 / 5.2
     gamma:
       distribution: uniform
@@ -52,11 +53,6 @@ interventions:
         sd: .1
         a: -1
         b: 1
-    None:
-      template: ReduceR0
-      value:
-        distribution: fixed
-        value: 0
     Place1:
       template: ReduceR0
       value:
@@ -150,7 +146,7 @@ outcomes:
           perturbation:
             distribution: truncnorm
             mean: 0
-            sd: .01
+            sd: .05
             a: -1
             b: 1
         delay:
@@ -159,7 +155,7 @@ outcomes:
             value: 7
 
 filtering:
-  simulations_per_slot: 10
+  simulations_per_slot: 100
   do_filtering: TRUE
   data_path: data/us_data.csv
   likelihood_directory: importation/likelihood/
