@@ -1,39 +1,117 @@
 context("initial MCMC setup")
 
-test_that("create_filename_list produces a file of each type",{
+test_that("initialize_mcmc_first_block works for block > 1",{
+  filenames <- c(
+    create_filename_list(
+      "test_run",
+      "global",
+      1,
+      c("seed", "seir", "snpi", "spar", "hosp", "hpar","llik"),
+      c("csv","parquet","parquet","parquet","parquet","parquet","parquet")
+    ),
+    create_filename_list(
+      "test_run",
+      "chimeric",
+      1,
+      c("seed", "seir", "snpi", "spar", "hosp", "hpar","llik"),
+      c("csv","parquet","parquet","parquet","parquet","parquet","parquet")
+    )
+  )
+
+  expect_false({
+    suppressWarnings(unlink("model_output",recursive=TRUE))
+    # suppressWarnings(lapply(filenames,file.remove))
+    all(file.exists(filenames))
+  })
+  
   expect_error({
-    create_filename_list("run_id","prefix",1,"type","extension")
-  },NA)
-  expect_equal({
-    gsub(".*[.]","",create_filename_list("run_id","prefix",1,"type","extension")[['type_filename']])
-  },"extension")
+    initialize_mcmc_first_block(
+      run_id = "test_run",
+      block = 2,
+      global_prefix = "global",
+      chimeric_prefix = "chimeric",
+      python_reticulate = NULL,
+      likelihood_calculation_function = NULL
+    )
+  })
+
   expect_true({
-    all(grepl(c("run_id","prefix","type","extension"),create_filename_list("run_id","prefix",1,"type","extension")[['type_filename']]))
-  },"extension")
+    lapply(filenames,function(x){write.csv(file=x,data.frame(missing=TRUE))})
+    all(file.exists(filenames))
+  })
 
   expect_error({
-    create_filename_list("run_id","prefix",1)
-  },NA)
+    initialize_mcmc_first_block(
+      run_id = "test_run",
+      block = 2,
+      global_prefix = "global",
+      chimeric_prefix = "chimeric",
+      python_reticulate = NULL,
+      likelihood_calculation_function = NULL
+    )
+  }, NA)
+
+  expect_false({
+    suppressWarnings(unlink("model_output",recursive=TRUE))
+    any(file.exists(filenames))
+  })
+
+})
+
+test_that("initialize_mcmc_first_block works for block < 1",{
+  filenames <- c(
+    create_filename_list(
+      "test_run",
+      "global",
+      -1,
+      c("seed", "seir", "snpi", "spar", "hosp", "hpar","llik"),
+      c("csv","parquet","parquet","parquet","parquet","parquet","parquet")
+    ),
+    create_filename_list(
+      "test_run",
+      "chimeric",
+      -1,
+      c("seed", "seir", "snpi", "spar", "hosp", "hpar","llik"),
+      c("csv","parquet","parquet","parquet","parquet","parquet","parquet")
+    )
+  )
+
+  expect_false({
+    suppressWarnings(unlink("model_output",recursive=TRUE))
+    # suppressWarnings(lapply(filenames,file.remove))
+    all(file.exists(filenames))
+  })
+  
+  expect_error({
+    initialize_mcmc_first_block(
+      run_id = "test_run",
+      block = 0,
+      global_prefix = "global",
+      chimeric_prefix = "chimeric",
+      python_reticulate = NULL,
+      likelihood_calculation_function = NULL
+    )
+  })
+
+  expect_true({
+    lapply(filenames,function(x){write.csv(file=x,data.frame(missing=TRUE))})
+    all(file.exists(filenames))
+  })
 
   expect_error({
-    create_filename_list("run_id","prefix",1,c("a","b","c"),c("csv","parquet","fake"))
-  },NA)
-  expect_equal({
-    names(create_filename_list("run_id","prefix",1,c("a","b","c"),c("csv","parquet","fake")))
-  },c("a_filename","b_filename","c_filename"))
+    initialize_mcmc_first_block(
+      run_id = "test_run",
+      block = 0,
+      global_prefix = "global",
+      chimeric_prefix = "chimeric",
+      python_reticulate = NULL,
+      likelihood_calculation_function = NULL
+    )
+  })
 
-  expect_equal({
-    rc <- create_filename_list("run_id","prefix",1,c("a","b","c"),c("csv","parquet","fake"))
-    rc <- gsub(".*[.]","",rc)
-    rc <- unname(rc)
-    rc
-  },c("csv","parquet","fake"))
+  expect_false({
+    suppressWarnings(unlink("model_output",recursive=TRUE))
+    any(file.exists(filenames))
+  })
 
-  expect_equal({
-    rc <- create_filename_list("run_id","prefix",1,c("a","b","c"),c("csv","parquet","fake"))
-    rc <- gsub("[.][^.]*$","",rc)
-    rc <- gsub(".*[.]","",rc)
-    rc <- unname(rc)
-    rc
-  },c("a","b","c"))
 })

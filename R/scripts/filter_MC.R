@@ -221,7 +221,7 @@ for(scenario in scenarios) {
 
       ## Create filenames
       this_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
-      this_chimeric_files <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
+      this_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_local_prefix, this_index)
 
       ## Setup python
       reticulate::py_run_string(paste0("prefix = '", global_local_prefix, "'"))
@@ -301,9 +301,11 @@ for(scenario in scenarios) {
         print("****ACCEPT****")
         current_index <- this_index
         global_likelihood <- proposed_likelihood
-	global_likelihood_data <- proposed_likelihood_data
+        global_likelihood_data <- proposed_likelihood_data
+      } else {
+        print("****REJECT****")
       }
-      arrow::write_parquet(global_likelihood_data, this_global_files[['llik_filename']])
+      arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
 
       seeding_npis_list <- inference::accept_reject_new_seeding_npis(
         seeding_orig = initial_seeding,
@@ -352,7 +354,6 @@ for(scenario in scenarios) {
     arrow::write_parquet(initial_spar,output_chimeric_files[['spar_filename']])
     arrow::write_parquet(initial_hpar,output_chimeric_files[['hpar_filename']])
     arrow::write_parquet(chimeric_likelihood_data,output_chimeric_files[['llik_filename']])
-    # arrow::write_parquet(global_likelihood_data,output_global_files[['llik_filename']])
     warning("Chimeric hosp and seir files not yet supported, just using the most recently generated file of each type")
     file.copy(last_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
     file.copy(last_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
