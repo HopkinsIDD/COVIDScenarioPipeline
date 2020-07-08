@@ -11,7 +11,7 @@ click-plugins==1.1.1
 cligj==0.5.0
 colorama==0.4.3
 configobj==5.0.6
-confuse==1.1.0
+confuse==1.0.0
 cycler==0.10.0
 decorator==4.4.2
 distro==1.5.0
@@ -71,6 +71,7 @@ ruamel.yaml.clib==0.2.0
 s3transfer==0.3.3
 scipy==1.4.1
 seaborn==0.10.0
+setuptools==47.3.1
 sh==1.12.14
 Shapely==1.7.0
 shortuuid==1.0.1
