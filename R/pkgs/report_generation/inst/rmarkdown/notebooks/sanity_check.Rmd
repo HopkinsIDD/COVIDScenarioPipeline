@@ -5,7 +5,7 @@ output:
     theme: journal
     fig_caption: true
 params: 
-  config_file: config_inference_territories_high_report.yml # add sanity: with run ("country" or "state"), country (e.g. "US"),  state (if run=="state"), and inference (T/F)
+  config_file: config_inference_ca_counties_high_report.yml # add sanity: with run ("country" or "state"), country (e.g. "US"),  state (if run=="state"), and inference (T/F)
   runs_folder: runs_sample # folder name with output folders hosp, hpar, snpi, spar
   pi_lo: 0.05
   pi_hi: 0.95
@@ -28,8 +28,16 @@ knitr::opts_chunk$set(
     bitmapType = "cairo"
     )
 
-knitr::opts_knit$set(eval.after = 'fig.cap', 
-                     root.dir = "../..") # assumes in notebook subdirectory
+# Setting output/root directories by running rmarkdown::render() from terminal 
+#Option 1: root.dir is set to the folder with the config, BUT only works if CSP is a subdirectory of COVID19_Location,
+# and output.dir = getwd() in render()
+
+knitr::opts_knit$set(eval.after = 'fig.cap',
+                     root.dir = rprojroot::find_root(rprojroot::has_file(params$config_file))) # searches for root directory with config file (if csp is subdir)
+
+#Option 2 (more flexible): set output.dir to getwd() and knit_root_dir to a specific folder in rmarkdown::render. However, opts_knit$set cannot have an root.dir argument (it did not work for me)
+#
+# knitr::opts_knit$set(eval.after='fig.cap')
 
 options(scipen=999)
 ```
@@ -37,30 +45,37 @@ options(scipen=999)
 ```{r load_config}
 config <- covidcommon::load_config(params$config_file)
 
-geodata <- load_geodata_file(file.path(paste0(config$spatial_setup$base_path, "/", config$spatial_setup$geodata)),
+geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, "/", config$spatial_setup$geodata),
                              geoid_len=5)
-
 ```
 
 ```{r setup_config_vals}
-# Config must have:
+# Config must have (alternate code could remove need for an additional config)
 #     run: country or state
 #     country: US (other not yet suppported)
-#     pdeath_levels: ['high', 'med', 'low'] 
+#     death_rate_levels: ['high', 'med', 'low'] 
 #     state: (if run==country)        
 # Config may have:
 #     fit_date: "2020-06-23" # serves as cut-off date for comparison of model estimates vs reported data 
 
 run <- as.character(config$sanity$run) # either state, states/region or country
 country<-config$sanity$country
-pdeath_levels <- config$sanity$pdeath_levels
+death_rate_levels <- config$sanity$death_rate_levels
 infer <- exists("filtering", where = config) ## is there inference in the runs?
-fit_date<-if_else(is.null(config$sanity$fit_date), Sys.Date(), lubridate::ymd(config$sanity$fit_date))
-  
+
+if(is.null(config$sanity$fit_date)){
+  fit_date<-lubridate::ymd(Sys.Date()-1)
+} else {
+  fit_date<-lubridate::ymd(config$sanity$fit_date)
+}
 geogroup <- case_when(run=="state" ~ "geoid", # Determine whether grouping is done for counties (in state runs) or states (in country runs)
                       run=="country" ~ "USPS")
 
-                
+affected_geoids <- lapply(config$interventions$settings, 
+                          exists, x="affected_geoids") %>% # interventions different across geoids?
+  unlist(use.names=FALSE) %>% 
+  any()
+        
 ```
 
 ```{r infer_params, eval=infer}
@@ -85,6 +100,10 @@ geo_names <- tigris::fips_codes %>%
   mutate(name=str_remove(name, " County")) %>%
   filter(geoid %in% geodata$geoid) 
 
+geo_names <- geo_names %>%
+  mutate(name=factor(name, levels=sort(geo_names$name, decreasing=TRUE)),
+         USPS=factor(USPS, levels=sort(unique(geo_names$USPS), decreasing=TRUE)))
+
 fig_counter<-1
 tab_counter<-1
 ```
@@ -92,18 +111,9 @@ tab_counter<-1
 
 ## Summarize Run Parameters  
 
-`r paste0("**Tab.", tab_counter, "**: Summary of SEIR parameters")`
+`r paste0("**Tab.", tab_counter, "**: Summary of config SEIR parameters")`
 
 ```{r param_summary}
-
-# hosp <- config$hospitalization$parameters
-# 
-# hosp <- tibble(value = unlist(hosp), names = names(unlist(hosp))) %>%
-#     mutate(names = str_remove(names, '\\d$')) %>%
-#     group_by(names) %>%
-#     summarise_all(funs(paste0(.,collapse=', '))) %>%
-#     right_join(hosp%>%names()%>%tibble(names=.)) %>%
-#     mutate(section = "Hospitalization")
 
 seir <- config$seir$parameters
 
@@ -115,27 +125,7 @@ seir <- tibble(value = unlist(seir), names = names(unlist(seir))) %>%
     summarise_all(funs(paste0(.,collapse='\n'))) %>%
     right_join(seir%>%names()%>%tibble(names=.)) %>%
     mutate(section= "SEIR") 
-# 
-# import <- config$importation
-# 
-# if(!is.null(import)) {
-# importation <- tibble(value = unlist(import), names = names(unlist(import))) %>%
-#   select(-census_api_key, cache_work, update_case_data, print_progress) %>% 
-#   mutate(section = "Importation")
-# 
-# import <- config$importation$param_list
-# 
-# importation <- tibble(value = unlist(import), names = names(unlist(import))) %>%
-#   mutate(names = str_remove(names, '\\d$')) %>%
-#   group_by(names) %>%
-#   summarise_all(funs(paste0(.,collapse=', '))) %>%
-#   right_join(import%>%names()%>%tibble(names=.)) %>%
-#   mutate(section = "Importation") %>%
-#   bind_rows(importation, .)
-# }
-# 
-# hosp %>%
-  # {if(is.null(import)) bind_rows(., seir) else(bind_rows(., seir, importation))} %>%
+
 seir%>%
     select(Section = section, Parameters = names, Value = value) %>%
     flextable::flextable() %>%
@@ -167,7 +157,7 @@ hpar%>%
                                TRUE~USPS)))} %>%
   # {if(run=="state") filter(., geoid %in% geo_names$geoid) 
   #   else(filter(., USPS %in% geo_names$USPS))} %>%
-    mutate(death_rate=factor(death_rate, levels=pdeath_levels))%>%
+    mutate(death_rate=factor(death_rate, levels=death_rate_levels))%>%
     group_by(outcome, death_rate)%>%
     summarize(value_lo=quantile(value,params$pi_lo, na.rm=TRUE),
               value_hi=quantile(value,params$pi_hi, na.rm=TRUE),
@@ -201,6 +191,7 @@ hpar%>%
               value=mean(value)) %>%
     {if(run=="state") left_join(., geo_names)
         else(rename(., name=USPS))} %>%
+    mutate(death_rate=factor(death_rate, levels=death_rate_levels)) %>%
     ggplot(aes(x=value, y=name, col=outcome)) +
     geom_point(position=position_dodge(0.75))+
     geom_linerange(aes(xmin=value_lo, xmax=value_hi), position=position_dodge(0.75),alpha=0.6)+
@@ -307,16 +298,17 @@ inference_r <- inference_r %>%
             reduc = mean(reduction, na.rm=TRUE), 
             reducq1 = quantile(reduction, 0.25, na.rm=TRUE), 
             reducq3 = quantile(reduction, 0.75, na.rm=TRUE)) %>%
-  {if(run=="country") mutate(., npi_name=str_remove(npi_name, '^[[A-Z]]+\\_'))
-    else(left_join(., geo_names))} 
+  {if(affected_geoids) mutate(., npi_name=str_remove(npi_name, '^[[A-Z]].+\\_'))
+    else(left_join(.))} %>%
+  left_join(geo_names)
 
   # {if(run=="country") mutate(., npi_name=str_remove(npi_name, '^[[A-Z]]+\\_'),
   #                            USPS=factor(USPS, levels=sort(c(unique(geo_names$USPS), "AS", "GU", "MP", "PR", "VI"),decreasing=TRUE)))
   #   else(left_join(., geo_names) %>% mutate(., name=factor(name, levels=sort(unique(geo_names$name), decreasing=TRUE))))} 
   
-if(run=="country"){
+if(affected_geoids){
   npi_names<-npi_names%>%
-    str_remove('^[[A-Z]]+\\_') %>%
+    str_remove('^[[A-Z]].+\\_') %>%
     unique()
 }
 remove(snpi)
@@ -330,7 +322,7 @@ cap<-paste0("**Fig.", fig_counter, "**: Estimated reproduction number at baselin
 plot_r_num <- function(inference_dat, 
                        npiselection = npi_names,
                        npilabel = NA, 
-                       periodcolors = c("chartreuse3", "brown2", "turquoise4", "black"),
+                       periodcolors = c("chartreuse3", "brown2", "turquoise4", "black", "magenta3"),
                        distribution_low = NA, # if you want to show the assumed distribution for a particular intervention only then specify values/colors 
                         distribution_high = NA, 
                         distribution_colors = NA,
@@ -350,7 +342,7 @@ plot_r_num <- function(inference_dat,
     mutate(npi_label = factor(npi_label, levels=label$npi_label))
   
   if(length(periodcolors)<length(npiselection)){
-    stop("Specify additional colors")
+    stop(paste0("Specify additional colors. Current colors are: ", paste(periodcolors, collapse=", ")))
   }
 
   periodcolors <- periodcolors[npi_names %in% npiselection]
@@ -432,29 +424,22 @@ truth_dat <- get_USAFacts_data() %>%
   right_join(geo_names) %>%
   filter(date<fit_date) %>%
   group_by(date, !!as.symbol(geogroup))%>%
-  dplyr::summarize(Confirmed = sum(Confirmed), 
+  dplyr::summarize(Confirmed = sum(Confirmed, na.rm = TRUE), 
                    Deaths = sum(Deaths, na.rm = TRUE),
-                   incidI =sum(incidI),
-                   incidDeath=sum(incidDeath)) %>%
+                   incidI =sum(incidI, na.rm=TRUE),
+                   incidDeath=sum(incidDeath, na.rm = TRUE)) %>%
   ungroup()
 
 if(params$hosp_eval){#comparison of hospital occupancy is currently only for "state", will require manual setup
     chhs_dat <- read.csv("data/DPH/covid19data.csv") %>% # 
-      dplyr::select(county = County.Name, 
+      dplyr::select(name = County.Name, 
                     date = Most.Recent.Date, 
-                    cumConfirmed = Total.Count.Confirmed, 
-                    cumDeaths = Total.Count.Deaths, 
-                    currhosp = COVID.19.Positive.Patients, 
-                    currhosp_susp = Suspected.COVID.19.Positive.Patients, 
-                    currICU = ICU.COVID.19.Positive.Patients,
-                    currICU_susp = ICU.COVID.19.Suspected.Patients)
+                    hosp = COVID.19.Positive.Patients)
     
     truth_dat <- chhs_dat %>%
-      rename(name=county)%>%
       left_join(geo_names) %>%
       mutate(date = as.Date(date, "%m/%d/%Y")) %>%
       filter(date<=fit_date) %>%
-      select(name, date, geoid, hosp=currhosp) %>%
       tibble()%>%
       right_join(truth_dat) %>%
       arrange(date)
@@ -466,11 +451,11 @@ if(params$hosp_eval){#comparison of hospital occupancy is currently only for "st
 ```{r model_res_load}
 
 res_state<-list() # loop works for larger datasets (e.g. USA)
-for(i in 1:length(pdeath_levels)){
+for(i in 1:length(death_rate_levels)){
   res_state[[i]] <- arrow::open_dataset(paste0(params$runs_folder,"/hosp/"),
                                 partitioning = c("geoid", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")) %>%
     select(time, geoid, scenario, death_rate, sim_id, incidD, incidC, incidH, incidI, hosp_curr)%>%
-    filter(death_rate==pdeath_levels[i]) %>%
+    filter(death_rate==death_rate_levels[i]) %>%
     filter(time<fit_date)%>%
     collect() %>%
     group_by(geoid, death_rate, sim_id, scenario) %>%
@@ -512,9 +497,9 @@ for(i in 1:length(pdeath_levels)){
               cumCase=mean(cumCase))%>%
   mutate(time=as.Date(time))
 
-  if(i==length(pdeath_levels)){
+  if(i==length(death_rate_levels)){
     res_state<- bind_rows(res_state)%>%
-      mutate(death_rate=factor(death_rate, levels=pdeath_levels))%>%
+      mutate(death_rate=factor(death_rate, levels=death_rate_levels))%>%
       {if(run=="state") left_join(., geo_names) %>% mutate(., name=factor(name, levels=sort(unique(geo_names$name), decreasing=TRUE)))
         else(mutate(., USPS=factor(USPS, levels=sort(c(unique(geo_names$USPS), "AS", "GU", "MP","PR", "VI"), decreasing=TRUE))))}
   }
@@ -716,7 +701,7 @@ mapdat <- temp%>%
 
 mapdat<- mapdat%>%
   filter(!is.na(death_rate)) %>%
-  mutate(death_rate=factor(death_rate, levels=pdeath_levels))
+  mutate(death_rate=factor(death_rate, levels=death_rate_levels))
 }
 ```
 
@@ -1476,6 +1461,7 @@ res_state %>%
   left_join(mae_hosp) %>%
    # {if(run=="state") unite(., "name_mae", name:mae, sep=": ", remove = TRUE) else(unite(., "name_mae", !!as.symbol(geogroup):mae, sep=": ", remove = FALSE))} %>%
   inner_join(truth_dat%>%rename(time=date))%>%
+  {if(run=="state") group_by(., death_rate, name) else(group_by(., death_rate, USPS))} %>%
   filter(time!=max(time))%>%
   ggplot(aes(x=time, y=currHosp, ymin=currHosp_5pct, ymax=currHosp_95pct))+
   geom_line(color= "red")+
