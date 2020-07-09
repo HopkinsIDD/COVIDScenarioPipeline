@@ -181,6 +181,7 @@ Hash: 6cc063b236e3bbc174a73959145488ef
 Package: covidImportation
 Source: github
 Version: 1.6.1
+Hash: 19ccb07938df6c97b7397e7a0493b818
 Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
     dplyr, fitdistrplus, geosphere, ggplot2, ggvoronoi,
     globaltoolboxlite, gpclib, httr, igraph, lubridate, magrittr,
@@ -189,12 +190,7 @@ Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
 GithubRepo: covidImportation
 GithubUsername: HopkinsIDD
 GithubRef: v1.6.1
-GithubSha1: 3cf2341907d23e1b19a3a3190dfca29b50d22218 
-RemoteHost: api.github.com
-RemoteRepo: covidImportation
-RemoteUsername: HopkinsIDD
-RemoteRef: v1.6.1
-RemoteSha: 3cf2341907d23e1b19a3a3190dfca29b50d22218 
+GithubSha1: 3cf2341907d23e1b19a3a3190dfca29b50d22218
 
 Package: covidcommon
 Source: source
@@ -959,6 +955,11 @@ Version: 3.0.1
 Hash: 00d3817b8530e9ce9b465aeef293a011
 Requires: cli, crayon, ellipsis, fansi, lifecycle, magrittr, pillar,
     pkgconfig, rlang, vctrs
+
+Package: tictoc
+Source: CRAN
+Version: 1.0
+Hash: 0379257b730eed5b9089765c2921a098
 
 Package: tidycensus
 Source: CRAN
