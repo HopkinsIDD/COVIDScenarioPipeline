@@ -196,7 +196,7 @@ Source: source
 Version: 0.0.1
 Hash: 3323a11403ed0f021bf879d247fefbea
 Requires: purrr, yaml
-SourcePath: R/pkgs//covidcommon
+SourcePath: /home/app/R/pkgs//covidcommon
 
 Package: covr
 Source: CRAN
@@ -475,7 +475,7 @@ Version: 0.0.1
 Hash: 5e28fda73402d6283ec2507e9079c305
 Requires: data.table, doParallel, dplyr, flextable, foreach, ggfortify,
     ggplot2, gridExtra, knitr, magrittr, readr, tidyr
-SourcePath: R/pkgs//hospitalization
+SourcePath: /home/app/R/pkgs//hospitalization
 
 Package: htmltools
 Source: CRAN
@@ -500,6 +500,14 @@ Source: CRAN
 Version: 1.2.5
 Hash: 56cd6b00fa9864975f6678b4d1a46b50
 Requires: Matrix, magrittr, pkgconfig
+
+Package: inference
+Source: source
+Version: 0.0.1
+Hash: 5fd71045346617041927f33ec8b1bac1
+Requires: covidcommon, report.generation, arrow, dplyr, foreach,
+    magrittr, readr, reticulate, stringr, truncnorm, xts
+SourcePath: /home/app/R/pkgs//inference
 
 Package: ini
 Source: CRAN
@@ -782,7 +790,7 @@ Source: source
 Version: 0.0.1
 Hash: 165fc151c5735ca5f6a6608e528039da
 Requires: knitr, tidyverse
-SourcePath: R/pkgs//report.generation
+SourcePath: /home/app/R/pkgs//report.generation
 
 Package: reprex
 Source: CRAN
@@ -954,6 +962,11 @@ Version: 3.0.1
 Hash: 00d3817b8530e9ce9b465aeef293a011
 Requires: cli, crayon, ellipsis, fansi, lifecycle, magrittr, pillar,
     pkgconfig, rlang, vctrs
+
+Package: tictoc
+Source: CRAN
+Version: 1.0
+Hash: 0379257b730eed5b9089765c2921a098
 
 Package: tidycensus
 Source: CRAN
