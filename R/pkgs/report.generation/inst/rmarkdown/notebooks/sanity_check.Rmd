@@ -83,13 +83,6 @@ affected_geoids <- lapply(config$interventions$settings,
 ```{r infer_params, eval=infer}
 npi_names<- names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="perturbation"))]) # names of periods with inference 
 npi_label <- NA
-if(is.na(npi_label)){
-    label <- tibble(npi_label = npi_names,
-                    npi_name = npi_names)
-} else {
-    label <- tibble(npi_label,
-                    npi_name = npi_names)
-}
 
 ```
 
