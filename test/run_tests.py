@@ -123,7 +123,7 @@ def test_inference():
     assert_dir("model_output/hosp")
     assert_dir("model_output/hpar")
     assert_dir("model_output/llik")
-    os.removedirs("model_output")
+    # os.removedirs("model_output")
 
 def test_inference_multiblock():
     os.chdir("test_inference_multiblock")
