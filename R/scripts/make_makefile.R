@@ -25,8 +25,11 @@ if(isTRUE(config$this_file_is_unedited)){
   ))
 }
 
-simulations = config$nsimulations
-scenarios = config$interventions$scenarios
+run_id <- covidcommon::run_id()
+
+simulations <- config$nsimulations
+scenarios <- config$interventions$scenarios
+config_name <- config$name
 hospitalization_method <- "error"
 if('hospitalization' %in% names(config)){
   deathrates = config$hospitalization$parameters$p_death_names
@@ -119,11 +122,19 @@ hospitalization_make_command <- function(simulation,scenario,deathrate, prefix =
   target_name <- hospitalization_target_name(simulation,scenario,deathrate, prefix = prefix)
   dependency_name <- simulation_target_name(simulation,scenario, prefix = prefix)
   if(method == 'age_adjusted'){
-    command_name <- paste("$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R -s",scenario,
-                            "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) -p $(PIPELINE) --id $(RUN_ID)")
+    command_name <- paste(
+      "$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R",
+      "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) -p $(PIPELINE) --in-id $(RUN_ID) --out-id $(RUN_ID)",
+      "--in-prefix",covidcommon::create_prefix(config_name,scenario,run_id,trailing_separator='/', sep='/'),
+      "--out-prefix",covidcommon::create_prefix(config_name,scenario,deathrate,run_id,trailing_separator='/', sep='/')
+    )
   } else if(method == 'branching_age_adjusted') {
-    command_name <- paste("$(PYTHON) $(PIPELINE)/Outcomes/simulate.py -s", scenario,
-                            "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) --id $(RUN_ID)")
+    command_name <- paste(
+      "$(PYTHON) $(PIPELINE)/Outcomes/simulate.py",
+      "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) --in-id $(RUN_ID) --out-id $(RUN_ID)",
+      "--in-prefix", covidcommon::create_prefix(config_name,scenario,run_id,trailing_separator='/', sep='/'),
+      "--out-prefix", covidcommon::create_prefix(config_name,scenario,deathrate,run_id,trailing_separator='/', sep='/')
+    )
   } else {
     stop(paste("method",method,"note recognized"))
   }
@@ -157,7 +168,7 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   if(using_static_filter){
     dependency_name <- paste(dependency_name, filter_target_name(simulation,prefix))
   }
-  command_name <- paste0("$(PYTHON) -m SEIR -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER) --id $(RUN_ID)")
+  command_name <- paste0("$(PYTHON) -m SEIR -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER) --in-id $(RUN_ID) --out-id $(RUN_ID)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files/directory_exists ",
@@ -225,7 +236,7 @@ cat(paste0("PYTHON=",opt$python,"\n"))
 cat(paste0("NCOREPER=",opt$ncoreper,"\n"))
 cat(paste0("PIPELINE=",opt$pipepath,"\n"))
 cat(paste0("CONFIG=",opt$config,"\n"))
-cat(paste0("RUN_ID=",covidcommon::run_id(),"\n\n"))
+cat(paste0("RUN_ID=",run_id,"\n\n"))
 
 # Generate first target
 # If generating report, first target is the html file.

@@ -96,35 +96,35 @@ library(stringr)
 option_list = list(
 
   #' @param -c The location of the config file
-  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
+  optparse::make_option(c("-c", "--config"), action = "store", default = Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type = 'character', help = "path to the config file"),
 
   #' @param -d The death rate
-  optparse::make_option(c("-d", "--deathrate"), action="store", default=Sys.getenv("COVID_DEATHRATES", 'all'), type='character', help="name of the death scenario to run, or 'all' to run all of them"),
-
-  #' @param -s The intervention scenario
-  optparse::make_option(c("-s", "--scenario"), action="store", default=Sys.getenv("COVID_SCENARIOS", 'all'), type='character', help="name of the intervention to run, or 'all' to run all of them"),
+  optparse::make_option(c("-d", "--deathrate"), action = "store", default = Sys.getenv("COVID_DEATHRATES", 'all'), type = 'character', help = "name of the death scenario to run, or 'all' to run all of them"),
 
   #' @param -j The number of tasks to run in parallel
-  optparse::make_option(c("-j", "--jobs"), action="store", default=Sys.getenv("COVID_NJOBS", detectCores()), type='numeric', help="number of cores used"),
+  optparse::make_option(c("-j", "--jobs"), action = "store", default = Sys.getenv("COVID_NJOBS", detectCores()), type = 'numeric', help = "number of cores used"),
 
   #' @param -p The path to COVIDScenarioPipeline
-  optparse::make_option(c("-p", "--path"), action="store", default=Sys.getenv("COVID_PATH", "COVIDScenarioPipeline"), type='character', help="path to the COVIDScenarioPipeline directory"),
+  optparse::make_option(c("-p", "--path"), action = "store", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline"), type = 'character', help = "path to the COVIDScenarioPipeline directory"),
 
   #' @param -i The index of the first simulation to run against
-  optparse::make_option(c("-i", "--index-from-sim"), action="store", default=Sys.getenv("COVID_INDEX", 1), type='numeric', help="The index of the first simulation to run against"),
+  optparse::make_option(c("-i", "--index-from-sim"), action = "store", default = Sys.getenv("COVID_INDEX", 1), type = 'numeric', help = "The index of the first simulation to run against"),
 
   #' @param -n The number of simulations to run
-  optparse::make_option(c("-n", "--num-sims"), action="store", default=Sys.getenv("COVID_NSIMULATIONS", -1), type='numeric', help="number of simulations to run"),
+  optparse::make_option(c("-n", "--num-sims"), action = "store", default = Sys.getenv("COVID_NSIMULATIONS", -1), type = 'numeric', help = "number of simulations to run"),
 
-  optparse::make_option(c("-g", "--geoid.params.file"), action="store", default=Sys.getenv("COVID_GEOID_PARAMS",""), type='character', help="number of simulations to run"),
-  optparse::make_option(c("--prefix"), action="store", default=Sys.getenv("COVID_PREFIX",""), type='character', help="text to use as part of filenames"),
-  optparse::make_option(c("--run_id"), action="store", default=Sys.getenv("COVID_RUN_ID",""), type='character', help="unique identifier for the run")
+  optparse::make_option(c("-g", "--geoid.params.file"), action = "store", default = Sys.getenv("COVID_GEOID_PARAMS",""), type = 'character', help = "number of simulations to run"),
+  optparse::make_option(c("--in-prefix"), action = "store", default = Sys.getenv("COVID_PREFIX",""), type = 'character', help = "text to use as part of filenames"),
+  optparse::make_option(c("--in-id"), action = "store", default = Sys.getenv("COVID_RUN_ID",covidcommon::run_id()), type = 'character', help = "unique identifier for the run"),
+  optparse::make_option(c("--out-prefix"), action = "store", default = Sys.getenv("COVID_PREFIX",""), type = 'character', help = "text to use as part of filenames"),
+  optparse::make_option(c("--out-id"), action = "store", default = Sys.getenv("COVID_RUN_ID",covidcommon::run_id()), type = 'character', help = "unique identifier for the run")
 )
-opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
+
+opt = optparse::parse_args(optparse::OptionParser(option_list = option_list))
 
 #' @description Run the hospitalization results.
 #' @importFrom covidcommon load_config
-config <- covidcommon::load_config(opt$c)
+config <- covidcommon::load_config(opt[['config']])
 if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
@@ -136,15 +136,21 @@ if(is.null(run_age_adjust)){
           Defaults to running legacy script")
   run_age_adjust <- FALSE
 } else {
-  geoid_params_file <- opt$geoid.params.file
+  geoid_params_file <- opt[['geoid.params.file']]
   if(geoid_params_file == ''){
     geoid_params_file <- config$hospitalization$paths$geoid_params_file
   }
   if(length(geoid_params_file) == 0 ){
-    geoid_params_file <- paste(opt$p,"sample_data","geoid-params.csv",sep='/')
+    geoid_params_file <- paste(opt[['path']],"sample_data","geoid-params.csv",sep = '/')
   }
   print(paste("param file is ",geoid_params_file))
 }
+
+print(names(opt))
+in_run_id <- opt[['in-id']]
+in_prefix <- opt[['in-prefix']]
+out_run_id <- opt[['out-id']]
+out_prefix <- opt[['out-prefix']]
 
 hosp_parameters = config$hospitalization$parameters
 
@@ -159,26 +165,18 @@ time_vent_pars <- as_evaled_expression(hosp_parameters$time_vent)
 p_death <- as_evaled_expression(hosp_parameters$p_death)
 names(p_death) = hosp_parameters$p_death_names
 
-cmd <- opt$d
-scenario <- opt$s
-ncore <- opt$j
-start_sim <- opt$i
-num_sims <- opt$n
+cmd <- opt[['deathrate']]
+ncore <- opt[['jobs']]
+start_sim <- opt[['index-from-sim']]
+num_sims <- opt[['num-sims']]
 
 # Verify that the cmd maps to a known p_death value
 if (cmd == "all") {
   cmd <- names(p_death) # Run all of the configured hospitalization scenarios
 } else if (is.na(p_death[cmd]) || is.null(p_death[cmd]) || p_death[cmd] == 0) {
   message(paste("Invalid cmd argument:", cmd, "did not match any of the named args in", paste( p_death, collapse = ", "), "\n"))
-  quit("yes", status=1)
+  quit("yes", status = 1)
 }
-if (scenario == "all" ) {
-  scenario <- config$interventions$scenarios
-} else if (!(scenario %in% config$interventions$scenarios)) {
-  message(paste("Invalid scenario argument:", scenario, "did not match any of the named args in", paste(config$interventions$scenario, collapse = ", ") , "\n"))
-  quit("yes", status=1)
-}
-
 
 ## Running age-adjusted script
 if(run_age_adjust){
@@ -206,33 +204,33 @@ if(run_age_adjust){
   p_hosp_inf <- as_evaled_expression(hosp_parameters$p_hosp_inf)
   time_ventdur_pars <- as_evaled_expression(hosp_parameters$time_ventdur)
   names(p_hosp_inf) = hosp_parameters$p_death_names
-  if (length(p_death)!=length(p_hosp_inf)) {
+  if (length(p_death) != length(p_hosp_inf)) {
     stop("Number of IFR and p_hosp_inf values do not match")
   }
 
-  for (scn0 in scenario) {
-    for (cmd0 in cmd) {
-      cat(paste("Running hospitalization scenario: ", cmd0, "with IFR", p_death[cmd0], "\n"))
-      res_npi3 <- build_hospdeath_geoid_fixedIFR_par(
-        prob_dat=prob_dat,
-        p_death= p_death[cmd0],
-        p_hosp_inf = p_hosp_inf[cmd0],
-        time_hosp_pars=time_hosp_pars,
-        time_onset_death_pars=time_onset_death_pars,
-        time_disch_pars=time_disch_pars,
-        time_ICU_pars = time_ICU_pars,
-        time_vent_pars = time_vent_pars,
-        time_ventdur_pars = time_ventdur_pars,
-        time_ICUdur_pars = time_ICUdur_pars,
-        cores = ncore,
-        dscenario_name = paste(cmd,"death",sep="_"),
-        use_parquet = TRUE,
-        start_sim = start_sim,
-        num_sims = num_sims,
-        run_id = opt$run_id,
-        prefix = opt$prefix
-      )
-    }
+  for (cmd0 in cmd) {
+    cat(paste("Running hospitalization scenario: ", cmd0, "with IFR", p_death[cmd0], "\n"))
+    res_npi3 <- build_hospdeath_geoid_fixedIFR_par(
+      prob_dat = prob_dat,
+      p_death = p_death[cmd0],
+      p_hosp_inf = p_hosp_inf[cmd0],
+      time_hosp_pars = time_hosp_pars,
+      time_onset_death_pars = time_onset_death_pars,
+      time_disch_pars = time_disch_pars,
+      time_ICU_pars = time_ICU_pars,
+      time_vent_pars = time_vent_pars,
+      time_ventdur_pars = time_ventdur_pars,
+      time_ICUdur_pars = time_ICUdur_pars,
+      cores = ncore,
+      dscenario_name = paste(cmd,"death",sep="_"),
+      use_parquet = TRUE,
+      start_sim = start_sim,
+      num_sims = num_sims,
+      in_run_id = in_run_id,
+      in_prefix = in_prefix,
+      out_run_id = out_run_id,
+      out_prefix = out_prefix
+    )
   }
 } else {
 
@@ -254,31 +252,31 @@ if(run_age_adjust){
     time_ventdur_pars <- as_evaled_expression(hosp_parameters$time_ventdur)
   }
   
-  for (scn0 in scenario) {
-    data_dir <- paste0("model_output/",config$name,"_",scn0)
-    cat(paste(data_dir, "\n"))
-    for (cmd0 in cmd) {
-      p_hosp <- p_death[cmd0]/p_death_rate
-      cat(paste("Running hospitalization scenario: ", cmd0, "with p_hosp", p_hosp, "\n"))
-      res_npi3 <- build_hospdeath_par(p_hosp = p_hosp,
-                                      p_death = p_death_rate,
-                                      p_vent = p_vent,
-                                      p_ICU = p_ICU,
-                                      time_hosp_pars=time_hosp_pars,
-                                      time_hosp_death_pars=time_hosp_death_pars,
-                                      time_disch_pars=time_disch_pars,
-                                      time_ICU_pars = time_ICU_pars,
-                                      time_vent_pars = time_vent_pars,
-                                      time_ICUdur_pars = time_ICUdur_pars,
-                                      time_ventdur_pars = time_ventdur_pars,
-                                      cores = ncore,
-                                      data_dir = data_dir,
-                                      dscenario_name = cmd0,
-                                      use_parquet = TRUE,
-                                      start_sim = start_sim,
-                                      num_sims = num_sims
-      )
-    }
+  for (cmd0 in cmd) {
+    p_hosp <- p_death[cmd0]/p_death_rate
+    cat(paste("Running hospitalization scenario: ", cmd0, "with p_hosp", p_hosp, "\n"))
+    res_npi3 <- build_hospdeath_par(
+      p_hosp = p_hosp,
+      p_death = p_death_rate,
+      p_vent = p_vent,
+      p_ICU = p_ICU,
+      time_hosp_pars = time_hosp_pars,
+      time_hosp_death_pars = time_hosp_death_pars,
+      time_disch_pars = time_disch_pars,
+      time_ICU_pars = time_ICU_pars,
+      time_vent_pars = time_vent_pars,
+      time_ICUdur_pars = time_ICUdur_pars,
+      time_ventdur_pars = time_ventdur_pars,
+      cores = ncore,
+      dscenario_name = cmd0,
+      use_parquet = TRUE,
+      start_sim = start_sim,
+      num_sims = num_sims,
+      in_run_id = in_run_id,
+      in_prefix = in_prefix,
+      out_run_id = out_run_id,
+      out_prefix = out_prefix
+    )
   }
 }
 

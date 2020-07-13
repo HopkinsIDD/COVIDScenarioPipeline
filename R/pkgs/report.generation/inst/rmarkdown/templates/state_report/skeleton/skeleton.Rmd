@@ -59,7 +59,7 @@ geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$sp
                              geoid_len=5)
 included_geoids <- (geodata %>% filter(USPS==reportStateUSPS))$geoid
 
-scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
+scn_dirs <- paste('model_output/hosp',config$name,config$interventions$scenarios,sep='/')
 
 ```
 

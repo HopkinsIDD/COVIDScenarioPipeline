@@ -8,29 +8,31 @@ import scipy
 import tqdm.contrib.concurrent
 
 from SEIR.utils import config
-import pyarrow.parquet as pq
+import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
 from SEIR import file_paths
 
 
-def run_delayframe_outcomes(config, run_id, prefix, setup_name, scenario_outcomes, nsim=1, index=1, n_jobs=1):
+def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, nsim = 1, n_jobs=1):
     start = time.monotonic()
-    sim_ids = np.arange(index, index + nsim)
+    in_sim_ids = np.arange(in_sim_id, in_sim_id + nsim)
+    out_sim_ids = np.arange(out_sim_id, out_sim_id + nsim)
 
-    parameters = read_parameters_from_config(config, run_id, prefix, setup_name, scenario_outcomes, sim_ids)
+    parameters = read_parameters_from_config(config, in_run_id, in_prefix, in_sim_ids, scenario_outcomes)
 
-    if n_jobs == 1:  # run single process for debugging/profiling purposes
-        for sim_id in tqdm.tqdm(sim_ids):
-            onerun_delayframe_outcomes(sim_id, sim_id, run_id, prefix, setup_name, parameters)
+    if (n_jobs == 1) or (nsim == 1):  # run single process for debugging/profiling purposes
+        for sim_offset in np.arange(nsim):
+            onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_ids[sim_offset], out_run_id, out_prefix, out_sim_ids[sim_offset], parameters)
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
-            sim_ids,
-            sim_ids,
-            itertools.repeat(run_id),
-            itertools.repeat(prefix),
-            itertools.repeat(setup_name),
+            itertools.repeat(in_run_id),
+            itertools.repeat(in_prefix),
+            in_sim_ids,
+            itertools.repeat(out_run_id),
+            itertools.repeat(out_prefix),
+            out_sim_ids,
             itertools.repeat(parameters),
             max_workers=n_jobs
         )
@@ -38,23 +40,25 @@ def run_delayframe_outcomes(config, run_id, prefix, setup_name, scenario_outcome
     print(f"""
 >> {nsim} outcomes simulations completed in {time.monotonic() - start:.1f} seconds
 """)
+    return 1
 
 
-def onerun_delayframe_outcomes_load_hpar(config, run_id, prefix, setup_name, scenario_outcomes, sim_id2write, sim_id2load):
-    parameters = read_parameters_from_config(config, run_id, prefix, setup_name, scenario_outcomes, [sim_id2load])
+def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes):
+    parameters = read_parameters_from_config(config, in_run_id, in_prefix, [in_sim_id], scenario_outcomes)
 
-    loaded_values = pq.read_table(file_paths.create_file_name(
-        run_id,
-        prefix,
-        sim_id2load,
+    loaded_values = pyarrow.parquet.read_table(file_paths.create_file_name(
+        in_run_id,
+        in_prefix,
+        in_sim_id,
         'hpar',
         'parquet'
     )).to_pandas()
 
-    onerun_delayframe_outcomes(sim_id2write, sim_id2load, run_id, prefix, setup_name, parameters, loaded_values)
+    onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values)
+    return 1
 
 
-def read_parameters_from_config(config, run_id, prefix, setup_name, scenario_outcomes, sim_ids):
+def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcomes):
     # Prepare the probability table:
     # Either mean of probabilities given or from the file... This speeds up a bit the process.
     # However needs an ordered dict, here we're abusing a bit the spec.
@@ -63,7 +67,7 @@ def read_parameters_from_config(config, run_id, prefix, setup_name, scenario_out
         # load a file from the seir model, to know how to filter the provided csv file
         diffI = pd.read_parquet(file_paths.create_file_name(
             run_id,
-            setup_name,
+            prefix,
             sim_ids[0],
             'seir',
             'parquet'
@@ -74,14 +78,13 @@ def read_parameters_from_config(config, run_id, prefix, setup_name, scenario_out
 
         # Load the actual csv file
         branching_file = config["outcomes"]["param_place_file"].as_str()
-        branching_data = pa.parquet.read_table(branching_file, ).to_pandas()
+        branching_data = pa.parquet.read_table(branching_file).to_pandas()
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
         branching_data["colname"] = "R" + branching_data["outcome"] + "|" + branching_data["source"]
         branching_data = branching_data[["geoid", "colname", "value"]]
         branching_data = pd.pivot(branching_data, index="geoid", columns="colname", values="value")
-        if branching_data.shape[0] != diffI.drop('time', axis=1).columns.shape[0]:
-            raise ValueError(
-                f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
+        if (branching_data.shape[0] != diffI.drop('time', axis=1).columns.shape[0]):
+            raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
 
     parameters = {}
     for new_comp in config_outcomes:
@@ -89,9 +92,7 @@ def read_parameters_from_config(config, run_id, prefix, setup_name, scenario_out
         if config_outcomes[new_comp]['source'].exists():
             # Read the config for this compartment
             parameters[new_comp]['source'] = config_outcomes[new_comp]['source'].as_str()
-            parameters[new_comp]['probability'] = config_outcomes[new_comp]['probability'][
-                'value']
-
+            parameters[new_comp]['probability'] = config_outcomes[new_comp]['probability']['value']
             parameters[new_comp]['delay'] = config_outcomes[new_comp]['delay']['value']
 
             if config_outcomes[new_comp]['duration'].exists():
@@ -117,23 +118,22 @@ def read_parameters_from_config(config, run_id, prefix, setup_name, scenario_out
     return parameters
 
 
-def onerun_delayframe_outcomes(sim_id2write, sim_id2load, run_id, prefix, setup_name, parameters, loaded_values=None):
+def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values=None):
 
     # Read files
-    diffI, places, dates = read_seir_sim(run_id, setup_name, sim_id2load)
-
+    diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
     # Compute outcomes
     outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values)
 
     # Write output
-    write_outcome_sim(outcomes, run_id, prefix, sim_id2write)
-    write_outcome_hpar(hpar, run_id, prefix, sim_id2write)
+    write_outcome_sim(outcomes, out_run_id, out_prefix, out_sim_id)
+    write_outcome_hpar(hpar, out_run_id, out_prefix, out_sim_id)
 
 
-def read_seir_sim(run_id, setup_name, sim_id):
+def read_seir_sim(run_id, prefix, sim_id):
     diffI = pd.read_parquet(file_paths.create_file_name(
         run_id,
-        setup_name,
+        prefix,
         sim_id,
         'seir',
         'parquet'
@@ -173,7 +173,6 @@ def write_outcome_hpar(hpar, run_id, prefix, sim_id):
 
 
 def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values=None):
-    scipy.random.seed()
 
     all_data = {}
     # We store them as numpy matrices. Dimensions is dates X places

@@ -39,7 +39,8 @@ library(purrr)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
-  optparse::make_option(c("-a", "--alternative-data"), action="store", default=NULL, type='character', help="path to an alternative data source.  That file should have columns : place,date,cases, where cases is the cumulative number of cases in that place/up to that time")
+  optparse::make_option(c("-a", "--alternative-data"), action="store", default=NULL, type='character', help="path to an alternative data source.  That file should have columns : place,date,cases, where cases is the cumulative number of cases in that place/up to that time"),
+  optparse::make_option(c("-u","--run_id"), action="store", type='character', help="Unique identifier for this run", default = Sys.getenv("COVID_RUN_INDEX",covidcommon::run_id()))
 )
 
 opts = optparse::parse_args(optparse::OptionParser(option_list=option_list))
