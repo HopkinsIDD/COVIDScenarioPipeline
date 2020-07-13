@@ -11,7 +11,7 @@ output:
     toc_float: true
 bibliography: ReportReferences.bib
 params:
-  config_file: "config_inference_ca_counties_high_report.yml"
+  config_file: "config.yml"
   runs_folder: "runs_sample" # folder with model output (i.e. with subdirs: hosp, snpi, spar) 
   continue_on_error: yes
   pdeath_default: 0.01
@@ -29,7 +29,7 @@ Updated `r Sys.Date()`
 ```{r setup, include=F}
 
 ## Block with general knitr options, libray load, etc. Nothing specific to the project.
-knitr::opts_knit$set(root.dir = "/Users/juandenthulse/Documents/GitHub/COVID19_California", ##Assumes we are in a subdirectory of notebooks
+knitr::opts_knit$set(root.dir = "../..", ##Assumes we are in a subdirectory of notebooks
                      val.after = 'fig.cap') ##Allows us to set a variable to figure caption in the block
 knitr::opts_chunk$set(
     echo = FALSE,
