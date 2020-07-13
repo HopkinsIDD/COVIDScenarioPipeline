@@ -58,10 +58,12 @@ suppressMessages(geodata <- report.generation::load_geodata_file(
     config$spatial_setup$base_path,
     config$spatial_setup$geodata, sep = "/"
   ),
-  geoid_len=5 #Is this hardcode a good idea.
+  geoid_len = ifelse(is.null(config$spatial_setup$geoid_len), 5, config$spatial_setup$geoid_len) # added a default and option to specify
 ))
 obs_nodename <- config$spatial_setup$nodenames
-
+us_model <- config$spatial_setup$us_model==TRUE || is.null(config$spatial_setup$us_model) # check if it's a US model or non-US model
+    
+    
 ##Load simulations per slot from config if not defined on command line
 ##command options take precendence
 if(is.na(opt$simulations_per_slot)){
@@ -113,7 +115,7 @@ if("priors"%in%names(config$filtering)) {
 
 ## Runner Script---------------------------------------------------------------------
 
-obs <- inference::get_ground_truth(data_path,geodata[[obs_nodename]],obs_nodename, config$start_date, config$end_date)
+obs <- inference::get_ground_truth(data_path,geodata[[obs_nodename]],obs_nodename, config$start_date, config$end_date, use_USAfacts=us_model)
 
 geonames <- unique(obs[[obs_nodename]])
 

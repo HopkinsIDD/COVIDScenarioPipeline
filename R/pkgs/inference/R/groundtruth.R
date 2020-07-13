@@ -42,6 +42,7 @@ get_ground_truth_file <- function(data_path, cache = TRUE) {
   return()
 }
 
+
 #' Function to load US COVID data from USAfacts
 #' @param data_path Path where to write the data
 #'
