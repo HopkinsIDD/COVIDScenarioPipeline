@@ -43,8 +43,9 @@ importation:
     delta: 1
 
 seeding:
- method: FolderDraw
- folder_path: importation/test_report/
+  method: FolderDraw
+  folder_path: importation/test_report/
+  seeding_file_type: seed
 
 seir:
   parameters:
