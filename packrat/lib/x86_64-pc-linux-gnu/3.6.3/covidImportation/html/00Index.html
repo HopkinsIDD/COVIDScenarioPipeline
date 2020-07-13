@@ -1,0 +1,124 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>R: Estimating the Number of Imported COVID-19 Cases</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+<h1> Estimating the Number of Imported COVID-19 Cases
+<img class="toplogo" src="../../../doc/html/Rlogo.svg" alt="[R logo]" />
+</h1>
+<hr/>
+<div style="text-align: center;">
+<a href="../../../doc/html/packages.html"><img class="arrow" src="../../../doc/html/left.jpg" alt="[Up]" /></a>
+<a href="../../../doc/html/index.html"><img class="arrow" src="../../../doc/html/up.jpg" alt="[Top]" /></a>
+</div><h2>Documentation for package &lsquo;covidImportation&rsquo; version 1.5</h2>
+
+<ul><li><a href="../DESCRIPTION">DESCRIPTION file</a>.</li>
+</ul>
+
+<h2>Help Pages</h2>
+
+
+<table width="100%">
+<tr><td style="width: 25%;"><a href="airport_attribution.html">airport_attribution</a></td>
+<td>Airport attribution data for China</td></tr>
+<tr><td style="width: 25%;"><a href="airport_data.html">airport_data</a></td>
+<td>Airport data</td></tr>
+<tr><td style="width: 25%;"><a href="apply_travel_restrictions.html">apply_travel_restrictions</a></td>
+<td>Apply a set of travel restrictions to the travel data, reducing or increasing to a proportion of the average travel.</td></tr>
+<tr><td style="width: 25%;"><a href="calc_nb_import_pars.html">calc_nb_import_pars</a></td>
+<td>Get negative binomial estimates for each time and destination</td></tr>
+<tr><td style="width: 25%;"><a href="correct_for_Hubei_reporting.html">correct_for_Hubei_reporting</a></td>
+<td>Function to correct for the changes in reporting in Hubei</td></tr>
+<tr><td style="width: 25%;"><a href="distrib_county_imports.html">distrib_county_imports</a></td>
+<td>distrib_county_imports</td></tr>
+<tr><td style="width: 25%;"><a href="do_airport_attribution.html">do_airport_attribution</a></td>
+<td>do_airport_attribution</td></tr>
+<tr><td style="width: 25%;"><a href="est_daily_incidence.html">est_daily_incidence</a></td>
+<td>Function to extract approximate epidemic curves from the cumulative case data.</td></tr>
+<tr><td style="width: 25%;"><a href="est_daily_incidence_corrected.html">est_daily_incidence_corrected</a></td>
+<td>Wrapper function to correct for the changes in reporting in Hubei and merge with data for all incidence</td></tr>
+<tr><td style="width: 25%;"><a href="est_imports_base.html">est_imports_base</a></td>
+<td>Estimate imports base</td></tr>
+<tr><td style="width: 25%;"><a href="est_import_detect_dates.html">est_import_detect_dates</a></td>
+<td>Estimate the detection dates of importations</td></tr>
+<tr><td style="width: 25%;"><a href="expand_travel_restrict.html">expand_travel_restrict</a></td>
+<td>Expand the travel restrictions to include every date, to allow for merging with travel data.</td></tr>
+<tr><td style="width: 25%;"><a href="find_recent_file.html">find_recent_file</a></td>
+<td>find_recent_file</td></tr>
+<tr><td style="width: 25%;"><a href="fit_ispline.html">fit_ispline</a></td>
+<td>Function to fit monotonically increasing spline. Returns a function that can be used to predict the spline for each date.</td></tr>
+<tr><td style="width: 25%;"><a href="get_airports_to_consider.html">get_airports_to_consider</a></td>
+<td>get_airports_to_consider</td></tr>
+<tr><td style="width: 25%;"><a href="get_airport_city.html">get_airport_city</a></td>
+<td>Get airport city</td></tr>
+<tr><td style="width: 25%;"><a href="get_airport_country.html">get_airport_country</a></td>
+<td>Get airport country</td></tr>
+<tr><td style="width: 25%;"><a href="get_airport_state.html">get_airport_state</a></td>
+<td>Get airport state</td></tr>
+<tr><td style="width: 25%;"><a href="get_CA_metro_labels.html">get_CA_metro_labels</a></td>
+<td>Get Metro Areas for CA</td></tr>
+<tr><td style="width: 25%;"><a href="get_clean_JHUCSSE_data.html">get_clean_JHUCSSE_data</a></td>
+<td>Clean crude data from JHUCSSE and aggregated it to state or county level</td></tr>
+<tr><td style="width: 25%;"><a href="get_clean_JHUCSSE_deaths.html">get_clean_JHUCSSE_deaths</a></td>
+<td>Clean crude data from JHUCSSE and aggregated it to state or county level</td></tr>
+<tr><td style="width: 25%;"><a href="get_county_pops.html">get_county_pops</a></td>
+<td>get_county_pops</td></tr>
+<tr><td style="width: 25%;"><a href="get_global_cum.html">get_global_cum</a></td>
+<td>Get cumulative case counts by Province_state</td></tr>
+<tr><td style="width: 25%;"><a href="get_incidence_data.html">get_incidence_data</a></td>
+<td>Get incidence data from JHUCSSE</td></tr>
+<tr><td style="width: 25%;"><a href="get_incidence_fits.html">get_incidence_fits</a></td>
+<td>Get incidence data from JHUCSSE</td></tr>
+<tr><td style="width: 25%;"><a href="get_JHUCSSE_data.html">get_JHUCSSE_data</a></td>
+<td>Pull JHU CSSE GitHub data</td></tr>
+<tr><td style="width: 25%;"><a href="get_JHUCSSE_deaths.html">get_JHUCSSE_deaths</a></td>
+<td>Pull JHU CSSE GitHub data</td></tr>
+<tr><td style="width: 25%;"><a href="get_mean_imports.html">get_mean_imports</a></td>
+<td>Get mean importations across geoids</td></tr>
+<tr><td style="width: 25%;"><a href="get_oag_travel.html">get_oag_travel</a></td>
+<td>Get OAG travel data</td></tr>
+<tr><td style="width: 25%;"><a href="get_oag_travel_fulldata.html">get_oag_travel_fulldata</a></td>
+<td>Get OAG travel data</td></tr>
+<tr><td style="width: 25%;"><a href="imports_airport_clustering.html">imports_airport_clustering</a></td>
+<td>imports_airport_clustering</td></tr>
+<tr><td style="width: 25%;"><a href="make_daily_travel.html">make_daily_travel</a></td>
+<td>Create Daily Travel</td></tr>
+<tr><td style="width: 25%;"><a href="make_daily_travel_faster.html">make_daily_travel_faster</a></td>
+<td>Convert monthly travel to daily travel data - fast - When we have already built the daily data, we reuse that and just fill in the new daily volume each time</td></tr>
+<tr><td style="width: 25%;"><a href="make_input_data.html">make_input_data</a></td>
+<td>Make input data</td></tr>
+<tr><td style="width: 25%;"><a href="make_meanD.html">make_meanD</a></td>
+<td>Make MeanD Matrix</td></tr>
+<tr><td style="width: 25%;"><a href="plot_imports_stackeddest.html">plot_imports_stackeddest</a></td>
+<td>Barchart plot of importations stacked by source</td></tr>
+<tr><td style="width: 25%;"><a href="plot_incidence_ests_report.html">plot_incidence_ests_report</a></td>
+<td>Function to plot the estimated and reported case counts</td></tr>
+<tr><td style="width: 25%;"><a href="plot_rep_cases.html">plot_rep_cases</a></td>
+<td>Facet plot of cumulative and incident cases at locations desired</td></tr>
+<tr><td style="width: 25%;"><a href="pop_data.html">pop_data</a></td>
+<td>Population data</td></tr>
+<tr><td style="width: 25%;"><a href="pull_JHUCSSE_github_data.html">pull_JHUCSSE_github_data</a></td>
+<td>Pull JHU CSSE GitHub data</td></tr>
+<tr><td style="width: 25%;"><a href="read_JHUCSSE_cases.html">read_JHUCSSE_cases</a></td>
+<td>Reads in the JHUCSSE total case count data up until (and including) a given dat.</td></tr>
+<tr><td style="width: 25%;"><a href="run_daily_import_model.html">run_daily_import_model</a></td>
+<td>Run the full simulation of daily importations</td></tr>
+<tr><td style="width: 25%;"><a href="run_daily_import_model_par.html">run_daily_import_model_par</a></td>
+<td>Run the full simulation of daily importations</td></tr>
+<tr><td style="width: 25%;"><a href="run_full_distrib_imports.html">run_full_distrib_imports</a></td>
+<td>run_distrib_imports</td></tr>
+<tr><td style="width: 25%;"><a href="run_importations.html">run_importations</a></td>
+<td>Run importation sims</td></tr>
+<tr><td style="width: 25%;"><a href="setup_and_run_importations.html">setup_and_run_importations</a></td>
+<td>Set up and run importation sims</td></tr>
+<tr><td style="width: 25%;"><a href="setup_importations.html">setup_importations</a></td>
+<td>Set up importation sims</td></tr>
+<tr><td style="width: 25%;"><a href="travel_restrictions.html">travel_restrictions</a></td>
+<td>Travel restrictions data</td></tr>
+<tr><td style="width: 25%;"><a href="underreporting.html">underreporting</a></td>
+<td>Underreporting data</td></tr>
+<tr><td style="width: 25%;"><a href="update_JHUCSSE_github_data.html">update_JHUCSSE_github_data</a></td>
+<td>Pull JHU CSSE GitHub data</td></tr>
+</table>
+</body></html>
