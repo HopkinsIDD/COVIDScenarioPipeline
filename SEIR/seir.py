@@ -77,29 +77,29 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         if s.write_csv:
             npi.writeReductions(
-                file_paths.create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "snpi"),
+                file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "snpi"),
                 "csv"
             )
             setup.parameters_write(
                 p_draw,
-                file_paths.create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "spar"),
+                file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "spar"),
                 "csv"
             )
 
             out_df.to_csv(
-                file_paths.create_file_name(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "seir","csv"),
+                file_paths.create_file_name(s.out_run_id,s.prefix,sim_id + s.out_first_sim_index - 1, "seir","csv"),
                 index='time',
                 index_label='time')
 
         if s.write_parquet:
             npi.writeReductions(
-                file_paths.create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "snpi"),
+                file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "snpi"),
                 "parquet"
             )
 
             setup.parameters_write(
                 p_draw,
-                file_paths.create_file_name_without_extension(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "spar"),
+                file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "spar"),
                 "parquet"
             )
 
@@ -107,7 +107,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
             pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
             pa.parquet.write_table(
               pa_df,
-              file_paths.create_file_name(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, "seir","parquet")
+              file_paths.create_file_name(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "seir","parquet")
             )
     
     return out_df
@@ -130,8 +130,8 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
         geoids=s.spatset.nodenames,
         loaded_df = setup.npi_load(
             file_paths.create_file_name_without_extension(
-                s.run_id,
-                s.prefix,
+                s.in_run_id, # Not sure about this one
+                s.in_prefix, # Not sure about this one
                 sim_id2load + s.first_sim_index - 1,
                 "snpi"
             ),
@@ -147,8 +147,8 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
     
     p_draw = setup.parameters_load(
         file_paths.create_file_name_without_extension(
-            s.run_id,
-            s.prefix,
+            s.in_run_id, # Not sure about this one
+            s.in_prefix, # Not sure about this one
             sim_id2load + s.first_sim_index - 1,
             "spar"
         ),

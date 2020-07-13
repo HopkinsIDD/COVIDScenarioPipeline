@@ -94,9 +94,11 @@ s = setup.Setup(
     write_csv=write_csv,
     write_parquet=write_parquet,
     dt=config["dt"].as_number(),
-    first_sim_index=index,
-    run_id=run_id,
-    prefix=prefix
+    first_sim_index = index,
+    in_run_id = run_id,
+    in_prefix = prefix,
+    out_run_id = run_id,
+    out_prefix = prefix
 )
 
 print(f"""
@@ -108,13 +110,13 @@ print(f"""
 
 setup_name = s.setup_name
 
-
-
-onerun_OUTCOMES = lambda sim_id2write, sim_id2load: outcomes.onerun_delayframe_outcomes_load_hpar(config, run_id,
-                                                                                                  prefix, s.setup_name,
-                                                                                                  deathrate,
-                                                                                                  sim_id2write,
-                                                                                                  sim_id2load)
-onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s,
-                                                                                  int(sim_id2load))
+onerun_OUTCOMES_loadID = lambda index: outcomes.onerun_delayframe_outcomes_load_hpar(config,
+                                                                                     run_id, prefix, int(index), # input
+                                                                                     run_id, prefix, int(index), # output
+                                                                                     deathrate)
+onerun_OUTCOMES = lambda index: outcomes.run_delayframe_outcomes(config,
+                                                                 run_id, prefix, int(index), # input
+                                                                 run_id, prefix, int(index), # output
+                                                                 deathrate, nsim=1, n_jobs=1)
+onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load))
 onerun_SEIR = lambda sim_id2write, s: seir.onerun_SEIR(int(sim_id2write), s)

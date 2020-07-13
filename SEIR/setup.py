@@ -93,8 +93,10 @@ class Setup:
                  dt=1 / 6, # step size, in days
                  nbetas=None, # # of betas, which are rates of infection
                  first_sim_index = 1,
-                 run_id = None,
-                 prefix = None
+                 in_run_id = None,
+                 in_prefix = None,
+                 out_run_id = None,
+                 out_prefix = None
     ):
         self.setup_name = setup_name
         self.nsim = nsim
@@ -111,13 +113,20 @@ class Setup:
         self.write_parquet = write_parquet
         self.first_sim_index = first_sim_index
 
-        if run_id is None:
-            run_id = file_paths.run_id()
-        self.run_id = run_id
+        if in_run_id is None:
+            in_run_id = file_paths.run_id()
+        self.in_run_id = in_run_id
 
-        if prefix is None:
-            prefix = f'model_output/{setup_name}-{npi_scenario}-{run_id}/'
-        self.prefix = prefix
+        if out_run_id is None:
+            out_run_id = file_paths.run_id()
+        self.out_run_id = out_run_id
+
+        if in_prefix is None:
+            in_prefix = f'model_output/{setup_name}/{in_run_id}/'
+        self.in_prefix = in_prefix
+        if out_prefix is None:
+            out_prefix = f'model_output/{setup_name}/{npi_scenario}/{out_run_id}/'
+        self.out_prefix = out_prefix
 
         if nbetas is None:
             nbetas = nsim
@@ -130,11 +139,11 @@ class Setup:
 
         if (self.write_csv or self.write_parquet):
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-            self.datadir = file_paths.create_dir_name(self.run_id,self.prefix,'seir')
+            self.datadir = file_paths.create_dir_name(self.out_run_id,self.out_prefix,'seir')
             os.makedirs(self.datadir, exist_ok=True)
-            self.paramdir = file_paths.create_dir_name(self.run_id,self.prefix,'spar')
+            self.paramdir = file_paths.create_dir_name(self.out_run_id,self.out_prefix,'spar')
             os.makedirs(self.paramdir, exist_ok=True)
-            self.npidir = file_paths.create_dir_name(self.run_id,self.prefix,'snpi')
+            self.npidir = file_paths.create_dir_name(self.out_run_id,self.out_prefix,'snpi')
             os.makedirs(self.npidir, exist_ok=True)
 
     def build_setup(self):
@@ -193,7 +202,7 @@ def seeding_draw(s, sim_id):
     elif (method == 'FolderDraw'):
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         seeding = pd.read_csv(
-            file_paths.create_file_name(s.run_id,s.prefix,sim_id + s.first_sim_index - 1, s.seeding_config["seeding_file_type"],"csv"),
+            file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id + s.first_sim_index - 1, s.seeding_config["seeding_file_type"],"csv"),
             converters={'place': lambda x: str(x)},
             parse_dates=['date']
         )
@@ -238,7 +247,7 @@ def seeding_load(s, sim_id):
     if (method == 'FolderDraw'):
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         seeding = pd.read_csv(
-            file_paths.create_file_name(s.run_id,s.prefix,sim_id+s.first_sim_index - 1, s.seeding_config["seeding_file_type"],"csv"),
+            file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id+s.first_sim_index - 1, s.seeding_config["seeding_file_type"],"csv"),
             converters={'place': lambda x: str(x)},
             parse_dates=['date']
         )

@@ -163,6 +163,9 @@ hosp_load_scenario_sim <- function(
 
     extension <- ifelse(use_parquet,'parquet','csv')
     file <- covidcommon::create_file_name(run_id=run_id,prefix=prefix,index=sim_id,type='seir',extension=extension)
+    if(!file.exists(file)){
+      stop(sprintf("File %s expected, but does not exist",file))
+    }
     if(use_parquet){
       tmp <- arrow::read_parquet(file)
       if("POSIXct" %in% class(tmp$time)){
@@ -207,7 +210,6 @@ write_hosp_output <- function(res,run_id,prefix,index,use_parquet){
 ##' @param p_death probability of death, among infections (hospitalization is required for death)
 ##' @param p_ICU probability of needing the ICU among hospitalized patients
 ##' @param p_vent probability of needing a ventilator among ICU patients
-##' @param data_dir Path to the directory that contains the CSV output of the simulation model
 ##' @param dscenario_name The name of the death scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_ICU_pars parameters for time from hospitalization to ICU
@@ -225,7 +227,6 @@ build_hospdeath_par <- function(
   p_death,
   p_ICU,
   p_vent,
-  data_dir,
   dscenario_name,
   time_hosp_pars = c(1.23, 0.79),
   time_ICU_pars = c(log(10.5), log((10.5-7)/1.35)),
@@ -235,17 +236,19 @@ build_hospdeath_par <- function(
   time_ICUdur_pars = c(log(17.46), log(4.044)),
   time_ventdur_pars = log(17),
   cores=8,
-  root_out_dir='hospitalization',
   use_parquet = FALSE,
   start_sim = 1,
   num_sims = -1,
-  run_id = covidcommon::run_id(),
-  prefix = covidcommon::create_prefix(dscenario_name,run_id,trailing_sep='/') # Don't love this
+  in_run_id = covidcommon::run_id(), # Not a sensible default
+  in_prefix = covidcommon::create_prefix(dscenario_name,in_run_id,trailing_separator='/'), # Not a sensible default
+  out_run_id = covidcommon::run_id(),
+  out_prefix = covidcommon::create_prefix(dscenario_name,out_run_id,trailing_separator='/')
 ) {
 
   if(num_sims < 0){
-    num_sims <- covidcommon::count_files_of_type(run_id,prefix,'hosp',ifelse(use_parquet,'parquet','csv'))
+    num_sims <- covidcommon::count_files_of_type(in_run_id,in_prefix,'seir',ifelse(use_parquet,'parquet','csv'))
   }
+
   print(paste("Creating cluster with",cores,"cores"))
   doParallel::registerDoParallel(cores)
 
@@ -257,11 +260,12 @@ build_hospdeath_par <- function(
 
   pkgs <- c("dplyr", "readr", "data.table", "tidyr", "hospitalization")
   library(foreach)
-  foreach::foreach(s=seq_len(num_sims), .packages=pkgs) %dopar% {
+  # foreach::foreach(s=seq_len(num_sims), .packages=pkgs) %dopar% {
+  for(s in seq_len(num_sims)) {
     sim_id <- start_sim + s - 1
     dat_ <- hosp_load_scenario_sim(
-      run_id = run_id,
-      prefix = prefix,
+      run_id = in_run_id,
+      prefix = in_prefix,
       sim_id = sim_id,
       keep_compartments = "diffI",
       geoid_len = 5,
@@ -320,7 +324,7 @@ build_hospdeath_par <- function(
              icu_curr = 0,
              hosp_curr = 0)) %>%
       arrange(date_inds, geo_ind)
-    write_hosp_output(res=res,run_id=run_id,prefix=prefix,index=sim_id,use_parquet=use_parquet)
+    write_hosp_output(res=res,run_id=out_run_id,prefix=out_prefix,index=sim_id,use_parquet=use_parquet)
     NULL
   }
   doParallel::stopImplicitCluster()
@@ -334,7 +338,6 @@ build_hospdeath_par <- function(
 ##' @param prob_dat df of p_hosp, p_death, p_ICU, p_vent, GEOID
 ##' @param p_death probability of death, among infections (user-defined)
 ##' @param p_hosp_inf probability of hospitalization among infections (user-defined)
-##' @param data_dir Path to the directory that contains the CSV output of the simulation model
 ##' @param dscenario_name The name of the scenario we are analyzing here (e.g., "highdeath", "meddeath", etc.)
 ##' @param time_hosp_pars parameters for time from onset to hospitalization distribution
 ##' @param time_ICU_pars parameters for time from hospitalization to ICU
@@ -364,11 +367,13 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   use_parquet = FALSE,
   start_sim = 1,
   num_sims = -1,
-  run_id = covidcommon::run_id(),
-  prefix = covidcommon::create_prefix(dscenario_name,run_id,trailing_sep='/') # Don't love this
+  in_run_id = covidcommon::run_id(), # This isn't a sensible default
+  in_prefix = covidcommon::create_prefix(dscenario_name,run_id,trailing_separator ='/'), # This isn't a sensible default
+  out_run_id = covidcommon::run_id(),
+  out_prefix = covidcommon::create_prefix(dscenario_name,run_id,trailing_separator ='/')
 ) {
   if(num_sims < 0){
-    num_sims <- covidcommon::count_files_of_type(run_id,prefix,'hosp',ifelse(use_parquet,'parquet','csv'))
+    num_sims <- covidcommon::count_files_of_type(in_run_id,in_prefix,'seir',ifelse(use_parquet,'parquet','csv'))
   }
 
   print(paste("Creating cluster with",cores,"cores"))
@@ -389,8 +394,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   for(s in seq_len(num_sims)){
     sim_id <- start_sim + s - 1
     dat_I <- hosp_load_scenario_sim(
-      run_id = run_id,
-      prefix = prefix,
+      run_id = in_run_id,
+      prefix = in_prefix,
       sim_id = sim_id,
       keep_compartments = "diffI",
       geoid_len=5,
@@ -502,7 +507,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
       ) %>%
       arrange(date_inds, geo_ind)
 
-    write_hosp_output(res=res,run_id=run_id,prefix=prefix,index=sim_id,use_parquet=use_parquet)
+    write_hosp_output(res=res,run_id=out_run_id,prefix=out_prefix,index=sim_id,use_parquet=use_parquet)
     NULL
   }
   doParallel::stopImplicitCluster()
