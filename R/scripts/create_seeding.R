@@ -1,6 +1,6 @@
 ##
 # @file
-# @brief Creates a filter file
+# @brief Creates a seeding file
 #
 # @details
 #
@@ -19,6 +19,7 @@
 #
 # seeding:
 #   lambda_file: <path to file>
+
 # ```
 #
 # ## Input Data
@@ -34,7 +35,7 @@
 
 ## @cond
 
-library(covidcommon)
+library(covidcommon)					
 library(magrittr)
 library(dplyr)
 library(readr)
@@ -42,46 +43,102 @@ library(tidyr)
 library(purrr)
 
 option_list = list(
-  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file")
+  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
+  optparse::make_option(c("-d", "--data"), action="store", default=file.path("data","case_data","case_data.csv"), type='character', help="path to the case data file"),
+  optparse::make_option(c("-i", "--incid_x"), action="store", default=10, type='integer', help="incidence multiplier for reported cases")
 )
 
 opts = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
-config <- covidcommon::load_config(opts$c)
+print(paste0("Using config file: ", opts$config))
+config <- covidcommon::load_config(opts$config)
 if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
-cases_deaths <- covidcommon::get_USAFacts_data()
 
-print("Successfully pulled USAFacts data for seeding.")
+# Check if US model
+incid_x <- opts$incid_x
+us_model <- config$spatial_setup$us_model==TRUE || is.null(config$spatial_setup$us_model) 
 
-all_times <- lubridate::ymd(config$start_date) +
-  seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
 
-geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),5,'0',TRUE)
+# Get the data
 
-all_geoids <- geodata[[config$spatial_setup$nodenames]]
 
-incident_cases <- cases_deaths %>%
-  dplyr::filter(FIPS %in% all_geoids) %>%
-  dplyr::select(Update, FIPS, incidI)
+# get data if a US model  ---------------------------------
 
-incident_cases$Update <- as.Date(incident_cases$Update)
-
-incident_cases <- incident_cases %>%
-  group_by(FIPS) %>%
-  group_modify(function(.x,.y){
-    .x %>%
-      arrange(Update) %>%
-      filter(incidI > 0) %>%
-      .[seq_len(min(nrow(.x),5)),] %>%
-      mutate(
-        Update = Update - lubridate::days(5),
-        incidI = 10 * incidI + .05
-      )
+if (us_model){
+  
+  cases_deaths <- covidcommon::get_USAFacts_data()
+  
+  print("Successfully pulled USAFacts data for seeding.")																				   
+  all_times <- lubridate::ymd(config$start_date) +
+    seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
+  
+  
+  geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),5,'0',TRUE)
+  
+  all_geoids <- geodata[[config$spatial_setup$nodenames]]
+  
+  incident_cases <- cases_deaths %>%
+    dplyr::filter(FIPS %in% all_geoids) %>%
+    dplyr::select(Update, FIPS, incidI)
+  
+  incident_cases$Update <- as.Date(incident_cases$Update)
+  
+  incident_cases <- incident_cases %>%
+    group_by(FIPS) %>%
+    group_modify(function(.x,.y){
+      .x %>%
+        arrange(Update) %>%
+        filter(incidI > 0) %>%
+        .[seq_len(min(nrow(.x),5)),] %>%
+        mutate(
+          Update = Update - lubridate::days(5),
+          incidI = incid_x * incidI + .05
+        )
       
-  })
+    })
+  
+  
+  # from file ---------------------------------
+  
+} else {
+  
+  print(paste0("Using case data from ", opts$data, "for seeding ", config$spatial_setup$setup_name))
+  
+  case_data <- readr::read_csv(opts$data)
+  if (!exists("case_data") || is.null(case_data)){
+    stop(paste0("ERROR: ", opts$data, "does not exist!"))
+  }
+  
+  geodata <- report.generation::load_geodata_file(filename = file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
+                                                  geoid_len = config$spatial_setup$geoid_len, geoid_pad = '0', to_lower = TRUE)
+  
+  all_geoids <- geodata[[config$spatial_setup$nodenames]]
+  
+  incident_cases <- case_data %>%
+    dplyr::filter(geoid %in% all_geoids) %>%
+    dplyr::select(date, geoid, incidI)
+  
+  incident_cases$date <- as.Date(incident_cases$date)
+  
+  incident_cases <- incident_cases %>%
+    dplyr::group_by(geoid) %>%
+    dplyr::group_modify(function(.x,.y){
+      .x %>%
+        dplyr::arrange(date) %>%
+        dplyr::filter(incidI > 0) %>%
+        .[seq_len(min(nrow(.x),5)),] %>%
+        dplyr::mutate(
+          date = date - lubridate::days(5),
+          incidI = incid_x * incidI + .05
+        )
+    })
+}
+
+
+
 
 names(incident_cases) <- c('place','date','amount')
 
@@ -93,10 +150,9 @@ if(!dir.exists(lambda_dir)){
   suppressWarnings(dir.create(lambda_dir,recursive=TRUE))
 }
 
-write.csv(
+readr::write_csv(
   incident_cases,
-  file=file.path(config$seeding$lambda_file),
-  row.names=FALSE
+  file.path(config$seeding$lambda_file)	 
 )
 
 print(paste("Saved seeding to",config$seeding$lambda_file))
