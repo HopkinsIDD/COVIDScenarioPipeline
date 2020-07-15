@@ -105,7 +105,7 @@ if (us_model){
   
 } else {
   
-  print(paste0("Using case data from ", opts$data, "for seeding ", config$spatial_setup$setup_name))
+  print(paste0("Using case data from ", opts$data, " for seeding ", config$spatial_setup$setup_name))
   
   case_data <- readr::read_csv(opts$data)
   if (!exists("case_data") || is.null(case_data)){
