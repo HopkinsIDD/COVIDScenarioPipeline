@@ -118,7 +118,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
 ##' with pre and post filters
 ##' 
 ##' @param scenario_dir the subdirectory containing this scenario
-##' @param name_filter function that 
+##' @param name_filter string that indicates which pdeath level to import (from the hosp filename) 
 ##' @param post_process function that does processing after 
 ##' @param geoid_len in defined, this we want to make geoids all the same length
 ##' @param padding_char character to add to the front of geoids if fixed length
@@ -172,8 +172,8 @@ load_hosp_sims_filtered <- function(scenario_dir,
   
     read_file(files[i]) %>%
       padfn %>%
-      post_process(...) %>%
-      mutate(sim_num = i)
+      mutate(sim_num = i) %>%
+      post_process(...) 
   }
   
   rc<- dplyr::bind_rows(rc)
