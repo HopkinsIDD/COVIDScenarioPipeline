@@ -54,8 +54,6 @@ def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id
         'parquet'
     )).to_pandas()
 
-    # We don't apply relative probablity when reading from file. None as second argument ensure that it works even if key 'rel_probability' does not exist
-    #parameters.pop("rel_probablity", None)
 
     onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values)
     return 1
