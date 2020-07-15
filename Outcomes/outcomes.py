@@ -54,6 +54,9 @@ def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id
         'parquet'
     )).to_pandas()
 
+    # We don't apply relative probablity when reading from file. None as second argument ensure that it works even if key 'rel_probability' does not exist
+    #parameters.pop("rel_probablity", None)
+
     onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values)
     return 1
 
@@ -80,10 +83,10 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
         branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pa.parquet.read_table(branching_file).to_pandas()
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
-        branching_data["colname"] = "R" + branching_data["outcome"] + "|" + branching_data["source"]
-        branching_data = branching_data[["geoid", "colname", "value"]]
-        branching_data = pd.pivot(branching_data, index="geoid", columns="colname", values="value")
-        if (branching_data.shape[0] != diffI.drop('time', axis=1).columns.shape[0]):
+        #branching_data["colname"] = "R" + branching_data["outcome"] + "|" + branching_data["source"]
+        #branching_data = branching_data[["geoid", "colname", "value"]]
+        #branching_data = pd.pivot(branching_data, index="geoid", columns="colname", values="value")
+        if (len(branching_data.geoid.unique()) != diffI.drop('time', axis=1).columns.shape[0]):
             raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
 
     parameters = {}
@@ -103,12 +106,15 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                     parameters[new_comp]['duration_name'] = new_comp + '_curr'
 
             if (config["outcomes"]["param_from_file"].get()):
-                colname = 'R' + new_comp + '|' + parameters[new_comp]['source']
-                if colname in branching_data.columns:
-                    print(f"Using 'param_from_file' for probability {colname}")
-                    parameters[new_comp]['rel_probability'] = branching_data[colname].to_numpy()
+                #colname = 'R' + new_comp + '|' + parameters[new_comp]['source']
+                rel_probability = branching_data[(branching_data['source']==parameters[new_comp]['source']) & 
+                                                 (branching_data['outcome']==new_comp) & 
+                                                 (branching_data['quantity']=='relative_probability')]
+                if len(rel_probability) > 0:
+                    print(f"Using 'param_from_file' for relative probability {parameters[new_comp]['source']} -->  {new_comp}")
+                    parameters[new_comp]['rel_probability'] = branching_data['value'].to_numpy()
                 else:
-                    print(f"NOT using 'param_from_file' for probability {colname}")
+                    print(f"*NOT* Using 'param_from_file' for relative probability {parameters[new_comp]['source']} -->  {new_comp}")
 
         elif config_outcomes[new_comp]['sum'].exists():
             parameters[new_comp]['sum'] = config_outcomes[new_comp]['sum']
