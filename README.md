@@ -4,7 +4,7 @@ Welcome to the Johns Hopkins University Infectious Disease Dynamics COVID-19 Wor
 
 We recommend that most new users use the code from the stable `master` branch. Please post questions to GitHub issues with the `question` tag. We are prioritizing direct support for individuals engaged in public health planning and emergency response.
 
-For more information on getting started, please visit our [Getting Started wiki](https://github.com/HopkinsIDD/COVID19_Minimal/wiki/Getting-Started) at [HopkinsIDD/COVID19_Minimal](https://github.com/HopkinsIDD/COVID19_Minimal). We are trying to keep this page up-to-date for use with the `master` branch.
+For more information on getting started, please visit our [wiki](https://github.com/HopkinsIDD/COVID19_Minimal/wiki) at [HopkinsIDD/COVID19_Minimal](https://github.com/HopkinsIDD/COVID19_Minimal). We are trying to keep this page up-to-date for use with the `master` branch.
 
 This open-source project is licensed under GPL v3.0.
 
