@@ -10,7 +10,7 @@ for(name in names){
   split_name <- strsplit(name,split='_')[[1]]
   rc[[name]]$source <- split_name[[2]]
   rc[[name]]$outcome <- split_name[[1]]
-  rc[[name]]$quantity <- "relative_probabily"
+  rc[[name]]$quantity <- "relative_probability"
   print(names(geoid_params))
   print(rr_name)
   if(name == 'hosp_inf'){
