@@ -2,6 +2,7 @@ geoid_params <- readr::read_csv('COVIDScenarioPipeline/sample_data/geoid-params.
 geoid_params <- tidyr::spread(geoid_params,parameter,value)
 rc <- list()
 names <- c('hosp_inf','icu_hosp','vent_icu','death_inf')
+changer <- c(hosp='incidH',death='incidD',inf='incidI',vent="incidVent",icu="incidICU")
 for(name in names){
   p_name <- paste('p',name,sep='_')
   rr_name <- paste('rr',name,sep='_')
@@ -28,6 +29,8 @@ for(name in names){
     print(names(rc[[name]] ))
     rc[[name]]$value <- NA
   }
+  rc[[name]]$outcome <- changer[rc[[name]]$outcome]
+  rc[[name]]$source <- changer[rc[[name]]$source]
 }
 
 name <- 'confirmed_inf'
