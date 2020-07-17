@@ -80,7 +80,9 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
         # Load the actual csv file
         branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pa.parquet.read_table(branching_file).to_pandas()
+        print('Loaded geoids in loaded relative probablity file:', len(branching_data.geoid.unique()), '', end='')
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
+        print('Intersect with seir simulation: ', len(branching_data.geoid.unique()), 'keeped')
         #branching_data["colname"] = "R" + branching_data["outcome"] + "|" + branching_data["source"]
         #branching_data = branching_data[["geoid", "colname", "value"]]
         #branching_data = pd.pivot(branching_data, index="geoid", columns="colname", values="value")
@@ -110,7 +112,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                                                  (branching_data['quantity']=='relative_probability')]
                 if len(rel_probability) > 0:
                     print(f"Using 'param_from_file' for relative probability {parameters[new_comp]['source']} -->  {new_comp}")
-                    parameters[new_comp]['rel_probability'] = branching_data['value'].to_numpy()
+                    parameters[new_comp]['rel_probability'] = rel_probability['value'].to_numpy()
                 else:
                     print(f"*NOT* Using 'param_from_file' for relative probability {parameters[new_comp]['source']} -->  {new_comp}")
 
@@ -210,6 +212,7 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
             all_data[new_comp] = np.empty_like(all_data['incidI'])
             # Draw with from source compartment
             all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))
+            
 
             # import matplotlib.pyplot as plt
             # plt.imshow(probability * np.ones_like(all_data[source]))
