@@ -41,7 +41,7 @@ library(purrr)
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
   optparse::make_option(c("-s", "--source"), action="store", default="CSSE", type='character', help="source of case data: USAFacts or CSSE"),
-  optparse::make_option(c("-d", "--data"), action="store", default=file.path("data","case_data","case_data.csv"), type='character', help="path to the case data file"),
+  optparse::make_option(c("-d", "--data"), action="store", default=file.path("data","case_data","case_data.csv"), type='character', help="path to the case data file")
 )
 
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
