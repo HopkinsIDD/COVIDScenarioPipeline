@@ -7,4 +7,4 @@ pkg.dir <- paste0(dirname(script.name), "/R/pkgs/")
 
 install.packages(paste0(pkg.dir, "covidcommon"),type='source',repos=NULL)
 install.packages(paste0(pkg.dir, "hospitalization"),type='source',repos=NULL)
-install.packages(paste0(pkg.dir, "report_generation"),type='source',repos=NULL)
+install.packages(paste0(pkg.dir, "report.generation"),type='source',repos=NULL)
