@@ -171,7 +171,7 @@ report_html_make_command <- function(report_name, scenarios, simulations, deathr
     renderCmd = paste0(renderCmd, 
                       sprintf(", continue_on_error=%s", config$report$continue_on_error))
   }
-  renderCmd = paste0(renderCmd, "))'")
+  renderCmd = paste0(renderCmd, ")'")
 
   s <- paste0(s, renderCmd, "\n")
   return(s)
