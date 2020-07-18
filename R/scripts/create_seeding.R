@@ -42,7 +42,6 @@ option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
   optparse::make_option(c("-s", "--source"), action="store", default="CSSE", type='character', help="source of case data: USAFacts or CSSE"),
   optparse::make_option(c("-d", "--data"), action="store", default=file.path("data","case_data","case_data.csv"), type='character', help="path to the case data file"),
-  optparse::make_option(c("-i", "--incid_x"), action="store", default=10, type='integer', help="incidence multiplier for reported cases")
 )
 
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
@@ -56,7 +55,6 @@ if (length(config) == 0) {
 all_times <- lubridate::ymd(config$start_date) +
   seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
 
-incid_x <- opt$incid_x
 
 
 
@@ -100,6 +98,13 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
   
   incident_cases$Update <- as.Date(incident_cases$Update)
   
+  if(is.null(config$seeding$delay_incidC)){
+    config$seeding$delay_incidC <- 5
+  }
+  if(is.null(config$seeding$ratio_incidC)){
+    config$seeding$ratio_incidC <- 10
+  }
+
   incident_cases <- incident_cases %>%
     dplyr::group_by(FIPS) %>%
     dplyr::group_modify(function(.x,.y){
@@ -108,8 +113,8 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
         dplyr::filter(incidI > 0) %>%
         .[seq_len(min(nrow(.x),5)),] %>%
         dplyr::mutate(
-          Update = Update - lubridate::days(5),
-          incidI = incid_x * incidI + .05
+          Update = Update - lubridate::days(config$seeding$delay_incidC),
+          incidI = config$seeding$ratio_incidC * incidI + .05
         )
     })
 
@@ -136,6 +141,13 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
     dplyr::select(date, geoid, incidI)
   
   incident_cases$date <- as.Date(incident_cases$date)
+
+  if(is.null(config$seeding$delay_incidC)){
+    config$seeding$delay_incidC <- 5
+  }
+  if(is.null(config$seeding$ratio_incidC)){
+    config$seeding$ratio_incidC <- 10
+  }
   
   incident_cases <- incident_cases %>%
     dplyr::group_by(geoid) %>%
@@ -145,8 +157,8 @@ if (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRU
         dplyr::filter(incidI > 0) %>%
         .[seq_len(min(nrow(.x),5)),] %>%
         dplyr::mutate(
-          date = date - lubridate::days(5),
-          incidI = incid_x * incidI + .05
+          date = date - lubridate::days(config$seeding$delay_incidC),
+          incidI = config$seeding$ratio_incidC * incidI + .05
         )
     })
 }
