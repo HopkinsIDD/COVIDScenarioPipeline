@@ -41,7 +41,6 @@ cat("\n")
 using_importation <- ("importation" %in% names(config))
 generating_report <- ("report" %in% names(config))
 building_US_setup <- (("modeled_states" %in% names(config$spatial_setup)) & (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRUE))
-using_static_filter <- ("dynfilter_path" %in% names(config))
 file_prefix <- ifelse(use_file_prefix, config$spatial_setup$setup_name, "") # prefix of file names 
 
 if(generating_report)
@@ -75,35 +74,58 @@ importation_make_command <- function(simulation,prefix=""){
   ))
 }
 
-build_US_setup_target_name <- function() {
+build_location_setup_target_name <- function() {
   return(file.path(config$spatial_setup$base_path, config$spatial_setup$mobility))
 }
 
+geodata_name <- function() {
+  return(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
+}
+
 build_US_setup_make_command <- function() {
-  cmd <- paste0(build_US_setup_target_name(),":\n")
-  cmd <- paste0(cmd, "\tmkdir -p ", config$spatial_setup$base_path, "\n")
-  cmd <- paste0(cmd, "\t$(RSCRIPT) $(PIPELINE)/R/scripts/build_US_setup.R -c $(CONFIG) -p $(PIPELINE)")
-  return(cmd)
+  command_name <- paste0(build_location_setup_target_name(),":\n")
+  command_name <- paste0(command_name, "\tmkdir -p ", config$spatial_setup$base_path, "\n")
+  command_name <- paste0(command_name, "\t$(RSCRIPT) $(PIPELINE)/R/scripts/build_US_setup.R -c $(CONFIG) -p $(PIPELINE)")
+  return(command_name)
 }
 
-filter_target_name <- function(simulation, prefix = "" ){
-  paste0(".files/",prefix,simulation,"_filter")
+build_nonUS_pop_setup_name <- function() {
+  return(file.path(config$spatial_setup$base_path, config$spatial_setup$nonUS_pop_setup))
 }
 
-filter_make_command <- function(simulation,prefix=""){
-  target_name <- filter_target_name(simulation,prefix)
-  dependency_name <- importation_target_name(simulation, prefix=prefix)
-  if(building_US_setup) {
-    dependency_name <- paste(dependency_name, build_US_setup_target_name())
-  }
-  command_name<- paste0("$(RSCRIPT) $(PIPELINE)/R/scripts/create_filter.R -c $(CONFIG)")
-  touch_name <- paste0("touch ",target_name)
-  return(paste0(
-    target_name, ": .files/directory_exists ",
-    dependency_name, "\n", 
-    "\t",command_name, "\n",
-    "\t",touch_name, "\n"
-  ))
+build_nonUS_mobility_setup_name <- function() {
+  return(file.path(config$spatial_setup$base_path, config$spatial_setup$nonUS_mobility_setup))
+}
+
+build_nonUS_setup_make_command <- function() {
+  command_name <- paste0(build_location_setup_target_name(),":\n")
+  command_name <- paste0(command_name, "\tmkdir -p ", config$spatial_setup$base_path, "\n")
+  command_name <- paste0(command_name, "\t$(RSCRIPT) $(PIPELINE)/R/scripts/build_nonUS_setup.R -c $(CONFIG) -p $(PIPELINE) -n ", build_nonUS_pop_setup_name(), " -m ", build_nonUS_mobility_setup_name())
+  return(command_name)
+}
+
+create_seeding_target_name <- function() {
+  return(file.path(config$seeding$lambda_file))
+}
+
+create_US_seeding_make_command <- function() {
+  command_name <- paste0(create_seeding_target_name(),":\n")
+  command_name <- paste0(command_name, "\t$(RSCRIPT) $(PIPELINE)/R/scripts/create_seeding.R -c $(CONFIG)")
+  return(command_name)
+}
+
+create_nonUS_seeding_casedata_name <- function() {
+  return(file.path(config$seeding$casedata_file))
+}
+
+create_US_seeding_casedata_name <- function() {
+  return(file.path("data/case_data/case_data.csv"))
+}
+
+create_nonUS_seeding_make_command <- function() {
+  command_name <- paste0(create_seeding_target_name(),":\n")
+  command_name <- paste0(command_name, "\t$(RSCRIPT) $(PIPELINE)/R/scripts/create_seeding.R -c $(CONFIG) -d ", create_nonUS_seeding_casedata_name())
+  return(command_name)
 }
 
 hospitalization_target_name <- function(simulation,scenario,deathrate, prefix = ''){
@@ -136,15 +158,11 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   } else {
     previous_simulation <- 0
   }
-  if(building_US_setup){
-    dependency_name <- paste(dependency_name, build_US_setup_target_name())
-  }
   if(using_importation){
     dependency_name <- paste(dependency_name,importation_target_name(simulation,prefix))
   }
-  if(using_static_filter){
-    dependency_name <- paste(dependency_name, filter_target_name(simulation,prefix))
-  }
+  dependency_name <- paste(dependency_name, build_location_setup_target_name())
+  dependency_name <- paste(dependency_name, create_seeding_target_name())
   command_name <- paste0("$(PYTHON) -m SEIR -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
@@ -231,6 +249,16 @@ cat("\n")
 
 if(building_US_setup){
   cat(build_US_setup_make_command())
+} else{
+  cat(build_nonUS_setup_make_command())
+}
+
+cat("\n")
+
+if(building_US_setup){
+  cat(create_US_seeding_make_command())
+} else{
+  cat(create_nonUS_seeding_make_command())
 }
 
 cat("\n")
@@ -238,11 +266,6 @@ cat("\n")
 if(using_importation){
   for(sim_idx in seq_len(length(simulations))){
     cat(importation_make_command(simulations[sim_idx]))
-  }
-}
-if(using_static_filter){
-  for(sim_idx in seq_len(length(simulations))){
-    cat(filter_make_command(simulations[sim_idx]))
   }
 }
 
@@ -269,18 +292,8 @@ cat("\n\nrerun: rerun_simulations rerun_hospitalization")
 if(using_importation){
   cat(" rerun_importation")
 }
-if(using_static_filter){
-  cat(" rerun_filter")
-}
 cat("\n")
 
-if(using_static_filter){
-cat(paste0("clean_filter: rerun_filter
-\trm -rf ",config$dynfilter_path,"
-rerun_filter:
-\trm -f .files/*_filter
-"))
-}
 if(using_importation){
 cat(paste0("
 clean_importation: rerun_importation
@@ -304,14 +317,11 @@ rerun_simulations: clean_simulations
 \trm -f .files/*_simulation*
 rerun_hospitalization:
 \trm -f .files/*_hospitalization*
-clean: clean_simulations clean_hospitalization"
+clean: clean_simulations clean_hospitalization clean_location_setup"
 ))  
 }
 if(using_importation){
   cat(" clean_importation")
-}
-if(using_static_filter){
-  cat(" clean_filter")
 }
 if(generating_report)
 {
@@ -338,6 +348,18 @@ if(generating_report)
 cat(paste0("
 clean_reports:
 \trm -f ",report_html_target_name(report_name)))
+}
+if(building_US_setup)
+{
+cat(paste0("
+clean_location_setup:
+\trm -f ", build_location_setup_target_name(), " ", geodata_name(), " ", create_US_seeding_casedata_name()
+))
+}else{
+cat(paste0("
+clean_location_setup:
+\trm -f ", build_location_setup_target_name(), " ", geodata_name()
+))
 }
 
 
