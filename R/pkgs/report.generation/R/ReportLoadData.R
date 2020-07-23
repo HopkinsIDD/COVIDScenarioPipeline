@@ -633,6 +633,7 @@ load_geodata_file <- function(
   geoid_pad = "0",
   to_lower = FALSE
 ) {
+  require(tigris)
   if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
   geodata <- readr::read_csv(filename)
 
@@ -644,6 +645,12 @@ load_geodata_file <- function(
   if(geoid_len > 0){
     geodata$geoid <- stringr::str_pad(geodata$geoid,geoid_len, pad = geoid_pad)
   }
+  geodata<-geodata %>%
+    left_join(fips_codes%>%
+                unite(col="geoid", ends_with("_code"), sep="") %>%
+                select(-state_name, -state) %>%
+                rename(name=county) %>%
+                mutate(name=str_remove(name, " County")))
   return(geodata)
 }
 
