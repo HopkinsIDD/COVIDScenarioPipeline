@@ -120,11 +120,13 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
                                        interv_end_date = NA) {
 
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
+  sampled_sims <- sample(unique(hosp_state_totals$sim_num), 
+                         min(num_sims, length(unique(hosp_state_totals$sim_num))),
+                         replace=FALSE) 
+  
   to_plt <- hosp_state_totals %>%
     dplyr::filter(pdeath==pdeath_level,
-                  sim_num %in% sample(unique(sim_num),
-                                      min(num_sims, length(unique(sim_num))),
-                                      replace=FALSE)) %>%
+                  sim_num %in% sampled_sims) %>%
     dplyr::mutate(scenario_name = factor(scenario_name,
                                          levels = scenario_labels,
                                          labels = scenario_labels),
