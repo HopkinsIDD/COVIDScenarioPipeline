@@ -113,79 +113,184 @@ load_scenario_sims_filtered <- function(scenario_dir,
   return(rc)
 }
 
-
-##' Function loads multiple hospital simulations into a combined data frame
-##' with pre and post filters
+##' Wrapper function for loading multiple hospitalization outcomes with open_dataset
 ##' 
-##' @param scenario_dir the subdirectory containing this scenario
-##' @param name_filter string that indicates which pdeath level to import (from the hosp filename) 
-##' @param post_process function that does processing after 
-##' @param geoid_len in defined, this we want to make geoids all the same length
-##' @param padding_char character to add to the front of geoids if fixed length
-##' @param ... additional parameters to post process function
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param model_output folder with hosp outcomes
+##' @param partitions used by open_dataset 
+##' @param name_filter string that indicates which pdeath to import from outcome_dir
+##' @param pre_process function that does processing before collection
+##' @param sum_location summarize results to location
 ##' 
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
 ##' 
-##' @author Justin Lessler
 ##'
 ##'
 ##'@export
-load_hosp_sims_filtered <- function(scenario_dir = 'model_output/hosp',
-                                    name_filter,
-                                    num_files = NA,
+load_hosp_sims_filtered <- function(outcome_dir,
+                                    model_output = 'hosp',
+                                    partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
+                                    name_filter=c("high", "med", "low"),
+                                    pre_process=function(x) {x},
                                     post_process=function(x) {x},
-                                    geoid_len = 0,
-                                    padding_char = "0",
-                                    file_extension = 'auto',
-                                    ...,
-                                    legacy=TRUE) {
+                                    sum_location=FALSE
+) {
   
   require(tidyverse)
   require(foreach)
   
-
-  if(legacy){name_filter = paste0("/",name_filter,"/")}
-  files <- list.files(sprintf("%s", scenario_dir),full.names = TRUE, recursive=TRUE)
-  warning(files[1])
-  for(filter in name_filter){
-    files <- files[grepl(filter,files)]
-  }
-  if(length(files) == 0){stop(
-    paste0("There were no files in ",getwd(),"/", scenario_dir," matching name filter |",name_filter,"|")
-  )}
-
-  if(is.null(num_files) | is.na(num_files) ){
-    num_files <- length(files)
-  }
-  if ( num_files <= length(files) ){
-    files <- files[seq_len(num_files)]
-    warning(paste("You are only reading in", num_files, "files. Check the num_files argument if this is unexpected."))
-  }
-
-
-  if (geoid_len > 0) {
-    padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width=geoid_len,pad=padding_char))}
-  } else {
-    padfn <- function(x) {x}
-  }
-
-  read_file <- read_file_of_type(file_extension)
+  rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
+                          partitioning = partitions) %>%
+    filter(is_final=="final") %>%
+    filter(death_rate %in% name_filter) %>%
+    pre_process() %>%
+    collect() 
   
-  rc<- foreach (i = 1:length(files)) %dopar% {
-    require(tidyverse)
-    file <- files[i]
-
+  rc<-rc %>%
+    post_process() %>%
+    group_by(geoid, death_rate, scenario, sim_id, location) %>%
+    mutate(cum_hosp=cumsum(incidH)) %>%
+    mutate(cum_death=cumsum(incidD)) %>%
+    mutate(cum_case=cumsum(incidC)) %>%
+    mutate(cum_inf=cumsum(incidI)) %>%
+    rename(pdeath=death_rate,
+           NhospCurr=hosp_curr,
+           NICUCurr=icu_curr,
+           NincidDeath=incidD,
+           NincidInf=incidI,
+           NincidCase=incidC,
+           NincidICU=incidICU,
+           NincidHosp=incidH,
+           NincidVent=incidVent,
+           NVentCurr=vent_curr) %>%
+    mutate(time=as.Date(time))
   
-    read_file(files[i]) %>%
-      padfn %>%
-      post_process(...) %>%
-      mutate(sim_num = i)
+  rc<-rc%>%
+    group_by(pdeath, scenario, geoid, location) %>%
+    distinct(sim_id)%>%
+    mutate(sim_num=seq_along(sim_id)) %>%
+    right_join(rc)
+  
+  if(sum_location){
+    rc<-rc %>%
+      group_by(pdeath, scenario, time, sim_num) %>%
+      summarize(NhospCurr=sum(NhospCurr),
+                NICUCurr=sum(NICUCurr),
+                NincidDeath=sum(NincidDeath),
+                NincidInf=sum(NincidInf),
+                NincidCase=sum(NincidCase),
+                NincidICU=sum(NincidICU),
+                NincidHosp=sum(NincidHosp),
+                NincidVent=sum(NincidVent),
+                NVentCurr=sum(NVentCurr),
+                cum_hosp=sum(cum_hosp),
+                cum_death=sum(cum_death),
+                cum_case=sum(cum_case),
+                cum_inf=sum(cum_inf)) 
   }
-  
-  rc<- dplyr::bind_rows(rc)
   
   warning("Finished loading")
   return(rc)
   
 }
 
+##' Wrapper function for loading hpar files with open_dataset
+##' 
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param model_output folder with hpar outcomes
+##' @param partitions used by open_dataset 
+##' @param name_filter string that indicates which pdeath to import from outcome_dir
+##' @param pre_process function that does processing before collectio
+##' 
+##' @return a combined data frame of all hpar simulations with filters applied pre merge.
+##' 
+##'
+##'
+##'@export
+load_hpar_sims_filtered <- function(outcome_dir,
+                                    model_output = 'hpar',
+                                    partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
+                                    name_filter=c("high", "med", "low"),
+                                    pre_process=function(x) {x}
+) {
+  
+  require(tidyverse)
+  require(foreach)
+  
+  rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
+                          partitioning = partitions) %>%
+    filter(is_final=="final") %>%
+    filter(death_rate %in% name_filter) %>%
+    pre_process() %>%
+    collect() 
+  
+  rc<-rc%>%
+    mutate(time=as.Date(time)) %>%
+    group_by(pdeath=death_rate, scenario, geoid, location) %>%
+    distinct(sim_id)%>%
+    mutate(sim_num=seq_along(sim_id)) %>%
+    right_join(rc)
+  
+  warning("Finished loading")
+  return(rc)
+  
+}
+
+##' Wrapper function for loading spar and snpi files with open_dataset
+##' 
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param partitions used by open_dataset 
+##' @param name_filter string that indicates which pdeath to import from outcome_dir
+##' @param pre_process function that does processing before collectio
+##' 
+##' @return a combined data frame of all R simulations with filters applied pre merge.
+##' 
+##'
+##'
+##'@export
+load_r_sims_filtered <- function(outcome_dir,
+                                 partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
+                                 name_filter=c("high", "med", "low"),
+                                 pre_process=function(x) {x}
+) {
+  
+  require(tidyverse)
+  
+  spar <- arrow::open_dataset(file.path(outcome_dir,'spar'), 
+                              partitioning = partitions) %>%
+    filter(parameter=="R0",
+           is_final=="final") %>%
+    filter(death_rate %in% name_filter) %>%
+    pre_process()%>%
+    collect() %>% 
+    group_by(scenario)%>%
+    mutate(sim_num = order(sim_id),
+           parameter="r0") %>%
+    rename(location_r = value) %>%
+    select(sim_num, scenario, pdeath=death_rate, location_r, parameter, location)
+  
+  snpi<- arrow::open_dataset(file.path(outcome_dir,'snpi'), 
+                             partitioning = partitions) %>%
+    filter(is_final=="final") %>%
+    filter(death_rate %in% name_filter) %>%
+    pre_process()%>%
+    collect() %>%
+    group_by(geoid, npi_name, scenario)%>%
+    mutate(sim_num = order(sim_id)) %>%
+    select(-date, -lik_type, -is_final, -sim_id) %>%
+    rename(pdeath=death_rate)
+  
+  rc <- spar %>%
+    right_join(snpi)%>%
+    filter(npi_name=="local_variance") %>%
+    mutate(local_r = location_r*(1-reduction)) %>% # county_r0 ought to be renamed to "geogroup_r0"
+    select(geoid, sim_num, local_r, scenario) %>%
+    left_join(snpi) %>%
+    mutate(r = if_else(npi_name=="local_variance",
+                       local_r,
+                       local_r*(1-reduction)))
+  
+  warning("Finished loading")
+  return(rc)
+  
+}
