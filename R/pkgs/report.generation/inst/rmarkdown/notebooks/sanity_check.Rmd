@@ -235,7 +235,7 @@ inference_r <- inference_r %>%
             reducq1 = quantile(reduction, 0.25, na.rm=TRUE), 
             reducq3 = quantile(reduction, 0.75, na.rm=TRUE)) %>%
   {if(affected_geoids) mutate(., npi_name=str_remove(npi_name, npi_trimmer))
-    else(left_join(.))} %>%
+    else(.)} %>%
   left_join(geo_names)
   
 if(affected_geoids){
