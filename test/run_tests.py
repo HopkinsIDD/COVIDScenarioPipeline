@@ -121,7 +121,6 @@ def test_importation():
 
     assert_file("data/geodata.csv")
     assert_file("data/mobility.txt")
-    assert_file("data/filter.txt")
     assert_dir("data/shp")
     assert_dir("importation")
 
@@ -130,7 +129,6 @@ def test_report():
 
     assert_file("data/geodata.csv")
     assert_file("data/mobility.csv")
-    assert_file("data/filter.txt")
     assert_dir("data/shp")
     assert_dir("importation")
     assert_dir("notebooks")
