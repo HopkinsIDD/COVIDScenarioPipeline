@@ -1736,3 +1736,532 @@ plot_needs_relative_to_threshold_heatmap <- function(
 }
 
 
+
+##' Plotting R or effectiveness estimates
+##' 
+##' @param r_dat df with R or reduction estimates per sim
+##' @param npi_trim pattern used by str_remove to group NPIs
+##' @param periodcolors 
+##' @param npi_labels labels for plotted NPIs
+##' @param npi_levels levels of NPIs 
+##' @param effectiveness whether to reduction estimates instead
+##' @param pi_lo lower quantile for summarization
+##' @param pi_hi higher quantile for summarization
+##' @param geo_name df with location names
+##' @return a combined data frame of all R simulations with filters applied pre merge.
+##' 
+##'
+##'
+##'@export
+
+plot_inference_r <- function(r_dat,
+                             npi_trim="[[A-Z]].+\\_",
+                             npi_labels, 
+                             npi_levels,
+                             periodcolors = c("chartreuse3", "brown2", "turquoise4", "black"),
+                             effectiveness=FALSE,
+                             pi_lo=0.25,
+                             pi_hi=0.75, 
+                             geo_name=geodata){
+  
+  rplot <- r_dat %>%
+    mutate(npi_name=str_remove(npi_name, npi_trim)) %>%
+    left_join(geo_name) %>%
+    group_by(geoid, npi_name, name) %>%
+    summarize(r_lo = quantile(r, pi_lo, na.rm=TRUE), 
+              r_hi = quantile(r, pi_hi, na.rm=TRUE),
+              r = mean(r, na.rm=TRUE),
+              reduction_lo = quantile(reduction, pi_lo, na.rm=TRUE), 
+              reduction_hi = quantile(reduction, pi_hi, na.rm=TRUE),
+              reduction = mean(reduction, na.rm=TRUE)) 
+  
+  if(is.na(npi_labels) & is.na(npi_levels)){
+    npi_labels <- unique(rplot$npi_name)
+    npi_levels <- unique(rplot$npi_name)
+  }
+  
+  if(length(periodcolors)<length(npi_labels)){
+    stop("Specify additional colors")
+  }
+  
+  if(effectiveness==TRUE){
+    rc<-rplot %>%
+      filter(npi_name!="local_variance") %>%
+      mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels)) %>%
+      ggplot(aes(x=reduction, y=name, col = npi_name)) +
+      geom_point(position = position_dodge(1)) + 
+      geom_linerange(aes(xmin=reduction_lo, xmax=reduction_hi, col = npi_name), 
+                     position = position_dodge(1)) + 
+      scale_color_manual(breaks = npi_labels, 
+                         values = periodcolors) +
+      theme_bw() +
+      theme(panel.grid.minor = element_blank(),
+            legend.position = "bottom",
+            legend.title = element_blank()) +
+      scale_x_continuous(expand = c(0,0)) +
+      coord_cartesian(xlim = c(0, 1.01)) +
+      ylab("County") +
+      xlab("Estimated intervention effect (mean and IQR)") +
+      guides(color=guide_legend(nrow=2,byrow=TRUE))
+    
+  } else {
+    rc <- rplot %>%
+      mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels)) %>%
+      ggplot(aes(x=r, y=name, col=npi_name)) + 
+      geom_point(position=position_dodge(1)) + 
+      scale_color_manual(values = periodcolors)+
+      geom_linerange(aes(xmin=r_lo, xmax=r_hi, col=npi_name), position=position_dodge(1)) +
+      theme_bw() +
+      theme(panel.grid.minor=element_blank(),
+            legend.position = "bottom",
+            legend.title = element_blank()) +
+      scale_x_continuous(expand = c(0,0)) +
+      coord_cartesian(xlim = c(0, 5)) +
+      ylab("County") +
+      xlab("Estimated reproductive number (mean and IQR)")+
+      guides(color=guide_legend(nrow=2,byrow=TRUE))
+    
+  }
+  
+  return(rc)
+}
+
+##' Sparkline table with R estimates 
+##' 
+##' @param r_dat df with R or reduction estimates per sim
+##' @param npi_trim pattern used by str_remove to group NPIs
+##' @param periodcolors 
+##' @param npi_labels labels for plotted NPIs
+##' @param npi_levels levels of NPIs 
+##' @param effectiveness whether to reduction estimates instead
+##' @param pi_lo lower quantile for summarization
+##' @param pi_hi higher quantile for summarization
+##' @param geo_name df with location names
+##' @param px_qual sparkline pixel size passed on to ggplot_image
+##' @param wh_ratio sparkline width:height ratio passed on to ggplot_image
+##' @param brewer_palette pallete name passed on to brewer.pal
+##' 
+##' @return a table with the effectiveness per intervention period and a bar graph
+##' 
+##'
+##'
+##'@export
+
+make_sparkline_tab_r <- function(r_dat,
+                                 npi_trim="[[A-Z]].+\\_", 
+                                 npi_labels, 
+                                 npi_levels,
+                                 effectiveness=FALSE,
+                                 pi_lo=0.025, 
+                                 pi_hi=0.975, 
+                                 geo_name=geodata,
+                                 px_qual=40,
+                                 wh_ratio=3.5,
+                                 brewer_palette="Spectral"
+){
+  
+  require(gt)
+  require(tidyverse)
+  
+  r_dat <- r_dat %>%
+    mutate(npi_name=str_remove(npi_name, npi_trim),
+           npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels)) %>%
+    left_join(geo_name) %>%
+    group_by(geoid, start_date, end_date, npi_name, name) %>%
+    {if(effectiveness)
+      summarize(.,est_lo=quantile(reduction, pi_lo, na.rm=TRUE),
+                est_hi=quantile(reduction, pi_hi, na.rm=TRUE),
+                estimate=mean(reduction, na.rm=TRUE))
+      else(summarize(.,est_lo=quantile(r, pi_lo, na.rm=TRUE),
+                     est_hi=quantile(r, pi_hi, na.rm=TRUE),
+                     estimate=mean(r, na.rm=TRUE)))} %>%
+    mutate_if(is.numeric, signif, digits=2) %>%
+    arrange(name, start_date) 
+  
+  # Set new end date for baseline values
+  new_local_end <- r_dat %>%
+    filter(npi_name!="local_variance") %>%
+    group_by(geoid) %>%
+    filter(min(start_date)==start_date) %>%
+    ungroup() %>%
+    mutate(new_end=start_date-1) %>%
+    distinct(geoid, new_end)
+  
+  r_dat<-r_dat%>%
+    left_join(new_local_end) %>%
+    mutate(end_date=if_else(npi_name=="local_variance", new_end, end_date))
+  
+  # Generate plots for each row
+  timeline<-crossing(geoid=unique(r_dat$geoid), 
+                     date = seq(min(r_dat$start_date), max(r_dat$end_date), by=1))
+  
+  fill_values <- RColorBrewer::brewer.pal(length(npi_labels), brewer_palette)
+  color_values <- colorspace::darken(fill_values, 0.3)
+  
+  
+  # FIND SOURCE (github issue)
+  r_plot <- r_dat %>%
+    mutate(plot_var=est_hi-est_lo)%>%
+    bind_rows(r_dat%>%
+                mutate(plot_var=est_lo,
+                       npi_name="blank")) %>%
+    mutate(npi_name=factor(npi_name, 
+                           levels=c(npi_levels, "blank"), 
+                           labels=c(npi_labels,"blank"))) %>%
+    left_join(timeline) %>%
+    mutate(estimate=if_else(date<start_date|date>end_date, NA_real_, estimate)) %>%
+    drop_na() %>%
+    select(name, date, estimate, plot_var, npi_name) %>%
+    group_by(name) %>%
+    nest() %>%
+    mutate(plot=map(data, ~ggplot(., aes(x=date, y=plot_var))+
+                      geom_col(aes(fill=npi_name), position="stack", width=1)+
+                      scale_color_manual(values= c(color_values, "white"),
+                                         breaks=c(npi_labels, "white"))+
+                      scale_fill_manual(values=c(fill_values, "white"),
+                                        breaks=c(npi_labels, "white"))+
+                      geom_line(aes(y=estimate, col=npi_name), size=4)+
+                      geom_hline(yintercept=1, col="black", size=3)+
+                      scale_y_continuous(breaks=c(0, 0.5, 1, 2.25, 3.5))+
+                      theme(legend.position="none",
+                            axis.line = element_blank(),
+                            axis.title = element_blank(),
+                            axis.ticks = element_blank(),
+                            axis.text= element_blank(),
+                            panel.background = element_blank(),
+                            panel.grid=element_blank()))) %>%
+    select(-data) %>%
+    mutate(` `=NA)
+  
+  # Create table with summary values
+  r_tab<-r_dat%>%
+    mutate_if(is.numeric, as.character) %>%
+    mutate(est_lo = str_replace(est_lo, "^", '\n\\('),
+           est_hi = str_replace(est_hi, "$", '\\)')) %>%
+    unite(col="pi", est_lo:est_hi, sep="-") %>%
+    unite(col="estimate", estimate:pi, sep="\n") %>%
+    pivot_wider(id_cols="name", values_from=estimate, names_from=npi_name) %>%
+    rename(Location=name)
+  
+  r_tab[is.na(r_tab)] <- ""
+  r_output <- tibble(r_tab,
+                     ` ` = NA,
+                     .rows = nrow(r_tab)) %>%
+    gt() %>%
+    text_transform(
+      locations = cells_body(vars(` `)),
+      fn = function(x) {
+        map(r_plot$plot, ggplot_image, height = px(px_qual), aspect_ratio=wh_ratio)
+      }
+    )
+  # Should these options be separate?
+  r_output %>%
+    tab_options(table.font.size = pct(80)) %>%
+    tab_options(column_labels.font.weight = "bold",
+                table_body.hlines.color = "#000000",
+                table_body.border.bottom.color="#000000",
+                table_body.border.top.color = "#000000",
+                column_labels.border.top.color = "#000000",
+                column_labels.border.bottom.color = "#000000") %>%
+    tab_style(style=list(cell_text(style="oblique"),
+                         cell_borders(sides="right")), 
+              locations=cells_body(columns=vars(Location)))
+}
+
+make_r_sparkline_tab(test, npi_labels = unique(str_remove(test$npi_name, "[[A-Z]].+\\_")), npi_levels=unique(str_remove(test$npi_name, "[[A-Z]].+\\_")))
+
+##' Sparkline table for intervention period effectiveness estimates 
+##' 
+##' @param r_dat df with reduction estimates per sim
+##' @param npi_trim pattern used by str_remove to group NPIs
+##' @param periodcolors 
+##' @param npi_labels labels for plotted NPIs
+##' @param npi_levels levels of NPIs 
+##' @param pi_lo lower quantile for summarization
+##' @param pi_hi higher quantile for summarization
+##' @param geo_name df with location names
+##' @param px_qual sparkline pixel size passed on to ggplot_image
+##' @param wh_ratio sparkline width:height ratio passed on to ggplot_image
+##' @param brewer_palette pallete name passed on to brewer.pal
+##' 
+##' @return a table with the effectiveness per intervention period and a bar graph
+##' 
+##'
+##'
+##'@export
+##'
+make_sparkline_tab_intervention_effect <- function(r_dat,
+                                                   npi_trim="[[A-Z]].+\\_", 
+                                                   npi_labels, 
+                                                   npi_levels,
+                                                   pi_lo=0.025, 
+                                                   pi_hi=0.975, 
+                                                   geo_name=geodata,
+                                                   px_qual=40,
+                                                   wh_ratio=3.5,
+                                                   brewer_palette="Spectral"
+){
+  
+  require(gt)
+  require(tidyverse)
+  
+  r_dat <- r_dat %>%
+    mutate(npi_name=str_remove(npi_name, npi_trim)) %>%
+    left_join(geo_name) %>%
+    group_by(geoid, start_date, end_date, npi_name, name) %>%
+    summarize(est_lo=quantile(reduction, pi_lo, na.rm=TRUE),
+              est_hi=quantile(reduction, pi_hi, na.rm=TRUE),
+              estimate=mean(reduction, na.rm=TRUE)) %>%
+    mutate_if(is.numeric, signif, digits=2) %>%
+    arrange(name, start_date) 
+  
+  # Set new end date for baseline values
+  new_local_end <- r_dat %>%
+    filter(npi_name!="local_variance") %>%
+    group_by(geoid) %>%
+    filter(min(start_date)==start_date) %>%
+    ungroup() %>%
+    mutate(new_end=start_date-1) %>%
+    distinct(geoid, new_end)
+  
+  r_dat<-r_dat%>%
+    left_join(new_local_end) %>%
+    mutate(end_date=if_else(npi_name=="local_variance", new_end, end_date))
+  
+  # Create table with summary values
+  r_tab<-r_dat%>%
+    mutate_if(is.numeric, as.character) %>%
+    mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels),
+           est_lo = str_replace(est_lo, "^", '\n\\('),
+           est_hi = str_replace(est_hi, "$", '\\)')) %>%
+    unite(col="pi", est_lo:est_hi, sep="-") %>%
+    unite(col="estimate", estimate:pi, sep="\n") %>%
+    pivot_wider(id_cols="name", values_from=estimate, names_from=npi_name) %>%
+    rename(Location=name)
+  
+  r_tab[is.na(r_tab)] <- ""
+  
+  fill_values <- RColorBrewer::brewer.pal(length(npi_labels), brewer_palette)
+  fill_values<-fill_values[-1]
+  color_values <- colorspace::darken(fill_values, 0.3)
+  
+  
+  # FIND SOURCE (github issue)
+  
+  r_plot <- r_dat %>%
+    filter(npi_name!="local_variance") %>%
+    mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels)) %>%
+    select(name, start_date, estimate, est_lo, est_hi, npi_name) %>%
+    group_by(name) %>%
+    mutate(time=1, 
+           time=cumsum(time))%>%
+    nest() %>%
+    mutate(plot=map(data, ~ggplot(., aes(x=time, y=estimate, ymin=est_lo, ymax=est_hi))+
+                      geom_col(aes(fill=npi_name), stat="identity")+
+                      geom_errorbar(aes(col=npi_name), size=3) +
+                      scale_color_manual(values= c(color_values, "white"),
+                                         breaks=c(npi_labels, "white"))+
+                      scale_fill_manual(values=c(fill_values, "white"),
+                                        breaks=c(npi_labels, "white"))+
+                      geom_hline(yintercept=1, col="black", size=3)+
+                      theme(legend.position="none",
+                            axis.line = element_blank(),
+                            axis.title = element_blank(),
+                            axis.ticks = element_blank(),
+                            axis.text= element_blank(),
+                            panel.background = element_blank(),
+                            panel.grid=element_blank()))) %>%
+    select(-data) %>%
+    mutate(` `=NA)
+  
+  r_output <- tibble(r_tab,
+                     ` ` = NA,
+                     .rows = nrow(r_tab)) %>%
+    gt() %>%
+    text_transform(
+      locations = cells_body(vars(` `)),
+      fn = function(x) {
+        map(r_plot$plot, ggplot_image, height = px(px_qual), aspect_ratio=wh_ratio)
+      }
+    )
+  # Should these options be separate?
+  r_output %>%
+    tab_options(table.font.size = pct(80)) %>%
+    tab_options(column_labels.font.weight = "bold",
+                table_body.hlines.color = "#000000",
+                table_body.border.bottom.color="#000000",
+                table_body.border.top.color = "#000000",
+                column_labels.border.top.color = "#000000",
+                column_labels.border.bottom.color = "#000000") %>%
+    tab_style(style=list(cell_text(style="oblique"),
+                         cell_borders(sides="right")), 
+              locations=cells_body(columns=vars(Location)))
+}
+
+make_effect_sparkline_tab(test, npi_labels = unique(str_remove(test$npi_name, "[[A-Z]].+\\_")), npi_levels=unique(str_remove(test$npi_name, "[[A-Z]].+\\_")))
+
+
+##' Time series comparing reported and estimated cases and deaths in each
+##' geoid by pdeath or scenario; possible to show hospitalization data
+##' 
+##' @param truth_dat df with date, geoid, incidI, incidDeath; currhosp if adding
+##' hospitalization data
+##' @param county_dat df with model estimates 
+##' @filter_by variable name for filtering estimates either scenario
+##' or pdeath 
+##' @filter_val desired value of variable
+##' @param var_levels 
+##' @param geo_name df with location names
+##' @param wh_ratio sparkline width:height ratio passed on to ggplot_image
+##' @param brewer_palette pallete name passed on to brewer.pal
+##' 
+##' @return a table with the effectiveness per intervention period and a bar graph
+##' 
+##'
+##'
+##'@export
+##'
+plot_truth_by_county <- function(truth_dat,
+                                 county_dat,
+                                 hosp=FALSE, #county_truth must have current hospitalizations, with var_name "currhosp" if TRUE 
+                                 filter_by,
+                                 filter_val,
+                                 var_levels,
+                                 var_labels,
+                                 geo_name=geodata,
+                                 pdeath_levs=pdeath_levels,
+                                 pdeath_labs=pdeath_labels){
+  
+  start_dat<-lubridate::ymd(start_date)
+  end_date<-lubridate::ymd(end_date)
+  
+  fig_labs<-c("Incident Cases", "Incident Deaths")
+  group_var<-if_else(filter_by=="scenario", "pdeath", "scenario")
+  county_dat<-county_dat%>%
+    filter(!!as.symbol(filter_by)==filter_val)%>%
+    group_by(geoid, !!as.symbol(filter_by), sim_num, time=lubridate::floor_date(time, unit="week", week_start=3))%>%
+    summarize(NincidCase=sum(NincidCase, na.rm=TRUE),
+              NincidDeath=sum(NincidDeath, na.rm=TRUE),
+              NhospCurr=sum(NhospCurr, na.rm=TRUE)) %>%
+    group_by(geoid) %>%
+    filter(time<max(time))
+  
+  county_truth <- county_truth %>%
+    group_by(geoid, time=lubridate::floor_date(date, unit="week", week_start=3)) %>%
+    summarize(incidI=sum(incidI, na.rm=TRUE),
+              incidDeath=sum(incidDeath, na.rm=TRUE)) %>%
+    group_by(geoid)%>%
+    filter(time<max(time))
+  
+  if(hosp){
+    
+    if(length(fig_labs)!=3){
+      fig_labs <- c("Incident Cases", "Incident Deaths", "Occupied Hospital Beds")
+    }
+    county_truth <- county_truth %>%
+      group_by(geoid, time=lubridate::floor_date(date, unit="week", week_start=3)) %>%
+      summarize(incidI=sum(incidI, na.rm=TRUE),
+                incidDeath=sum(incidDeath, na.rm=TRUE),
+                currhosp=sum(currhosp, na.rm=TRUE)) %>%
+      group_by(geoid)%>%
+      filter(time<max(time))
+    
+    rc <- bind_rows(county_truth%>%
+                      mutate(confirmed=incidI,
+                             type=fig_labs[1]),
+                    county_truth%>%
+                      mutate(confirmed=incidDeath,
+                             type=fig_labs[2]),
+                    county_truth%>%
+                      mutate(confirmed=currhosp,
+                             type=fig_labs[3])) %>%
+      select(-starts_with("incid")) %>%
+      right_join(
+        bind_rows(county_dat %>%
+                    group_by(time, geoid, scenario)%>%     
+                    summarize(low=quantile(NincidCase,pi_lo),
+                              high=quantile(NincidCase,pi_hi),
+                              est=mean(NincidCase),
+                              type=fig_labs[1]),
+                  county_dat %>%
+                    group_by(time, geoid, scenario)%>%  
+                    summarize(low=quantile(NincidDeath,pi_lo),
+                              high=quantile(NincidDeath,pi_hi),
+                              est=mean(NincidDeath),
+                              type=fig_labs[2]),
+                  county_dat %>%
+                    group_by(time, geoid, scenario)%>%  
+                    summarize(low=quantile(NhospCurr,pi_lo),
+                              high=quantile(NhospCurr,pi_hi),
+                              est=mean(NhospCurr),
+                              type=fig_labs[3]))) %>%
+      ungroup() %>%
+      mutate(scenario = factor(scenario, 
+                               levels = c("Inference", "state_sip_jul", "state_sip_aug","county_sip_jul", "county_sip_aug"), 
+                               labels = c("Business as Usual", "Statewide SIP Jul 21","Statewide SIP Aug 5", "County Watchlist SIP Jul 21", "County Watchlist Aug 5")),
+             type = factor(type, levels = fig_labs[3:1]),
+             confirmed=if_else(confirmed==0, NA_real_, confirmed))
+  } else{
+    county_dat <- county_dat %>%
+      filter(time>=start_date, time<end_date)%>%
+      group_by(geoid, death_rate, sim_num, time=lubridate::floor_date(time, unit="week", week_start=3)) %>%
+      summarize(NincidCase=sum(NincidCase),
+                NincidDeath=sum(NincidDeath)) %>%
+      filter(time<max(time))
+    
+    county_truth <- county_truth %>%
+      group_by(geoid, time=lubridate::floor_date(date, unit="week", week_start=3)) %>%
+      summarize(incidI=sum(incidI),
+                incidDeath=sum(incidDeath)) %>%
+      filter(time<max(time))
+    
+    rc <- bind_rows(county_truth%>%
+                      mutate(confirmed=incidI,
+                             type=fig_labs[1]),
+                    county_truth%>%
+                      mutate(confirmed=incidDeath,
+                             type=fig_labs[2])) %>%
+      select(-starts_with("incid")) %>%
+      right_join(
+        bind_rows(county_dat %>%
+                    group_by(time, geoid, death_rate)%>%     
+                    summarize(low=quantile(NincidCase,pi_lo),
+                              high=quantile(NincidCase,pi_hi),
+                              est=mean(NincidCase),
+                              type=fig_labs[1]),
+                  county_dat %>%
+                    group_by(time, geoid, death_rate)%>%
+                    summarize(low=quantile(NincidDeath,pi_lo),
+                              high=quantile(NincidDeath,pi_hi),
+                              est=mean(NincidDeath),
+                              type=fig_labs[2]))) %>%
+      ungroup() %>%
+      mutate(death_rate = factor(death_rate, 
+                                 levels = death_levs, 
+                                 labels = death_labs),
+             type = factor(type, levels = fig_labs),
+             confirmed=if_else(confirmed==0, NA_real_, confirmed))
+  }
+  
+  rc %>%
+    group_by(type, scenario, geoid)%>%
+    filter(time<max(time))%>%
+    ungroup()%>%
+    filter(time>lubridate::ymd(start_date), time<lubridate::ymd(end_date))%>%
+    left_join(shapefile)%>%
+    ggplot(aes(x=time)) +
+    geom_line(aes(y=est, color=scenario)) +
+    geom_ribbon(alpha=0.1, aes(fill=scenario, ymin=low, ymax=high))+
+    geom_point(aes(y=confirmed), color="black") +
+    theme_bw()+
+    theme(panel.grid = element_blank(),
+          legend.title=element_blank(),
+          legend.position="bottom",
+          strip.background.x = element_blank(),
+          strip.background.y=element_rect(fill="white"),
+          strip.text.y =element_text(face="bold"))+
+    ylab("Counts")+
+    xlab("Time (weeks)")+ 
+    facet_grid(name~ type, scales="free") +
+    scale_y_log10()
+}
