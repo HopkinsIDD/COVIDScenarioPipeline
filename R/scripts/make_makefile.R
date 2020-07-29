@@ -183,13 +183,13 @@ report_html_make_command <- function(report_name, scenarios, simulations, deathr
   s <- paste0(s, " ", rmd_file,"\n")
 
   renderCmd = sprintf("\t$(RSCRIPT) -e 'rmarkdown::render(\"%s\"", rmd_file)
-  renderCmd = paste0(renderCmd, sprintf(", params=list(state_usps=\"%s\")", config$report$state_usps))
+  renderCmd = paste0(renderCmd, sprintf(", params=list(state_usps=\"%s\"", config$report$state_usps))
   if(length(config$report$continue_on_error) != 0)
   {
     renderCmd = paste0(renderCmd, 
                       sprintf(", continue_on_error=%s", config$report$continue_on_error))
   }
-  renderCmd = paste0(renderCmd, ")'")
+  renderCmd = paste0(renderCmd, "))'")
 
   s <- paste0(s, renderCmd, "\n")
   return(s)
