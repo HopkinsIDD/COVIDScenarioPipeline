@@ -270,7 +270,7 @@ load_spar_sims_filtered <- function(outcome_dir,
     select(sim_num, scenario, pdeath=death_rate, location_r, parameter, location)
   
   warning("Finished loading")
-  return(rc)
+  return(spar)
   
 }
 
@@ -306,6 +306,6 @@ load_snpi_sims_filtered <- function(outcome_dir,
     rename(pdeath=death_rate)
   
   warning("Finished loading")
-  return(rc)
+  return(spar)
   
 }
