@@ -860,14 +860,23 @@ load_hosp_geounit_relative_to_threshold <- function(county_dat,
 load_r_sims_filtered <- function(outcome_dir,
                                  partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
                                  name_filter=c("high", "med", "low"),
-                                 pre_process=function(x) {x}
+                                 pre_process=function(x) {x},
+                                 ...
 ) {
   
   require(tidyverse)
   
-  spar <- load_spar_sims_filtered(outcome_dir, pre_process=pre_process, name_filter)
+  spar <- load_spar_sims_filtered(outcome_dir=outcome_dir, 
+                                  pre_process=pre_process, 
+                                  name_filter=name_filter, 
+                                  partitions=partitions,
+                                  ...)
   
-  snpi<- load_snpi_sims_filtered(outcome_dir, pre_process=pre_process, name_filter)
+  snpi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
+                                 pre_process=pre_process, 
+                                 name_filter=name_filter, 
+                                 partitions=partitions,
+                                 ...)
   
   rc <- spar %>%
     right_join(snpi)%>%
