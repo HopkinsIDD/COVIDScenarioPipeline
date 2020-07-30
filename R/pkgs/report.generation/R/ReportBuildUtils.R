@@ -1944,6 +1944,9 @@ make_sparkline_tab_r <- function(r_dat,
     rename(Location=name)
   
   r_tab[is.na(r_tab)] <- ""
+  
+  # solution from https://stackoverflow.com/questions/61741440/is-there-a-way-to-embed-a-ggplot-image-dynamically-by-row-like-a-sparkline-usi
+  
   r_output <- tibble(r_tab,
                      ` ` = NA,
                      .rows = nrow(r_tab)) %>%
@@ -1967,8 +1970,6 @@ make_sparkline_tab_r <- function(r_dat,
                          cell_borders(sides="right")), 
               locations=cells_body(columns=vars(Location)))
 }
-
-make_r_sparkline_tab(test, npi_labels = unique(str_remove(test$npi_name, "[[A-Z]].+\\_")), npi_levels=unique(str_remove(test$npi_name, "[[A-Z]].+\\_")))
 
 ##' Sparkline table for intervention period effectiveness estimates 
 ##' 
@@ -2046,7 +2047,7 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
   color_values <- colorspace::darken(fill_values, 0.3)
   
   
-  # FIND SOURCE (github issue)
+  # solution from https://stackoverflow.com/questions/61741440/is-there-a-way-to-embed-a-ggplot-image-dynamically-by-row-like-a-sparkline-usi
   
   r_plot <- r_dat %>%
     filter(npi_name!="local_variance") %>%
@@ -2098,8 +2099,6 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
               locations=cells_body(columns=vars(Location)))
 }
 
-make_effect_sparkline_tab(test, npi_labels = unique(str_remove(test$npi_name, "[[A-Z]].+\\_")), npi_levels=unique(str_remove(test$npi_name, "[[A-Z]].+\\_")))
-
 
 ##' Time series comparing reported and estimated cases and deaths in each
 ##' geoid by pdeath or scenario; possible to show hospitalization data
@@ -2111,9 +2110,8 @@ make_effect_sparkline_tab(test, npi_labels = unique(str_remove(test$npi_name, "[
 ##' or pdeath 
 ##' @filter_val desired value of variable
 ##' @param var_levels 
-##' @param geo_name df with location names
-##' @param wh_ratio sparkline width:height ratio passed on to ggplot_image
-##' @param brewer_palette pallete name passed on to brewer.pal
+##' @param var_labels
+##' @param geodata df with location names
 ##' 
 ##' @return a table with the effectiveness per intervention period and a bar graph
 ##' 
@@ -2123,34 +2121,30 @@ make_effect_sparkline_tab(test, npi_labels = unique(str_remove(test$npi_name, "[
 ##'
 plot_truth_by_county <- function(truth_dat,
                                  county_dat,
-                                 hosp=FALSE, #county_truth must have current hospitalizations, with var_name "currhosp" if TRUE 
+                                 hosp=FALSE, #truth_dat must have current hospitalizations, with var_name "currhosp" if TRUE 
                                  filter_by,
                                  filter_val,
                                  var_levels,
                                  var_labels,
+                                 start_date,
+                                 end_date,
                                  geo_name=geodata,
-                                 pdeath_levs=pdeath_levels,
-                                 pdeath_labs=pdeath_labels){
+                                 fig_labs=c("Incident Cases", "Incident Deaths")
+){
   
   start_dat<-lubridate::ymd(start_date)
   end_date<-lubridate::ymd(end_date)
+  if(filter_by!="pdeath" & filter_by!="scenario") stop("You can only filter by 'pdeath' or 'scenario'")
   
-  fig_labs<-c("Incident Cases", "Incident Deaths")
-  group_var<-if_else(filter_by=="scenario", "pdeath", "scenario")
+  group_var<-if_else(filter_by=="pdeath", "scenario", "pdeath")
+  
   county_dat<-county_dat%>%
     filter(!!as.symbol(filter_by)==filter_val)%>%
-    group_by(geoid, !!as.symbol(filter_by), sim_num, time=lubridate::floor_date(time, unit="week", week_start=3))%>%
+    group_by(geoid, !!as.symbol(group_var), sim_num, time=lubridate::floor_date(time, unit="week", week_start=3))%>%
     summarize(NincidCase=sum(NincidCase, na.rm=TRUE),
               NincidDeath=sum(NincidDeath, na.rm=TRUE),
               NhospCurr=sum(NhospCurr, na.rm=TRUE)) %>%
     group_by(geoid) %>%
-    filter(time<max(time))
-  
-  county_truth <- county_truth %>%
-    group_by(geoid, time=lubridate::floor_date(date, unit="week", week_start=3)) %>%
-    summarize(incidI=sum(incidI, na.rm=TRUE),
-              incidDeath=sum(incidDeath, na.rm=TRUE)) %>%
-    group_by(geoid)%>%
     filter(time<max(time))
   
   if(hosp){
@@ -2158,7 +2152,7 @@ plot_truth_by_county <- function(truth_dat,
     if(length(fig_labs)!=3){
       fig_labs <- c("Incident Cases", "Incident Deaths", "Occupied Hospital Beds")
     }
-    county_truth <- county_truth %>%
+    truth_dat <- truth_dat %>%
       group_by(geoid, time=lubridate::floor_date(date, unit="week", week_start=3)) %>%
       summarize(incidI=sum(incidI, na.rm=TRUE),
                 incidDeath=sum(incidDeath, na.rm=TRUE),
@@ -2166,92 +2160,86 @@ plot_truth_by_county <- function(truth_dat,
       group_by(geoid)%>%
       filter(time<max(time))
     
-    rc <- bind_rows(county_truth%>%
+    rc <- bind_rows(truth_dat%>%
                       mutate(confirmed=incidI,
                              type=fig_labs[1]),
-                    county_truth%>%
+                    truth_dat%>%
                       mutate(confirmed=incidDeath,
                              type=fig_labs[2]),
-                    county_truth%>%
+                    truth_dat%>%
                       mutate(confirmed=currhosp,
                              type=fig_labs[3])) %>%
       select(-starts_with("incid")) %>%
       right_join(
         bind_rows(county_dat %>%
-                    group_by(time, geoid, scenario)%>%     
+                    group_by(time, geoid, !!as.symbol(group_var))%>%     
                     summarize(low=quantile(NincidCase,pi_lo),
                               high=quantile(NincidCase,pi_hi),
                               est=mean(NincidCase),
                               type=fig_labs[1]),
                   county_dat %>%
-                    group_by(time, geoid, scenario)%>%  
+                    group_by(time, geoid, !!as.symbol(group_var))%>%  
                     summarize(low=quantile(NincidDeath,pi_lo),
                               high=quantile(NincidDeath,pi_hi),
                               est=mean(NincidDeath),
                               type=fig_labs[2]),
                   county_dat %>%
-                    group_by(time, geoid, scenario)%>%  
+                    group_by(time, geoid, !!as.symbol(group_var))%>%  
                     summarize(low=quantile(NhospCurr,pi_lo),
                               high=quantile(NhospCurr,pi_hi),
                               est=mean(NhospCurr),
                               type=fig_labs[3]))) %>%
       ungroup() %>%
-      mutate(scenario = factor(scenario, 
-                               levels = c("Inference", "state_sip_jul", "state_sip_aug","county_sip_jul", "county_sip_aug"), 
-                               labels = c("Business as Usual", "Statewide SIP Jul 21","Statewide SIP Aug 5", "County Watchlist SIP Jul 21", "County Watchlist Aug 5")),
+      mutate(var = factor(!!as.symbol(group_var), 
+                          levels = var_levels, 
+                          labels = var_labels),
              type = factor(type, levels = fig_labs[3:1]),
              confirmed=if_else(confirmed==0, NA_real_, confirmed))
   } else{
-    county_dat <- county_dat %>%
-      filter(time>=start_date, time<end_date)%>%
-      group_by(geoid, death_rate, sim_num, time=lubridate::floor_date(time, unit="week", week_start=3)) %>%
-      summarize(NincidCase=sum(NincidCase),
-                NincidDeath=sum(NincidDeath)) %>%
-      filter(time<max(time))
     
-    county_truth <- county_truth %>%
+    truth_dat <- truth_dat %>%
       group_by(geoid, time=lubridate::floor_date(date, unit="week", week_start=3)) %>%
       summarize(incidI=sum(incidI),
                 incidDeath=sum(incidDeath)) %>%
       filter(time<max(time))
     
-    rc <- bind_rows(county_truth%>%
+    rc <- bind_rows(truth_dat%>%
                       mutate(confirmed=incidI,
                              type=fig_labs[1]),
-                    county_truth%>%
+                    truth_dat%>%
                       mutate(confirmed=incidDeath,
                              type=fig_labs[2])) %>%
       select(-starts_with("incid")) %>%
       right_join(
         bind_rows(county_dat %>%
-                    group_by(time, geoid, death_rate)%>%     
+                    group_by(time, geoid, !!as.symbol(group_var))%>%     
                     summarize(low=quantile(NincidCase,pi_lo),
                               high=quantile(NincidCase,pi_hi),
                               est=mean(NincidCase),
                               type=fig_labs[1]),
                   county_dat %>%
-                    group_by(time, geoid, death_rate)%>%
+                    group_by(time, geoid, !!as.symbol(group_var))%>%
                     summarize(low=quantile(NincidDeath,pi_lo),
                               high=quantile(NincidDeath,pi_hi),
                               est=mean(NincidDeath),
                               type=fig_labs[2]))) %>%
       ungroup() %>%
-      mutate(death_rate = factor(death_rate, 
-                                 levels = death_levs, 
-                                 labels = death_labs),
+      mutate(var = factor(!!as.symbol(group_var), 
+                          levels = var_levels, 
+                          labels = var_labels),
              type = factor(type, levels = fig_labs),
              confirmed=if_else(confirmed==0, NA_real_, confirmed))
   }
   
   rc %>%
-    group_by(type, scenario, geoid)%>%
+    group_by(type, var, geoid)%>%
     filter(time<max(time))%>%
     ungroup()%>%
     filter(time>lubridate::ymd(start_date), time<lubridate::ymd(end_date))%>%
     left_join(shapefile)%>%
     ggplot(aes(x=time)) +
-    geom_line(aes(y=est, color=scenario)) +
-    geom_ribbon(alpha=0.1, aes(fill=scenario, ymin=low, ymax=high))+
+    geom_line(aes(y=est, color=var)) +
+    geom_ribbon(alpha=0.1, aes(fill=var, ymin=low, ymax=high))+
     geom_point(aes(y=confirmed), color="black") +
     theme_bw()+
     theme(panel.grid = element_blank(),
