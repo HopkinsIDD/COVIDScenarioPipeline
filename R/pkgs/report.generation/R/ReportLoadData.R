@@ -780,18 +780,16 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
 }
 
 
-##' Convenience function to load hosp data and display log proportion
+##' Convenience function to display log proportion  
 ##'
-##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
+##' @param county_dat df with disaggregated hosp outcomes
 ##' @param threshold A named numeric vector where the names are geoids and values are thresholds
 ##' @param variable character string of variable to which to compare threshold
 ##' @param end_date simulation end date character string
-##' @param name_filter pdeath character string (high, med, low)
-##' @param num_files number of files to read in or NA
+##' @param name_filter pdeath character string one of: high, med, low
 ##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
+##' @param scenario_levels config$report$formatting$scenario_labels_short character vector of scenario levels
 ##' @param scenario_labels config$report$formatting$scenario_labels character vector of scenario labels
-##' @param geoid_len required length of geoid
-##' @param padding_char padding
 ##' 
 ##' @return a data frame with columns
 ##'         - scenario_name
@@ -804,19 +802,15 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
 ##'         - prop_needed ratio of needed beds/ventilators relative to threshold value
 ##'         - log_prop_needed log ratio of needed beds/ventilators with plotting edits on the borders
 ##' @export
-load_hosp_geounit_relative_to_threshold <- function(
-                      scn_dirs,
-                      threshold,
-                      variable,
-                      end_date = config$end_date,
-                      name_filter,
-                      num_files = NA,
-                      incl_geoids = NULL,
-                      scenario_labels = NULL,
-                      geoid_len = 0,
-                      padding_char = "0",
-                      file_extension = 'auto'
-                      ){
+load_hosp_geounit_relative_to_threshold <- function(county_dat,
+                                                    threshold,
+                                                    variable,
+                                                    scenario_levels,
+                                                    scenario_labels,
+                                                    end_date = config$end_date,
+                                                    incl_geoids=NULL,
+                                                    deathRate
+                                                    ){
 
   if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
     catch_all_threshold <- Inf
@@ -828,40 +822,13 @@ load_hosp_geounit_relative_to_threshold <- function(
   }
 
   end_date <- lubridate::as_date(end_date)
-
-  if(!is.null(incl_geoids)){
-    hosp_post_process <- function(x){
-      x %>%
-        dplyr::filter(!is.na(time), geoid %in% incl_geoids) %>%
-        dplyr::filter(time <= end_date)  
-    }
-  } else{
-    hosp_post_process <- function(x){
-      x %>%
-        dplyr::filter(!is.na(time)) %>%
-        dplyr::filter(time <= end_date)  
-    }
-  }
-
-  rc <- list(length=length(scn_dirs))
-  for (i in 1:length(scn_dirs)) {
-      rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
-                                         num_files = num_files,
-                                         name_filter = name_filter,
-                                         post_process = hosp_post_process,
-                                         geoid_len = geoid_len,
-                                         padding_char = padding_char,
-                                         file_extension = file_extension)
-      rc[[i]]$scenario_num <- i
-      rc[[i]]$scenario_label <- scenario_labels[[i]]
-  }
-
-  rc %>% 
-    dplyr::bind_rows() %>%
-    group_by(scenario_label, geoid, time) %>%
-    dplyr::summarise(NhospCurr = round(mean(hosp_curr)),
-                     NICUCurr = round(mean(icu_curr)),
-                     NVentCurr = round(mean(vent_curr))) %>%
+  
+  if(is.null(incl_geoids)){incl_geoids<-unique(county_dat$geoid)}
+  
+  county_dat %>% 
+    dplyr::filter(time<=end_date) %>%
+    dplyr::filter(pdeath==deathRate) %>%
+    dplyr::mutate(scenario_label=factor(scenario, levels= scenario_levels, labels=scenario_labels)) %>%
     ungroup %>%
     left_join(data.frame(geoid = names(threshold), threshold_value = threshold), by = c("geoid")) %>%
     dplyr::rename(pltVar = !!variable) %>%

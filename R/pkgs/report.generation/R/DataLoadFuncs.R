@@ -137,7 +137,6 @@ load_hosp_sims_filtered <- function(outcome_dir,
 ) {
   
   require(tidyverse)
-  require(foreach)
   
   rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                           partitioning = partitions) %>%
