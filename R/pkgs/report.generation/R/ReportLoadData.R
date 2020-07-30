@@ -865,29 +865,9 @@ load_r_sims_filtered <- function(outcome_dir,
   
   require(tidyverse)
   
-  spar <- arrow::open_dataset(file.path(outcome_dir,'spar'), 
-                              partitioning = partitions) %>%
-    filter(parameter=="R0",
-           is_final=="final") %>%
-    filter(death_rate %in% name_filter) %>%
-    pre_process()%>%
-    collect() %>% 
-    group_by(scenario)%>%
-    mutate(sim_num = order(sim_id),
-           parameter="r0") %>%
-    rename(location_r = value) %>%
-    select(sim_num, scenario, pdeath=death_rate, location_r, parameter, location)
+  spar <- load_spar_sims_filtered(outcome_dir, pre_process=pre_process, name_filter)
   
-  snpi<- arrow::open_dataset(file.path(outcome_dir,'snpi'), 
-                             partitioning = partitions) %>%
-    filter(is_final=="final") %>%
-    filter(death_rate %in% name_filter) %>%
-    pre_process()%>%
-    collect() %>%
-    group_by(geoid, npi_name, scenario)%>%
-    mutate(sim_num = order(sim_id)) %>%
-    select(-date, -lik_type, -is_final, -sim_id) %>%
-    rename(pdeath=death_rate)
+  snpi<- load_snpi_sims_filtered(outcome_dir, pre_process=pre_process, name_filter)
   
   rc <- spar %>%
     right_join(snpi)%>%
