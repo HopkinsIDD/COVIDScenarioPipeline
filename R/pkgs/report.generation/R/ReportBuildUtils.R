@@ -1452,7 +1452,7 @@ boxplot_by_timeperiod <- function(df,
 ##' Compare model outputs and data from CSSE
 ##' 
 ##' @param state_hosp_totals state hosp data frame
-##' @param jhu_obs_dat dataframe with CSSE data
+##' @param jhu_obs_dat dataframe with case data NincidConfirmed and NincidDeathsObs
 ##' @param scenario_labels character vector with scenario labels
 ##' @param scenario_cols character vector with scenario colors
 ##' @param pdeath_level IFR level assumption
@@ -1462,7 +1462,7 @@ boxplot_by_timeperiod <- function(df,
 ##' @param date_breaks breaks for dates in figure
 ##' @param sim_start_date simulation start date
 ##' @param sim_end_date simulation end date
-##' @param assumed_reporting_rate assumed reporting rate (0.2 means 20% of infections are reported cases)
+##' @param week whether to aggregate values to weeks
 ##' 
 ##' @export
 plot_model_vs_obs <- function(state_hosp_totals,
@@ -1475,8 +1475,8 @@ plot_model_vs_obs <- function(state_hosp_totals,
                               ci.U = 1,
                               date_breaks = "1 month",
                               sim_start_date,
-                              sim_end_date, 
-                              assumed_reporting_rate) {
+                              sim_end_date,
+                              week=FALSE) {
 
   state_hosp_totals <-
     state_hosp_totals %>%
@@ -1493,15 +1493,19 @@ plot_model_vs_obs <- function(state_hosp_totals,
   
   state_inf_summary <-
     state_hosp_totals %>%
+    {if(week) group_by(.,date=lubridate::floor_date(date, "weeks", 3), scenario_name, sim_num) %>%
+        dplyr::summarize(NincidInf=sum(NincidInf),
+                         NincidCase=sum(NincidCase))
+      else(.)}%>%
     group_by(date, scenario_name) %>%
     dplyr::summarize(ci_lower_incid_inf = quantile(NincidInf, ci.L),
                      ci_upper_incid_inf = quantile(NincidInf, ci.U),
                      mean_incid_inf = mean(NincidInf),
                      median_incid_inf = median(NincidInf),
-                     ci_lower_incid_cas = quantile(assumed_reporting_rate*NincidInf, ci.L),
-                     ci_upper_incid_cas = quantile(assumed_reporting_rate*NincidInf, ci.U),
-                     mean_incid_cas = mean(assumed_reporting_rate*NincidInf),
-                     median_incid_cas = median(assumed_reporting_rate*NincidInf)) 
+                     ci_lower_incid_cas = quantile(NincidCase, ci.L),
+                     ci_upper_incid_cas = quantile(NincidCase, ci.U),
+                     mean_incid_cas = mean(NincidCase),
+                     median_incid_cas = median(NincidCase)) 
   
   ### Incidence of infections plot
   incid_infections_plot <-
@@ -1529,6 +1533,9 @@ plot_model_vs_obs <- function(state_hosp_totals,
   
   state_death_summary <-
     state_hosp_totals %>%
+    {if(week) group_by(.,date=lubridate::floor_date(date, "weeks", 3), scenario_name, sim_num) %>%
+        dplyr::summarize(NincidDeath=sum(NincidDeath))
+      else(.)}%>%
     group_by(date, scenario_name) %>%
     dplyr::summarize(ci_lower_incid_death = quantile(NincidDeath, ci.L),
                      ci_upper_incid_death = quantile(NincidDeath, ci.U),
