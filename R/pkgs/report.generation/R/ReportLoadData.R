@@ -845,3 +845,61 @@ load_hosp_geounit_relative_to_threshold <- function(county_dat,
 
 }
 
+##' Convenience function for loading intervention effect and R estimates 
+##' 
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param partitions used by open_dataset 
+##' @param name_filter string that indicates which pdeath to import from outcome_dir
+##' @param pre_process function that does processing before collectio
+##' 
+##' @return a combined data frame of all R simulations with filters applied pre merge.
+##' 
+##'
+##'
+##'@export
+load_r_sims_filtered <- function(outcome_dir,
+                                 partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
+                                 name_filter=c("high", "med", "low"),
+                                 pre_process=function(x) {x}
+) {
+  
+  require(tidyverse)
+  
+  spar <- arrow::open_dataset(file.path(outcome_dir,'spar'), 
+                              partitioning = partitions) %>%
+    filter(parameter=="R0",
+           is_final=="final") %>%
+    filter(death_rate %in% name_filter) %>%
+    pre_process()%>%
+    collect() %>% 
+    group_by(scenario)%>%
+    mutate(sim_num = order(sim_id),
+           parameter="r0") %>%
+    rename(location_r = value) %>%
+    select(sim_num, scenario, pdeath=death_rate, location_r, parameter, location)
+  
+  snpi<- arrow::open_dataset(file.path(outcome_dir,'snpi'), 
+                             partitioning = partitions) %>%
+    filter(is_final=="final") %>%
+    filter(death_rate %in% name_filter) %>%
+    pre_process()%>%
+    collect() %>%
+    group_by(geoid, npi_name, scenario)%>%
+    mutate(sim_num = order(sim_id)) %>%
+    select(-date, -lik_type, -is_final, -sim_id) %>%
+    rename(pdeath=death_rate)
+  
+  rc <- spar %>%
+    right_join(snpi)%>%
+    filter(npi_name=="local_variance") %>%
+    mutate(local_r = location_r*(1-reduction)) %>% # county_r0 ought to be renamed to "geogroup_r0"
+    select(geoid, sim_num, local_r, scenario) %>%
+    left_join(snpi) %>%
+    mutate(r = if_else(npi_name=="local_variance",
+                       local_r,
+                       local_r*(1-reduction)))
+  
+  warning("Finished loading")
+  return(rc)
+  
+}
