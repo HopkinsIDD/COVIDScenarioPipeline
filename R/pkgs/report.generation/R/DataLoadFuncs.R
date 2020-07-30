@@ -306,6 +306,6 @@ load_snpi_sims_filtered <- function(outcome_dir,
     rename(pdeath=death_rate)
   
   warning("Finished loading")
-  return(spar)
+  return(snpi)
   
 }
