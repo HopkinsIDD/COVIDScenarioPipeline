@@ -235,7 +235,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
   
 }
 
-##' Wrapper function for loading spar and snpi files with open_dataset
+##' Wrapper function for loading spar files with open_dataset
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param partitions used by open_dataset 
@@ -247,10 +247,11 @@ load_hpar_sims_filtered <- function(outcome_dir,
 ##'
 ##'
 ##'@export
-load_r_sims_filtered <- function(outcome_dir,
-                                 partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
-                                 name_filter=c("high", "med", "low"),
-                                 pre_process=function(x) {x}
+load_spar_sims_filtered <- function(outcome_dir,
+                                    
+                                    partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
+                                    name_filter=c("high", "med", "low"),
+                                    pre_process=function(x) {x}
 ) {
   
   require(tidyverse)
@@ -268,6 +269,31 @@ load_r_sims_filtered <- function(outcome_dir,
     rename(location_r = value) %>%
     select(sim_num, scenario, pdeath=death_rate, location_r, parameter, location)
   
+  warning("Finished loading")
+  return(rc)
+  
+}
+
+##' Wrapper function for loading spar files with open_dataset
+##' 
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param partitions used by open_dataset 
+##' @param name_filter string that indicates which pdeath to import from outcome_dir
+##' @param pre_process function that does processing before collectio
+##' 
+##' @return a combined data frame of all R simulations with filters applied pre merge.
+##' 
+##'
+##'
+##'@export
+load_snpi_sims_filtered <- function(outcome_dir,
+                                    partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
+                                    name_filter=c("high", "med", "low"),
+                                    pre_process=function(x) {x}
+) {
+  
+  require(tidyverse)
+  
   snpi<- arrow::open_dataset(file.path(outcome_dir,'snpi'), 
                              partitioning = partitions) %>%
     filter(is_final=="final") %>%
@@ -278,16 +304,6 @@ load_r_sims_filtered <- function(outcome_dir,
     mutate(sim_num = order(sim_id)) %>%
     select(-date, -lik_type, -is_final, -sim_id) %>%
     rename(pdeath=death_rate)
-  
-  rc <- spar %>%
-    right_join(snpi)%>%
-    filter(npi_name=="local_variance") %>%
-    mutate(local_r = location_r*(1-reduction)) %>% # county_r0 ought to be renamed to "geogroup_r0"
-    select(geoid, sim_num, local_r, scenario) %>%
-    left_join(snpi) %>%
-    mutate(r = if_else(npi_name=="local_variance",
-                       local_r,
-                       local_r*(1-reduction)))
   
   warning("Finished loading")
   return(rc)
