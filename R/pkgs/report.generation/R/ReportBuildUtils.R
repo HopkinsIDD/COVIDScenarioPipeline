@@ -2326,7 +2326,7 @@ plot_rt_ts <- function(outcome_dir,
     calcR0(geodata=geodata, by_geoid=FALSE) %>%
     mutate(scenario="USA Facts")
   
-  bind_rows(rc, truth) %>%
+  bind_rows(rc, truth_dat) %>%
     mutate(`Based on`=factor(scenario, 
                              levels=c(scenario_levels, "USA Facts"),
                              labels=c(scenario_labels, "USA Facts confirmed cases"))) %>%
