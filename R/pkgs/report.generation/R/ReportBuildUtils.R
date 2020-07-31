@@ -2255,8 +2255,95 @@ plot_truth_by_county <- function(truth_dat,
           strip.background.x = element_blank(),
           strip.background.y=element_rect(fill="white"),
           strip.text.y =element_text(face="bold"))+
-    ylab("Counts")+
+    ylab("Counts (log scale)")+
     xlab("Time (weeks)")+ 
     facet_grid(name~ type, scales="free") +
     scale_y_log10()
+}
+
+##' Time series comparing Rt estimates by scenario over time
+##' @param outcome_dir directory with spar/snpi folders
+##' @param truth_dat df with date, geoid, incidI, incidDeath
+##' @param scenario_colors
+##' @param scenario_levels
+##' @param scenario_labels
+##' @param start_date
+##' @param end_date
+##' @geo_data
+##' @pi_lo
+##' @pi_hi
+##' 
+##' @return a table with the effectiveness per intervention period and a bar graph
+##' 
+##'
+##'
+##'@export
+##'
+
+plot_rt_ts <- function(outcome_dir, 
+                       truth_dat,
+                       scenario_colors,
+                       scenario_levels,
+                       scenario_labels,
+                       start_date,
+                       end_date, 
+                       geo_dat=geodata,
+                       pi_lo=0.025,
+                       pi_hi=0.975
+){
+  start_date<-as.Date(start_date)
+  end_date<-as.Date(end_date)
+  
+  geoiddate<-crossing(geoid=geo_dat$geoid, date=seq(start_date, end_date, by=1))
+  
+  rc<-list()
+  for(i in 1:length(scenario_levels)){
+    rc[[i]]<-load_r_sims_filtered(runs_folder,
+                                  pre_process=function(x){filter(x, scenario==scenario_levels[i])}) %>%
+      mutate(end_date=if_else(npi_name=="local_variance", 
+                              lead(start_date)-1, 
+                              end_date)) %>%
+      left_join(geoiddate)%>%
+      mutate(r=if_else(date<start_date | date>end_date, NA_real_, r)) %>% 
+      drop_na()
+  }
+  
+  rc<-bind_rows(rc) %>%
+    left_join(geodata)%>%
+    group_by(scenario, date) %>%
+    mutate(weight=pop2010/sum(pop2010)) %>% # count
+    summarize(estimate=Hmisc::wtd.mean(r, weights=weight, normwt=TRUE),
+              lower=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_lo),
+              upper=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_hi))
+  
+  truth_dat<-truth_dat%>%
+    group_by(date)%>% 
+    summarize(NincidConfirmed=sum(incidI), 
+              NincidDeathsObs=sum(incidDeath),
+              cum_inf=sum(Confirmed)) %>% 
+    filter(cum_inf!=0)%>%
+    select(-cum_inf)%>%
+    calcR0(geodata=geodata, by_geoid=FALSE) %>%
+    mutate(scenario="USA Facts")
+  
+  bind_rows(rc, truth) %>%
+    mutate(`Based on`=factor(scenario, 
+                             levels=c(scenario_levels, "USA Facts"),
+                             labels=c(scenario_labels, "USA Facts confirmed cases"))) %>%
+    ggplot(aes(x=date, y=estimate, ymin=lower, ymax=upper))+
+    geom_line(aes(col=`Based on`), size=0.75)+
+    geom_ribbon(aes(fill=`Based on`), alpha=0.12) +
+    geom_hline(yintercept = 1, col="black", alpha=0.6) +
+    scale_y_continuous(trans="log1p") +
+    scale_x_date(breaks="1 month", date_labels="%b")+
+    scale_color_manual("Scenario",
+                       values = c(scenario_colors, "red")) +
+    scale_fill_manual("Scenario",
+                      values = c(scenario_colors, "red")) +
+    theme_bw() +
+    ylab("Effective reproduction number (Rt)")+
+    xlab("Time")+
+    theme(legend.position= "bottom",
+          panel.grid=element_blank()) +
+    guides(col=guide_legend(nrow=2))
 }
