@@ -8,17 +8,17 @@ setwd("~/COVIDWorking")
 opt <- list()
 
 opt$jobs <- 20
-opt$forecast_date <- "2020-07-05"
-opt$end_date <- "2020-08-08"
+opt$forecast_date <- "2020-07-26"
+opt$end_date <- "2020-08-29"
 opt$geodata <- "geodata_territories.csv"
 opt$death_filter <- "low"
 opt$num_simulationsulations <- 2000
-opt$outfile <- "2020-07-05-JHU_IDD-CovidSP_low.csv"
+opt$outfile <- "2020-07-26-JHU_IDD-CovidSP_low_v2.csv"
 opt$include_hosp <- TRUE
 
 arguments<- list()
-arguments$args <- "usa_runs_2020-7-6"
-#arguments$args <- "usa_runs_2020-06-18_mergedinfer"
+# arguments$args <- "usa_runs_2020-7-27"
+arguments$args <- "usa_runs_2020-7-28"
 
 opt$reichify <-TRUE
 
@@ -32,8 +32,8 @@ res_geoid <- arrow::open_dataset(sprintf("%s/hosp",arguments$args),
                                  partitioning =c("location", 
                                                  "scenario", 
                                                  "death_rate", 
-                                                 "date", "
-                                                 lik_type", 
+                                                 "date", 
+                                                 "lik_type", 
                                                  "is_final", 
                                                  "sim_id"))%>%
   select(time, geoid, incidD, incidH, incidC, death_rate, sim_id)%>%
@@ -416,6 +416,11 @@ if (opt$reichify) {
   full_forecast <- dplyr::bind_rows( weekly_inc_deaths,
                                      cum_deaths,
                                      weekly_inc_cases)
+  
+  reich_locs <- read_csv("https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-locations/locations.csv")
+  
+  full_forecast <- full_forecast%>%
+    filter(location%in%reich_locs$location)
   
   if(opt$include_hosp) {
     full_forecast<- dplyr::bind_rows(full_forecast,
