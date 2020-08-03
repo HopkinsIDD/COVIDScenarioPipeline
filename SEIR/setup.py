@@ -26,6 +26,10 @@ class SpatialSetup:
         if popnodes_key not in self.data:
             raise ValueError(f"popnodes_key: {popnodes_key} does not correspond to a column in geodata.");
         self.popnodes = self.data[popnodes_key].to_numpy() # population
+        if len(np.argwhere(self.popnodes == 0)):
+            raise ValueError(f"There are {len(np.argwhere(self.popnodes == 0))} nodes with population zero, this is not supported.")
+
+        print(self.popnodes)
 
         # nodenames_key is the name of the column in geodata_file with geoids
         if nodenames_key not in self.data:
