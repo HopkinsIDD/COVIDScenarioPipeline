@@ -65,7 +65,7 @@ class SpatialSetup:
                 errmsg += f"\n({r}, {c}) = {self.mobility[r,c]} > population of '{self.nodenames[r]}' = {self.popnodes[r]}"
             raise ValueError(f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}")
         
-        if ((self.popnodes - self.mobility.sum(axis=0)) < 0).any():
+        if ((self.popnodes - np.squeeze(np.asarray(self.mobility.sum(axis=1)))) < 0).any():
             index_error = (self.popnodes - np.squeeze(np.asarray(self.mobility.sum(axis=1)))) < 0
             raise ValueError(f'The mobility amount exiting node(s) {[self.nodenames[i] for i, nd in enumerate(index_error) if nd]} exceed the population of these nodes')
 
