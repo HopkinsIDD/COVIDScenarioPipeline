@@ -40,7 +40,13 @@ cat("\n")
 
 using_importation <- ("importation" %in% names(config))
 generating_report <- ("report" %in% names(config))
-building_US_setup <- (("modeled_states" %in% names(config$spatial_setup)) & (is.null(config$spatial_setup$us_model) || config$spatial_setup$us_model==TRUE))
+if(is.null(config$spatial_setup$us_model)) {
+  config$spatial_setup$us_model <- FALSE
+  if("modeled_states" %in% names(config$spatial_setup)){
+    config$spatial_setup$us_model <- TRUE
+  }
+}
+building_US_setup <- config$spatial_setup$us_model
 file_prefix <- ifelse(use_file_prefix, config$spatial_setup$setup_name, "") # prefix of file names 
 
 if(generating_report)
@@ -358,7 +364,7 @@ clean_location_setup:
 }else{
 cat(paste0("
 clean_location_setup:
-\trm -f ", build_location_setup_target_name(), " ", geodata_name()
+\techo 'NOT REMOVING ANYTHING'"
 ))
 }
 
