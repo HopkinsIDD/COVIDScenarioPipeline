@@ -1158,7 +1158,7 @@ fig_counter<-fig_counter+1
 
 ### Summary
 
-`r paste0("**Tab.", tab_counter, "**: State summary across ", length(config$report$formatting$display_dates)+1, " time periods for 1% IFR assumptions.")`
+`r paste0("**Tab.", tab_counter, "**: State summary across ", length(config$report$formatting$display_dates), " time periods for 1% IFR assumptions.")`
 
 ```{r sum_tab_func}  
 
@@ -1530,7 +1530,7 @@ cap<- paste0("**Fig. ", fig_counter, "** Modeled cases and deaths versus actual 
 
 ## Appendix 1: County Estimates  
 
-`r paste0("**Tab.", tab_counter, "** Summary estimates across counties for the June 1-July 15 time period for all IFR assumptions.")`  
+`r paste0("**Tab.", tab_counter, "** Summary estimates across counties for the "format(short_start,"%B %d"),"-", format(short_end,"%B %d")," time period for all IFR assumptions.")`  
 ```{r county_tab_all}
 
 plot_county_sum(county_dat=res_state,
