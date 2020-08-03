@@ -2347,3 +2347,125 @@ plot_rt_ts <- function(outcome_dir,
           panel.grid=element_blank()) +
     guides(col=guide_legend(nrow=2))
 }
+
+##' Plot ratio of outcomes 
+##' @param outcome_dir directory with spar/snpi folders
+##' @param truth_dat df with date, geoid, incidI, incidDeath
+##' @param scenario_colors
+##' @param scenario_levels
+##' @param scenario_labels
+##' @param start_date
+##' @param end_date
+##' @geo_data
+##' @pi_lo
+##' @pi_hi
+##' 
+##' @return a table with the effectiveness per intervention period and a bar graph
+##' 
+##'
+##'
+##'@export
+##'
+
+
+plot_scn_outcomes_ratio<-function(hosp_state_totals,
+                                  start_date,
+                                  end_date,
+                                  deathRate,
+                                  scenario_labels, 
+                                  scenario_levels,
+                                  scenario_cols,
+                                  pi_lo,
+                                  pi_hi){
+  
+  start_date<-lubridate::ymd(start_date)
+  end_date<-lubridate::ymd(end_date)
+  
+  dat_long<- state_hosp_totals %>%
+    filter(time<=end_date,
+           time>=start_date,
+           pdeath==deathRate) %>%
+    group_by(scenario, pdeath, sim_num) %>%
+    summarize(AvghospCurr=mean(NhospCurr),
+              AvgICUCurr=mean(NICUCurr), 
+              NincidHosp=sum(NincidHosp),
+              NincidICU=sum(NincidICU),
+              AvgincidDeath=mean(NincidDeath),
+              NincidDeath=sum(NincidDeath),
+              AvgincidCase=mean(NincidCase),
+              NincidCase=sum(NincidInf)) %>%
+    mutate(scenario=factor(scenario, levels=scenario_levels,
+                           labels=scenario_labels))
+  
+  scn_names<-scenario_labels[-1]
+  dat_wide<-list()
+  for(i in 1:length(scn_names)){
+    dat_wide[[i]]<-dat_long %>%
+      filter(scenario==scn_names[i]|scenario==scenario_labels[1]) %>%
+      arrange(scenario) %>%
+      group_by(sim_num) %>%
+      mutate_if(is.numeric, function(x){x/lag(x)}) %>%
+      drop_na() %>%
+      group_by(scenario) %>%
+      summarize(AvghospCurr_lo=quantile(AvghospCurr, pi_lo),
+                AvghospCurr_hi=quantile(AvghospCurr, pi_hi),
+                AvghospCurr=mean(AvghospCurr),
+                NincidHosp_lo=quantile(NincidHosp, pi_lo),
+                NincidHosp_hi=quantile(NincidHosp, pi_hi),
+                NincidHosp=mean(NincidHosp),
+                AvgICUCurr_lo=quantile(AvgICUCurr, pi_lo),
+                AvgICUCurr_hi=quantile(AvgICUCurr, pi_hi),
+                AvgICUCurr=mean(AvgICUCurr),
+                NincidICU_lo=quantile(NincidICU, pi_lo),
+                NincidICU_hi=quantile(NincidICU, pi_hi),
+                NincidICU=mean(NincidICU),
+                AvgincidDeath_lo=quantile(AvgincidDeath, pi_lo),
+                AvgincidDeath_hi=quantile(AvgincidDeath, pi_hi),
+                AvgincidDeath=mean(AvgincidDeath),
+                NincidDeath_lo=quantile(NincidDeath, pi_lo),
+                NincidDeath_hi=quantile(NincidDeath, pi_hi),
+                NincidDeath=mean(NincidDeath),
+                AvgincidCase_lo=quantile(AvgincidCase, pi_lo),
+                AvgincidCase_hi=quantile(AvgincidCase, pi_hi),
+                AvgincidCase=mean(AvgincidCase),
+                NincidCase_lo=quantile(NincidCase, pi_lo),
+                NincidCase_hi=quantile(NincidCase, pi_hi),
+                NincidCase=mean(NincidCase))
+  }
+  
+  plt_dat<-dat_wide %>%
+    bind_rows() %>%
+    pivot_longer(cols=AvghospCurr_lo:NincidCase) %>%
+    mutate(var=case_when(str_detect(name, "Avghosp")~"Daily average of occupied hospital beds", 
+                         str_detect(name, "incidHosp")~"Total hospital admissions",
+                         str_detect(name, "AvgICU") ~ "Daily average of occupied ICU beds",
+                         str_detect(name, "incidICU") ~ "Total ICU admissions",
+                         str_detect(name, "AvgincidDeath") ~ "Daily average deaths",
+                         str_detect(name, "NincidDeath") ~ "Total deaths",
+                         str_detect(name, "AvgincidCase") ~ "Daily average cases",
+                         str_detect(name, "NincidCase")~ "Total cases"),
+           var=factor(var, levels=c("Daily average cases", "Total cases",
+                                    "Daily average of occupied hospital beds", "Total hospital admissions",
+                                    "Daily average of occupied ICU beds", "Total ICU admissions",
+                                    "Daily average deaths", "Total deaths")),
+           name=case_when(str_detect(name, "_lo")~"lower",
+                          str_detect(name, "_hi")~"upper", 
+                          TRUE~"estimate")) %>%
+    pivot_wider(names_from=name, values_from=value)
+  
+  plt_dat %>%
+    ggplot()+
+    #geom_col(aes(x=estimate, y=var, fill=scenario), position=position_dodge(0.75), width=1) +
+    geom_point(aes(x=estimate, y=var, col=scenario), position=position_dodge(0.75))+
+    geom_linerange(aes(xmin=lower, xmax=upper, y=var, group=scenario, col=scenario), position=position_dodge(0.75)) +
+    theme_bw() +
+    xlab(paste0('Relative to "', scenario_labels[1], '" scenario')) +
+    ylab(paste0("Summarized outcomes from ", format(start_date, "%B %d"),"-",format(end_date, "%B %d"))) +
+    scale_color_manual("Scenario",
+                       values = scenario_cols) +
+    scale_x_continuous(trans="log1p", breaks = c(0, 0.5, 1, 2, 3, 6, 9))+
+    theme(legend.position="bottom") +
+    geom_vline(xintercept=1)
+}
+
+
