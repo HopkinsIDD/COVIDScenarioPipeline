@@ -65,9 +65,14 @@ class SpatialSetup:
                 errmsg += f"\n({r}, {c}) = {self.mobility[r,c]} > population of '{self.nodenames[r]}' = {self.popnodes[r]}"
             raise ValueError(f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}")
         
-        tmp = (self.popnodes - np.squeeze(np.asarray(self.mobility.sum(axis=1)))) < 0
+        tmp = self.popnodes - np.squeeze(np.asarray(self.mobility.sum(axis=1)))
+        tmp[tmp > 0] = 0
         if tmp.any():
-            raise ValueError(f'The mobility amount exiting node(s) {[self.nodenames[i] for i, nd in enumerate(tmp) if nd]} exceed the population of these nodes')
+            row, = np.where(tmp)
+            errmsg = ""
+            for r in row:
+                errmsg += f"\n sum accross row {r} exceed population of node '{self.nodenames[r]}' ({self.popnodes[r]}), by {-tmp[r]}"
+            raise ValueError(f'The following rows in the mobility data exceed the source node populations in geodata:{errmsg}')
 
 
 class Setup:
