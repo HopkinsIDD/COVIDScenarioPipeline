@@ -580,6 +580,7 @@ plot_geounit_map <- function(cum_inf_geounit_dates,
 ##'
 ##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
 ##' @param geodata geodata object from load_config
+##' @param incl_geoids vector with geoids
 ##' @param pdeath_level level of IFR (string: high/med/low) for filtering hospitalization data -- choose 1
 ##' @param scenario_label which scenario name from config
 ##' @param scenario_col which scenario color from config
@@ -595,7 +596,7 @@ plot_geounit_map <- function(cum_inf_geounit_dates,
 ##'
 plot_ts_incid_ar_state <- function (hosp_state_totals,
                                     geodata,
-                                    pop_name,
+                                    incl_geoids,
                                     pdeath_level = "high", ## doesn't really matter since data should be the same for infections
                                     scenario_label,
                                     scenario_col,
@@ -606,8 +607,8 @@ plot_ts_incid_ar_state <- function (hosp_state_totals,
                                     interv_end_date = NA) {
 
   geopop <- geodata %>%
-    dplyr::filter(include_in_report) %>%
-    dplyr::select(!! pop_name) %>%
+    dplyr::filter(geoid %in% incl_geoids) %>%
+    dplyr::select(pop2010) %>%
     unlist %>% unname
 
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.

@@ -334,15 +334,14 @@ load_inf_geounit_peaks_date <- function(outcome_dir,
                                         name_filter = "med",
                                         scenario_labels,
                                         scenario_levels,
-                                        incl_geoids=NULL,
-                                        plt_var="incidI"){
+                                        incl_geoids=NULL){
   
   
   display_date <- as.Date(display_date)
   inf_pre_process <- function(x) {
     x %>%
       dplyr::filter(time <= display_date) %>%
-      select(time, geoid, sim_id, scenario, location, death_rate, incidI, incidC)
+      select(time, geoid, sim_id, scenario, location, death_rate, incidI)
   }
   
   if (!is.null(incl_geoids)) {
@@ -351,7 +350,7 @@ load_inf_geounit_peaks_date <- function(outcome_dir,
         ungroup %>%
         dplyr::filter(!is.na(time), geoid %in% incl_geoids) %>%
         group_by(geoid, scenario, sim_num) %>%
-        dplyr::slice(which.max(!!as.symbol(plt_var))) %>%
+        dplyr::slice(which.max(incidI)) %>%
         ungroup()
     } 
   } else{
@@ -360,7 +359,7 @@ load_inf_geounit_peaks_date <- function(outcome_dir,
         ungroup %>%
         dplyr::filter(!is.na(time)) %>%
         group_by(geoid, scenario, sim_num) %>%
-        dplyr::slice(which.max(!!as.symbol(plt_var))) %>%
+        dplyr::slice(which.max(incidI)) %>%
         ungroup()
     }
     
