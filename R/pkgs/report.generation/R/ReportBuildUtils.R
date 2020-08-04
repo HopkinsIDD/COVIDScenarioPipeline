@@ -1678,7 +1678,6 @@ make_excess_heatmap <- function(hosp_dat,
 ##'
 plot_needs_relative_to_threshold_heatmap <- function(
     hosp_geounit_relative,
-    shapefile,
     scenario_labels,
     scale_colors = c("#066f6c", "#f8e6e7", "#ba0a0f"),
     legend_title,
@@ -1693,11 +1692,6 @@ plot_needs_relative_to_threshold_heatmap <- function(
 
   if(is.null(incl_geoids)) { incl_geoids <- unique(hosp_geounit_relative$geoid)}
   
-  shp <- shapefile %>%
-    sf::st_drop_geometry() %>%
-    dplyr::select(geoid, name) %>%
-    dplyr::filter(geoid %in% incl_geoids) %>%
-    dplyr::arrange(name) %>%
     dplyr::mutate(name_num = seq_along(name)) ## secondary axes only work with continuous values
   
   plt_dat <- left_join(hosp_geounit_relative, shp, by = c("geoid")) %>%
@@ -1706,7 +1700,10 @@ plot_needs_relative_to_threshold_heatmap <- function(
     dplyr::filter(scenario_label %in% scenario_labels) %>%
     dplyr::mutate(scenario_label = factor(scenario_label,
                                          levels = scenario_labels,
-                                         labels = scenario_labels))
+                                         labels = scenario_labels)) %>%
+    arrange(desc(name))%>%
+    group_by(scenario_label, time) %>%
+    mutate(name_num=seq_along(name))
 
   if(length(scenario_labels)==1){
 
