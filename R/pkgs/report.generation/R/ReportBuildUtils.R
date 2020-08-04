@@ -1477,7 +1477,8 @@ plot_model_vs_obs <- function(state_hosp_totals,
                               date_breaks = "1 month",
                               sim_start_date,
                               sim_end_date,
-                              week=FALSE) {
+                              week=FALSE,
+                              hosp=FALSE) {
 
   state_hosp_totals <-
     state_hosp_totals %>%
@@ -1565,7 +1566,40 @@ plot_model_vs_obs <- function(state_hosp_totals,
            fill = FALSE) +
     coord_cartesian(ylim = c(0, 2.5*max(jhu_obs_dat$NincidDeathsObs)))
   
-  output <- list(incid_infections_plot, incid_deaths_plot)
+  if(hosp){
+    state_hosp_summary <-
+      state_hosp_totals %>%
+      group_by(date, scenario_name) %>%
+      dplyr::summarize(ci_lower_incid_hosp = quantile(NhospCurr, ci.L),
+                       ci_upper_incid_hosp = quantile(NhospCurr, ci.U),
+                       mean_incid_hosp= mean(NhospCurr),
+                       median_incid_hosp = median(NhospCurr))
+    incid_hosp_plot <-
+      ggplot(state_hosp_summary, aes(x = date)) +
+      geom_line(aes(y = mean_incid_hosp, color = scenario_name)) +
+      geom_ribbon(aes(ymin=ci_lower_incid_hosp, ymax=ci_upper_incid_hosp, fill = scenario_name), linetype = 0, alpha=0.2) +
+      geom_point(data = jhu_obs_dat, aes(x = date, y = currhosp), color = obs_data_col) +
+      #ylab("Incident Cases") +
+      #theme(legend.position = "bottom") +
+      scale_x_date(date_breaks = date_breaks,
+                   date_labels = "%b %Y",
+                   limits = c(lubridate::ymd(sim_start_date), lubridate::ymd(sim_end_date))) +
+      scale_y_continuous("Daily occupied hospital beds", labels = scales::comma) +
+      scale_color_manual("Scenario",
+                         labels = scenario_labels,
+                         values = scenario_cols) +
+      theme_minimal() +
+      theme(axis.title.x =  element_blank(),
+            axis.text.x = element_text(angle = 45),
+            legend.position = "bottom",
+            legend.title = element_blank()) +
+      guides(color = guide_legend(nrow = 2, override.aes = list(alpha=1)),
+             fill = FALSE) +
+      coord_cartesian(ylim = c(0, 2.5*max(jhu_obs_dat$currhosp)))
+    output<-list(incid_infections_plot, incid_hosp_plot, incid_deaths_plot)
+  } else {
+    output <- list(incid_infections_plot, incid_deaths_plot)
+  } 
   return(output)
 }
 
@@ -1692,18 +1726,16 @@ plot_needs_relative_to_threshold_heatmap <- function(
 
   if(is.null(incl_geoids)) { incl_geoids <- unique(hosp_geounit_relative$geoid)}
   
-    dplyr::mutate(name_num = seq_along(name)) ## secondary axes only work with continuous values
-  
-  plt_dat <- left_join(hosp_geounit_relative, shp, by = c("geoid")) %>%
+  plt_dat <- hosp_geounit_relative %>%
     dplyr::rename(threshold = !!value_name) %>%
     dplyr::filter(time >= start_date & time <= end_date) %>%
     dplyr::filter(scenario_label %in% scenario_labels) %>%
     dplyr::mutate(scenario_label = factor(scenario_label,
                                          levels = scenario_labels,
                                          labels = scenario_labels)) %>%
-    arrange(desc(name))%>%
-    group_by(scenario_label, time) %>%
-    mutate(name_num=seq_along(name))
+    dplyr::arrange(name)%>%
+    dplyr::group_by(scenario_label, time) %>%
+    dplyr::mutate(name_num=seq_along(name))
 
   if(length(scenario_labels)==1){
 
@@ -2139,7 +2171,9 @@ plot_truth_by_county <- function(truth_dat,
                                  start_date,
                                  end_date,
                                  geo_dat=geodata,
-                                 fig_labs=c("Incident Cases", "Incident Deaths")
+                                 fig_labs=c("Incident Cases", "Incident Deaths"),
+                                 pi_lo=0.025,
+                                 pi_hi=0.975
 ){
   
   start_dat<-lubridate::ymd(start_date)
@@ -2465,4 +2499,194 @@ plot_scn_outcomes_ratio<-function(hosp_state_totals,
     geom_vline(xintercept=1)
 }
 
-
+##'
+##' Function makes a summary table for each county
+##'
+##' @param current_scenario scenario to summarize
+##' @param county_dat contains the relevant hospital data
+##' @param start_date
+##' @param end_date 
+##' @param pi_low low side of the prediction interval
+##' @param pi_high high side of the prediction interval
+##' @param pdeath_filter if summarizing results for one pdeath only; leave NA to show all 
+##' @param pdeath_labels to label pdeath
+##' @param pdeath_levels to order pdeaths
+##' 
+##' @export
+##'
+make_scn_county_table_withVent <- function(current_scenario,
+                                           county_dat, 
+                                           pi_lo = 0.025, 
+                                           pi_hi = 0.975, 
+                                           start_date,
+                                           end_date,
+                                           pdeath_filter = "high", #if NA will plot all IFRs
+                                           pdeath_labels=c("1% IFR", "0.5% IFR", "0.25% IFR"),
+                                           pdeath_levels=c("high", "med", "low")
+){
+  
+  start_date <- lubridate::ymd(start_date)
+  end_date<-lubridate::ymd(end_date)
+  
+  county_tab <- county_dat %>% 
+    filter(!is.na(time) & scenario==current_scenario) %>% 
+    filter(time >= start_date, time <= end_date) %>% 
+    group_by(pdeath, sim_num, name) %>%
+    summarize(TotalIncidCase = sum(NincidCase, na.rm = TRUE),
+              TotalIncidHosp = sum(NincidHosp, na.rm = TRUE),
+              TotalIncidICU = sum(NincidICU, na.rm = TRUE),
+              TotalIncidVent = sum(NincidVent, na.rm=TRUE),
+              TotalIncidDeath = sum(NincidDeath, na.rm = TRUE),
+              AvgIncidCase = sum(NincidCase, na.rm=TRUE)/n(),
+              AvgIncidDeath = sum(NincidDeath, na.rm = TRUE)/n(),
+              maxHospAdm = max(NincidHosp, na.rm=TRUE),
+              maxICUAdm = max(NincidICU, na.rm=TRUE),
+              maxVentAdm = max(NincidVent, na.rm=TRUE),
+              maxHospCap = max(NhospCurr, na.rm = TRUE),
+              maxICUCap = max(NICUCurr, na.rm=TRUE),
+              maxVentCap = max(NVentCurr, na.rm=TRUE)) %>%
+    ungroup() %>%
+    group_by(pdeath, name) %>% 
+    summarize(nIncidCase_final = mean(TotalIncidCase),
+              nIncidCase_lo = quantile(TotalIncidCase, pi_lo),
+              nIncidCase_hi = quantile(TotalIncidCase, pi_hi),
+              aIncidCase_final = mean(AvgIncidCase),
+              aIncidCase_lo = quantile(AvgIncidCase, pi_lo),
+              aIncidCase_hi = quantile(AvgIncidCase, pi_hi),
+              aIncidDeath_final = mean(AvgIncidDeath),
+              aIncidDeath_lo = quantile(AvgIncidDeath, pi_lo),
+              aIncidDeath_hi = quantile(AvgIncidDeath, pi_hi),
+              nIncidHosp_final = mean(TotalIncidHosp),
+              nIncidHosp_lo = quantile(TotalIncidHosp, pi_lo),
+              nIncidHosp_hi = quantile(TotalIncidHosp, pi_hi),
+              pIncidHosp_final = mean(maxHospAdm),
+              pIncidHosp_lo = quantile(maxHospAdm, pi_lo),
+              pIncidHosp_hi = quantile(maxHospAdm, pi_hi),
+              nIncidICU_final = mean(TotalIncidICU),
+              nIncidICU_lo = quantile(TotalIncidICU, pi_lo),
+              nIncidICU_hi = quantile(TotalIncidICU, pi_hi),
+              pIncidICU_final = mean(maxICUAdm),
+              pIncidICU_lo = quantile(maxICUAdm, pi_lo),
+              pIncidICU_hi = quantile(maxICUAdm, pi_hi),
+              nIncidVent_final = mean(TotalIncidVent),
+              nIncidVent_lo = quantile(TotalIncidVent, pi_lo),
+              nIncidVent_hi = quantile(TotalIncidVent, pi_hi),
+              pIncidVent_final = mean(maxVentAdm),pIncidVent_lo = quantile(maxVentAdm, pi_lo),
+              pIncidVent_hi = quantile(maxVentAdm, pi_hi),
+              nIncidDeath_final = mean(TotalIncidDeath),
+              nIncidDeath_lo = quantile(TotalIncidDeath, pi_lo),
+              nIncidDeath_hi = quantile(TotalIncidDeath, pi_hi),
+              nCurrHosp_final = mean(maxHospCap),
+              nCurrHosp_lo = quantile(maxHospCap, pi_lo),
+              nCurrHosp_hi = quantile(maxHospCap, pi_hi),
+              nCurrICU_final = mean(maxICUCap),
+              nCurrICU_lo = quantile(maxICUCap, pi_lo),
+              nCurrICU_hi = quantile(maxICUCap, pi_hi),
+              nCurrVent_final = mean(maxVentCap),
+              nCurrVent_lo = quantile(maxVentCap, pi_lo),
+              nCurrVent_hi = quantile(maxVentCap, pi_hi)) %>%
+    ungroup() %>%
+    mutate(aIncidCase = prettyNum(conv_round(aIncidCase_final), big.mark=",", scientific=FALSE,trim=TRUE),
+           aIncidCase_CI = make_CI(aIncidCase_lo, aIncidCase_hi),
+           aIncidDeath = prettyNum(conv_round(aIncidDeath_final), big.mark=",", scientific=FALSE,trim=TRUE),
+           aIncidDeath_CI = make_CI(aIncidDeath_lo, aIncidDeath_hi),
+           nIncidCase = prettyNum(conv_round(nIncidCase_final), big.mark=",",scientific=FALSE,trim=TRUE),
+           nIncidCase_CI = prettyNum(make_CI(nIncidCase_lo, nIncidCase_hi), big.mark=",",scientific=FALSE,trim=TRUE),
+           nIncidHosp = prettyNum(conv_round(nIncidHosp_final), big.mark=",",scientific=FALSE,trim=TRUE),
+           nIncidHosp_CI = make_CI(nIncidHosp_lo, nIncidHosp_hi),
+           pIncidHosp = prettyNum(conv_round(pIncidHosp_final), big.mark=",",scientific=FALSE,trim=TRUE),
+           pIncidHosp_CI = make_CI(pIncidHosp_lo, pIncidHosp_hi),
+           nCurrHosp = prettyNum(conv_round(nCurrHosp_final), big.mark=",",scientific=FALSE,trim=TRUE),
+           nCurrHosp_CI = make_CI(nCurrHosp_lo, nCurrHosp_hi),
+           nIncidICU = prettyNum(conv_round(nIncidICU_final), big.mark=",",scientific=FALSE,trim=TRUE),
+           nIncidICU_CI = make_CI(nIncidICU_lo, nIncidICU_hi),
+           pIncidICU = prettyNum(conv_round(pIncidICU_final), big.mark=",",scientific=FALSE,trim=TRUE),
+           pIncidICU_CI = make_CI(pIncidICU_lo, pIncidICU_hi),
+           nCurrICU = prettyNum(conv_round(nCurrICU_final), big.mark=",",scientific=FALSE,trim=TRUE),
+           nCurrICU_CI = make_CI(nCurrICU_lo, nCurrICU_hi),
+           nIncidVent = prettyNum(conv_round(nIncidVent_final), big.mark=",",scientific=FALSE,trim=TRUE),
+           nIncidVent_CI = make_CI(nIncidVent_lo, nIncidVent_hi),
+           pIncidVent = prettyNum(conv_round(pIncidVent_final), big.mark=",",scientific=FALSE,trim=TRUE),
+           pIncidVent_CI = make_CI(pIncidVent_lo, pIncidVent_hi),
+           nCurrVent = prettyNum(conv_round(nCurrVent_final), big.mark=",",scientific=FALSE,trim=TRUE),
+           nCurrVent_CI = make_CI(nCurrVent_lo, nCurrVent_hi),
+           nIncidDeath = prettyNum(conv_round(nIncidDeath_final), big.mark=",",scientific=FALSE,trim=TRUE),
+           nIncidDeath_CI = make_CI(nIncidDeath_lo, nIncidDeath_hi)) %>%
+    select(-ends_with("lo"), -ends_with("hi"), -ends_with("final"))
+  
+  county_tab <- county_tab[order(colnames(county_tab))]
+  
+  county_tab <- county_tab %>%
+    unite("CaseAvg", aIncidCase:aIncidCase_CI, sep="\n") %>%
+    unite("DeathAvg", aIncidDeath:aIncidDeath_CI, sep="\n") %>%
+    unite("HospPeakMax", nCurrHosp:nCurrHosp_CI, sep="\n") %>%
+    unite("ICUPeakMax", nCurrICU:nCurrICU_CI, sep="\n") %>%
+    unite("VentPeakMax", nCurrVent:nCurrVent_CI, sep="\n") %>%
+    unite("DeathIncid", nIncidDeath:nIncidDeath_CI, sep="\n") %>%
+    unite("HospIncid", nIncidHosp:nIncidHosp_CI, sep="\n") %>%
+    unite("ICUIncid", nIncidICU:nIncidICU_CI, sep="\n") %>%
+    unite("CaseIncid", nIncidCase:nIncidCase_CI, sep="\n") %>%
+    unite("VentIncid", nIncidVent:nIncidVent_CI, sep="\n") %>%
+    unite("HospPeakAdmin", pIncidHosp:pIncidHosp_CI, sep="\n") %>%
+    unite("ICUPeakAdmin", pIncidICU:pIncidICU_CI, sep="\n") %>%
+    unite("VentPeakAdmin", pIncidVent:pIncidVent_CI, sep="\n")
+  
+  county_tab <- county_tab[order(colnames(county_tab))] %>%
+    select(name, pdeath, starts_with("Case"), starts_with("Hosp"), starts_with("ICU"), starts_with("Vent"), starts_with("Death"))
+  
+  if(!is.na(pdeath_filter)){
+    newnames <- c(NA_character_, "Daily average","Total", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Daily average", "Total")
+    
+    county_tab %>%
+      arrange(name) %>%
+      filter(pdeath == pdeath_filter) %>%
+      select(-pdeath) %>%
+      flextable::flextable() %>%
+      flextable::set_header_labels(name = "County", CaseAvg = "CONFIRMED CASES", CaseIncid = "CONFIRMED CASES", HospIncid = "HOSPITALIZATIONS", # pdeath= "IFR", 
+                                   HospPeakAdmin = "HOSPITALIZATIONS", HospPeakMax = "HOSPITALIZATIONS", ICUIncid = "ICU", 
+                                   ICUPeakAdmin = "ICU", ICUPeakMax = "ICU", VentIncid = "VENTILATIONS", VentPeakAdmin = "VENTILATIONS",
+                                   VentPeakMax = "VENTILATIONS", DeathAvg = "DEATHS", DeathIncid = "DEATHS") %>%
+      flextable::merge_at(i = 1, j = 2:3, part = "header") %>%
+      flextable::merge_at(i = 1, j = 4:6, part = "header") %>%
+      flextable::merge_at(i = 1, j = 7:9, part = "header") %>%
+      flextable::merge_at(i = 1, j = 10:12, part = "header") %>%
+      flextable::merge_at(i = 1, j = 13:14, part = "header") %>%
+      flextable::add_header_row(values = c(newnames), top = FALSE) %>%
+      #flextable::merge_v(j = 1) %>%
+      flextable::autofit() %>%
+      #flextable::border(i=seq(3, 174, by = 3), border.bottom=officer::fp_border(color="black")) %>%
+      flextable::border(j=c(1,3,6,9,12), border.right = officer::fp_border(color="grey", style = "solid", width=0.5)) %>%
+      flextable::align(align="center", part = "all") %>%
+      flextable::bold(part="header")%>%
+      flextable::bold(j=1, part="body")
+  } else {
+    newnames <- c(NA_character_,NA_character_,"Daily average", "Total", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily
+                peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Daily average", "Total")
+    
+    county_tab %>%
+      mutate(pdeath = factor(pdeath, 
+                             levels=pdeath_levels,
+                             labels=pdeath_labels)) %>%
+      arrange(name, desc(pdeath)) %>%
+      flextable::flextable() %>%
+      flextable::set_header_labels(name = "County", pdeath = "IFR", CaseAvg = "CONFIRMED CASES", 
+                                   CaseIncid = "CONFIRMED CASES", HospIncid = "HOSPITALIZATIONS", 
+                                   HospPeakAdmin = "HOSPITALIZATIONS", HospPeakMax = "HOSPITALIZATIONS", ICUIncid = "ICU", 
+                                   ICUPeakAdmin = "ICU", ICUPeakMax = "ICU", VentIncid = "VENTILATIONS", VentPeakAdmin = "VENTILATIONS",
+                                   VentPeakMax = "VENTILATIONS", DeathAvg = "DEATHS", DeathIncid = "DEATHS") %>%
+      flextable::merge_at(i = 1, j = 3:4, part = "header") %>%
+      flextable::merge_at(i = 1, j = 5:7, part = "header") %>%
+      flextable::merge_at(i = 1, j = 8:10, part = "header") %>%
+      flextable::merge_at(i = 1, j = 11:13, part = "header") %>%
+      flextable::merge_at(i = 1, j = 14:15, part = "header") %>%
+      flextable::add_header_row(values = c(newnames), top = FALSE) %>%
+      flextable::merge_v(j = 1) %>%
+      flextable::autofit() %>%
+      flextable::border(i=seq(3, 174, by = 3), border.bottom=officer::fp_border(color="grey", width=0.5)) %>%
+      flextable::border(j=c(2,4,7,10,13), border.right = officer::fp_border(color="grey", style = "solid", width=0.5)) %>%
+      flextable::align(align="center", part = "all") %>%
+      flextable::bold(part="header")%>%
+      flextable::bold(j=c(1,2), part="body")
+  }
+  
+}
