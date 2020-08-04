@@ -2301,16 +2301,18 @@ plot_truth_by_county <- function(truth_dat,
 ##'
 
 plot_rt_ts <- function(outcome_dir, 
-                       truth_dat,
-                       scenario_colors,
-                       scenario_levels,
-                       scenario_labels,
-                       start_date,
-                       end_date, 
-                       geo_dat=geodata,
-                       pi_lo=0.025,
-                       pi_hi=0.975
+                           truth_dat,
+                           scenario_colors,
+                           scenario_levels,
+                           scenario_labels,
+                           start_date,
+                           end_date, 
+                           geo_dat=geodata,
+                           susceptible=TRUE,
+                           pi_lo=0.025,
+                           pi_hi=0.975
 ){
+  require(tidyverse)
   start_date<-as.Date(start_date)
   end_date<-as.Date(end_date)
   
@@ -2318,14 +2320,30 @@ plot_rt_ts <- function(outcome_dir,
   
   rc<-list()
   for(i in 1:length(scenario_levels)){
-    rc[[i]]<-load_r_sims_filtered(runs_folder,
+    rc[[i]]<-load_r_sims_filtered(outcome_dir,
                                   pre_process=function(x){filter(x, scenario==scenario_levels[i])}) %>%
-      mutate(end_date=if_else(npi_name=="local_variance", 
-                              lead(start_date)-1, 
+      arrange(geoid, sim_num, start_date) %>%
+      mutate(end_date=if_else(npi_name=="local_variance",
+                              lead(start_date)-1,
                               end_date)) %>%
       left_join(geoiddate)%>%
       mutate(r=if_else(date<start_date | date>end_date, NA_real_, r)) %>% 
       drop_na()
+    
+    if(susceptible){
+    rc[[i]]<-load_hosp_sims_filtered(outcome_dir,
+                                     pre_process=function(x){x%>%
+                                         filter(scenario==scenario_levels[i])%>%
+                                         select(geoid, scenario, death_rate, location, time, sim_id, incidI)},
+                                     post_process=function(x){x%>%
+                                         group_by(geoid, pdeath, scenario, sim_num, location)%>%
+                                         mutate(cum_inf=cumsum(incidI))}) %>%
+      rename(date=time)%>%
+      right_join(rc[[i]]) %>%
+      left_join(geodata) %>%
+      mutate(r=r*(1-cum_inf/pop2010))
+    }
+    
   }
   
   rc<-bind_rows(rc) %>%
@@ -2354,7 +2372,7 @@ plot_rt_ts <- function(outcome_dir,
     geom_line(aes(col=`Based on`), size=0.75)+
     geom_ribbon(aes(fill=`Based on`), alpha=0.12) +
     geom_hline(yintercept = 1, col="black", alpha=0.6) +
-    scale_y_continuous(trans="log1p") +
+    scale_y_continuous(trans="log1p", breaks=c(0, 0.5, 1, 1.5, 2, 4, 8)) +
     scale_x_date(breaks="1 month", date_labels="%b")+
     scale_color_manual("Scenario",
                        values = c(scenario_colors, "red")) +
