@@ -2051,20 +2051,10 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
     summarize(est_lo=quantile(reduction, pi_lo, na.rm=TRUE),
               est_hi=quantile(reduction, pi_hi, na.rm=TRUE),
               estimate=mean(reduction, na.rm=TRUE)) %>%
-    mutate_if(is.numeric, signif, digits=2)
+    mutate_if(is.numeric, signif, digits=2) %>%
+    filter(npi_name!="local_variance")
   
   # Set new end date for baseline values
-  new_local_end <- r_dat %>%
-    filter(npi_name!="local_variance") %>%
-    group_by(geoid) %>%
-    filter(min(start_date)==start_date) %>%
-    ungroup() %>%
-    mutate(new_end=start_date-1) %>%
-    distinct(geoid, new_end)
-  
-  r_dat<-r_dat%>%
-    left_join(new_local_end) %>%
-    mutate(end_date=if_else(npi_name=="local_variance", new_end, end_date))
   
   if(trim){r_dat<-r_dat%>%
     mutate(npi_name=str_remove(npi_name, npi_trim))}
@@ -2093,7 +2083,6 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
   # solution from https://stackoverflow.com/questions/61741440/is-there-a-way-to-embed-a-ggplot-image-dynamically-by-row-like-a-sparkline-usi
   
   r_plot <- r_dat %>%
-    filter(npi_name!="local_variance") %>%
     mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels)) %>%
     select(name, start_date, estimate, est_lo, est_hi, npi_name) %>%
     group_by(name) %>%
