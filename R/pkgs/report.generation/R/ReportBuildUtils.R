@@ -1856,13 +1856,13 @@ plot_inference_r <- function(r_dat,
 ##'@export
 
 make_sparkline_tab_r <- function(r_dat,
-                                 npi_trim="[[A-Z]].+\\_", 
                                  npi_labels, 
                                  npi_levels,
-                                 effectiveness=FALSE,
                                  pi_lo=0.025, 
                                  pi_hi=0.975, 
                                  geo_name=geodata,
+                                 trim=TRUE,
+                                 npi_trim="[[A-Z]].+\\_", 
                                  px_qual=40,
                                  wh_ratio=3.5,
                                  brewer_palette="Spectral"
@@ -1870,21 +1870,15 @@ make_sparkline_tab_r <- function(r_dat,
   
   require(gt)
   require(tidyverse)
+  if(length(npi_labels)!=length(npi_levels)) {stop("Length of npi levels and labels must be equal")}
   
   r_dat <- r_dat %>%
-    mutate(npi_name=str_remove(npi_name, npi_trim),
-           npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels)) %>%
     left_join(geo_name) %>%
     group_by(geoid, start_date, end_date, npi_name, name) %>%
-    {if(effectiveness)
-      summarize(.,est_lo=quantile(reduction, pi_lo, na.rm=TRUE),
-                est_hi=quantile(reduction, pi_hi, na.rm=TRUE),
-                estimate=mean(reduction, na.rm=TRUE))
-      else(summarize(.,est_lo=quantile(r, pi_lo, na.rm=TRUE),
-                     est_hi=quantile(r, pi_hi, na.rm=TRUE),
-                     estimate=mean(r, na.rm=TRUE)))} %>%
-    mutate_if(is.numeric, signif, digits=2) %>%
-    arrange(name, start_date) 
+    summarize(est_lo=quantile(r, pi_lo, na.rm=TRUE),
+              est_hi=quantile(r, pi_hi, na.rm=TRUE),
+              estimate=mean(r, na.rm=TRUE)) %>%
+    mutate_if(is.numeric, signif, digits=2)
   
   # Set new end date for baseline values
   new_local_end <- r_dat %>%
@@ -1898,17 +1892,36 @@ make_sparkline_tab_r <- function(r_dat,
   r_dat<-r_dat%>%
     left_join(new_local_end) %>%
     mutate(end_date=if_else(npi_name=="local_variance", new_end, end_date))
+
+  if(trim){
+    r_dat<-r_dat%>%
+      mutate(npi_name=str_remove(npi_name, npi_trimmer))
+  }
+  # Create table with summary values
+  r_tab<-r_dat%>%
+    mutate_if(is.numeric, as.character) %>%
+    mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels),
+           est_lo = str_replace(est_lo, "^", '\n\\('),
+           est_hi = str_replace(est_hi, "$", '\\)')) %>%
+    arrange(npi_name) %>%
+    unite(col="pi", est_lo:est_hi, sep="-") %>%
+    unite(col="estimate", estimate:pi, sep="\n") %>%
+    pivot_wider(id_cols="name", values_from=estimate, names_from=npi_name) %>%
+    arrange(name) %>%
+    rename(Location=name)
   
-  # Generate plots for each row
-  timeline<-crossing(geoid=unique(r_dat$geoid), 
-                     date = seq(min(r_dat$start_date), max(r_dat$end_date), by=1))
+  r_tab[is.na(r_tab)] <- ""
   
+  # Plotting
   fill_values <- RColorBrewer::brewer.pal(length(npi_labels), brewer_palette)
   color_values <- colorspace::darken(fill_values, 0.3)
   
+  timeline<-crossing(geoid=unique(r_dat$geoid), 
+                     date = seq(min(r_dat$start_date), max(r_dat$end_date), by=1))
   
-  # FIND SOURCE (github issue)
-  r_plot <- r_dat %>%
+  # solution from https://stackoverflow.com/questions/61741440/is-there-a-way-to-embed-a-ggplot-image-dynamically-by-row-like-a-sparkline-usi
+
+    r_plot <- r_dat %>%
     mutate(plot_var=est_hi-est_lo)%>%
     bind_rows(r_dat%>%
                 mutate(plot_var=est_lo,
@@ -1940,21 +1953,8 @@ make_sparkline_tab_r <- function(r_dat,
                             panel.grid=element_blank()))) %>%
     select(-data) %>%
     mutate(` `=NA)
-  
-  # Create table with summary values
-  r_tab<-r_dat%>%
-    mutate_if(is.numeric, as.character) %>%
-    mutate(est_lo = str_replace(est_lo, "^", '\n\\('),
-           est_hi = str_replace(est_hi, "$", '\\)')) %>%
-    unite(col="pi", est_lo:est_hi, sep="-") %>%
-    unite(col="estimate", estimate:pi, sep="\n") %>%
-    pivot_wider(id_cols="name", values_from=estimate, names_from=npi_name) %>%
-    rename(Location=name)
-  
-  r_tab[is.na(r_tab)] <- ""
-  
-  # solution from https://stackoverflow.com/questions/61741440/is-there-a-way-to-embed-a-ggplot-image-dynamically-by-row-like-a-sparkline-usi
-  
+
+  # Table 
   r_output <- tibble(r_tab,
                      ` ` = NA,
                      .rows = nrow(r_tab)) %>%
@@ -1965,7 +1965,7 @@ make_sparkline_tab_r <- function(r_dat,
         map(r_plot$plot, ggplot_image, height = px(px_qual), aspect_ratio=wh_ratio)
       }
     )
-  # Should these options be separate?
+  
   r_output %>%
     tab_options(table.font.size = pct(80)) %>%
     tab_options(column_labels.font.weight = "bold",
@@ -1982,7 +1982,8 @@ make_sparkline_tab_r <- function(r_dat,
 ##' Sparkline table for intervention period effectiveness estimates 
 ##' 
 ##' @param r_dat df with reduction estimates per sim
-##' @param npi_trim pattern used by str_remove to group NPIs
+##' @param trim whether or not to apply npi_trim to npi_name
+##' @param npi_trim pattern used by str_remove to group by npi_name
 ##' @param periodcolors 
 ##' @param npi_labels labels for plotted NPIs
 ##' @param npi_levels levels of NPIs 
@@ -2000,12 +2001,13 @@ make_sparkline_tab_r <- function(r_dat,
 ##'@export
 ##'
 make_sparkline_tab_intervention_effect <- function(r_dat,
-                                                   npi_trim="[[A-Z]].+\\_", 
                                                    npi_labels, 
                                                    npi_levels,
                                                    pi_lo=0.025, 
                                                    pi_hi=0.975, 
                                                    geo_name=geodata,
+                                                   trim=TRUE,
+                                                   npi_trim="[[A-Z]].+\\_", 
                                                    px_qual=40,
                                                    wh_ratio=3.5,
                                                    brewer_palette="Spectral"
@@ -2015,14 +2017,12 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
   require(tidyverse)
   
   r_dat <- r_dat %>%
-    mutate(npi_name=str_remove(npi_name, npi_trim)) %>%
     left_join(geo_name) %>%
     group_by(geoid, start_date, end_date, npi_name, name) %>%
     summarize(est_lo=quantile(reduction, pi_lo, na.rm=TRUE),
               est_hi=quantile(reduction, pi_hi, na.rm=TRUE),
               estimate=mean(reduction, na.rm=TRUE)) %>%
-    mutate_if(is.numeric, signif, digits=2) %>%
-    arrange(name, start_date) 
+    mutate_if(is.numeric, signif, digits=2)
   
   # Set new end date for baseline values
   new_local_end <- r_dat %>%
@@ -2037,19 +2037,25 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
     left_join(new_local_end) %>%
     mutate(end_date=if_else(npi_name=="local_variance", new_end, end_date))
   
+  if(trim){r_dat<-r_dat%>%
+    mutate(npi_name=str_remove(npi_name, npi_trim))}
+  
   # Create table with summary values
   r_tab<-r_dat%>%
     mutate_if(is.numeric, as.character) %>%
     mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels),
            est_lo = str_replace(est_lo, "^", '\n\\('),
            est_hi = str_replace(est_hi, "$", '\\)')) %>%
+    arrange(npi_name) %>%
     unite(col="pi", est_lo:est_hi, sep="-") %>%
     unite(col="estimate", estimate:pi, sep="\n") %>%
     pivot_wider(id_cols="name", values_from=estimate, names_from=npi_name) %>%
+    arrange(name) %>%
     rename(Location=name)
   
   r_tab[is.na(r_tab)] <- ""
   
+  # Plotting
   fill_values <- RColorBrewer::brewer.pal(length(npi_labels), brewer_palette)
   fill_values<-fill_values[-1]
   color_values <- colorspace::darken(fill_values, 0.3)
@@ -2083,6 +2089,7 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
     select(-data) %>%
     mutate(` `=NA)
   
+  #Table 
   r_output <- tibble(r_tab,
                      ` ` = NA,
                      .rows = nrow(r_tab)) %>%
@@ -2093,7 +2100,7 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
         map(r_plot$plot, ggplot_image, height = px(px_qual), aspect_ratio=wh_ratio)
       }
     )
-  # Should these options be separate?
+
   r_output %>%
     tab_options(table.font.size = pct(80)) %>%
     tab_options(column_labels.font.weight = "bold",
