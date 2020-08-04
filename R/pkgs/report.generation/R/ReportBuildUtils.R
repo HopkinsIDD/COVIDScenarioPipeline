@@ -2124,8 +2124,8 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
 ##' @filter_by variable name for filtering estimates either scenario
 ##' or pdeath 
 ##' @filter_val desired value of variable
-##' @param var_levels 
-##' @param var_labels
+##' @param group_levels 
+##' @param group_labels
 ##' @param geodata df with location names
 ##' 
 ##' @return a table with the effectiveness per intervention period and a bar graph
@@ -2139,11 +2139,9 @@ plot_truth_by_county <- function(truth_dat,
                                  hosp=FALSE, #truth_dat must have current hospitalizations, with var_name "currhosp" if TRUE 
                                  filter_by,
                                  filter_val,
-                                 var_levels,
-                                 var_labels,
                                  start_date,
                                  end_date,
-                                 geo_name=geodata,
+                                 geo_dat=geodata,
                                  fig_labs=c("Incident Cases", "Incident Deaths")
 ){
   
@@ -2205,10 +2203,7 @@ plot_truth_by_county <- function(truth_dat,
                               est=mean(NhospCurr),
                               type=fig_labs[3]))) %>%
       ungroup() %>%
-      mutate(var = factor(!!as.symbol(group_var), 
-                          levels = var_levels, 
-                          labels = var_labels),
-             type = factor(type, levels = fig_labs[3:1]),
+      mutate(type = factor(type, levels = fig_labs[3:1]),
              confirmed=if_else(confirmed==0, NA_real_, confirmed))
   } else{
     
@@ -2239,22 +2234,19 @@ plot_truth_by_county <- function(truth_dat,
                               est=mean(NincidDeath),
                               type=fig_labs[2]))) %>%
       ungroup() %>%
-      mutate(var = factor(!!as.symbol(group_var), 
-                          levels = var_levels, 
-                          labels = var_labels),
-             type = factor(type, levels = fig_labs),
+      mutate(type = factor(type, levels = fig_labs),
              confirmed=if_else(confirmed==0, NA_real_, confirmed))
   }
   
   rc %>%
-    group_by(type, var, geoid)%>%
+    group_by(type, !!as.symbol(group_var), geoid)%>%
     filter(time<max(time))%>%
     ungroup()%>%
     filter(time>lubridate::ymd(start_date), time<lubridate::ymd(end_date))%>%
-    left_join(shapefile)%>%
+    left_join(geo_dat)%>%
     ggplot(aes(x=time)) +
-    geom_line(aes(y=est, color=var)) +
-    geom_ribbon(alpha=0.1, aes(fill=var, ymin=low, ymax=high))+
+    geom_line(aes(y=est, color=!!as.symbol(group_var))) +
+    geom_ribbon(alpha=0.1, aes(fill=!!as.symbol(group_var), ymin=low, ymax=high))+
     geom_point(aes(y=confirmed), color="black") +
     theme_bw()+
     theme(panel.grid = element_blank(),
