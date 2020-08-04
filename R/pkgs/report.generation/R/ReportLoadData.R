@@ -289,7 +289,7 @@ load_hosp_geocombined_totals <- function(outcome_dir,
                           pre_process=pre_process,
                           post_process=post_process)
   rc<-rc %>%
-    group_by(pdeath, scenario, time, sim_num) %>%
+    group_by(pdeath, scenario, time, sim_num, scenario_name) %>%
     summarize(NhospCurr=sum(NhospCurr),
               NICUCurr=sum(NICUCurr),
               NincidDeath=sum(NincidDeath),

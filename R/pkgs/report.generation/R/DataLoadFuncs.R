@@ -195,6 +195,8 @@ load_hosp_sims_filtered <- function(outcome_dir,
                 cum_inf=sum(cum_inf)) 
   }
   
+  rc<-rc %>%
+    mutate(scenario_name=scenario)
   warning("Finished loading")
   return(rc)
   
