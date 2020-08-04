@@ -405,14 +405,16 @@ accept_reject_new_seeding_npis <- function(
 ##' Function accept proposals
 ##'
 ##'
-##' @param ll_ref original seeding file.
-##' @param ll_new proposal seeding file
-##' @param ll_col a dataframe with columns orig_ll and prop_ll per place
-##' @return a new data frame with the confirmed seedin.
+##' @param ll_ref current accepted likelihood
+##' @param ll_new likelihood of proposal
+##' @return boolean whether to accept the likelihood
 ##' @export
-iterateAccept <- function(ll_ref,ll_new,ll_col) {
-  ll_new <- ll_new[[ll_col]]
-  ll_ref <- ll_ref[[ll_col]]
+iterateAccept <- function(ll_ref,ll_new) {
+    if (length(ll_ref) != 1 | length(ll_new) !=1) {
+        stop("Iterate accept currently on works with single row data frames")
+    }
+
+
   ll_ratio <- exp(min(c(0, ll_new - ll_ref)))
   if (ll_ratio >= runif(1)) {
     return(TRUE)
