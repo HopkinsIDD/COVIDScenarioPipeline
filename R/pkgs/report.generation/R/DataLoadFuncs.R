@@ -118,7 +118,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param model_output folder with hosp outcomes
 ##' @param partitions used by open_dataset 
-##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param name_filter string that indicates which pdeath to import from outcome_dir
 ##' @param pre_process function that does processing before collection
 ##' @param sum_location summarize results to location
 ##' 
@@ -130,7 +130,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
 load_hosp_sims_filtered <- function(outcome_dir,
                                     model_output = 'hosp',
                                     partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
-                                    pdeath_filter=c("high", "med", "low"),
+                                    name_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     post_process=NULL,
                                     sum_location=FALSE,
@@ -142,7 +142,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
   rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                           partitioning = partitions) %>%
     filter(is_final=="final") %>%
-    filter(death_rate %in% pdeath_filter) %>%
+    filter(death_rate %in% name_filter) %>%
     pre_process(...) %>%
     collect() 
   
@@ -150,9 +150,15 @@ load_hosp_sims_filtered <- function(outcome_dir,
     rename(pdeath=death_rate) %>%
     mutate(time=as.Date(time))
   
+  rc<-rc%>%
+    group_by(pdeath, scenario, geoid, location) %>%
+    distinct(sim_id)%>%
+    mutate(sim_num=seq_along(sim_id)) %>%
+    right_join(rc)
+    
   if(is.null(post_process)){
   rc<-rc %>%
-    group_by(geoid, pdeath, scenario, sim_id, location) %>%
+    group_by(geoid, pdeath, scenario, sim_num, location) %>%
     mutate(cum_hosp=cumsum(incidH)) %>%
     mutate(cum_death=cumsum(incidD)) %>%
     mutate(cum_case=cumsum(incidC)) %>%
@@ -170,12 +176,6 @@ load_hosp_sims_filtered <- function(outcome_dir,
     rc <- rc %>%
       post_process(...)
   }
-  
-  rc<-rc%>%
-    group_by(pdeath, scenario, geoid, location) %>%
-    distinct(sim_id)%>%
-    mutate(sim_num=seq_along(sim_id)) %>%
-    right_join(rc)
   
   if(sum_location){
     rc<-rc %>%
@@ -205,7 +205,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param model_output folder with hpar outcomes
 ##' @param partitions used by open_dataset 
-##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param name_filter string that indicates which pdeath to import from outcome_dir
 ##' @param pre_process function that does processing before collectio
 ##' 
 ##' @return a combined data frame of all hpar simulations with filters applied pre merge.
@@ -216,7 +216,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
 load_hpar_sims_filtered <- function(outcome_dir,
                                     model_output = 'hpar',
                                     partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
-                                    pdeath_filter=c("high", "med", "low"),
+                                    name_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     ...
 ) {
@@ -227,7 +227,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
   rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                           partitioning = partitions) %>%
     filter(is_final=="final") %>%
-    filter(death_rate %in% pdeath_filter) %>%
+    filter(death_rate %in% name_filter) %>%
     pre_process(...) %>%
     collect() 
   
@@ -247,7 +247,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param partitions used by open_dataset 
-##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param name_filter string that indicates which pdeath to import from outcome_dir
 ##' @param pre_process function that does processing before collectio
 ##' 
 ##' @return a combined data frame of all R simulations with filters applied pre merge.
@@ -258,7 +258,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
 load_spar_sims_filtered <- function(outcome_dir,
                                     
                                     partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
-                                    pdeath_filter=c("high", "med", "low"),
+                                    name_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     ...
 ) {
@@ -269,7 +269,7 @@ load_spar_sims_filtered <- function(outcome_dir,
                               partitioning = partitions) %>%
     filter(parameter=="R0",
            is_final=="final") %>%
-    filter(death_rate %in% pdeath_filter) %>%
+    filter(death_rate %in% name_filter) %>%
     pre_process(...)%>%
     collect() %>% 
     group_by(scenario)%>%
@@ -287,7 +287,7 @@ load_spar_sims_filtered <- function(outcome_dir,
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param partitions used by open_dataset 
-##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param name_filter string that indicates which pdeath to import from outcome_dir
 ##' @param pre_process function that does processing before collectio
 ##' 
 ##' @return a combined data frame of all R simulations with filters applied pre merge.
@@ -297,7 +297,7 @@ load_spar_sims_filtered <- function(outcome_dir,
 ##'@export
 load_snpi_sims_filtered <- function(outcome_dir,
                                     partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
-                                    pdeath_filter=c("high", "med", "low"),
+                                    name_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     ...
 ) {
@@ -307,7 +307,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
   snpi<- arrow::open_dataset(file.path(outcome_dir,'snpi'), 
                              partitioning = partitions) %>%
     filter(is_final=="final") %>%
-    filter(death_rate %in% pdeath_filter) %>%
+    filter(death_rate %in% name_filter) %>%
     pre_process(...)%>%
     collect() %>%
     group_by(geoid, npi_name, scenario)%>%
