@@ -781,6 +781,10 @@ load_hosp_geounit_relative_to_threshold <- function(county_dat,
     dplyr::filter(time<=end_date) %>%
     dplyr::filter(pdeath==name_filter) %>%
     dplyr::mutate(scenario_label=factor(scenario, levels= scenario_levels, labels=scenario_labels)) %>%
+    group_by(scenario_label, geoid, time) %>%
+    summarize(NhospCurr=round(mean(NhospCurr)),
+              NICUCurr=round(mean(NICUCurr)),
+              NVentCurr=round(mean(NVentCurr)))%>%
     ungroup %>%
     left_join(data.frame(geoid = names(threshold), threshold_value = threshold), by = c("geoid")) %>%
     dplyr::rename(pltVar = !!variable) %>%
