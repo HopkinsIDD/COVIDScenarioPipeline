@@ -38,3 +38,16 @@ test_that("download_USAFacts_data cases and deaths will join",{
 
   expect_true(any(names(usafacts_case) %in% names(usafacts_death)))
 })
+test_that("filtering by VALIDATION_DATE results in less data",{
+
+  case_data_filename = "data/case_data/USAFacts_case_data.csv"
+  USAFACTS_CASE_DATA_URL <- "https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_confirmed_usafacts.csv"
+  
+  usafacts_case_all <- download_USAFacts_data(case_data_filename, USAFACTS_CASE_DATA_URL, "Confirmed")
+
+  Sys.setenv(VALIDATION_DATE="2020/03/01")
+  
+  usafacts_case_filtered <- download_USAFacts_data(case_data_filename, USAFACTS_CASE_DATA_URL, "Confirmed")
+  
+  expect_true(nrow(usafacts_case_filtered) < nrow(usafacts_case_all))
+})

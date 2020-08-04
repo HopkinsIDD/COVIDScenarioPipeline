@@ -99,14 +99,14 @@ if (all(scenarios == "all")){
 ##Creat heirarchical stats object if specified
 hierarchical_stats <- list()
 if("hierarchical_stats_geo"%in%names(config$filtering)) {
-    hierarchical_stats <- config$filtering$hierarchical_stats_geo    
+    hierarchical_stats <- config$filtering$hierarchical_stats_geo
 }
 
 
 ##Create priors if specified
 defined_priors <- list()
 if("priors"%in%names(config$filtering)) {
-    defined_priors <- config$filtering$priors 
+    defined_priors <- config$filtering$priors
 }
 
 
@@ -159,182 +159,89 @@ for(scenario in scenarios) {
 
     global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
     global_local_prefix <- covidcommon::create_prefix(prefix=global_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
-    
-    
+
+
     ## pass prefix to python and use
     reticulate::py_run_string(paste0("deathrate = '", deathrate, "'"))
-    reticulate::py_run_string(paste0("prefix = '", chimeric_block_prefix, "'"))
+    reticulate::py_run_string(paste0("prefix = '", global_block_prefix, "'"))
     reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
-    
 
-    first_spar_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'spar','parquet')
-    first_snpi_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'snpi','parquet')
-    first_hosp_file <- covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'hosp','parquet')
-    first_hpar_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'hpar','parquet')
-    first_seed_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'seed','csv')
-    first_chim_file <- covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block - 1,'llik','parquet')
-    first_llik_file <- covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'llik','parquet')
 
-    # lock <- flock::lock(paste('.lock',gsub('/','-',config$seeding$lambda_file),sep='/'))
-    err <- 0
-    if(!file.exists(first_seed_file)){
-      if(opt$this_block > 1){
-        print("Looking for")
-        print(first_seed_file)
-        print("Found")
-        print(list.files(dirname(first_seed_file)))
-        stop("Problem resuming seeding after first block")
+
+    first_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block - 1)
+    first_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block - 1)
+
+    inference::initialize_mcmc_first_block(
+      opt$run_id,
+      opt$this_block,
+      global_block_prefix,
+      chimeric_block_prefix,
+      py,
+      function(x){
+        inference::aggregate_and_calc_loc_likelihoods(
+          dplyr::filter(x,x$time >= min(obs$date),x$time <= max(obs$date)),
+	  all_locations = unique(names(data_stats)),
+          obs_nodename = obs_nodename,
+          config = config,
+          obs = obs,
+          data_stats = data_stats,
+          hosp_file = first_global_files[['hosp_filename']],
+          hierarchical_stats = hierarchical_stats,
+          defined_priors = defined_priors,
+          geodata = geodata,
+          snpi = arrow::read_parquet(first_global_files[['snpi_filename']]),
+          hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,source,outcome,sep='_'))
+        )
       }
-      print(sprintf("Creating Seeding (%s) from Scratch",first_seed_file))
-      if(!file.exists(config$seeding$lambda_file)){
-        err <- system(paste(
-          opt$rpath,
-          paste(opt$pipepath,"R","scripts","create_seeding.R", sep='/'),
-          "-c",opt$config
-        ))
-          if(err != 0){
-            stop("Could not run seeding")
-          }
-      }
-      suppressMessages(initial_seeding <- readr::read_csv(config$seeding$lambda_file, col_types=readr::cols(place=readr::col_character())))
-      write.csv(
-        initial_seeding,
-        file = first_seed_file
-      )
-    }
-    suppressMessages(initial_seeding <- readr::read_csv(first_seed_file, col_types=readr::cols(place=readr::col_character())))
-    # flock::unlock(lock)
+    )
+
+
+    ## So far no acceptances have occurred
+    current_index <- 0
+### Load initial files
+    suppressMessages(initial_seeding <- readr::read_csv(first_chimeric_files[['seed_filename']], col_types=readr::cols(place=readr::col_character())))
     initial_seeding$amount <- as.integer(round(initial_seeding$amount))
+    initial_snpi <- arrow::read_parquet(first_chimeric_files[['snpi_filename']])
+    initial_spar <- arrow::read_parquet(first_chimeric_files[['spar_filename']])
+    initial_hpar <- arrow::read_parquet(first_chimeric_files[['hpar_filename']])
+    chimeric_likelihood_data <- arrow::read_parquet(first_chimeric_files[['llik_filename']])
+    global_likelihood_data <- arrow::read_parquet(first_global_files[['llik_filename']])
 
-    current_index <- 0
-      
-    # FIX ME : this file won't exist in general
-    # TODO CHANGE TO FIRST DRAW OF SEIR CODE
-    # lock <- flock::lock(paste('.lock',gsub('/','-',first_snpi_file),sep='/'))
-    if((!file.exists(first_snpi_file)) | (!file.exists(first_spar_file))){
-      print(sprintf("Creating parameters (%s) and (%s) from Scratch",first_snpi_file, first_spar_file))
-      py$onerun_SEIR(opt$this_block - 1,py$s)
-    }
-    initial_snpi <- arrow::read_parquet(first_snpi_file)
-    initial_spar <- arrow::read_parquet(first_spar_file)
-    # flock::unlock(lock)
-
-    if(!file.exists(first_hpar_file)){
-      if(opt$this_block > 1){stop("Problem resuming hospitalization parameters after first block")}
-      print(sprintf("Creating hospitalization parameters (%s) from config specified file %s",first_hpar_file,config$outcomes$param_place_file))
-      file.copy(config$outcomes$param_place_file,first_hpar_file)
-    }
-    initial_hpar <- arrow::read_parquet(first_hpar_file)
-    if(!file.exists(first_hosp_file)){
-      if(opt$this_block > 1){stop("Problem resuming hospitalization after first block")}
-      print(sprintf("Creating hospitalization (%s) from Scratch",first_hosp_file))
-      ## Generate files
-      this_index <- opt$this_block - 1
-
-      err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
-      err <- ifelse(err == 1,0,1)
-      if(err != 0){
-        stop("SEIR failed to run")
-      }
-
-      ## Run hospitalization
-      err <- py$onerun_HOSP(this_index)
-      err <- ifelse(err == 1,0,1)
-      if(length(err) == 0){
-        stop("HOSP failed to run")
-      }
-      if(err != 0){
-        stop("HOSP failed to run")
-      }
-
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,this_index,'hosp','parquet'),
-        first_hosp_file
-      )
-    }
-
-    initial_sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",first_hosp_file))(first_hosp_file) %>%
-        filter(time >= min(obs$date), time <= max(obs$date))
-
-    if(!(obs_nodename %in% names(initial_sim_hosp))){stop(paste("Missing column",obs_nodename,"from hospitalization output"))}
-    lhs <- unique(initial_sim_hosp[[obs_nodename]])
-    rhs <- unique(names(data_stats))
-    all_locations <- rhs[rhs %in% lhs]
-
-    if(!file.exists(first_llik_file)){
-      if(opt$this_block > 1){
-        print(paste("Looking for",first_llik_file,"found",paste(list.files("model_output/llik",recursive=TRUE),collapse=', ')))
-        stop("Problem resuming global likelihood after first block")
-      }
-      print(sprintf("Creating likelihood (%s) from Scratch",first_llik_file))
-      global_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
-        all_locations,
-        initial_sim_hosp,
-        obs_nodename,
-        config,
-        obs,
-        data_stats,
-        first_llik_file,
-        hierarchical_stats,
-        defined_priors,
-        geodata,
-        initial_snpi,
-        dplyr::mutate(initial_hpar,parameter=paste(quantity,source,outcome,sep='_'))
-      )
-      arrow::write_parquet(global_likelihood_data,first_llik_file)
-    }
-    global_likelihood_data <- arrow::read_parquet(first_llik_file)
-
-    if(!file.exists(first_chim_file)){
-      if(opt$this_block > 1){
-        print(paste("Looking for",first_llik_file,"found",paste(list.files("model_output/llik",recursive=TRUE),collapse=', ')))
-        stop("Problem resuming chimeric likelihood after first block")
-      }
-      print(sprintf("Creating likelihood (%s) from Scratch",first_chim_file))
-      arrow::write_parquet(global_likelihood_data,first_chim_file)
-    }
-    rm(initial_sim_hosp)
+#####Get the full likelihood (WHY IS THIS A DATA FRAME)
     # Compute total loglik for each sim
-    initial_likelihood <- global_likelihood_data %>%
-      summarise(ll = sum(ll, na.rm = T)) %>%
-      mutate(pdeath = deathrate, scenario = scenario)
-    current_likelihood <- initial_likelihood
+    global_likelihood <- sum(global_likelihood_data$ll)
 
-    initial_likelihood_data <- arrow::read_parquet(first_chim_file)
-    ## For logging
-    current_index <- 0
-    current_likelihood_data <- initial_likelihood_data
+#####LOOP NOTES
+### current means proposed
+### initial means accepted/current
 
-    for( this_index in seq_len(opt$simulations_per_slot)) {
+#####Loop over simulations in this block
+   for( this_index in seq_len(opt$simulations_per_slot)) {
       print(paste("Running simulation", this_index))
 
       ## Create filenames
-      this_spar_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'spar','parquet')
-      this_snpi_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'snpi','parquet')
-      this_hosp_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'hosp','parquet')
-      this_hpar_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'hpar','parquet')
-      this_seed_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'seed','csv')
-      this_chim_file <- covidcommon::create_file_name(opt$run_id,chimeric_local_prefix,this_index,'llik','parquet')
-      this_llik_file <- covidcommon::create_file_name(opt$run_id,global_local_prefix,this_index,'llik','parquet')
+      this_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
+      this_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_local_prefix, this_index)
 
       ## Setup python
       reticulate::py_run_string(paste0("prefix = '", global_local_prefix, "'"))
       reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
       ## Do perturbations from accepted
-      current_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,c(lubridate::ymd(c(config$start_date,config$end_date))))
-      current_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
-      current_spar <- initial_spar
+      proposed_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,
+                                                    c(lubridate::ymd(c(config$start_date,config$end_date))))
+      proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
+      proposed_spar <- initial_spar
       if(!deathrate %in% names(config$outcomes$settings)){
         stop(paste("Deathrate",deathrate,"does not appear in outcomes::settings in the config"))
       }
-      current_hpar <- inference::perturb_hpar(initial_hpar, config$outcomes$settings[[deathrate]])
+      proposed_hpar <- inference::perturb_hpar(initial_hpar, config$outcomes$settings[[deathrate]])
 
       ## Write files that need to be written for other code to read
-      write.csv(current_seeding,this_seed_file)
-      arrow::write_parquet(current_snpi,this_snpi_file)
-      arrow::write_parquet(current_spar,this_spar_file)
-      arrow::write_parquet(current_hpar,this_hpar_file)
+      write.csv(proposed_seeding,this_global_files[['seed_filename']])
+      arrow::write_parquet(proposed_snpi,this_global_files[['snpi_filename']])
+      arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
+      arrow::write_parquet(proposed_hpar,this_global_files[['hpar_filename']])
 
       ## Run SEIR
       err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
@@ -352,158 +259,103 @@ for(scenario in scenarios) {
         stop("HOSP failed to run")
       }
 
-      sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_hosp_file))(this_hosp_file) %>%
+      sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_global_files[['hosp_filename']]))(this_global_files[['hosp_filename']]) %>%
         filter(time <= max(obs$date))
 
-     
+
 
       lhs <- unique(sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
 
-      current_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
+      proposed_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
         all_locations,
         sim_hosp,
         obs_nodename,
         config,
         obs,
         data_stats,
-        this_llik_file,
+        this_global_files[['llik_filename']],
         hierarchical_stats,
         defined_priors,
         geodata,
-        current_snpi,
-        dplyr::mutate(current_hpar,parameter=paste(quantity,source,outcome))
+        proposed_snpi,
+        dplyr::mutate(proposed_hpar,parameter=paste(quantity,source,outcome, sep = '_'))
       )
-                                      
-      
+
+
       rm(sim_hosp)
 
       ## UNCOMMENT TO DEBUG
-      # print(global_likelihood_data)
-      print(initial_likelihood_data)
-      print(current_likelihood_data)     
-      
+      ## print(global_likelihood_data)
+      ## print(chimeric_likelihood_data)
+      ## print(proposed_likelihood_data)
+
       ## Compute total loglik for each sim
-      current_likelihood <- current_likelihood_data %>%
-        summarise(ll = sum(ll, na.rm = T)) %>%
-        mutate(pdeath = deathrate, scenario = scenario)
+      proposed_likelihood <- sum(proposed_likelihood_data$ll)
 
       ## For logging
-      print(paste("Current likelihood",initial_likelihood,"Proposed likelihood",current_likelihood))
+      print(paste("Current likelihood",global_likelihood,"Proposed likelihood",proposed_likelihood))
 
-      if(inference::iterateAccept(initial_likelihood, current_likelihood, 'll')){
+      if(inference::iterateAccept(global_likelihood, proposed_likelihood)){
+        print("****ACCEPT****")
         current_index <- this_index
-        initial_likelihood <- current_likelihood
+        global_likelihood <- proposed_likelihood
+        global_likelihood_data <- proposed_likelihood_data
+      } else {
+        print("****REJECT****")
       }
+      arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
 
-  
-      
-      arrow::write_parquet(current_likelihood_data, this_llik_file)
       seeding_npis_list <- inference::accept_reject_new_seeding_npis(
         seeding_orig = initial_seeding,
-        seeding_prop = current_seeding,
+        seeding_prop = proposed_seeding,
         snpi_orig = initial_snpi,
-        snpi_prop = current_snpi,
+        snpi_prop = proposed_snpi,
         hpar_orig = initial_hpar,
-        hpar_prop = current_hpar,
-        orig_lls = initial_likelihood_data,
-        prop_lls = current_likelihood_data
+        hpar_prop = proposed_hpar,
+        orig_lls = chimeric_likelihood_data,
+        prop_lls = proposed_likelihood_data
       )
       initial_seeding <- seeding_npis_list$seeding
       initial_snpi <- seeding_npis_list$snpi
       initial_hpar <- seeding_npis_list$hpar
-      initial_likelihood_data <- seeding_npis_list$ll
-      arrow::write_parquet(initial_likelihood_data, this_chim_file)
+      chimeric_likelihood_data <- seeding_npis_list$ll
+      arrow::write_parquet(chimeric_likelihood_data, this_chimeric_files[['llik_filename']])
 
       print(paste("Current index is ",current_index))
-      rm(current_snpi)
-      rm(current_hpar)
-      rm(current_seeding)
+      # print(proposed_likelihood_data)
+      # print(chimeric_likelihood_data)
+
+      ###Memory managment
+      rm(proposed_snpi)
+      rm(proposed_hpar)
+      rm(proposed_seeding)
     }
 
-    if(current_index != 0){
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'hosp','parquet'),
-        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'hosp','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'llik','parquet'),
-        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'llik','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'snpi','parquet'),
-        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'snpi','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'spar','parquet'),
-        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'spar','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'hpar','parquet'),
-        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'hpar','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'seed','csv'),
-        covidcommon::create_file_name(opt$run_id,gf_prefix,opt$this_slot,'seed','csv')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'hosp','parquet'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'hosp','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'llik','parquet'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'llik','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'snpi','parquet'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'snpi','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'spar','parquet'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'spar','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'hpar','parquet'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'hpar','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_local_prefix,current_index,'seed','csv'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'seed','csv')
-      )
-    } else {
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1 ,'hosp','parquet'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'hosp','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'llik','parquet'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'llik','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'snpi','parquet'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'snpi','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'spar','parquet'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'spar','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'hpar','parquet'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'hpar','parquet')
-      )
-      file.copy(
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block - 1,'seed','csv'),
-        covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'seed','csv')
-      )
-    }
+#####Do MCMC end copy. Fail if unsucessfull
+      cpy_res <- inference::perform_MCMC_step_copies(current_index,
+                                                     opt$this_slot,
+                                                     opt$this_block,
+                                                     opt$run_id,
+                                                     global_local_prefix,
+                                                     gf_prefix,
+                                                     global_block_prefix)
+
+      if(!prod(unlist(cpy_res))) {stop("File copy failed:", paste(unlist(cpy_res),paste(names(cpy_res),"|")))}
 
 
-    readr::write_csv(initial_seeding,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'seed','csv'))
-    arrow::write_parquet(initial_snpi,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'snpi','parquet'))
-    arrow::write_parquet(initial_spar,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'spar','parquet'))
-    arrow::write_parquet(initial_hpar,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'hpar','parquet'))
-    arrow::write_parquet(initial_likelihood_data,covidcommon::create_file_name(opt$run_id,chimeric_block_prefix,opt$this_block,'llik','parquet'))
-    arrow::write_parquet(global_likelihood_data,covidcommon::create_file_name(opt$run_id,global_block_prefix,opt$this_block,'llik','parquet'))
+#####Write currently accepted files to disk
+    last_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, opt$simulations_per_slot)
+    output_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block)
+    output_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block)
+    readr::write_csv(initial_seeding,output_chimeric_files[['seed_filename']])
+    arrow::write_parquet(initial_snpi,output_chimeric_files[['snpi_filename']])
+    arrow::write_parquet(initial_spar,output_chimeric_files[['spar_filename']])
+    arrow::write_parquet(initial_hpar,output_chimeric_files[['hpar_filename']])
+    arrow::write_parquet(chimeric_likelihood_data,output_chimeric_files[['llik_filename']])
+    warning("Chimeric hosp and seir files not yet supported, just using the most recently generated file of each type")
+    file.copy(last_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
+    file.copy(last_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
   }
 }

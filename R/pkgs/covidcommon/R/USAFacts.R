@@ -29,7 +29,13 @@ download_USAFacts_data <- function(filename, url, value_col_name){
   usafacts_data <- usafacts_data %>% 
     tidyr::pivot_longer(date_cols, names_to="Update", values_to=value_col_name) %>%
     dplyr::mutate(Update=lubridate::mdy(Update), FIPS=sprintf("%05d", FIPS))
-
+  
+  validation_date <- Sys.getenv("VALIDATION_DATE")
+  if ( validation_date != '' ) {
+    print(paste("(USAFacts.R) Limiting USAFacts data to:", validation_date, sep=" "))
+    usafacts_data <- usafacts_data %>% dplyr::filter( Update < validation_date )
+  }
+  
   return(usafacts_data)
 }
 
@@ -210,6 +216,7 @@ get_USAFacts_data <- function(case_data_filename = "data/case_data/USAFacts_case
   usafacts_death <- download_USAFacts_data(death_data_filename, USAFACTS_DEATH_DATA_URL, "Deaths")
 
   usafacts_data <- dplyr::full_join(usafacts_case, usafacts_death)
+  usafacts_data <- dplyr::select(usafacts_data, Update, source, FIPS, Confirmed, Deaths)
   usafacts_data <- rbind(usafacts_data, get_islandareas_data()) # Append island areas
 
   # Create columns incidI and incidDeath
