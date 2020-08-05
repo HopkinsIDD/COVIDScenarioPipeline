@@ -1776,7 +1776,7 @@ plot_needs_relative_to_threshold_heatmap <- function(
 
 ##' Plotting R or effectiveness estimates
 ##' 
-##' @param r_dat df with R or reduction estimates per sim
+##' @param r_dat df with R or reduction estimates per sim and npi to be included
 ##' @param npi_trim pattern used by str_remove to group NPIs
 ##' @param periodcolors 
 ##' @param npi_labels labels for plotted NPIs
@@ -1785,7 +1785,8 @@ plot_needs_relative_to_threshold_heatmap <- function(
 ##' @param pi_lo lower quantile for summarization
 ##' @param pi_hi higher quantile for summarization
 ##' @param geo_name df with location names
-##' @return a combined data frame of all R simulations with filters applied pre merge.
+##' 
+##' @return plot estimated R or effectiveness of intervention periods by geoid
 ##' 
 ##'
 ##'
@@ -1865,26 +1866,28 @@ plot_inference_r <- function(r_dat,
 
 ##' Sparkline table with R estimates 
 ##' 
-##' @param r_dat df with R or reduction estimates per sim
+##' @param r_dat df with R or reduction estimates per sim (only one scenario)
 ##' @param npi_trim pattern used by str_remove to group NPIs
-##' @param periodcolors 
 ##' @param npi_labels labels for plotted NPIs
-##' @param npi_levels levels of NPIs 
+##' @param npi_levels levels of NPIs after str_remove is applied
 ##' @param effectiveness whether to reduction estimates instead
 ##' @param pi_lo lower quantile for summarization
-##' @param pi_hi higher quantile for summarization
+##' @param pi_hi upper quantile for summarization
 ##' @param geo_name df with location names
 ##' @param px_qual sparkline pixel size passed on to ggplot_image
 ##' @param wh_ratio sparkline width:height ratio passed on to ggplot_image
 ##' @param brewer_palette pallete name passed on to brewer.pal
 ##' 
-##' @return a table with the effectiveness per intervention period and a bar graph
+##' @return a table with the R per intervention period and a bar graph
 ##' 
 ##'
 ##'
 ##'@export
 
 make_sparkline_tab_r <- function(r_dat,
+                                 outcome_dir=NULL,
+                                 susceptible=FALSE,
+                                 current_scenario,
                                  npi_labels, 
                                  npi_levels,
                                  pi_lo=0.025, 
@@ -1900,14 +1903,9 @@ make_sparkline_tab_r <- function(r_dat,
   require(gt)
   require(tidyverse)
   if(length(npi_labels)!=length(npi_levels)) {stop("Length of npi levels and labels must be equal")}
-  
-  r_dat <- r_dat %>%
-    left_join(geo_name) %>%
-    group_by(geoid, start_date, end_date, npi_name, name) %>%
-    summarize(est_lo=quantile(r, pi_lo, na.rm=TRUE),
-              est_hi=quantile(r, pi_hi, na.rm=TRUE),
-              estimate=mean(r, na.rm=TRUE)) %>%
-    mutate_if(is.numeric, signif, digits=2)
+  if(susceptible & is.null(outcome_dir)) {stop("You must specify outcome_dir to load cumulative infections")}
+  r_dat <- r_dat%>%
+    filter(scenario==current_scenario)
   
   # Set new end date for baseline values
   new_local_end <- r_dat %>%
@@ -1921,6 +1919,41 @@ make_sparkline_tab_r <- function(r_dat,
   r_dat<-r_dat%>%
     left_join(new_local_end) %>%
     mutate(end_date=if_else(npi_name=="local_variance", new_end, end_date))
+  
+  if(susceptible){
+    
+    timeline<-crossing(geoid=unique(r_dat$geoid), 
+                       date = seq(min(r_dat$start_date), max(r_dat$end_date), by=1))
+    
+    r_dat<-r_dat %>%
+      group_by(geoid, sim_num)%>%
+      mutate(mid_point=if_else(max(end_date)==end_date, # for summary values mid_point=date
+                          Sys.Date(),
+                          start_date+floor((end_date-start_date)/2))) %>%
+      left_join(timeline)
+    
+    r_dat<-load_hosp_sims_filtered(outcome_dir,
+                                   pre_process=function(x){x%>%
+                                       filter(scenario==current_scenario)%>%
+                                       select(geoid, scenario, death_rate, location, time, sim_id, incidI)},
+                                   post_process=function(x){x%>%
+                                       group_by(geoid, pdeath, scenario, sim_num, location)%>%
+                                       mutate(cum_inf=cumsum(incidI))}) %>%
+      rename(date=time)%>%
+      right_join(r_dat) %>%
+      mutate(r=if_else(date<start_date|date>end_date, NA_real_, r)) %>%
+      drop_na() %>%
+      left_join(geo_name) %>%
+      mutate(r=r*(1-cum_inf/pop2010)) 
+  }
+  
+  r_dat <- r_dat %>%
+    group_by(geoid, start_date, end_date, npi_name, name, mid_point, date) %>%
+    summarize(est_lo=quantile(r, pi_lo, na.rm=TRUE),
+              est_hi=quantile(r, pi_hi, na.rm=TRUE),
+              estimate=mean(r, na.rm=TRUE)) %>%
+    mutate_if(is.numeric, signif, digits=2)
+  
 
   if(trim){
     r_dat<-r_dat%>%
@@ -1928,6 +1961,7 @@ make_sparkline_tab_r <- function(r_dat,
   }
   # Create table with summary values
   r_tab<-r_dat%>%
+    filter(mid_point==date) %>%
     mutate_if(is.numeric, as.character) %>%
     mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels),
            est_lo = str_replace(est_lo, "^", '\n\\('),
@@ -1944,13 +1978,11 @@ make_sparkline_tab_r <- function(r_dat,
   # Plotting
   fill_values <- RColorBrewer::brewer.pal(length(npi_labels), brewer_palette)
   color_values <- colorspace::darken(fill_values, 0.3)
-  
-  timeline<-crossing(geoid=unique(r_dat$geoid), 
-                     date = seq(min(r_dat$start_date), max(r_dat$end_date), by=1))
+
   
   # solution from https://stackoverflow.com/questions/61741440/is-there-a-way-to-embed-a-ggplot-image-dynamically-by-row-like-a-sparkline-usi
-
-    r_plot <- r_dat %>%
+  
+  r_plot <- r_dat %>%
     mutate(plot_var=est_hi-est_lo)%>%
     bind_rows(r_dat%>%
                 mutate(plot_var=est_lo,
@@ -1958,9 +1990,6 @@ make_sparkline_tab_r <- function(r_dat,
     mutate(npi_name=factor(npi_name, 
                            levels=c(npi_levels, "blank"), 
                            labels=c(npi_labels,"blank"))) %>%
-    left_join(timeline) %>%
-    mutate(estimate=if_else(date<start_date|date>end_date, NA_real_, estimate)) %>%
-    drop_na() %>%
     select(name, date, estimate, plot_var, npi_name) %>%
     group_by(name) %>%
     nest() %>%
@@ -1982,7 +2011,7 @@ make_sparkline_tab_r <- function(r_dat,
                             panel.grid=element_blank()))) %>%
     select(-data) %>%
     mutate(` `=NA)
-
+  
   # Table 
   r_output <- tibble(r_tab,
                      ` ` = NA,
@@ -2007,6 +2036,7 @@ make_sparkline_tab_r <- function(r_dat,
                          cell_borders(sides="right")), 
               locations=cells_body(columns=vars(Location)))
 }
+
 
 ##' Sparkline table for intervention period effectiveness estimates 
 ##' 
@@ -2139,14 +2169,14 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
 ##' @param truth_dat df with date, geoid, incidI, incidDeath; currhosp if adding
 ##' hospitalization data
 ##' @param county_dat df with model estimates 
-##' @filter_by variable name for filtering estimates either scenario
-##' or pdeath 
+##' @param hosp whether hospitalization data is included in truth_dat with varname currhosp
+##' @filter_by variable name for filtering estimates either: scenario or pdeath 
 ##' @filter_val desired value of variable
 ##' @param group_levels 
 ##' @param group_labels
 ##' @param geodata df with location names
 ##' 
-##' @return a table with the effectiveness per intervention period and a bar graph
+##' @return plot comparing observed and modeled estimates by geoid
 ##' 
 ##'
 ##'
@@ -2154,7 +2184,7 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
 ##'
 plot_truth_by_county <- function(truth_dat,
                                  county_dat,
-                                 hosp=FALSE, #truth_dat must have current hospitalizations, with var_name "currhosp" if TRUE 
+                                 hosp=FALSE, 
                                  filter_by,
                                  filter_val,
                                  start_date,
@@ -2284,9 +2314,9 @@ plot_truth_by_county <- function(truth_dat,
 ##' Time series comparing Rt estimates by scenario over time
 ##' @param outcome_dir directory with spar/snpi folders
 ##' @param truth_dat df with date, geoid, incidI, incidDeath
-##' @param scenario_colors
-##' @param scenario_levels
-##' @param scenario_labels
+##' @param scenario_colors colors for each scenario
+##' @param scenario_levels levels applied to scenarios
+##' @param scenario_labels label applied to scenarios
 ##' @param start_date
 ##' @param end_date
 ##' @geo_data
