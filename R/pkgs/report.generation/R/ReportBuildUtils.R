@@ -2727,3 +2727,63 @@ make_scn_county_table_withVent <- function(current_scenario,
   }
   
 }
+
+##'
+##' Function calculates R from model outputs
+##'
+##' @param USAfacts df with observed cases col NincidConfirmed
+##' @param geodata geodata file
+##' @param included_geoids geoids to include
+##' @param by_geoid estimate R for each county 
+##' @param min.date 
+##' @param max.date 
+##' 
+##' @author Kyra Grantz
+##' @export
+##'
+calcR0 <- function(USAfacts, 
+                   geodata, 
+                   included_geoids, 
+                   by_geoid=FALSE, 
+                   min.date=NULL, 
+                   max.date=NULL){
+  require(R0)
+  if(is.null(max.date)){
+    max.date <- max(USAfacts$date)-7
+  }
+  if(is.null(min.date)){
+    min.date <- min(USAfacts$date)
+  }
+  covid <- USAfacts %>% 
+    dplyr::rename(Date = date, New.Cases = NincidConfirmed)
+  covid <- covid[which(covid$Date>=min.date),]
+  mGT <- R0::generation.time("gamma",c(6.5,4.5))
+  
+  if(by_geoid){
+    Rt1 <- list()
+    for(i in 1:length(included_geoids)){
+      pop <- geodata[geodata$geoid == included_geoids[i],config$spatial_setup$popnodes]
+      tmp <- covid %>% dplyr::filter(geoid == included_geoids[i])
+      incid <- setNames(tmp$New.Cases,1:nrow(tmp))
+      estR0 <- R0::estimate.R(incid, mGT, begin=1, end=as.numeric(length(incid)), methods=c("TD"), pop.size=pop, nsim=1000)
+      Rt1[[i]] <- cbind(tmp$Date,estR0$estimates$TD$R,estR0$estimates$TD$conf.int, geoid=rep(included_geoids[i], nrow(tmp)))
+      colnames(Rt1[[i]]) <- c("date","estimate","lower","upper", "geoid")
+    }
+    Rt1 <- dplyr::bind_rows(Rt1)
+  }else{
+    covid <- covid %>%
+      select(-geoid, -source) %>%
+      group_by(Date) %>%
+      summarise_all(sum) %>%
+      ungroup()
+    pop <- sum(geodata[geodata$geoid == included_geoids[i],config$spatial_setup$popnodes])
+    incid <- setNames(covid$New.Cases,1:nrow(covid))
+    estR0 <- R0::estimate.R(incid, mGT, begin=1, end=as.numeric(length(incid)), methods=c("TD"), pop.size=pop, nsim=1000)
+    Rt1 <- cbind(covid$Date,estR0$estimates$TD$R,estR0$estimates$TD$conf.int)
+    colnames(Rt1) <- c("date","estimate","lower","upper")
+  }
+  Rt1 <- Rt1[which(Rt1$estimate!=0 & Rt1$date<=max.date),]
+  Rt1$scenario <- "Statistical"
+  return(Rt1)
+}
+
