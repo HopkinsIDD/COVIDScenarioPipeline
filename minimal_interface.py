@@ -70,6 +70,7 @@ spatial_config = config["spatial_setup"]
 spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 scenario = scenario
 deathrate = deathrate
+stoch_traj_flag= stoch_traj_flag # Truthy: stochastic simulation, Falsy: determnistic mean of the binomial draws
 nsim = 10
 interactive = False
 write_csv = False
@@ -126,10 +127,11 @@ def onerun_HOSP(index):
         file_paths.create_file_name(run_id, prefix, int(index), 'hpar', 'parquet'), # output
         1,
         int(index),
-        1
+        1,
+        stoch_traj_flag
     )
     return(1)
 
-onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load))
-onerun_SEIR = lambda sim_id2write, s: seir.onerun_SEIR(int(sim_id2write), s)
+onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load), stoch_traj_flag)
+onerun_SEIR = lambda sim_id2write, s: seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
 
