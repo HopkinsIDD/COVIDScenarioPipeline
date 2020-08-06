@@ -2555,6 +2555,7 @@ make_scn_county_table_withVent <- function(current_scenario,
                                            county_dat, 
                                            pi_lo = 0.025, 
                                            pi_hi = 0.975, 
+                                           geo_dat=geodata,
                                            start_date,
                                            end_date,
                                            pdeath_filter = "high", #if NA will plot all IFRs
@@ -2564,6 +2565,10 @@ make_scn_county_table_withVent <- function(current_scenario,
   
   start_date <- lubridate::ymd(start_date)
   end_date<-lubridate::ymd(end_date)
+  
+  county_dat<-county_dat %>% 
+    left_join(geo_dat) %>%
+    mutate(name=factor(name, levels=sort(geo_dat$name)))
   
   county_tab <- county_dat %>% 
     filter(!is.na(time) & scenario==current_scenario) %>% 
