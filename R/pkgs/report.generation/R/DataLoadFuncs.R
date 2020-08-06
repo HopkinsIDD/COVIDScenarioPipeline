@@ -140,7 +140,8 @@ load_hosp_sims_filtered <- function(outcome_dir,
   
   rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                           partitioning = partitions) %>%
-    filter(is_final=="final") %>%
+    filter(is_final=="final",
+           lik_type=="global") %>%
     filter(death_rate %in% name_filter) %>%
     pre_process(...) %>%
     collect() 
@@ -210,7 +211,8 @@ load_hpar_sims_filtered <- function(outcome_dir,
   
   rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                           partitioning = partitions) %>%
-    filter(is_final=="final") %>%
+    filter(is_final=="final",
+           lik_type=="global") %>%
     filter(death_rate %in% name_filter) %>%
     pre_process(...) %>%
     collect() 
@@ -252,7 +254,8 @@ load_spar_sims_filtered <- function(outcome_dir,
   spar <- arrow::open_dataset(file.path(outcome_dir,'spar'), 
                               partitioning = partitions) %>%
     filter(parameter=="R0",
-           is_final=="final") %>%
+           is_final=="final",
+           lik_type=="global") %>%
     filter(death_rate %in% name_filter) %>%
     pre_process(...)%>%
     collect() %>% 
@@ -290,7 +293,8 @@ load_snpi_sims_filtered <- function(outcome_dir,
   
   snpi<- arrow::open_dataset(file.path(outcome_dir,'snpi'), 
                              partitioning = partitions) %>%
-    filter(is_final=="final") %>%
+    filter(is_final=="final",
+           lik_type=="global") %>%
     filter(death_rate %in% name_filter) %>%
     pre_process(...)%>%
     collect() %>%
