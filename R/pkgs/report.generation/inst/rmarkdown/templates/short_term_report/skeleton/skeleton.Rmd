@@ -74,25 +74,14 @@ included_geoids <- (geodata %>% filter(USPS==reportStateUSPS))$geoid
 # scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 ```
 
-```{r load_geonames}
-# Used to label counties 
-geo_names<- tigris::fips_codes %>%
-  filter(state==reportStateUSPS)%>%
-  unite(col="geoid", ends_with("_code"), sep="") %>%
-  select(-state_name, -state) %>%
-  rename(name=county) %>%
-  mutate(name=str_remove(name, " County")) %>%
-  filter(geoid %in% included_geoids)
-
-```
-
 ```{r config_vals}
-npi_names<- names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="value"))]) # NOTE: this assumes all interventions have inference, if the projections for some geoids do NOT have inference, then you will need to modify the input to the Rt/effectiveness plots
+npi_levs- names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="value"))]) %>%
+  str_remove(npi_trimmer)# NOTE: this assumes all interventions have inference, if the projections for some geoids do NOT have inference, then you will need to modify the input to the Rt/effectiveness plots
 
 nscenarios <- length(config$interventions$scenarios)
 sim_start_date <- config$start_date
 sim_end_date <- config$end_date
-report_loc <- config$report_location_name
+
 modeled_loc <- paste(config$spatial_setup$modeled_states, collapse = ", ")
 census_year <- config$spatial_setup$census_year
 incub_period <- 1/eval(parse(text=config$seir$parameters$sigma))
@@ -100,7 +89,9 @@ infect_period <- c(1/(eval(parse(text=config$seir$parameters$gamma$high))),
                    1/(eval(parse(text=config$seir$parameters$gamma$low))))
 R0_range <- c(config$seir$parameters$R0s$low, config$seir$parameters$R0s$high)
 modeled_states <- state.name[which(state.abb %in% config$spatial_setup$modeled_states)]
-scenario_labels <- config$report$formatting$scenario_labels
+scn_colors<-config$report$formatting$scenario_colors
+scn_labels <- config$report$formatting$scenario_labels
+scn_levels<- config$report$formatting$scenario_labels_short
 death_rate_levels<-config$report$formatting$death_rate_levels
 death_rate_labels<-config$report$formatting$death_rate_labels
 
@@ -120,69 +111,16 @@ tab_counter <- 1
 
 ```{r hosp_geoid} 
   
-res_state<- arrow::open_dataset(paste0(runs_folder,"/hosp/"), 
-                               partitioning = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")) %>%
-  collect() %>%
-  group_by(geoid, death_rate, scenario, sim_id) %>%
-  mutate(cum_hosp=cumsum(incidH)) %>%
-  mutate(cum_death=cumsum(incidD)) %>%
-  mutate(cum_case=cumsum(incidC)) %>%
-  mutate(cum_inf=cumsum(incidI)) %>%
-  rename(NhospCurr=hosp_curr,
-         NICUCurr=icu_curr,
-         NincidDeath=incidD,
-         NincidInf=incidI,
-         NincidCase=incidC,
-         NincidICU=incidICU,
-         NincidHosp=incidH,
-         NincidVent=incidVent,
-         NVentCurr=vent_curr,
-         cum_hosp=cum_hosp,
-         cum_death=cum_death,
-         cum_case=cum_case,
-         cum_inf=cum_inf) %>%
-  # group_by(geoid, death_rate, scenario, time) %>%
-  # summarize(NhospCurr=mean(NhospCurr),
-  #           NICUCurr=mean(NICUCurr), 
-  #           NincidDeath=mean(NincidDeath), 
-  #           NincidInf=mean(NincidInf), 
-  #           NincidCase=mean(NincidCase),
-  #           NincidICU=mean(NincidICU),
-  #           NincidHosp=mean(NincidHosp),
-  #           NincidVent=mean(NincidVent),
-  #           NVentCurr=mean(NVentCurr),
-  #           cum_hosp=mean(cum_hosp),
-  #           cum_death=mean(cum_death),
-  #           cum_case=mean(cum_case)) %>%
-  mutate(time=as.Date(time))
+res_state<- load_hosp_sims_filtered(runs_folder)
 
 res_state <- res_state%>%
-  distinct(sim_id)%>%
-  group_by(death_rate, scenario, geoid) %>%
-  mutate(sim_num=seq_along(sim_id)) %>%
-  right_join(res_state) %>%
-  mutate(scenario_name=scenario_labels) %>%
-  left_join(geo_names) %>%
-  mutate(name = factor(name, levels=sort(geo_names$name, decreasing=TRUE)))
+  left_join(geodata) %>%
+  mutate(name = factor(name, levels=sort(geodata$name, decreasing=TRUE)))
 
 ```
 
 ```{r hosp_geocombined_totals}  
-
-state_hosp_totals<- res_state %>%
-  group_by(death_rate, scenario_name, time, sim_num) %>%
-  summarize(NhospCurr=sum(NhospCurr),
-            NICUCurr=sum(NICUCurr),
-            NincidDeath=sum(NincidDeath),
-            NincidInf=sum(NincidInf),
-            NincidCase=sum(NincidCase),
-            NincidICU=sum(NincidICU),
-            NincidHosp=sum(NincidHosp),
-            NincidVent=sum(NincidVent),
-            NVentCurr=sum(NVentCurr),
-            cum_hosp=sum(cum_hosp),
-            cum_death=sum(cum_death),
-            cum_case=sum(cum_case)) 
+state_hosp_totals<-load_hosp_geocombined_totals(runs_folder) 
 
 ```
 
@@ -192,27 +130,31 @@ truth_dat <- get_USAFacts_data() %>%
   filter(FIPS %in% included_geoids) %>%
   rename(date=Update, geoid=FIPS) %>%
   filter(date<short_start) %>%
-  left_join(geo_names)
+  left_join(geodata)
 
-hosp_dat <- read.csv("data/DPH/covid19data.csv") %>%
-  dplyr::select(name = County.Name, 
-                date = Most.Recent.Date, 
-                cumConfirmed = Total.Count.Confirmed, 
-                cumDeaths = Total.Count.Deaths, 
-                currhosp = COVID.19.Positive.Patients, 
-                currhosp_susp = Suspected.COVID.19.Positive.Patients, 
-                currICU = ICU.COVID.19.Positive.Patients,
-                currICU_susp = ICU.COVID.19.Suspected.Patients)
+```
 
-hosp_dat <- hosp_dat %>%
-  left_join(geo_names) %>%
-  mutate(date = as.Date(date, "%m/%d/%Y")) %>%
-  filter(date<short_start)
-
+```{r load_r}
+inference_r <-load_r_sims_filtered(outcome_dir=runs_folder)
 ```
 
 # Executive Summary  
 
+```{r Rt, fig.cap=cap, fig.height=6, fig.width=10}
+
+plot_rt_ts(outcome_dir=runs_folder,
+           truth_dat=truth_dat,
+           susceptible=TRUE,
+           scenario_colors=scn_colors, 
+           scenario_labels=scn_labels,
+           scenario_levels=scn_levels,
+           start_date = sim_start_date,
+           end_date=sim_end_date)
+
+cap<-paste0("**Fig. ", fig_counter, "** The effective reproduction number (Rt) and 95% intervals over time based on model outputs and cases as reported in USA Facts. The model Rt estimates reflect the population-adjusted average effectiveness of intervention periods and the decreasing pool of susceptibles from the cumulative number of infections across counties. We assume that infection provides complete immunity. Rt estimates for reported cases were calculated with the R0 package.")
+
+fig_counter<-fig_counter+1
+```
 
 ## Key Changes  
 We have recently incorporated an inference framework that uses county-level epidemic data to calibrate location-specific model parameters, such as: epidemic seeding dates and amounts, the basic reproduction number, and the effectiveness of different types of NPIs. This framework enables the model to better account for local characteristics of the epidemic, which in turn improves our estimates of how specific NPIs may affect health outcomes. 
@@ -226,137 +168,13 @@ Social distancing efforts in the post-lockdown period continue to reduce transmi
 
 The estimated daily number of occupied hospital beds and the probability that hospital bed capacity is exceeded at the state level are shown below in Figures 3 and 4. The model assumes the effectiveness of social distancing efforts in the initial weeks following the lockdown is maintained in the short-term.
 
-```{r load_r}
-spar <- arrow::open_dataset(paste0(runs_folder,"/spar/"), 
-                    partitioning = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")) %>%
-    collect() %>%             
-    filter(parameter=="R0") %>%
-    group_by(scenario)%>%
-    mutate(sim_num = order(sim_id),
-           parameter = "r0") %>%
-    rename(state_r0 = value) %>%
-    select(sim_num, scenario, death_rate, state_r0, parameter)
-
-snpi<- arrow::open_dataset(paste0(runs_folder,"/snpi/"), 
-                                   partitioning = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")) %>%
-   collect() %>%
-   group_by(geoid, npi_name, scenario)%>%
-   mutate(sim_num = order(sim_id)) %>%
-   select(sim_num, geoid, npi_name, parameter, start_date, end_date, scenario, reduction) 
-
-inference_r <- spar %>%
-  right_join(snpi) %>%
-  filter(npi_name=="local_variance") %>%
-  mutate(county_r0 = state_r0*(1-reduction)) %>%
-  select(geoid, sim_num, county_r0, scenario) %>%
-  left_join(spar %>% right_join(snpi) %>% filter(npi_name %in% npi_names)) %>%
-  mutate(r_eff = if_else(npi_name=="local_variance",
-                         county_r0,
-                         county_r0*(1-reduction))) %>%
-  group_by(geoid, npi_name, start_date, end_date) %>%
-  summarize(r = mean(r_eff), 
-            rq1 = quantile(r_eff, 0.25), 
-            rq3 = quantile(r_eff, 0.75),
-            reduc = mean(reduction), 
-            reducq1 = quantile(reduction, 0.25), 
-            reducq3 = quantile(reduction, 0.75)) %>%
-  left_join(geo_names) %>%
-  mutate(name=factor(name, levels=sort(geo_names$name, decreasing=TRUE))) %>%
-  {if(affected_geoids) mutate(., npi_name=str_remove(npi_name, npi_trimmer))
-    else(left_join(.))}
-  
-if(affected_geoids){
-  npi_names<-npi_names%>%
-    str_remove(npi_trimmer) %>%
-    unique()
-}
-
-```
-
-```{r plot_r_func}  
-  
-plot_r_num <- function(inference_dat, 
-                      npiselection = npi_names,
-                      npilabel = NA, 
-                      periodcolors = c("chartreuse3", "brown2", "turquoise4", "black", "magenta3"),
-                      distribution_low = NA, # if you want to show distribution range for last intervention only then specify values/colors
-                      distribution_high = NA,
-                      distribution_colors = NA,
-                      effectiveness=FALSE){
-  if(!is.na(npilabel)){
-    label <- tibble(npi_label = npilabel,
-                    npi_name = npiselection)
-  } else {
-    label <- tibble(npi_label = npiselection,
-                    npi_name = npiselection)
-  }
-
-  plot_r <- inference_dat %>%
-    filter(npi_name %in% npiselection) %>%
-    left_join(label) %>%
-    mutate(npi_label = factor(npi_label, levels=label$npi_label))
-  
-  if(length(periodcolors)<length(npiselection)){
-    stop("Specify additional colors")
-  }
-
-  periodcolors <- periodcolors[npi_names %in% npiselection]
-    
-  if(effectiveness==TRUE){
-  rc<-plot_r %>%
-      ggplot(aes(x=reduc, y=name, col = npi_label)) +
-      geom_point(position = position_dodge(0.75)) + 
-      geom_linerange(aes(xmin=reducq1, xmax=reducq3, col = npi_label), 
-                     position = position_dodge(0.75)) + 
-      scale_color_manual(breaks = c(label$npi_label), 
-                         values = periodcolors) +
-      theme_bw() +
-      theme(panel.grid.minor = element_blank(),
-            legend.position = "bottom",
-            legend.title = element_blank()) +
-      scale_x_continuous(expand = c(0,0)) +
-      coord_cartesian(xlim = c(0, 1.01)) +
-      ylab("County") +
-      xlab("Estimated intervention effect (mean and IQR)") +
-      guides(color=guide_legend(nrow=2,byrow=TRUE))
-    
-  } else {
-    rc <- plot_r %>%
-    ggplot(aes(x=r, y=name, col=npi_label)) + 
-    geom_point(position=position_dodge(1)) + 
-    scale_color_manual(values = periodcolors)+
-    geom_linerange(aes(xmin=rq1, xmax=rq3, col=npi_label), position=position_dodge(1)) +
-    theme_bw() +
-    theme(panel.grid.minor=element_blank(),
-          legend.position = "bottom",
-          legend.title = element_blank()) +
-    scale_x_continuous(expand = c(0,0)) +
-    coord_cartesian(xlim = c(0, 5)) +
-    ylab("County") +
-    xlab("Estimated reproductive number (mean and IQR)")+
-    guides(color=guide_legend(nrow=2,byrow=TRUE))
-
-  }
-
-  if(!is.na(distribution_low)){
-    for(i in 1:length(distribution_low)){
-      rc <- rc + 
-        annotate("rect", xmin=distribution_low[i], xmax=distribution_high[i], ymin=-Inf, ymax=Inf,
-                 fill=distribution_colors[i], alpha=0.1)
-    }
-  }
-
-return(rc)
-}
-```
-
 ```{r plot_r, fig.cap=cap, fig.height=11}
-plot_r_num(inference_r, # dat from r_load
-           npiselection=npi_names, # intervention groups for comparison (note this should be intervention periods with inference only, or clarifying which periods do not have inference (if including all))
-           npilabel=npi_label, # should be NA or the smae order as npi_names
-           periodcolors = c("chartreuse3", "brown2", "turquoise4", "black", "magenta3", "darkgoldenrod2")) 
+plot_inference_r(r_dat=inference_r, 
+                 npi_trim=npi_trimmer,
+                 npi_levels=npi_levs, # intervention groups for comparison (note this should be intervention periods with inference only, or clarifying which periods do not have inference (if including all))
+                 npi_label=npi_label) 
 
-cap<- paste0("**Fig. ", fig_counter, "**: Estimated reproductive number by county at baseline, during school closures (March 13-19) and lockdown (March 19-May 8).")
+cap<- paste0("**Fig. ", fig_counter, "**: Estimated reproduction number by county across intervention periods.")
 
 fig_counter <- fig_counter+1
 
@@ -364,91 +182,66 @@ fig_counter <- fig_counter+1
 
 ```{r plot_effect, fig.cap = cap, fig.height = 10}  
 
-plot_r_num(inference_r, 
-           npiselection=npi_names[2:6], # select interventions for comparison
-           npilabel=npi_label[2:6], # should match npi_names or be NA
-           periodcolors = c("chartreuse3", "brown2", "turquoise4", "black", "magenta3", "darkgoldenrod2"),
-           effectiveness=TRUE,
-           distribution_low=0.2, # optional for now, only showing low/high value asssumptions for one intervention.
-           distribution_high=0.9, # optional
-           distribution_colors="black") # optional
+plot_inference_r(r_dat=inference_r, 
+                 npi_trim=npi_trimmer,
+                 npi_levels=npi_levs[-1],
+                 npi_label=NA,
+                 effectiveness=TRUE,
+                 distribution_low=0.2, # optional for now, only showing low/high value asssumptions for one intervention.
+                 distribution_high=0.9, # optional
+                 distribution_colors="black") # optional
 
-cap<- paste0("**Fig. ", fig_counter, "**: Estimated effectiveness of school closures (March 13-19) and lockdown (March 19-May 8). Shaded area reflect range of parameter values explored for the post-lockdown period.")
+cap<- paste0("**Fig. ", fig_counter, "**: Estimated effectiveness of intervention periods. The shaded area reflects the range of parameter values explored across interventions.")
 
 fig_counter <- fig_counter+1
+```
+
+`r  paste0("**Tab. ", tab_counter, "**: Estimated effective reproduction number (mean and IQR) by county at baseline and across different reopening stages. The Rt estimates for ongoing interventions reflect the number of susceptible individuals on ",format(Sys.Date(), "%B %d"),". Estimates for past interventions reflect the proportion of susceptible individuals halfway through the intervention period. The effective Rt estimates are also visualized over time and intervention in the far-right column, where the horizontal black line denotes an Rt of 1. Intervention periods are denoted by color which changes from red to yellow and blue over time.")`
+```{r sparkline_r}
+
+sparkline_r <- make_sparkline_tab_r(r_dat=inference_r,
+                                    outcome_dir=runs_folder,
+                                    susceptible=TRUE,
+                                    current_scenario=scn_levels[1],
+                                    npi_levels=npi_levs,
+                                    npi_labels=npi_label, 
+                                    pi_lo=0.25,
+                                    pi_hi=0.75)
+
+sparkline_r
+
+tab_counter<-tab_counter+1
+
+```
+
+`r  paste0("**Tab. ", tab_counter, "**: Estimated effectiveness of intervention periods (mean and IQR) by county across different reopening stages. The estimates are visualized by intervention period in the far-right column, where the horizontal line denotes an Rt of 1. Intervention periods are denoted by color which changes from red to yellow and blue over time.")`
+
+```{r r_eff}
+
+sparkline_eff <- make_sparkline_tab_intervention_effect(r_dat=inference_r_spark,
+                                  npi_levels=c("SchoolClosurePartial", "Lockdown", "P2A", "P2B", "P3", "R1", "R2"),
+                                  npi_labels=c("School Closures","Stay at Home", "Early Phase 2", "Late Phase 2", "Phase 3", "Restricted Phase 3", "Restricted Phase 2"),
+                                  pi_lo=0.25,
+                                  pi_hi=0.75)
+
+sparkline_eff
+
+tab_counter<-tab_counter+1
 ```
 
 ```{r summary_fig_zm, fig.cap = cap}
 
-plot_ts_hosp_state_sample(state_hosp_totals%>%rename(pdeath=death_rate),
+plot_ts_hosp_state_sample(state_hosp_totals,
                           num_sims = nfiles2,
                           varname = "NhospCurr",
                           varlabel = "Daily number of occupied hospital beds",
-                          scenario_labels = config$report$formatting$scenario_labels,
-                          scenario_cols = config$report$formatting$scenario_colors,
-                          sim_start_date = config$start_date,
-                          sim_end_date = config$end_date,
-                          pdeath_level = death_rate_levels[1]) + # check that this is "high"
-   geom_hline(aes(yintercept = 50000)) +
-  facet_wrap(~scenario_name, nrow=1) + 
-  guides(color=FALSE) +
-  theme(legend.title=element_blank())
+                          scenario_labels = scn_labels,
+                          scenario_cols = scn_colors,
+                          sim_start_date = sim_start_date,
+                          sim_end_date = sim_end_date,
+                          pdeath_level = death_rate_levels[1])
 
-cap <- paste0("**Fig. ", fig_counter, "**: Daily hospital occupancy for ", nfiles2, " simulation realizations at 1% IFR assumptions. The horizontal line represents non-surge hospital bed capacity in California (assumes 0% of non-surge capacity are used by non-COVID patients). The grey shaded area indicates the time period for the last phase of reopening.")
-fig_counter <- fig_counter+1
-
-```
-
-```{r hosp_capacity_prob_func}
-plot_capacity <- function(state_dat, 
-                          hosp_cap1,
-                          hosp_cap2,
-                          scenario_labels,
-                          death_rate_levels,
-                          death_rate_labels){
-  
-  cap1 <- paste0(str_remove(as.character(hosp_cap1), "000$"),"K", "Hospital Bed Capacity")
-  cap2 <- paste0(str_remove(as.character(hosp_cap2), "000$"),"K", "Hospital Bed Capacity")
-  
-state_dat %>%
-    mutate(cap1 = if_else(NhospCurr>=hosp_cap1, 1, 0),
-           cap2 = if_else(NhospCurr>=hosp_cap2, 1, 0), # TODO: allow user to choose one or two hosp cap
-           scenario_name = factor(scenario_name,
-                                  levels = scenario_labels,
-                                  labels = scenario_labels),
-           death_rate = factor(death_rate, levels = death_rate_levels,
-                           labels = death_rate_labels)) %>%
-    group_by(time, scenario_name, death_rate) %>%
-    summarize(cap1 = sum(cap1)/n(),
-              cap2 = sum(cap2)/n()) %>%
-    pivot_longer(cap1:cap2, names_to = "capacity", values_to = "vals") %>%
-    ggplot(aes(x = time, y = vals, color = death_rate)) +
-    geom_line(aes(linetype = capacity)) +
-    theme_bw() +
-    ylab("Proportion of simulations exceeding hospital bed capacity") +
-    theme(legend.title = element_blank(),
-          legend.position = "bottom") +
-    scale_y_continuous(limits = c(0,1.00), breaks = c(0, 0.25, 0.50, 0.75, 1.00)) +
-    scale_x_date(date_breaks = "1 month", 
-                 date_labels = "%b", limits = c(lubridate::ymd(short_start), 
-                                                lubridate::ymd(short_end)))+
-    scale_linetype(labels=c(cap1,cap2))+
-    theme_minimal() + 
-    theme(axis.title.x = element_blank(), legend.position = "bottom", 
-          legend.title = element_blank()) + guides(color = guide_legend(nrow = 2)) 
-}
-```
-
-```{r hosp_capacity_prob, fig.cap = cap}
-plot_capacity(state_dat = state_hosp_totals,
-              hosp_cap1=50000,
-              hosp_cap2=25000, 
-              scenario_labels="inference_only",
-              death_rate_levels=death_rate_levels,
-              death_rate_labels=config$report$formatting$death_rate_labels)
-
-cap<- paste0("**Fig. ", fig_counter, "**: Probability of exceeding hospital bed capacity by IFR assumption. The probability of exceeding 25K and 50K hospital beds are indicated by solid and dotted lines, respectively.")
-
+cap <- paste0("**Fig. ", fig_counter, "**: Daily hospital occupancy for ", nfiles2, " simulation realizations at 1% IFR assumptions.")
 fig_counter <- fig_counter+1
 
 ```
@@ -460,266 +253,28 @@ fig_counter <- fig_counter+1
 
 ### Summary
 
-```{r county_tab_func, warning=FALSE}
-
-plot_county_sum <- function(county_dat, 
-                            pi_lo = 0.025, 
-                            pi_hi = 0.975, 
-                            start_date,
-                            end_date,
-                            death_rate_tab = "high",
-                            death_labs=death_rate_labels,
-                            death_levs=death_rate_levels# if NA will plot all 3 
-                            ){
-  
-start_date <- lubridate::ymd(start_date)
-end_date<-lubridate::ymd(end_date)
-
-county_tab <- county_dat %>% 
-  filter(!is.na(time)) %>% 
-  filter(time >= start_date, time <= end_date) %>% 
-  mutate(name=factor(name, levels=sort(geo_names$name)))%>%
-  group_by(death_rate, sim_num, name) %>%
-  summarize(TotalIncidCase = sum(NincidCase, na.rm = TRUE),
-            TotalIncidHosp = sum(NincidHosp, na.rm = TRUE),
-            TotalIncidICU = sum(NincidICU, na.rm = TRUE),
-            TotalIncidVent = sum(NincidVent, na.rm=TRUE),
-            TotalIncidDeath = sum(NincidDeath, na.rm = TRUE),
-            AvgIncidCase = sum(NincidCase, na.rm=TRUE)/n(),
-            AvgIncidDeath = sum(NincidDeath, na.rm = TRUE)/n(),
-            maxHospAdm = max(NincidHosp, na.rm=TRUE),
-            maxICUAdm = max(NincidICU, na.rm=TRUE),
-            maxVentAdm = max(NincidVent, na.rm=TRUE),
-            maxHospCap = max(NhospCurr, na.rm = TRUE),
-            maxICUCap = max(NICUCurr, na.rm=TRUE),
-            maxVentCap = max(NVentCurr, na.rm=TRUE)) %>%
-  ungroup() %>%
-  group_by(death_rate, name) %>% 
-  summarize(nIncidCase_final = mean(TotalIncidCase),
-           nIncidCase_lo = quantile(TotalIncidCase, pi_lo),
-           nIncidCase_hi = quantile(TotalIncidCase, pi_hi),
-           aIncidCase_final = mean(AvgIncidCase),
-           aIncidCase_lo = quantile(AvgIncidCase, pi_lo),
-           aIncidCase_hi = quantile(AvgIncidCase, pi_hi),
-           aIncidDeath_final = mean(AvgIncidDeath),
-           aIncidDeath_lo = quantile(AvgIncidDeath, pi_lo),
-           aIncidDeath_hi = quantile(AvgIncidDeath, pi_hi),
-           nIncidHosp_final = mean(TotalIncidHosp),
-           nIncidHosp_lo = quantile(TotalIncidHosp, pi_lo),
-           nIncidHosp_hi = quantile(TotalIncidHosp, pi_hi),
-           pIncidHosp_final = mean(maxHospAdm),
-           pIncidHosp_lo = quantile(maxHospAdm, pi_lo),
-           pIncidHosp_hi = quantile(maxHospAdm, pi_hi),
-           nIncidICU_final = mean(TotalIncidICU),
-           nIncidICU_lo = quantile(TotalIncidICU, pi_lo),
-           nIncidICU_hi = quantile(TotalIncidICU, pi_hi),
-           pIncidICU_final = mean(maxICUAdm),
-           pIncidICU_lo = quantile(maxICUAdm, pi_lo),
-           pIncidICU_hi = quantile(maxICUAdm, pi_hi),
-           nIncidVent_final = mean(TotalIncidVent),
-           nIncidVent_lo = quantile(TotalIncidVent, pi_lo),
-           nIncidVent_hi = quantile(TotalIncidVent, pi_hi),
-           pIncidVent_final = mean(maxVentAdm),pIncidVent_lo = quantile(maxVentAdm, pi_lo),
-        pIncidVent_hi = quantile(maxVentAdm, pi_hi),
-        nIncidDeath_final = mean(TotalIncidDeath),
-        nIncidDeath_lo = quantile(TotalIncidDeath, pi_lo),
-        nIncidDeath_hi = quantile(TotalIncidDeath, pi_hi),
-        nCurrHosp_final = mean(maxHospCap),
-        nCurrHosp_lo = quantile(maxHospCap, pi_lo),
-        nCurrHosp_hi = quantile(maxHospCap, pi_hi),
-        nCurrICU_final = mean(maxICUCap),
-        nCurrICU_lo = quantile(maxICUCap, pi_lo),
-        nCurrICU_hi = quantile(maxICUCap, pi_hi),
-        nCurrVent_final = mean(maxVentCap),
-        nCurrVent_lo = quantile(maxVentCap, pi_lo),
-        nCurrVent_hi = quantile(maxVentCap, pi_hi)) %>%
-  ungroup() %>%
-  mutate(aIncidCase = prettyNum(conv_round(aIncidCase_final), big.mark=",", scientific=FALSE,trim=TRUE),
-         aIncidCase_CI = make_CI(aIncidCase_lo, aIncidCase_hi),
-         aIncidDeath = prettyNum(conv_round(aIncidDeath_final), big.mark=",", scientific=FALSE,trim=TRUE),
-         aIncidDeath_CI = make_CI(aIncidDeath_lo, aIncidDeath_hi),
-         nIncidCase = prettyNum(conv_round(nIncidCase_final), big.mark=",",scientific=FALSE,trim=TRUE),
-         nIncidCase_CI = prettyNum(make_CI(nIncidCase_lo, nIncidCase_hi), big.mark=",",scientific=FALSE,trim=TRUE),
-         nIncidHosp = prettyNum(conv_round(nIncidHosp_final), big.mark=",",scientific=FALSE,trim=TRUE),
-         nIncidHosp_CI = make_CI(nIncidHosp_lo, nIncidHosp_hi),
-         pIncidHosp = prettyNum(conv_round(pIncidHosp_final), big.mark=",",scientific=FALSE,trim=TRUE),
-         pIncidHosp_CI = make_CI(pIncidHosp_lo, pIncidHosp_hi),
-         nCurrHosp = prettyNum(conv_round(nCurrHosp_final), big.mark=",",scientific=FALSE,trim=TRUE),
-         nCurrHosp_CI = make_CI(nCurrHosp_lo, nCurrHosp_hi),
-         nIncidICU = prettyNum(conv_round(nIncidICU_final), big.mark=",",scientific=FALSE,trim=TRUE),
-         nIncidICU_CI = make_CI(nIncidICU_lo, nIncidICU_hi),
-         pIncidICU = prettyNum(conv_round(pIncidICU_final), big.mark=",",scientific=FALSE,trim=TRUE),
-         pIncidICU_CI = make_CI(pIncidICU_lo, pIncidICU_hi),
-         nCurrICU = prettyNum(conv_round(nCurrICU_final), big.mark=",",scientific=FALSE,trim=TRUE),
-         nCurrICU_CI = make_CI(nCurrICU_lo, nCurrICU_hi),
-         nIncidVent = prettyNum(conv_round(nIncidVent_final), big.mark=",",scientific=FALSE,trim=TRUE),
-         nIncidVent_CI = make_CI(nIncidVent_lo, nIncidVent_hi),
-         pIncidVent = prettyNum(conv_round(pIncidVent_final), big.mark=",",scientific=FALSE,trim=TRUE),
-         pIncidVent_CI = make_CI(pIncidVent_lo, pIncidVent_hi),
-         nCurrVent = prettyNum(conv_round(nCurrVent_final), big.mark=",",scientific=FALSE,trim=TRUE),
-         nCurrVent_CI = make_CI(nCurrVent_lo, nCurrVent_hi),
-         nIncidDeath = prettyNum(conv_round(nIncidDeath_final), big.mark=",",scientific=FALSE,trim=TRUE),
-         nIncidDeath_CI = make_CI(nIncidDeath_lo, nIncidDeath_hi)) %>%
-  select(-ends_with("lo"), -ends_with("hi"), -ends_with("final"))
-
-county_tab <- county_tab[order(colnames(county_tab))]
-
-county_tab <- county_tab %>%
-  unite("CaseAvg", aIncidCase:aIncidCase_CI, sep="\n") %>%
-  unite("DeathAvg", aIncidDeath:aIncidDeath_CI, sep="\n") %>%
-  unite("HospPeakMax", nCurrHosp:nCurrHosp_CI, sep="\n") %>%
-  unite("ICUPeakMax", nCurrICU:nCurrICU_CI, sep="\n") %>%
-  unite("VentPeakMax", nCurrVent:nCurrVent_CI, sep="\n") %>%
-  unite("DeathIncid", nIncidDeath:nIncidDeath_CI, sep="\n") %>%
-  unite("HospIncid", nIncidHosp:nIncidHosp_CI, sep="\n") %>%
-  unite("ICUIncid", nIncidICU:nIncidICU_CI, sep="\n") %>%
-  unite("CaseIncid", nIncidCase:nIncidCase_CI, sep="\n") %>%
-  unite("VentIncid", nIncidVent:nIncidVent_CI, sep="\n") %>%
-  unite("HospPeakAdmin", pIncidHosp:pIncidHosp_CI, sep="\n") %>%
-  unite("ICUPeakAdmin", pIncidICU:pIncidICU_CI, sep="\n") %>%
-  unite("VentPeakAdmin", pIncidVent:pIncidVent_CI, sep="\n")
-
-county_tab <- county_tab[order(colnames(county_tab))] %>%
-  select(name, death_rate, starts_with("Case"), starts_with("Hosp"), starts_with("ICU"), starts_with("Vent"), starts_with("Death"))
-
-if(!is.na(death_rate_tab)){
-  newnames <- c(NA_character_, "Daily average","Total", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Daily average", "Total")
-
-county_tab %>%
-  arrange(name) %>%
-  filter(death_rate == death_rate_tab) %>%
-  select(-death_rate) %>%
-  flextable::flextable() %>%
-  flextable::set_header_labels(name = "County", CaseAvg = "CONFIRMED CASES", CaseIncid = "CONFIRMED CASES", HospIncid = "HOSPITALIZATIONS", # pdeath= "IFR", 
-                               HospPeakAdmin = "HOSPITALIZATIONS", HospPeakMax = "HOSPITALIZATIONS", ICUIncid = "ICU", 
-                               ICUPeakAdmin = "ICU", ICUPeakMax = "ICU", VentIncid = "VENTILATIONS", VentPeakAdmin = "VENTILATIONS",
-                               VentPeakMax = "VENTILATIONS", DeathAvg = "DEATHS", DeathIncid = "DEATHS") %>%
-  flextable::merge_at(i = 1, j = 2:3, part = "header") %>%
-  flextable::merge_at(i = 1, j = 4:6, part = "header") %>%
-  flextable::merge_at(i = 1, j = 7:9, part = "header") %>%
-  flextable::merge_at(i = 1, j = 10:12, part = "header") %>%
-  flextable::merge_at(i = 1, j = 13:14, part = "header") %>%
-  flextable::add_header_row(values = c(newnames), top = FALSE) %>%
-  #flextable::merge_v(j = 1) %>%
-  flextable::autofit() %>%
-  #flextable::border(i=seq(3, 174, by = 3), border.bottom=officer::fp_border(color="black")) %>%
-  flextable::border(j=c(1,3,6,9,12), border.right = officer::fp_border(color="grey", style = "solid", width=0.5)) %>%
-  flextable::align(align="center", part = "all") %>%
-  flextable::bold(part="header")%>%
-  flextable::bold(j=1, part="body")
-} else {
-  newnames <- c(NA_character_,NA_character_,"Daily average", "Total", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily
-                peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Daily average", "Total")
-  
-  county_tab %>%
-    arrange(name) %>%
-    mutate(death_rate = factor(death_rate, 
-                           levels=death_levs,
-                           labels=death_labs)) %>%
-    flextable::flextable() %>%
-    flextable::set_header_labels(name = "County", death_rate = "IFR", CaseAvg = "CONFIRMED CASES", 
-                                 CaseIncid = "CONFIRMED CASES", HospIncid = "HOSPITALIZATIONS", 
-                                 HospPeakAdmin = "HOSPITALIZATIONS", HospPeakMax = "HOSPITALIZATIONS", ICUIncid = "ICU", 
-                                 ICUPeakAdmin = "ICU", ICUPeakMax = "ICU", VentIncid = "VENTILATIONS", VentPeakAdmin = "VENTILATIONS",
-                                 VentPeakMax = "VENTILATIONS", DeathAvg = "DEATHS", DeathIncid = "DEATHS") %>%
-    flextable::merge_at(i = 1, j = 3:4, part = "header") %>%
-    flextable::merge_at(i = 1, j = 5:7, part = "header") %>%
-    flextable::merge_at(i = 1, j = 8:10, part = "header") %>%
-    flextable::merge_at(i = 1, j = 11:13, part = "header") %>%
-    flextable::merge_at(i = 1, j = 14:15, part = "header") %>%
-    flextable::add_header_row(values = c(newnames), top = FALSE) %>%
-    flextable::merge_v(j = 1) %>%
-    flextable::autofit() %>%
-    flextable::border(i=seq(3, 174, by = 3), border.bottom=officer::fp_border(color="grey", width=0.5)) %>%
-    flextable::border(j=c(2,4,7,10,13), border.right = officer::fp_border(color="grey", style = "solid", width=0.5)) %>%
-    flextable::align(align="center", part = "all") %>%
-    flextable::bold(part="header")%>%
-    flextable::bold(j=c(1,2), part="body")
-  }
-
-}
-  
-```
-
-`r paste0("**Tab.", tab_counter, "** Summary estimates across counties for the ",format(short_start,"%B %d"),"-", format(short_end,"%B %d"), " time period with 1% infection fatality ratio (IFR) assumptions.")`  
+`r paste0("**Tab. ", tab_counter, "** Summary estimates across counties for the ",format(short_start,"%B %d"),"-", format(sim_end_date,"%B %d"), " time period with 1% infection fatality ratio (IFR) assumptions.")`  
 ```{r county_tab}
 
-plot_county_sum(county_dat=res_state,
-                start_date=short_start,
-                end_date=short_end)
+make_scn_county_table_withVent(current_scenario=scn_levels[1],
+                               county_dat=res_state,
+                               start_date=short_start,
+                               end_date=sim_end_date,
+                               pdeath_filter="high")
 
 tab_counter<-tab_counter+1
 
 ```
 
 ```{r outcome_rate, fig.height=10, fig.cap=cap}
-plot_outcome_rate<- function(county_dat,
-                                start_date, 
-                                end_date,
-                                geo_dat=geodata,
-                                inference_dat,
-                                death_rate_levs=death_rate_levels,
-                                death_rate_labs=death_rate_labels,
-                                fig_labels=c("Cases", "Hospitalizations", "Deaths"),
-                                dodger=0
-                                ){
-  start_date <- lubridate::ymd(start_date)
-  end_date <- lubridate::ymd(end_date)
-  
-sum_tab <- county_dat %>% 
-  filter(!is.na(time)) %>% 
-  filter(time >= start_date, time <= end_date) %>% 
-  group_by(death_rate, sim_num, name) %>%
-  summarize(TotalIncidCase = sum(NincidCase, na.rm = TRUE),
-            TotalIncidHosp = sum(NincidHosp, na.rm = TRUE),
-            TotalIncidDeath = sum(NincidDeath, na.rm = TRUE)) %>%
-  ungroup() %>%
-  group_by(death_rate, name) %>% 
-  summarize(nIncidCase_final = mean(TotalIncidCase),
-            nIncidHosp_final = mean(TotalIncidHosp),
-            nIncidDeath_final = mean(TotalIncidDeath)) %>%
-  ungroup() %>%
-  mutate(death_rate = factor(death_rate, 
-                             labels = death_rate_labs,
-                             levels = death_rate_levs))
-  
-sum_tab <- inference_dat%>%
-  group_by(geoid) %>%
-  filter(npi_name!="local_variance" & max(end_date)==end_date)%>%
-  right_join(sum_tab) %>%
-  left_join(geo_dat)
-
-rc <- bind_rows(mutate(sum_tab,type=1,est=nIncidDeath_final/pop2010*1000),
-          mutate(sum_tab,type=2, est=nIncidHosp_final/pop2010*1000),
-          mutate(sum_tab,type=3, est=nIncidCase_final/pop2010*1000)) %>%
-  select(type, est, death_rate, name) %>%
-  mutate(type = factor(type, levels = c(3,2,1), labels = fig_labels)) %>%
-  ggplot(aes(x=est, y=name, col=death_rate)) +
-  geom_point(position=position_dodge(dodger)) + 
-  scale_x_sqrt() + 
-  theme_bw() + 
-  facet_grid(~type, scales = "free") +
-  xlab("per 1,000 population") + 
-  ylab("County") +
-  theme(axis.title.x=element_blank(),
-        legend.title = element_blank(),
-        legend.position = "bottom",
-        strip.text = element_text(face="bold"),
-        strip.background = element_blank())
-
-return(rc)
-
-}  
 
 plot_outcome_rate(county_dat=res_state,
-                     inference_dat=inference_r,
-                     start_date=short_start,
-                     end_date=short_end,
-                     dodger=0)  
+                  inference_dat=inference_r,
+                  start_date=short_start,
+                  end_date=sim_end_date,
+                  dodger=0)  
 
-
-
-cap <- paste0("**Fig.", fig_counter, "** Population-adjusted deaths, hospitalizations, and confirmed cases between ", format(short_start, "%B %d"), "-", format(short_end, "%B %d"), ". Estimates by county and 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue).")  
+cap <- paste0("**Fig. ", fig_counter, "** Population-adjusted deaths, hospitalizations, and confirmed cases between ", format(short_start, "%B %d"), "-", format(short_end, "%B %d"), ". Estimates by county and 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue).")  
 
 fig_counter<-fig_counter+1  
 
@@ -727,72 +282,16 @@ fig_counter<-fig_counter+1
 
 ### Possible Outcomes
 
-```{r hospvs_rt_func}
-
-plot_hosp_effec <- function(county_dat,
-                            start_date, 
-                            end_date,
-                            geo_dat=geodata,
-                            npiselection,
-                            inference_dat=inference_r,
-                            fig_labels=c("Confirmed Cases", "Hospitalizations", "Deaths"),
-                            dodger=0,
-                            death_labs=death_rate_labels,
-                            death_levs=death_rate_levels
-                                ){
-  start_date <- lubridate::ymd(start_date)
-  end_date <- lubridate::ymd(end_date)
-  
-sum_tab <- county_dat %>% 
-  filter(!is.na(time)) %>% 
-  filter(time >= start_date, time <= end_date) %>% 
-  group_by(death_rate, sim_num, name) %>%
-  summarize(TotalIncidCase = sum(NincidCase, na.rm = TRUE),
-            TotalIncidHosp = sum(NincidHosp, na.rm = TRUE),
-            TotalIncidDeath = sum(NincidDeath, na.rm = TRUE)) %>%
-  ungroup() %>%
-  group_by(death_rate, name) %>% 
-  summarize(nIncidCase_final = mean(TotalIncidCase),
-            nIncidHosp_final = mean(TotalIncidHosp),
-            nIncidDeath_final = mean(TotalIncidDeath)) %>%
-  ungroup() %>%
-  mutate(death_rate=factor(death_rate, 
-                           levels=death_levs, 
-                           labels=death_labs))
-  
-sum_tab <- inference_dat%>%
-    group_by(geoid) %>%
-  filter(npi_name!="local_variance" & max(end_date)==end_date)%>%
-  left_join(geo_dat%>%select(-USPS))%>%
-  right_join(sum_tab) 
-
-bind_rows(sum_tab%>%mutate(est=nIncidHosp_final/pop2010*1000,
-                           type=1)%>%select(name, reduc, est, death_rate,type)) %>%
-  mutate(type=factor(type, levels = c(2,1,3), labels = fig_labels))%>%
-  ggplot(aes(x=est, y=reduc, label = name, col=death_rate)) +
-  ggrepel::geom_text_repel(segment.size = 0.2, alpha = 0.75, segment.alpha=0.5) +
-  geom_point() +
-  scale_x_sqrt()+
-  facet_grid(~death_rate)+
-  theme_bw() +
-  theme(legend.position = "none",
-        strip.text = element_text(face="bold"),
-        strip.background = element_blank())+
-  xlab(paste0("Hospitalization between ", lubridate::month(start_date, label=TRUE), " ", lubridate::mday(start_date), "-", lubridate::month(end_date, label=TRUE), " ", lubridate::mday(end_date)," per 1,000 people")) +
-  ylab("Estimated effectiveness of post-lockdown social distancing")
-
-}  
-```
-
 ```{r hosp_vs_rt, fig.cap=cap, fig.height=8, fig.width=12}
 plot_hosp_effec(county_dat=res_state,
                 start_date=short_start,
-                end_date=short_end, 
-                inference_dat=inference_r# period with inference projection after npi_trimmer has been applied. 
-                )  
+                end_date=sim_end_date, 
+                inference_dat=inference_r)  
 
 
 cap<- paste0("**Fig. ", fig_counter, "** Population-adjusted estimates of hospitalizations between ", format(short_start, "%B %d"), "-", format(short_end, "%B %d"), " assuming the effectiveness of post-lockdown social distancing is maintained by county. Estimates shown for 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue) assumptions. ")  
+
+fig_counter<-fig_counter+1  
 
 ```
 
@@ -816,7 +315,7 @@ cap<- paste0("**Fig. ", fig_counter, "** Population-adjusted estimates of hospit
 #                                   varname = "total_licensed_beds",
 #                                   bed_percentage = 1)  
 
-bed_capacity <- read_csv("data/DPH/tbl4_cha_ext_part_07-06.csv")%>%
+bed_capacity <- read_csv("data/DPH/tbl4_cha_ext_part.csv")%>%
   mutate(date=as.Date(date, "%m/%d/%y"))
 
 bed_date <- (bed_capacity %>%
@@ -825,7 +324,7 @@ bed_date <- (bed_capacity %>%
   lubridate::ymd()  
 
 bed_capacity<-bed_capacity%>%
-  filter(date>lubridate::ymd("2020-05-08")) %>%
+  filter(date>(proj_start-31)) %>%
   group_by(name=county, date) %>%
   summarize_if(is.numeric, sum, na.rm=TRUE) %>%
   group_by(name)%>%
@@ -835,7 +334,7 @@ bed_capacity<-bed_capacity%>%
               round(mean(total_conf_icu_patients))+round(mean(total_sus_icu_patients)),
             tot_cap=round(mean(tot_med_surgical_beds)),
             tot_cap_icu=round(mean(tot_icu_beds))) %>%
-  right_join(geo_names)%>%
+  right_join(geodata)%>%
   mutate(tot_avail=if_else(is.na(tot_avail), 0, tot_avail),
          tot_icu_avail=if_else(is.na(tot_icu_avail),0, tot_icu_avail),
          tot_cap=if_else(is.na(tot_cap), 0, tot_cap),
@@ -850,123 +349,35 @@ names(beddata_hosp)<-bed_capacity$geoid
 
 ```
 
-```{r load_hosp_geounit_relative_func}
-
-load_hosp_geounit_relative_to_threshold <- function(rc=res_state,
-                      threshold,
-                      variable,
-                      end_date = config$end_date,
-                      incl_geoids = NULL,
-                      death_rate_filter="high",
-                      scenario_labels=NULL,
-                      scenario_names=NULL
-                      ){
-  
-  if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
-    catch_all_threshold <- Inf
-  if(sum(names(threshold) == "") > 0){
-    catch_all_threshold <- threshold[names(threshold) == ""]
-  }
-  if(is.null(scenario_labels)){
-    warning("You have not specified scenario labels for this function. You may encounter future errors.")  
-  }
-  end_date <- lubridate::as_date(end_date)
-
-  rc %>% 
-    dplyr::filter(time<=end_date,
-                  death_rate==death_rate_filter)%>%
-    group_by(scenario_name, geoid, time) %>%
-    dplyr::summarise(NhospCurr = round(mean(NhospCurr)),
-                     NICUCurr = round(mean(NICUCurr)),
-                     NVentCurr = round(mean(NVentCurr))) %>%
-    ungroup %>%
-    left_join(data.frame(geoid = names(threshold), threshold_value = threshold), by = c("geoid")) %>%
-    dplyr::rename(pltVar = !!variable) %>%
-    dplyr::mutate(prop_needed = pltVar/threshold_value) %>%
-    dplyr::mutate(log_prop_needed = log(prop_needed)) %>%
-    dplyr::mutate(log_prop_needed = ifelse(pltVar == 0, 
-                                            floor(min(log_prop_needed[which(is.finite(log_prop_needed))])),
-                                            log_prop_needed)) %>% ## if numerator is 0, set the value to the floor of the min value among all other log values (for plotting purposes)
-    dplyr::mutate(log_prop_needed = ifelse(threshold_value == 0 & pltVar > 0, 
-                                          ceiling(max(log_prop_needed[which(is.finite(log_prop_needed))])),
-                                          log_prop_needed)) %>% ## if threshold is 0, set the value to the ceiling of the max value among all other logs values (for plotting purposes)
-    dplyr::rename(!!variable := pltVar) %>%
-    return()
-}
-```
-
 ```{r load_hosp_geounit_relative}
 
-icu_geounit_relative <- load_hosp_geounit_relative_to_threshold(rc=res_state,
+icu_geounit_relative <- load_hosp_geounit_relative_to_threshold(county_dat=res_state,
+                                                                scenario_levels=scn_levels,
+                                                                scenario_labels =scn_labels,
                                                                 threshold = beddata_icu,
                                                                 variable = "NICUCurr",
-                                                                end_date = config$end_date,
-                                                                incl_geoids = included_geoids)
+                                                                end_date = sim_end_date,
+                                                                incl_geoids = included_geoids,
+                                                                name_filter="med")
 
 
-hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(rc=res_state,
+hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(county_dat=res_state,
                                                                  threshold = beddata_hosp,
                                                                  variable = "NhospCurr",
-                                                                 end_date = config$end_date)
-```
-
-```{r plot_hosp_threshold_comp_fun}
-
-plot_needs_relative_to_threshold_heatmap <- function(
-    hosp_geounit_relative,
-    shapefile=geo_names,
-    scenario_labels,
-    scale_colors = c("#066f6c", "#f8e6e7", "#ba0a0f"),
-    legend_title,
-    value_name,
-    value_label,
-    start_date,
-    end_date,
-    incl_geoids = NULL){
-
-  start_date <- lubridate::ymd(start_date)
-  end_date <- lubridate::ymd(end_date) 
-
-  if(is.null(incl_geoids)) { incl_geoids <- unique(hosp_geounit_relative$geoid)}
-  
-  shp <- shapefile%>%
-    arrange(desc(name))%>%
-    dplyr::mutate(name_num = seq_along(name)) ## secondary axes only work with continuous values
-  
-  plt_dat <- left_join(hosp_geounit_relative, shp, by = c("geoid")) %>%
-    dplyr::rename(threshold = !!value_name) %>%
-    dplyr::filter(time >= start_date & time <= end_date)
-
-  if(length(scenario_labels)==1){
-
-    rc <- ggplot(plt_dat, aes(x = time, y = name_num)) +
-      geom_tile(aes(fill = log_prop_needed)) +
-      scale_fill_gradient2(paste("Log", legend_title), low = scale_colors[1], mid = scale_colors[2], high = scale_colors[3], midpoint = 0, na.value = "grey 30", labels = scales::comma, limits = c(floor(min(plt_dat$log_prop_needed)), ceiling(max(plt_dat$log_prop_needed)))) +
-      scale_y_continuous("",
-        breaks = plt_dat$name_num,
-        labels = plt_dat$name,
-        sec.axis = dup_axis(name = value_label,
-                            breaks = plt_dat$name_num,
-                            labels = plt_dat$threshold)) +
-      scale_x_date(date_breaks = "2 weeks", date_labels = "%b %d") +
-      theme_bw() +
-      theme(legend.position = "bottom", axis.title.x = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
-
-  } 
-  return(rc)
-}
-
+                                                                 scenario_levels=scn_levels,
+                                                                 scenario_labels =scn_labels,
+                                                                 end_date = sim_end_date,
+                                                                 name_filter="med")
 ```
 
 ```{r plot_hosp_threshold_comp, fig.cap = cap, fig.height = 9}
 plot_needs_relative_to_threshold_heatmap(hosp_geounit_relative,
-                                         shapefile = geo_names,
-                                         scenario_labels = config$report$formatting$scenario_labels,
+                                         scenario_labels = scn_labels,
                                          legend_title = "excess hospital \nbeds needed",
                                          value_name = "threshold_value",
                                          value_label = "total hospital bed capacity",
                                          start_date = short_start,
-                                         end_date = short_end,
+                                         end_date = sim_end_date,
                                          incl_geoids = included_geoids)
 
 cap <- paste("**Fig. ", fig_counter, " **:  County-level hospital bed needs, as log proportion of total hospital bed capacity for COVID patients (including surge), at 1% IFR assumptions. Occupancy is estimated as the average daily occupied hospital beds during the post-lockdown period excluding confirmed and suspected COVID patients.")
@@ -978,13 +389,12 @@ fig_counter <- fig_counter+1
 ```{r plot_icu_threshold_comparisons, fig.cap = cap, fig.height = 9}
 
 plot_needs_relative_to_threshold_heatmap(icu_geounit_relative,
-                                         shapefile = geo_names,
-                                         scenario_labels = config$report$formatting$scenario_labels,
+                                         scenario_labels = scn_labels,
                                          legend_title = "excess ICU \nbeds needed",
                                          value_name = "threshold_value",
                                          value_label = "available ICU bed capacity",
                                          start_date = short_start,
-                                         end_date = short_end,
+                                         end_date = sim_end_date,
                                          incl_geoids = included_geoids)
 
 cap <- paste("**Fig. ", fig_counter, " **:  County-level ICU bed needs, as log proportion of estimated current ICU bed capacity available to COVID patients, at 1% IFR assumptions. Occupancy is estimated as the average daily occupied hospital beds during the post-lockdown period excluding confirmed and suspected COVID patients.")
@@ -996,159 +406,17 @@ fig_counter <- fig_counter+1
 
 ### Model Calibration
 
-```{r county_truth_func}  
-# Need to improve hosp cut-off so only totals for aggregated week are shown
-
-plot_truth_county <- function(county_truth = truth_dat,
-                              county_dat,
-                              start_date,
-                              end_date,
-                              fig_labs=c("Incident Cases", "Incident Deaths"),
-                              hosp=FALSE, #county_truth must have current hospitalizations, with var_name "currhosp" if TRUE 
-                              shapefile=geo_names,
-                              pi_lo=0.025,
-                              pi_hi=0.975,
-                              death_levs=death_rate_levels,
-                              death_labs=death_rate_labels){
-    start_dat<-lubridate::ymd(start_date)
-    end_date<-lubridate::ymd(end_date)
-    
-    
-    
-    if(hosp){
-      
-      if(length(fig_labs)!=3){
-        fig_labs <- c("Incident Cases", "Incident Deaths", "Occupied Hospital Beds")
-      }
-        county_dat <- county_dat %>%
-            filter(time>=start_date, time<end_date)%>%
-            group_by(geoid, death_rate, sim_num, time=lubridate::floor_date(time, unit="week", week_start=3), ) %>%
-            summarize(NincidCase=sum(NincidCase, na.rm=TRUE),
-                      NincidDeath=sum(NincidDeath, na.rm=TRUE),
-                      NhospCurr=sum(NhospCurr, na.rm=TRUE)) %>%
-            filter(time<max(time))
-        
-        county_truth <- county_truth %>%
-            group_by(geoid, time=lubridate::floor_date(date, unit="week", week_start=3)) %>%
-            summarize(incidI=sum(incidI, na.rm=TRUE),
-                      incidDeath=sum(incidDeath, na.rm=TRUE),
-                      currhosp=sum(currhosp, na.rm=TRUE)) %>%
-          group_by(geoid)%>%
-          filter(time<max(time))
-        
-        rc <- bind_rows(county_truth%>%
-                            mutate(confirmed=incidI,
-                                   type=fig_labs[1]),
-                        county_truth%>%
-                            mutate(confirmed=incidDeath,
-                                   type=fig_labs[2]),
-                        county_truth%>%
-                            mutate(confirmed=currhosp,
-                                     type=fig_labs[3])) %>%
-            select(-starts_with("incid")) %>%
-            right_join(
-                bind_rows(county_dat %>%
-                              group_by(time, geoid, death_rate)%>%     
-                              summarize(low=quantile(NincidCase,pi_lo),
-                                        high=quantile(NincidCase,pi_hi),
-                                        est=mean(NincidCase),
-                                        type=fig_labs[1]),
-                          county_dat %>%
-                              group_by(time, geoid, death_rate)%>%  
-                              summarize(low=quantile(NincidDeath,pi_lo),
-                                        high=quantile(NincidDeath,pi_hi),
-                                        est=mean(NincidDeath),
-                                        type=fig_labs[2]),
-                          county_dat %>%
-                              group_by(time, geoid, death_rate)%>%  
-                              summarize(low=quantile(NhospCurr,pi_lo),
-                                        high=quantile(NhospCurr,pi_hi),
-                                        est=mean(NhospCurr),
-                                        type=fig_labs[3]))) %>%
-            ungroup() %>%
-            mutate(death_rate = factor(death_rate, 
-                                   levels = death_levs, 
-                                   labels = death_labs),
-                   type = factor(type, levels = fig_labs[3:1]),
-                   confirmed=if_else(confirmed==0, NA_real_, confirmed))
-    } else{
-        county_dat <- county_dat %>%
-            filter(time>=start_date, time<end_date)%>%
-            group_by(geoid, death_rate, sim_num, time=lubridate::floor_date(time, unit="week", week_start=3)) %>%
-            summarize(NincidCase=sum(NincidCase),
-                      NincidDeath=sum(NincidDeath)) %>%
-            filter(time<max(time))
-        
-        county_truth <- county_truth %>%
-            group_by(geoid, time=lubridate::floor_date(date, unit="week", week_start=3)) %>%
-            summarize(incidI=sum(incidI),
-                      incidDeath=sum(incidDeath)) %>%
-            filter(time<max(time))
-        
-        rc <- bind_rows(county_truth%>%
-                            mutate(confirmed=incidI,
-                                   type=fig_labs[1]),
-                        county_truth%>%
-                            mutate(confirmed=incidDeath,
-                                   type=fig_labs[2])) %>%
-            select(-starts_with("incid")) %>%
-            right_join(
-                bind_rows(county_dat %>%
-                              group_by(time, geoid, death_rate)%>%     
-                              summarize(low=quantile(NincidCase,pi_lo),
-                                        high=quantile(NincidCase,pi_hi),
-                                        est=mean(NincidCase),
-                                        type=fig_labs[1]),
-                          county_dat %>%
-                              group_by(time, geoid, death_rate)%>%
-                              summarize(low=quantile(NincidDeath,pi_lo),
-                                        high=quantile(NincidDeath,pi_hi),
-                                        est=mean(NincidDeath),
-                                        type=fig_labs[2]))) %>%
-            ungroup() %>%
-            mutate(death_rate = factor(death_rate, 
-                                   levels = death_levs, 
-                                   labels = death_labs),
-                   type = factor(type, levels = fig_labs),
-                   confirmed=if_else(confirmed==0, NA_real_, confirmed))
-    }
-    
-    rc %>%
-        group_by(type, death_rate, geoid)%>%
-        filter(time<max(time))%>%
-        ungroup()%>%
-        filter(time>lubridate::ymd(start_date), time<lubridate::ymd(end_date))%>%
-        left_join(shapefile)%>%
-        ggplot(aes(x=time)) +
-        geom_line(aes(y=est, color=death_rate)) +
-        geom_ribbon(alpha=0.1, aes(fill=death_rate, ymin=low, ymax=high))+
-        geom_point(aes(y=confirmed), color="black") +
-        theme_bw()+
-        theme(panel.grid = element_blank(),
-              legend.title=element_blank(),
-              legend.position="bottom",
-              strip.background.x = element_blank(),
-              strip.background.y=element_rect(fill="white"),
-              strip.text.y =element_text(face="bold"))+
-        ylab("Counts")+
-        xlab("Time (weeks)")+ 
-        facet_grid(name~ type, scales="free") +
-        scale_y_log10()
-}
-```
-
 ```{r county_truth, fig.height=80, fig.width=10, fig.cap=cap}
-hosp_dat%>%
-    select(geoid, date, currhosp) %>%
-    right_join(truth_dat) %>%
-    plot_truth_county(county_truth=.,
-                      county_dat=res_state,
-                      end_date=short_end,
-                      start_date="2020-05-01",
-                  fig_labs=c("Incident Cases", "Incident Deaths", "Occupied Hospital Beds"),
-                  hosp=TRUE)
 
-cap<- paste0("**Fig. ", fig_counter, "** Modeled cases and deaths versus actual case reports (left), deaths (center), and hospitalizations (right) through May 26, 2020 as compared to CHHS data. Here, modeled cases are calculated as a percent of modeled infection that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue). All data are aggregated by week. Note that CHHS data are originally reported as current hospitalizations and cumulative cases and deaths. Daily cumulative case counts were differenced in order to report the incident cases and deaths in this figure. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")  
+  plot_truth_by_county(truth_dat=truth_dat,
+                       county_dat=res_state,
+                       hosp=FALSE,
+                       filter_by="pdeath",
+                       filter_val="med",
+                       start_date=short_start,
+                       end_date=sim_end_date) 
+
+cap<- paste0("**Fig. ", fig_counter, "** Model estimates versus actual case reports (left), deaths (center), and hospitalizations (right) as compared to USA Facts and CHHS data. Here, modeled cases are calculated as a percent of modeled infections that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for scenarios at 0.5% IFR. Note that CHHS data are originally reported by day as current hospitalizations and cumulative cases and deaths. In this figure, daily cumulative case counts were differenced in order to report the incident cases and deaths, which were aggregated by week. Daily hospitalizations were summarized as the mean hospitalizations in each week. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")  
 
 fig_counter<-fig_counter+1
      
@@ -1306,33 +574,31 @@ tab_counter <- tab_counter+1
 
 ```{r summary_fig, fig.cap = cap, eval=FALSE}  
 
-plot_ts_hosp_state_sample(state_hosp_totals%>%rename(pdeath=death_rate),
+plot_ts_hosp_state_sample(state_hosp_totals
                           varname = "NhospCurr",
                           varlabel = "Daily number of occupied hospital beds",
-                          scenario_labels = config$report$formatting$scenario_labels,
-                          scenario_cols = config$report$formatting$scenario_colors,
-                          sim_start_date = config$start_date,
-                          sim_end_date = config$end_date) +
-  geom_hline(aes(yintercept = 50000)) +
+                          scenario_labels = scn_labels,
+                          scenario_cols = scn_colors,
+                          sim_start_date = sim_start_date,
+                          sim_end_date = sim_end_date) +
   facet_wrap(~scenario_name, nrow=1) +
   guides(color=FALSE)+
-  theme(legend.title = element_blank()) +
-  scale_color_manual(values = config$report$formatting$scenario_colors, labels = FALSE)  
+  theme(legend.title = element_blank())
 
-cap <- paste0("**Fig. ", fig_counter, "**: Daily hospital occupancy for ", nfiles2, " simulation realizations at 1% IFR assumptions. The horizontal line represents non-surge hospital bed capacity in California (assumes 0% of non-surge capacity are used by non-COVID patients).")  
+cap <- paste0("**Fig. ", fig_counter, "**: Daily hospital occupancy for ", nfiles2, " simulation realizations at 1% IFR assumptions.")  
 fig_counter <- fig_counter+1  
 
 ```
 
 ```{r summary_fig_vent, fig.cap = cap}  
 
-plot_ts_hosp_state_sample(state_hosp_totals%>%rename(pdeath=death_rate),
+plot_ts_hosp_state_sample(state_hosp_totals,
                           varname = "NVentCurr",
                           varlabel = "Daily number of ventilators in use",
-                          scenario_labels = config$report$formatting$scenario_labels,
-                          scenario_cols = config$report$formatting$scenario_colors,
-                          sim_start_date = config$start_date,
-                          sim_end_date = config$end_date) +
+                          scenario_labels = scn_labels,
+                          scenario_cols = scn_colors,
+                          sim_start_date = sim_start_date,
+                          sim_end_date = sim_end_date)+
   facet_wrap(~scenario_name, nrow=1) +
   guides(color=FALSE)+
   theme(legend.title = element_blank())  
@@ -1344,31 +610,30 @@ fig_counter <- fig_counter+1
 
 ```{r summary_fig_icu, fig.cap = cap}  
 
-plot_ts_hosp_state_sample(state_hosp_totals%>%rename(pdeath=death_rate),
+plot_ts_hosp_state_sample(state_hosp_totals,
                           varname = "NICUCurr",
                           varlabel = "Daily number of ICU beds occupied",
-                          scenario_labels = config$report$formatting$scenario_labels,
-                          scenario_cols = config$report$formatting$scenario_colors,
-                          sim_start_date = config$start_date,
-                          sim_end_date = config$end_date) +
-  geom_hline(aes(yintercept = 7442)) +
+                          scenario_labels = scn_labels,
+                          scenario_cols = scn_colors,
+                          sim_start_date = sim_start_date,
+                          sim_end_date = sim_end_date)+
   facet_wrap(~scenario_name, nrow=1) +
   guides(color=FALSE)+
   theme(legend.title = element_blank())  
 
-cap <- paste0("**Fig. ", fig_counter, "**: Daily number of ICU beds occupied for ", nfiles2, " simulation realizations at 1% IFR assumptions. The horizontal line represents non-surge hospital bed capacity in California (assumes 68% of non-surge capacity are used by non-COVID patients).")  
+cap <- paste0("**Fig. ", fig_counter, "**: Daily number of ICU beds occupied for ", nfiles2, " simulation realizations at 1% IFR assumptions.")  
 fig_counter <- fig_counter+1  
 
 ```
 
 ```{r summary_fig_inf, fig.cap = cap}  
-plot_ts_hosp_state_sample(state_hosp_totals%>%rename(pdeath=death_rate),
+plot_ts_hosp_state_sample(state_hosp_totals,
                           varname = "NincidInf",
                           varlabel = "Daily incident infections",
-                          scenario_labels = config$report$formatting$scenario_labels,
-                          scenario_cols = config$report$formatting$scenario_colors,
-                          sim_start_date = config$start_date,
-                          sim_end_date = config$end_date) +
+                          scenario_labels = scn_labels,
+                          scenario_cols = scn_colors,
+                          sim_start_date = sim_start_date,
+                          sim_end_date = sim_end_date) +
   guides(color=FALSE)+
   theme(legend.title = element_blank())  
 
@@ -1530,13 +795,13 @@ cap<- paste0("**Fig. ", fig_counter, "** Modeled cases and deaths versus actual 
 
 ## Appendix 1: County Estimates  
 
-`r paste0("**Tab.", tab_counter, "** Summary estimates across counties for the June 1-July 15 time period for all IFR assumptions.")`  
+`r paste0("**Tab.", tab_counter, "** Summary estimates across counties for the ", format(short_start, "%B %d"), "-", format(sim_end_date, "%B %d"), " time period for all IFR assumptions.")`  
 ```{r county_tab_all}
 
 plot_county_sum(county_dat=res_state,
-                start_date="2020-06-01",
-                end_date="2020-07-31",
-                death_rate_tab = NA)
+                start_date=short_start,
+                end_date=sim_end_date,
+                pdeath_filter = NA)
 
 tab_counter<-tab_counter+1
 
