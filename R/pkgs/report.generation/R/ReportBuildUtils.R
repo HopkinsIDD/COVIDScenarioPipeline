@@ -1784,7 +1784,7 @@ plot_needs_relative_to_threshold_heatmap <- function(
 ##' @param effectiveness whether to reduction estimates instead
 ##' @param pi_lo lower quantile for summarization
 ##' @param pi_hi higher quantile for summarization
-##' @param geo_name df with location names
+##' @param geo_dat df with location names
 ##' 
 ##' @return plot estimated R or effectiveness of intervention periods by geoid
 ##' 
@@ -1800,11 +1800,11 @@ plot_inference_r <- function(r_dat,
                              effectiveness=FALSE,
                              pi_lo=0.25,
                              pi_hi=0.75, 
-                             geo_name=geodata){
+                             geo_dat=geodata){
   
   rplot <- r_dat %>%
     mutate(npi_name=str_remove(npi_name, npi_trim)) %>%
-    left_join(geo_name) %>%
+    left_join(geo_dat) %>%
     group_by(geoid, npi_name, name) %>%
     summarize(r_lo = quantile(r, pi_lo, na.rm=TRUE), 
               r_hi = quantile(r, pi_hi, na.rm=TRUE),
@@ -1873,7 +1873,7 @@ plot_inference_r <- function(r_dat,
 ##' @param effectiveness whether to reduction estimates instead
 ##' @param pi_lo lower quantile for summarization
 ##' @param pi_hi upper quantile for summarization
-##' @param geo_name df with location names
+##' @param geo_dat df with location names
 ##' @param px_qual sparkline pixel size passed on to ggplot_image
 ##' @param wh_ratio sparkline width:height ratio passed on to ggplot_image
 ##' @param brewer_palette pallete name passed on to brewer.pal
@@ -1892,7 +1892,7 @@ make_sparkline_tab_r <- function(r_dat,
                                  npi_levels,
                                  pi_lo=0.025, 
                                  pi_hi=0.975, 
-                                 geo_name=geodata,
+                                 geo_dat=geodata,
                                  trim=TRUE,
                                  npi_trim="[[A-Z]].+\\_", 
                                  px_qual=40,
@@ -1943,7 +1943,7 @@ make_sparkline_tab_r <- function(r_dat,
       right_join(r_dat) %>%
       mutate(r=if_else(date<start_date|date>end_date, NA_real_, r)) %>%
       drop_na() %>%
-      left_join(geo_name) %>%
+      left_join(geo_dat) %>%
       mutate(r=r*(1-cum_inf/pop2010)) 
   }
   
@@ -2048,7 +2048,7 @@ make_sparkline_tab_r <- function(r_dat,
 ##' @param npi_levels levels of NPIs 
 ##' @param pi_lo lower quantile for summarization
 ##' @param pi_hi higher quantile for summarization
-##' @param geo_name df with location names
+##' @param geo_dat df with location names
 ##' @param px_qual sparkline pixel size passed on to ggplot_image
 ##' @param wh_ratio sparkline width:height ratio passed on to ggplot_image
 ##' @param brewer_palette pallete name passed on to brewer.pal
@@ -2064,7 +2064,7 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
                                                    npi_levels,
                                                    pi_lo=0.025, 
                                                    pi_hi=0.975, 
-                                                   geo_name=geodata,
+                                                   geo_dat=geodata,
                                                    trim=TRUE,
                                                    npi_trim="[[A-Z]].+\\_", 
                                                    px_qual=40,
@@ -2076,7 +2076,7 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
   require(tidyverse)
   
   r_dat <- r_dat %>%
-    left_join(geo_name) %>%
+    left_join(geo_dat) %>%
     group_by(geoid, start_date, end_date, npi_name, name) %>%
     summarize(est_lo=quantile(reduction, pi_lo, na.rm=TRUE),
               est_hi=quantile(reduction, pi_hi, na.rm=TRUE),
@@ -2170,10 +2170,8 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
 ##' hospitalization data
 ##' @param county_dat df with model estimates 
 ##' @param hosp whether hospitalization data is included in truth_dat with varname currhosp
-##' @filter_by variable name for filtering estimates either: scenario or pdeath 
-##' @filter_val desired value of variable
-##' @param group_levels 
-##' @param group_labels
+##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
+##' @param filter_val desired value of variable
 ##' @param geodata df with location names
 ##' 
 ##' @return plot comparing observed and modeled estimates by geoid
@@ -2317,11 +2315,11 @@ plot_truth_by_county <- function(truth_dat,
 ##' @param scenario_colors colors for each scenario
 ##' @param scenario_levels levels applied to scenarios
 ##' @param scenario_labels label applied to scenarios
-##' @param start_date
-##' @param end_date
-##' @geo_data
-##' @pi_lo
-##' @pi_hi
+##' @param start_date start of timeline
+##' @param end_date end of timeline
+##' @param geo_data df with geoid and pop2010 
+##' @param pi_lo lower limit to interval
+##' @param pi_hi upper limit to interval
 ##' 
 ##' @return a table with the effectiveness per intervention period and a bar graph
 ##' 
@@ -2331,16 +2329,16 @@ plot_truth_by_county <- function(truth_dat,
 ##'
 
 plot_rt_ts <- function(outcome_dir, 
-                           truth_dat,
-                           scenario_colors,
-                           scenario_levels,
-                           scenario_labels,
-                           start_date,
-                           end_date, 
-                           geo_dat=geodata,
-                           susceptible=TRUE,
-                           pi_lo=0.025,
-                           pi_hi=0.975
+                       truth_dat,
+                       scenario_colors,
+                       scenario_levels,
+                       scenario_labels,
+                       start_date,
+                       end_date, 
+                       geo_dat=geodata,
+                       susceptible=TRUE,
+                       pi_lo=0.025,
+                       pi_hi=0.975
 ){
   require(tidyverse)
   start_date<-as.Date(start_date)
@@ -2417,16 +2415,15 @@ plot_rt_ts <- function(outcome_dir,
 }
 
 ##' Plot ratio of outcomes 
-##' @param outcome_dir directory with spar/snpi folders
-##' @param truth_dat df with date, geoid, incidI, incidDeath
-##' @param scenario_colors
-##' @param scenario_levels
-##' @param scenario_labels
-##' @param start_date
-##' @param end_date
-##' @geo_data
-##' @pi_lo
-##' @pi_hi
+##' @param hosp_state_totals df with hospitalization outcomes
+##' @param start_date start of comparison period
+##' @param end_date end of comparison period
+##' @param pdeath_filter select pdeath: high, med, low
+##' @param scenario_colors config$report$formatting$scenario_colors
+##' @param scenario_levels config$report$formatting$scenario_labels_short
+##' @param scenario_labels config$report$formatting$scenario_labels
+##' @param pi_lo lower limit to interval
+##' @param pi_hi upper lim to interval
 ##' 
 ##' @return a table with the effectiveness per intervention period and a bar graph
 ##' 
@@ -2439,10 +2436,10 @@ plot_rt_ts <- function(outcome_dir,
 plot_scn_outcomes_ratio<-function(hosp_state_totals,
                                   start_date,
                                   end_date,
-                                  deathRate,
+                                  pdeath_filter,
                                   scenario_labels, 
                                   scenario_levels,
-                                  scenario_cols,
+                                  scenario_colors,
                                   pi_lo,
                                   pi_hi){
   
@@ -2452,7 +2449,7 @@ plot_scn_outcomes_ratio<-function(hosp_state_totals,
   dat_long<- state_hosp_totals %>%
     filter(time<=end_date,
            time>=start_date,
-           pdeath==deathRate) %>%
+           pdeath==pdeath_filter) %>%
     group_by(scenario, pdeath, sim_num) %>%
     summarize(AvghospCurr=mean(NhospCurr),
               AvgICUCurr=mean(NICUCurr), 
@@ -2541,8 +2538,8 @@ plot_scn_outcomes_ratio<-function(hosp_state_totals,
 ##'
 ##' @param current_scenario scenario to summarize
 ##' @param county_dat contains the relevant hospital data
-##' @param start_date
-##' @param end_date 
+##' @param start_date summarization period start
+##' @param end_date summarization period end
 ##' @param pi_low low side of the prediction interval
 ##' @param pi_high high side of the prediction interval
 ##' @param pdeath_filter if summarizing results for one pdeath only; leave NA to show all 
@@ -2740,10 +2737,11 @@ make_scn_county_table_withVent <- function(current_scenario,
 ##' @param geodata geodata file
 ##' @param included_geoids geoids to include
 ##' @param by_geoid estimate R for each county 
-##' @param min.date 
-##' @param max.date 
+##' @param min.date start date for analysis
+##' @param max.date end date for analysis
 ##' 
 ##' @author Kyra Grantz
+##' 
 ##' @export
 ##'
 calcR0 <- function(USAfacts, 
@@ -2797,12 +2795,11 @@ calcR0 <- function(USAfacts,
 ##'
 ##' @param county_dat df with incident cases, hospitalizations, and deaths
 ##' @param geo_dat geodata file
-##' @pdeath_levels
-##' @pdeath_labels
-##' @param start_date 
-##' @param end_date 
-##' @param fig_labels
-##' @param dodger
+##' @param pdeath_levels death rate levels
+##' @param pdeath_labels death rate labels
+##' @param start_date summarization period start
+##' @param end_date summarization period end
+##' @param dodger for plotting IFR estimates
 ##' 
 ##' @export
 ##'
@@ -2811,9 +2808,8 @@ plot_outcome_rate<- function(county_dat,
                              start_date, 
                              end_date,
                              geo_dat=geodata,
-                             pdeath_levels=death_rate_levels,
-                             pdeath_labels=death_rate_labels,
-                             fig_labels=c("Cases", "Hospitalizations", "Deaths"),
+                             pdeath_levels=c("high", "med", "low"),
+                             pdeath_labels=c("1% IFR", "0.5% IFR", "0.25% IFR"),
                              dodger=0
 ){
 
@@ -2849,7 +2845,7 @@ plot_outcome_rate<- function(county_dat,
     dplyr::mutate(sum_tab,type=3, est=Case)
     ) %>%
     dplyr::select(type, est, pdeath, name) %>%
-    dplyr::mutate(type = factor(type, levels = c(3,2,1), labels = fig_labels)) %>%
+    dplyr::mutate(type = factor(type, levels = c(3,2,1), labels = c("Cases", "Hospitalizations", "Deaths"))) %>%
     ggplot(aes(x=est, y=name, col=pdeath)) +
     geom_point(position=position_dodge(dodger)) + 
     scale_x_sqrt() + 
@@ -2871,12 +2867,11 @@ plot_outcome_rate<- function(county_dat,
 ##'
 ##' @param county_dat df with incident cases, hospitalizations, and deaths
 ##' @param geo_dat geodata file
-##' @pdeath_levels
-##' @pdeath_labels
-##' @param start_date 
-##' @param end_date 
-##' @param fig_labels
-##' @param dodger
+##' @param r_dat df with effectiveness estimates, from load_r_sims_filtered
+##' @param pdeath_levels death rate levels
+##' @param pdeath_labels death rate labels
+##' @param start_date summarization period start
+##' @param end_date summarization period end
 ##' 
 ##' @export
 ##'
@@ -2885,11 +2880,9 @@ plot_hosp_effec <- function(county_dat,
                             start_date, 
                             end_date,
                             geo_dat=geodata,
-                            inference_dat=inference_r,
-                            fig_labels=c("Confirmed Cases", "Hospitalizations", "Deaths"),
-                            dodger=0,
-                            pdeath_labels=death_rate_labels,
-                            pdeath_levels=death_rate_levels
+                            r_dat=inference_r,
+                            pdeath_levels=c("high", "med", "low"),
+                            pdeath_labels=c("1% IFR", "0.5% IFR", "0.25% IFR")
 ){
   start_date <- lubridate::ymd(start_date)
   end_date <- lubridate::ymd(end_date)
@@ -2909,12 +2902,11 @@ plot_hosp_effec <- function(county_dat,
                          levels=pdeath_levels, 
                          labels=pdeath_labels))
   
-  rc <- inference_dat%>%
+  rc <- r_dat%>%
     dplyr::group_by(geoid, scenario) %>%
     dplyr::filter(npi_name!="local_variance" & max(end_date)==end_date)%>%
     dplyr::summarize(reduc=mean(reduction))%>%
     dplyr::right_join(rc) 
-  
   
     rc<-rc%>%
     ggplot(aes(x=est, y=reduc, label = name, col=pdeath)) +
@@ -2931,5 +2923,68 @@ plot_hosp_effec <- function(county_dat,
   
     return(rc)
 }  
+
+##' Time series for cases, hospitalizations, and ICU by county
+##'
+##' @param county_dat df with incident cases, hospitalizations, and deaths
+##' @param geo_dat geodata file
+##' @param pdeath_levels death rate levels
+##' @param pdeath_labels death rate labels
+##' @param start_date x-axis plot limits
+##' @param end_date x-axis plot limits
+##' @param pi_lo lower limit to interval
+##' @param pi_hi upper limit to interval
+##' 
+##' @export
+##'
+##'
+
+plot_county_outcomes <- function(county_dat, 
+                                 pi_lo=0.025,
+                                 pi_hi=0.975,
+                                 start_date,
+                                 end_date,
+                                 geo_dat=geodata,
+                                 pdeath_levels=death_rate_levels,
+                                 pdeath_labels=death_rate_labels){
+  start_date <- lubridate::ymd(start_date)
+  end_date <- lubridate::ymd(end_date)
+  
+  county_dat<- county_dat %>%
+    group_by(geoid,time,pdeath)%>%
+    summarize(hosp=mean(NhospCurr),
+              hosp_hi=quantile(NhospCurr, pi_hi),
+              hosp_lo=quantile(NhospCurr, pi_lo),
+              icu=mean(NICUCurr),
+              icu_lo=quantile(NICUCurr,pi_hi),
+              icu_hi=quantile(NICUCurr,pi_lo),
+              case=mean(NincidCase),
+              case_hi=quantile(NincidCase, pi_hi),
+              case_lo=quantile(NincidCase,pi_lo)) %>%
+    filter(time>=start_date, time<end_date) %>%
+    left_join(geo_dat) %>%
+    mutate(pdeath = factor(pdeath,
+                           levels=pdeath_levels,
+                           labels=pdeath_labels))
+  
+  bind_rows(county_dat%>%mutate(est=hosp, lo=hosp_lo, hi=hosp_hi,type="Occupied Hospital Beds"),
+            county_dat%>%mutate(est=icu, lo=icu_lo, hi=icu_hi,type="Occupied ICU Beds"),
+            county_dat%>%mutate(est=case, lo=case_lo, hi=case_hi,type="Incident Cases")) %>%
+    ggplot(aes(x=time))+
+    geom_line(aes(y=est, color=pdeath))+
+    geom_ribbon(aes(ymin=lo, ymax=hi, fill=pdeath), alpha=0.1)+
+    facet_grid(name~type, scales = "free_y") +
+    scale_y_sqrt()+
+    theme_bw()+
+    theme(legend.position="top",
+          legend.title=element_blank(),
+          panel.grid=element_blank(),
+          strip.background.x=element_blank(),
+          strip.text=element_text(face="bold"),
+          strip.background.y = element_rect(fill="white"))+
+    ylab("Estimate") +
+    xlab("Time")+
+    scale_x_date(limits = c(start_date, end_date))
+}
 
 
