@@ -197,6 +197,90 @@ calc_prior_likadj  <- function(params,
 }
 
 
+##'
+##'
+##' Function to compute cumulative counts across geoids
+##'
+##' @param sim_hosp output of ouctomes branching process
+##'
+##' @return dataframe with the added columns for cumulative counts
+##'
+##' @export
+##'
+compute_cumulative_counts <- function(sim_hosp) {
+  res <- sim_hosp %>% 
+    gather(var, value, -time, -geoid) %>% 
+    group_by(geoid, var) %>% 
+    arrange(time) %>% 
+    mutate(cumul = cumsum(value)) %>% 
+    ungroup() %>% 
+    pivot_wider(names_from = "var", values_from = c("value", "cumul")) %>% 
+    select(-(contains("cumul") & contains("curr")))
+  
+  colnames(res) <- str_replace_all(colnames(res), c("value_" = "", "cumul_incid" = "cumul"))
+  return(res)
+}
+
+##'
+##'
+##' Function to compute cumulative counts across geoids
+##'
+##' @param sim_hosp output of ouctomes branching process
+##'
+##' @return dataframe with the added rows for all counts
+##'
+##' @export
+##'
+compute_totals <- function(sim_hosp) {
+  sim_hosp %>% 
+    group_by(time) %>%
+    summarise_if(is.numeric, sum, na.rm = TRUE) %>% 
+    mutate(geoid = "all") %>% 
+    select(all_of(colnames(sim_hosp))) %>% 
+    rbind(sim_hosp)
+}
+
+#' @title Add national likelihood
+#' @description adds the national-level lieklihood to each geoid weighing by each
+#' geoid's contribution to the global likelihood
+#'
+#' @param data_likelihood computed data likelihoods by geoid
+#' @param obs_nodename node name
+#' @param all_locations all unique geoids
+#'
+#' @return return
+#' @export
+#' 
+add_national_likelihood <- function(data_likelihood,
+                                    obs_nodename,
+                                    all_locations) {
+  
+  # Of no national level likelihood return without modifications
+  if (!("all" %in% unique(data_likelihood[[obs_nodename]]))){
+    return(data_likelihood)
+  }
+  
+  if (obs_nodename != "geoid") 
+    stop("add_national_likelihood.R does not accept other obs_nodenames than geoid for now.")
+  
+  # Get likelihoods at geoid level
+  geoid_liks <- data_likelihood$ll[data_likelihood[[obs_nodename]] != "all"]
+  national_lik <- data_likelihood$ll[data_likelihood[[obs_nodename]] == "all"]
+  
+  # Compute weights
+  if (length(geoid_liks) > 0) {
+    lik_w <- geoid_liks/sum(geoid_liks)
+  } else {
+    lik_w <- 1/length(all_locations)
+    data_likelihood <- tidyr::complete(data_likelihood, 
+                                       geoid = all_locations)
+  }
+  
+  data_likelihood <- filter(data_likelihood,  !!rlang::sym(obs_nodename) != "all") %>%
+    mutate(ll = ifelse(is.na(ll), 0, ll) + national_lik * lik_w)
+  
+  return(data_likelihood)
+}
 
 # MCMC stuff -------------------------------------------------------------------
 

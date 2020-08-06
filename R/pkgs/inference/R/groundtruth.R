@@ -38,7 +38,7 @@ get_ground_truth_file <- function(data_path, cache = TRUE) {
   } else {
     message("*** USING CACHED Data\n")
   }
-
+  
   return()
 }
 
@@ -47,27 +47,57 @@ get_ground_truth_file <- function(data_path, cache = TRUE) {
 #' @param data_path Path where to write the data
 #'
 #' @export
-get_ground_truth <- function(data_path, fips_codes, fips_column_name, start_date, end_date, cache = TRUE, use_USAfacts=TRUE){
+get_ground_truth <- function(data_path, 
+                             fips_codes, 
+                             fips_column_name, 
+                             start_date, 
+                             end_date, 
+                             cache = TRUE,
+                             use_USAfacts = TRUE){
   
   if (use_USAfacts){
     get_ground_truth_file(data_path,cache)
+    rc <- suppressMessages(readr::read_csv(data_path, col_types = list(FIPS = readr::col_character())))
+    rc <- dplyr::filter(
+      rc,
+      FIPS %in% fips_codes,
+      date >= start_date,
+      date <= end_date
+    )
+    rc <- dplyr::right_join(
+      rc,
+      tidyr::expand_grid(
+        FIPS = unique(rc$FIPS),
+        date = unique(rc$date)
+      )
+    )
+    rc <- dplyr::mutate_if(rc, is.numeric, dplyr::coalesce, 0)
+    names(rc)[names(rc) == "FIPS"] <- fips_column_name
+  } else {
+    cnames <- colnames(suppressMessages(readr::read_csv(data_path, n_max = 1)))
+    # Stop if geoid not in column names
+    if (fips_column_name != "geoid" | !("geoid" %in% cnames)) {
+      stop("Rename geoid column 'geoid'")
+    }
+    
+    rc <- suppressMessages(readr::read_csv(data_path, col_types = list(geoid = readr::col_character())))
+    rc <- dplyr::filter(
+      rc,
+      geoid %in% c(fips_codes, "all"),
+      date >= start_date,
+      date <= end_date
+    )
+    rc <- dplyr::right_join(
+      filter(rc, geoid != "all"),
+      tidyr::expand_grid(
+        geoid = setdiff(unique(rc$geoid), "all"),
+        date = unique(rc$date[rc$geoid != "all"])
+      )
+    ) %>% 
+      rbind(filter(rc, geoid == "all"))
+    rc <- dplyr::mutate_if(rc, is.numeric, dplyr::coalesce, 0)
   }
   
-  rc <- suppressMessages(readr::read_csv(data_path, col_types = list(FIPS = readr::col_character())))
-  rc <- dplyr::filter(
-    rc,
-    FIPS %in% fips_codes,
-    date >= start_date,
-    date <= end_date
-  )
-  rc <- dplyr::right_join(
-    rc,
-    tidyr::expand_grid(
-      FIPS = unique(rc$FIPS),
-      date = unique(rc$date)
-    )
-  )
-  rc <- dplyr::mutate_if(rc, is.numeric, dplyr::coalesce, 0)
-  names(rc)[names(rc) == "FIPS"] <- fips_column_name
+  
   return(rc)
 }

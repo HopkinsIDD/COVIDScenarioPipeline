@@ -56,6 +56,9 @@ if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
+if (!is.null(config$filtering$data_path)) {
+  opts$data <- config$filtering$data_path
+}
 
 # Check if US model
 incid_x <- opts$incid_x
@@ -107,7 +110,7 @@ if (us_model){
   
   print(paste0("Using case data from ", opts$data, " for seeding ", config$spatial_setup$setup_name))
   
-  case_data <- readr::read_csv(opts$data)
+  case_data <- readr::read_csv(opts$data, col_types = list(geoid = col_character()))
   if (!exists("case_data") || is.null(case_data)){
     stop(paste0("ERROR: ", opts$data, "does not exist!"))
   }

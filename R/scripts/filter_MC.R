@@ -24,12 +24,12 @@ option_list = list(
   optparse::make_option(c("-b", "--this_block"), action="store", default=Sys.getenv("COVID_BLOCK_INDEX",1), type='integer', help = "id of this block"),
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
   optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
-  optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable")
+  optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable"),
+  optparse::make_option(c("-x", "--incid_x"), action="store", default=10, type='integer', help="incidence multiplier for reported cases for seeding creation")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)
-
 print(opt)
 
 reticulate::use_python(Sys.which(opt$python),require=TRUE)
@@ -62,8 +62,8 @@ suppressMessages(geodata <- report.generation::load_geodata_file(
 ))
 obs_nodename <- config$spatial_setup$nodenames
 us_model <- config$spatial_setup$us_model==TRUE || is.null(config$spatial_setup$us_model) # check if it's a US model or non-US model
-    
-    
+
+
 ##Load simulations per slot from config if not defined on command line
 ##command options take precendence
 if(is.na(opt$simulations_per_slot)){
@@ -101,21 +101,27 @@ if (all(scenarios == "all")){
 ##Creat heirarchical stats object if specified
 hierarchical_stats <- list()
 if("hierarchical_stats_geo"%in%names(config$filtering)) {
-    hierarchical_stats <- config$filtering$hierarchical_stats_geo
+  hierarchical_stats <- config$filtering$hierarchical_stats_geo
 }
 
 
 ##Create priors if specified
 defined_priors <- list()
 if("priors"%in%names(config$filtering)) {
-    defined_priors <- config$filtering$priors
+  defined_priors <- config$filtering$priors
 }
 
 
 
 ## Runner Script---------------------------------------------------------------------
 
-obs <- inference::get_ground_truth(data_path,geodata[[obs_nodename]],obs_nodename, config$start_date, config$end_date, use_USAfacts=us_model)
+# Load data to do inference on
+obs <- inference::get_ground_truth(data_path = data_path,
+                                   fips_codes = geodata[[obs_nodename]],
+                                   fips_column_name = obs_nodename, 
+                                   start_date = config$start_date, 
+                                   end_date = config$end_date, 
+                                   use_USAfacts = us_model)
 
 geonames <- unique(obs[[obs_nodename]])
 
@@ -130,7 +136,7 @@ data_stats <- lapply(
       "data_var",
       stat_list = config$filtering$statistics)
   }) %>%
-    set_names(geonames)
+  set_names(geonames)
 
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 
@@ -142,47 +148,48 @@ reticulate::import_from_path("Outcomes", path=opt$pipepath)
 reticulate::py_run_string(paste0("index = ", 1))
 
 for(scenario in scenarios) {
-
+  
   reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
-
+  
   for(deathrate in deathrates) {
-    # Data -------------------------------------------------------------------------
-    # Load
-
+    
+    # File naming
     slot_prefix <- covidcommon::create_prefix(config$name,scenario,deathrate,opt$run_id,sep='/',trailing_separator='/')
-
+    
     gf_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','final',sep='/',trailing_separator='/')
     ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/')
     gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/')
-
-
+    
+    
     chimeric_block_prefix <- covidcommon::create_prefix(prefix=ci_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
     chimeric_local_prefix <- covidcommon::create_prefix(prefix=chimeric_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
-
+    
     global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
     global_local_prefix <- covidcommon::create_prefix(prefix=global_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
-
-
+    
+    
     ## pass prefix to python and use
     reticulate::py_run_string(paste0("deathrate = '", deathrate, "'"))
     reticulate::py_run_string(paste0("prefix = '", global_block_prefix, "'"))
     reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
-
-
-
+    
     first_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block - 1)
     first_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block - 1)
-
+    
     inference::initialize_mcmc_first_block(
-      opt$run_id,
-      opt$this_block,
-      global_block_prefix,
-      chimeric_block_prefix,
-      py,
-      function(x){
+      run_id = opt$run_id,
+      block = opt$this_block,
+      global_prefix = global_block_prefix,
+      chimeric_prefix = chimeric_block_prefix,
+      python_reticulate = py,
+      opt = opt,
+      likelihood_calculation_function = function(x){
+        # Add totals to counts 
+        x <- inference::compute_totals(x)
+        
         inference::aggregate_and_calc_loc_likelihoods(
           dplyr::filter(x,x$time >= min(obs$date),x$time <= max(obs$date)),
-	  all_locations = unique(names(data_stats)),
+          all_locations = unique(names(data_stats)),
           obs_nodename = obs_nodename,
           config = config,
           obs = obs,
@@ -191,67 +198,73 @@ for(scenario in scenarios) {
           hierarchical_stats = hierarchical_stats,
           defined_priors = defined_priors,
           geodata = geodata,
-	  snpi = arrow::read_parquet(first_global_files[['snpi_filename']]),
-	  hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,source,outcome,sep='_'))
+          snpi = arrow::read_parquet(first_global_files[['snpi_filename']]),
+          hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,source,outcome,sep='_'))
         )
       }
     )
-
-
+    
+    
     ## So far no acceptances have occurred
     current_index <- 0
-### Load initial files
+    ### Load initial files
     suppressMessages(initial_seeding <- readr::read_csv(first_chimeric_files[['seed_filename']], col_types=readr::cols(place=readr::col_character())))
     initial_seeding$amount <- as.integer(round(initial_seeding$amount))
     initial_snpi <- arrow::read_parquet(first_chimeric_files[['snpi_filename']])
     initial_spar <- arrow::read_parquet(first_chimeric_files[['spar_filename']])
     initial_hpar <- arrow::read_parquet(first_chimeric_files[['hpar_filename']])
-    chimeric_likelihood_data <- arrow::read_parquet(first_chimeric_files[['llik_filename']])
+    chimeric_likelihood_data <- arrow::read_parquet(first_chimeric_files[['llik_filename']]) %>% 
+      inference::add_national_likelihood(
+        obs_nodename = obs_nodename,
+        all_locations = arrow::read_parquet(first_chimeric_files[['hpar_filename']]) %>% 
+          .[["geoid"]] %>% 
+          unique() %>% 
+          as.character())
     global_likelihood_data <- arrow::read_parquet(first_global_files[['llik_filename']])
-
-#####Get the full likelihood (WHY IS THIS A DATA FRAME)
+    
+    #####Get the full likelihood (WHY IS THIS A DATA FRAME)
     # Compute total loglik for each sim
     global_likelihood <- sum(global_likelihood_data$ll)
-
-#####LOOP NOTES
-### current means proposed
-### initial means accepted/current
-
-#####Loop over simulations in this block
-   for( this_index in seq_len(opt$simulations_per_slot)) {
+    
+    #####LOOP NOTES
+    ### current means proposed
+    ### initial means accepted/current
+    
+    #####Loop over simulations in this block
+    for( this_index in seq_len(opt$simulations_per_slot)) {
       print(paste("Running simulation", this_index))
-
+      
       ## Create filenames
       this_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
       this_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_local_prefix, this_index)
-
+      
       ## Setup python
       reticulate::py_run_string(paste0("prefix = '", global_local_prefix, "'"))
       reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
-
+      
       ## Do perturbations from accepted
       proposed_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,
-                                                    c(lubridate::ymd(c(config$start_date,config$end_date))))
+                                                     c(lubridate::ymd(c(config$start_date,config$end_date))))
       proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
       proposed_spar <- initial_spar
       if(!deathrate %in% names(config$outcomes$settings)){
         stop(paste("Deathrate",deathrate,"does not appear in outcomes::settings in the config"))
       }
       proposed_hpar <- inference::perturb_hpar(initial_hpar, config$outcomes$settings[[deathrate]])
-
+      
       ## Write files that need to be written for other code to read
       write.csv(proposed_seeding,this_global_files[['seed_filename']])
       arrow::write_parquet(proposed_snpi,this_global_files[['snpi_filename']])
       arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
       arrow::write_parquet(proposed_hpar,this_global_files[['hpar_filename']])
-
+      
       ## Run SEIR
       err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
       err <- ifelse(err == 1,0,1)
       if(err != 0){
         stop("SEIR failed to run")
       }
-
+      
       err <- py$onerun_HOSP(this_index)
       err <- ifelse(err == 1,0,1)
       if(length(err) == 0){
@@ -260,16 +273,16 @@ for(scenario in scenarios) {
       if(err != 0){
         stop("HOSP failed to run")
       }
-
+      
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_global_files[['hosp_filename']]))(this_global_files[['hosp_filename']]) %>%
-        filter(time <= max(obs$date))
-
-
-
+        filter(time <= max(obs$date)) %>%
+        # Add totals to counts
+        inference::compute_totals()
+      
       lhs <- unique(sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
-
+      
       proposed_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
         all_locations,
         sim_hosp,
@@ -284,21 +297,20 @@ for(scenario in scenarios) {
         proposed_snpi,
         dplyr::mutate(proposed_hpar,parameter=paste(quantity,source,outcome))
       )
-
-
+      
       rm(sim_hosp)
-
+      
       ## UNCOMMENT TO DEBUG
       ## print(global_likelihood_data)
       ## print(chimeric_likelihood_data)
       ## print(proposed_likelihood_data)
-
+      
       ## Compute total loglik for each sim
       proposed_likelihood <- sum(proposed_likelihood_data$ll)
-
+      
       ## For logging
       print(paste("Current likelihood",global_likelihood,"Proposed likelihood",proposed_likelihood))
-
+      
       if(inference::iterateAccept(global_likelihood, proposed_likelihood)){
         print("****ACCEPT****")
         current_index <- this_index
@@ -308,7 +320,12 @@ for(scenario in scenarios) {
         print("****REJECT****")
       }
       arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
-
+      
+      proposed_likelihood_data <- inference::add_national_likelihood(
+        data_likelihood = proposed_likelihood_data, 
+        obs_nodename = obs_nodename, 
+        all_locations = lhs)
+      
       seeding_npis_list <- inference::accept_reject_new_seeding_npis(
         seeding_orig = initial_seeding,
         seeding_prop = proposed_seeding,
@@ -324,30 +341,30 @@ for(scenario in scenarios) {
       initial_hpar <- seeding_npis_list$hpar
       chimeric_likelihood_data <- seeding_npis_list$ll
       arrow::write_parquet(chimeric_likelihood_data, this_chimeric_files[['llik_filename']])
-
-      print(paste("Current index is ",current_index))
+      
+      print(paste("Current index is ", current_index))
       # print(proposed_likelihood_data)
       # print(chimeric_likelihood_data)
-
+      
       ###Memory managment
       rm(proposed_snpi)
       rm(proposed_hpar)
       rm(proposed_seeding)
     }
-
-#####Do MCMC end copy. Fail if unsucessfull
-      cpy_res <- inference::perform_MCMC_step_copies(current_index,
-                                                     opt$this_slot,
-                                                     opt$this_block,
-                                                     opt$run_id,
-                                                     global_local_prefix,
-                                                     gf_prefix,
-                                                     global_block_prefix)
-
-      if(!prod(unlist(cpy_res))) {stop("File copy failed:", paste(unlist(cpy_res),paste(names(cpy_res),"|")))}
-
-
-#####Write currently accepted files to disk
+    
+    #####Do MCMC end copy. Fail if unsucessfull
+    cpy_res <- inference::perform_MCMC_step_copies(current_index,
+                                                   opt$this_slot,
+                                                   opt$this_block,
+                                                   opt$run_id,
+                                                   global_local_prefix,
+                                                   gf_prefix,
+                                                   global_block_prefix)
+    
+    if(!prod(unlist(cpy_res))) {stop("File copy failed:", paste(unlist(cpy_res),paste(names(cpy_res),"|")))}
+    
+    
+    #####Write currently accepted files to disk
     last_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, opt$simulations_per_slot)
     output_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block)
     output_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block)
