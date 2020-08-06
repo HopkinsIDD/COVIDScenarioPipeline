@@ -283,26 +283,34 @@ load_hosp_geocombined_totals <- function(outcome_dir,
   
   require(tidyverse)
   
+  hosp_post_process <- function(x) {
+    x %>%
+      group_by(geoid, pdeath, scenario, sim_num, location) %>%
+      mutate(cum_hosp=cumsum(incidH)) %>%
+      mutate(cum_death=cumsum(incidD)) %>%
+      mutate(cum_case=cumsum(incidC)) %>%
+      mutate(cum_inf=cumsum(incidI)) %>%
+      group_by(pdeath, scenario, time, sim_num) %>%
+      summarize(NhospCurr=sum(hosp_curr),
+                NICUCurr=sum(icu_curr),
+                NincidDeath=sum(incidD),
+                NincidInf=sum(incidI),
+                NincidCase=sum(incidC),
+                NincidICU=sum(incidICU),
+                NincidHosp=sum(incidH),
+                NincidVent=sum(incidVent),
+                NVentCurr=sum(vent_curr),
+                cum_hosp=sum(cum_hosp),
+                cum_death=sum(cum_death),
+                cum_case=sum(cum_case),
+                cum_inf=sum(cum_inf)) 
+  }
+  
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
-                          partitions=partitions,
-                          name_filter=name_filter,
-                          pre_process=pre_process,
-                          post_process=post_process)
-  rc<-rc %>%
-    group_by(pdeath, scenario, time, sim_num, scenario_name) %>%
-    summarize(NhospCurr=sum(NhospCurr),
-              NICUCurr=sum(NICUCurr),
-              NincidDeath=sum(NincidDeath),
-              NincidInf=sum(NincidInf),
-              NincidCase=sum(NincidCase),
-              NincidICU=sum(NincidICU),
-              NincidHosp=sum(NincidHosp),
-              NincidVent=sum(NincidVent),
-              NVentCurr=sum(NVentCurr),
-              cum_hosp=sum(cum_hosp),
-              cum_death=sum(cum_death),
-              cum_case=sum(cum_case),
-              cum_inf=sum(cum_inf)) 
+                               partitions=partitions,
+                               name_filter=name_filter,
+                               pre_process=pre_process,
+                               post_process=hosp_post_process)
   
   warning("Finished loading")
   return(rc)
@@ -817,6 +825,7 @@ load_r_sims_filtered <- function(outcome_dir,
                                  partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
                                  name_filter=c("high", "med", "low"),
                                  pre_process=function(x) {x},
+                                 geo_dat=geodata,
                                  ...
 ) {
   
@@ -842,7 +851,8 @@ load_r_sims_filtered <- function(outcome_dir,
     left_join(snpi) %>%
     mutate(r = if_else(npi_name=="local_variance",
                        local_r,
-                       local_r*(1-reduction)))
+                       local_r*(1-reduction))) %>%
+    left_join(geo_dat)
   
   warning("Finished loading")
   return(rc)

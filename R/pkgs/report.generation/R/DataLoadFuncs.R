@@ -120,7 +120,7 @@ load_scenario_sims_filtered <- function(scenario_dir,
 ##' @param partitions used by open_dataset 
 ##' @param name_filter string that indicates which pdeath to import from outcome_dir
 ##' @param pre_process function that does processing before collection
-##' @param sum_location summarize results to location
+##' @param post_process function that does processing after collection
 ##' 
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
 ##' 
@@ -133,7 +133,6 @@ load_hosp_sims_filtered <- function(outcome_dir,
                                     name_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     post_process=NULL,
-                                    sum_location=FALSE,
                                     ...
 ) {
   
@@ -171,32 +170,15 @@ load_hosp_sims_filtered <- function(outcome_dir,
            NincidICU=incidICU,
            NincidHosp=incidH,
            NincidVent=incidVent,
-           NVentCurr=vent_curr)
+           NVentCurr=vent_curr) %>%
+    mutate(scenario_name=scenario) 
+  
   } else {
     rc <- rc %>%
-      post_process(...)
+      post_process(...) %>%
+      mutate(scenario_name=scenario)
   }
   
-  if(sum_location){
-    rc<-rc %>%
-      group_by(pdeath, scenario, time, sim_num) %>%
-      summarize(NhospCurr=sum(NhospCurr),
-                NICUCurr=sum(NICUCurr),
-                NincidDeath=sum(NincidDeath),
-                NincidInf=sum(NincidInf),
-                NincidCase=sum(NincidCase),
-                NincidICU=sum(NincidICU),
-                NincidHosp=sum(NincidHosp),
-                NincidVent=sum(NincidVent),
-                NVentCurr=sum(NVentCurr),
-                cum_hosp=sum(cum_hosp),
-                cum_death=sum(cum_death),
-                cum_case=sum(cum_case),
-                cum_inf=sum(cum_inf)) 
-  }
-  
-  rc<-rc %>%
-    mutate(scenario_name=scenario)
   warning("Finished loading")
   return(rc)
   
@@ -250,7 +232,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param partitions used by open_dataset 
 ##' @param name_filter string that indicates which pdeath to import from outcome_dir
-##' @param pre_process function that does processing before collectio
+##' @param pre_process function that does processing before collection
 ##' 
 ##' @return a combined data frame of all R simulations with filters applied pre merge.
 ##' 
