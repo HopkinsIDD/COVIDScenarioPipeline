@@ -2734,7 +2734,7 @@ make_scn_county_table_withVent <- function(current_scenario,
 }
 
 ##'
-##' Function calculates R from model outputs
+##' Function calculates R from model outputs using R0 package
 ##'
 ##' @param USAfacts df with observed cases col NincidConfirmed
 ##' @param geodata geodata file
@@ -2791,4 +2791,145 @@ calcR0 <- function(USAfacts,
   Rt1$scenario <- "Statistical"
   return(Rt1)
 }
+
+##'
+##' Comparison of pop-adjusted outcomes by IFR
+##'
+##' @param county_dat df with incident cases, hospitalizations, and deaths
+##' @param geo_dat geodata file
+##' @pdeath_levels
+##' @pdeath_labels
+##' @param start_date 
+##' @param end_date 
+##' @param fig_labels
+##' @param dodger
+##' 
+##' @export
+##'
+##'
+plot_outcome_rate<- function(county_dat,
+                             start_date, 
+                             end_date,
+                             geo_dat=geodata,
+                             pdeath_levels=death_rate_levels,
+                             pdeath_labels=death_rate_labels,
+                             fig_labels=c("Cases", "Hospitalizations", "Deaths"),
+                             dodger=0
+){
+
+  start_date <- lubridate::ymd(start_date)
+  end_date <- lubridate::ymd(end_date)
+  
+  sum_tab <- county_dat %>%
+    dplyr::filter(!is.na(time)) %>% 
+    dplyr::filter(time >= start_date, time <= end_date) %>% 
+    dplyr::group_by(pdeath, sim_num, geoid) %>%
+    dplyr::summarize(TotalIncidCase = sum(NincidCase, na.rm = TRUE),
+                     TotalIncidHosp = sum(NincidHosp, na.rm = TRUE),
+                     TotalIncidDeath = sum(NincidDeath, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
+    left_join(geo_dat) %>%
+    dplyr::mutate(Case=TotalIncidCase/pop2010*1000,
+                  Hosp=TotalIncidHosp/pop2010*1000,
+                  Death=TotalIncidDeath/pop2010*1000)%>%
+    dplyr::group_by(pdeath, name) %>% 
+    dplyr::summarize(Case = mean(Case),
+                     Hosp = mean(Hosp),
+                     Death = mean(Death)) %>% 
+    dplyr::ungroup() %>%
+    dplyr::mutate(name=factor(name, levels=sort(geo_dat$name, decreasing=TRUE)),
+                  pdeath = factor(pdeath, 
+                                  labels = pdeath_labels,
+                                  levels = pdeath_levels))
+  
+  
+  rc <- dplyr::bind_rows(
+    dplyr::mutate(sum_tab,type=1, est=Death),
+    dplyr::mutate(sum_tab,type=2, est=Hosp),
+    dplyr::mutate(sum_tab,type=3, est=Case)
+    ) %>%
+    dplyr::select(type, est, pdeath, name) %>%
+    dplyr::mutate(type = factor(type, levels = c(3,2,1), labels = fig_labels)) %>%
+    ggplot(aes(x=est, y=name, col=pdeath)) +
+    geom_point(position=position_dodge(dodger)) + 
+    scale_x_sqrt() + 
+    theme_bw() + 
+    facet_grid(~type, scales = "free") +
+    xlab("per 1,000 population") + 
+    ylab("County") +
+    theme(axis.title.x=element_blank(),
+          legend.title = element_blank(),
+          legend.position = "bottom",
+          strip.text = element_text(face="bold"),
+          strip.background = element_blank())
+  
+  return(rc)
+  
+}  
+
+##' Comparison of pop-adjusted outcomes to effectiveness of current intervention
+##'
+##' @param county_dat df with incident cases, hospitalizations, and deaths
+##' @param geo_dat geodata file
+##' @pdeath_levels
+##' @pdeath_labels
+##' @param start_date 
+##' @param end_date 
+##' @param fig_labels
+##' @param dodger
+##' 
+##' @export
+##'
+##'
+plot_hosp_effec <- function(county_dat,
+                            start_date, 
+                            end_date,
+                            geo_dat=geodata,
+                            inference_dat=inference_r,
+                            fig_labels=c("Confirmed Cases", "Hospitalizations", "Deaths"),
+                            dodger=0,
+                            pdeath_labels=death_rate_labels,
+                            pdeath_levels=death_rate_levels
+){
+  start_date <- lubridate::ymd(start_date)
+  end_date <- lubridate::ymd(end_date)
+  
+  rc <- county_dat %>% 
+    dplyr::filter(!is.na(time)) %>% 
+    dplyr::filter(time >= start_date, time <= end_date) %>% 
+    dplyr::group_by(pdeath, sim_num, geoid) %>%
+    dplyr::summarize(TotalIncidHosp = sum(NincidHosp, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
+    dplyr::left_join(geo_dat) %>%
+    dplyr::mutate(est=TotalIncidHosp/pop2010*1000) %>%
+    dplyr::group_by(pdeath, name, geoid) %>% 
+    dplyr::summarize(est = mean(est)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(pdeath=factor(pdeath, 
+                         levels=pdeath_levels, 
+                         labels=pdeath_labels))
+  
+  rc <- inference_dat%>%
+    dplyr::group_by(geoid, scenario) %>%
+    dplyr::filter(npi_name!="local_variance" & max(end_date)==end_date)%>%
+    dplyr::summarize(reduc=mean(reduction))%>%
+    dplyr::right_join(rc) 
+  
+  
+    rc<-rc%>%
+    ggplot(aes(x=est, y=reduc, label = name, col=pdeath)) +
+    ggrepel::geom_text_repel(segment.size = 0.2, alpha = 0.75, segment.alpha=0.5) +
+    geom_point() +
+    scale_x_sqrt()+
+    facet_grid(~pdeath)+
+    theme_bw() +
+    theme(legend.position = "none",
+          strip.text = element_text(face="bold"),
+          strip.background = element_blank())+
+    xlab(paste0("Hospitalization between ", lubridate::month(start_date, label=TRUE), " ", lubridate::mday(start_date), "-", lubridate::month(end_date, label=TRUE), " ", lubridate::mday(end_date)," per 1,000 people")) +
+    ylab("Estimated effectiveness of social distancing since the most recent policy change")
+  
+    return(rc)
+}  
+
 
