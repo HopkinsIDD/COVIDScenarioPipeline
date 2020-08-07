@@ -41,6 +41,51 @@ end_date <- "2020-10-01"
 set.seed(123)
 
 # Functions --------------------------------------------------------------------
+##'
+##' Function that generates the NPI configurations for simulating and testing
+##'
+##' @param geoids the geoids it affects
+##' @param dist_params the parameters of the distribution
+##' @param pert_params the parameters of the perturbation distribution
+##' @param period_bounds the dates over which the npi has effect
+##' 
+##' @return inference run results on this particular area
+##'
+#' @export
+generateNPIConfig <- function(geoids, 
+                              dist_params, 
+                              pert_params,
+                              period_bounds) {
+  res <- list()
+  res$template <- "ReduceR0"
+  if (geoids != "all") {
+    res$affected_geoids <- as.list(as.character(geoids))
+  }
+  res$period_start_date <- period_bounds[1]
+  res$period_end_date <- period_bounds[2]
+  res$value <- setDistParams(dist_params)
+  res$perturbation <- setDistParams(pert_params)
+  return(res)
+}
+
+setDistParams <- function(dist_params) {
+  dist <- dist_params$distribution
+  
+  if (dist == "uniform") {
+    list(distribution = dist,
+         low = dist_params$low,
+         high = dist_params$high)
+  } else if (dist == "truncnorm") {
+    list(distribution = dist, 
+         mean = dist_params$mean,
+         sd = dist_params$sd,
+         a = dist_params$a,
+         b = dist_params$b)
+  } else if (dist == "fixed") {
+    list(distribution = dist, 
+         value = dist_params$value)
+  }
+}
 
 #' @title Set mobility
 #' @description Sets the mobility matrix either with high or medium connectivity
