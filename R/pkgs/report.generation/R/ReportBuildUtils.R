@@ -331,18 +331,22 @@ plot_ts_incid_death_state_sample_allPdeath <- function (hosp_state_totals,
 ##' @param pdeath_level level of IFR (string: high/med/low) for filtering hospitalization data
 ##' @param sim_start_date simulation start date as character string "2020-01-01"
 ##' @param summary_date date at which to present cumulative summary of hospitalizations
+##' @param scenario_levels to order scenario_name
+##' @param scenario_labels to label scenario_name
+##' @param scenario_cols to add scenario colors
 ##'
 ##' @return plot of cum hosp for state across simulations
 ##'
 ##' @export
 ##'
-plot_hist_incidHosp_state <- function (hosp_state_totals,
+plot_hist_incidHosp_state <- function(hosp_state_totals,
                                       var_name,
-                                       pdeath_level = "high",
-                                       scenario_labels,
-                                       scenario_cols,
-                                       sim_start_date,
-                                       summary_date) {
+                                      pdeath_level = "high",
+                                      scenario_levels,
+                                      scenario_labels,
+                                      scenario_cols,
+                                      sim_start_date,
+                                      summary_date) {
 
   sim_start_date <- lubridate::ymd(sim_start_date)
   summary_date <- lubridate::ymd(summary_date)
@@ -356,7 +360,7 @@ plot_hist_incidHosp_state <- function (hosp_state_totals,
     dplyr::summarise(pltVar = sum(pltVar)) %>%
     ungroup %>%
     dplyr::mutate(scenario_name = factor(scenario_name,
-                                         levels = scenario_labels,
+                                         levels = scenario_levels,
                                          labels = scenario_labels))
 
   rc <- ggplot(data=to_plt,
@@ -2383,12 +2387,7 @@ plot_rt_ts <- function(outcome_dir,
               upper=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_hi))
   
   truth_dat<-truth_dat%>%
-    group_by(date)%>% 
-    summarize(NincidConfirmed=sum(incidI), 
-              NincidDeathsObs=sum(incidDeath),
-              cum_inf=sum(Confirmed)) %>% 
-    filter(cum_inf!=0)%>%
-    select(-cum_inf)%>%
+    filter(NcumulConfirmed!=0)%>%
     calcR0(geodata=geodata, by_geoid=FALSE) %>%
     mutate(scenario="USA Facts")
   

@@ -53,7 +53,6 @@ library(ggtext)
 library(cowplot)
 
 if (params$state_usps=="[STATE USPS]") {stop("Must define a target state by USPS code.")}
-nfiles2<-50
 
 ```
 
@@ -82,7 +81,7 @@ incub_period <- 1/eval(parse(text=config$seir$parameters$sigma))
 infect_period <- c(1/(eval(parse(text=config$seir$parameters$gamma$high))),
                    1/(eval(parse(text=config$seir$parameters$gamma$low))))
 R0_range <- c(config$seir$parameters$R0s$low, config$seir$parameters$R0s$high)
-
+modeled_states <- state.name[which(state.abb %in% config$spatial_setup$modeled_states)]
 scn_colors<-config$report$formatting$scenario_colors
 scn_labels <- config$report$formatting$scenario_labels
 scn_levels<- config$report$formatting$scenario_labels_short
@@ -95,6 +94,7 @@ npi_names- names(config$interventions$settings[unlist(lapply(config$intervention
 ```
 
 ```{r rmd_formatting}
+nfiles2<-50
 fig_counter <- 1
 tab_counter <- 1
 ```
@@ -116,7 +116,7 @@ state_hosp_totals<-load_hosp_geocombined_totals(runs_dir)
 
 ```{r load_truth}
 
-truth_dat <- get_USAFacts_data() %>%
+truth_dat <- load_USAFacts_for_report(states=modeled_states) %>%
   filter(FIPS %in% included_geoids) %>%
   rename(date=Update, geoid=FIPS) %>%
   filter(date<projection_start) %>%
@@ -133,14 +133,19 @@ inference_r <-load_r_sims_filtered(outcome_dir=runs_dir)
 
 ```{r Rt, fig.cap=cap, fig.height=6, fig.width=10}
 
-plot_rt_ts(outcome_dir=runs_dir,
-           truth_dat=truth_dat,
-           susceptible=TRUE,
-           scenario_colors=scn_colors, 
-           scenario_labels=scn_labels,
-           scenario_levels=scn_levels,
-           start_date = sim_start_date,
-           end_date=sim_end_date)
+truth_dat%>%
+  group_by(date)%>% 
+    summarize(NincidConfirmed=sum(incidI), 
+              NincidDeathsObs=sum(incidDeath),
+              NcumulConfirmed=sum(Confirmed)) %>% 
+  plot_rt_ts(outcome_dir=runs_dir,
+             truth_dat=.,
+             susceptible=TRUE,
+             scenario_colors=scn_colors, 
+             scenario_labels=scn_labels,
+             scenario_levels=scn_levels,
+             start_date = sim_start_date,
+             end_date=sim_end_date)
 
 cap<-paste0("**Fig. ", fig_counter, "** The effective reproduction number (Rt) and 95% intervals over time based on model outputs and cases as reported in USA Facts. The model Rt estimates reflect the population-adjusted average effectiveness of intervention periods and the decreasing pool of susceptibles from the cumulative number of infections across counties. We assume that infection provides complete immunity. Rt estimates for reported cases were calculated with the R0 package.")
 
