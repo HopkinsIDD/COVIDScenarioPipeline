@@ -17,7 +17,7 @@ params:
   pdeath_default: high
   pdeath_default_label: "1% IFR"
   state_usps: "[STATE USPS]"
-  projection_start: "YYYY-MM-DD" # Initial date of projetion, the system's date is used if none is specified 
+  projection_start: "YYYY/MM/DD" # Initial date of projetion, the system's date is used if none is specified 
   npi_label: "[NONE]"  # OPTIONAL: should match number of intervention categories (see npi_names). Example: ["Baseline", "School Lockdown", "Lockdown", "Post Lockdown"]
   npi_trimmer: "[[A-Z]].+\\_" #used by str_remove to group the same types of interventions when intervention periods vary by geoid (i.e. if there are affected geoids in config$interventions$settings). Ignore if intervention periods do not vary by geoid.
 ---
@@ -61,7 +61,7 @@ runs_dir<-params$runs_dir
 reportStateUSPS <- params$state_usps 
 npi_trimmer<-params$npi_trimmer
 npi_label<-ifelse(params$npi_label=="[NONE]", NA, params$npi_label)
-projection_start <- ifelse(params$projection_start=="YYYY/MM/DD", Sys.Date(), lubridate::ymd(params$projection_start))
+projection_start <- ifelse(params$projection_start=="YYYY/MM/DD", lubridate::ymd(Sys.Date()), lubridate::ymd(params$projection_start))
 pdeath_default<-params$pdeath_default
 pdeath_default_label<-params$pdeath_default_label
 
@@ -82,6 +82,7 @@ infect_period <- c(1/(eval(parse(text=config$seir$parameters$gamma$high))),
                    1/(eval(parse(text=config$seir$parameters$gamma$low))))
 R0_range <- c(config$seir$parameters$R0s$low, config$seir$parameters$R0s$high)
 modeled_states <- state.name[which(state.abb %in% config$spatial_setup$modeled_states)]
+census_year <- config$spatial_setup$census_year
 scn_colors<-config$report$formatting$scenario_colors
 scn_labels <- config$report$formatting$scenario_labels
 scn_levels<- config$report$formatting$scenario_labels_short
@@ -249,7 +250,7 @@ fig_counter <- fig_counter+1
 
 ### Summary
 
-`r paste0("**Tab. ", tab_counter, "** Summary estimates across counties for the ",format(projection_start,"%B %d"),"-", format(sim_end_date,"%B %d"), " time period with ",pdeath_default_label," assumptions.")`  
+`r paste0("**Tab. ", tab_counter, "** Summary estimates across counties for the ",format(as.Date(projection_start),"%B %d"),"-", format(as.Date(sim_end_date),"%B %d"), " time period with ",pdeath_default_label," assumptions.")`  
 ```{r county_tab}
 
 make_scn_county_table_withVent(current_scenario=scn_levels[1],
@@ -269,7 +270,7 @@ plot_outcome_rate(county_dat=res_state,
                   end_date=sim_end_date,
                   dodger=0)  
 
-cap <- paste0("**Fig. ", fig_counter, "** Population-adjusted deaths, hospitalizations, and confirmed cases between ", format(projection_start, "%B %d"), "-", format(short_end, "%B %d"), ". Estimates by county and 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue).")  
+cap <- paste0("**Fig. ", fig_counter, "** Population-adjusted deaths, hospitalizations, and confirmed cases between ", format(as.Date(projection_start), "%B %d"), "-", format(as.Date(sim_end_date), "%B %d"), ". Estimates by county and 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue).")  
 
 fig_counter<-fig_counter+1  
 
@@ -284,7 +285,7 @@ plot_hosp_effec(county_dat=res_state,
                 r_dat=inference_r)  
 
 
-cap<- paste0("**Fig. ", fig_counter, "** Population-adjusted estimates of hospitalizations between ", format(projection_start, "%B %d"), "-", format(short_end, "%B %d"), " assuming the effectiveness of post-lockdown social distancing is maintained by county. Estimates shown for 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue) assumptions. ")  
+cap<- paste0("**Fig. ", fig_counter, "** Population-adjusted estimates of hospitalizations between ", format(as.Date(projection_start), "%B %d"), "-", format(as.Date(short_end), "%B %d"), " assuming the effectiveness of post-lockdown social distancing is maintained by county. Estimates shown for 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue) assumptions. ") 
 
 fig_counter<-fig_counter+1  
 
@@ -425,7 +426,7 @@ fig_counter<-fig_counter+1
 
 ```{r sum_tab}
 
-make_scn_time_summary_table_withVent(state_hosp_totals, 
+make_scn_time_summary_table_withVent(state_hosp_totals%>%filter(pdeath==pdeath_default), 
                                      period_breaks = config$report$formatting$display_dates,
                                      pi_low = 0.025,
                                      pi_high = 0.975,
@@ -533,7 +534,7 @@ cap<- paste0("**Fig. ", fig_counter, "** Estimated incident cases and deaths com
 
 ## Appendix 1: County Estimates  
 
-`r paste0("**Tab. ", tab_counter, "** Summary estimates across counties for the ", format(projection_start, "%B %d"), "-", format(sim_end_date, "%B %d"), " time period for all IFR assumptions.")`  
+`r paste0("**Tab. ", tab_counter, "** Summary estimates across counties for the ", format(as.Date(projection_start), "%B %d"), "-", format(as.Date(sim_end_date), "%B %d"), " time period for all IFR assumptions.")` 
 ```{r county_tab_all}
 
 plot_county_sum(county_dat=res_state,
@@ -550,7 +551,7 @@ plot_county_outcomes(res_state,
                      start_date=projection_start,
                      end_date=sim_end_date)
 
-cap <- paste0("**Fig. ", fig_counter ,"** Estimated number of incident cases (left) and occuppied hospital (center) and ICU beds (right) by county between ", format(projection_start, "%B %d")," and ", format(sim_end_date, "%B %d"),". Mean estimates are shown at 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue).")
+cap <- paste0("**Fig. ", fig_counter ,"** Estimated number of incident cases (left) and occuppied hospital (center) and ICU beds (right) by county between ", format(as.Date(projection_start), "%B %d")," and ", format(as.Date(sim_end_date), "%B %d"),". Mean estimates are shown at 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue).")
 
 ```
 
