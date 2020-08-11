@@ -500,57 +500,57 @@ make_scn_state_table_withVent <- function(current_scenario,
                               est = conv_round(nIncidInf_final),
                               lvl = paste0("total inc infections"),
                               pdeath = "") %>% ## infections have no pdeath
-                       select(lvl, est, ci, pdeath) %>%
+                       dplyr::select(lvl, est, ci, pdeath) %>%
                        bind_rows(xx %>%
                                    mutate(ci = make_CI(nIncidHosp_lo, nIncidHosp_hi),
                                           est = conv_round(nIncidHosp_final),
                                           lvl = paste0("total inc hosp", pdeath)) %>%
-                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                        bind_rows(xx %>%
                                    mutate(ci = make_CI(pIncidHosp_lo, pIncidHosp_hi),
                                           est = conv_round(pIncidHosp_final),
                                           lvl = paste0("peak inc hosp", pdeath)) %>%
-                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                        bind_rows(xx %>%
                                    mutate(ci = make_CI(nCurrHosp_lo, nCurrHosp_hi),
                                           est = conv_round(nCurrHosp_final),
                                           lvl = paste0("peak hosp cap", pdeath)) %>%
-                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                        bind_rows(xx %>%
                                    mutate(ci = make_CI(nIncidICU_lo, nIncidICU_hi),
                                           est = conv_round(nIncidICU_final),
                                           lvl = paste0("total inc ICU", pdeath)) %>%
-                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                        bind_rows(xx %>%
                                    mutate(ci = make_CI(pIncidICU_lo, pIncidICU_hi),
                                           est = conv_round(pIncidICU_final),
                                           lvl = paste0("peak inc ICU", pdeath)) %>%
-                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                        bind_rows(xx %>%
                                    mutate(ci = make_CI(nCurrICU_lo, nCurrICU_hi),
                                           est = conv_round(nCurrICU_final),
                                           lvl = paste0("peak ICU cap", pdeath)) %>%
-                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                        bind_rows(xx %>%
                                    mutate(ci = make_CI(nIncidVent_lo, nIncidVent_hi),
                                           est = conv_round(nIncidVent_final),
                                           lvl = paste0("total inc Vent", pdeath)) %>%
-                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                        bind_rows(xx %>%
                                    mutate(ci = make_CI(pIncidVent_lo, pIncidVent_hi),
                                           est = conv_round(pIncidVent_final),
                                           lvl = paste0("peak inc Vent", pdeath)) %>%
-                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                        bind_rows(xx %>%
                                    mutate(ci = make_CI(nCurrVent_lo, nCurrVent_hi),
                                           est = conv_round(nCurrVent_final),
                                           lvl = paste0("peak Vent cap", pdeath)) %>%
-                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
+                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
                        bind_rows(xx %>%
                                    mutate(ci = make_CI(nIncidDeath_lo, nIncidDeath_hi),
                                           est = conv_round(nIncidDeath_final),
                                           lvl = paste0("total inc death", pdeath)) %>%
-                                   select(lvl, est, ci, pdeath) %>% arrange(pdeath))
+                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath))
     )
   }
   
@@ -646,7 +646,7 @@ make_scn_time_summary_table_withVent <- function(hosp_state_totals,
            PeriodPkICUPI = paste(format(PeriodPkICUPILow,big.mark=","), format(PeriodPkICUPIHigh,big.mark=","), sep="-"),
            PeriodVentPI = paste(format(PeriodVentPILow,big.mark=","), format(PeriodVentPIHigh,big.mark=","), sep="-"),
            PeriodPkVentPI = paste(format(PeriodPkVentPILow,big.mark=","), format(PeriodPkVentPIHigh,big.mark=","), sep="-")) %>%
-    select(-PeriodInfPILow, -PeriodInfPIHigh,
+    dplyr::select(-PeriodInfPILow, -PeriodInfPIHigh,
            -PeriodDeathPILow, -PeriodDeathPIHigh,
            -PeriodHospPILow, -PeriodHospPIHigh,
            -PeriodPkHospPILow, -PeriodPkHospPIHigh,
@@ -661,33 +661,33 @@ make_scn_time_summary_table_withVent <- function(hosp_state_totals,
   
   ##inellegant but should work
   tbl_df <- 
-    bind_rows(tbl_df%>%select(period,scenario_name, PeriodInf, PeriodInfPI)%>%mutate(outcome="Infections in Period")%>%
+    bind_rows(tbl_df%>%dplyr::select(period,scenario_name, PeriodInf, PeriodInfPI)%>%mutate(outcome="Infections in Period")%>%
                 rename(mean=PeriodInf,`95% PI`=PeriodInfPI),
-              tbl_df%>%select(period,scenario_name, PeriodDeath, PeriodDeathPI)%>%mutate(outcome="Deaths in Period")%>%
+              tbl_df%>%dplyr::select(period,scenario_name, PeriodDeath, PeriodDeathPI)%>%mutate(outcome="Deaths in Period")%>%
                 rename(mean=PeriodDeath,`95% PI`=PeriodDeathPI),
-              tbl_df%>%select(period,scenario_name, PeriodHosp, PeriodHospPI)%>%mutate(outcome="Hospital Admissions in Period")%>%
+              tbl_df%>%dplyr::select(period,scenario_name, PeriodHosp, PeriodHospPI)%>%mutate(outcome="Hospital Admissions in Period")%>%
                 rename(mean=PeriodHosp,`95% PI`=PeriodHospPI),
-              tbl_df%>%select(period,scenario_name, PeriodPkHosp, PeriodPkHospPI)%>%mutate(outcome="Peak Hospital Occupancy in Period")%>%
+              tbl_df%>%dplyr::select(period,scenario_name, PeriodPkHosp, PeriodPkHospPI)%>%mutate(outcome="Peak Hospital Occupancy in Period")%>%
                 rename(mean=PeriodPkHosp,`95% PI`=PeriodPkHospPI),
-              tbl_df%>%select(period,scenario_name, PeriodICU, PeriodICUPI)%>%mutate(outcome="ICU Admissions in Period")%>%
+              tbl_df%>%dplyr::select(period,scenario_name, PeriodICU, PeriodICUPI)%>%mutate(outcome="ICU Admissions in Period")%>%
                 rename(mean=PeriodICU,`95% PI`=PeriodICUPI),
-              tbl_df%>%select(period,scenario_name, PeriodPkICU, PeriodPkICUPI)%>%mutate(outcome="Peak ICU Occupancy in Period")%>%
+              tbl_df%>%dplyr::select(period,scenario_name, PeriodPkICU, PeriodPkICUPI)%>%mutate(outcome="Peak ICU Occupancy in Period")%>%
                 rename(mean=PeriodPkICU,`95% PI`=PeriodPkICUPI),
-              tbl_df%>%select(period,scenario_name, PeriodVent, PeriodVentPI)%>%mutate(outcome="Incident Ventilations in Period")%>%
+              tbl_df%>%dplyr::select(period,scenario_name, PeriodVent, PeriodVentPI)%>%mutate(outcome="Incident Ventilations in Period")%>%
                 rename(mean=PeriodVent,`95% PI`=PeriodVentPI),
-              tbl_df%>%select(period,scenario_name, PeriodPkVent, PeriodPkVentPI)%>%mutate(outcome="Peak Ventilators in Use in Period")%>%
+              tbl_df%>%dplyr::select(period,scenario_name, PeriodPkVent, PeriodPkVentPI)%>%mutate(outcome="Peak Ventilators in Use in Period")%>%
                 rename(mean=PeriodPkVent,`95% PI`=PeriodPkVentPI)
               ) %>%
     mutate(period=as.character(period)) %>%
     pivot_wider(names_from=period, values_from = c(mean,`95% PI`), names_sep=".")%>%
     setNames(nm = sub("(.*)\\.(.*)", "\\2_\\1", names(.)))%>%
-    select(outcome,scenario_name,all_of(tmp))
+    dplyr::select(outcome,scenario_name,all_of(tmp))
   
   #tells how to group columns
   tbl_df <- flextable::as_grouped_data(tbl_df,groups="outcome")
   tmp <- is.na(tbl_df$scenario_name)
   tbl_df$scenario_name[tmp] <-tbl_df$outcome[tmp]
-  tbl_df <- tbl_df%>%select(-outcome)
+  tbl_df <- tbl_df%>%dplyr::select(-outcome)
   typology<-data_frame(col_keys=colnames(tbl_df),
                        colA=c("",rep(lbls,each=2)),
                        colB=c("",rep(c("mean","95% PI"),length(lbls))))
@@ -1164,7 +1164,7 @@ plot_inference_r <- function(r_dat,
 
 make_sparkline_tab_r <- function(r_dat,
                                  outcome_dir=NULL,
-                                 susceptible=FALSE,
+                                 susceptible=TRUE,
                                  current_scenario,
                                  npi_labels, 
                                  npi_levels,
@@ -1183,20 +1183,20 @@ make_sparkline_tab_r <- function(r_dat,
   if(length(npi_labels)!=length(npi_levels)) {stop("Length of npi levels and labels must be equal")}
   if(susceptible & is.null(outcome_dir)) {stop("You must specify outcome_dir to load cumulative infections")}
   r_dat <- r_dat%>%
-    filter(scenario==current_scenario)
+    dplyr::filter(scenario==current_scenario)
   
   # Set new end date for baseline values
   new_local_end <- r_dat %>%
-    filter(npi_name!="local_variance") %>%
-    group_by(geoid) %>%
-    filter(min(start_date)==start_date) %>%
-    ungroup() %>%
-    mutate(new_end=start_date-1) %>%
-    distinct(geoid, new_end)
+    dplyr::filter(npi_name!="local_variance") %>%
+    dplyr::group_by(geoid) %>%
+    dplyr::filter(min(start_date)==start_date) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(new_end=start_date-1) %>%
+    dplyr::distinct(geoid, new_end)
   
   r_dat<-r_dat%>%
-    left_join(new_local_end) %>%
-    mutate(end_date=if_else(npi_name=="local_variance", new_end, end_date))
+    dplyr::left_join(new_local_end) %>%
+    dplyr::mutate(end_date=if_else(npi_name=="local_variance", new_end, end_date))
   
   if(susceptible){
     
@@ -1204,25 +1204,25 @@ make_sparkline_tab_r <- function(r_dat,
                        date = seq(min(r_dat$start_date), max(r_dat$end_date), by=1))
     
     r_dat<-r_dat %>%
-      group_by(geoid, sim_num)%>%
-      mutate(mid_point=if_else(max(end_date)==end_date, # for summary values mid_point=date
+      dplyr::group_by(geoid, sim_num)%>%
+      dplyr::mutate(mid_point=if_else(max(end_date)==end_date, # for summary values mid_point=date
                           Sys.Date(),
                           start_date+floor((end_date-start_date)/2))) %>%
-      left_join(timeline)
+      dplyr::left_join(timeline)
     
     r_dat<-load_hosp_sims_filtered(outcome_dir,
                                    pre_process=function(x){x%>%
-                                       filter(scenario==current_scenario)%>%
-                                       select(geoid, scenario, death_rate, location, time, sim_id, incidI)},
+                                       dplyr::filter(scenario==current_scenario)%>%
+                                       dplyr::select(geoid, scenario, death_rate, location, time, sim_id, incidI)},
                                    post_process=function(x){x%>%
-                                       group_by(geoid, pdeath, scenario, sim_num, location)%>%
-                                       mutate(cum_inf=cumsum(incidI))}) %>%
-      rename(date=time)%>%
-      right_join(r_dat) %>%
-      mutate(r=if_else(date<start_date|date>end_date, NA_real_, r)) %>%
+                                       dplyr::group_by(geoid, pdeath, scenario, sim_num, location)%>%
+                                       dplyr::mutate(cum_inf=cumsum(incidI))}) %>%
+      dplyr::rename(date=time)%>%
+      dplyr::right_join(r_dat) %>%
+      dplyr::mutate(r=if_else(date<start_date|date>end_date, NA_real_, r)) %>%
       drop_na() %>%
-      left_join(geo_dat) %>%
-      mutate(r=r*(1-cum_inf/pop2010)) 
+      dplyr::left_join(geo_dat) %>%
+      dplyr::mutate(r=r*(1-cum_inf/pop2010)) 
   }
   
   r_dat <- r_dat %>%
@@ -1268,7 +1268,7 @@ make_sparkline_tab_r <- function(r_dat,
     mutate(npi_name=factor(npi_name, 
                            levels=c(npi_levels, "blank"), 
                            labels=c(npi_labels,"blank"))) %>%
-    select(name, date, estimate, plot_var, npi_name) %>%
+    dplyr::select(name, date, estimate, plot_var, npi_name) %>%
     group_by(name) %>%
     nest() %>%
     mutate(plot=map(data, ~ggplot(., aes(x=date, y=plot_var))+
@@ -1287,7 +1287,7 @@ make_sparkline_tab_r <- function(r_dat,
                             axis.text= element_blank(),
                             panel.background = element_blank(),
                             panel.grid=element_blank()))) %>%
-    select(-data) %>%
+    dplyr::select(-data) %>%
     mutate(` `=NA)
   
   # Table 
@@ -1392,7 +1392,7 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
   
   r_plot <- r_dat %>%
     mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels)) %>%
-    select(name, start_date, estimate, est_lo, est_hi, npi_name) %>%
+    dplyr::select(name, start_date, estimate, est_lo, est_hi, npi_name) %>%
     group_by(name) %>%
     mutate(time=1, 
            time=cumsum(time))%>%
@@ -1412,7 +1412,7 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
                             axis.text= element_blank(),
                             panel.background = element_blank(),
                             panel.grid=element_blank()))) %>%
-    select(-data) %>%
+    dplyr::select(-data) %>%
     mutate(` `=NA)
   
   #Table 
@@ -1508,7 +1508,7 @@ plot_truth_by_county <- function(truth_dat,
                     truth_dat%>%
                       mutate(confirmed=currhosp,
                              type=fig_labs[3])) %>%
-      select(-starts_with("incid")) %>%
+      dplyr::select(-starts_with("incid")) %>%
       right_join(
         bind_rows(county_dat %>%
                     group_by(time, geoid, !!as.symbol(group_var))%>%     
@@ -1545,7 +1545,7 @@ plot_truth_by_county <- function(truth_dat,
                     truth_dat%>%
                       mutate(confirmed=incidDeath,
                              type=fig_labs[2])) %>%
-      select(-starts_with("incid")) %>%
+      dplyr::select(-starts_with("incid")) %>%
       right_join(
         bind_rows(county_dat %>%
                     group_by(time, geoid, !!as.symbol(group_var))%>%     
@@ -1629,45 +1629,45 @@ plot_rt_ts <- function(outcome_dir,
   for(i in 1:length(scenario_levels)){
     rc[[i]]<-load_r_sims_filtered(outcome_dir,
                                   pre_process=function(x){filter(x, scenario==scenario_levels[i])}) %>%
-      arrange(geoid, sim_num, start_date) %>%
-      mutate(end_date=if_else(npi_name=="local_variance",
+      dplyr::arrange(geoid, sim_num, start_date) %>%
+      dplyr::mutate(end_date=if_else(npi_name=="local_variance",
                               lead(start_date)-1,
                               end_date)) %>%
-      left_join(geoiddate)%>%
-      mutate(r=if_else(date<start_date | date>end_date, NA_real_, r)) %>% 
+      dplyr::left_join(geoiddate)%>%
+      dplyr::mutate(r=if_else(date<start_date | date>end_date, NA_real_, r)) %>% 
       drop_na()
     
     if(susceptible){
     rc[[i]]<-load_hosp_sims_filtered(outcome_dir,
                                      pre_process=function(x){x%>%
-                                         filter(scenario==scenario_levels[i])%>%
-                                         select(geoid, scenario, death_rate, location, time, sim_id, incidI)},
+                                         dplyr::filter(scenario==scenario_levels[i])%>%
+                                         dplyr::select(geoid, scenario, death_rate, location, time, sim_id, incidI)},
                                      post_process=function(x){x%>%
-                                         group_by(geoid, pdeath, scenario, sim_num, location)%>%
-                                         mutate(cum_inf=cumsum(incidI))}) %>%
-      rename(date=time)%>%
-      right_join(rc[[i]]) %>%
-      left_join(geo_dat) %>%
-      mutate(r=r*(1-cum_inf/pop2010))
+                                         dplyr::group_by(geoid, pdeath, scenario, sim_num, location)%>%
+                                         dplyr::mutate(cum_inf=cumsum(incidI))}) %>%
+      dplyr::rename(date=time)%>%
+      dplyr::right_join(rc[[i]]) %>%
+      dplyr::left_join(geo_dat) %>%
+      dplyr::mutate(r=r*(1-cum_inf/pop2010))
     }
     
   }
   
-  rc<-bind_rows(rc) %>%
-    left_join(geo_dat)%>%
-    group_by(scenario, date) %>%
-    mutate(weight=pop2010/sum(pop2010)) %>% # count
-    summarize(estimate=Hmisc::wtd.mean(r, weights=weight, normwt=TRUE),
+  rc<-dplyr::bind_rows(rc) %>%
+    dplyr::left_join(geo_dat)%>%
+    dplyr::group_by(scenario, date) %>%
+    dplyr::mutate(weight=pop2010/sum(pop2010)) %>% # count
+    dplyr::summarize(estimate=Hmisc::wtd.mean(r, weights=weight, normwt=TRUE),
               lower=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_lo),
               upper=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_hi))
   
   truth_dat<-truth_dat%>%
-    filter(NcumulConfirmed!=0)%>%
+    dplyr::filter(NcumulConfirmed!=0)%>%
     calcR0(geodata=geo_dat, by_geoid=FALSE, included_geoids = included_geoids) %>%
-    mutate(scenario="USA Facts")
+    dplyr::mutate(scenario="USA Facts")
   
-  bind_rows(rc, truth_dat) %>%
-    mutate(`Based on`=factor(scenario, 
+  dplyr::bind_rows(rc, truth_dat) %>%
+    dplyr::mutate(`Based on`=factor(scenario, 
                              levels=c(scenario_levels, "USA Facts"),
                              labels=c(scenario_labels, "USA Facts confirmed cases"))) %>%
     ggplot(aes(x=date, y=estimate, ymin=lower, ymax=upper))+
@@ -1925,7 +1925,7 @@ make_scn_county_table_withVent <- function(current_scenario,
            nCurrVent_CI = make_CI(nCurrVent_lo, nCurrVent_hi),
            nIncidDeath = prettyNum(conv_round(nIncidDeath_final), big.mark=",",scientific=FALSE,trim=TRUE),
            nIncidDeath_CI = make_CI(nIncidDeath_lo, nIncidDeath_hi)) %>%
-    select(-ends_with("lo"), -ends_with("hi"), -ends_with("final"))
+    dplyr::select(-ends_with("lo"), -ends_with("hi"), -ends_with("final"))
   
   county_tab <- county_tab[order(colnames(county_tab))]
   
@@ -1945,7 +1945,7 @@ make_scn_county_table_withVent <- function(current_scenario,
     unite("VentPeakAdmin", pIncidVent:pIncidVent_CI, sep="\n")
   
   county_tab <- county_tab[order(colnames(county_tab))] %>%
-    select(name, pdeath, starts_with("Case"), starts_with("Hosp"), starts_with("ICU"), starts_with("Vent"), starts_with("Death"))
+    dplyr::select(name, pdeath, starts_with("Case"), starts_with("Hosp"), starts_with("ICU"), starts_with("Vent"), starts_with("Death"))
   
   if(!is.na(pdeath_filter)){
     newnames <- c(NA_character_, "Daily average","Total", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Daily average", "Total")
@@ -1953,7 +1953,7 @@ make_scn_county_table_withVent <- function(current_scenario,
     county_tab %>%
       arrange(name) %>%
       filter(pdeath == pdeath_filter) %>%
-      select(-pdeath) %>%
+      dplyr::select(-pdeath) %>%
       flextable::flextable() %>%
       flextable::set_header_labels(name = "County", CaseAvg = "CONFIRMED CASES", CaseIncid = "CONFIRMED CASES", HospIncid = "HOSPITALIZATIONS", # pdeath= "IFR", 
                                    HospPeakAdmin = "HOSPITALIZATIONS", HospPeakMax = "HOSPITALIZATIONS", ICUIncid = "ICU", 

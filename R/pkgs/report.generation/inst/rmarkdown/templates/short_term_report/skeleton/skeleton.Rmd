@@ -120,7 +120,7 @@ state_hosp_totals<-load_hosp_geocombined_totals(runs_dir)
 truth_dat <- load_USAFacts_for_report(states=modeled_states) %>%
   filter(FIPS %in% included_geoids) %>%
   rename(date=Update, geoid=FIPS) %>%
-  filter(date<projection_start) %>%
+  filter(date<as.Date(projection_start)) %>%
   left_join(geodata)
 
 ```
@@ -285,7 +285,7 @@ plot_hosp_effec(county_dat=res_state,
                 r_dat=inference_r)  
 
 
-cap<- paste0("**Fig. ", fig_counter, "** Population-adjusted estimates of hospitalizations between ", format(as.Date(projection_start), "%B %d"), "-", format(as.Date(short_end), "%B %d"), " assuming the effectiveness of post-lockdown social distancing is maintained by county. Estimates shown for 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue) assumptions. ") 
+cap<- paste0("**Fig. ", fig_counter, "** Population-adjusted estimates of hospitalizations between ", format(as.Date(projection_start), "%B %d"), "-", format(as.Date(sim_end_date), "%B %d"), " assuming the effectiveness of post-lockdown social distancing is maintained by county. Estimates shown for 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue) assumptions. ") 
 
 fig_counter<-fig_counter+1  
 

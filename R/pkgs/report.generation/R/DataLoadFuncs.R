@@ -263,7 +263,7 @@ load_spar_sims_filtered <- function(outcome_dir,
     mutate(sim_num = order(sim_id),
            parameter="r0") %>%
     rename(location_r = value) %>%
-    select(sim_num, scenario, pdeath=death_rate, location_r, parameter, location)
+    dplyr::select(sim_num, scenario, pdeath=death_rate, location_r, parameter, location)
   
   warning("Finished loading")
   return(spar)
@@ -300,7 +300,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
     collect() %>%
     group_by(geoid, npi_name, scenario)%>%
     mutate(sim_num = order(sim_id)) %>%
-    select(-date, -lik_type, -is_final, -sim_id) %>%
+    dplyr::select(-date, -lik_type, -is_final, -sim_id) %>%
     rename(pdeath=death_rate)
   
   warning("Finished loading")
