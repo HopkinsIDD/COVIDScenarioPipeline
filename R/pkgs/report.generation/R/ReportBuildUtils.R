@@ -1613,6 +1613,7 @@ plot_rt_ts <- function(outcome_dir,
                        scenario_labels,
                        start_date,
                        end_date, 
+                       included_geoids,
                        geo_dat=geodata,
                        susceptible=TRUE,
                        pi_lo=0.025,
@@ -1646,14 +1647,14 @@ plot_rt_ts <- function(outcome_dir,
                                          mutate(cum_inf=cumsum(incidI))}) %>%
       rename(date=time)%>%
       right_join(rc[[i]]) %>%
-      left_join(geodata) %>%
+      left_join(geo_dat) %>%
       mutate(r=r*(1-cum_inf/pop2010))
     }
     
   }
   
   rc<-bind_rows(rc) %>%
-    left_join(geodata)%>%
+    left_join(geo_dat)%>%
     group_by(scenario, date) %>%
     mutate(weight=pop2010/sum(pop2010)) %>% # count
     summarize(estimate=Hmisc::wtd.mean(r, weights=weight, normwt=TRUE),
@@ -1662,7 +1663,7 @@ plot_rt_ts <- function(outcome_dir,
   
   truth_dat<-truth_dat%>%
     filter(NcumulConfirmed!=0)%>%
-    calcR0(geodata=geodata, by_geoid=FALSE) %>%
+    calcR0(geodata=geo_dat, by_geoid=FALSE, included_geoids = included_geoids) %>%
     mutate(scenario="USA Facts")
   
   bind_rows(rc, truth_dat) %>%
@@ -2051,7 +2052,7 @@ calcR0 <- function(USAfacts,
       group_by(Date) %>%
       summarise_if(is.numeric, sum) %>%
       ungroup()
-    pop <- sum(geodata[geodata$geoid == included_geoids[i],config$spatial_setup$popnodes])
+    pop <- sum(geodata[geodata$geoid == included_geoids,config$spatial_setup$popnodes])
     incid <- setNames(covid$New.Cases,1:nrow(covid))
     estR0 <- R0::estimate.R(incid, mGT, begin=1, end=as.numeric(length(incid)), methods=c("TD"), pop.size=pop, nsim=1000)
     Rt1 <- cbind(covid$Date,estR0$estimates$TD$R,estR0$estimates$TD$conf.int)
