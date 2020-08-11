@@ -14,7 +14,7 @@ params:
   runs_dir: "model_output" # directory with model output (i.e. with subdirs: hosp, snpi, spar)
   pdeath_default: "high"
   pdeath_label_default: "1% IFR"
-  projection_start: "YYYY-MM-DD" # Initial date of projetion, the system's date is used if none is specified 
+  projection_start: "YYYY/MM/DD" # Initial date of projetion, the system's date is used if none is specified 
   npi_label: "[NONE]"  # OPTIONAL: should match number of intervention categories (see npi_names). Example: ["Baseline", "School Lockdown", "Lockdown", "Post Lockdown"]
   npi_trimmer: "[[A-Z]].+\\_" #used by str_remove to group the same types of interventions when intervention periods vary by geoid (i.e. if there are affected geoids in config$interventions$settings). Ignore if intervention periods do not vary by geoid.
 ---
@@ -61,7 +61,7 @@ runs_dir<-params$runs_dir
 reportStateUSPS <- params$state_usps 
 npi_trimmer<-params$npi_trimmer
 npi_label<-ifelse(params$npi_label=="[NONE]", NA, params$npi_label)
-projection_start <- ifelse(params$projection_start=="YYYY/MM/DD", Sys.Date(), lubridate::ymd(params$projection_start))
+projection_start <- ifelse(params$projection_start=="YYYY/MM/DD", lubridate::ymd(Sys.Date()), lubridate::ymd(params$projection_start))
 pdeath_default<-params$pdeath_default
 pdeath_default_label<-params$pdeath_default_label
 
@@ -296,7 +296,7 @@ fig_counter <- fig_counter+1
 
 ### Summary
 
-`r paste0("**Tab. ", tab_counter, "** Summary estimates across counties for the ",format(projection_start,"%B %d"),"-", format(sim_end_date,"%B %d"), " time period with ",pdeath_default_label," assumptions.")` 
+`r paste0("**Tab. ", tab_counter, "** Summary estimates across counties for the ",format(as.Date(projection_start),"%B %d"),"-", format(as.Date(sim_end_date),"%B %d"), " time period with ",pdeath_default_label," assumptions.")` 
 
 ```{r scn_time_sum}
 make_scn_time_summary_table_withVent(state_hosp_totals %>% dplyr::filter(pdeath==pdeath_default), 
