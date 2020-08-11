@@ -2048,9 +2048,8 @@ calcR0 <- function(USAfacts,
     Rt1 <- dplyr::bind_rows(Rt1)
   }else{
     covid <- covid %>%
-      select(-geoid, -source) %>%
       group_by(Date) %>%
-      summarise_all(sum) %>%
+      summarise_if(is.numeric, sum) %>%
       ungroup()
     pop <- sum(geodata[geodata$geoid == included_geoids[i],config$spatial_setup$popnodes])
     incid <- setNames(covid$New.Cases,1:nrow(covid))
