@@ -147,7 +147,7 @@ cum_inf_dates <- load_cum_inf_geounit_dates(outcome_dir=runs_dir,
 usaf_dat <- load_USAFacts_for_report(states = modeled_states) %>%
   filter(FIPS %in% included_geoids) %>%
   rename(date=Update, geoid=FIPS) %>%
-  filter(date<projection_start) %>%
+  filter(date<as.Date(projection_start)) %>%
   left_join(geodata)
 ```
 

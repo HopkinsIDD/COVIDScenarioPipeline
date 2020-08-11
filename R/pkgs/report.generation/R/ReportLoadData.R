@@ -36,7 +36,7 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
   
   hosp_pre_process <- function(x) {
     x %>%
-      select(geoid, scenario, death_rate, location, time, sim_id, incidI)
+      dplyr::select(geoid, scenario, death_rate, location, time, sim_id, incidI)
   }
   ##filter to munge the data at the scenario level
   if (!is.null(incl_geoids)) {
@@ -69,7 +69,7 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
   rc<-rc%>%
     mutate(scenario_name = factor(scenario, levels=scenario_levels, labels=scenario_labels), 
            scenario_num = seq_along(scenario)) %>%
-    select(-sim_id)
+    dplyr::select(-sim_id)
   
   return(rc)
   
@@ -115,7 +115,7 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
   
   hosp_pre_process <- function(x) {
     x %>%
-      select(geoid, scenario, location, death_rate, time, sim_id, incidI, incidD, incidICU, incidH, incidVent) 
+      dplyr::select(geoid, scenario, location, death_rate, time, sim_id, incidI, incidD, incidICU, incidH, incidVent) 
   }
   ##filter to munge the data at the scenario level
   if (!is.null(incl_geoids)) {
@@ -365,7 +365,7 @@ load_geodata_file <- function(
   geodata<-geodata %>%
     left_join(fips_codes%>%
                 unite(col="geoid", ends_with("_code"), sep="") %>%
-                select(-state_name, -state) %>%
+                dplyr::select(-state_name, -state) %>%
                 rename(name=county) %>%
                 mutate(name=str_remove(name, " County")))
   return(geodata)
@@ -604,7 +604,7 @@ load_r_sims_filtered <- function(outcome_dir,
     right_join(snpi)%>%
     filter(npi_name=="local_variance") %>%
     mutate(local_r = location_r*(1-reduction)) %>% # county_r0 ought to be renamed to "geogroup_r0"
-    select(geoid, sim_num, local_r, scenario) %>%
+    dplyr::select(geoid, sim_num, local_r, scenario) %>%
     left_join(snpi) %>%
     mutate(r = if_else(npi_name=="local_variance",
                        local_r,
