@@ -165,7 +165,6 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
 ##' the given scenarios.
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
-##' @param model_output folder with hosp outcomes
 ##' @param partitions used by open_dataset 
 ##' @param name_filter string that indicates which pdeath to import from outcome_dir
 ##' @param pre_process function that does processing before collection
@@ -176,7 +175,6 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
 ##'
 ##'@export
 load_hosp_geocombined_totals <- function(outcome_dir,
-                                         model_output = 'hosp',
                                          partitions=c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
                                          name_filter=c("high", "med", "low"),
                                          pre_process=function(x) {x},
