@@ -409,7 +409,7 @@ plot_truth_by_county(truth_dat=truth_dat,
                      hosp=FALSE,
                      filter_by="pdeath",
                      filter_val=pdeath_default,
-                     start_date=projection_start,
+                     start_date=as.Date(projection_start)-90,
                      end_date=sim_end_date) 
 
 cap<- paste0("**Fig. ", fig_counter, "** Estimated incident cases and deaths compared to reported data on USA Facts by county. Here, modeled cases are calculated as a percent of modeled infection that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for each scenario at ",pdeath_default_label," assumptions. Note that USA Facts data were reported as daily cumulative cases and deaths. In this figure, daily cumulative case counts were differenced in order to report the incident cases and deaths. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")
@@ -513,7 +513,7 @@ fig_counter <- fig_counter+1
 ### Model Calibration 
 
 ```{r state_truth, fig.height=9, fig.cap=cap}
-truth_dat%>%
+compare_plts<- truth_dat%>%
   select(-geoid, -USPS, -name) %>%
   group_by(source, date) %>%
   dplyr::summarize_all(sum)%>%
@@ -526,6 +526,8 @@ truth_dat%>%
                     pdeath_level=pdeath_default,
                     week=FALSE, #aggregate to week? would need to aggregate jhu_obs_dat as well
                     hosp=FALSE)
+
+  ggpubr::ggarrange(plotlist=compare_plts, ncol=1)
 
 cap<- paste0("**Fig. ", fig_counter, "** Estimated incident cases and deaths compared to reported data on USA Facts. Here, modeled cases are calculated as a percent of modeled infection that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for each scenario at ",pdeath_default_label," assumptions. Note that USA Facts data were reported as daily cumulative cases and deaths. In this figure, daily cumulative case counts were differenced in order to report the incident cases and deaths. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")
 
