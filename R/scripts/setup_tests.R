@@ -168,7 +168,7 @@ test_specs <- expand.grid(
   # Bounds on truncated normal of perturbation kernel
   pert_bound_npis = c(1),
   # Standard deviation of perturbation kernel
-  pert_sd_conf = c(.01, .1),
+  pert_sd_conf = c(.1),
   # Bounds on truncated normal of perturbation kernel
   pert_bound_conf = c(1),
   # Transformation on the confirmation rate
@@ -195,7 +195,7 @@ test_specs <- test_specs %>%
 
 
 # Build tests specifications
-tests <- apply(test_specs, 1, buildTest, suffix = "new")
+tests <- apply(test_specs, 1, buildTest)
 names(tests) <- map_chr(tests, "runid")
 
 # Set reference data to use
@@ -291,9 +291,18 @@ for (test in tests) {
   hpars <- map_df(unique(geodata$geoid), ~mutate(hpars, geoid = .)) %>% 
     select(geoid, quantity, outcome, source, value)
   
+  hpar_generation_file <- str_replace(test$hpar_file, ".parquet", "-generation.parquet")
+  hpar_inference_file <- test$hpar_file
+  
   filter(hpars, quantity == "probability") %>% 
     mutate(geoid = as.character(geoid)) %>% 
-    arrow::write_parquet(test$hpar_file)
+    arrow::write_parquet(hpar_generation_file)
+  
+  # Initialize confirmation probability at 60% (20% used for generating the data)
+  filter(hpars, quantity == "probability") %>% 
+    mutate(value = case_when(outcome == "incidC" ~ .6, T ~ value)) %>% 
+    mutate(geoid = as.character(geoid)) %>% 
+    arrow::write_parquet(hpar_inference_file)
   
   # Perturbation parameters are the same for all NPIs and hpars
   pert_params_npis <- list(
@@ -328,7 +337,7 @@ for (test in tests) {
   
   config$interventions$scenarios <- list("test")
   config$interventions$settings <- generation_config
-  
+  config$outcomes$param_place_file <- hpar_generation_file
   yaml::write_yaml(config, file = config_file_out_generation)
   
   # Inference setup
@@ -393,8 +402,8 @@ for (test in tests) {
   
   lik_deaths <- str_split(test$lik_deaths, "-")[[1]]
   config$filtering$statistics$sum_deaths$likelihood <- list(dist = lik_deaths[1],
-                                                           param = as.numeric(lik_deaths[2]))
-  
+                                                            param = as.numeric(lik_deaths[2]))
+  config$outcomes$param_place_file <- hpar_inference_file
   yaml::write_yaml(config, file = config_file_out_inference)
   
   # Generate data ----------------------------------------------------------------
@@ -408,19 +417,6 @@ for (test in tests) {
   write_csv(seedings, path = first_seed_file)
   
   # Write seeding lambda file for all slots to avoid calling create_seeding.R
-  for (i in 1:opt$n_slots) {
-    slot_prefix <- covidcommon::create_prefix(config$name, test$scenario, "med",test$runid,sep='/',trailing_separator='/')
-    ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/')
-    gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/')
-    global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(i,"%09d"), sep='.', trailing_separator='.')
-    chimeric_block_prefix <- covidcommon::create_prefix(prefix=ci_prefix, slot=list(i,"%09d"), sep='.', trailing_separator='.')
-    first_global_files <- inference::create_filename_list(test$runid, global_block_prefix, 0)
-    first_chimeric_files <- inference::create_filename_list(test$runid, chimeric_block_prefix, 0)
-    
-    initial_seeding <- readr::read_csv(config$seeding$lambda_file, 
-                                       col_types = readr::cols(place=readr::col_character()))
-    readr::write_csv(initial_seeding, path = first_global_files[['seed_filename']])
-  }
   
   file.remove(first_hpar_file)
   file.copy(config$outcomes$param_place_file, first_hpar_file)
@@ -441,24 +437,34 @@ for (test in tests) {
   py$onerun_SEIR(0, py$s)
   py$onerun_SEIR_loadID(0, py$s, 0)
   py$onerun_HOSP(0)
+  
+  for (i in 1:opt$n_slots) {
+    slot_prefix <- covidcommon::create_prefix(config$name, test$scenario, "med",test$runid,sep='/',trailing_separator='/')
+    ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/')
+    gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/')
+    global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(i,"%09d"), sep='.', trailing_separator='.')
+    chimeric_block_prefix <- covidcommon::create_prefix(prefix=ci_prefix, slot=list(i,"%09d"), sep='.', trailing_separator='.')
+    first_global_files <- inference::create_filename_list(test$runid, global_block_prefix, 0)
+    first_chimeric_files <- inference::create_filename_list(test$runid, chimeric_block_prefix, 0)
+    
+    initial_seeding <- readr::read_csv(config$seeding$lambda_file, 
+                                       col_types = readr::cols(place=readr::col_character()))
+    readr::write_csv(initial_seeding, path = first_global_files[['seed_filename']])
+  }
 }
 
 for (test in tests) {
-  config <- yaml::read_yaml(test$config_file)
-  slot_prefix <- covidcommon::create_prefix(config$name, test$scenario, "med",test$ref_data_runid,sep='/',trailing_separator='/')
-  ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/')
-  gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/')
-  global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(i,"%09d"), sep='.', trailing_separator='.')
-  first_global_files <- inference::create_filename_list(test$ref_data_runid, global_block_prefix, 0)
+  chimeric_block_prefix <- glue::glue("generate_{test$setup}_")
+  global_block_prefix <- chimeric_block_prefix
+  first_hosp_file <- covidcommon::create_file_name(test$ref_data_runid,global_block_prefix,0,'hosp','parquet')
   
-  generated_data <- arrow::read_parquet(first_global_files["hosp_filename"])
   # Write data
-  generated_data %>% 
+  arrow::read_parquet(first_hosp_file) %>% 
     mutate(geoid = stringr::str_pad(geoid, 5, pad = 0),
            FIPS = geoid,
            date = as.Date(time)) %>% 
     select(-time, -geoid) %>% 
-    write_csv(path = config$filtering$data_path)
+    write_csv(path = test$data_path)
 }
 
 # Plot datasets ----------------------------------------------------------------
@@ -473,7 +479,7 @@ if (do_plots) {
   
   ggplot(data, aes(x = date, y = incidC, color = runid)) +
     geom_line() +
-    facet_grid(N ~ geoid, scales = "free")
+    facet_grid(N ~ FIPS, scales = "free")
   
   # Seedings
   seedings <- map_df(tests, function(x) read_csv(str_c(data_basepath,"/", x$seeding_file)) %>% mutate(runid = x$runid, N = x$nnodes))
