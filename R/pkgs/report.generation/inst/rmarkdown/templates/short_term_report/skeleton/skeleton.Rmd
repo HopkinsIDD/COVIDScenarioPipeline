@@ -88,7 +88,7 @@ scn_levels<- config$report$formatting$scenario_labels_short
 death_rate_levels<-config$report$formatting$death_rate_levels
 death_rate_labels<-config$report$formatting$death_rate_labels
 
-npi_names- names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="value"))]) %>%
+npi_names<- names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="value"))]) %>%
   str_remove(npi_trimmer) %>%
   unique() # NOTE: this assumes all interventions have inference, if the projections for some geoids do NOT have inference, then you will need to modify the input to the Rt/effectiveness plots
 ```
@@ -311,15 +311,15 @@ fig_counter<-fig_counter+1
 #                                   bed_percentage = 1)  
 
 bed_capacity <- read_csv("data/DPH/tbl4_cha_ext_part.csv")%>%
-  mutate(date=as.Date(date, "%m/%d/%y"))
+  mutate(date=as.Date(date))
 
 bed_date <- (bed_capacity %>%
   filter(date==max(date))%>%
   distinct(date))$date %>%
-  lubridate::ymd()  
+  as.Date()
 
 bed_capacity<-bed_capacity%>%
-  filter(date>(proj_start-31)) %>%
+  filter(date>(projction_start-31)) %>%
   group_by(name=county, date) %>%
   summarize_if(is.numeric, sum, na.rm=TRUE) %>%
   group_by(name)%>%
