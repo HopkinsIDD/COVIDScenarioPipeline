@@ -383,7 +383,7 @@ if (!file.exists(outfile_hpar) | redo) {
     parallel::stopCluster(cl)
     
     # Compute errors
-    hpar_generation <- arrow::read_parquet("model_output/hpar/generate_000000000.generation.hpar.parquet")
+    hpar_generation <- read_csv(glue::glue("data/generated/generate_testInference_{test$runid}_hpar.csv"))
     
     hpar_errors <- errorParamStats(hpar_generation, hpars, param = "outcomes")
     
