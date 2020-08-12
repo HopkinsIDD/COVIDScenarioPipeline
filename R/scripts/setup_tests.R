@@ -457,6 +457,10 @@ for (test in tests) {
   chimeric_block_prefix <- glue::glue("generate_{test$setup}_")
   global_block_prefix <- chimeric_block_prefix
   first_hosp_file <- covidcommon::create_file_name(test$ref_data_runid,global_block_prefix,0,'hosp','parquet')
+  first_snpi_file <- covidcommon::create_file_name(test$ref_data_runid,chimeric_block_prefix,0,'snpi','parquet')
+  
+  arrow::read_parquet(first_snpi_file) %>% 
+    write_csv(path = glue::glue("data/generated/generate_testInference_{test$runid}_snpi.csv"))
   
   # Write data
   arrow::read_parquet(first_hosp_file) %>% 
