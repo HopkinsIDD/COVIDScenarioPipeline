@@ -13,7 +13,7 @@ params:
   state_usps: "[STATE USPS]"  #state USPS...must provided
   runs_dir: "model_output" # directory with model output (i.e. with subdirs: hosp, snpi, spar)
   pdeath_default: "high"
-  pdeath_label_default: "1% IFR"
+  pdeath_default_label: "1% IFR"
   projection_start: "YYYY/MM/DD" # Initial date of projetion, the system's date is used if none is specified 
   npi_label: "[NONE]"  # OPTIONAL: should match number of intervention categories (see npi_names). Example: ["Baseline", "School Lockdown", "Lockdown", "Post Lockdown"]
   npi_trimmer: "[[A-Z]].+\\_" #used by str_remove to group the same types of interventions when intervention periods vary by geoid (i.e. if there are affected geoids in config$interventions$settings). Ignore if intervention periods do not vary by geoid.
@@ -61,7 +61,7 @@ runs_dir<-params$runs_dir
 reportStateUSPS <- params$state_usps 
 npi_trimmer<-params$npi_trimmer
 npi_label<-ifelse(params$npi_label=="[NONE]", NA, params$npi_label)
-projection_start <- ifelse(params$projection_start=="YYYY/MM/DD", lubridate::ymd(Sys.Date()), lubridate::ymd(params$projection_start))
+projection_start <- ifelse(params$projection_start=="YYYY/MM/DD", Sys.Date(), params$projection_start)
 pdeath_default<-params$pdeath_default
 pdeath_default_label<-params$pdeath_default_label
 
@@ -91,7 +91,7 @@ incub_period <- 1/eval(parse(text=config$seir$parameters$sigma))
 infect_period <- c(1/(eval(parse(text=config$seir$parameters$gamma$high))),
                    1/(eval(parse(text=config$seir$parameters$gamma$low))))
 R0_range <- c(config$seir$parameters$R0s$low, config$seir$parameters$R0s$high)
-modeled_states <- state.name[which(state.abb %in% config$spatial_setup$modeled_states)]
+modeled_states <- state.abb[which(state.abb %in% config$spatial_setup$modeled_states)]
 
 display_dates<-config$report$formatting$display_dates
 scn_colors<-config$report$formatting$scenario_colors
@@ -100,7 +100,7 @@ scn_levels<- config$report$formatting$scenario_labels_short
 death_rate_levels<-config$report$formatting$death_rate_levels
 death_rate_labels<-config$report$formatting$death_rate_labels
 
-npi_names- names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="value"))]) %>%
+npi_names<- names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="value"))]) %>%
   str_remove(npi_trimmer) %>%
   unique() # NOTE: this assumes all interventions have inference, if the projections for some geoids do NOT have inference, then you will need to modify the input to the Rt/effectiveness plots
 ```
@@ -126,6 +126,16 @@ fig_counter <- 1
 tab_counter <- 1
 ```
 
+```{r hosp_geoid} 
+  
+res_state<- load_hosp_sims_filtered(runs_dir)
+
+res_state <- res_state%>%
+  left_join(geodata) %>%
+  mutate(name = factor(name, levels=sort(geodata$name, decreasing=TRUE)))
+
+```
+
 ```{r load_hosp_geocombined_totals}
 state_hosp_totals<-load_hosp_geocombined_totals(runs_dir) 
 ```
@@ -137,29 +147,26 @@ cum_inf_dates <- load_cum_inf_geounit_dates(outcome_dir=runs_dir,
                                             scenario_levels=scn_levels,
                                             scenario_labels=scn_labels,
                                             incl_geoids=included_geoids,
-                                            name_filter=pdeath_default)
+                                            pdeath_filter=pdeath_default)
 
 
 ```
 
 ```{r load_case_data}
 ## load case data 
-usaf_dat <- load_USAFacts_for_report(states = modeled_states) %>%
-  filter(FIPS %in% included_geoids) %>%
-  rename(date=Update, geoid=FIPS) %>%
-  filter(date<as.Date(projection_start)) %>%
-  left_join(geodata)
+usaf_dat <- load_USAFacts_for_report(states = modeled_states) 
 ```
 
 ```{r Rt, fig.cap=cap, fig.height=6, fig.width=10}
 
-plot_rt_ts(outcome_dir=runs_folder, 
+plot_rt_ts(outcome_dir=runs_dir, 
            truth_dat = usaf_dat, 
            scenario_colors=scn_colors, 
            scenario_labels=scn_labels,
            scenario_levels=scn_levels,
            start_date = sim_start_date,
-           end_date = sim_end_date)
+           end_date = sim_end_date,
+           included_geoids = included_geoids)
 
 cap<-paste0("**Fig. ", fig_counter, "** The effective reproduction number (Rt) and 95% intervals over time based on model outputs and cases as reported in USA Facts. The model Rt estimates reflect the population-adjusted average effectiveness of intervention periods and the decreasing pool of susceptibles from the cumulative number of infections across counties. We assume that infection provides complete immunity. Rt estimates for reported cases were calculated with the R0 package.")
 
@@ -171,40 +178,40 @@ fig_counter<-fig_counter+1
 p1<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
                                start_date=first(display_dates),
                                end_date=last(display_dates),
-                               deathRate=pdeath_default,
+                               pdeath_filter=pdeath_default,
                                scenario_labels=scn_labels,
                                scenario_levels=scn_levels,
-                               scenario_cols=scn_colors, 
+                               scenario_colors=scn_colors, 
                                pi_lo=0.05,
                                pi_hi=0.95)
 
 p2<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
                                start_date=display_dates[1],
                                end_date=display_dates[2],
-                               deathRate=pdeath_default,
+                               pdeath_filter=pdeath_default,
                                scenario_labels=scn_labels,
                                scenario_levels=scn_levels,
-                               scenario_cols=scn_colors, 
+                               scenario_colors=scn_colors, 
                                pi_lo=0.05,
                                pi_hi=0.95) 
 
 p3<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
                                start_date=display_dates[2],
                                end_date=display_dates[3],
-                               deathRate=pdeath_default,
+                               pdeath_filter=pdeath_default,
                                scenario_labels=scn_labels,
                                scenario_levels=scn_levels,
-                               scenario_cols=scn_colors, 
+                               scenario_colors=scn_colors, 
                                pi_lo=0.05,
                                pi_hi=0.95) 
 
 p4<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
                                start_date=display_dates[3],
                                end_date=display_dates[4],
-                               deathRate=pdeath_default,
+                               pdeath_filter=pdeath_default,
                                scenario_labels=scn_labels,
                                scenario_levels=scn_levels,
-                               scenario_cols=scn_colors, 
+                               scenario_colors=scn_colors, 
                                pi_lo=0.05,
                                pi_hi=0.95)
 
@@ -214,9 +221,9 @@ p1<-p1+theme(legend.position="none",
                 axis.text.y=element_text(color="black", size=20),
                 axis.text.x=element_text(color="black", size=16),
                 plot.subtitle = element_text(size=18,face="bold"))+
-    labs(subtitle=paste0(format(first(display_dates), "%B %d"), 
+    labs(subtitle=paste0(format(first(as.Date(display_dates)), "%B %d"), 
                          "-",
-                         format(last(display_dates), "%B %d")))
+                         format(last(as.Date(display_dates)), "%B %d")))
 
 p2<-p2+theme(legend.position="none",
                 axis.text.y=element_blank(),
@@ -226,9 +233,9 @@ p2<-p2+theme(legend.position="none",
                 axis.title.x=element_blank(),
                 plot.subtitle = element_text(size=18,
                                              face="bold"))+
-    labs(subtitle=paste0(format(display_dates[1], "%B %d"), 
+    labs(subtitle=paste0(format(as.Date(display_dates)[1], "%B %d"), 
                          "-",
-                         format(display_dates[2], "%B %d")))
+                         format(as.Date(display_dates)[2], "%B %d")))
 
 p3<-p3+theme(legend.position="none",
                 axis.text.y=element_blank(),
@@ -238,9 +245,9 @@ p3<-p3+theme(legend.position="none",
                 axis.text.x=element_text(color="black", size=16),
                 plot.subtitle = element_text(size=16,
                                              face="bold"))+
-    labs(subtitle=paste0(format(display_dates[2], "%B %d"), 
+    labs(subtitle=paste0(format(as.Date(display_dates)[2], "%B %d"), 
                          "-",
-                         format(display_dates[3], "%B %d")))
+                         format(as.Date(display_dates)[3], "%B %d")))
 
 p4<-p4+theme(legend.position="none",
                 axis.text.y=element_blank(),
@@ -250,9 +257,9 @@ p4<-p4+theme(legend.position="none",
                 axis.text.x=element_text(color="black", size=16),
                 plot.subtitle = element_text(size=18,
                                              face="bold"))+
-    labs(subtitle=paste0(format(display_dates[3], "%B %d"), 
+    labs(subtitle=paste0(format(as.Date(display_dates)[3], "%B %d"), 
                          "-",
-                         format(display_dates[4], "%B %d")))
+                         format(as.Date(display_dates)[4], "%B %d")))
 
 plot_time<-ggarrange(plots=list(p1, p2, p3, p4),
                      nrow=1,
@@ -277,13 +284,15 @@ plot_ts_hosp_state_sample(state_hosp_totals,
                           num_sims = nfiles2,
                           varname = "NhospCurr",
                           varlabel = "Daily hospital occupancy",
+                          scenario_levels = scn_levels,
                           scenario_labels = scn_labels,
-                          scenario_cols = scn_colors,
+                          scenario_colors = scn_colors,
                           sim_start_date = sim_start_date,
                           sim_end_date = sim_end_date,
-                          pdeath_level = pdeath_default)
+                          pdeath_level = pdeath_default) +
+  facet_wrap(~scenario_name)
 
-cap <- paste0("**Fig. ", fig_counter, "**: Daily hospital occupancy for ", nfiles2, " simulation realizations at ",pdeath_default_label," assumptions.")
+cap <- paste0("**Fig. ", fig_counter, "**: Daily hospital occupancy for ", nfiles2, " simulation realizations at ",pdeath_default_label," assumptions.") 
 
 fig_counter <- fig_counter+1
 
@@ -300,7 +309,9 @@ fig_counter <- fig_counter+1
 
 ```{r scn_time_sum}
 make_scn_time_summary_table_withVent(state_hosp_totals %>% dplyr::filter(pdeath==pdeath_default), 
-                                     display_dates,
+                                     period_breaks=display_dates,
+                                     scenario_levels=scn_levels,
+                                     scenario_labels=scn_labels,
                                      pi_low = 0.025,
                                      pi_high = 0.975,
                                      round_digit = -1)
@@ -320,7 +331,7 @@ for (i in 1:length(display_dates)) {
                                                var_name = "NincidHosp",
                                                scenario_levels = scn_levels,
                                                scenario_labels =  scn_labels,
-                                               scenario_cols =  c(scn_colors, "dodgerblue3"),
+                                               scenario_colors =  c(scn_colors, "dodgerblue3"),
                                                sim_start_date = sim_start_date,
                                                summary_date = display_dates[i],
                                                pdeath_level = pdeath_default)
@@ -367,7 +378,7 @@ fig_counter <- fig_counter+1
 #                                                                 variable = "NICUCurr",
 #                                                                 end_date = sim_end_date,
 #                                                                 incl_geoids = included_geoids,
-#                                                                 name_filter=pdeath_default)
+#                                                                 pdeath_filter=pdeath_default)
 # 
 # 
 # hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(county_dat=res_state,
@@ -376,7 +387,17 @@ fig_counter <- fig_counter+1
 #                                                                  scenario_levels=scn_levels,
 #                                                                  scenario_labels =scn_labels,
 #                                                                  end_date = sim_end_date,
-#                                                                  name_filter=pdeath_default)
+#                                                                  pdeath_filter=pdeath_default)
+```
+
+```{r threshold}
+thresholddat<-load_hosp_geounit_threshold(threshold=beddata_icu, 
+                                          variable="NICUCurr", 
+                                          end_date=sim_end_date,
+                                          pdeath_filter=pdeath_default, 
+                                          incl_geoids=included_geoids, 
+                                          outcome_dir=runs_dir)
+
 ```
 
 ```{r plot_hosp_threshold_comp, fig.cap = cap, fig.height = 9}
@@ -433,28 +454,28 @@ tab_counter <- tab_counter+1
 
 ```{r ARmaps1, fig.cap = cap}
 ARmap1 <- plot_geounit_attack_rate_map(cum_inf_dates,
-                                      geodata,
-                                      shp,
-                                      scenariolabel = scn_labels[1],
-                                      display_date = display_dates[1],
-                                      viridis_palette = "plasma",
-                                      popnodes = config$spatial_setup$popnodes)
+                                       geodata,
+                                       shp,
+                                       scenariolabel = scn_labels[1],
+                                       display_date = display_dates[1],
+                                       viridis_palette = "plasma",
+                                       popnodes = config$spatial_setup$popnodes)
 
 ARmap2 <- plot_geounit_attack_rate_map(cum_inf_dates,
-                            geodata,
-                            shp,
-                            scenariolabel = scn_labels[1],
-                            display_date = display_dates[2],
-                            viridis_palette = "viridis",
-                            popnodes = config$spatial_setup$popnodes)
+                                       geodata,
+                                       shp,
+                                       scenariolabel = scn_labels[1],
+                                       display_date = display_dates[2],
+                                       viridis_palette = "viridis",
+                                       popnodes = config$spatial_setup$popnodes)
 
 ARmap3 <- plot_geounit_attack_rate_map(cum_inf_dates,
-                            geodata,
-                            shp,
-                            scenariolabel = scn_labels[1],
-                            display_date = display_dates[3],
-                            viridis_palette = "cividis",
-                            popnodes = config$spatial_setup$popnodes)
+                                       geodata,
+                                       shp,
+                                       scenariolabel = scn_labels[1],
+                                       display_date = display_dates[3],
+                                       viridis_palette = "cividis",
+                                       popnodes = config$spatial_setup$popnodes)
 
 cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3)
 
@@ -465,23 +486,25 @@ fig_counter <- fig_counter+1
 
 [UNCOMMENT THIS IF THE BEDDATA EXISTS]
 ```{r plot_threshold1, fig.cap = cap, fig.height = 7}
+
+# bedtype="ICU"
+
 # plot_event_time_by_geoid( 
-#    hosp_county_peaks = thresholddat, 
-#    shapefile = shp %>% mutate(name=as.character(name)), 
+#    hosp_county_peaks = thresholddat %>% filter(scenario==scn_levels[1]), 
+#    shapefile = shp %>% mutate(name=as.character(name)),
+#    scenario_levels = scn_levels[1], 
 #    scenario_labels = scn_labels[1], 
 #    scenario_colors = scn_colors[1], 
 #    time_caption = paste("Time when", bedtype, "occupancy exceeds", bedtype, "bed capacity"), 
 #    geoid_caption = "County",
 #    value_name = "threshold_value", 
-#    value_label = bedtype_label, 
+#    value_label = "available ICU bed capacity", 
 #    start_date = sim_start_date, 
 #    end_date = sim_end_date
 # )  
-# cap <- paste("**Fig.", fig_counter, "** Time when COVID-19", bedtype, "occupancy exceeds in-county", bedtype, "bed capacity for", config$report$formatting$scenario_labels[1], "scenario at 1% IFR assumptions. We assume that occupancy is", occup_assum*100, "% over time for non-COVID patients. Points indicate the median and lines indicate the interquartile range of model estimates. Counties which never exceed capacity will have no estimate plotted.") 
+# cap <- paste("**Fig.", fig_counter, "** Time when COVID-19", bedtype, "occupancy exceeds in-county", bedtype, "bed capacity for", config$report$formatting$scenario_labels[1], "scenario at ",pdeath_default_label," assumptions. We assume that occupancy is", occup_assum*100, "% over time for non-COVID patients. Points indicate the median and lines indicate the interquartile range of model estimates. Counties which never exceed capacity will have no estimate plotted.") 
 # fig_counter <- fig_counter+1 
 ```
-
-
 
 ## Appendix 1: Methods
 
