@@ -193,5 +193,5 @@ def test_create_seeding_nonUS():
     _success_create_seeding_nonUS("test_create_seeding_nonUS")
 
 def test_simple_x2():
-    _success_x2("test_simple")
+    _success_x2("test_simple_x2")
     
