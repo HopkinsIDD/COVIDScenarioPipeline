@@ -135,7 +135,6 @@ def _success_x2(test_dir):
     assert_dir("hospitalization")
 
     # Make clean
-    os.chdir(test_dir)
     subprocess.run(["make", "clean"])
 
     # Run the Makefile a second time
@@ -148,7 +147,6 @@ def _success_x2(test_dir):
     assert_dir("hospitalization")
 
     # Make clean again
-    os.chdir(test_dir)
     subprocess.run(["make", "clean"])
 
 
