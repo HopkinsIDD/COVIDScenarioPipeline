@@ -109,6 +109,48 @@ def _success_create_seeding_nonUS(test_dir):
 
     assert_file("data/seeding.csv")
 
+# Test runs 2x in a row
+def _success_x2(test_dir):
+    os.chdir(test_dir)
+    subprocess.run(["make", "clean"])
+
+    # Make Makefile
+    cmd = ["Rscript", "../../R/scripts/make_makefile.R",
+            "-c", "config.yml",
+            "-p", "../..",
+            "-n", str(multiprocessing.cpu_count()),
+            "-y", sys.executable]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"make_makefile.R failed with code {complete.returncode}"
+
+    assert_file("Makefile")
+
+    # Run the Makefile
+    cmd = ["make"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"make failed with code {complete.returncode}"
+
+    assert_dir("model_parameters")
+    assert_dir("model_output")
+    assert_dir("hospitalization")
+
+    # Make clean
+    os.chdir(test_dir)
+    subprocess.run(["make", "clean"])
+
+    # Run the Makefile a second time
+    cmd = ["make"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"make failed with code {complete.returncode}"
+
+    assert_dir("model_parameters")
+    assert_dir("model_output")
+    assert_dir("hospitalization")
+
+    # Make clean again
+    os.chdir(test_dir)
+    subprocess.run(["make", "clean"])
+
 
 
 # Test definitions
@@ -150,3 +192,6 @@ def test_create_seeding_US():
 def test_create_seeding_nonUS():
     _success_create_seeding_nonUS("test_create_seeding_nonUS")
 
+def test_simple_x2():
+    _success_x2("test_simple")
+    
