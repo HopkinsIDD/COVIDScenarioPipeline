@@ -26,6 +26,8 @@ class SpatialSetup:
         if popnodes_key not in self.data:
             raise ValueError(f"popnodes_key: {popnodes_key} does not correspond to a column in geodata.");
         self.popnodes = self.data[popnodes_key].to_numpy() # population
+        if len(np.argwhere(self.popnodes == 0)):
+            raise ValueError(f"There are {len(np.argwhere(self.popnodes == 0))} nodes with population zero, this is not supported.")
 
         # nodenames_key is the name of the column in geodata_file with geoids
         if nodenames_key not in self.data:
@@ -62,6 +64,15 @@ class SpatialSetup:
             for r,c,v in zip(rows, cols, values):
                 errmsg += f"\n({r}, {c}) = {self.mobility[r,c]} > population of '{self.nodenames[r]}' = {self.popnodes[r]}"
             raise ValueError(f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}")
+        
+        tmp = self.popnodes - np.squeeze(np.asarray(self.mobility.sum(axis=1)))
+        tmp[tmp > 0] = 0
+        if tmp.any():
+            row, = np.where(tmp)
+            errmsg = ""
+            for r in row:
+                errmsg += f"\n sum accross row {r} exceed population of node '{self.nodenames[r]}' ({self.popnodes[r]}), by {-tmp[r]}"
+            raise ValueError(f'The following rows in the mobility data exceed the source node populations in geodata:{errmsg}')
 
 
 class Setup:
