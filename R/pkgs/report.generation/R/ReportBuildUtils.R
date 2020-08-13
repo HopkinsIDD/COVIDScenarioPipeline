@@ -412,55 +412,41 @@ plot_geounit_map <- function(cum_inf_geounit_dates,
 ##' @export
 ##'
 make_scn_state_table_withVent <- function(current_scenario,
-                                 hosp_state_totals,
-                                 table_dates,
-                                 scenario_levels, 
-                                 scenario_labels,
-                                 pdeath_labels = c("1% IFR", "0.5% IFR", "0.25% IFR"),
-                                 pdeath_levels = c("high", "med", "low")){
+                                          hosp_state_totals,
+                                          table_dates,
+                                          pdeath_labels = c("1% IFR", "0.5% IFR", "0.25% IFR"),
+                                          pdeath_levels = c("high", "med", "low")){
   
   ci_lo = 0.025
   ci_hi = 0.975
   
-  if (length(pdeath_levels)==1) {
-    stop("Currently does not support single values of pdeath")
+  table_dates<-c(min(hosp_state_totals$time), as.Date(table_dates))
+  
+  table_names<-""
+  for(i in 2:length(table_dates)){
+    table_names[i-1]<-paste0(format(table_dates[i-1], "%B %d"), "-", format(table_dates[i], "%B %d"),"\n Mean (95% PI)")
   }
   
-  tmp <- data.frame(name=c("INFECTIONS",
-                           "HOSPITALIZATIONS\n  total", "", "",
-                           "  daily peak admissions", "", "",
-                           "  daily peak capacity", "", "",
-                           "ICU \n  total", "", "",
-                           "  daily peak admissions", "", "",
-                           "  daily peak capacity", "", "",
-                           "VENTILATIONS \n total", "", "",
-                           "   daily peak incident ventilations", "", "",
-                           "   daily peak currently ventilated", "", "",
-                           "DEATHS\n  total", "", ""))
-  tmp$name <- as.character(tmp$name)
-  table_dates <- as.Date(table_dates)
-  
-  for(i in 1:length(table_dates)){
+  for(i in 2:length(table_dates)){
     xx <- hosp_state_totals %>%
       dplyr::filter(!is.na(time) & scenario==current_scenario) %>%
-      dplyr::filter(time <= table_dates[i]) %>%
-      dplyr::mutate(scenario_name=factor(scenario, levels=scenario_levels, labels=scenario_labels))%>%
-      dplyr::group_by(scenario_name, pdeath, sim_num) %>%
-      dplyr::summarize(
-        TotalIncidInf = sum(NincidInf, na.rm = TRUE),
-        TotalIncidHosp = sum(NincidHosp, na.rm = TRUE),
-        TotalIncidICU = sum(NincidICU, na.rm = TRUE),
-        TotalIncidVent = sum(NincidVent, na.rm=TRUE),
-        TotalIncidDeath = sum(NincidDeath, na.rm = TRUE),
-        maxHospAdm = max(NincidHosp, na.rm=TRUE),
-        maxICUAdm = max(NincidICU, na.rm=TRUE),
-        maxVentAdm = max(NincidVent, na.rm=TRUE),
-        maxHospCap = max(NhospCurr, na.rm = TRUE),
-        maxICUCap = max(NICUCurr, na.rm=TRUE),
-        maxVentCap = max(NVentCurr, na.rm=TRUE)
+      dplyr::filter(time <= table_dates[i],
+                    time >= table_dates[i-1]) %>%
+      dplyr::group_by(pdeath, sim_num) %>%
+      dplyr::summarize(TotalIncidInf = sum(NincidInf, na.rm = TRUE),
+                       TotalIncidHosp = sum(NincidHosp, na.rm = TRUE),
+                       TotalIncidICU = sum(NincidICU, na.rm = TRUE),
+                       TotalIncidVent = sum(NincidVent, na.rm=TRUE),
+                       TotalIncidDeath = sum(NincidDeath, na.rm = TRUE),
+                       maxHospAdm = max(NincidHosp, na.rm=TRUE),
+                       maxICUAdm = max(NincidICU, na.rm=TRUE),
+                       maxVentAdm = max(NincidVent, na.rm=TRUE),
+                       maxHospCap = max(NhospCurr, na.rm = TRUE),
+                       maxICUCap = max(NICUCurr, na.rm=TRUE),
+                       maxVentCap = max(NVentCurr, na.rm=TRUE)
       ) %>%
       dplyr::ungroup() %>%
-      dplyr::group_by(scenario_name, pdeath) %>%
+      dplyr::group_by(pdeath) %>%
       dplyr::summarize(
         nIncidInf_final = mean(TotalIncidInf),
         nIncidInf_lo = quantile(TotalIncidInf, ci_lo),
@@ -499,84 +485,53 @@ make_scn_state_table_withVent <- function(current_scenario,
       dplyr::mutate(pdeath = pdeath_labels[match(pdeath, pdeath_levels)])
     
     
-    tmp <- bind_cols(tmp,
-                     xx %>% 
-                       dplyr::filter(pdeath==pdeath_labels[1]) %>%
-                       dplyr::mutate(ci = make_CI(nIncidInf_lo, nIncidInf_hi),
-                              est = conv_round(nIncidInf_final),
-                              lvl = paste0("total inc infections"),
-                              pdeath = "") %>% ## infections have no pdeath
-                       dplyr::select(lvl, est, ci, pdeath) %>%
-                       dplyr::bind_rows(xx %>%
-                                   dplyr::mutate(ci = make_CI(nIncidHosp_lo, nIncidHosp_hi),
-                                          est = conv_round(nIncidHosp_final),
-                                          lvl = paste0("total inc hosp", pdeath)) %>%
-                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
-                       dplyr::bind_rows(xx %>%
-                                   dplyr::mutate(ci = make_CI(pIncidHosp_lo, pIncidHosp_hi),
-                                          est = conv_round(pIncidHosp_final),
-                                          lvl = paste0("peak inc hosp", pdeath)) %>%
-                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
-                       dplyr::bind_rows(xx %>%
-                                   dplyr::mutate(ci = make_CI(nCurrHosp_lo, nCurrHosp_hi),
-                                          est = conv_round(nCurrHosp_final),
-                                          lvl = paste0("peak hosp cap", pdeath)) %>%
-                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
-                       dplyr::bind_rows(xx %>%
-                                   dplyr::mutate(ci = make_CI(nIncidICU_lo, nIncidICU_hi),
-                                          est = conv_round(nIncidICU_final),
-                                          lvl = paste0("total inc ICU", pdeath)) %>%
-                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
-                       dplyr::bind_rows(xx %>%
-                                   mutate(ci = make_CI(pIncidICU_lo, pIncidICU_hi),
-                                          est = conv_round(pIncidICU_final),
-                                          lvl = paste0("peak inc ICU", pdeath)) %>%
-                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
-                       dplyr::bind_rows(xx %>%
-                                   dplyr::mutate(ci = make_CI(nCurrICU_lo, nCurrICU_hi),
-                                          est = conv_round(nCurrICU_final),
-                                          lvl = paste0("peak ICU cap", pdeath)) %>%
-                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
-                       dplyr::bind_rows(xx %>%
-                                   dplyr::mutate(ci = make_CI(nIncidVent_lo, nIncidVent_hi),
-                                                  est = conv_round(nIncidVent_final),
-                                                  lvl = paste0("total inc Vent", pdeath)) %>%
-                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
-                       dplyr::bind_rows(xx %>%
-                                   dplyr::mutate(ci = make_CI(pIncidVent_lo, pIncidVent_hi),
-                                                  est = conv_round(pIncidVent_final),
-                                                  lvl = paste0("peak inc Vent", pdeath)) %>%
-                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
-                       dplyr::bind_rows(xx %>%
-                                   dplyr::mutate(ci = make_CI(nCurrVent_lo, nCurrVent_hi),
-                                                  est = conv_round(nCurrVent_final),
-                                                  lvl = paste0("peak Vent cap", pdeath)) %>%
-                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath)) %>%
-                       dplyr::bind_rows(xx %>%
-                                   dplyr::mutate(ci = make_CI(nIncidDeath_lo, nIncidDeath_hi),
-                                                  est = conv_round(nIncidDeath_final),
-                                                  lvl = paste0("total inc death", pdeath)) %>%
-                                   dplyr::select(lvl, est, ci, pdeath) %>% arrange(pdeath))
-    )
+    xx<-pivot_longer(xx, cols = nIncidInf_final:nCurrVent_hi) %>% 
+      mutate(Outcome = case_when(str_detect(name, "nIncidInf")~"Total infections",
+                                 str_detect(name, "nIncidHosp")~"Total hospital admissions",
+                                 str_detect(name, "pIncidHosp")~"Peak daily hospital admissions",
+                                 str_detect(name, "nCurrHosp")~"Maximum daily hospital occupancy",
+                                 str_detect(name, "nIncidICU")~"Total ICU admissions",
+                                 str_detect(name, "pIncidICU")~"Peak daily ICU admissions",
+                                 str_detect(name, "nCurrICU")~"Maximum daily ICU occupancy",
+                                 str_detect(name, "nIncidVent")~"Total Ventilators",
+                                 str_detect(name, "pIncidVent")~"Peak daily ventilator usage",
+                                 str_detect(name, "nCurrVent")~"Maximum daily ventilator usage",
+                                 str_detect(name, "nIncidDeath")~"Total deaths"), 
+             name = case_when(str_detect(name, "final")~"est", 
+                              str_detect(name, "lo")~"lo",
+                              str_detect(name, "hi")~"hi")) %>%
+      pivot_wider(names_from="name", values_from="value") %>%
+      mutate(ci = make_CI(lo, hi),
+             est = prettyNum(conv_round(est), big.mark=",")) %>%
+      dplyr::select(Outcome, pdeath, est, ci) %>%
+      unite("est", est:ci, sep = "\n")
+    
+    xx <- xx %>%
+      add_row(.before = 1) %>%
+      mutate(est = if_else(is.na(est), table_names[i-1], est))
+    
+    if(i==2){
+      tmp<-xx
+    } else{
+      tmp <- xx %>%
+        dplyr::select(est) %>%
+        bind_cols(tmp, .)
+    }
   }
   
+  tmp[1,1] <- "Outcome"
+  tmp[1,2] <- "IFR"
   
-  tlabels <- c(" ", "IFR")
-  nlabels <- c("name", "pdeath", "est", "ci")
-  
-  for(i in 1:length(table_dates)){
-    tlabels <- c(tlabels,
-                 paste0(print_pretty_date_short(table_dates[i]), "\nmean    "),
-                 "\n    95% PI")
-    if(i>1){nlabels <- c(nlabels, paste0("est", i-1), paste0("ci", i-1))}
-  }
-  names(tlabels) <- nlabels
-  
-  flextable::flextable(tmp[,nlabels]) %>%
-    flextable::set_header_labels(values=tlabels) %>%
+  flextable::flextable(tmp[-1,]) %>%
+    flextable::set_header_labels(values=tmp[1,]) %>%
     flextable::valign(valign="bottom") %>%
     flextable::colformat_num(digits=0) %>%
-    flextable::autofit()
+    flextable::autofit() %>%
+    flextable::bold(part="header") %>%
+    flextable::bold(j=1, part="body") %>%
+    flextable::align(align="center", part="header") %>%
+    flextable::align(align="center", part="body") %>%
+    flextable::align(align="right", part="body", j=1)
   
 }
 
