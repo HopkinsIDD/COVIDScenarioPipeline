@@ -20,6 +20,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
                                     post_process=NULL,
                                     ...
 ) {
+  if(!is.null(post_process) & class(post_process)!="function"){stop("Post_process must be a function or NULL")}
   
   require(tidyverse)
   
@@ -96,18 +97,17 @@ load_hpar_sims_filtered <- function(outcome_dir,
   rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                           partitioning = partitions) %>%
     dplyr::filter(is_final=="final",
-           lik_type=="global") %>%
+                  lik_type=="global") %>%
     dplyr::filter(pdeath %in% pdeath_filter) %>%
     pre_process(...) %>%
     dplyr::collect() 
   
   rc<-rc%>%
-    dplyr::mutate(time=as.Date(time)) %>%
     dplyr::group_by(pdeath, scenario, geoid, location) %>%
     dplyr::distinct(sim_id)%>%
     dplyr::mutate(sim_num=seq_along(sim_id)) %>%
     dplyr::right_join(rc) %>%
-    dplyr::ungroup()
+    dplyr::ungroup() 
   
   warning("Finished loading")
   return(rc)

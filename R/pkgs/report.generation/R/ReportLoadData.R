@@ -213,6 +213,64 @@ load_hosp_geocombined_totals <- function(outcome_dir,
   
 }
 
+##'
+##' Convenience function to allow us to load hospital totals for the combined geounits quickly for
+##' the given scenarios.
+##' 
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param scenario_levels used to create scenario_name for future plotting
+##' @param scenario_labels used to create scenario_name for future plotting
+##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param pre_process function that does processing before collection
+##' 
+##' @return a combined data frame of all hospital simulations with filters applied pre merge.
+##' 
+##'
+##'
+##'@export
+load_hosp_totals <- function(outcome_dir,
+                             scenario_levels, 
+                             scenario_labels,
+                             pdeath_filter=c("high", "med", "low"),
+                             pre_process=function(x) {x},
+                             ...
+) {
+  
+  require(tidyverse)
+  
+  hosp_post_process <- function(x) {
+    x %>%
+      dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
+      dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
+      dplyr::mutate(cum_death=cumsum(incidD)) %>%
+      dplyr::mutate(cum_case=cumsum(incidC)) %>%
+      dplyr::mutate(cum_inf=cumsum(incidI)) %>%
+      dplyr::rename(NhospCurr=hosp_curr,
+                    NICUCurr=icu_curr,
+                    NincidDeath=incidD,
+                    NincidInf=incidI,
+                    NincidCase=incidC,
+                    NincidICU=incidICU,
+                    NincidHosp=incidH,
+                    NincidVent=incidVent,
+                    NVentCurr=vent_curr) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(scenario_name = factor(scenario,
+                                           levels = scenario_levels, 
+                                           labels = scenario_labels))
+  }
+  
+  rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
+                               pdeath_filter=pdeath_filter,
+                               pre_process=pre_process,
+                               post_process=hosp_post_process)
+  
+  warning("Finished loading")
+  return(rc)
+  
+}
+
+
 ##' Convenience function to load the slice for each geoid where the value of an outcome exceeds a given threshold
 ##'
 ##' @param threshold A named numeric vector.  This function will pull the first time slice that meets or exceeds all thresholds
