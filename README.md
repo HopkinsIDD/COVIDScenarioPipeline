@@ -24,12 +24,12 @@ Curriculum](https://docker-curriculum.com/) is a good starting point.
 
 A pre-built container can be pulled from Docker Hub via:
 ```
-docker pull hopkinsidd/covidscenariopipeline:dev
+docker pull hopkinsidd/covidscenariopipeline:latest
 ```
 
 To start the container:
 ```
-docker run -v ~/mysrcdir:/home/app/src -it hopkinsidd/covidscenariopipeline:dev
+docker run -v ~/mysrcdir:/home/app/src -it hopkinsidd/covidscenariopipeline:latest
 ```
 
 replacing `mysrcdir` with the path where the code is mounted on your machine. This code will then 
