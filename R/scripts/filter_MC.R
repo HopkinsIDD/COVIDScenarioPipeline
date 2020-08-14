@@ -138,6 +138,7 @@ reticulate::py_run_string(paste0("run_id = '", opt$run_id, "'"))
 reticulate::import_from_path("SEIR", path=opt$pipepath)
 reticulate::import_from_path("Outcomes", path=opt$pipepath)
 reticulate::py_run_string(paste0("index = ", 1))
+reticulate::py_run_string(paste0("stoch_traj_flag = ", 1))
 
 for(scenario in scenarios) {
 

@@ -429,6 +429,7 @@ for (test in tests) {
   reticulate::import_from_path("Outcomes", path=opt$pipepath)
   reticulate::py_run_string(paste0("index = ", 1))
   reticulate::py_run_string(paste0("scenario = '", "test", "'"))
+  reticulate::py_run_string(paste0("stoch_traj_flag = ", 1))
   ## pass prefix to python and use
   reticulate::py_run_string(paste0("deathrate = '", "med", "'"))
   reticulate::py_run_string(paste0("prefix = '", global_block_prefix, "'"))
