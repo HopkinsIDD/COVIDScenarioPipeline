@@ -414,7 +414,7 @@ plot_geounit_map <- function(cum_inf_geounit_dates,
 make_scn_state_table_withVent <- function(current_scenario,
                                           hosp_state_totals,
                                           table_dates,
-                                          pdeath_labels = c("1% IFR", "0.5% IFR", "0.25% IFR"),
+                                          pdeath_labels = c("1%", "0.5%", "0.25%"),
                                           pdeath_levels = c("high", "med", "low")){
   
   ci_lo = 0.025
@@ -522,16 +522,33 @@ make_scn_state_table_withVent <- function(current_scenario,
   tmp[1,1] <- "Outcome"
   tmp[1,2] <- "IFR"
   
-  flextable::flextable(tmp[-1,]) %>%
-    flextable::set_header_labels(values=tmp[1,]) %>%
-    flextable::valign(valign="bottom") %>%
-    flextable::colformat_num(digits=0) %>%
-    flextable::autofit() %>%
-    flextable::bold(part="header") %>%
-    flextable::bold(j=1, part="body") %>%
-    flextable::align(align="center", part="header") %>%
-    flextable::align(align="center", part="body") %>%
-    flextable::align(align="right", part="body", j=1)
+  if(unique(hosp_state_totals$pdeath)==1){
+    
+    tmp<-tmp%>%
+      select(-pdeath)
+    
+    flextable::flextable(tmp[-1,]) %>%
+      flextable::set_header_labels(values=tmp[1,]) %>%
+      flextable::colformat_num(digits=0) %>%
+      flextable::autofit() %>%
+      flextable::bold(part="header") %>%
+      flextable::bold(j=1, part="body") %>%
+      flextable::align(align="center", part="header") %>%
+      flextable::align(align="center", part="body") %>%
+      flextable::align(align="right", part="body", j=1)
+  } else{
+    flextable::flextable(tmp[-1,]) %>%
+      flextable::set_header_labels(values=tmp[1,]) %>%
+      flextable::colformat_num(digits=0) %>%
+      flextable::autofit() %>%
+      flextable::bold(part="header") %>%
+      flextable::bold(j=1, part="body") %>%
+      flextable::align(align="center", part="header") %>%
+      flextable::align(align="center", part="body") %>%
+      flextable::align(align="right", part="body", j=1) %>%
+      flextable::merge_v(j=1, part="body")
+      
+  }
   
 }
 
