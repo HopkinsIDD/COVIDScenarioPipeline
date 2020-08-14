@@ -79,7 +79,6 @@ from Outcomes import outcomes
 @click.option("--in-prefix", "--in-prefix", "in_prefix", envvar="COVID_PREFIX", type = str, default=None, show_default=True, help= "unique identifier for the run")
 
 def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenarios_outcomes, nsim, jobs,index):
-    print("HERE")
     config.set_file(config_file)
     if not scenarios_outcomes:
         scenarios_outcomes = config["outcomes"]["scenarios"].as_str_seq()
@@ -106,13 +105,17 @@ def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenario
 >> writing to folder : {outdir}
     """)
         if (config["outcomes"]["method"].get() == 'delayframe'):
+            param_place_file = None
+            if config["outcomes"]["param_from_file"].get():
+                param_place_file = config["outcomes"]["param_place_file"].get()
+
             outcomes.run_delayframe_outcomes(config, 
                         in_run_id,
                         in_prefix,
                         out_run_id,
                         out_prefix,
                         scenario_outcomes,
-                        config["outcomes"]["param_place_file"],
+                        param_place_file,
                         nsim, 
                         index,
                         jobs)
