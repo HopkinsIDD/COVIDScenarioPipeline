@@ -17,11 +17,10 @@ load_hosp_sims_filtered <- function(outcome_dir,
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_id"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
-                                    post_process=NULL,
+                                    post_process=function(x) {x},
                                     ...
 ) {
-  if(!is.null(post_process) & class(post_process)!="function"){stop("Post_process must be a function or NULL")}
-  
+
   require(tidyverse)
   
   rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
@@ -33,37 +32,15 @@ load_hosp_sims_filtered <- function(outcome_dir,
     dplyr::collect() 
   
   rc <- rc %>%
-    dplyr::mutate(time=as.Date(time))
-  
-  rc<-rc%>%
     dplyr::group_by(pdeath, scenario, geoid, location) %>%
     dplyr::distinct(sim_id)%>%
     dplyr::mutate(sim_num=seq_along(sim_id)) %>%
     dplyr::ungroup() %>%
-    dplyr::right_join(rc)
-    
-  if(is.null(post_process)){
-  rc<-rc %>%
-    dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
-    dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
-    dplyr::mutate(cum_death=cumsum(incidD)) %>%
-    dplyr::mutate(cum_case=cumsum(incidC)) %>%
-    dplyr::mutate(cum_inf=cumsum(incidI)) %>%
-    dplyr::rename(NhospCurr=hosp_curr,
-                  NICUCurr=icu_curr,
-                  NincidDeath=incidD,
-                  NincidInf=incidI,
-                  NincidCase=incidC,
-                  NincidICU=incidICU,
-                  NincidHosp=incidH,
-                  NincidVent=incidVent,
-                  NVentCurr=vent_curr) %>%
-    dplyr::ungroup()
+    dplyr::right_join(rc) %>%
+    dplyr::mutate(time=as.Date(time))
   
-  } else {
-    rc <- rc %>%
-      post_process(...)
-  }
+  rc <- rc %>%
+      post_process(...) 
   
   warning("Finished loading")
   return(rc)
@@ -181,7 +158,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
     dplyr::collect() %>%
     dplyr::group_by(geoid, npi_name, scenario)%>%
     dplyr::mutate(sim_num = order(sim_id)) %>%
-    dplyr::select(-date, -lik_type, -is_final, -sim_id) %>%
+    dplyr::select(-date, -lik_type, -is_final) %>%
     dplyr::ungroup()
   
   warning("Finished loading")

@@ -93,9 +93,7 @@ make_CI <- function(lo, hi){
 ##' @param varname character string of variable name to plot from hosp data
 ##' @param varlabel character string of varialbe name label for plot
 ##' @param num_sims the number of simulations to show
-##' @param pdeath_level level of IFR for filtering hospitalization data - TODO: Move our of functions
-##' @param scenario_levels order of scenario names 
-##' @param scenario_labels names of the scenarios to include- TODO: give a default
+##' @param pdeath_filter level of IFR for filtering hospitalization data - TODO: Move our of functions
 ##' @param scenario_colors colors to plot each scenario in  - TODO: give a default
 ##' @param sim_start_date simulation start date as character string "2020-01-01"
 ##' @param sim_end_date simulation end date as character string
@@ -111,9 +109,7 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
                                        varname = "NhospCurr",
                                        varlabel = "Daily hospital occupancy",
                                        num_sims = 15,
-                                       pdeath_level = "high",
-                                       scenario_levels,
-                                       scenario_labels = config$report$formatting$scenario_labels,
+                                       pdeath_filter = pdeath_default,
                                        scenario_colors = config$report$formatting$scenario_colors,
                                        sim_start_date,
                                        sim_end_date,
@@ -127,12 +123,9 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
                          replace=FALSE) 
   
   to_plt <- hosp_state_totals %>%
-    dplyr::filter(pdeath==pdeath_level,
+    dplyr::filter(pdeath==pdeath_filter,
                   sim_num %in% sampled_sims) %>%
-    dplyr::mutate(scenario_name = factor(scenario,
-                                         levels = scenario_levels,
-                                         labels = scenario_labels),
-                  sim_num = factor(sim_num)) %>%
+    dplyr::mutate(sim_num = factor(sim_num)) %>%
     dplyr::rename(pltvar = !!varname)
 
   rc <- ggplot(data=to_plt,
@@ -144,7 +137,6 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
                  date_labels = "%b",
                  limits = c(as.Date(sim_start_date), as.Date(sim_end_date))) +
     scale_color_manual("Scenario",
-                      labels = scenario_labels,
                       values = scenario_colors) +
     theme_minimal() +
     theme(axis.title.x =  element_blank(),
@@ -176,11 +168,9 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
 ##'
 ##' @param hosp_state_totals totals for hospitalization related data for state for all pdeath
 ##' @param var_name variable name for final size distribution
-##' @param pdeath_level level of IFR (string: high/med/low) for filtering hospitalization data
+##' @param pdeath_filter level of IFR (string: high/med/low) for filtering hospitalization data
 ##' @param sim_start_date simulation start date as character string "2020-01-01"
 ##' @param summary_date date at which to present cumulative summary of hospitalizations
-##' @param scenario_levels to order scenario_name
-##' @param scenario_labels to label scenario_name
 ##' @param scenario_colors to add scenario colors
 ##'
 ##' @return plot of cum hosp for state across simulations
@@ -189,10 +179,8 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
 ##'
 plot_hist_incidHosp_state <- function(hosp_state_totals,
                                       var_name,
-                                      pdeath_level = "high",
-                                      scenario_levels,
-                                      scenario_labels,
-                                      scenario_colors,
+                                      pdeath_filter = pdeath_default,
+                                      scenario_colors = config$report$formatting$scenario_colors,
                                       sim_start_date,
                                       summary_date) {
 
@@ -202,21 +190,17 @@ plot_hist_incidHosp_state <- function(hosp_state_totals,
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
   to_plt <- hosp_state_totals %>%
     dplyr::rename(pltVar = !!var_name) %>%
-    dplyr::filter(pdeath==pdeath_level) %>%
+    dplyr::filter(pdeath==pdeath_filter) %>%
     dplyr::filter(time >= sim_start_date & time <= summary_date) %>%
-    dplyr::group_by(scenario, sim_num) %>%
+    dplyr::group_by(scenario_name, sim_num) %>%
     dplyr::summarise(pltVar = sum(pltVar)) %>%
-    ungroup %>%
-    dplyr::mutate(scenario_name = factor(scenario,
-                                         levels = scenario_levels,
-                                         labels = scenario_labels))
+    ungroup 
 
   rc <- ggplot(data=to_plt,
                aes(x = pltVar, fill = scenario_name, color = scenario_name)) +
     geom_histogram(binwidth = 2000) +
     facet_wrap(scenario_name~., ncol = 1) +
     scale_fill_manual(values = scenario_colors,
-                      labels = scenario_labels,
                       aesthetics = c("colour", "fill")) +
     scale_x_continuous(paste("by",
                              print_pretty_date_short(summary_date)),
@@ -522,10 +506,10 @@ make_scn_state_table_withVent <- function(current_scenario,
   tmp[1,1] <- "Outcome"
   tmp[1,2] <- "IFR"
   
-  if(unique(hosp_state_totals$pdeath)==1){
+  if(unique(hosp_state_totals$pdeath)==1){ # TODO fix this so IFR is dropped when only one estimate is shown
     
     tmp<-tmp%>%
-      select(-pdeath)
+      dplyr::select(-pdeath)
     
     flextable::flextable(tmp[-1,]) %>%
       flextable::set_header_labels(values=tmp[1,]) %>%
@@ -565,8 +549,6 @@ make_scn_state_table_withVent <- function(current_scenario,
 ##' @export
 ##'
 make_scn_time_summary_table_withVent <- function(hosp_state_totals,
-                                                 scenario_labels, 
-                                                 scenario_levels,
                                                  period_breaks,
                                                  pi_low = 0.025,
                                                  pi_high = 0.975,
@@ -581,8 +563,7 @@ make_scn_time_summary_table_withVent <- function(hosp_state_totals,
   
   ## Build the table with summaries of all of the periods in it. 
   tbl_df <- hosp_state_totals %>% 
-    dplyr::mutate(period = cut(time, period_breaks, labels=lbls),
-                  scenario_name = factor(scenario, levels = scenario_levels, labels = scenario_labels)) %>%
+    dplyr::mutate(period = cut(time, period_breaks, labels=lbls)) %>%
     dplyr::group_by(period, scenario_name, sim_num) %>% #summarize totals in periods by scenario
     dplyr::summarize(PeriodInf = sum(NincidInf),
               PeriodDeath = sum(NincidDeath),
@@ -684,7 +665,7 @@ make_scn_time_summary_table_withVent <- function(hosp_state_totals,
   tmp <- is.na(tbl_df$scenario_name)
   tbl_df$scenario_name[tmp] <-tbl_df$outcome[tmp]
   tbl_df <- tbl_df%>%dplyr::select(-outcome)
-  typology<-data_frame(col_keys=colnames(tbl_df),
+  typology<-tibble(col_keys=colnames(tbl_df),
                        colA=c("",rep(lbls,each=2)),
                        colB=c("",rep(c("mean","95% PI"),length(lbls))))
   
@@ -714,8 +695,6 @@ make_scn_time_summary_table_withVent <- function(hosp_state_totals,
 ##'
 ##' @param hosp_county_peak hosp geounit peak data
 ##' @param shapefile object with geoid and name
-##' @param scenario_levels character vector of scenario levels 
-##' @param scenario_labels character vector of scenario labels from config
 ##' @param scenario_colors character vector of colors from config
 ##' @param time_caption label for time axis
 ##' @param geoid_caption label for geoid axis
@@ -730,9 +709,8 @@ make_scn_time_summary_table_withVent <- function(hosp_state_totals,
 ##' @export
 ##'
 plot_event_time_by_geoid <- function(hosp_county_peaks,
+                                     scenariolabel, 
                                      shapefile,
-                                     scenario_levels, 
-                                     scenario_labels, # TODO provide default arguments
                                      scenario_colors, # TODO provide default arguments
                                      time_caption,
                                      geoid_caption,
@@ -744,7 +722,7 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
-  if(is.null(value_name) & (length(scenario_labels) == 1)){stop("Value name must be provided if only one scenario is plotted.")}
+  if(is.null(value_name) & (length(unique(hosp_county_peaks$scenario_name)) == 1)){stop("Value name must be provided if only one scenario is plotted.")}
 
   value_name <- rlang::sym(value_name)
 
@@ -753,20 +731,17 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
   hosp_county_peaks$time[hosp_county_peaks$time < start_date] <- start_date-1
 
   to_plt <- hosp_county_peaks %>%
-    dplyr::group_by(geoid, scenario) %>%
+    dplyr::group_by(geoid, scenario_name) %>%
     dplyr::summarise(mean_time = mean(time),
                      median_time = median(time),
                      low_time = quantile(time, probs=.25, type=1),
                      hi_time = quantile(time, probs=.75, type=1),
                      value = round(mean(!!value_name,na.rm=T),0)) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(scenario_label = factor(scenario,
-                                           levels = scenario_levels,
-                                           labels = scenario_labels)) %>%
     dplyr::inner_join(shapefile, by = c("geoid")) %>%
     dplyr::mutate(name = reorder(name, -as.numeric(median_time)))
 
-  if(length(scenario_labels)==1){
+  if(length(unique(hosp_county_peaks$scenario_name))==1){
     rc <- ggplot(data=to_plt,
                  aes(x = as.numeric(name),
                      y = median_time, ymin = low_time, ymax = hi_time)) +
@@ -788,7 +763,7 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
     rc <- ggplot(data=to_plt,
                  aes(x = reorder(name, -as.numeric(median_time)),
                      y = median_time, ymin = low_time, ymax = hi_time,
-                     color = scenario_label)) +
+                     color = scenario_name)) +
       geom_pointrange() +
       scale_y_date(time_caption,
                    date_breaks = "1 week",
@@ -796,7 +771,6 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
                    ) +
       xlab(geoid_caption) +
       scale_color_manual("Scenario",
-                         labels = scenario_labels,
                          values = scenario_colors) +
       theme_bw() +
       theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "bottom")  +
@@ -815,9 +789,8 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
 ##' 
 ##' @param state_hosp_totals state hosp data frame
 ##' @param jhu_obs_dat dataframe with case data NincidConfirmed and NincidDeathsObs
-##' @param scenario_labels character vector with scenario labels
 ##' @param scenario_colors character vector with scenario colors
-##' @param pdeath_level IFR level assumption
+##' @param pdeath_filter IFR level assumption
 ##' @param obs_data_col character string of observed data color
 ##' @param ci.L lower bound confidence interval
 ##' @param ci.U upper bound confidence interval
@@ -830,10 +803,8 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
 ##' @export
 plot_model_vs_obs <- function(state_hosp_totals,
                               jhu_obs_dat,
-                              scenario_levels,
-                              scenario_labels,
                               scenario_colors,
-                              pdeath_level,
+                              pdeath_filter = pdeath_default,
                               obs_data_col = "black",
                               ci.L = 0,
                               ci.U = 1,
@@ -845,11 +816,8 @@ plot_model_vs_obs <- function(state_hosp_totals,
 
   state_hosp_totals <-
     state_hosp_totals %>%
-    dplyr::filter(pdeath == pdeath_level) %>%
-    dplyr::mutate(scenario_name = factor(scenario_name, 
-                                         levels = scenario_levels, 
-                                         labels = scenario_labels),
-                  sim_num = factor(sim_num)) %>%
+    dplyr::filter(pdeath == pdeath_filter) %>%
+    dplyr::mutate(sim_num = factor(sim_num)) %>%
     dplyr::rename(date = time) %>%
     dplyr::filter(!is.na(date)) %>%
     dplyr::filter(between(date, as.Date(sim_start_date), as.Date(sim_end_date)))
@@ -885,7 +853,6 @@ plot_model_vs_obs <- function(state_hosp_totals,
                  limits = c(as.Date(sim_start_date), as.Date(sim_end_date))) +
     scale_y_continuous("Incident Cases", labels = scales::comma) +
     scale_color_manual("Scenario",
-                       labels = scenario_labels,
                        values = scenario_colors) +
     theme_minimal() +
     theme(axis.title.x =  element_blank(),
@@ -918,7 +885,6 @@ plot_model_vs_obs <- function(state_hosp_totals,
                  limits = c(as.Date(sim_start_date), as.Date(sim_end_date))) +
     scale_y_continuous("Incident Deaths", labels = scales::comma) +
     scale_color_manual("Scenario",
-                       labels = scenario_labels,
                        values = scenario_colors) +
     theme_minimal() +
     theme(axis.title.x =  element_blank(),
@@ -952,7 +918,6 @@ plot_model_vs_obs <- function(state_hosp_totals,
                    limits = c(as.Date(sim_start_date), as.Date(sim_end_date))) +
       scale_y_continuous("Daily occupied hospital beds", labels = scales::comma) +
       scale_color_manual("Scenario",
-                         labels = scenario_labels,
                          values = scenario_colors) +
       theme_minimal() +
       theme(axis.title.x =  element_blank(),
@@ -976,7 +941,6 @@ plot_model_vs_obs <- function(state_hosp_totals,
 ##' @param hosp_geounit_relative hosp_geounit_relative data
 ##' @param shapefile object with geoid and name
 ##' @param scenario_labels character vector of scenario labels from config
-##' @param scenario_levels character eector of scenario levels from config
 ##' @param scale_colors character vector of colors for low, mid, and high plot values
 ##' @param legend_title label for legend
 ##' @param value_name name of secondary axis value
@@ -1051,6 +1015,7 @@ plot_needs_relative_to_threshold_heatmap <- function(hosp_geounit_relative,
 ##' Plotting R or effectiveness estimates
 ##' 
 ##' @param r_dat df with R or reduction estimates per sim and npi to be included
+##' @param current_scenario name of scenario inputs to use
 ##' @param npi_trim pattern used by str_remove to group NPIs
 ##' @param periodcolors 
 ##' @param npi_labels labels for plotted NPIs
@@ -1067,6 +1032,7 @@ plot_needs_relative_to_threshold_heatmap <- function(hosp_geounit_relative,
 ##'@export
 
 plot_inference_r <- function(r_dat,
+                             current_scenario,
                              npi_trim="[[A-Z]].+\\_",
                              npi_labels, 
                              npi_levels,
@@ -1077,15 +1043,16 @@ plot_inference_r <- function(r_dat,
                              geodat=geodata){
   
   rplot <- r_dat %>%
+    dplyr::filter(current_scenario==scenario)%>%
     dplyr::mutate(npi_name=str_remove(npi_name, npi_trim)) %>%
     dplyr::left_join(geodat) %>%
     dplyr::group_by(geoid, npi_name, name) %>%
     dplyr::summarize(r_lo = quantile(r, pi_lo, na.rm=TRUE), 
-                      r_hi = quantile(r, pi_hi, na.rm=TRUE),
-                      r = mean(r, na.rm=TRUE),
-                      reduction_lo = quantile(reduction, pi_lo, na.rm=TRUE), 
-                      reduction_hi = quantile(reduction, pi_hi, na.rm=TRUE),
-                      reduction = mean(reduction, na.rm=TRUE)) 
+                     r_hi = quantile(r, pi_hi, na.rm=TRUE),
+                     r = mean(r, na.rm=TRUE),
+                     reduction_lo = quantile(reduction, pi_lo, na.rm=TRUE), 
+                     reduction_hi = quantile(reduction, pi_hi, na.rm=TRUE),
+                     reduction = mean(reduction, na.rm=TRUE)) 
   
   if(is.na(npi_labels) & is.na(npi_levels)){
     npi_labels <- unique(rplot$npi_name)
@@ -1141,6 +1108,7 @@ plot_inference_r <- function(r_dat,
 ##' Sparkline table with R estimates 
 ##' 
 ##' @param r_dat df with R or reduction estimates per sim (only one scenario)
+##' @param current_scenario name of scenario inputs to use
 ##' @param npi_trim pattern used by str_remove to group NPIs
 ##' @param npi_labels labels for plotted NPIs
 ##' @param npi_levels levels of NPIs after str_remove is applied
@@ -1164,6 +1132,7 @@ make_sparkline_tab_r <- function(r_dat,
                                  current_scenario,
                                  npi_labels, 
                                  npi_levels,
+                                 pdeath_filter = pdeath_default, 
                                  pi_lo=0.025, 
                                  pi_hi=0.975, 
                                  geodat=geodata,
@@ -1179,7 +1148,8 @@ make_sparkline_tab_r <- function(r_dat,
   if(length(npi_labels)!=length(npi_levels)) {stop("Length of npi levels and labels must be equal")}
   if(susceptible & is.null(outcome_dir)) {stop("You must specify outcome_dir to load cumulative infections")}
   r_dat <- r_dat%>%
-    dplyr::filter(scenario==current_scenario)
+    dplyr::filter(scenario==current_scenario,
+                  pdeath==pdeath_filter)
   
   # Set new end date for baseline values
   new_local_end <- r_dat %>%
@@ -1207,6 +1177,7 @@ make_sparkline_tab_r <- function(r_dat,
       dplyr::left_join(timeline)
     
     r_dat<-load_hosp_sims_filtered(outcome_dir,
+                                   pdeath_filter=pdeath_filter,
                                    pre_process=function(x){x%>%
                                        dplyr::filter(scenario==current_scenario)%>%
                                        dplyr::select(geoid, scenario, pdeath, location, time, sim_id, incidI)},
@@ -1314,12 +1285,13 @@ make_sparkline_tab_r <- function(r_dat,
 
 ##' Sparkline table for intervention period effectiveness estimates 
 ##' 
-##' @param r_dat df with reduction estimates per sim
+##' @param r_dat df with reduction estimates per sim (from load_r_sims_filtered)
 ##' @param trim whether or not to apply npi_trim to npi_name
 ##' @param npi_trim pattern used by str_remove to group by npi_name
 ##' @param periodcolors 
 ##' @param npi_labels labels for plotted NPIs
 ##' @param npi_levels levels of NPIs 
+##' @param current_scenario name of current scenario to use
 ##' @param pi_lo lower quantile for summarization
 ##' @param pi_hi higher quantile for summarization
 ##' @param geodat df with location names
@@ -1336,6 +1308,8 @@ make_sparkline_tab_r <- function(r_dat,
 make_sparkline_tab_intervention_effect <- function(r_dat,
                                                    npi_labels, 
                                                    npi_levels,
+                                                   current_scenario, 
+                                                   pdeath_filter=pdeath_default,
                                                    pi_lo=0.025, 
                                                    pi_hi=0.975, 
                                                    geodat=geodata,
@@ -1350,6 +1324,8 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
   require(tidyverse)
   
   r_dat <- r_dat %>%
+    dplyr::filter(scenario==current_scenario,
+                  pdeath==pdeath_filter) %>%
     dplyr::left_join(geodat) %>%
     dplyr::group_by(geoid, start_date, end_date, npi_name, name) %>%
     dplyr::summarize(est_lo=quantile(reduction, pi_lo, na.rm=TRUE),
@@ -1586,6 +1562,7 @@ plot_truth_by_county <- function(truth_dat,
 ##' Time series comparing Rt estimates by scenario over time
 ##' @param outcome_dir directory with spar/snpi folders
 ##' @param truth_dat df with date, geoid, incidI, incidDeath
+##' @param pdeath_filter
 ##' @param scenario_colors colors for each scenario
 ##' @param scenario_levels levels applied to scenarios
 ##' @param scenario_labels label applied to scenarios
@@ -1604,18 +1581,20 @@ plot_truth_by_county <- function(truth_dat,
 
 plot_rt_ts <- function(outcome_dir, 
                        truth_dat,
+                       pdeath_filter = pdeath_default,
                        scenario_colors,
                        scenario_levels,
                        scenario_labels,
+                       included_geoids,
                        start_date,
                        end_date, 
-                       included_geoids,
                        geodat=geodata,
                        susceptible=TRUE,
                        pi_lo=0.025,
                        pi_hi=0.975
 ){
   require(tidyverse)
+  if(length(pdeath_filter)>1){stop("Currently plots for")}
   start_date<-as.Date(start_date)
   end_date<-as.Date(end_date)
   
@@ -1624,7 +1603,9 @@ plot_rt_ts <- function(outcome_dir,
   rc<-list()
   for(i in 1:length(scenario_levels)){
     rc[[i]]<-load_r_sims_filtered(outcome_dir,
+                                  pdeath_filter=pdeath_filter,
                                   pre_process=function(x){filter(x, scenario==scenario_levels[i])}) %>%
+      dplyr::group_by(geoid, npi_name, pdeath, scenario) %>%
       dplyr::arrange(geoid, sim_num, start_date) %>%
       dplyr::mutate(end_date=if_else(npi_name=="local_variance",
                               lead(start_date)-1,
@@ -1635,27 +1616,34 @@ plot_rt_ts <- function(outcome_dir,
     
     if(susceptible){
     rc[[i]]<-load_hosp_sims_filtered(outcome_dir,
+                                     pdeath_filter=pdeath_filter,
                                      pre_process=function(x){x%>%
                                          dplyr::filter(scenario==scenario_levels[i])%>%
                                          dplyr::select(geoid, scenario, pdeath, location, time, sim_id, incidI)},
                                      post_process=function(x){x%>%
                                          dplyr::group_by(geoid, pdeath, scenario, sim_num, location)%>%
                                          dplyr::mutate(cum_inf=cumsum(incidI))}) %>%
-      dplyr::rename(date=time)%>%
+      dplyr::ungroup() %>%
+      dplyr::select(geoid, sim_num, pdeath, cum_inf, scenario)%>%
       dplyr::right_join(rc[[i]]) %>%
-      dplyr::left_join(geodat) %>%
       dplyr::mutate(r=r*(1-cum_inf/pop2010))
     }
+    
+    # rc[[i]] <- rc[[i]] %>%
+    #   dplyr::group_by(scenario, date) %>%
+    #   dplyr::mutate(weight=pop2010/sum(pop2010)) %>% # count
+    #   dplyr::summarize(estimate=Hmisc::wtd.mean(r, weights=weight, normwt=TRUE),
+    #                    lower=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_lo),
+    #                    upper=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_hi))
     
   }
   
   rc<-dplyr::bind_rows(rc) %>%
-    dplyr::left_join(geodat)%>%
     dplyr::group_by(scenario, date) %>%
     dplyr::mutate(weight=pop2010/sum(pop2010)) %>% # count
     dplyr::summarize(estimate=Hmisc::wtd.mean(r, weights=weight, normwt=TRUE),
-              lower=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_lo),
-              upper=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_hi))
+                     lower=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_lo),
+                     upper=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_hi))
   
   truth_dat<-truth_dat%>%
     dplyr::filter(NcumulConfirmed!=0)%>%
@@ -1690,8 +1678,6 @@ plot_rt_ts <- function(outcome_dir,
 ##' @param end_date end of comparison period
 ##' @param pdeath_filter select pdeath: high, med, low
 ##' @param scenario_colors config$report$formatting$scenario_colors
-##' @param scenario_levels config$report$formatting$scenario_labels_short
-##' @param scenario_labels config$report$formatting$scenario_labels
 ##' @param pi_lo lower limit to interval
 ##' @param pi_hi upper lim to interval
 ##' 
@@ -1707,8 +1693,6 @@ plot_scn_outcomes_ratio<-function(hosp_state_totals,
                                   start_date,
                                   end_date,
                                   pdeath_filter,
-                                  scenario_labels, 
-                                  scenario_levels,
                                   scenario_colors,
                                   pi_lo,
                                   pi_hi){
@@ -1720,7 +1704,7 @@ plot_scn_outcomes_ratio<-function(hosp_state_totals,
     dplyr::filter(time<=end_date,
                   time>=start_date,
                   pdeath==pdeath_filter) %>%
-    dplyr::group_by(scenario, pdeath, sim_num) %>%
+    dplyr::group_by(scenario_name, pdeath, sim_num) %>%
     dplyr::summarize(AvghospCurr=mean(NhospCurr),
                       AvgICUCurr=mean(NICUCurr), 
                       NincidHosp=sum(NincidHosp),
@@ -1728,20 +1712,18 @@ plot_scn_outcomes_ratio<-function(hosp_state_totals,
                       AvgincidDeath=mean(NincidDeath),
                       NincidDeath=sum(NincidDeath),
                       AvgincidCase=mean(NincidCase),
-                      NincidCase=sum(NincidInf)) %>%
-    dplyr::mutate(scenario=factor(scenario, levels=scenario_levels,
-                           labels=scenario_labels))
+                      NincidCase=sum(NincidInf)) 
   
-  scn_names<-scenario_labels[-1]
+  scn_names<-levels(dat_long$scenario_name)[-1]
   dat_wide<-list()
   for(i in 1:length(scn_names)){
     dat_wide[[i]]<-dat_long %>%
-      dplyr::filter(scenario==scn_names[i]|scenario==scenario_labels[1]) %>%
-      dplyr::arrange(scenario) %>%
+      dplyr::filter(scenario_name==scn_names[i]|!scenario_name %in% scn_names) %>%
+      dplyr::arrange(scenario_name) %>%
       dplyr::group_by(sim_num) %>%
       dplyr::mutate_if(is.numeric, function(x){x/lag(x)}) %>%
       drop_na() %>%
-      dplyr::group_by(scenario) %>%
+      dplyr::group_by(scenario_name) %>%
       dplyr::summarize(AvghospCurr_lo=quantile(AvghospCurr, pi_lo),
                         AvghospCurr_hi=quantile(AvghospCurr, pi_hi),
                         AvghospCurr=mean(AvghospCurr),
@@ -1791,10 +1773,10 @@ plot_scn_outcomes_ratio<-function(hosp_state_totals,
   plt_dat %>%
     ggplot()+
     #geom_col(aes(x=estimate, y=var, fill=scenario), position=position_dodge(0.75), width=1) +
-    geom_point(aes(x=estimate, y=var, col=scenario), position=position_dodge(0.75))+
-    geom_linerange(aes(xmin=lower, xmax=upper, y=var, group=scenario, col=scenario), position=position_dodge(0.75)) +
+    geom_point(aes(x=estimate, y=var, col=scenario_name), position=position_dodge(0.75))+
+    geom_linerange(aes(xmin=lower, xmax=upper, y=var, group=scenario_name, col=scenario_name), position=position_dodge(0.75)) +
     theme_bw() +
-    xlab(paste0('Relative to "', scenario_labels[1], '" scenario')) +
+    xlab(paste0('Relative to "', levels(dat_long$scenario_name)[1], '" scenario')) +
     ylab(paste0("Summarized outcomes from ", format(start_date, "%B %d"),"-",format(end_date, "%B %d"))) +
     scale_color_manual("Scenario",
                        values = scenario_colors) +
@@ -1825,10 +1807,9 @@ make_scn_county_table_withVent <- function(current_scenario,
                                            geodat=geodata,
                                            start_date,
                                            end_date,
-                                           pdeath_filter = "high" #if NA will plot all IFRs
+                                           pdeath_filter = pdeath_default #if NA will plot all IFRs
                                            
 ){
-  
   pdeath_labels=c("1% IFR", "0.5% IFR", "0.25% IFR")
   pdeath_levels=c("high", "med", "low")
   
@@ -2179,6 +2160,7 @@ plot_hosp_effec <- function(current_scenario,
   
   rc <- r_dat%>%
     dplyr::group_by(geoid, scenario) %>%
+    dplyr::filter(scenario==current_scenario) %>%
     dplyr::filter(npi_name!="local_variance" & max(end_date)==end_date)%>%
     dplyr::summarize(reduc=mean(reduction))%>%
     dplyr::right_join(rc) 
@@ -2218,7 +2200,7 @@ plot_hosp_effec <- function(current_scenario,
 
 plot_county_outcomes <- function(county_dat, 
                                  filter_by = "pdeath", 
-                                 filter_val = "high",
+                                 filter_val = pdeath_default,
                                  pi_lo=0.025,
                                  pi_hi=0.975,
                                  start_date,
@@ -2232,7 +2214,7 @@ plot_county_outcomes <- function(county_dat,
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
   
-  group_var <- if_else(filter_val=="pdeath", "scenario", "pdeath")
+  group_var <- if_else(filter_by=="pdeath", "scenario", "pdeath")
   
   county_dat<- county_dat %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
@@ -2252,7 +2234,7 @@ plot_county_outcomes <- function(county_dat,
                                levels=var_levels,
                                labels=var_labels))
   
-  dplyr::bind_rows(county_dat%>%
+  rc<-dplyr::bind_rows(county_dat%>%
                      dplyr::select(name, var, time, est=hosp, lo=hosp_lo, hi=hosp_hi) %>%
                      dplyr::mutate(type="Occupied Hospital Beds"),
                    county_dat%>%
@@ -2276,6 +2258,8 @@ plot_county_outcomes <- function(county_dat,
     ylab("Estimate") +
     xlab("Time")+
     scale_x_date(limits = c(start_date, end_date))
+  
+  return(rc)
 }
 
 
