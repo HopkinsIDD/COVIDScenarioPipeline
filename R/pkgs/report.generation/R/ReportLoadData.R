@@ -164,6 +164,8 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
 ##' the given scenarios.
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
+##' @param scenario_levels
+##' @param scenario_labels
 ##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
 ##' @param pre_process function that does processing before collection
 ##' 
@@ -173,6 +175,8 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
 ##'
 ##'@export
 load_hosp_geocombined_totals <- function(outcome_dir,
+                                         scenario_levels, 
+                                         scenario_labels,
                                          pdeath_filter=c("high", "med", "low"),
                                          pre_process=function(x) {x},
                                          ...
@@ -200,7 +204,10 @@ load_hosp_geocombined_totals <- function(outcome_dir,
                        cum_hosp=sum(cum_hosp),
                        cum_death=sum(cum_death),
                        cum_case=sum(cum_case),
-                       cum_inf=sum(cum_inf)) 
+                       cum_inf=sum(cum_inf)) %>%
+      dplyr::mutate(scenario_name = factor(scenario,
+                                           levels = scenario_levels, 
+                                           labels = scenario_labels))
   }
   
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
@@ -228,7 +235,7 @@ load_hosp_geocombined_totals <- function(outcome_dir,
 ##'
 ##'
 ##'@export
-load_hosp_totals <- function(outcome_dir,
+load_hosp_county <- function(outcome_dir,
                              scenario_levels, 
                              scenario_labels,
                              pdeath_filter=c("high", "med", "low"),
@@ -274,12 +281,15 @@ load_hosp_totals <- function(outcome_dir,
 ##' Convenience function to load the slice for each geoid where the value of an outcome exceeds a given threshold
 ##'
 ##' @param threshold A named numeric vector.  This function will pull the first time slice that meets or exceeds all thresholds
+##' @param scenario_levels string with scenario names passed on to load_hosp_totals
+##' @param scenario_labels string with scenario levels passed on to load_hosp_totals
 ##' @param pdeath_filter pdeath selection one of: high, med, low
 ##' @param variable character string of variable to which to compare threshold
 ##' @param end_date simulation end date character string
 ##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
 ##' 
 ##' @return a data frame with columns
+##'         - scenario_name
 ##'         - sim_num
 ##'         - NhospCurr number of people in hospital on a day
 ##'         - NICUCurr number of people in ICU on a day
@@ -293,6 +303,8 @@ load_hosp_geounit_threshold <- function(threshold,
                                         end_date = config$end_date,
                                         pdeath_filter = "high",
                                         incl_geoids = NULL,
+                                        scenario_labels, 
+                                        scenario_levels,
                                         outcome_dir
 ){
     if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
@@ -317,9 +329,11 @@ load_hosp_geounit_threshold <- function(threshold,
       }
     }
     
-    rc <- load_hosp_sims_filtered(outcome_dir=outcome_dir,
-                                  pre_process=hosp_pre_process,
-                                  pdeath_filter=pdeath_filter)
+    rc <- load_hosp_totals(outcome_dir=outcome_dir,
+                           pre_process=hosp_pre_process,
+                           pdeath_filter=pdeath_filter,, 
+                           scenario_levels=scenario_levels,
+                           scenario_labels=scenario_labels)
     rc <- rc %>%
       dplyr::group_by(geoid, scenario, sim_num) %>%
       group_map(function(.x,.y){
@@ -334,9 +348,9 @@ load_hosp_geounit_threshold <- function(threshold,
         }
         .x$geoid <- .y$geoid
         return(.x)
-      }, keep = TRUE) %>%
+      }, .keep = TRUE) %>%
       do.call(what=dplyr::bind_rows) %>%
-      ungroup()
+      ungroup() 
     
       return(rc)
 }
@@ -550,7 +564,8 @@ load_hosp_geounit_relative_to_threshold <- function(county_dat,
                                                     scenario_labels,
                                                     end_date = config$end_date,
                                                     incl_geoids=NULL,
-                                                    pdeath_filter
+                                                    pdeath_filter,
+                                                    geodat=geodata
                                                     ){
   
 
@@ -570,6 +585,8 @@ load_hosp_geounit_relative_to_threshold <- function(county_dat,
   if(is.null(incl_geoids)){incl_geoids<-unique(county_dat$geoid)}
   
   county_dat %>% 
+    dplyr::left_join(geodat) %>%
+    dplyr::mutate(name = factor(name, levels = sort(geodat$name, decreasing=TRUE))) %>%
     dplyr::filter(time<=end_date) %>%
     dplyr::filter(pdeath==pdeath_filter) %>%
     dplyr::mutate(scenario_name=factor(scenario, levels= scenario_levels, labels=scenario_labels)) %>%
@@ -619,19 +636,19 @@ load_r_sims_filtered <- function(outcome_dir,
                                   pdeath_filter=pdeath_filter,
                                   ...) %>%
     dplyr::group_by(scenario) %>%
-    dplyr::mutate(parameter = "r0") %>%
     dplyr::rename(location_r=value) %>%
-    dplyr::select(sim_num, scenario, pdeath, location_r, parameter, location) %>%
+    dplyr::select(sim_num, scenario, pdeath, location_r) %>%
     dplyr::ungroup()
   
   snpi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
                                  pre_process=pre_process, 
                                  pdeath_filter=pdeath_filter, 
-                                 ...)
+                                 ...) %>%
+    dplyr::select(sim_num, scenario, pdeath, geoid, npi_name, start_date, end_date, reduction)
   
-  rc <- spar %>%
-    dplyr::right_join(snpi)%>%
+  rc <- snpi %>%
     dplyr::filter(npi_name=="local_variance") %>%
+    dplyr::right_join(spar)%>%
     dplyr::mutate(local_r = location_r*(1-reduction)) %>% # county_r0 ought to be renamed to "geogroup_r0"
     dplyr::select(geoid, sim_num, local_r, scenario) %>%
     dplyr::left_join(snpi) %>%
@@ -639,7 +656,7 @@ load_r_sims_filtered <- function(outcome_dir,
                        local_r,
                        local_r*(1-reduction))) %>%
     dplyr::left_join(geodat) %>%
-    dplyr::ungroup()
+    dplyr::ungroup() 
   
   warning("Finished loading")
   return(rc)
