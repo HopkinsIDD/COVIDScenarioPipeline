@@ -80,15 +80,15 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
 
     if (n_jobs == 1) or (len(sim_ids) == 1):          # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_delayframe_outcomes(in_run_id, in_prefix, out_run_id, out_prefix, sim_id, parameters, stoch_traj_flag)
+            onerun_delayframe_outcomes(sim_id, in_run_id, in_prefix, out_run_id, out_prefix, parameters, stoch_traj_flag)
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
+            sim_ids, 
             itertools.repeat(in_run_id), 
             itertools.repeat(in_prefix), 
             itertools.repeat(out_run_id), 
             itertools.repeat(out_prefix), 
-            sim_ids, 
             itertools.repeat(parameters),
             itertools.repeat(stoch_traj_flag),
             max_workers=n_jobs
@@ -100,7 +100,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
 
 
 
-def onerun_delayframe_outcomes(in_run_id, in_prefix, out_run_id, out_prefix, sim_id, parameters, stoch_traj_flag):
+def onerun_delayframe_outcomes(sim_id, in_run_id, in_prefix, out_run_id, out_prefix,  parameters, stoch_traj_flag):
     
     # Read files
     diffI, places, dates = read_seir_sim(in_run_id, in_prefix, sim_id)
