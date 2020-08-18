@@ -164,8 +164,8 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
 ##' the given scenarios.
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
-##' @param scenario_levels
-##' @param scenario_labels
+##' @param scenario_levels used to create scenario_name for labelling plots
+##' @param scenario_labels used to create scenario_name for labelling plots
 ##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
 ##' @param pre_process function that does processing before collection
 ##' 

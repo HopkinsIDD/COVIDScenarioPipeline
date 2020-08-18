@@ -1562,7 +1562,7 @@ plot_truth_by_county <- function(truth_dat,
 ##' Time series comparing Rt estimates by scenario over time
 ##' @param outcome_dir directory with spar/snpi folders
 ##' @param truth_dat df with date, geoid, incidI, incidDeath
-##' @param pdeath_filter
+##' @param pdeath_filter which pdeath to select
 ##' @param scenario_colors colors for each scenario
 ##' @param scenario_levels levels applied to scenarios
 ##' @param scenario_labels label applied to scenarios
