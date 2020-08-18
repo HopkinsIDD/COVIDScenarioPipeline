@@ -187,6 +187,7 @@ load_hosp_geocombined_totals <- function(outcome_dir,
   hosp_post_process <- function(x) {
     x %>%
       dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
+      dplyr::arrange(time) %>%
       dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
       dplyr::mutate(cum_death=cumsum(incidD)) %>%
       dplyr::mutate(cum_case=cumsum(incidC)) %>%
@@ -215,7 +216,8 @@ load_hosp_geocombined_totals <- function(outcome_dir,
                                pre_process=pre_process,
                                post_process=hosp_post_process)
   
-  warning("Finished loading")
+  if(!unique(rc$scenario) %in% scenario_levels) {warning("Scenario levels were not correctly specified you may encounter errors in the future")}
+  
   return(rc)
   
 }
@@ -225,16 +227,36 @@ load_hosp_geocombined_totals <- function(outcome_dir,
 ##' the given scenarios.
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
-##' @param scenario_levels used to create scenario_name for future plotting
-##' @param scenario_labels used to create scenario_name for future plotting
+##' @param scenario_levels used to create scenario_name for labelling plots
+##' @param scenario_labels used to create scenario_name for labelling plots
 ##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
 ##' @param pre_process function that does processing before collection
 ##' 
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
-##' 
+##'      - geoid
+##'      - pdeath
+##'      - scenario
+##'      - sim_id
+##'      - sim_num
+##'      - time
+##'      - location
+##'      - NhospCurr
+##'      - NICUCurr
+##'      - NincidDeath
+##'      - NincidInf
+##'      - NincidICU
+##'      - NincidHosp
+##'      - NincidVent
+##'      - NVentCurr
+##'      - cum_hosp
+##'      - cum_death
+##'      - cum_case
+##'      - cum_inf
+##'      - scenario_name
 ##'
 ##'
 ##'@export
+##'
 load_hosp_county <- function(outcome_dir,
                              scenario_levels, 
                              scenario_labels,
@@ -264,7 +286,8 @@ load_hosp_county <- function(outcome_dir,
       dplyr::ungroup() %>%
       dplyr::mutate(scenario_name = factor(scenario,
                                            levels = scenario_levels, 
-                                           labels = scenario_labels))
+                                           labels = scenario_labels)) %>%
+      dplyr::select(-lik_type, -is_final, -date)
   }
   
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
@@ -272,7 +295,8 @@ load_hosp_county <- function(outcome_dir,
                                pre_process=pre_process,
                                post_process=hosp_post_process)
   
-  warning("Finished loading")
+  if(!unique(rc$scenario) %in% scenario_levels) {warning("Scenario levels were not correctly specified you may encounter errors in the future")}
+  
   return(rc)
   
 }

@@ -69,7 +69,6 @@ load_hpar_sims_filtered <- function(outcome_dir,
 ) {
   
   require(tidyverse)
-  require(foreach)
   
   rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                           partitioning = partitions) %>%
@@ -123,7 +122,7 @@ load_spar_sims_filtered <- function(outcome_dir,
     dplyr::mutate(sim_num = order(sim_id)) %>%
     dplyr::ungroup()
   
-  warning("Finished loading")
+  warning("Finished loading. Note pdeaths of the same scenario are treated as different simulations.")
   return(spar)
   
 }
@@ -161,7 +160,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
     dplyr::select(-date, -lik_type, -is_final) %>%
     dplyr::ungroup()
   
-  warning("Finished loading")
+  warning("Finished loading. Note pdeaths of the same scenario are treated as different simulations.")
   return(snpi)
   
 }
