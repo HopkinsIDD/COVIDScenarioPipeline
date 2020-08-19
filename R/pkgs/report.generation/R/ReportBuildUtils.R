@@ -1562,6 +1562,7 @@ plot_truth_by_county <- function(truth_dat,
 ##' Time series comparing Rt estimates by scenario over time
 ##' @param outcome_dir directory with spar/snpi folders
 ##' @param truth_dat df with date, geoid, incidI, incidDeath
+##' @param r_dat df with inference dat from load_r_sims_filtered
 ##' @param pdeath_filter which pdeath to select
 ##' @param scenario_colors colors for each scenario
 ##' @param scenario_levels levels applied to scenarios
@@ -1579,8 +1580,9 @@ plot_truth_by_county <- function(truth_dat,
 ##'@export
 ##'
 
-plot_rt_ts <- function(outcome_dir, 
+plot_rt_ts <- function(county_dat, 
                        truth_dat,
+                       r_dat,
                        pdeath_filter = pdeath_default,
                        scenario_colors,
                        scenario_levels,
@@ -1602,11 +1604,11 @@ plot_rt_ts <- function(outcome_dir,
   
   rc<-list()
   for(i in 1:length(scenario_levels)){
-    rc[[i]]<-load_r_sims_filtered(outcome_dir,
-                                  pdeath_filter=pdeath_filter,
-                                  pre_process=function(x){filter(x, scenario==scenario_levels[i])}) %>%
-      dplyr::group_by(geoid, npi_name, pdeath, scenario) %>%
-      dplyr::arrange(geoid, sim_num, start_date) %>%
+    rc[[i]]<-r_dat %>%
+      dplyr::filter(scenario==scenario_levels[i],
+                    pdeath==pdeath_filter) %>%
+      dplyr::select(geoid, sim_num, npi_name, r, scenario, start_date, end_date) %>%
+      dplyr::group_by(geoid, sim_num) %>%
       dplyr::mutate(end_date=if_else(npi_name=="local_variance",
                               lead(start_date)-1,
                               end_date)) %>%
@@ -1615,32 +1617,21 @@ plot_rt_ts <- function(outcome_dir,
       drop_na()
     
     if(susceptible){
-    rc[[i]]<-load_hosp_sims_filtered(outcome_dir,
-                                     pdeath_filter=pdeath_filter,
-                                     pre_process=function(x){x%>%
-                                         dplyr::filter(scenario==scenario_levels[i])%>%
-                                         dplyr::select(geoid, scenario, pdeath, location, time, sim_id, incidI)},
-                                     post_process=function(x){x%>%
-                                         dplyr::group_by(geoid, pdeath, scenario, sim_num, location)%>%
-                                         dplyr::mutate(cum_inf=cumsum(incidI))}) %>%
-      dplyr::ungroup() %>%
-      dplyr::select(geoid, sim_num, pdeath, cum_inf, scenario)%>%
+    rc[[i]]<-county_dat %>%
+      dplyr::filter(scenario==scenario_levels[i],
+                    pdeath==pdeath_filter) %>%
+      dplyr::select(geoid, sim_num, cum_inf, pop2010, scenario, date=time) %>%
       dplyr::right_join(rc[[i]]) %>%
-      dplyr::mutate(r=r*(1-cum_inf/pop2010))
+      dplyr::group_by(scenario, date) %>%
+      dplyr::mutate(r=r*(1-cum_inf/pop2010)) %>%
+      dplyr::mutate(weight = pop2010/sum(pop2010))
     }
     
-    # rc[[i]] <- rc[[i]] %>%
-    #   dplyr::group_by(scenario, date) %>%
-    #   dplyr::mutate(weight=pop2010/sum(pop2010)) %>% # count
-    #   dplyr::summarize(estimate=Hmisc::wtd.mean(r, weights=weight, normwt=TRUE),
-    #                    lower=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_lo),
-    #                    upper=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_hi))
     
   }
   
   rc<-dplyr::bind_rows(rc) %>%
     dplyr::group_by(scenario, date) %>%
-    dplyr::mutate(weight=pop2010/sum(pop2010)) %>% # count
     dplyr::summarize(estimate=Hmisc::wtd.mean(r, weights=weight, normwt=TRUE),
                      lower=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_lo),
                      upper=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_hi))
