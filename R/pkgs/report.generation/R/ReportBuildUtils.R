@@ -1608,6 +1608,8 @@ plot_rt_ts <- function(county_dat,
       dplyr::filter(scenario==scenario_levels[i],
                     pdeath==pdeath_filter) %>%
       dplyr::select(geoid, sim_num, npi_name, r, scenario, start_date, end_date) %>%
+      dplyr::group_by(geoid, npi_name) %>%
+      dplyr::mutate(sim_num = order(sim_num)) %>%
       dplyr::group_by(geoid, sim_num) %>%
       dplyr::mutate(end_date=if_else(npi_name=="local_variance",
                               lead(start_date)-1,
