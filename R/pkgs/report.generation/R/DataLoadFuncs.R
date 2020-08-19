@@ -98,7 +98,16 @@ load_hpar_sims_filtered <- function(outcome_dir,
 ##' @param pre_process function that does processing before collection
 ##' 
 ##' @return a combined data frame of all R simulations with filters applied pre merge.
-##' 
+##'        - parameter
+##'        - value
+##'        - location 
+##'        - scenario
+##'        - pdeath
+##'        - date
+##'        - lik_type
+##'        - is_final
+##'        - sim_id
+##'        - sim_num
 ##'
 ##'
 ##'@export
@@ -135,7 +144,17 @@ load_spar_sims_filtered <- function(outcome_dir,
 ##' @param pre_process function that does processing before collectio
 ##' 
 ##' @return a combined data frame of all R simulations with filters applied pre merge.
-##' 
+##'        - geoid
+##'        - start_date
+##'        - end_date
+##'        - npi_name
+##'        - parameter
+##'        - reduction
+##'        - location 
+##'        - scenario
+##'        - pdeath
+##'        - sim_id
+##'        - sim_num
 ##'
 ##'
 ##'@export
