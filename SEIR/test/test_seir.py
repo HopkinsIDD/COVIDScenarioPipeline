@@ -96,7 +96,8 @@ def test_constant_population():
 
     states = seir.steps_SEIR_nb(*parameters, y0,
                        seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                       mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
+                       mobility_geoid_indices, mobility_data_indices, 
+                       mobility_data, s.dynfilter, True)
 
     completepop = s.popnodes.sum()
     origpop = s.popnodes
@@ -147,7 +148,8 @@ def test_steps_SEIR_nb_simple_spread():
     for i in range(100):
         states = seir.steps_SEIR_nb(*parameters, y0,
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
+                           mobility_geoid_indices, mobility_data_indices, 
+                           mobility_data, s.dynfilter, True)
 
 
         assert states[seir.cumI][1].max() > 0
@@ -190,7 +192,8 @@ def test_steps_SEIR_no_spread():
     for i in range(100):
         states = seir.steps_SEIR_nb(*parameters, y0,
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
+                           mobility_geoid_indices, mobility_data_indices, 
+                           mobility_data, s.dynfilter, True)
 
 
         assert states[seir.cumI][1].max() == 0
