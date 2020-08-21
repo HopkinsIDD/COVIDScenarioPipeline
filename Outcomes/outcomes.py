@@ -35,6 +35,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
         diffI = diffI[diffI['comp'] == 'diffI']
         dates = diffI.time
         diffI.drop(['comp'], inplace = True, axis = 1)
+        places = diffI.drop(['time'], axis=1).columns
 
         # Load the actual csv file
         branching_data = pa.parquet.read_table(branching_file).to_pandas()
@@ -44,6 +45,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
         branching_data = pd.pivot(branching_data, index="geoid",columns="colname",values="value")
         if (branching_data.shape[0] != diffI.drop('time', axis=1).columns.shape[0]):
             raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
+        branching_data = branching_data.loc[places] #re-order
 
     parameters = {}
     for new_comp in config_outcomes:
