@@ -1454,7 +1454,7 @@ plot_truth_by_county <- function(truth_dat,
     dplyr::group_by(geoid, !!as.symbol(group_var), sim_num, time=lubridate::floor_date(time, unit="week", week_start=3))%>%
     dplyr::summarize(NincidCase=sum(NincidCase, na.rm=TRUE),
                       NincidDeath=sum(NincidDeath, na.rm=TRUE),
-                      NhospCurr=sum(NhospCurr, na.rm=TRUE)) %>%
+                      NhospCurr=mean(NhospCurr, na.rm=TRUE)) %>%
     dplyr::group_by(geoid) %>%
     dplyr::filter(time<max(time))
   
@@ -1467,7 +1467,7 @@ plot_truth_by_county <- function(truth_dat,
       dplyr::group_by(geoid, time=lubridate::floor_date(date, unit="week", week_start=3)) %>%
       dplyr::summarize(incidI=sum(incidI, na.rm=TRUE),
                         incidDeath=sum(incidDeath, na.rm=TRUE),
-                        currhosp=sum(currhosp, na.rm=TRUE)) %>%
+                        currhosp=mean(currhosp, na.rm=TRUE)) %>%
       dplyr::group_by(geoid)%>%
       dplyr::filter(time<max(time))
     
