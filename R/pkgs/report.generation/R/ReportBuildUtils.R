@@ -1556,7 +1556,7 @@ plot_truth_by_county <- function(truth_dat,
     ylab("Counts (log scale)")+
     xlab("Time (weeks)")+ 
     facet_grid(name~ type, scales="free") +
-    scale_y_log10()
+    scale_y_sqrt()
 }
 
 ##' Time series comparing Rt estimates by scenario over time
