@@ -96,11 +96,8 @@ RUN Rscript -e "install.packages('packrat',repos='https://cloud.r-project.org/')
 COPY --chown=app:app packrat $HOME/packrat
 COPY --chown=app:app Docker.Rprofile $HOME/.Rprofile
 COPY --chown=app:app R/pkgs $HOME/R/pkgs
-RUN Rscript -e 'packrat::restore()' \
-    && curl -O https://download2.rstudio.org/server/bionic/amd64/rstudio-server-$RSTUDIO_VERSION-amd64.deb \
-    && sudo apt-get install -f -y ./rstudio-server-$RSTUDIO_VERSION-amd64.deb \
-    && rm -f ./rstudio-server-$RSTUDIO_VERSION-amd64.deb
-RUN Rscript -e 'install.packages(list.files("R/pkgs",full.names=TRUE),type="source",repos=NULL)' \
+RUN Rscript -e 'packrat::restore()'
+RUN Rscript -e 'install.packages(list.files("R/pkgs",full.names=TRUE),type="source",repos=NULL)'
 
 # expose Rstudio port
 EXPOSE 8787
@@ -133,16 +130,5 @@ COPY requirements.txt $HOME/requirements.txt
 RUN . $PYTHON_VENV_DIR/bin/activate \
     && pip install --upgrade pip setuptools \
     && pip install -r $HOME/requirements.txt
-
-
-#####
-# Spark
-#####
-
-ENV SPARK_VERSION 2.4.5
-
-RUN cd /opt \
-    && curl -L http://mirrors.ocf.berkeley.edu/apache/spark/spark-$SPARK_VERSION/spark-$SPARK_VERSION-bin-hadoop2.7.tgz | sudo tar xvfz - \
-    && sudo ln -s spark-$SPARK_VERSION-bin-hadoop2.7 spark
 
 CMD ["/bin/bash"]
