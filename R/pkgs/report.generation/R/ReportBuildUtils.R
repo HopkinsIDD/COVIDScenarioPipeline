@@ -1018,8 +1018,8 @@ plot_needs_relative_to_threshold_heatmap <- function(hosp_geounit_relative,
 ##' @param current_scenario name of scenario inputs to use
 ##' @param npi_trim pattern used by str_remove to group NPIs
 ##' @param periodcolors 
-##' @param npi_labels labels for plotted NPIs
-##' @param npi_levels levels of NPIs 
+##' @param npi_labels labels for plotted NPIs optional
+##' @param npi_levels levels of NPIs optional
 ##' @param effectiveness whether to reduction estimates instead
 ##' @param pi_lo lower quantile for summarization
 ##' @param pi_hi higher quantile for summarization
@@ -1034,8 +1034,8 @@ plot_needs_relative_to_threshold_heatmap <- function(hosp_geounit_relative,
 plot_inference_r <- function(r_dat,
                              current_scenario,
                              npi_trim="[[A-Z]].+\\_",
-                             npi_labels, 
-                             npi_levels,
+                             npi_labels=NA, 
+                             npi_levels=NA,
                              periodcolors = c("chartreuse3", "brown2", "turquoise4", "black"),
                              effectiveness=FALSE,
                              pi_lo=0.25,
