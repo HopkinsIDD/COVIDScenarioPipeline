@@ -464,7 +464,7 @@ for (test in tests) {
   arrow::read_parquet(first_snpi_file) %>% 
     write_csv(path = glue::glue("data/generated/generate_testInference_{test$runid}_snpi.csv"))
   
-  arrow::read_parquet(first_hpar_file) %>% 
+  arrow::read_parquet(hpar_generation_file) %>% 
     write_csv(path = glue::glue("data/generated/generate_testInference_{test$runid}_hpar.csv"))
   
   # Write data
@@ -510,6 +510,7 @@ for (i in 1:length(tests)) {
     append = T
   )
 }
+
 
 for (i in 1:length(tests)) {
   write(
