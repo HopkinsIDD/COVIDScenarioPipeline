@@ -11,7 +11,8 @@ option_list = list(
   optparse::make_option(c("-b", "--this_block"), action="store", default=Sys.getenv("COVID_BLOCK_INDEX",1), type='integer', help = "id of this block"),
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
   optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
-  optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable")
+  optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable"),
+  optparse::make_option(c("-x", "--incid_x"), action="store", default=2.5, type='numeric', help="incidence multiplier for reported cases for seeding creation")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -58,14 +59,14 @@ cl <- parallel::makeCluster(opt$j)
 doParallel::registerDoParallel(cl)
 print(list(scenarios=scenarios,deathrates=deathrates,slots=seq_len(opt$slots)))
 foreach(scenario = scenarios) %:%
-foreach(deathrate = deathrates) %:%
-foreach(slot = seq_len(opt$slots)) %dopar% {
-  print(paste("Slot",slot,"of",opt$slots))
-  err <- system(
-    paste(
-      opt$rpath,
+  foreach(deathrate = deathrates) %:%
+  foreach(slot = seq_len(opt$slots)) %dopar% {
+    print(paste("Slot",slot,"of",opt$slots))
+    err <- system(
       paste(
-        opt$pipepath,"R","scripts","filter_MC.R",sep='/'),
+        opt$rpath,
+        paste(
+          opt$pipepath,"R","scripts","filter_MC.R",sep='/'),
         "-c",opt$config,
         "-u",opt$run_id,
         "-s",scenario,
@@ -76,9 +77,10 @@ foreach(slot = seq_len(opt$slots)) %dopar% {
         "-b",opt$this_block,
         "-y",opt$python,
         "-r",opt$rpath,
-        "-p",opt$pipepath
+        "-p",opt$pipepath,
+        "-x",opt$incid_x
       )
     )
-  if(err != 0){quit("no")}
-}
+    if(err != 0){quit("no")}
+  }
 parallel::stopCluster(cl)

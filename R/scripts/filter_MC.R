@@ -25,7 +25,7 @@ option_list = list(
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
   optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
   optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable"),
-  optparse::make_option(c("-x", "--incid_x"), action="store", default=10, type='integer', help="incidence multiplier for reported cases for seeding creation")
+  optparse::make_option(c("-x", "--incid_x"), action="store", default=2.5, type='numeric', help="incidence multiplier for reported cases for seeding creation")
 )
 
 parser=optparse::OptionParser(option_list=option_list)

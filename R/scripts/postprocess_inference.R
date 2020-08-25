@@ -8,7 +8,7 @@ library(itertools)
 option_list = list(
   optparse::make_option(c("-c","--config"), action="store", type='character', help="config file", default = "config.yml"),
   optparse::make_option(c("-u","--run_id"), action="store", type='character', help="Unique identifier for this run", default = Sys.getenv("COVID_RUN_INDEX",covidcommon::run_id())),
-  optparse::make_option(c("-s","--scenario"), action="store", type='character', help="Wchich scenario to postprocess", default = "inf"),
+  optparse::make_option(c("-s","--scenario"), action="store", type='character', help="Which scenario to postprocess", default = "inf"),
   optparse::make_option(c("-i", "--do_int"), action = "store", default = FALSE, type='logical', help = "Postprocess intermediate trajectories"),
   optparse::make_option(c("-r", "--redo"), action = "store", default = FALSE, type='logical', help = "Postprocess intermediate trajectories"),
   optparse::make_option(c("-j", "--jobs"), action = "store", default = parallel::detectCores(), type = 'integer', help = "Number of jobs to run in parallel")
@@ -16,7 +16,8 @@ option_list = list(
 
 parser <- optparse::OptionParser(option_list=option_list)
 opt <- optparse::parse_args(parser)
-
+opt$run_id = "final_inf"
+opt$scenario = "sau_inf"
 do_int <- opt$do_int
 redo <- opt$redo
 runid <- opt$run_id
@@ -27,7 +28,7 @@ outdir <- glue::glue("notebooks/{setup}/{scenario}/{runid}")
 
 if (!dir.exists(outdir))
   dir.create(outdir, recursive = T)
-  
+
 if (!(scenario %in% config$interventions$scenarios))
   stop("Scenario ", scenario, " not among specified scenarios: ", str_c(config$interventions$scenarios, collapse = ","))
 
@@ -63,7 +64,7 @@ getPosteriors <- function(param,
                              full.names = T, 
                              recursive = T,
                              pattern = file_type) %>% 
-      .[str_detect(., "final")] 
+      .[str_detect(., "/final/")] 
     
     if (length(final_param_files) == 0)
       stop("Couldn't find result files for ", param)
@@ -85,8 +86,15 @@ getPosteriors <- function(param,
                       function(x) {
                         read_fun(x) %>% 
                           ingest_proc_fun() %>% 
-                          mutate(sim = as.numeric(str_extract(x, "(?<=0)[0-9]+(?=\\.)")),
-                                 geoid = as.character(geoid)) 
+                          mutate(sim = as.numeric(str_extract(x, "(?<=0)[0-9]+(?=\\.)"))) %>% 
+                          { 
+                            if(param == "seed") {
+                              mutate(., place = as.character(place))
+                            } else {
+                              mutate(., geoid = as.character(geoid))
+                            }
+                            
+                          }
                       }) 
     
     # Postprocess if required
@@ -115,7 +123,7 @@ sim_stats <- getPosteriors(param = "hosp",
                            ingest_proc_fun = inference::compute_totals, 
                            postproc_fun = function(x) {
                              x %>% 
-                               filter(time < as.Date("2020-08-15")) %>% 
+                               filter(time < as.Date("2020-10-15")) %>% 
                                gather(var, value, -time, -geoid, -sim) %>% 
                                group_by(time, geoid, var) %>% 
                                summarise(q025 = quantile(value, .025),
