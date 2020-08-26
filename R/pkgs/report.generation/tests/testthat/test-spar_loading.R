@@ -22,6 +22,7 @@ create_testing_simulations <- function(){
 test_that("Simulation loading works", {
     dir <- create_testing_simulations()
     setwd(dir)
+    
     expect_error({
         load_spar_sims_filtered(
             outcome_dir = c('a_b', 'a_c')
@@ -65,7 +66,7 @@ test_that("Simulation loading works", {
         )
     }, "could not find function")
     
-    expect_warning({
+    expect_message({
         load_spar_sims_filtered(
             outcome_dir = 'a_b'
         )

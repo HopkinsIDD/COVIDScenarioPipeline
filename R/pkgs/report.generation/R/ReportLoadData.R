@@ -22,12 +22,9 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
                                        display_dates=config$report$formatting$display_dates,
                                        scenario_levels=NULL,
                                        scenario_labels=NULL,
-                                       incl_geoids=NULL,
+                                       incl_geoids,
                                        pdeath_filter="med")
 {
-  if(is.null(scenario_labels)){
-    warning("You have not specified scenario labels for this function. You may encounter future errors.")  
-  }
   warning("This function loads infection data from hospitalization outputs. Only one IFR scenario is needed to load these data for a given set of model outputs because infection counts will be the same across IFR scenarios.")
   
   display_dates <- as.Date(display_dates)
@@ -63,7 +60,8 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
   rc<-load_hosp_sims_filtered(outcome_dir=outcome_dir,
                               pdeath_filter=pdeath_filter,
                               pre_process=hosp_pre_process,
-                              post_process=hosp_post_process)
+                              post_process=hosp_post_process,
+                              incl_geoids = incl_geoids)
   
   rc<-rc%>%
     dplyr::mutate(scenario_name = factor(scenario, levels=scenario_levels, labels=scenario_labels), 
@@ -101,12 +99,9 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
                                        display_dates=config$report$formatting$display_dates,
                                        scenario_levels=NULL,
                                        scenario_labels=NULL,
-                                       incl_geoids=NULL,
+                                       incl_geoids,
                                        pdeath_filter="med")
 {
-  if(is.null(scenario_labels)){
-    warning("You have not specified scenario labels for this function. You may encounter future errors.")  
-  }
   warning("This function loads infection data from hospitalization outputs. Only one IFR scenario is needed to load these data for a given set of model outputs because infection counts will be the same across IFR scenarios.")
   
   display_dates <- as.Date(display_dates)
@@ -148,7 +143,8 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
   rc<-load_hosp_sims_filtered(outcome_dir=outcome_dir,
                               pdeath_filter=pdeath_filter,
                               pre_process=hosp_pre_process,
-                              post_process=hosp_post_process)
+                              post_process=hosp_post_process,
+                              incl_geoids=incl_geoids)
   
   rc<-rc%>%
     dplyr::mutate(scenario_name = factor(scenario, levels=scenario_levels, labels=scenario_labels), 
@@ -168,6 +164,7 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
 ##' @param scenario_labels used to create scenario_name for labelling plots
 ##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
 ##' @param pre_process function that does processing before collection
+##' @param incl_geoids character vector of geoids that are included in the report
 ##' 
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
 ##' 
@@ -179,6 +176,7 @@ load_hosp_geocombined_totals <- function(outcome_dir,
                                          scenario_labels,
                                          pdeath_filter=c("high", "med", "low"),
                                          pre_process=function(x) {x},
+                                         incl_geoids,
                                          ...
 ) {
   
@@ -214,7 +212,8 @@ load_hosp_geocombined_totals <- function(outcome_dir,
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
                                pdeath_filter=pdeath_filter,
                                pre_process=pre_process,
-                               post_process=hosp_post_process)
+                               post_process=hosp_post_process,
+                               incl_geoids=incl_geoids)
   
   if(!unique(rc$scenario) %in% scenario_levels) {warning("Scenario levels were not correctly specified you may encounter errors in the future")}
   
@@ -231,6 +230,7 @@ load_hosp_geocombined_totals <- function(outcome_dir,
 ##' @param scenario_labels used to create scenario_name for labelling plots
 ##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
 ##' @param pre_process function that does processing before collection
+##' @param incl_geoids character vector of geoids that are included in the report
 ##' 
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
 ##'      - geoid
@@ -262,6 +262,7 @@ load_hosp_county <- function(outcome_dir,
                              scenario_labels,
                              pdeath_filter=c("high", "med", "low"),
                              pre_process=function(x) {x},
+                             incl_geoids,
                              ...
 ) {
   
@@ -293,7 +294,8 @@ load_hosp_county <- function(outcome_dir,
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
                                pdeath_filter=pdeath_filter,
                                pre_process=pre_process,
-                               post_process=hosp_post_process)
+                               post_process=hosp_post_process,
+                               incl_geoids=incl_geoids)
   
   if(!unique(rc$scenario) %in% scenario_levels) {warning("Scenario levels were not correctly specified you may encounter errors in the future")}
   
@@ -640,6 +642,7 @@ load_hosp_geounit_relative_to_threshold <- function(county_dat,
 ##' @param pdeath_filter string that indicates which pdeath(s) to import from outcome_dir
 ##' @param pre_process function that does processing before collection of snpi outputs
 ##' @param geodat df with geoid and name columns 
+##' @param incl_geoids character vector of geoids that are included in the report
 ##' 
 ##' @return a combined data frame of all R simulations with filters applied pre merge
 ##' 
@@ -650,6 +653,7 @@ load_r_sims_filtered <- function(outcome_dir,
                                  pdeath_filter=c("high", "med", "low"),
                                  pre_process=function(x) {x},
                                  geodat=geodata,
+                                 incl_geoids,
                                  ...
 ) {
   
@@ -667,6 +671,7 @@ load_r_sims_filtered <- function(outcome_dir,
   snpi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
                                  pre_process=pre_process, 
                                  pdeath_filter=pdeath_filter, 
+                                 incl_geoids=incl_geoids,
                                  ...) %>%
     dplyr::select(sim_num, scenario, pdeath, geoid, npi_name, start_date, end_date, reduction)
   

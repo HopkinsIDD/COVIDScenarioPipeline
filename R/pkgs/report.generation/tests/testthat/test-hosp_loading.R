@@ -40,38 +40,46 @@ create_testing_simulations <- function(){
 test_that("Simulation loading works", {
     dir <- create_testing_simulations()
     setwd(dir)
+    included_geoids <- 1:3
+    
     expect_error({
         load_hosp_sims_filtered(
-            outcome_dir = c('a_b', 'a_c')
+            outcome_dir = c('a_b', 'a_c'),
+            incl_geoids = included_geoids
         )
     }, "'x' must be a string")
     expect_error({
         load_hosp_sims_filtered(
             outcome_dir = 'a_b',
-            partitions = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")
+            partitions = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
+            incl_geoids = included_geoids
         )
     }, "'pdeath' not found")
     expect_error({
         load_hosp_sims_filtered(
             outcome_dir = "a_b", 
-            partitions = c("location", "scenario", "pdeath", "lik_type", "is_final")
+            partitions = c("location", "scenario", "pdeath", "lik_type", "is_final"),
+            incl_geoids = included_geoids
         )
     }, "at least one array to create a converter")
     
     expect_equal({
         load_hosp_sims_filtered(
             outcome_dir = 'a_b',
-            pre_process = function(x){x}
+            pre_process = function(x){x},
+            incl_geoids = included_geoids
         )
     },
     load_hosp_sims_filtered(
-        outcome_dir = 'a_b'
+        outcome_dir = 'a_b',
+        incl_geoids = included_geoids
     )
     )
     
     expect_equal({
         ncol(load_hosp_sims_filtered(
-            outcome_dir = 'a_b'
+            outcome_dir = 'a_b',
+            incl_geoids = included_geoids
         ))
     }, 19
     )
@@ -85,13 +93,15 @@ test_that("Simulation loading works", {
     expect_error({
         load_hosp_sims_filtered(
             outcome_dir = 'a_b',
-            pre_process = "not a function"
+            pre_process = "not a function",
+            incl_geoids = included_geoids
         )
     }, "could not find function")
     
-    expect_warning({
+    expect_message({
         load_hosp_sims_filtered(
-            outcome_dir = 'a_b'
+            outcome_dir = 'a_b',
+            incl_geoids = included_geoids
         )
     }, "Finished loading")
     
