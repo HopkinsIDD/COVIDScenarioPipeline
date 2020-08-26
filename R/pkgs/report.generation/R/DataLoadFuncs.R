@@ -4,6 +4,7 @@
 ##' @param model_output folder with hosp outcomes
 ##' @param partitions used by open_dataset 
 ##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param incl_geoids character vector of geoids that are included in the report
 ##' @param pre_process function that does processing before collection
 ##' @param post_process function that does processing after collection
 ##' 
@@ -16,6 +17,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
                                     model_output = 'hosp',
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_id"),
                                     pdeath_filter=c("high", "med", "low"),
+                                    incl_geoids,
                                     pre_process=function(x) {x},
                                     post_process=function(x) {x},
                                     ...
@@ -28,6 +30,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
     dplyr::filter(is_final=="final",
                   lik_type=="global") %>%
     dplyr::filter(pdeath %in% pdeath_filter) %>%
+    dplyr::filter(geoid %in% incl_geoids) %>%
     pre_process(...) %>%
     dplyr::collect() 
   
@@ -42,7 +45,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
   rc <- rc %>%
       post_process(...) 
   
-  warning("Finished loading")
+  message("Finished loading")
   return(rc)
   
 }
@@ -53,7 +56,8 @@ load_hosp_sims_filtered <- function(outcome_dir,
 ##' @param model_output folder with hpar outcomes
 ##' @param partitions used by open_dataset 
 ##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
-##' @param pre_process function that does processing before collectio
+##' @param pre_process function that does processing before collection
+##' @param incl_geoids character vector of geoids that are included in the report
 ##' 
 ##' @return a combined data frame of all hpar simulations with filters applied pre merge.
 ##' 
@@ -65,6 +69,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_id"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
+                                    incl_geoids,
                                     ...
 ) {
   
@@ -75,6 +80,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
     dplyr::filter(is_final=="final",
                   lik_type=="global") %>%
     dplyr::filter(pdeath %in% pdeath_filter) %>%
+    dplyr::filter(geoid %in% incl_geoids) %>%
     pre_process(...) %>%
     dplyr::collect() 
   
@@ -85,7 +91,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
     dplyr::right_join(rc) %>%
     dplyr::ungroup() 
   
-  warning("Finished loading")
+  message("Finished loading")
   return(rc)
   
 }
@@ -131,7 +137,7 @@ load_spar_sims_filtered <- function(outcome_dir,
     dplyr::mutate(sim_num = order(sim_id)) %>%
     dplyr::ungroup()
   
-  warning("Finished loading. Note pdeaths of the same scenario are treated as different simulations.")
+  message("Finished loading. Note pdeaths of the same scenario are treated as different simulations.")
   return(spar)
   
 }
@@ -141,7 +147,8 @@ load_spar_sims_filtered <- function(outcome_dir,
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param partitions used by open_dataset 
 ##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
-##' @param pre_process function that does processing before collectio
+##' @param pre_process function that does processing before collection
+##' @param incl_geoids character vector of geoids that are included in the report
 ##' 
 ##' @return a combined data frame of all R simulations with filters applied pre merge.
 ##'        - geoid
@@ -162,6 +169,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_id"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
+                                    incl_geoids,
                                     ...
 ) {
   
@@ -172,6 +180,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
     dplyr::filter(is_final=="final",
                   lik_type=="global") %>%
     dplyr::filter(pdeath %in% pdeath_filter) %>%
+    dplyr::filter(geoid %in% incl_geoids) %>%
     pre_process(...)%>%
     dplyr::collect() %>%
     dplyr::group_by(geoid, npi_name, scenario)%>%
@@ -179,7 +188,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
     dplyr::select(-date, -lik_type, -is_final) %>%
     dplyr::ungroup()
   
-  warning("Finished loading. Note pdeaths of the same scenario are treated as different simulations.")
+  message("Finished loading. Note pdeaths of the same scenario are treated as different simulations.")
   return(snpi)
   
 }

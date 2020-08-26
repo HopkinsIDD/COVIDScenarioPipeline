@@ -56,12 +56,15 @@ monotonic_increasing <- function(x, pdeath_filter, cum){
 test_that("Simulation loading works", {
     dir <- create_testing_simulations()
     setwd(dir)
+    included_geoids <- 1:3
+    
     expect_error({
         load_hosp_county(
             outcome_dir = 'a_b',
             scenario_levels = 'scn',
             scenario_labels = 'baseline',
-            pdeath_filter = "low"
+            pdeath_filter = "low",
+            incl_geoids = included_geoids
         )
     }, "at least one array to create a converter")
     
@@ -70,6 +73,7 @@ test_that("Simulation loading works", {
             outcome_dir = 'a_b',
             scenario_levels = 'SCN',
             scenario_labels = 'baseline',
+            incl_geoids = included_geoids
         )
     }, "Scenario levels were not correctly specified"
     )
@@ -79,13 +83,15 @@ test_that("Simulation loading works", {
             outcome_dir = 'a_b',
             scenario_levels = 'scn',
             scenario_labels = 'baseline',
-            pre_process = function(x){x}
+            pre_process = function(x){x},
+            incl_geoids = included_geoids
         )
     },
     load_hosp_county(
         outcome_dir = 'a_b',
         scenario_levels = 'scn',
         scenario_labels = 'baseline',
+        incl_geoids = included_geoids
     )
     )
     
@@ -94,6 +100,7 @@ test_that("Simulation loading works", {
             outcome_dir = 'a_b',
             scenario_levels = 'scn',
             scenario_labels = 'baseline',
+            incl_geoids = included_geoids
         ))
     }, 21
     )
@@ -106,7 +113,8 @@ test_that("Correct output", {
     setwd(dir)
     dat <- load_hosp_county(outcome_dir = 'a_b',
                             scenario_levels = 'scn',
-                            scenario_labels = 'baseline')
+                            scenario_labels = 'baseline',
+                            incl_geoids = 1:3)
     ifr <- "high"
     
     expect_true(
