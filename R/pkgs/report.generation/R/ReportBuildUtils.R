@@ -1447,7 +1447,7 @@ plot_truth_by_county <- function(truth_dat,
   end_date<-as.Date(end_date)
   if(filter_by!="pdeath" & filter_by!="scenario") stop("You can only filter by 'pdeath' or 'scenario'")
   
-  group_var<-if_else(filter_by=="pdeath", "scenario", "pdeath")
+  group_var<-if_else(filter_by=="pdeath", "scenario_name", "pdeath")
   
   county_dat<-county_dat%>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
