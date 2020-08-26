@@ -156,13 +156,13 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, stoch_traj
             probability = parameters[new_comp]['probability']
             delay =       parameters[new_comp]['delay']
     
-            # Create new compartement incidence:
-            all_data[new_comp] = np.empty_like(all_data['incidI'])
-            # Draw with from source compartement
+            # Create new compartement incidence and Draw with from source compartement
             if stoch_traj_flag:
+                all_data[new_comp] = np.empty_like(all_data['incidI'])
                 all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))
             else:
-                all_data[new_comp] = np.round(all_data[source] *  (probability * np.ones_like(all_data[source])))
+                all_data[new_comp] = np.empty(all_data['incidI'].shape)
+                all_data[new_comp] = all_data[source] *  (probability * np.ones_like(all_data[source]))
             
             #import matplotlib.pyplot as plt
             #plt.imshow(probability * np.ones_like(all_data[source]))
