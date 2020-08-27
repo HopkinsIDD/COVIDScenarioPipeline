@@ -1369,7 +1369,6 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
   
   # Plotting
   fill_values <- RColorBrewer::brewer.pal(length(npi_labels), brewer_palette)
-  fill_values<-fill_values[-1]
   color_values <- colorspace::darken(fill_values, 0.3)
   
   
@@ -1385,10 +1384,10 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
     dplyr::mutate(plot=purrr::map(data, ~ggplot(., aes(x=time, y=estimate, ymin=est_lo, ymax=est_hi))+
                                     geom_col(aes(fill=npi_name), stat="identity")+
                                     geom_errorbar(aes(col=npi_name), size=3) +
-                                    scale_color_manual(values= c(color_values, "white"),
-                                                       breaks=c(npi_labels, "white"))+
-                                    scale_fill_manual(values=c(fill_values, "white"),
-                                                      breaks=c(npi_labels, "white"))+
+                                    scale_color_manual(values= c(color_values),
+                                                       breaks=c(npi_labels))+
+                                    scale_fill_manual(values=c(fill_values),
+                                                      breaks=c(npi_labels))+
                                     geom_hline(yintercept=1, col="black", size=3)+
                                     theme(legend.position="none",
                                           axis.line = element_blank(),
