@@ -15,7 +15,7 @@ from SEIR import file_paths
 
 
 
-def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix, scenario_outcomes, branching_file, nsim = 1, index=1, n_jobs=1):
+def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix, scenario_outcomes, branching_file, nsim = 1, index=1, n_jobs=1, stoch_traj_flag = True):
     start = time.monotonic()
     sim_ids = np.arange(index, index + nsim)
 
@@ -35,6 +35,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
         diffI = diffI[diffI['comp'] == 'diffI']
         dates = diffI.time
         diffI.drop(['comp'], inplace = True, axis = 1)
+        places = diffI.drop(['time'], axis=1).columns
 
         # Load the actual csv file
         branching_data = pa.parquet.read_table(branching_file).to_pandas()
@@ -44,6 +45,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
         branching_data = pd.pivot(branching_data, index="geoid",columns="colname",values="value")
         if (branching_data.shape[0] != diffI.drop('time', axis=1).columns.shape[0]):
             raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
+        branching_data = branching_data.loc[places] #re-order
 
     parameters = {}
     for new_comp in config_outcomes:
@@ -80,16 +82,17 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
 
     if (n_jobs == 1) or (len(sim_ids) == 1):          # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_delayframe_outcomes(in_run_id, in_prefix, out_run_id, out_prefix, sim_id, parameters)
+            onerun_delayframe_outcomes(sim_id, in_run_id, in_prefix, out_run_id, out_prefix, parameters, stoch_traj_flag)
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
+            sim_ids, 
             itertools.repeat(in_run_id), 
             itertools.repeat(in_prefix), 
             itertools.repeat(out_run_id), 
             itertools.repeat(out_prefix), 
-            sim_ids, 
-            itertools.repeat(parameters), 
+            itertools.repeat(parameters),
+            itertools.repeat(stoch_traj_flag),
             max_workers=n_jobs
         )
 
@@ -99,13 +102,13 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
 
 
 
-def onerun_delayframe_outcomes(in_run_id, in_prefix, out_run_id, out_prefix, sim_id, parameters):
+def onerun_delayframe_outcomes(sim_id, in_run_id, in_prefix, out_run_id, out_prefix,  parameters, stoch_traj_flag):
     
     # Read files
     diffI, places, dates = read_seir_sim(in_run_id, in_prefix, sim_id)
     
     # Compute outcomes
-    outcomes = compute_all_delayframe_outcomes(parameters, diffI, places, dates)
+    outcomes = compute_all_delayframe_outcomes(parameters, diffI, places, dates, stoch_traj_flag)
 
     # Write output
     write_outcome_sim(outcomes, out_run_id, out_prefix, sim_id)
@@ -138,7 +141,7 @@ def write_outcome_sim(outcomes, run_id, prefix, sim_id):
         )
     )
 
-def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
+def compute_all_delayframe_outcomes(parameters, diffI, places, dates, stoch_traj_flag):
     all_data = {}
     # We store them as numpy matrices. Dimensions is dates X places
     all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
@@ -153,10 +156,13 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates):
             probability = parameters[new_comp]['probability']
             delay =       parameters[new_comp]['delay']
     
-            # Create new compartement incidence:
-            all_data[new_comp] = np.empty_like(all_data['incidI'])
-            # Draw with from source compartement
-            all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))  
+            # Create new compartement incidence and Draw with from source compartement
+            if stoch_traj_flag:
+                all_data[new_comp] = np.empty_like(all_data['incidI'])
+                all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))
+            else:
+                all_data[new_comp] = np.empty(all_data['incidI'].shape)
+                all_data[new_comp] = all_data[source] *  (probability * np.ones_like(all_data[source]))
             
             #import matplotlib.pyplot as plt
             #plt.imshow(probability * np.ones_like(all_data[source]))
