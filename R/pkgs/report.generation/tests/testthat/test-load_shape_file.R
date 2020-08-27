@@ -1,5 +1,6 @@
 test_that("Shapefile is valid", {
   dirname <- tempdir()
+  dir.create(dirname)
   setwd(dirname)
   
   fname <- "djkewlkmdkf!!!."
@@ -16,7 +17,7 @@ test_that("Shapefile is valid", {
     )
   })
 
-  badfile2 <- paste0(dirname, "filename1.shp")
+  badfile2 <- "filename1.shp"
   sf::st_write(sf::st_sf(sf::st_sfc(sf::st_point(matrix(0,ncol=2,nrow=1)))), badfile2) 
 
   expect_error({
@@ -25,7 +26,7 @@ test_that("Shapefile is valid", {
     )
   }, "does not have a column named geoid")
 
-  goodfile <- paste0(dirname, "filename2.shp")
+  goodfile <- "filename2.shp"
   sf::st_write(sf::st_sf(sf::st_sfc(sf::st_point(matrix(0,ncol=2,nrow=1)))) %>% dplyr::mutate(geoid="0"), goodfile) 
 
   expect_silent({
@@ -33,6 +34,8 @@ test_that("Shapefile is valid", {
       filename = goodfile
     )
   })
+  
+  unlink(dirname, recursive=TRUE)
 
 })
 
@@ -40,6 +43,7 @@ test_that("Shapefile is valid", {
 test_that("Shapefile geoid padding works", {
 
   dirname <- tempdir()
+  dir.create(dirname)
   setwd(dirname)
   
   goodfile <- "filename3.shp"
@@ -67,6 +71,8 @@ test_that("Shapefile geoid padding works", {
   expect_error({
     shp <- load_shape_file(filename = goodfile, geoid_len = 5, geoid_pad = 12)
   }, "Invalid geoid_pad value")
+  
+  unlink(dirname, recursive=TRUE)
 
 })
 
@@ -74,6 +80,9 @@ test_that("Shapefile geoid padding works", {
 test_that("Shapefile lowercasing works", {
 
   dirname <- tempdir()
+  dir.create(dirname)
+  setwd(dirname)
+  
   goodfile <- "filename4.shp"
   sf::st_write(sf::st_sf(sf::st_sfc(sf::st_point(matrix(0,ncol=2,nrow=1)))) %>% dplyr::mutate(GEOID="b", Altcol="00"), goodfile) 
 
@@ -82,4 +91,5 @@ test_that("Shapefile lowercasing works", {
     print(names(shp))
   }, "geoid")
 
+  unlink(dirname, recursive=TRUE)
 })
