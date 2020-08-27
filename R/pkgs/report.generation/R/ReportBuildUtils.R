@@ -1125,7 +1125,7 @@ plot_inference_r <- function(r_dat,
 ##' @param npi_trim pattern used by str_remove to group NPIs
 ##' @param npi_labels labels for plotted NPIs
 ##' @param npi_levels levels of NPIs after str_remove is applied
-##' @param effectiveness whether to reduction estimates instead
+##' @pdeath_filter which pdeath value to select, does not support multiple pdeath
 ##' @param pi_lo lower quantile for summarization
 ##' @param pi_hi upper quantile for summarization
 ##' @param geodat df with location names
@@ -1167,7 +1167,7 @@ make_sparkline_tab_r <- function(r_dat,
   # Set new end date for baseline values
   new_local_end <- r_dat %>%
     dplyr::filter(npi_name!="local_variance") %>%
-    dplyr::group_by(geoid) %>%
+    dplyr::group_by(geoid, sim_num) %>%
     dplyr::filter(min(start_date)==start_date) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(new_end=start_date-1) %>%
