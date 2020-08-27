@@ -1619,7 +1619,7 @@ plot_rt_ts <- function(county_dat,
     rc[[i]]<-r_dat %>%
       dplyr::filter(scenario==scenario_levels[i],
                     pdeath==pdeath_filter) %>%
-      dplyr::select(geoid, sim_num, npi_name, r, scenario, start_date, end_date) %>%
+      dplyr::select(geoid, sim_num, npi_name, reduction, local_r, scenario, start_date, end_date) %>%
       dplyr::group_by(geoid, npi_name) %>%
       dplyr::mutate(sim_num = order(sim_num)) %>%
       dplyr::group_by(geoid, sim_num) %>%
@@ -1627,8 +1627,13 @@ plot_rt_ts <- function(county_dat,
                               lead(start_date)-1,
                               end_date)) %>%
       dplyr::left_join(geoiddate)%>%
-      dplyr::mutate(r=if_else(date<start_date | date>end_date, NA_real_, r)) %>% 
-      drop_na()
+      dplyr::mutate(reduction=if_else(date<start_date | date>end_date, NA_real_, reduction)) %>% 
+      drop_na() %>%
+      dplyr::mutate(reduction=ifelse(npi_name=="local_variance", 1, 1-reduction)) %>%
+      dplyr::group_by(geoid, sim_num, date, scenario) %>%
+      dplyr::summarize(reduction=prod(reduction),
+                       local_r=unique(local_r)) %>%
+      dplyr::mutate(r=reduction*local_r)
     
     if(susceptible){
     rc[[i]]<-county_dat %>%
