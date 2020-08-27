@@ -668,8 +668,8 @@ load_r_sims_filtered <- function(outcome_dir,
                                   pdeath_filter=pdeath_filter,
                                   ...) %>%
     dplyr::group_by(scenario) %>%
-    dplyr::rename(location_r=value) %>%
-    dplyr::select(sim_num, scenario, pdeath, location_r) %>%
+    dplyr::rename(r0=value) %>%
+    dplyr::select(sim_num, scenario, pdeath, r0) %>%
     dplyr::ungroup()
   
   snpi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
@@ -682,8 +682,8 @@ load_r_sims_filtered <- function(outcome_dir,
   rc <- snpi %>%
     dplyr::filter(npi_name=="local_variance") %>%
     dplyr::right_join(spar)%>%
-    dplyr::mutate(local_r = location_r*(1-reduction)) %>% # county_r0 ought to be renamed to "geogroup_r0"
-    dplyr::select(geoid, sim_num, local_r, scenario) %>%
+    dplyr::mutate(local_r = r0*(1-reduction)) %>% # county_r0 ought to be renamed to "geogroup_r0"
+    dplyr::select(geoid, sim_num, local_r, scenario, r0) %>%
     dplyr::left_join(snpi) %>%
     dplyr::mutate(r = if_else(npi_name=="local_variance",
                        local_r,
