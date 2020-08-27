@@ -513,8 +513,9 @@ load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
 ##' Load USAFacts data either summarized or by geoid
 ##'
 ##' @param data_dir data directory to download raw USAFacts data to
-##' @param states character vector of states (state abbreviations is US-only)
+##' @param aggregate whether to aggregate results by source
 ##' @param incl_geoids geoids to include if data will not be summarized
+##' @param geodat df with geoid, name and population
 ##' 
 ##' @return a data frame with columns
 ##'         - date
@@ -525,8 +526,9 @@ load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
 ##'         
 ##' @export
 load_USAFacts_for_report <- function(data_dir = "data/case_data",
-                                     states,
-                                     incl_geoids=NULL) {
+                                     incl_geoids=NULL,
+                                     geodat=geodata,
+                                     aggregate=FALSE) {
 
   require(magrittr)
 
@@ -534,19 +536,11 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
                                              death_data_filename = file.path(data_dir, "USAFacts_death_data.csv"))
   
   if(is.null(incl_geoids)){
-  usaf_dat <- 
-    usaf_dat %>%
-    dplyr::mutate(date = as.Date(Update)) %>%
-    dplyr::filter(source %in% states) %>%
-    dplyr::group_by(date) %>%
-    dplyr::summarize(NcumulConfirmed = sum(Confirmed, na.rm = TRUE), NcumulDeathsObs = sum(Deaths, na.rm = TRUE)) %>%
-    dplyr::ungroup() %>%
-    dplyr::arrange(date) %>%
-    dplyr::mutate(NincidConfirmed  = NcumulConfirmed - dplyr::lag(NcumulConfirmed),
-                  NincidDeathsObs = NcumulDeathsObs - dplyr::lag(NcumulDeathsObs)) %>%
-    na.omit()
+    usaf_dat <- usaf_dat %>%
+      dplyr::mutate(date=as.Date(Update),
+                    geoid=FIPS) %>%
+      dplyr::select(-FIPS, -Update)
   
-  warning("Data summarized by date only")
   } else{
     usaf_dat <- usaf_dat %>%
       dplyr::filter(FIPS %in% incl_geoids) %>%
@@ -554,7 +548,17 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
                     geoid=FIPS) %>%
       dplyr::select(-FIPS, -Update)
     
-    warning("Data summarized by date and geoid")
+  }
+  
+  if(aggregate){
+    usaf_dat <- usaf_dat %>%
+      dplyr::group_by(date, source) %>%
+      dplyr::summarize_all(sum, na.rm = TRUE) %>%
+      dplyr::ungroup()
+      
+  } else{
+    usaf_dat <- usaf_dat %>%
+      dplyr::left_join(geodat)
   }
   
   return(usaf_dat)
