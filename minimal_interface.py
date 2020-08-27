@@ -77,7 +77,6 @@ write_csv = False
 write_parquet = True
 
 
-
 s = setup.Setup(
     setup_name=config["name"].get() + "_" + str(scenario),
     spatial_setup=setup.SpatialSetup(
@@ -108,6 +107,7 @@ s = setup.Setup(
 
 
 print(f"""
+>> Running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** SEIR and Outcomes modules
 >> Scenario: {scenario}
 >> Starting {s.nsim} model runs beginning from {s.first_sim_index}
 >> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}
