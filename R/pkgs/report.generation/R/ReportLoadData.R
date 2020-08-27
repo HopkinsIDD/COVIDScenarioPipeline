@@ -328,7 +328,7 @@ load_hosp_geounit_threshold <- function(threshold,
                                         variable,
                                         end_date = config$end_date,
                                         pdeath_filter = "high",
-                                        incl_geoids = NULL,
+                                        incl_geoids,
                                         scenario_labels, 
                                         scenario_levels,
                                         outcome_dir
@@ -340,26 +340,20 @@ load_hosp_geounit_threshold <- function(threshold,
     }
 
     end_date <- as.Date(end_date)
-    if (!is.null(incl_geoids)) {
-      hosp_pre_process <- function(x) {
-        x %>%
-          dplyr::filter(geoid %in% incl_geoids) %>%
-          dplyr::filter(!is.na(time),
-                        time <= end_date)
-        } 
-      } else {
-      hosp_pre_process <- function(x) {
-        x %>%
-          dplyr::filter(!is.na(time),
-                        time <= end_date) 
-      }
-    }
+    
+    hosp_pre_process <- function(x) {
+      x %>%
+        dplyr::filter(geoid %in% incl_geoids) %>%
+        dplyr::filter(!is.na(time),
+                      time <= end_date)
+      } 
     
     rc <- load_hosp_totals(outcome_dir=outcome_dir,
                            pre_process=hosp_pre_process,
                            pdeath_filter=pdeath_filter,, 
                            scenario_levels=scenario_levels,
-                           scenario_labels=scenario_labels)
+                           scenario_labels=scenario_labels,
+                           incl_geoids=incl_geoids)
     rc <- rc %>%
       dplyr::group_by(geoid, scenario, sim_num) %>%
       group_map(function(.x,.y){
@@ -554,7 +548,11 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
     usaf_dat <- usaf_dat %>%
       dplyr::group_by(date, source) %>%
       dplyr::summarize_all(sum, na.rm = TRUE) %>%
-      dplyr::ungroup()
+      dplyr::ungroup() %>%
+      dplyr::rename(NcumulConfirmed=Confirmed,
+                    NcumulDeathsObs=Deaths,
+                    NincidConfirmed=incidI,
+                    NincidDeathsObs=deaths)
       
   } else{
     usaf_dat <- usaf_dat %>%

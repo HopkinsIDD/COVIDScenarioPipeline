@@ -1136,7 +1136,7 @@ plot_inference_r <- function(r_dat,
 ##'@export
 
 make_sparkline_tab_r <- function(r_dat,
-                                 outcome_dir=NULL,
+                                 county_dat=NULL,
                                  susceptible=TRUE,
                                  current_scenario,
                                  npi_labels, 
@@ -1153,7 +1153,7 @@ make_sparkline_tab_r <- function(r_dat,
   require(gt)
   require(tidyverse)
   if(length(npi_labels)!=length(npi_levels)) {stop("Length of npi levels and labels must be equal")}
-  if(susceptible & is.null(outcome_dir)) {stop("You must specify outcome_dir to load cumulative infections")}
+  if(susceptible & is.null(county_dat)) {stop("You must specify county_dat")}
  
   timeline<-crossing(geoid=unique(r_dat$geoid), 
                      date = seq(min(r_dat$start_date), max(r_dat$end_date), by=1))
@@ -1182,16 +1182,9 @@ make_sparkline_tab_r <- function(r_dat,
     dplyr::select(-local_r, -reduction)
   
   if(susceptible){
-    r_dat<-load_hosp_sims_filtered(outcome_dir,
-                                   pdeath_filter=pdeath_filter,
-                                   pre_process=function(x){x%>%
-                                       dplyr::filter(scenario==current_scenario)%>%
-                                       dplyr::select(geoid, scenario, pdeath, location, time, sim_id, incidI)},
-                                   post_process=function(x){x%>%
-                                       dplyr::group_by(geoid, pdeath, scenario, sim_num, location)%>%
-                                       dplyr::mutate(cum_inf=cumsum(incidI))}) %>%
-      dplyr::rename(date=time)%>%
-      dplyr::select(-location, -sim_id, -incidI) %>%
+    r_dat<-county_dat %>%
+      dplyr::filter(scenario==current_scenario) %>%
+      dplyr::select(geoid, scenario, pdeath, sim_num, cum_inf, date=time) %>%
       dplyr::right_join(r_dat) %>%
       dplyr::left_join(geodat) %>%
       dplyr::mutate(r=r*(1-cum_inf/pop2010)) 
@@ -1587,7 +1580,7 @@ plot_rt_ts <- function(county_dat,
                        scenario_colors,
                        scenario_levels,
                        scenario_labels,
-                       included_geoids,
+                       incl_geoids,
                        start_date,
                        end_date, 
                        geodat=geodata,
@@ -1645,7 +1638,7 @@ plot_rt_ts <- function(county_dat,
   
   truth_dat<-truth_dat%>%
     dplyr::filter(NcumulConfirmed!=0)%>%
-    calcR0(geodat=geodat, by_geoid=FALSE, included_geoids = included_geoids) %>%
+    calcR0(geodat=geodat, by_geoid=FALSE, incl_geoids = incl_geoids) %>%
     dplyr::mutate(scenario="USA Facts")
   
   dplyr::bind_rows(rc, truth_dat) %>%
@@ -1986,7 +1979,7 @@ make_scn_county_table_withVent <- function(current_scenario,
 ##'
 ##' @param USAfacts df with observed cases col NincidConfirmed
 ##' @param geodat geodata file
-##' @param included_geoids geoids to include
+##' @param incl_geoids geoids to include
 ##' @param by_geoid estimate R for each county 
 ##' @param min.date start date for analysis
 ##' @param max.date end date for analysis
@@ -1997,7 +1990,7 @@ make_scn_county_table_withVent <- function(current_scenario,
 ##'
 calcR0 <- function(USAfacts, 
                    geodat, 
-                   included_geoids, 
+                   incl_geoids, 
                    by_geoid=FALSE, 
                    min.date=NULL, 
                    max.date=NULL){
@@ -2015,12 +2008,12 @@ calcR0 <- function(USAfacts,
   
   if(by_geoid){
     Rt1 <- list()
-    for(i in 1:length(included_geoids)){
-      pop <- geodat[geodat$geoid == included_geoids[i],config$spatial_setup$popnodes]
-      tmp <- covid %>% dplyr::filter(geoid == included_geoids[i])
+    for(i in 1:length(incl_geoids)){
+      pop <- geodat[geodat$geoid == incl_geoids[i],config$spatial_setup$popnodes]
+      tmp <- covid %>% dplyr::filter(geoid == incl_geoids[i])
       incid <- setNames(tmp$New.Cases,1:nrow(tmp))
       estR0 <- R0::estimate.R(incid, mGT, begin=1, end=as.numeric(length(incid)), methods=c("TD"), pop.size=pop, nsim=1000)
-      Rt1[[i]] <- cbind(tmp$Date,estR0$estimates$TD$R,estR0$estimates$TD$conf.int, geoid=rep(included_geoids[i], nrow(tmp)))
+      Rt1[[i]] <- cbind(tmp$Date,estR0$estimates$TD$R,estR0$estimates$TD$conf.int, geoid=rep(incl_geoids[i], nrow(tmp)))
       colnames(Rt1[[i]]) <- c("date","estimate","lower","upper", "geoid")
     }
     Rt1 <- dplyr::bind_rows(Rt1)
@@ -2029,7 +2022,7 @@ calcR0 <- function(USAfacts,
       group_by(Date) %>%
       summarise_if(is.numeric, sum) %>%
       ungroup()
-    pop <- sum(geodat[geodat$geoid == included_geoids,config$spatial_setup$popnodes])
+    pop <- sum(geodat[geodat$geoid == incl_geoids,config$spatial_setup$popnodes])
     incid <- setNames(covid$New.Cases,1:nrow(covid))
     estR0 <- R0::estimate.R(incid, mGT, begin=1, end=as.numeric(length(incid)), methods=c("TD"), pop.size=pop, nsim=1000)
     Rt1 <- cbind(covid$Date,estR0$estimates$TD$R,estR0$estimates$TD$conf.int)
