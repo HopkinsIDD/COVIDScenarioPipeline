@@ -144,7 +144,8 @@ tab_counter <- tab_counter+1
 
 ```{r}
 
-hpar<- load_hpar_sims_filtered(params$runs_folder) 
+hpar<- load_hpar_sims_filtered(params$runs_folder,
+                               incl_geoids = included_geoids) 
 
 hpar%>%
   {if(run=="state") right_join(.,geo_names)
@@ -196,7 +197,8 @@ fig_counter<-fig_counter+1
   
 ```{r r_load, eval=infer}
 #if run==country, then state_r0 is equivalent country_r0 and county_r0 is equivalent to state_r0
-inference_r <- load_r_sims_filtered(params$runs_folder)
+inference_r <- load_r_sims_filtered(params$runs_folder, 
+                                    incl_geoids=included_geoids)
 
 inference_r <- inference_r %>%
   mutate(npi_name = str_remove(npi_name, npi_trimmer)) %>%
