@@ -130,7 +130,8 @@ tab_counter <- 1
   
 res_state <- load_hosp_county(runs_dir, 
                               scenario_levels = scn_levels,
-                              scenario_labels = scn_labels)
+                              scenario_labels = scn_labels,
+                              incl_geoids = included_geoids)
 
 ```
 
@@ -138,7 +139,8 @@ res_state <- load_hosp_county(runs_dir,
 
 state_hosp_totals<-load_hosp_geocombined_totals(runs_dir, 
                                                 scenario_levels = scn_levels, 
-                                                scenario_labels = scn_labels)
+                                                scenario_labels = scn_labels,
+                                                incl_geoids = included_geoids)
 
 ```
 
@@ -156,13 +158,21 @@ cum_inf_dates <- load_cum_inf_geounit_dates(outcome_dir=runs_dir,
 
 ```{r load_case_data}
 ## load case data 
-usaf_dat <- load_USAFacts_for_report(states = modeled_states) 
+usaf_dat <- load_USAFacts_for_report(incl_geoids = included_geoids,
+                                     aggregate=TRUE)
+```
+
+```{r load_r}
+inference_r <-load_r_sims_filtered(outcome_dir=runs_dir,
+                                   incl_geoids = included_geoids)
+
 ```
 
 ```{r Rt, fig.cap=cap, fig.height=6, fig.width=10}
 
-plot_rt_ts(outcome_dir=runs_dir, 
-           truth_dat = usaf_dat, 
+plot_rt_ts(county_dat=res_state, 
+           truth_dat = usaf_dat,
+           r_dat = inference_r,
            scenario_colors=scn_colors, 
            scenario_labels=scn_labels,
            scenario_levels=scn_levels,
@@ -378,16 +388,6 @@ fig_counter <- fig_counter+1
 #                                                                  pdeath_filter=pdeath_default)
 ```
 
-```{r threshold}
-thresholddat<-load_hosp_geounit_threshold(threshold=beddata_icu, 
-                                          variable="NICUCurr", 
-                                          end_date=sim_end_date,
-                                          pdeath_filter=pdeath_default, 
-                                          incl_geoids=included_geoids, 
-                                          outcome_dir=runs_dir)
-
-```
-
 ```{r plot_hosp_threshold_comp, fig.cap = cap, fig.height = 9}
 # plot_needs_relative_to_threshold_heatmap(hosp_geounit_relative,
 #                                          scenario_labels = scn_labels,
@@ -478,9 +478,9 @@ fig_counter <- fig_counter+1
 #                                           end_date=sim_end_date,
 #                                           pdeath_filter=pdeath_default, 
 #                                           incl_geoids=included_geoids, 
-#                                           scenario_levels = scn_levels,
+#                                           outcome_dir=runs_dir,
 #                                           scenario_labels = scn_labels,
-#                                           outcome_dir=runs_dir)
+#                                           scenario_levels = scn_levels)
 
 ```
 

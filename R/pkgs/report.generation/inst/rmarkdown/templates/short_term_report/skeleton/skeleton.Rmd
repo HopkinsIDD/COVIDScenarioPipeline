@@ -104,26 +104,28 @@ tab_counter <- 1
   
 res_state<- load_hosp_county(runs_dir,
                              scenario_levels = scn_levels,
-                             scenario_labels = scn_labels)
+                             scenario_labels = scn_labels, 
+                             incl_geoids = included_geoids)
 
 ```
 
 ```{r hosp_geocombined_totals}  
 state_hosp_totals<-load_hosp_geocombined_totals(runs_dir, 
                                                 scenario_levels = scn_levels, 
-                                                scenario_labels = scn_labels) 
+                                                scenario_labels = scn_labels,
+                                                incl_geoids = included_geoids) 
 
 ```
 
 ```{r load_truth}
 
-truth_dat <- load_USAFacts_for_report(included_geoids=included_geoids) %>%
-  left_join(geodata)
+truth_dat <- load_USAFacts_for_report(included_geoids=included_geoids)
 
 ```
 
 ```{r load_r}
-inference_r <-load_r_sims_filtered(outcome_dir=runs_dir)
+inference_r <-load_r_sims_filtered(outcome_dir=runs_dir,
+                                   incl_geoids = included_geoids)
 
 ```
 
@@ -199,6 +201,7 @@ hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(county_dat=res_
                                                                  scenario_levels=scn_levels,
                                                                  scenario_labels =scn_labels,
                                                                  end_date = sim_end_date,
+                                                                 incl_geoids = included_geoids,
                                                                  pdeath_filter=pdeath_default)
 ```
 
@@ -207,20 +210,22 @@ hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(county_dat=res_
 
 ```{r Rt, fig.cap=cap, fig.height=6, fig.width=10}
 
-truth_dat%>%
+obs_dat<-truth_dat%>%
   group_by(date)%>% 
     summarize(NincidConfirmed=sum(incidI), 
               NincidDeathsObs=sum(incidDeath),
-              NcumulConfirmed=sum(Confirmed)) %>% 
-  plot_rt_ts(outcome_dir=runs_dir,
-             truth_dat=.,
-             susceptible=TRUE,
-             scenario_colors=scn_colors, 
-             scenario_labels=scn_labels,
-             scenario_levels=scn_levels,
-             included_geoids = included_geoids,
-             start_date = sim_start_date,
-             end_date=sim_end_date)
+              NcumulConfirmed=sum(Confirmed))
+
+plot_rt_ts(county_dat=res_state,
+           truth_dat=obs_dat,
+           r_dat=inference_r,
+           susceptible=TRUE,
+           scenario_colors=scn_colors, 
+           scenario_labels=scn_labels,
+           scenario_levels=scn_levels,
+           incl_geoids = included_geoids,
+           start_date = sim_start_date,
+           end_date=sim_end_date)
 
 cap<-paste0("**Fig. ", fig_counter, "** The effective reproduction number (Rt) and 95% intervals over time based on model outputs and cases as reported in USA Facts. The model Rt estimates reflect the population-adjusted average effectiveness of intervention periods and the decreasing pool of susceptibles from the cumulative number of infections across counties at ", pdeath_default_label, " assumptions. We assume that infection provides complete immunity. Rt estimates for reported cases were calculated with the R0 package.")
 
@@ -242,7 +247,6 @@ In this report, we used county data on confirmed cases and deaths since the stat
 
 plot_inference_r(r_dat=inference_r, 
                  current_scenario=scn_levels[1],
-                 npi_trim=npi_trimmer,
                  npi_levels=npi_names, # intervention groups for comparison (note this should be intervention periods with inference only, or clarifying which periods do not have inference (if including all))
                  npi_label=npi_label) 
 
@@ -256,7 +260,6 @@ fig_counter <- fig_counter+1
 
 plot_inference_r(r_dat=inference_r, 
                  current_scenario=scn_levels[1],
-                 npi_trim=npi_trimmer,
                  npi_levels=npi_names[-1],
                  npi_label=npi_label[-1], # or npi_label[-1] if not NA
                  effectiveness=TRUE,
@@ -273,7 +276,7 @@ fig_counter <- fig_counter+1
 ```{r sparkline_r}
 
 sparkline_r <- make_sparkline_tab_r(r_dat=inference_r,
-                                    outcome_dir=runs_dir,
+                                    county_dat=res_state,
                                     susceptible=TRUE,
                                     current_scenario=scn_levels[1],
                                     npi_levels=npi_names,
@@ -511,20 +514,16 @@ fig_counter <- fig_counter+1
 ### Model Calibration 
 
 ```{r state_truth, fig.height=9, fig.cap=cap}
-compare_plts <- truth_dat%>%
-  dplyr::select(-geoid, -USPS, -name) %>%
-  group_by(source, date) %>%
-  dplyr::summarize_all(sum)%>%
-  rename(NincidConfirmed=incidI,
-         NincidDeathsObs=incidDeath)%>%
-  plot_model_vs_obs(jhu_obs_dat=.,
-                    state_hosp_totals,
-                    scenario_colors=scn_colors,
-                    sim_start_date=sim_start_date,
-                    sim_end_date=sim_end_date,
-                    pdeath_filter=pdeath_default,
-                    week=FALSE, #aggregate to week? would need to aggregate jhu_obs_dat as well
-                    hosp=FALSE)
+
+
+compare_plts <- plot_model_vs_obs(jhu_obs_dat=truth_dat,
+                                  state_hosp_totals,
+                                  scenario_colors=scn_colors,
+                                  sim_start_date=sim_start_date,
+                                  sim_end_date=sim_end_date,
+                                  pdeath_filter=pdeath_default,
+                                  week=FALSE, #aggregate to week? would need to aggregate jhu_obs_dat as well
+                                  hosp=FALSE)
 
 ggpubr::ggarrange(plotlist=compare_plts, ncol=1)
 
