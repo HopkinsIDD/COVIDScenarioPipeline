@@ -940,7 +940,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
     coord_cartesian(ylim = c(0, 2.5*max(jhu_obs_dat$NincidDeathsObs)))
   
   if(hosp){
-    output <- list(incid_infections_plot, incid_hosp_plot, incid_deaths_plot)
+    output <- list(incid_infections_plot, incid_deaths_plot, incid_hosp_plot)
   } else {
     output <- list(incid_infections_plot, incid_deaths_plot)
   } 
