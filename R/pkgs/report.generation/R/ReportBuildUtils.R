@@ -1029,7 +1029,6 @@ plot_needs_relative_to_threshold_heatmap <- function(hosp_geounit_relative,
 ##' 
 ##' @param r_dat df with R or reduction estimates per sim and npi to be included
 ##' @param current_scenario name of scenario inputs to use
-##' @param npi_trim pattern used by str_remove to group NPIs
 ##' @param periodcolors 
 ##' @param npi_labels labels for plotted NPIs optional
 ##' @param npi_levels levels of NPIs optional
@@ -1046,7 +1045,6 @@ plot_needs_relative_to_threshold_heatmap <- function(hosp_geounit_relative,
 
 plot_inference_r <- function(r_dat,
                              current_scenario,
-                             npi_trim="[[A-Z]].+\\_",
                              npi_labels=NA, 
                              npi_levels=NA,
                              periodcolors = c("chartreuse3", "brown2", "turquoise4", "black"),
@@ -1057,7 +1055,6 @@ plot_inference_r <- function(r_dat,
   
   rplot <- r_dat %>%
     dplyr::filter(current_scenario==scenario)%>%
-    dplyr::mutate(npi_name=str_remove(npi_name, npi_trim)) %>%
     dplyr::left_join(geodat) %>%
     dplyr::group_by(geoid, npi_name, name) %>%
     dplyr::summarize(r_lo = quantile(r, pi_lo, na.rm=TRUE), 
@@ -1122,7 +1119,6 @@ plot_inference_r <- function(r_dat,
 ##' 
 ##' @param r_dat df with R or reduction estimates per sim (only one scenario)
 ##' @param current_scenario name of scenario inputs to use
-##' @param npi_trim pattern used by str_remove to group NPIs
 ##' @param npi_labels labels for plotted NPIs
 ##' @param npi_levels levels of NPIs after str_remove is applied
 ##' @pdeath_filter which pdeath value to select, does not support multiple pdeath
@@ -1149,8 +1145,6 @@ make_sparkline_tab_r <- function(r_dat,
                                  pi_lo=0.025, 
                                  pi_hi=0.975, 
                                  geodat=geodata,
-                                 trim=TRUE,
-                                 npi_trim="[[A-Z]].+\\_", 
                                  px_qual=40,
                                  wh_ratio=3.5,
                                  brewer_palette="Spectral"
@@ -1160,35 +1154,34 @@ make_sparkline_tab_r <- function(r_dat,
   require(tidyverse)
   if(length(npi_labels)!=length(npi_levels)) {stop("Length of npi levels and labels must be equal")}
   if(susceptible & is.null(outcome_dir)) {stop("You must specify outcome_dir to load cumulative infections")}
+ 
+  timeline<-crossing(geoid=unique(r_dat$geoid), 
+                     date = seq(min(r_dat$start_date), max(r_dat$end_date), by=1))
+  
+  intervention_names <- r_dat %>%
+    dplyr::filter(scenario==current_scenario,
+                  pdeath==pdeath_filter) %>%
+    dplyr::distinct(npi_name, start_date, end_date, geoid) %>%
+    dplyr::group_by(geoid) %>%
+    dplyr::mutate(end_date=if_else(npi_name=="local_variance",
+                                   lead(start_date)-1,
+                                   end_date)) 
+  
   r_dat <- r_dat%>%
     dplyr::filter(scenario==current_scenario,
-                  pdeath==pdeath_filter)
-  
-  # Set new end date for baseline values
-  new_local_end <- r_dat %>%
-    dplyr::filter(npi_name!="local_variance") %>%
-    dplyr::group_by(geoid, sim_num) %>%
-    dplyr::filter(min(start_date)==start_date) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(new_end=start_date-1) %>%
-    dplyr::distinct(geoid, new_end)
-  
-  r_dat<-r_dat%>%
-    dplyr::left_join(new_local_end) %>%
-    dplyr::mutate(end_date=if_else(npi_name=="local_variance", new_end, end_date))
+                  pdeath==pdeath_filter) %>%
+    dplyr::select(geoid, sim_num, npi_name, reduction, local_r, scenario, start_date, end_date) %>%
+    dplyr::left_join(timeline) %>%
+    dplyr::mutate(reduction=if_else(date<start_date | date>end_date, NA_real_, reduction)) %>% 
+    drop_na() %>%
+    dplyr::mutate(reduction=ifelse(npi_name=="local_variance", 1, 1-reduction)) %>%
+    dplyr::group_by(geoid, sim_num, date, scenario) %>%
+    dplyr::summarize(reduction=prod(reduction),
+                     local_r=unique(local_r)) %>%
+    dplyr::mutate(r=reduction*local_r) %>%
+    dplyr::select(-local_r, -reduction)
   
   if(susceptible){
-    
-    timeline<-crossing(geoid=unique(r_dat$geoid), 
-                       date = seq(min(r_dat$start_date), max(r_dat$end_date), by=1))
-    
-    r_dat<-r_dat %>%
-      dplyr::group_by(geoid, sim_num)%>%
-      dplyr::mutate(mid_point=if_else(max(end_date)==end_date, # for summary values mid_point=date
-                          Sys.Date(),
-                          start_date+floor((end_date-start_date)/2))) %>%
-      dplyr::left_join(timeline)
-    
     r_dat<-load_hosp_sims_filtered(outcome_dir,
                                    pdeath_filter=pdeath_filter,
                                    pre_process=function(x){x%>%
@@ -1198,25 +1191,29 @@ make_sparkline_tab_r <- function(r_dat,
                                        dplyr::group_by(geoid, pdeath, scenario, sim_num, location)%>%
                                        dplyr::mutate(cum_inf=cumsum(incidI))}) %>%
       dplyr::rename(date=time)%>%
+      dplyr::select(-location, -sim_id, -incidI) %>%
       dplyr::right_join(r_dat) %>%
-      dplyr::mutate(r=if_else(date<start_date|date>end_date, NA_real_, r)) %>%
-      drop_na() %>%
       dplyr::left_join(geodat) %>%
       dplyr::mutate(r=r*(1-cum_inf/pop2010)) 
   }
   
   r_dat <- r_dat %>%
-    dplyr::group_by(geoid, start_date, end_date, npi_name, name, mid_point, date) %>%
+    dplyr::group_by(geoid, name, date) %>%
     dplyr::summarize(est_lo=quantile(r, pi_lo, na.rm=TRUE),
-              est_hi=quantile(r, pi_hi, na.rm=TRUE),
-              estimate=mean(r, na.rm=TRUE)) %>%
+                     est_hi=quantile(r, pi_hi, na.rm=TRUE),
+                     estimate=mean(r, na.rm=TRUE)) %>%
     dplyr::mutate_if(is.numeric, signif, digits=2)
   
+  r_dat <- r_dat %>%
+    left_join(intervention_names) %>%
+    dplyr::mutate(estimate = if_else(date<start_date|date>end_date, NA_real_, estimate)) %>%
+    drop_na() %>%
+    dplyr::group_by(geoid) %>%
+    dplyr::mutate(mid_point=if_else(max(end_date)==end_date, # for summary values mid_point=date
+                                    Sys.Date(),
+                                    start_date+floor((end_date-start_date)/2)))
+  
 
-  if(trim){
-    r_dat<-r_dat%>%
-      dplyr::mutate(npi_name=str_remove(npi_name, npi_trimmer))
-  }
   # Create table with summary values
   r_tab<-r_dat%>%
     dplyr::filter(mid_point==date) %>%
@@ -1299,8 +1296,6 @@ make_sparkline_tab_r <- function(r_dat,
 ##' Sparkline table for intervention period effectiveness estimates 
 ##' 
 ##' @param r_dat df with reduction estimates per sim (from load_r_sims_filtered)
-##' @param trim whether or not to apply npi_trim to npi_name
-##' @param npi_trim pattern used by str_remove to group by npi_name
 ##' @param periodcolors 
 ##' @param npi_labels labels for plotted NPIs
 ##' @param npi_levels levels of NPIs 
@@ -1326,8 +1321,6 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
                                                    pi_lo=0.025, 
                                                    pi_hi=0.975, 
                                                    geodat=geodata,
-                                                   trim=TRUE,
-                                                   npi_trim="[[A-Z]].+\\_", 
                                                    px_qual=40,
                                                    wh_ratio=3.5,
                                                    brewer_palette="Spectral"
@@ -1346,11 +1339,6 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
                       estimate=mean(reduction, na.rm=TRUE)) %>%
     dplyr::mutate_if(is.numeric, signif, digits=2) %>%
     dplyr::filter(npi_name!="local_variance")
-  
-  # Set new end date for baseline values
-  
-  if(trim){r_dat<-r_dat%>%
-    dplyr::mutate(npi_name=str_remove(npi_name, npi_trim))}
   
   # Create table with summary values
   r_tab<-r_dat%>%
