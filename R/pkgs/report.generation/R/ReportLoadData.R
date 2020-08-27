@@ -658,6 +658,7 @@ load_r_sims_filtered <- function(outcome_dir,
                                  pre_process=function(x) {x},
                                  geodat=geodata,
                                  incl_geoids,
+                                 npi_trimmer="[[:A-Z:]].+\\_",
                                  ...
 ) {
   
@@ -689,6 +690,8 @@ load_r_sims_filtered <- function(outcome_dir,
                        local_r,
                        local_r*(1-reduction))) %>%
     dplyr::left_join(geodat) %>%
+    dplyr::rename(npi_group_name=npi_name) %>%
+    dplyr::mutate(npi_name = str_remove(npi_group_name, npi_trimmer)) %>%
     dplyr::ungroup() 
   
   warning("Finished loading")
