@@ -144,7 +144,7 @@ def write_outcome_sim(outcomes, run_id, prefix, sim_id):
 def compute_all_delayframe_outcomes(parameters, diffI, places, dates, stoch_traj_flag):
     all_data = {}
     # We store them as numpy matrices. Dimensions is dates X places
-    all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
+    all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy()#.astype(np.int32)
 
     outcomes = pd.melt(diffI, id_vars='time', value_name = 'incidI', var_name='geoid')
     for new_comp in parameters:
@@ -157,11 +157,10 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, stoch_traj
             delay =       parameters[new_comp]['delay']
     
             # Create new compartement incidence and Draw with from source compartement
+            all_data[new_comp] = np.empty_like(all_data['incidI'])
             if stoch_traj_flag:
-                all_data[new_comp] = np.empty_like(all_data['incidI'])
                 all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))
             else:
-                all_data[new_comp] = np.empty(all_data['incidI'].shape)
                 all_data[new_comp] = all_data[source] *  (probability * np.ones_like(all_data[source]))
             
             #import matplotlib.pyplot as plt
