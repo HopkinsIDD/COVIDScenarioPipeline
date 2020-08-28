@@ -8,7 +8,7 @@ library(itertools)
 
 
 option_list = list(
-  optparse::make_option(c("-t", "--test"), action = "store", default = 2, type='integer', help = "Test id to compile"),
+  optparse::make_option(c("-t", "--test"), action = "store", default = 1, type='integer', help = "Test id to compile"),
   optparse::make_option(c("-i", "--do_int"), action = "store", default = FALSE, type='logical', help = "Postprocess intermediate trajectories"),
   optparse::make_option(c("-r", "--redo"), action = "store", default = FALSE, type='logical', help = "Postprocess intermediate trajectories"),
   optparse::make_option(c("-j", "--jobs"), action = "store", default = parallel::detectCores(), type = 'integer', help = "Number of jobs to run in parallel")

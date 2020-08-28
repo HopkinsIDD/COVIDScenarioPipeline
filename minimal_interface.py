@@ -76,7 +76,8 @@ interactive = False
 write_csv = False
 write_parquet = True
 
-
+if not stoch_traj_flag:
+    print(f"""Stochastic Trajectory Flag is {stoch_traj_flag}""")
 
 s = setup.Setup(
     setup_name=config["name"].get() + "_" + str(scenario),
