@@ -62,11 +62,11 @@ def steps_SEIR_nb(alpha, beta, sigma, gamma, y0, seeding, dt, t_inter, nnodes, p
                 incident3Cases[i] = np.random.binomial(y[I2][i], p_recover)
                 recoveredCases[i] = np.random.binomial(y[I3][i], p_recover)
             else:
-                exposeCases[i] =    np.round(y[S][i] * p_expose)
-                incidentCases[i] =  np.round(y[E][i] * p_infect)
-                incident2Cases[i] = np.round(y[I1][i] * p_recover)
-                incident3Cases[i] = np.round(y[I2][i] * p_recover)
-                recoveredCases[i] = np.round(y[I3][i] * p_recover)
+                exposeCases[i] =    y[S][i] * p_expose
+                incidentCases[i] =  y[E][i] * p_infect
+                incident2Cases[i] = y[I1][i] * p_recover
+                incident3Cases[i] = y[I2][i] * p_recover
+                recoveredCases[i] = y[I3][i] * p_recover
 
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases
