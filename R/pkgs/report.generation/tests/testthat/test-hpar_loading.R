@@ -50,18 +50,18 @@ test_that("Simulation loading works", {
         )
     }, "at least one array to create a converter")
     
-    expect_equal({
-        load_hpar_sims_filtered(
-            outcome_dir = 'a_b',
-            pre_process = function(x){x},
-            incl_geoids = included_geoids
-        )
-    },
-    load_hpar_sims_filtered(
-        outcome_dir = 'a_b',
-        incl_geoids = included_geoids
-    )
-    )
+    # expect_equal({
+    #     load_hpar_sims_filtered(
+    #         outcome_dir = 'a_b',
+    #         pre_process = function(x){x},
+    #         incl_geoids = included_geoids
+    #     )
+    # },
+    # load_hpar_sims_filtered(
+    #     outcome_dir = 'a_b',
+    #     incl_geoids = included_geoids
+    # )
+    # )
     
     expect_equal({
         ncol(load_hpar_sims_filtered(
