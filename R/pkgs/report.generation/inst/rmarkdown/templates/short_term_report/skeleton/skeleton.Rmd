@@ -585,13 +585,13 @@ Our model and report make the following key assumptions:
 
 * R0: `r paste(R0_range, collapse = "-")`
 
-* We examine 3 infection fatality rates (IFR) throughout our report: `r paste0(config$hospitalization$parameters$p_death * 100, collapse = ", ")`%.
+* We examine `r paste0(length(config$report$formatting$death_rate_labels))` infection fatality rates (IFR) throughout our report: `r paste0(config$report$formatting$death_rate_labels, collapse = ", ")`.
 
-* We assume that `r paste0(config$hospitalization$parameters$p_death_rate * 100, "%")` of all hospitalized patients will die and adjust overall hospitalization rates to match the given IFR for a scenario.
+* We assume that `r paste0(config$outcomes$settings[[1]]$incidD$probability$value$value/config$outcomes$settings[[1]]$incidH$probability$value$value * 100, "%")` of all hospitalized patients will die and adjust overall hospitalization rates to match the given IFR for a scenario.
 
-* Hospitalizations admitted to the ICU: `r paste0(config$hospitalization$parameters$p_ICU*100, "%")`
+* Hospitalizations admitted to the ICU: `r paste0(config$outcomes$setting[[1]]$incidICU$probability$value$value*100, "%")`
 
-* ICU admissions that are ventilated: `r paste0(config$hospitalization$parameters$p_vent*100, "%")`
+* ICU admissions that are ventilated: `r paste0(config$outcomes$settings[[1]]$incidVent$probability$value$value*100, "%")`
 
 * ICU occupancy is fixed at 68% over time for non-COVID-related patients for figures related to the time when bed occupancy exceeds capacity. 
 

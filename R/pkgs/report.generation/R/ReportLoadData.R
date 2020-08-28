@@ -646,7 +646,8 @@ load_hosp_geounit_relative_to_threshold <- function(county_dat,
 ##' @param geodat df with geoid and name columns 
 ##' @param incl_geoids character vector of geoids that are included in the report
 ##' 
-##' @return a combined data frame of all R simulations with filters applied pre merge
+##' @return a combined data frame of all R and effectiveness per geoid-intervention across 
+##' simulations with filters applied pre merge
 ##' 
 ##'
 ##'
@@ -656,7 +657,7 @@ load_r_sims_filtered <- function(outcome_dir,
                                  pre_process=function(x) {x},
                                  geodat=geodata,
                                  incl_geoids,
-                                 npi_trimmer="[[:A-Z:]].+\\_",
+                                 npi_trimmer="[[A-Z]].+\\_",
                                  ...
 ) {
   

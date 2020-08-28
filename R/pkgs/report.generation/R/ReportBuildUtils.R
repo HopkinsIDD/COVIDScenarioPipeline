@@ -1118,10 +1118,12 @@ plot_inference_r <- function(r_dat,
 ##' Sparkline table with R estimates 
 ##' 
 ##' @param r_dat df with R or reduction estimates per sim (only one scenario)
+##' @param county_dat df with cumulative infections, scenario, pdeath, sim_num, and 
+##' time across geoids and all simulations
 ##' @param current_scenario name of scenario inputs to use
 ##' @param npi_labels labels for plotted NPIs
 ##' @param npi_levels levels of NPIs after str_remove is applied
-##' @pdeath_filter which pdeath value to select, does not support multiple pdeath
+##' @param pdeath_filter which pdeath value to select, does not support multiple pdeath
 ##' @param pi_lo lower quantile for summarization
 ##' @param pi_hi upper quantile for summarization
 ##' @param geodat df with location names
