@@ -41,16 +41,16 @@ test_that("Simulation loading works", {
         )
     }, "at least one array to create a converter")
     
-    expect_equal({
-        load_spar_sims_filtered(
-            outcome_dir = 'a_b',
-            pre_process = function(x){x}
-        )
-    },
-    load_spar_sims_filtered(
-        outcome_dir = 'a_b'
-    )
-    )
+    # expect_equal({
+    #     load_spar_sims_filtered(
+    #         outcome_dir = 'a_b',
+    #         pre_process = function(x){x}
+    #     )
+    # },
+    # load_spar_sims_filtered(
+    #     outcome_dir = 'a_b'
+    # )
+    # )
     
     expect_equal({
         ncol(load_spar_sims_filtered(
