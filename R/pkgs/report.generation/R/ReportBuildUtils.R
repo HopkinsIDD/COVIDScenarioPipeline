@@ -470,20 +470,20 @@ make_scn_state_table_withVent <- function(current_scenario,
     
     
     xx<-pivot_longer(xx, cols = nIncidInf_final:nCurrVent_hi) %>% 
-      mutate(Outcome = case_when(str_detect(name, "nIncidInf")~"Total infections",
-                                 str_detect(name, "nIncidHosp")~"Total hospital admissions",
-                                 str_detect(name, "pIncidHosp")~"Peak daily hospital admissions",
-                                 str_detect(name, "nCurrHosp")~"Maximum daily hospital occupancy",
-                                 str_detect(name, "nIncidICU")~"Total ICU admissions",
-                                 str_detect(name, "pIncidICU")~"Peak daily ICU admissions",
-                                 str_detect(name, "nCurrICU")~"Maximum daily ICU occupancy",
-                                 str_detect(name, "nIncidVent")~"Total Ventilators",
-                                 str_detect(name, "pIncidVent")~"Peak daily ventilator usage",
-                                 str_detect(name, "nCurrVent")~"Maximum daily ventilator usage",
-                                 str_detect(name, "nIncidDeath")~"Total deaths"), 
-             name = case_when(str_detect(name, "final")~"est", 
-                              str_detect(name, "lo")~"lo",
-                              str_detect(name, "hi")~"hi")) %>%
+      mutate(Outcome = case_when(stringr::str_detect(name, "nIncidInf")~"Total infections",
+                                 stringr::str_detect(name, "nIncidHosp")~"Total hospital admissions",
+                                 stringr::str_detect(name, "pIncidHosp")~"Peak daily hospital admissions",
+                                 stringr::str_detect(name, "nCurrHosp")~"Maximum daily hospital occupancy",
+                                 stringr::str_detect(name, "nIncidICU")~"Total ICU admissions",
+                                 stringr::str_detect(name, "pIncidICU")~"Peak daily ICU admissions",
+                                 stringr::str_detect(name, "nCurrICU")~"Maximum daily ICU occupancy",
+                                 stringr::str_detect(name, "nIncidVent")~"Total Ventilators",
+                                 stringr::str_detect(name, "pIncidVent")~"Peak daily ventilator usage",
+                                 stringr::str_detect(name, "nCurrVent")~"Maximum daily ventilator usage",
+                                 stringr::str_detect(name, "nIncidDeath")~"Total deaths"), 
+             name = case_when(stringr::str_detect(name, "final")~"est", 
+                              stringr::str_detect(name, "lo")~"lo",
+                              stringr::str_detect(name, "hi")~"hi")) %>%
       pivot_wider(names_from="name", values_from="value") %>%
       mutate(ci = make_CI(lo, hi),
              est = prettyNum(conv_round(est), big.mark=",")) %>%
@@ -1122,7 +1122,7 @@ plot_inference_r <- function(r_dat,
 ##' time across geoids and all simulations
 ##' @param current_scenario name of scenario inputs to use
 ##' @param npi_labels labels for plotted NPIs
-##' @param npi_levels levels of NPIs after str_remove is applied
+##' @param npi_levels levels of NPIs 
 ##' @param pdeath_filter which pdeath value to select, does not support multiple pdeath
 ##' @param pi_lo lower quantile for summarization
 ##' @param pi_hi upper quantile for summarization
@@ -1214,8 +1214,8 @@ make_sparkline_tab_r <- function(r_dat,
     dplyr::filter(mid_point==date) %>%
     dplyr::mutate_if(is.numeric, as.character) %>%
     dplyr::mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels),
-           est_lo = str_replace(est_lo, "^", '\n\\('),
-           est_hi = str_replace(est_hi, "$", '\\)')) %>%
+           est_lo = stringr::str_replace(est_lo, "^", '\n\\('),
+           est_hi = stringr::str_replace(est_hi, "$", '\\)')) %>%
     dplyr::arrange(npi_name) %>%
     unite(col="pi", est_lo:est_hi, sep="-") %>%
     unite(col="estimate", estimate:pi, sep="\n") %>%
@@ -1339,8 +1339,8 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
   r_tab<-r_dat%>%
     dplyr::mutate_if(is.numeric, as.character) %>%
     dplyr::mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels),
-                   est_lo = str_replace(est_lo, "^", '\n\\('),
-                   est_hi = str_replace(est_hi, "$", '\\)')) %>%
+                   est_lo = stringr::str_replace(est_lo, "^", '\n\\('),
+                   est_hi = stringr::str_replace(est_hi, "$", '\\)')) %>%
     dplyr::arrange(npi_name) %>%
     unite(col="pi", est_lo:est_hi, sep="-") %>%
     unite(col="estimate", estimate:pi, sep="\n") %>%
@@ -1746,20 +1746,20 @@ plot_scn_outcomes_ratio<-function(hosp_state_totals,
   plt_dat<-dat_wide %>%
     dplyr::bind_rows() %>%
     tidyr::pivot_longer(cols=AvghospCurr_lo:NincidCase) %>%
-    dplyr::mutate(var=case_when(str_detect(name, "Avghosp")~"Daily average of occupied hospital beds", 
-                                 str_detect(name, "incidHosp")~"Total hospital admissions",
-                                 str_detect(name, "AvgICU") ~ "Daily average of occupied ICU beds",
-                                 str_detect(name, "incidICU") ~ "Total ICU admissions",
-                                 str_detect(name, "AvgincidDeath") ~ "Daily average deaths",
-                                 str_detect(name, "NincidDeath") ~ "Total deaths",
-                                 str_detect(name, "AvgincidCase") ~ "Daily average cases",
-                                 str_detect(name, "NincidCase")~ "Total cases"),
+    dplyr::mutate(var=case_when(stringr::str_detect(name, "Avghosp")~"Daily average of occupied hospital beds", 
+                                stringr::str_detect(name, "incidHosp")~"Total hospital admissions",
+                                stringr::str_detect(name, "AvgICU") ~ "Daily average of occupied ICU beds",
+                                stringr::str_detect(name, "incidICU") ~ "Total ICU admissions",
+                                stringr::str_detect(name, "AvgincidDeath") ~ "Daily average deaths",
+                                stringr::str_detect(name, "NincidDeath") ~ "Total deaths",
+                                stringr::str_detect(name, "AvgincidCase") ~ "Daily average cases",
+                                stringr::str_detect(name, "NincidCase")~ "Total cases"),
            var=factor(var, levels=c("Daily average cases", "Total cases",
                                     "Daily average of occupied hospital beds", "Total hospital admissions",
                                     "Daily average of occupied ICU beds", "Total ICU admissions",
                                     "Daily average deaths", "Total deaths")),
-           name=case_when(str_detect(name, "_lo")~"lower",
-                          str_detect(name, "_hi")~"upper", 
+           name=case_when(stringr::str_detect(name, "_lo")~"lower",
+                          stringr::str_detect(name, "_hi")~"upper", 
                           TRUE~"estimate")) %>%
     tidyr::pivot_wider(names_from=name, values_from=value)
   
