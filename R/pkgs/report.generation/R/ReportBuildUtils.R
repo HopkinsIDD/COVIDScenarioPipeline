@@ -2254,5 +2254,3 @@ plot_county_outcomes <- function(county_dat,
   
   return(rc)
 }
-
-
