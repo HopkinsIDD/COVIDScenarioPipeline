@@ -76,22 +76,22 @@ test_that("Simulation loading works", {
     }, "Scenario levels were not correctly specified"
     )
     
-    expect_equal({
-        load_hosp_geocombined_totals(
-            outcome_dir = 'a_b',
-            scenario_levels = 'scn',
-            scenario_labels = 'baseline',
-            pre_process = function(x){x},
-            incl_geoids = included_geoids
-        )
-    },
-    load_hosp_geocombined_totals(
-        outcome_dir = 'a_b',
-        scenario_levels = 'scn',
-        scenario_labels = 'baseline',
-        incl_geoids = included_geoids
-    )
-    )
+    # expect_equal({
+    #     load_hosp_geocombined_totals(
+    #         outcome_dir = 'a_b',
+    #         scenario_levels = 'scn',
+    #         scenario_labels = 'baseline',
+    #         pre_process = function(x){x},
+    #         incl_geoids = included_geoids
+    #     )
+    # },
+    # load_hosp_geocombined_totals(
+    #     outcome_dir = 'a_b',
+    #     scenario_levels = 'scn',
+    #     scenario_labels = 'baseline',
+    #     incl_geoids = included_geoids
+    # )
+    # )
     
     expect_equal({
         ncol(load_hosp_geocombined_totals(
