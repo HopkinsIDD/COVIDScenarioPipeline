@@ -40,6 +40,15 @@ knitr::opts_knit$set(eval.after = 'fig.cap') ##Allows us to set a variable to fi
 
 options(scipen=999)
 
+install_packages <- c("egg", "gt")
+
+lapply(install_packages, 
+       FUN = function(x){
+         if(!require(x, character.only = TRUE)) {
+           install.packages(x, dependencies = TRUE) 
+           }
+         }
+       )
 #Preamble
 library(tidyverse)
 library(covidcommon)
@@ -47,8 +56,8 @@ library(report.generation)
 library(covidImportation)
 library(doParallel)
 library(cowplot)
-library(egg)
-library(gt)
+# library(egg)
+# library(gt)
 library(purrr)
 
 
@@ -185,100 +194,100 @@ cap<-paste0("**Fig. ", fig_counter, "** The effective reproduction number (Rt) a
 fig_counter<-fig_counter+1
 
 ```
-
+[Summary plot to compare outcomes relative to a baseline scenario, uncomment here and library("egg")]
 ```{r, include=FALSE}
-p1<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
-                               start_date=first(display_dates),
-                               end_date=last(display_dates),
-                               pdeath_filter=pdeath_default,
-                               scenario_colors=scn_colors, 
-                               pi_lo=0.05,
-                               pi_hi=0.95)
-
-p2<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
-                               start_date=display_dates[1],
-                               end_date=display_dates[2],
-                               pdeath_filter=pdeath_default,
-                               scenario_colors=scn_colors, 
-                               pi_lo=0.05,
-                               pi_hi=0.95) 
-
-p3<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
-                               start_date=display_dates[2],
-                               end_date=display_dates[3],
-                               pdeath_filter=pdeath_default,
-                               scenario_colors=scn_colors, 
-                               pi_lo=0.05,
-                               pi_hi=0.95) 
-
-p4<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
-                               start_date=display_dates[3],
-                               end_date=display_dates[4],
-                               pdeath_filter=pdeath_default,
-                               scenario_colors=scn_colors, 
-                               pi_lo=0.05,
-                               pi_hi=0.95)
-
-p1<-p1+theme(legend.position="none",
-                axis.title.x=element_blank(),
-                axis.title.y=element_blank(),
-                axis.text.y=element_text(color="black", size=20),
-                axis.text.x=element_text(color="black", size=16),
-                plot.subtitle = element_text(size=18,face="bold"))+
-    labs(subtitle=paste0(format(first(as.Date(display_dates)), "%B %d"), 
-                         "-",
-                         format(last(as.Date(display_dates)), "%B %d")))
-
-p2<-p2+theme(legend.position="none",
-                axis.text.y=element_blank(),
-                axis.ticks.y=element_blank(),
-                axis.title.y = element_blank(),
-                axis.text.x=element_text(color="black", size=16),
-                axis.title.x=element_blank(),
-                plot.subtitle = element_text(size=18,
-                                             face="bold"))+
-    labs(subtitle=paste0(format(as.Date(display_dates)[1], "%B %d"), 
-                         "-",
-                         format(as.Date(display_dates)[2], "%B %d")))
-
-p3<-p3+theme(legend.position="none",
-                axis.text.y=element_blank(),
-                axis.ticks.y=element_blank(),
-                axis.title.y = element_blank(),
-                axis.title.x=element_blank(),
-                axis.text.x=element_text(color="black", size=16),
-                plot.subtitle = element_text(size=16,
-                                             face="bold"))+
-    labs(subtitle=paste0(format(as.Date(display_dates)[2], "%B %d"), 
-                         "-",
-                         format(as.Date(display_dates)[3], "%B %d")))
-
-p4<-p4+theme(legend.position="none",
-                axis.text.y=element_blank(),
-                axis.ticks.y=element_blank(),
-                axis.title.y = element_blank(),
-                axis.title.x=element_blank(),
-                axis.text.x=element_text(color="black", size=16),
-                plot.subtitle = element_text(size=18,
-                                             face="bold"))+
-    labs(subtitle=paste0(format(as.Date(display_dates)[3], "%B %d"), 
-                         "-",
-                         format(as.Date(display_dates)[4], "%B %d")))
-
-plot_time<-ggarrange(plots=list(p1, p2, p3, p4),
-                     nrow=1,
-                     bottom=grid::textGrob('Relative to "Business as usual" scenario', gp = grid::gpar(col = "black", fontsize = 16)))
+# p1<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
+#                                start_date=first(display_dates),
+#                                end_date=last(display_dates),
+#                                pdeath_filter=pdeath_default,
+#                                scenario_colors=scn_colors, 
+#                                pi_lo=0.05,
+#                                pi_hi=0.95)
+# 
+# p2<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
+#                                start_date=display_dates[1],
+#                                end_date=display_dates[2],
+#                                pdeath_filter=pdeath_default,
+#                                scenario_colors=scn_colors, 
+#                                pi_lo=0.05,
+#                                pi_hi=0.95) 
+# 
+# p3<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
+#                                start_date=display_dates[2],
+#                                end_date=display_dates[3],
+#                                pdeath_filter=pdeath_default,
+#                                scenario_colors=scn_colors, 
+#                                pi_lo=0.05,
+#                                pi_hi=0.95) 
+# 
+# p4<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
+#                                start_date=display_dates[3],
+#                                end_date=display_dates[4],
+#                                pdeath_filter=pdeath_default,
+#                                scenario_colors=scn_colors, 
+#                                pi_lo=0.05,
+#                                pi_hi=0.95)
+# 
+# p1<-p1+theme(legend.position="none",
+#                 axis.title.x=element_blank(),
+#                 axis.title.y=element_blank(),
+#                 axis.text.y=element_text(color="black", size=20),
+#                 axis.text.x=element_text(color="black", size=16),
+#                 plot.subtitle = element_text(size=18,face="bold"))+
+#     labs(subtitle=paste0(format(first(as.Date(display_dates)), "%B %d"), 
+#                          "-",
+#                          format(last(as.Date(display_dates)), "%B %d")))
+# 
+# p2<-p2+theme(legend.position="none",
+#                 axis.text.y=element_blank(),
+#                 axis.ticks.y=element_blank(),
+#                 axis.title.y = element_blank(),
+#                 axis.text.x=element_text(color="black", size=16),
+#                 axis.title.x=element_blank(),
+#                 plot.subtitle = element_text(size=18,
+#                                              face="bold"))+
+#     labs(subtitle=paste0(format(as.Date(display_dates)[1], "%B %d"), 
+#                          "-",
+#                          format(as.Date(display_dates)[2], "%B %d")))
+# 
+# p3<-p3+theme(legend.position="none",
+#                 axis.text.y=element_blank(),
+#                 axis.ticks.y=element_blank(),
+#                 axis.title.y = element_blank(),
+#                 axis.title.x=element_blank(),
+#                 axis.text.x=element_text(color="black", size=16),
+#                 plot.subtitle = element_text(size=16,
+#                                              face="bold"))+
+#     labs(subtitle=paste0(format(as.Date(display_dates)[2], "%B %d"), 
+#                          "-",
+#                          format(as.Date(display_dates)[3], "%B %d")))
+# 
+# p4<-p4+theme(legend.position="none",
+#                 axis.text.y=element_blank(),
+#                 axis.ticks.y=element_blank(),
+#                 axis.title.y = element_blank(),
+#                 axis.title.x=element_blank(),
+#                 axis.text.x=element_text(color="black", size=16),
+#                 plot.subtitle = element_text(size=18,
+#                                              face="bold"))+
+#     labs(subtitle=paste0(format(as.Date(display_dates)[3], "%B %d"), 
+#                          "-",
+#                          format(as.Date(display_dates)[4], "%B %d")))
+# 
+# plot_time<-ggarrange(plots=list(p1, p2, p3, p4),
+#                      nrow=1,
+#                      bottom=grid::textGrob('Relative to "Business as usual" scenario', gp = grid::gpar(col = "black", fontsize = 16)))
 
 ``` 
 
 ```{r, fig.cap=cap, fig.width=16, fig.height=8}
-legend<-get_legend(p1+theme(legend.position="bottom",
-                               legend.text=element_text(size=16),
-                               legend.title=element_blank()))
-
-plot_grid(plot_time, legend, nrow=2, rel_heights = c(1,0.1))
-
-cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the "Business as usual" scenario with 95% prediction intervals. Estimates are shown across 4 time periods at ',pdeath_default_label,' assumptions.')
+# legend<-get_legend(p1+theme(legend.position="bottom",
+#                                legend.text=element_text(size=16),
+#                                legend.title=element_blank()))
+# 
+# plot_grid(plot_time, legend, nrow=2, rel_heights = c(1,0.1))
+# 
+# cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the "Business as usual" scenario with 95% prediction intervals. Estimates are shown across 4 time periods at ',pdeath_default_label,' assumptions.')
 
 fig_counter<-fig_counter+1
 ```
