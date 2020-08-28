@@ -159,7 +159,7 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, stoch_traj
             # Create new compartement incidence and Draw with from source compartement
             all_data[new_comp] = np.empty_like(all_data['incidI'])
             if stoch_traj_flag:
-                all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))
+                all_data[new_comp] = np.random.binomial(all_data[source].astype(np.int32), probability * np.ones_like(all_data[source]))
             else:
                 all_data[new_comp] = all_data[source] *  (probability * np.ones_like(all_data[source]))
             
