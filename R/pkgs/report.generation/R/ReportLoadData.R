@@ -383,6 +383,7 @@ load_hosp_geounit_threshold <- function(threshold,
 ##' @param geoid_len length of geoid character string
 ##' @param geoid_pad what to pad the geoid character string with 
 ##' @param to_lower whether to make all column names lowercase
+##' @param names whether to add a name column to each geoid (US only)
 ##' 
 ##' @return a data frame with columns
 ##'         - 
@@ -391,7 +392,8 @@ load_hosp_geounit_threshold <- function(threshold,
 load_geodata_file <- function(filename,
                               geoid_len = 0,
                               geoid_pad = "0",
-                              to_lower = FALSE
+                              to_lower = FALSE,
+                              names = FALSE
 ) {
   require(tigris)
   if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
@@ -405,12 +407,15 @@ load_geodata_file <- function(filename,
   if(geoid_len > 0){
     geodata$geoid <- stringr::str_pad(geodata$geoid,geoid_len, pad = geoid_pad)
   }
+  
+  if(names) {
   geodata<-geodata %>%
     dplyr::left_join(fips_codes%>%
                        unite(col="geoid", ends_with("_code"), sep="") %>%
                        dplyr::select(-state_name, -state) %>%
                        dplyr::rename(name=county) %>%
-                       dplyr::mutate(name=str_remove(name, " County")))
+                       dplyr::mutate(name=stringr::str_remove(name, " County")))
+  }
   return(geodata)
 }
 
@@ -690,7 +695,7 @@ load_r_sims_filtered <- function(outcome_dir,
                        local_r*(1-reduction))) %>%
     dplyr::left_join(geodat) %>%
     dplyr::rename(npi_group_name=npi_name) %>%
-    dplyr::mutate(npi_name = str_remove(npi_group_name, npi_trimmer)) %>%
+    dplyr::mutate(npi_name = stringr::str_remove(npi_group_name, npi_trimmer)) %>%
     dplyr::ungroup() 
   
   warning("Finished loading")
