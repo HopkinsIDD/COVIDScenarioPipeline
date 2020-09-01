@@ -1567,6 +1567,7 @@ plot_truth_by_county <- function(truth_dat,
 ##' @param geodat df with geoid and pop2010 
 ##' @param pi_lo lower limit to interval
 ##' @param pi_hi upper limit to interval
+##' @param pop_col name of geodat column with population data
 ##' 
 ##' @return a table with the effectiveness per intervention period and a bar graph
 ##' 
@@ -1588,7 +1589,8 @@ plot_rt_ts <- function(county_dat,
                        geodat=geodata,
                        susceptible=TRUE,
                        pi_lo=0.025,
-                       pi_hi=0.975
+                       pi_hi=0.975,
+                       pop_col=config$spatial_setup$popnodes
 ){
   require(tidyverse)
   if(length(pdeath_filter)>1){stop("Currently plots for")}
@@ -1640,7 +1642,7 @@ plot_rt_ts <- function(county_dat,
   
   truth_dat<-truth_dat%>%
     dplyr::filter(NcumulConfirmed!=0)%>%
-    calcR0(geodat=geodat, by_geoid=FALSE, incl_geoids = incl_geoids) %>%
+    calcR0(geodat=geodat, by_geoid=FALSE, incl_geoids = incl_geoids, pop_col=pop_col) %>%
     dplyr::mutate(scenario="USA Facts")
   
   dplyr::bind_rows(rc, truth_dat) %>%
@@ -1985,6 +1987,7 @@ make_scn_county_table_withVent <- function(current_scenario,
 ##' @param by_geoid estimate R for each county 
 ##' @param min.date start date for analysis
 ##' @param max.date end date for analysis
+##' @param pop_col name of geodat column with population data
 ##' 
 ##' @author Kyra Grantz
 ##' 
@@ -1995,7 +1998,8 @@ calcR0 <- function(USAfacts,
                    incl_geoids, 
                    by_geoid=FALSE, 
                    min.date=NULL, 
-                   max.date=NULL){
+                   max.date=NULL,
+                   pop_col = config$spatial_setup$popnodes){
   
   if(is.null(max.date)){
     max.date <- max(USAfacts$date)-7
@@ -2011,7 +2015,7 @@ calcR0 <- function(USAfacts,
   if(by_geoid){
     Rt1 <- list()
     for(i in 1:length(incl_geoids)){
-      pop <- geodat[geodat$geoid == incl_geoids[i],config$spatial_setup$popnodes]
+      pop <- geodat[geodat$geoid == incl_geoids[i], pop_col]
       tmp <- covid %>% dplyr::filter(geoid == incl_geoids[i])
       incid <- setNames(tmp$New.Cases,1:nrow(tmp))
       estR0 <- R0::estimate.R(incid, mGT, begin=1, end=as.numeric(length(incid)), methods=c("TD"), pop.size=pop, nsim=1000)
@@ -2024,7 +2028,7 @@ calcR0 <- function(USAfacts,
       group_by(Date) %>%
       summarise_if(is.numeric, sum) %>%
       ungroup()
-    pop <- sum(geodat[geodat$geoid == incl_geoids,config$spatial_setup$popnodes])
+    pop <- sum(geodat[geodat$geoid == incl_geoids, pop_col])
     incid <- setNames(covid$New.Cases,1:nrow(covid))
     estR0 <- R0::estimate.R(incid, mGT, begin=1, end=as.numeric(length(incid)), methods=c("TD"), pop.size=pop, nsim=1000)
     Rt1 <- cbind(covid$Date,estR0$estimates$TD$R,estR0$estimates$TD$conf.int)
