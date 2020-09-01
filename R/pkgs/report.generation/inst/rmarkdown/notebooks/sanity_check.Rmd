@@ -101,6 +101,8 @@ geo_names <- tigris::fips_codes %>%
   {if(run=="country") distinct(.,geoid, USPS) else(.)}%>%
   filter(geoid %in% geodata$geoid) 
 
+included_geoids <- geo_names$geoid 
+
 geo_names <- geo_names %>%
   {if(run=="state")
     mutate(., name=factor(name, levels=sort(unique(geo_names$name), decreasing=TRUE)))
@@ -146,6 +148,9 @@ tab_counter <- tab_counter+1
 
 hpar<- load_hpar_sims_filtered(params$runs_folder,
                                incl_geoids = included_geoids) 
+
+hpar<-hpar%>%
+  filter(scenario == unique(hpar$scenario)[1])
 
 hpar%>%
   {if(run=="state") right_join(.,geo_names)
@@ -198,10 +203,13 @@ fig_counter<-fig_counter+1
 ```{r r_load, eval=infer}
 #if run==country, then state_r0 is equivalent country_r0 and county_r0 is equivalent to state_r0
 inference_r <- load_r_sims_filtered(params$runs_folder, 
-                                    incl_geoids=included_geoids)
+                                    incl_geoids=included_geoids,
+                                    npi_trimmer = npi_trimmer)
 
 inference_r <- inference_r %>%
-  mutate(npi_name = str_remove(npi_name, npi_trimmer)) %>%
+  filter(scenario==unique(inference_r$scenario)[1])
+
+inference_r <- inference_r %>%
   group_by(!!as.symbol(geogroup), npi_name) %>%
   summarize(rq1 = quantile(r, 0.25, na.rm=TRUE), 
             rq3 = quantile(r, 0.75, na.rm=TRUE),
@@ -378,7 +386,7 @@ for(i in 1:length(pdeath_levels)){
               cumInf=sum(cumInf),
               cumHosp=sum(cumHosp),
               cumCase=sum(cumCase)) %>%
-    group_by(!!as.symbol(geogroup), time, pdeath)%>%
+    group_by(!!as.symbol(geogroup), time, pdeath, scenario)%>%
     summarize(cumDeaths_5pct=quantile(cumDeaths,probs=params$pi_lo),
               cumDeaths_95pct=quantile(cumDeaths,probs=params$pi_hi),
               incidD_5pct=quantile(incidD,probs=params$pi_lo),
@@ -405,6 +413,8 @@ for(i in 1:length(pdeath_levels)){
 
 }
 
+res_state<-res_state%>%
+  filter(scenario==unique(res_state$scenario)[1])
 ```
 
 `r paste0("**Tab.", tab_counter, "**: Model fit metrics to USA Facts data")`

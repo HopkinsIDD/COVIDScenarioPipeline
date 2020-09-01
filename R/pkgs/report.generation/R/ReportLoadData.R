@@ -650,6 +650,8 @@ load_hosp_geounit_relative_to_threshold <- function(county_dat,
 ##' @param pre_process function that does processing before collection of snpi outputs
 ##' @param geodat df with geoid and name columns 
 ##' @param incl_geoids character vector of geoids that are included in the report
+##' @param npi_trimmer pattern used by str_remove to edit npi_name column; original 
+##' names conserved in npi_group_name col
 ##' 
 ##' @return a combined data frame of all R and effectiveness per geoid-intervention across 
 ##' simulations with filters applied pre merge
