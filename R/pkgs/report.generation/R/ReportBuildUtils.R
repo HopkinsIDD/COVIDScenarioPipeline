@@ -1603,7 +1603,7 @@ plot_rt_ts <- function(county_dat,
       dplyr::filter(scenario==scenario_levels[i],
                     pdeath==pdeath_filter) %>%
       dplyr::select(geoid, sim_num, npi_name, reduction, local_r, scenario, start_date, end_date) %>%
-      dplyr::group_by(geoid, npi_name) %>%
+      dplyr::group_by(geoid, npi_name, start_date, end_date) %>%
       dplyr::mutate(sim_num = order(sim_num)) %>%
       dplyr::group_by(geoid, sim_num) %>%
       dplyr::mutate(end_date=if_else(npi_name=="local_variance",
@@ -1996,7 +1996,7 @@ calcR0 <- function(USAfacts,
                    by_geoid=FALSE, 
                    min.date=NULL, 
                    max.date=NULL){
-  require(R0)
+  
   if(is.null(max.date)){
     max.date <- max(USAfacts$date)-7
   }
