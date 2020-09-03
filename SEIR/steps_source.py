@@ -17,8 +17,6 @@ def steps_SEIR_nb(alpha, beta, sigma, gamma, y0, seeding, dt, t_inter, nnodes, p
                   mobility_row_indices, mobility_data_indices, mobility_data, dynfilter, stoch_traj_flag):
     y = np.copy(y0)
     states = np.zeros((ncomp, nnodes, len(t_inter)))
-    if stoch_traj_flag:
-      return(states)
 
     exposeCases = np.empty(nnodes)
     incidentCases = np.empty(nnodes)
