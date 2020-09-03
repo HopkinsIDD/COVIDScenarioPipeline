@@ -69,7 +69,6 @@ RUN apt-get update && \
     supervisor \
     awscli \
     r-base-dev=$R_VERSION \
-    openjdk-8-jdk \
     # make sure we have up-to-date CA certs or curling some https endpoints (like python.org) may fail
     ca-certificates \
     # app user creation
