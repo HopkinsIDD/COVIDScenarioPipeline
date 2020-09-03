@@ -76,6 +76,7 @@ interactive = False
 write_csv = False
 write_parquet = True
 
+
 s = setup.Setup(
     setup_name=config["name"].get() + "_" + str(scenario),
     spatial_setup=setup.SpatialSetup(
