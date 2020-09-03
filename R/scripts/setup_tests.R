@@ -16,8 +16,8 @@ option_list = list(
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
   optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
   optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable"),
-  optparse::make_option(c("-n", "--n_slots"), action="store", default=50, type = 'integer', help = "Number of slots to run"),
-  optparse::make_option(c("-k", "--n_iter"), action="store", default=250, type = 'integer', help = "Number of iterations per slot"),
+  optparse::make_option(c("-n", "--n_slots"), action="store", default=10, type = 'integer', help = "Number of slots to run"),
+  optparse::make_option(c("-k", "--n_iter"), action="store", default=50, type = 'integer', help = "Number of iterations per slot"),
   optparse::make_option(c("-j", "--n_cores"), action="store", default=parallel::detectCores() - 2, type = 'integer', help = "Number of cores to use")
 )
 
@@ -174,9 +174,11 @@ test_specs <- expand.grid(
   # Transformation on the confirmation rate
   conf_transform = c("none"),
   # Number of nodes
-  N = c(5),
-  lik_cases = c("sqrtnorm-0.01", "sqrtnorm-0.05", "pois", "sqrtnorm-0.1"),
-  lik_deaths = c("sqrtnorm-0.01", "sqrtnorm-0.05", "pois", "sqrtnorm-0.1")
+  N = c(2),
+  # lik_cases = c("sqrtnorm-0.01", "sqrtnorm-0.05", "pois", "sqrtnorm-0.1"),
+  # lik_deaths = c("sqrtnorm-0.01", "sqrtnorm-0.05", "pois", "sqrtnorm-0.1")
+  lik_cases = c("sqrtnorm-0.01"),
+  lik_deaths = c("")
 ) %>% 
   # set whether the run is the reference for fitting
   group_by(N) %>% 
@@ -217,7 +219,7 @@ if (!dir.exists("configs"))
   dir.create("configs")
 
 if (!dir.exists("data/generated")) 
-  dir.create("data/generated")
+  dir.create("data/generated",recursive=TRUE)
 
 # Select first test, a loop could be made here if multiple tests are to be run
 for (test in tests) {
@@ -233,7 +235,7 @@ for (test in tests) {
   
   ## Spatial setup - - - -
   if(!dir.exists(data_basepath)) {
-    dir.create(data_basepath)
+    dir.create(data_basepath,recursive=TRUE)
   }
   
   config$spatial_setup <- list(
@@ -400,9 +402,11 @@ for (test in tests) {
                                                              param = as.numeric(lik[2]))
   }
   
-  lik_deaths <- str_split(test$lik_deaths, "-")[[1]]
-  config$filtering$statistics$sum_deaths$likelihood <- list(dist = lik_deaths[1],
+  if(nchar(test$lik_deaths) > 0){
+    lik_deaths <- str_split(test$lik_deaths, "-")[[1]]
+    config$filtering$statistics$sum_deaths$likelihood <- list(dist = lik_deaths[1],
                                                             param = as.numeric(lik_deaths[2]))
+  }
   config$outcomes$param_place_file <- hpar_inference_file
   yaml::write_yaml(config, file = config_file_out_inference)
   
@@ -418,7 +422,7 @@ for (test in tests) {
   
   # Write seeding lambda file for all slots to avoid calling create_seeding.R
   
-  file.remove(first_hpar_file)
+  # file.remove(first_hpar_file)
   file.copy(config$outcomes$param_place_file, first_hpar_file)
   
   reticulate::use_python(Sys.which(opt$python),require=TRUE)
