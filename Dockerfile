@@ -12,7 +12,6 @@ ENV LC_ALL en_US.UTF-8
 # set noninteractive installation
 ENV DEBIAN_FRONTEND noninteractive
 ENV R_VERSION 3.6.3-1bionic
-ENV RSTUDIO_VERSION 1.2.5033
 
 # see https://www.digitalocean.com/community/tutorials/how-to-install-r-on-ubuntu-18-04
 # https://cran.r-project.org/bin/linux/debian/
@@ -99,8 +98,6 @@ COPY --chown=app:app R/pkgs $HOME/R/pkgs
 RUN Rscript -e 'packrat::restore()'
 RUN Rscript -e 'install.packages(list.files("R/pkgs",full.names=TRUE),type="source",repos=NULL)'
 
-# expose Rstudio port
-EXPOSE 8787
 
 #####
 # Python (managed via pyenv)
