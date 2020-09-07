@@ -13,7 +13,7 @@ opt$end_date <- "2020-10-17"
 opt$geodata <- "geodata_territories.csv"
 opt$death_filter <- "low"
 opt$num_simulationsulations <- 2000
-opt$outfile <- "2020-09-06-JHU_IDD-CovidSP_low_v2.csv"
+opt$outfile <- "2020-09-06-JHU_IDD-CovidSP_low_deathoptim.csv"
 opt$include_hosp <- TRUE
 
 arguments<- list()
