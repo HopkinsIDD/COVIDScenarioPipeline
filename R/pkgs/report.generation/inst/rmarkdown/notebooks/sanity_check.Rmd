@@ -368,6 +368,8 @@ res_state<-list() # loop works for larger datasets (e.g. USA)
 for(i in 1:length(pdeath_levels)){
   res_state[[i]] <- arrow::open_dataset(paste0(params$runs_folder,"/hosp/"),
                                 partitioning = c("geoid", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_id")) %>%
+    filter(is_final=="final",
+           lik_type=="global") %>%
     dplyr::select(time, geoid, scenario, pdeath, sim_id, incidD, incidC, incidH, incidI, hosp_curr)%>%
     filter(pdeath==pdeath_levels[i]) %>%
     filter(time<fit_date)%>%
