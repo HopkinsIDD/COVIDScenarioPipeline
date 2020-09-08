@@ -2,12 +2,12 @@
 library(inference)
 library(tidyverse)
 
-setwd("~/COVIDWorking")
+setwd("C:/Users/eclee/COVIDWorking")
 
 
 opt <- list()
 
-opt$jobs <- 20
+opt$jobs <- 2
 opt$forecast_date <- "2020-09-06"
 opt$end_date <- "2020-10-17"
 opt$geodata <- "geodata_territories.csv"
@@ -63,14 +63,11 @@ opt$forecast_date <- as.Date(opt$forecast_date)
 opt$end_date <- as.Date(opt$end_date)
 # 
 
-csse_cases <- covidImportation::get_clean_JHUCSSE_data(us_data_only = TRUE) %>%
-  dplyr::select(Update, Confirmed, incidI, FIPS, source)
 csse_deaths <- covidImportation::get_clean_JHUCSSE_deaths(us_data_only = TRUE) %>%
   dplyr::select(Update, Deaths, incidDeath, FIPS, source)
-csse_combined <- full_join(csse_cases, csse_deaths, by = c("Update", "FIPS", "source"))
 
 
-usa_facts_deaths <- csse_combined %>%
+jhu_csse_deaths <- csse_deaths %>%
   rename(geoid=FIPS, time=Update, cumDeaths=Deaths, USPS=source)%>%
   group_by(USPS,time)%>%
   summarize(cumDeaths=sum(cumDeaths))%>%
@@ -78,7 +75,7 @@ usa_facts_deaths <- csse_combined %>%
 
 ##Make the forecast for daily cumlative cases
 state_cum_deaths<- create_cum_death_forecast(res_state,
-                                          usa_facts_deaths,
+                                          jhu_csse_deaths,
                                           opt$forecast_date,
                                           aggregation="day",
                                           loc_column = "USPS")
@@ -120,7 +117,7 @@ res_us <- res_state%>%
   ungroup()%>%
   mutate(location="US")
   
-usa_facts_deaths_us <- usa_facts_deaths %>%
+jhu_csse_deaths_us <- jhu_csse_deaths %>%
   group_by(time)%>%
   summarize(cumDeaths=sum(cumDeaths))%>%
   ungroup()%>%
@@ -128,7 +125,7 @@ usa_facts_deaths_us <- usa_facts_deaths %>%
 
 
 us_cum_deaths<- create_cum_death_forecast(res_us,
-                                          usa_facts_deaths_us,
+                                          jhu_csse_deaths_us,
                                           opt$forecast_date,
                                           aggregation="day",
                                           loc_column = "location")
