@@ -1,0 +1,89 @@
+airport_attribution     Airport attribution data for China
+airport_data            Airport data
+apply_travel_restrictions
+                        Apply a set of travel restrictions to the
+                        travel data, reducing or increasing to a
+                        proportion of the average travel.
+calc_nb_import_pars     Get negative binomial estimates for each time
+                        and destination
+correct_for_Hubei_reporting
+                        Function to correct for the changes in
+                        reporting in Hubei
+distrib_county_imports
+                        distrib_county_imports
+do_airport_attribution
+                        do_airport_attribution
+est_daily_incidence     Function to extract approximate epidemic curves
+                        from the cumulative case data.
+est_daily_incidence_corrected
+                        Wrapper function to correct for the changes in
+                        reporting in Hubei and merge with data for all
+                        incidence
+est_import_detect_dates
+                        Estimate the detection dates of importations
+est_imports_base        Estimate imports base
+expand_travel_restrict
+                        Expand the travel restrictions to include every
+                        date, to allow for merging with travel data.
+find_recent_file        find_recent_file
+fit_ispline             Function to fit monotonically increasing
+                        spline. Returns a function that can be used to
+                        predict the spline for each date.
+get_CA_metro_labels     Get Metro Areas for CA
+get_JHUCSSE_data        Pull JHU CSSE GitHub data
+get_JHUCSSE_deaths      Pull JHU CSSE GitHub data
+get_airport_city        Get airport city
+get_airport_country     Get airport country
+get_airport_state       Get airport state
+get_airports_to_consider
+                        get_airports_to_consider
+get_clean_JHUCSSE_data
+                        Clean crude data from JHUCSSE and aggregated it
+                        to state or county level
+get_clean_JHUCSSE_deaths
+                        Clean crude data from JHUCSSE and aggregated it
+                        to state or county level
+get_county_pops         get_county_pops
+get_global_cum          Get cumulative case counts by Province_state
+get_incidence_data      Get incidence data from JHUCSSE
+get_incidence_fits      Get incidence data from JHUCSSE
+get_mean_imports        Get mean importations across geoids
+get_oag_travel          Get OAG travel data
+get_oag_travel_fulldata
+                        Get OAG travel data
+imports_airport_clustering
+                        imports_airport_clustering
+make_daily_travel       Create Daily Travel
+make_daily_travel_faster
+                        Convert monthly travel to daily travel data -
+                        fast - When we have already built the daily
+                        data, we reuse that and just fill in the new
+                        daily volume each time
+make_input_data         Make input data
+make_meanD              Make MeanD Matrix
+plot_imports_stackeddest
+                        Barchart plot of importations stacked by source
+plot_incidence_ests_report
+                        Function to plot the estimated and reported
+                        case counts
+plot_rep_cases          Facet plot of cumulative and incident cases at
+                        locations desired
+pop_data                Population data
+pull_JHUCSSE_github_data
+                        Pull JHU CSSE GitHub data
+read_JHUCSSE_cases      Reads in the JHUCSSE total case count data up
+                        until (and including) a given dat.
+run_daily_import_model
+                        Run the full simulation of daily importations
+run_daily_import_model_par
+                        Run the full simulation of daily importations
+run_full_distrib_imports
+                        run_distrib_imports
+run_importations        Run importation sims
+setup_and_run_importations
+                        Set up and run importation sims
+setup_importations      Set up importation sims
+travel_restrictions     Travel restrictions data
+underreporting          Underreporting data
+update_JHUCSSE_github_data
+                        Pull JHU CSSE GitHub data

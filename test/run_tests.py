@@ -21,7 +21,7 @@ def _success(test_dir):
 
     # Make Makefile
     cmd = ["Rscript", "../../R/scripts/make_makefile.R",
-            "-c", f"config.yml",
+            "-c", "config.yml",
             "-p", "../..",
             "-n", str(multiprocessing.cpu_count()),
             "-y", sys.executable]
@@ -45,6 +45,112 @@ def teardown_function(self):
     os.chdir("..")
 
 
+
+# Test other scripts  ------------------------------------------------------------
+
+# Test build_US_setup
+def _success_build_US_setup(test_dir):
+    os.chdir(test_dir)
+
+    # Run Build Script
+    cmd = ["Rscript", "../../R/scripts/build_US_setup.R",
+            "-c", "config.yml",
+            "-p", "../..",
+            "-w", "FALSE"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"build_US_setup.R failed with code {complete.returncode}"
+
+    assert_file("data/mobility.csv")
+    assert_file("data/geodata.csv")
+
+
+# Test build_nonUS_setup
+def _success_build_nonUS_setup(test_dir):
+    os.chdir(test_dir)
+
+    # Run Build script
+    cmd = ["Rscript", "../../R/scripts/build_nonUS_setup.R",
+            "-c", "config.yml",
+            "-w", "FALSE",
+            "-n", "population_data.csv",
+            "-m", "mobility_data.csv"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"build_nonUS_setup.R failed with code {complete.returncode}"
+
+    assert_file("data/mobility.csv")
+    assert_file("data/geodata.csv")
+
+
+
+# Test create_seeding_US
+def _success_create_seeding_US(test_dir):
+    os.chdir(test_dir)
+
+    # Run Seeding script
+    cmd = ["Rscript", "../../R/scripts/create_seeding.R",
+            "-c", "config.yml",
+            "-s", "CSSE"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"create_seeding.R failed for US setup using JHU CSSE data with code {complete.returncode}"
+
+    assert_file("data/seeding.csv")
+
+
+# Test create_seeding_nonUS
+def _success_create_seeding_nonUS(test_dir):
+    os.chdir(test_dir)
+
+    # Make Makefile
+    cmd = ["Rscript", "../../R/scripts/create_seeding.R",
+            "-c", "config.yml",
+            "-d", "data/case_data/case_data.csv"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"create_seeding.R failed for non-US setup with code {complete.returncode}"
+
+    assert_file("data/seeding.csv")
+
+# Test runs 2x in a row
+def _success_x2(test_dir):
+    os.chdir(test_dir)
+    subprocess.run(["make", "clean"])
+
+    # Make Makefile
+    cmd = ["Rscript", "../../R/scripts/make_makefile.R",
+            "-c", "config.yml",
+            "-p", "../..",
+            "-n", str(multiprocessing.cpu_count()),
+            "-y", sys.executable]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"make_makefile.R failed with code {complete.returncode}"
+
+    assert_file("Makefile")
+
+    # Run the Makefile
+    cmd = ["make"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"make failed with code {complete.returncode}"
+
+    assert_dir("model_parameters")
+    assert_dir("model_output")
+    assert_dir("hospitalization")
+
+    # Make clean
+    subprocess.run(["make", "clean"])
+
+    # Run the Makefile a second time
+    cmd = ["make"]
+    complete = subprocess.run(cmd)
+    assert complete.returncode == 0, f"make failed with code {complete.returncode}"
+
+    assert_dir("model_parameters")
+    assert_dir("model_output")
+    assert_dir("hospitalization")
+
+    # Make clean again
+    subprocess.run(["make", "clean"])
+
+
+
 # Test definitions
 
 def test_simple():
@@ -53,14 +159,16 @@ def test_simple():
 def test_importation():
     _success("test_importation")
 
-    assert_file("data/filter.txt")
+    assert_file("data/geodata.csv")
+    assert_file("data/mobility.txt")
     assert_dir("data/shp")
     assert_dir("importation")
 
 def test_report():
     _success("test_report")
 
-    assert_file("data/filter.txt")
+    assert_file("data/geodata.csv")
+    assert_file("data/mobility.csv")
     assert_dir("data/shp")
     assert_dir("importation")
     assert_dir("notebooks")
@@ -69,3 +177,19 @@ def test_report():
 
 def test_hosp_age_adjust():
     _success("test_hosp_age_adjust")
+
+def test_build_US():
+    _success_build_US_setup("test_build_US_setup")
+
+def test_build_nonUS():
+    _success_build_nonUS_setup("test_build_nonUS_setup")
+
+def test_create_seeding_US():
+    _success_create_seeding_US("test_create_seeding_US")
+
+def test_create_seeding_nonUS():
+    _success_create_seeding_nonUS("test_create_seeding_nonUS")
+
+def test_simple_x2():
+    _success_x2("test_simple_x2")
+    

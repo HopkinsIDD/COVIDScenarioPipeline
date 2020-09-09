@@ -4,7 +4,9 @@ Welcome to the Johns Hopkins University Infectious Disease Dynamics COVID-19 Wor
 
 We recommend that most new users use the code from the stable `master` branch. Please post questions to GitHub issues with the `question` tag. We are prioritizing direct support for individuals engaged in public health planning and emergency response.
 
-For more information on getting started, please visit our [Getting Started wiki](https://github.com/HopkinsIDD/COVID19_Minimal/wiki/Getting-Started) at [HopkinsIDD/COVID19_Minimal](https://github.com/HopkinsIDD/COVID19_Minimal). We are trying to keep this page up-to-date for use with the `master` branch.
+For more information on getting started, please visit our [wiki](https://github.com/HopkinsIDD/COVID19_Minimal/wiki) at [HopkinsIDD/COVID19_Minimal](https://github.com/HopkinsIDD/COVID19_Minimal). We are trying to keep this page up-to-date for use with the `master` branch.
+
+For more details on the methods and features of our model, visit our [preprint on medRxiv](https://www.medrxiv.org/content/10.1101/2020.06.11.20127894v1).
 
 This open-source project is licensed under GPL v3.0.
 
@@ -30,7 +32,7 @@ To start the container:
 docker run -v ~/mysrcdir:/home/app/src -it hopkinsidd/covidscenariopipeline:latest
 ```
 
-Replace `mysrcdir` with where the code is mounted on your machine; it will
+replacing `mysrcdir` with the path where the code is mounted on your machine. This code will then 
 be available in the `/home/app/src` directory inside the container.
 
 You'll be dropped to the bash prompt where you can run the Python or

@@ -1,6 +1,8 @@
 test_that("load_config works", {
   fname <- tempfile()
   cat("yaml: TRUE\n",file=fname)
+  fname_bad <- tempfile()
+  cat("yaml: TRUE\n yaml2: FALSE\n",file=fname_bad)
 
   expect_equal(
     load_config(fname)$yaml,
@@ -9,7 +11,7 @@ test_that("load_config works", {
 
   expect_error(
     load_config(";lkdjaoijdsfjoasidjfaoiwerfj q2fu8ja8erfasdiofj aewr;fj aff409a urfa8rf a';j 38i a0fuadf "),
-    "file"
+    "Could not find"
   )
 
   expect_error(
@@ -21,6 +23,11 @@ test_that("load_config works", {
     load_config(fname)$missing$badkey,
     "missing"
   )
+
+  expect_error(
+    load_config(fname_bad),
+    "yaml::read_yaml"
+    )
 })
 
 test_that("as_evaled_expression works", {
