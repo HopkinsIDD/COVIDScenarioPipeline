@@ -180,7 +180,7 @@ Hash: 6cc063b236e3bbc174a73959145488ef
 
 Package: covidImportation
 Source: github
-Version: 1.6.1
+Version: 1.8
 Hash: 19ccb07938df6c97b7397e7a0493b818
 Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
     dplyr, fitdistrplus, geosphere, ggplot2, ggvoronoi,
@@ -189,7 +189,7 @@ Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
     tidycensus, tidyr, tidyverse, truncnorm
 GithubRepo: covidImportation
 GithubUsername: HopkinsIDD
-GithubRef: v1.6.1
+GithubRef: v1.8
 GithubSha1: 3cf2341907d23e1b19a3a3190dfca29b50d22218
 
 Package: covidcommon
