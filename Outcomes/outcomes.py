@@ -73,7 +73,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
                     if config_outcomes[new_comp]['duration']['name'].exists():
                         parameters[class_name]['duration_name'] = config_outcomes[new_comp]['duration']['name'].as_str() + subclass
                     else:
-                        parameters[class_name]['duration_name'] = new_comp+'_curr' + subclass
+                        parameters[class_name]['duration_name'] = new_comp + '_curr' + subclass
                 
                 if (config["outcomes"]["param_from_file"].get()):
                     colname = 'R'+class_name+'|'+parameters[new_comp]['source']
@@ -82,9 +82,19 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
                         parameters[class_name]['probability'] = branching_data[colname].to_numpy()
                     else:
                         print(f"NOT using 'param_from_file' for probability {colname}")
+            
+            # We need to compute sum across classes if there is subclasses
             if (subclasses != ['']):
                 parameters[new_comp] = {}
                 parameters[new_comp]['sum'] = [new_comp + c for c in subclasses]
+                if config_outcomes[new_comp]['duration'].exists():
+                    duration_name = new_comp + '_curr'
+                    if config_outcomes[new_comp]['duration']['name'].exists():
+                        duration_name = config_outcomes[new_comp]['duration']['name'].as_str()
+                    parameters[duration_name] = {}
+                    parameters[duration_name]['sum'] = [duration_name + c for c in subclasses]
+
+                
         elif config_outcomes[new_comp]['sum'].exists():
             parameters[new_comp] = {}
             parameters[new_comp]['sum'] = config_outcomes[new_comp]['sum']
