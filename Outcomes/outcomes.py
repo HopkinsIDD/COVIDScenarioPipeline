@@ -47,35 +47,47 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
             raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
         branching_data = branching_data.loc[places] #re-order
 
+    subclasses = ['']
+    if config["outcomes"]["subclasses"].exists():
+        subclasses = config["outcomes"]["subclasses"].get()
+    print(subclasses, type(subclasses))
+
     parameters = {}
     for new_comp in config_outcomes:
-        parameters[new_comp] = {}
         if config_outcomes[new_comp]['source'].exists():
-            # Read the config for this compartement
-            parameters[new_comp]['source'] = config_outcomes[new_comp]['source'].as_str()
-            parameters[new_comp]['probability'] = np.mean(
-                config_outcomes[new_comp]['probability']['value'].as_random_distribution()(size = 10000))
-            
-            parameters[new_comp]['delay'] = int(np.round(np.mean(
-                config_outcomes[new_comp]['delay']['value'].as_random_distribution()(size = 10000))))
-            
-            if config_outcomes[new_comp]['duration'].exists():
-                parameters[new_comp]['duration'] = int(np.round(np.mean(
-                    config_outcomes[new_comp]['duration']['value'].as_random_distribution()(size = 10000))))
-                if config_outcomes[new_comp]['duration']['name'].exists():
-                    parameters[new_comp]['duration_name'] = config_outcomes[new_comp]['duration']['name'].as_str()
-                else:
-                    parameters[new_comp]['duration_name'] = new_comp+'_curr'
-            
-            if (config["outcomes"]["param_from_file"].get()):
-                colname = 'R'+new_comp+'|'+parameters[new_comp]['source']
-                if colname in branching_data.columns:
-                    print(f"Using 'param_from_file' for probability {colname}")
-                    parameters[new_comp]['probability'] = branching_data[colname].to_numpy()
-                else:
-                    print(f"NOT using 'param_from_file' for probability {colname}")
-
+            for subclass in subclasses:
+                class_name = new_comp + subclass
+                parameters[class_name] = {}
+                # Read the config for this compartement
+                parameters[class_name]['source'] = config_outcomes[new_comp]['source'].as_str()
+                if (parameters[class_name]['source'] != 'incidI'):
+                    parameters[class_name]['source'] = parameters[class_name]['source'] + subclass
+                parameters[class_name]['probability'] = np.mean(
+                    config_outcomes[new_comp]['probability']['value'].as_random_distribution()(size = 10000))
+                
+                parameters[class_name]['delay'] = int(np.round(np.mean(
+                    config_outcomes[new_comp]['delay']['value'].as_random_distribution()(size = 10000))))
+                
+                if config_outcomes[new_comp]['duration'].exists():
+                    parameters[class_name]['duration'] = int(np.round(np.mean(
+                        config_outcomes[new_comp]['duration']['value'].as_random_distribution()(size = 10000))))
+                    if config_outcomes[new_comp]['duration']['name'].exists():
+                        parameters[class_name]['duration_name'] = config_outcomes[new_comp]['duration']['name'].as_str() + subclass
+                    else:
+                        parameters[class_name]['duration_name'] = new_comp+'_curr' + subclass
+                
+                if (config["outcomes"]["param_from_file"].get()):
+                    colname = 'R'+class_name+'|'+parameters[new_comp]['source']
+                    if colname in branching_data.columns:
+                        print(f"Using 'param_from_file' for probability {colname}")
+                        parameters[class_name]['probability'] = branching_data[colname].to_numpy()
+                    else:
+                        print(f"NOT using 'param_from_file' for probability {colname}")
+            if (subclasses != ['']):
+                parameters[new_comp+'_total'] = {}
+                parameters[new_comp+'_total']['sum'] = [new_comp + c for c in subclasses]
         elif config_outcomes[new_comp]['sum'].exists():
+            parameters[new_comp] = {}
             parameters[new_comp]['sum'] = config_outcomes[new_comp]['sum']
         else:
             raise ValueError(f"No 'source' or 'sum' specified for comp {new_comp}")
