@@ -62,7 +62,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
                 if (parameters[class_name]['source'] != 'incidI'):
                     parameters[class_name]['source'] = parameters[class_name]['source'] + subclass
                 parameters[class_name]['probability'] = np.mean(
-                    config_outcomes[new_comp]['probability']['value'].as_random_distribution()(size = 10000))
+                    config_outcomes[new_comp]['probability']['value'].as_random_distribution()(size = 10000))/len(subclasses)
                 
                 parameters[class_name]['delay'] = int(np.round(np.mean(
                     config_outcomes[new_comp]['delay']['value'].as_random_distribution()(size = 10000))))
