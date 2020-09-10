@@ -77,8 +77,10 @@ from Outcomes import outcomes
 @click.option("-I","--in-id", "in_run_id", envvar="COVID_RUN_INDEX", type = str, default=file_paths.run_id(),show_default=True, help= "unique identifier for the run")
 @click.option("--out-prefix", "--out-prefix", "out_prefix", envvar="COVID_PREFIX", type = str, default=None, show_default=True, help= "unique identifier for the run")
 @click.option("--in-prefix", "--in-prefix", "in_prefix", envvar="COVID_PREFIX", type = str, default=None, show_default=True, help= "unique identifier for the run")
+@click.option("--stoch_traj_flag", "--stoch_traj_flag", "stoch_traj_flag", envvar="COVID_STOCHASTIC", type = bool, 
+             default=True, show_default=True, help= "Run stochastic trajectories (True) or deterministic one")
 
-def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenarios_outcomes, nsim, jobs,index):
+def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenarios_outcomes, nsim, jobs, index, stoch_traj_flag):
     config.set_file(config_file)
     if not scenarios_outcomes:
         scenarios_outcomes = config["outcomes"]["scenarios"].as_str_seq()
@@ -103,6 +105,7 @@ def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenario
         print(f"""
 >> Starting {nsim} model runs beginning from {index} on {jobs} processes
 >> writing to folder : {outdir}
+>> running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** trajectories
     """)
         if (config["outcomes"]["method"].get() == 'delayframe'):
             param_place_file = None
@@ -118,7 +121,8 @@ def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenario
                         param_place_file,
                         nsim, 
                         index,
-                        jobs)
+                        jobs,
+                        stoch_traj_flag)
         else:
              raise ValueError(f"Only method 'delayframe' is supported at the moment.")
 
