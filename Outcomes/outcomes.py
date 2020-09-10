@@ -59,10 +59,15 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
                 parameters[class_name] = {}
                 # Read the config for this compartement
                 parameters[class_name]['source'] = config_outcomes[new_comp]['source'].as_str()
+                
+                parameters[class_name]['probability'] = np.mean(
+                    config_outcomes[new_comp]['probability']['value'].as_random_distribution()(size = 10000))
+                    
                 if (parameters[class_name]['source'] != 'incidI'):
                     parameters[class_name]['source'] = parameters[class_name]['source'] + subclass
-                parameters[class_name]['probability'] = np.mean(
-                    config_outcomes[new_comp]['probability']['value'].as_random_distribution()(size = 10000))/len(subclasses)
+                else:
+                    parameters[class_name]['probability'] = parameters[class_name]['probability']/len(subclasses)
+
                 
                 parameters[class_name]['delay'] = int(np.round(np.mean(
                     config_outcomes[new_comp]['delay']['value'].as_random_distribution()(size = 10000))))
