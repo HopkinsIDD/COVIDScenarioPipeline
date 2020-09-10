@@ -1558,6 +1558,7 @@ plot_truth_by_county <- function(truth_dat,
 ##' @param outcome_dir directory with spar/snpi folders
 ##' @param truth_dat df with date, geoid, incidI, incidDeath
 ##' @param r_dat df with inference dat from load_r_sims_filtered
+##' @param incl_geoids passed on to calcR0 when using county-level data
 ##' @param pdeath_filter which pdeath to select
 ##' @param scenario_colors colors for each scenario
 ##' @param scenario_levels levels applied to scenarios
