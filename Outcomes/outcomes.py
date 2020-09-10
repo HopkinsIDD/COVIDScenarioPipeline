@@ -50,8 +50,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
     subclasses = ['']
     if config["outcomes"]["subclasses"].exists():
         subclasses = config["outcomes"]["subclasses"].get()
-    print(subclasses, type(subclasses))
-
+    
     parameters = {}
     for new_comp in config_outcomes:
         if config_outcomes[new_comp]['source'].exists():
@@ -84,8 +83,8 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, out_run_id, out_prefix
                     else:
                         print(f"NOT using 'param_from_file' for probability {colname}")
             if (subclasses != ['']):
-                parameters[new_comp+'_total'] = {}
-                parameters[new_comp+'_total']['sum'] = [new_comp + c for c in subclasses]
+                parameters[new_comp] = {}
+                parameters[new_comp]['sum'] = [new_comp + c for c in subclasses]
         elif config_outcomes[new_comp]['sum'].exists():
             parameters[new_comp] = {}
             parameters[new_comp]['sum'] = config_outcomes[new_comp]['sum']
