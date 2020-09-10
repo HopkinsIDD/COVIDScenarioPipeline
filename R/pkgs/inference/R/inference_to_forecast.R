@@ -51,7 +51,7 @@ create_cum_death_forecast <- function(sim_data,
                                  loc_column="USPS") {
     
     ##Sanity checks
-    if(forecast_date>max(obs_data$time)) {stop("forecast date must be within range of observed times")}
+    if(forecast_date>max(obs_data$time)+1) {stop("forecast date must be within one day after the range of observed times")}
     if(forecast_date+1<min(sim_data$time)) {stop("no simulation support for first forecast date")}
     
     ##convert data to a cumdeath forecast.
