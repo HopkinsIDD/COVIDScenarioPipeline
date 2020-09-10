@@ -61,6 +61,12 @@ load_hosp_sims_filtered <- function(outcome_dir,
                                     post_process=function(x) {x},
                                     ...
 ) {
+  
+  subdirs<-list.dirs(model_output)
+  
+  if(length(subdirs)!=length(partitions)){
+    partitions<-partitions[-5:-6]
+  }
 
   require(tidyverse)
   

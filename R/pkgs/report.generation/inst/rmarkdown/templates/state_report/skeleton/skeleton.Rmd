@@ -40,15 +40,6 @@ knitr::opts_knit$set(eval.after = 'fig.cap') ##Allows us to set a variable to fi
 
 options(scipen=999)
 
-install_packages <- c("egg", "gt")
-
-lapply(install_packages, 
-       FUN = function(x){
-         if(!require(x, character.only = TRUE)) {
-           install.packages(x, dependencies = TRUE) 
-           }
-         }
-       )
 #Preamble
 library(tidyverse)
 library(covidcommon)
@@ -105,13 +96,8 @@ modeled_states <- state.abb[which(state.abb %in% config$spatial_setup$modeled_st
 display_dates<-config$report$formatting$display_dates
 scn_colors<-config$report$formatting$scenario_colors
 scn_labels <- config$report$formatting$scenario_labels
-scn_levels<- config$report$formatting$scenario_labels_short
-death_rate_levels<-config$report$formatting$death_rate_levels
-death_rate_labels<-config$report$formatting$death_rate_labels
+scn_levels<- config$report$formatting$scenario_levels
 
-npi_names<- names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="value"))]) %>%
-  str_remove(npi_trimmer) %>%
-  unique() # NOTE: this assumes all interventions have inference, if the projections for some geoids do NOT have inference, then you will need to modify the input to the Rt/effectiveness plots
 ```
 
 We compared `r nscenarios` intervention scenarios for model simulations from `r print_pretty_date(sim_start_date)` through `r print_pretty_date(sim_end_date)`:
@@ -171,125 +157,78 @@ usaf_dat <- load_USAFacts_for_report(incl_geoids = included_geoids,
                                      aggregate=TRUE)
 ```
 
-```{r load_r}
-inference_r <-load_r_sims_filtered(outcome_dir=runs_dir,
-                                   incl_geoids = included_geoids)
 
-```
-
-```{r Rt, fig.cap=cap, fig.height=6, fig.width=10}
-
-plot_rt_ts(county_dat=res_state, 
-           truth_dat = usaf_dat,
-           r_dat = inference_r,
-           scenario_colors=scn_colors, 
-           scenario_labels=scn_labels,
-           scenario_levels=scn_levels,
-           start_date = sim_start_date,
-           end_date = sim_end_date,
-           included_geoids = included_geoids)
-
-cap<-paste0("**Fig. ", fig_counter, "** The effective reproduction number (Rt) and 95% intervals over time based on model outputs and cases as reported in USA Facts. The model Rt estimates reflect the population-adjusted average effectiveness of intervention periods and the decreasing pool of susceptibles from the cumulative number of infections across counties at ", pdeath_default_label, " assumptions. We assume that infection provides complete immunity. Rt estimates for reported cases were calculated with the R0 package.")
-
-fig_counter<-fig_counter+1
-
-```
 [Summary plot to compare outcomes relative to a baseline scenario, uncomment here and library("egg")]
 ```{r, include=FALSE}
-# p1<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
-#                                start_date=first(display_dates),
-#                                end_date=last(display_dates),
-#                                pdeath_filter=pdeath_default,
-#                                scenario_colors=scn_colors, 
-#                                pi_lo=0.05,
-#                                pi_hi=0.95)
+# n_periods <- length(display_dates) - 1
 # 
-# p2<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
-#                                start_date=display_dates[1],
-#                                end_date=display_dates[2],
-#                                pdeath_filter=pdeath_default,
-#                                scenario_colors=scn_colors, 
-#                                pi_lo=0.05,
-#                                pi_hi=0.95) 
+# plot_comparison <- list()
+# for(i in 1:n_periods){
 # 
-# p3<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
-#                                start_date=display_dates[2],
-#                                end_date=display_dates[3],
-#                                pdeath_filter=pdeath_default,
-#                                scenario_colors=scn_colors, 
-#                                pi_lo=0.05,
-#                                pi_hi=0.95) 
-# 
-# p4<-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
-#                                start_date=display_dates[3],
-#                                end_date=display_dates[4],
-#                                pdeath_filter=pdeath_default,
-#                                scenario_colors=scn_colors, 
-#                                pi_lo=0.05,
-#                                pi_hi=0.95)
-# 
-# p1<-p1+theme(legend.position="none",
-#                 axis.title.x=element_blank(),
-#                 axis.title.y=element_blank(),
-#                 axis.text.y=element_text(color="black", size=20),
-#                 axis.text.x=element_text(color="black", size=16),
-#                 plot.subtitle = element_text(size=18,face="bold"))+
-#     labs(subtitle=paste0(format(first(as.Date(display_dates)), "%B %d"), 
+#   plot_comparison[[i+1]] <-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
+#                                                    start_date=display_dates[i],
+#                                                    end_date=display_dates[i+1],
+#                                                    pdeath_filter=pdeath_default,
+#                                                    scenario_colors=scn_colors,
+#                                                    pi_lo=0.05,
+#                                                    pi_hi=0.95) +
+#     theme(legend.position="none",
+#           axis.text.y=element_blank(),
+#           axis.ticks.y=element_blank(),
+#           axis.title.y = element_blank(),
+#           axis.text.x=element_text(color="black", size=16),
+#           axis.title.x=element_blank(),
+#           plot.subtitle = element_text(size=18,
+#                                        face="bold")
+#           )+
+#     labs(subtitle=paste0(format(as.Date(display_dates)[i], "%B %d"),
 #                          "-",
-#                          format(last(as.Date(display_dates)), "%B %d")))
+#                          format(as.Date(display_dates)[i+1], "%B %d"))
+#          )
 # 
-# p2<-p2+theme(legend.position="none",
-#                 axis.text.y=element_blank(),
-#                 axis.ticks.y=element_blank(),
-#                 axis.title.y = element_blank(),
-#                 axis.text.x=element_text(color="black", size=16),
-#                 axis.title.x=element_blank(),
-#                 plot.subtitle = element_text(size=18,
-#                                              face="bold"))+
-#     labs(subtitle=paste0(format(as.Date(display_dates)[1], "%B %d"), 
+# 
+#   if(i==n_periods) {
+#   plot_comparison[[1]] <- plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
+#                                                   start_date=first(display_dates),
+#                                                   end_date=last(display_dates),
+#                                                   pdeath_filter=pdeath_default,
+#                                                   scenario_colors=scn_colors,
+#                                                   pi_lo=0.05,
+#                                                   pi_hi=0.95) +
+#     theme(legend.position="none",
+#           axis.title.x=element_blank(),
+#           axis.title.y=element_blank(),
+#           axis.text.y=element_text(color="black", size=20),
+#           axis.text.x=element_text(color="black", size=16),
+#           plot.subtitle = element_text(size=18,face="bold")
+#           )+
+#     labs(subtitle=paste0(format(first(as.Date(display_dates)), "%B %d"),
 #                          "-",
-#                          format(as.Date(display_dates)[2], "%B %d")))
+#                          format(last(as.Date(display_dates)), "%B %d"))
+#          )
+#   }
 # 
-# p3<-p3+theme(legend.position="none",
-#                 axis.text.y=element_blank(),
-#                 axis.ticks.y=element_blank(),
-#                 axis.title.y = element_blank(),
-#                 axis.title.x=element_blank(),
-#                 axis.text.x=element_text(color="black", size=16),
-#                 plot.subtitle = element_text(size=16,
-#                                              face="bold"))+
-#     labs(subtitle=paste0(format(as.Date(display_dates)[2], "%B %d"), 
-#                          "-",
-#                          format(as.Date(display_dates)[3], "%B %d")))
+# }
 # 
-# p4<-p4+theme(legend.position="none",
-#                 axis.text.y=element_blank(),
-#                 axis.ticks.y=element_blank(),
-#                 axis.title.y = element_blank(),
-#                 axis.title.x=element_blank(),
-#                 axis.text.x=element_text(color="black", size=16),
-#                 plot.subtitle = element_text(size=18,
-#                                              face="bold"))+
-#     labs(subtitle=paste0(format(as.Date(display_dates)[3], "%B %d"), 
-#                          "-",
-#                          format(as.Date(display_dates)[4], "%B %d")))
 # 
-# plot_time<-ggarrange(plots=list(p1, p2, p3, p4),
+# plot_time<-ggarrange(plots=plot_comparison,
 #                      nrow=1,
-#                      bottom=grid::textGrob('Relative to "Business as usual" scenario', gp = grid::gpar(col = "black", fontsize = 16)))
+#                      bottom=grid::textGrob(
+#                        paste0('Relative to ',scn_labels[1],' scenario'),
+#                        gp = grid::gpar(col = "black", fontsize = 16)))
 
 ``` 
 
 ```{r, fig.cap=cap, fig.width=16, fig.height=8}
 # legend<-get_legend(p1+theme(legend.position="bottom",
-#                                legend.text=element_text(size=16),
-#                                legend.title=element_blank()))
+#                             legend.text=element_text(size=16),
+#                             legend.title=element_blank()))
 # 
 # plot_grid(plot_time, legend, nrow=2, rel_heights = c(1,0.1))
 # 
-# cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the "Business as usual" scenario with 95% prediction intervals. Estimates are shown across 4 time periods at ',pdeath_default_label,' assumptions.')
-
-fig_counter<-fig_counter+1
+# cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the "Business as usual" scenario with 95% prediction intervals. Estimates are shown across ', n_periods,' time periods at ',pdeath_default_label,' assumptions.')
+# 
+# fig_counter<-fig_counter+1
 ```
 
 ```{r summary_fig, fig.cap = cap}
