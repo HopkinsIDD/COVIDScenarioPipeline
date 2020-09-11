@@ -62,22 +62,29 @@ load_hosp_sims_filtered <- function(outcome_dir,
                                     ...
 ) {
   
-  subdirs<-list.dirs(model_output)
-  
-  if(length(subdirs)!=length(partitions)){
-    partitions<-partitions[-5:-6]
-  }
-
   require(tidyverse)
   
-  rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
-                          partitioning = partitions) %>%
-    dplyr::filter(is_final=="final",
-                  lik_type=="global") %>%
-    dplyr::filter(pdeath %in% pdeath_filter) %>%
-    dplyr::filter(geoid %in% incl_geoids) %>%
-    pre_process(...) %>%
-    dplyr::collect() 
+  subdirs<-list.dirs(file.path(outcome_dir, model_output))
+                     
+  if(length(subdirs)==length(partitions)){
+    rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
+                            partitioning = partitions) %>%
+      dplyr::filter(is_final=="final",
+                    lik_type=="global") %>%
+      dplyr::filter(pdeath %in% pdeath_filter) %>%
+      dplyr::filter(geoid %in% incl_geoids) %>%
+      pre_process(...) %>%
+      dplyr::collect()
+  } else {
+    partitions <- partitions[-5:-6]
+    
+    rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
+                            partitioning = partitions) %>%
+      dplyr::filter(pdeath %in% pdeath_filter) %>%
+      dplyr::filter(geoid %in% incl_geoids) %>%
+      pre_process(...) %>%
+      dplyr::collect()
+  }
   
   rc <- rc %>%
     dplyr::group_by(pdeath, scenario, geoid, location) %>%

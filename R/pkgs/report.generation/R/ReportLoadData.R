@@ -287,8 +287,7 @@ load_hosp_county <- function(outcome_dir,
       dplyr::ungroup() %>%
       dplyr::mutate(scenario_name = factor(scenario,
                                            levels = scenario_levels, 
-                                           labels = scenario_labels)) %>%
-      dplyr::select(-lik_type, -is_final, -date)
+                                           labels = scenario_labels)) 
   }
   
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
