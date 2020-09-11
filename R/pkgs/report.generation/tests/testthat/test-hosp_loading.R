@@ -1,7 +1,7 @@
 create_testing_simulations <- function(){
     dir <- tempdir()
     dir.create(paste(dir,"a_b", "hosp/loc/scn/high/2020.06.19/global/final/", sep = '/'), recursive=TRUE)
-    dir.create(paste(dir,"a_c", "hosp/loc/scn/high/2020.08.17/global/final/", sep = '/'), recursive=TRUE)
+    dir.create(paste(dir,"a_c", "hosp/loc/scn/high/2020.08.17/", sep = '/'), recursive=TRUE)
     for(i in seq_len(10)){
         arrow::write_parquet(data.frame(
             time = rep(lubridate::ymd('2020-01-01') + lubridate::days(1:10), each = 10),
@@ -31,7 +31,7 @@ create_testing_simulations <- function(){
             icu_curr = sample(1:100, 100),
             hosp_curr = sample(1:100, 100),
             vent_curr = sample(1:100, 100)
-        ), sink = paste0(dir,"/a_c/hosp/loc/scn/high/2020.08.17/global/final/0000",i,".parquet")
+        ), sink = paste0(dir,"/a_c/hosp/loc/scn/high/2020.08.17/0000",i,".parquet")
         )
     }
     return(dir)
@@ -61,7 +61,7 @@ test_that("Simulation loading works", {
             partitions = c("location", "scenario", "pdeath", "lik_type", "is_final"),
             incl_geoids = included_geoids
         )
-    }, "at least one array to create a converter")
+    }, "must use existing variables")
     
     # expect_equal({
     #     load_hosp_sims_filtered(
@@ -84,6 +84,13 @@ test_that("Simulation loading works", {
     }, 19
     )
     
+    expect_equal({
+        ncol(load_hosp_sims_filtered(
+            outcome_dir = 'a_c',
+            incl_geoids = included_geoids
+        ))
+    }, 17
+    )
     # expect_error({
     #     load_hosp_sims_filtered(
     #         outcome_dir = 'a_b',

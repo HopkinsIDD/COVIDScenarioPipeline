@@ -1,7 +1,7 @@
 create_testing_simulations <- function(){
     dir <- tempdir()
     dir.create(paste(dir,"a_b", "hosp/loc/scn/high/2020.06.19/global/final/", sep = '/'), recursive=TRUE)
-    dir.create(paste(dir,"a_b", "hosp/loc/scn/med/2020.06.19/global/final/", sep = '/'), recursive=TRUE)
+    dir.create(paste(dir,"a_c", "hosp/loc/scn/med/2020.06.19/", sep = '/'), recursive=TRUE)
     for(i in seq_len(10)){
         arrow::write_parquet(data.frame(
             time = rep(lubridate::ymd('2020-01-01') + lubridate::days(1:5), each = 5),
@@ -31,7 +31,7 @@ create_testing_simulations <- function(){
             icu_curr = sample(1:100, 25),
             hosp_curr = sample(1:100, 25),
             vent_curr = sample(1:100, 25)
-        ), sink = paste0(dir,"/a_b/hosp/loc/scn/med/2020.06.19/global/final/0000",i,".parquet")
+        ), sink = paste0(dir,"/a_c/hosp/loc/scn/med/2020.06.19/0000",i,".parquet")
         )
     }
     return(dir)
@@ -102,7 +102,17 @@ test_that("Simulation loading works", {
             scenario_labels = 'baseline',
             incl_geoids = included_geoids
         ))
-    }, 21
+    }, 24
+    )
+    
+    expect_equal({
+        ncol(load_hosp_county(
+            outcome_dir = 'a_c',
+            scenario_levels = 'scn',
+            scenario_labels = 'baseline',
+            incl_geoids = included_geoids
+        ))
+    }, 22
     )
     
     unlink(dir, recursive=TRUE)  
