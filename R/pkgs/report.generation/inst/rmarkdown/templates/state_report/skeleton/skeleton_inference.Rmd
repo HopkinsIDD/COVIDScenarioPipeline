@@ -56,12 +56,12 @@ library(report.generation)
 library(covidImportation)
 library(doParallel)
 library(cowplot)
-# library(egg)
-# library(gt)
+ library(egg)
+ library(gt)
 library(purrr)
 
 
-if (params$state_usps=="[STATE USPS]") {stop("Must define a target state by USPS code.")}
+#if (params$state_usps=="[STATE USPS]") {stop("Must define a target state by USPS code.")}
 
 ```
 
@@ -193,13 +193,12 @@ fig_counter<-fig_counter+1
 
 ```
 
-[Summary plot to compare outcomes relative to a baseline scenario, uncomment here and library("egg")]
 ```{r, include=FALSE}
 # n_periods <- length(display_dates) - 1
 # 
 # plot_comparison <- list()
 # for(i in 1:n_periods){
-#   
+# 
 #   plot_comparison[[i+1]] <-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
 #                                                    start_date=display_dates[i],
 #                                                    end_date=display_dates[i+1],
@@ -216,12 +215,12 @@ fig_counter<-fig_counter+1
 #           plot.subtitle = element_text(size=18,
 #                                        face="bold")
 #           )+
-#     labs(subtitle=paste0(format(as.Date(display_dates)[i], "%B %d"),
+#     labs(subtitle=paste0(format(as.Date(display_dates)[i], "%b %d"),
 #                          "-",
-#                          format(as.Date(display_dates)[i+1], "%B %d"))
+#                          format(as.Date(display_dates)[i+1], "%b %d"))
 #          )
 # 
-#   
+# 
 #   if(i==n_periods) {
 #   plot_comparison[[1]] <- plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
 #                                                   start_date=first(display_dates),
@@ -237,31 +236,31 @@ fig_counter<-fig_counter+1
 #           axis.text.x=element_text(color="black", size=16),
 #           plot.subtitle = element_text(size=18,face="bold")
 #           )+
-#     labs(subtitle=paste0(format(first(as.Date(display_dates)), "%B %d"),
+#     labs(subtitle=paste0(format(first(as.Date(display_dates)), "%b %d"),
 #                          "-",
-#                          format(last(as.Date(display_dates)), "%B %d"))
+#                          format(last(as.Date(display_dates)), "%b %d"))
 #          )
 #   }
-#   
+# 
 # }
 # 
 # 
 # plot_time<-ggarrange(plots=plot_comparison,
 #                      nrow=1,
 #                      bottom=grid::textGrob(
-#                        paste0('Relative to ',scn_labels[1],' scenario'), 
+#                        paste0('Relative to ',scn_labels[1],' scenario'),
 #                        gp = grid::gpar(col = "black", fontsize = 16)))
 
 ``` 
 
 ```{r, fig.cap=cap, fig.width=16, fig.height=8}
-# legend<-get_legend(p1+theme(legend.position="bottom",
+# legend<-get_legend(plot_comparison[[1]]+theme(legend.position="bottom",
 #                             legend.text=element_text(size=16),
 #                             legend.title=element_blank()))
 # 
 # plot_grid(plot_time, legend, nrow=2, rel_heights = c(1,0.1))
 # 
-# cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the "Business as usual" scenario with 95% prediction intervals. Estimates are shown across ', n_periods,' time periods at ',pdeath_default_label,' assumptions.')
+# cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the ',scn_labels[1] ,' scenario with 95% prediction intervals. Estimates are shown across ', n_periods,' time periods at ',pdeath_default_label,' assumptions.')
 # 
 # fig_counter<-fig_counter+1
 ```

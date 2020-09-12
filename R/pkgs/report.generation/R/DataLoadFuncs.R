@@ -59,14 +59,13 @@ load_hosp_sims_filtered <- function(outcome_dir,
                                     incl_geoids,
                                     pre_process=function(x) {x},
                                     post_process=function(x) {x},
+                                    inference=TRUE,
                                     ...
 ) {
   
   require(tidyverse)
   
-  subdirs<-list.dirs(file.path(outcome_dir, model_output))
-                     
-  if(length(subdirs)==length(partitions)){
+  if(inference){
     rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                             partitioning = partitions) %>%
       dplyr::filter(is_final=="final",
@@ -76,7 +75,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
       pre_process(...) %>%
       dplyr::collect()
   } else {
-    partitions <- partitions[-5:-6]
+    if(length(partitions)==7){partitions <- partitions[-5:-6]}
     
     rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                             partitioning = partitions) %>%
