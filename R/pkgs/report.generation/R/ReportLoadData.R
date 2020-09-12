@@ -23,7 +23,8 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
                                        scenario_levels=NULL,
                                        scenario_labels=NULL,
                                        incl_geoids,
-                                       pdeath_filter="med")
+                                       pdeath_filter="med",
+                                       inference=TRUE)
 {
   warning("This function loads infection data from hospitalization outputs. Only one IFR scenario is needed to load these data for a given set of model outputs because infection counts will be the same across IFR scenarios.")
   
@@ -61,7 +62,8 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
                               pdeath_filter=pdeath_filter,
                               pre_process=hosp_pre_process,
                               post_process=hosp_post_process,
-                              incl_geoids = incl_geoids)
+                              incl_geoids = incl_geoids,
+                              inference=inference)
   
   rc<-rc%>%
     dplyr::mutate(scenario_name = factor(scenario, levels=scenario_levels, labels=scenario_labels), 
@@ -100,7 +102,8 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
                                        scenario_levels=NULL,
                                        scenario_labels=NULL,
                                        incl_geoids,
-                                       pdeath_filter="med")
+                                       pdeath_filter="med",
+                                       inference=TRUE)
 {
   warning("This function loads infection data from hospitalization outputs. Only one IFR scenario is needed to load these data for a given set of model outputs because infection counts will be the same across IFR scenarios.")
   
@@ -144,7 +147,8 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
                               pdeath_filter=pdeath_filter,
                               pre_process=hosp_pre_process,
                               post_process=hosp_post_process,
-                              incl_geoids=incl_geoids)
+                              incl_geoids=incl_geoids,
+                              inference=inference)
   
   rc<-rc%>%
     dplyr::mutate(scenario_name = factor(scenario, levels=scenario_levels, labels=scenario_labels), 
@@ -177,6 +181,7 @@ load_hosp_geocombined_totals <- function(outcome_dir,
                                          pdeath_filter=c("high", "med", "low"),
                                          pre_process=function(x) {x},
                                          incl_geoids,
+                                         inference=TRUE,
                                          ...
 ) {
   
@@ -213,7 +218,8 @@ load_hosp_geocombined_totals <- function(outcome_dir,
                                pdeath_filter=pdeath_filter,
                                pre_process=pre_process,
                                post_process=hosp_post_process,
-                               incl_geoids=incl_geoids)
+                               incl_geoids=incl_geoids,
+                               inference=inference)
   
   if(!unique(rc$scenario) %in% scenario_levels) {warning("Scenario levels were not correctly specified you may encounter errors in the future")}
   
@@ -263,6 +269,7 @@ load_hosp_county <- function(outcome_dir,
                              pdeath_filter=c("high", "med", "low"),
                              pre_process=function(x) {x},
                              incl_geoids,
+                             inference=TRUE,
                              ...
 ) {
   
@@ -294,7 +301,8 @@ load_hosp_county <- function(outcome_dir,
                                pdeath_filter=pdeath_filter,
                                pre_process=pre_process,
                                post_process=hosp_post_process,
-                               incl_geoids=incl_geoids)
+                               incl_geoids=incl_geoids,
+                               inference=inference)
   
   if(!unique(rc$scenario) %in% scenario_levels) {warning("Scenario levels were not correctly specified you may encounter errors in the future")}
   

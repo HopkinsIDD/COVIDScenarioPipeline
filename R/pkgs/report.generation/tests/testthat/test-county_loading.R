@@ -110,7 +110,8 @@ test_that("Simulation loading works", {
             outcome_dir = 'a_c',
             scenario_levels = 'scn',
             scenario_labels = 'baseline',
-            incl_geoids = included_geoids
+            incl_geoids = included_geoids,
+            inference=FALSE
         ))
     }, 22
     )

@@ -58,8 +58,9 @@ test_that("Simulation loading works", {
     expect_error({
         load_hosp_sims_filtered(
             outcome_dir = "a_b", 
-            partitions = c("location", "scenario", "pdeath", "lik_type", "is_final"),
-            incl_geoids = included_geoids
+            partitions = c("location", "scenario", "pdeath", "date", "lik_type", "is_final"),
+            incl_geoids = included_geoids,
+            inference=FALSE
         )
     }, "must use existing variables")
     
@@ -87,7 +88,8 @@ test_that("Simulation loading works", {
     expect_equal({
         ncol(load_hosp_sims_filtered(
             outcome_dir = 'a_c',
-            incl_geoids = included_geoids
+            incl_geoids = included_geoids,
+            inference=FALSE
         ))
     }, 17
     )
