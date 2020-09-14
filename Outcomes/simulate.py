@@ -78,8 +78,10 @@ from Outcomes import outcomes
 @click.option("-I","--in-id", "in_run_id", envvar="COVID_RUN_INDEX", type = str, default=file_paths.run_id(),show_default=True, help= "unique identifier for the run")
 @click.option("--out-prefix", "--out-prefix", "out_prefix", envvar="COVID_PREFIX", type = str, default=None, show_default=True, help= "unique identifier for the run")
 @click.option("--in-prefix", "--in-prefix", "in_prefix", envvar="COVID_PREFIX", type = str, default=None, show_default=True, help= "unique identifier for the run")
+@click.option("--stoch_traj_flag", "--stoch_traj_flag", "stoch_traj_flag", envvar="COVID_STOCHASTIC", type = bool, default=True, 
+              show_default=True, help= "True: stochastic outcomes simulations, False: continuous deterministic simulations")
 
-def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenarios_outcomes, nsim, jobs, index):
+def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenarios_outcomes, nsim, jobs, index, stoch_traj_flag):
     config.set_file(config_file)
     if not scenarios_outcomes:
         scenarios_outcomes = config["outcomes"]["scenarios"].as_str_seq()
@@ -97,12 +99,15 @@ def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenario
             out_prefix = config["name"].get() + "/" + str(scenario_outcomes) + "/"
         if in_prefix is None:
             raise ValueError(f"in_prefix must be provided")
+        outdir = file_paths.create_dir_name(out_run_id, out_prefix,"hosp")
+        os.makedirs(outdir, exist_ok=True)
 
         print(f"""
->> Scenario: {scenario_outcomes} 
 >> Starting {nsim} model runs beginning from {index} on {jobs} processes
+>> Scenario: {scenario_outcomes} 
 >> writing to folder : {out_prefix}
-    """)
+          """)
+        
         if (config["outcomes"]["method"].get() == 'delayframe'):
             outcomes.run_delayframe_outcomes(config,
                                              in_run_id,
@@ -113,12 +118,10 @@ def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenario
                                              index,
                                              scenario_outcomes,
                                              nsim,
-                                             jobs)
+                                             jobs,
+                                             stoch_traj_flag)
         else:
             raise ValueError(f"Only method 'delayframe' is supported at the moment.")
-
-            # Allow to change prefix:
-            prefix = None
 
     print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")
 

@@ -14,16 +14,16 @@ import pandas as pd
 from SEIR import file_paths
 
 
-def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, nsim = 1, n_jobs=1):
+def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, nsim = 1, n_jobs=1, stoch_traj_flag = True):
     start = time.monotonic()
     in_sim_ids = np.arange(in_sim_id, in_sim_id + nsim)
     out_sim_ids = np.arange(out_sim_id, out_sim_id + nsim)
 
     parameters = read_parameters_from_config(config, in_run_id, in_prefix, in_sim_ids, scenario_outcomes)
-
+    loaded_values = None
     if (n_jobs == 1) or (nsim == 1):  # run single process for debugging/profiling purposes
         for sim_offset in np.arange(nsim):
-            onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_ids[sim_offset], out_run_id, out_prefix, out_sim_ids[sim_offset], parameters)
+            onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_ids[sim_offset], out_run_id, out_prefix, out_sim_ids[sim_offset], parameters, loaded_values, stoch_traj_flag)
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
@@ -34,6 +34,8 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id,
             itertools.repeat(out_prefix),
             out_sim_ids,
             itertools.repeat(parameters),
+            itertools.repeat(loaded_values),
+            itertools.repeat(stoch_traj_flag),
             max_workers=n_jobs
         )
 
@@ -42,8 +44,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id,
 """)
     return 1
 
-
-def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes):
+def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, stoch_traj_flag = True):
     parameters = read_parameters_from_config(config, in_run_id, in_prefix, [in_sim_id], scenario_outcomes)
 
     loaded_values = pyarrow.parquet.read_table(file_paths.create_file_name(
@@ -54,8 +55,7 @@ def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id
         'parquet'
     )).to_pandas()
 
-
-    onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values)
+    onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values, stoch_traj_flag)
     return 1
 
 
@@ -67,19 +67,22 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
     if (config["outcomes"]["param_from_file"].get()):
         # load a file from the seir model, to know how to filter the provided csv file
         diffI = pd.read_parquet(file_paths.create_file_name(
-            run_id,
-            prefix,
-            sim_ids[0],
-            'seir',
-            'parquet'
+          run_id,
+          prefix,
+          sim_ids[0],
+          'seir',
+          'parquet'
         ))
         diffI = diffI[diffI['comp'] == 'diffI']
         dates = diffI.time
-        diffI.drop(['comp'], inplace=True, axis=1)
+        diffI.drop(['comp'], inplace = True, axis = 1)
+        places = diffI.drop(['time'], axis=1).columns
 
+        # Load the actual csv file
         # Load the actual csv file
         branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pa.parquet.read_table(branching_file).to_pandas()
+        print(branching_data)
         print('Loaded geoids in loaded relative probablity file:', len(branching_data.geoid.unique()), '', end='')
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
         print('Intersect with seir simulation: ', len(branching_data.geoid.unique()), 'keeped')
@@ -88,6 +91,9 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
         #branching_data = pd.pivot(branching_data, index="geoid", columns="colname", values="value")
         if (len(branching_data.geoid.unique()) != diffI.drop('time', axis=1).columns.shape[0]):
             raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
+        print(places)
+        print(branching_data)
+        #branching_data = branching_data.loc[places] #re-order
 
     parameters = {}
     for new_comp in config_outcomes:
@@ -122,14 +128,14 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
             raise ValueError(f"No 'source' or 'sum' specified for comp {new_comp}")
 
     return parameters
+    
 
-
-def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values=None):
+def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values=None, stoch_traj_flag = True):
 
     # Read files
     diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
     # Compute outcomes
-    outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values)
+    outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag)
 
     # Write output
     write_outcome_sim(outcomes, out_run_id, out_prefix, out_sim_id)
@@ -178,11 +184,10 @@ def write_outcome_hpar(hpar, run_id, prefix, sim_id):
                            )
 
 
-def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values=None):
-
+def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag = True):
     all_data = {}
     # We store them as numpy matrices. Dimensions is dates X places
-    all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy().astype(np.int32)
+    all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy()#.astype(np.int32)
 
     hpar = pd.DataFrame(columns=['geoid', 'quantity', 'outcome', 'source', 'value'])
 
@@ -194,6 +199,7 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
             # 2. compute duration if needed
             source = parameters[new_comp]['source']
             if loaded_values is not None:
+                print(loaded_values)
                 probability = \
                     loaded_values[(loaded_values['quantity'] == 'probability') & (loaded_values['outcome'] == new_comp)
                                   & (loaded_values['source'] == source)]['value'].to_numpy()
@@ -211,8 +217,10 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
             # Create new compartment incidence:
             all_data[new_comp] = np.empty_like(all_data['incidI'])
             # Draw with from source compartment
-            all_data[new_comp] = np.random.binomial(all_data[source], probability * np.ones_like(all_data[source]))
-            
+            if stoch_traj_flag:
+                all_data[new_comp] = np.random.binomial(all_data[source].astype(np.int32), probability * np.ones_like(all_data[source]))
+            else:
+                all_data[new_comp] = all_data[source] *  (probability * np.ones_like(all_data[source]))
 
             # import matplotlib.pyplot as plt
             # plt.imshow(probability * np.ones_like(all_data[source]))
@@ -286,8 +294,6 @@ def dataframe_from_array(data, places, dates, comp_name):
 
 """ Quite fast shift implementation, along the first axis, 
     which is date. num is an integer not negative nor zero """
-
-
 def shift(arr, num, fill_value=0):
     if (num == 0):
         return arr

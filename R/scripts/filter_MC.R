@@ -22,6 +22,7 @@ option_list = list(
   optparse::make_option(c("-k", "--simulations_per_slot"), action="store", default=Sys.getenv("COVID_SIMULATIONS_PER_SLOT", NA), type='integer', help = "number of simulations to run for this slot"),
   optparse::make_option(c("-i", "--this_slot"), action="store", default=Sys.getenv("COVID_SLOT_INDEX", 1), type='integer', help = "id of this slot"),
   optparse::make_option(c("-b", "--this_block"), action="store", default=Sys.getenv("COVID_BLOCK_INDEX",1), type='integer', help = "id of this block"),
+  optparse::make_option(c("-t", "--stoch_traj_flag"), action="store", default=Sys.getenv("COVID_STOCHASTIC",TRUE), type='logical', help = "Stochastic SEIR and outcomes trajectories if true"),
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
   optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
   optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable")
@@ -138,6 +139,11 @@ reticulate::py_run_string(paste0("run_id = '", opt$run_id, "'"))
 reticulate::import_from_path("SEIR", path=opt$pipepath)
 reticulate::import_from_path("Outcomes", path=opt$pipepath)
 reticulate::py_run_string(paste0("index = ", 1))
+if(opt$stoch_traj_flag) {
+  reticulate::py_run_string(paste0("stoch_traj_flag = True"))
+} else {
+  reticulate::py_run_string(paste0("stoch_traj_flag = False"))
+}
 
 for(scenario in scenarios) {
 
@@ -189,8 +195,8 @@ for(scenario in scenarios) {
           hierarchical_stats = hierarchical_stats,
           defined_priors = defined_priors,
           geodata = geodata,
-	  snpi = arrow::read_parquet(first_global_files[['snpi_filename']]),
-	  hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,source,outcome,sep='_'))
+          snpi = arrow::read_parquet(first_global_files[['snpi_filename']]),
+          hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,source,outcome,sep='_'))
         )
       }
     )
@@ -278,7 +284,7 @@ for(scenario in scenarios) {
         defined_priors,
         geodata,
         proposed_snpi,
-        dplyr::mutate(proposed_hpar,parameter=paste(quantity,source,outcome))
+        dplyr::mutate(proposed_hpar,parameter=paste(quantity,source,outcome, sep = '_'))
       )
 
 

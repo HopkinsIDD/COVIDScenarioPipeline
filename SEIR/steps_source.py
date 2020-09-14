@@ -11,10 +11,10 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 @cc.export(
     "steps_SEIR_nb",
     "float64[:,:,:](float64[:,:], float64[:,:], float64[:,:], float64[:,:], float64[:,:], float64[:,:],"
-    "float64, float64[:], int64, int64[:], int32[:], int32[:], float64[:], float64[:,:])"
+    "float64, float64[:], int64, int64[:], int32[:], int32[:], float64[:], float64[:,:], boolean)"
 )
 def steps_SEIR_nb(alpha, beta, sigma, gamma, y0, seeding, dt, t_inter, nnodes, popnodes,
-                  mobility_row_indices, mobility_data_indices, mobility_data, dynfilter):
+                  mobility_row_indices, mobility_data_indices, mobility_data, dynfilter, stoch_traj_flag):
     y = np.copy(y0)
     states = np.zeros((ncomp, nnodes, len(t_inter)))
 
@@ -52,13 +52,21 @@ def steps_SEIR_nb(alpha, beta, sigma, gamma, y0, seeding, dt, t_inter, nnodes, p
               ).sum()
             ))
 
-            exposeCases[i] = np.random.binomial(y[S][i], p_expose)
             p_infect = 1 - np.exp(-dt * sigma[it][i])
-            incidentCases[i] = np.random.binomial(y[E][i], p_infect)
             p_recover = 1 - np.exp(-dt * gamma[it][i])
-            incident2Cases[i] = np.random.binomial(y[I1][i], p_recover)
-            incident3Cases[i] = np.random.binomial(y[I2][i], p_recover)
-            recoveredCases[i] = np.random.binomial(y[I3][i], p_recover)
+
+            if stoch_traj_flag:
+                exposeCases[i] = np.random.binomial(y[S][i], p_expose)
+                incidentCases[i] = np.random.binomial(y[E][i], p_infect)
+                incident2Cases[i] = np.random.binomial(y[I1][i], p_recover)
+                incident3Cases[i] = np.random.binomial(y[I2][i], p_recover)
+                recoveredCases[i] = np.random.binomial(y[I3][i], p_recover)
+            else:
+                exposeCases[i] =    y[S][i] * p_expose
+                incidentCases[i] =  y[E][i] * p_infect
+                incident2Cases[i] = y[I1][i] * p_recover
+                incident3Cases[i] = y[I2][i] * p_recover
+                recoveredCases[i] = y[I3][i] * p_recover
 
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases

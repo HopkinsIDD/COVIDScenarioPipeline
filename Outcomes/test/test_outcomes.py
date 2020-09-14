@@ -9,6 +9,8 @@ from Outcomes import outcomes
 
 
 def test_outcomes():
+
+    stoch_traj_flag = True
     
     # Create some input from SEIR
     places = ['Paris','Lausanne','Baltimore']
@@ -38,7 +40,7 @@ def test_outcomes():
     diffI['Lausanne'].iloc[10] = 100
 
     # Run the outcomes model
-    out_df = outcomes.compute_all_delayframe_outcomes(parameters, diffI, places, dates)
+    out_df = outcomes.compute_all_delayframe_outcomes(parameters, diffI, places, dates, stoch_traj_flag = stoch_traj_flag)
 
     # Test that copie worked: T == incidI
     assert((out_df['T'] == out_df['incidI']).all)
