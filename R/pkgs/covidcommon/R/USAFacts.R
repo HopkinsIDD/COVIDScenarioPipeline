@@ -29,7 +29,13 @@ download_USAFacts_data <- function(filename, url, value_col_name){
   usafacts_data <- usafacts_data %>% 
     tidyr::pivot_longer(date_cols, names_to="Update", values_to=value_col_name) %>%
     dplyr::mutate(Update=lubridate::mdy(Update), FIPS=sprintf("%05d", FIPS))
-
+  
+  validation_date <- Sys.getenv("VALIDATION_DATE")
+  if ( validation_date != '' ) {
+    print(paste("(USAFacts.R) Limiting USAFacts data to:", validation_date, sep=" "))
+    usafacts_data <- usafacts_data %>% dplyr::filter( Update < validation_date )
+  }
+  
   return(usafacts_data)
 }
 

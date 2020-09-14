@@ -24,12 +24,12 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
     data <- data[dates <= end_date]
     dates <- dates[dates <= end_date]
   }
-
-
+  
+  
   xtsobj <- xts::as.xts(zoo::zoo(data, dates))
   stats <- xts::period.apply(xtsobj,
-                        xts::endpoints(xtsobj, on = period_unit, k = period_k),
-                        aggregator)
+                             xts::endpoints(xtsobj, on = period_unit, k = period_k),
+                             aggregator)
   return(stats)
 }
 
@@ -49,19 +49,19 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
     aggregator <- match.fun(s$aggregator)
     ## Get the time period over whith to apply aggregation
     period_info <- strsplit(s$period, " ")[[1]]
-
+    
     if(!all(c(time_col, s[[var_col]]) %in% names(df)))
     {
       stop(paste0("At least one of columns: [",time_col,",", s[[var_col]],"] not in df columns: ", paste(names(df), collapse=",")))
     }
-
+    
     res <- inference::periodAggregate(df[[s[[var_col]]]],
-                           df[[time_col]],
-                           end_date,
-                           period_info[2],
-                           period_info[1],
-                           aggregator,
-                           na.rm = s$remove_na)
+                                      df[[time_col]],
+                                      end_date,
+                                      period_info[2],
+                                      period_info[1],
+                                      aggregator,
+                                      na.rm = s$remove_na)
     rc[[stat]] <- res %>%
       as.data.frame() %>%
       dplyr::mutate(date = rownames(.)) %>%
@@ -87,24 +87,24 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
   if (add_one) {
     sim[sim == 0] = 1
   }
-
+  
   if(distr == "pois") {
     rc <- dpois(obs, sim, log = T)
   } else if (distr == "norm") {
     rc <- dnorm(obs, sim, sd = param[[1]], log = T)
   } else  if (distr == "norm_cov") {
-      rc <- dnorm(obs, sim, sd = pmax(obs,5)*param[[1]], log = T)
+    rc <- dnorm(obs, sim, sd = pmax(obs,5)*param[[1]], log = T)
   }  else if (distr == "nbinom") {
     rc <- dnbinom(obs, mu=sim, size = param[[1]], log = T)
   } else if (distr == "sqrtnorm") {
-      ##rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[[1]], log = T)
-      rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(pmax(obs,5))*param[[1]], log = T)
+    ##rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(sim)*param[[1]], log = T)
+    rc <- dnorm(sqrt(obs), sqrt(sim), sd=sqrt(pmax(obs,5))*param[[1]], log = T)
   } else if (distr == "sqrtnorm_scale_sim") { #param 1 is cov, param 2 is multipler
     rc <- dnorm(sqrt(obs), sqrt(sim*param[[2]]), sd=sqrt(pmax(obs,5)*param[[2]])*param[[1]],log=T)
   } else {
     stop("Invalid stat specified")
   }
-
+  
   return(rc)
 }
 
@@ -135,35 +135,35 @@ calc_hierarchical_likadj <- function (stat,
                                       stat_col="reduction",
                                       transform = "none",
                                       min_sd=.1) {
-
-    require(dplyr)
-
-    if (transform == "logit") {
-        infer_frame <- infer_frame  %>%
-            #mutate(value = value)
-            mutate(!!sym(stat_col) := qlogis(!!sym(stat_col)),
-                   !!sym(stat_col):=ifelse(!!sym(stat_col)< -2*10^12, -2*10^12, !!sym(stat_col)),
-                   !!sym(stat_col):=ifelse(!!sym(stat_col)> 2*10^12, 2*10^12, !!sym(stat_col)))
-    } else if (transform!="none") {
-        stop("specified transform not yet supported")
-    }
-
-    ##print(stat)
-    ##cat("sd=",max(sd(infer_frame[[stat_col]]), min_sd,na.rm=T),"\n")
-    ##cat("mean=",mean(infer_frame[[stat_col]]),"\n")
-    ##print(range(infer_frame[[stat_col]]))
-
-    rc <- infer_frame%>%
-        filter(!!sym(stat_name_col)==stat)%>%
-        inner_join(geodata)%>%
-        group_by(!!sym(geo_group_column))%>%
-        mutate(likadj = dnorm(!!sym(stat_col),
-                              mean(!!sym(stat_col)),
-                              max(sd(!!sym(stat_col)), min_sd, na.rm=T), log=TRUE))%>%
-        ungroup()%>%
-        select(geoid, likadj)
-
-    return(rc)
+  
+  require(dplyr)
+  
+  if (transform == "logit") {
+    infer_frame <- infer_frame  %>%
+      #mutate(value = value)
+      mutate(!!sym(stat_col) := qlogis(!!sym(stat_col)),
+             !!sym(stat_col):=ifelse(!!sym(stat_col)< -2*10^12, -2*10^12, !!sym(stat_col)),
+             !!sym(stat_col):=ifelse(!!sym(stat_col)> 2*10^12, 2*10^12, !!sym(stat_col)))
+  } else if (transform!="none") {
+    stop("specified transform not yet supported")
+  }
+  
+  ##print(stat)
+  ##cat("sd=",max(sd(infer_frame[[stat_col]]), min_sd,na.rm=T),"\n")
+  ##cat("mean=",mean(infer_frame[[stat_col]]),"\n")
+  ##print(range(infer_frame[[stat_col]]))
+  
+  rc <- infer_frame%>%
+    filter(!!sym(stat_name_col)==stat)%>%
+    inner_join(geodata)%>%
+    group_by(!!sym(geo_group_column))%>%
+    mutate(likadj = dnorm(!!sym(stat_col),
+                          mean(!!sym(stat_col)),
+                          max(sd(!!sym(stat_col)), min_sd, na.rm=T), log=TRUE))%>%
+    ungroup()%>%
+    select(geoid, likadj)
+  
+  return(rc)
 }
 
 
@@ -182,21 +182,62 @@ calc_hierarchical_likadj <- function (stat,
 calc_prior_likadj  <- function(params,
                                dist,
                                dist_pars) {
-
-    if (dist=="normal") {
-        rc <- dnorm(params, dist_pars[[1]], dist_pars[[2]], log=TRUE)
-    } else  if (dist=="logit_normal") {
-        params <- pmax(params, 10^-12)
-        params <- pmin(params, 1-10^-12)
-        rc <- dnorm(qlogis(params), qlogis(dist_pars[[1]]), dist_pars[[2]], log=TRUE)
-    } else {
-        stop("This distribution is unsupported")
-    }
-
-    return(rc)
+  
+  if (dist=="normal") {
+    rc <- dnorm(params, dist_pars[[1]], dist_pars[[2]], log=TRUE)
+  } else  if (dist=="logit_normal") {
+    params <- pmax(params, 10^-12)
+    params <- pmin(params, 1-10^-12)
+    rc <- dnorm(qlogis(params), qlogis(dist_pars[[1]]), dist_pars[[2]], log=TRUE)
+  } else {
+    stop("This distribution is unsupported")
+  }
+  
+  return(rc)
 }
 
+##'
+##'
+##' Function to compute cumulative counts across geoids
+##'
+##' @param sim_hosp output of ouctomes branching process
+##'
+##' @return dataframe with the added columns for cumulative counts
+##'
+##' @export
+##'
+compute_cumulative_counts <- function(sim_hosp) {
+  res <- sim_hosp %>% 
+    gather(var, value, -time, -geoid) %>% 
+    group_by(geoid, var) %>% 
+    arrange(time) %>% 
+    mutate(cumul = cumsum(value)) %>% 
+    ungroup() %>% 
+    pivot_wider(names_from = "var", values_from = c("value", "cumul")) %>% 
+    select(-(contains("cumul") & contains("curr")))
+  
+  colnames(res) <- str_replace_all(colnames(res), c("value_" = "", "cumul_incid" = "cumul"))
+  return(res)
+}
 
+##'
+##'
+##' Function to compute cumulative counts across geoids
+##'
+##' @param sim_hosp output of ouctomes branching process
+##'
+##' @return dataframe with the added rows for all counts
+##'
+##' @export
+##'
+compute_totals <- function(sim_hosp) {
+  sim_hosp %>% 
+    group_by(time) %>%
+    summarise_if(is.numeric, sum, na.rm = TRUE) %>% 
+    mutate(geoid = "all") %>% 
+    select(all_of(colnames(sim_hosp))) %>% 
+    rbind(sim_hosp)
+}
 
 # MCMC stuff -------------------------------------------------------------------
 
@@ -211,18 +252,18 @@ calc_prior_likadj  <- function(params,
 ##' @return a pertubed data frame
 ##'
 ##' @export
-  perturb_seeding <- function(seeding,sd,date_bounds) {
-    seeding <- seeding %>%
-        dplyr::group_by(place) %>%
-        dplyr::mutate(date = date+round(rnorm(1,0,sd))) %>%
-        dplyr::ungroup() %>%
-        dplyr::mutate(
-          amount=round(pmax(rnorm(length(amount),amount,1),0)),
-          date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
-        )
-
-    return(seeding)
-
+perturb_seeding <- function(seeding,sd,date_bounds) {
+  seeding <- seeding %>%
+    dplyr::group_by(place) %>%
+    dplyr::mutate(date = date+round(rnorm(1,0,sd))) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      amount=round(pmax(rnorm(length(amount),amount,1),0)),
+      date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
+    )
+  
+  return(seeding)
+  
 }
 
 
@@ -236,35 +277,35 @@ calc_prior_likadj  <- function(params,
 ##' @return a pertubed data frame
 ##' @export
 perturb_snpi <- function(snpi, intervention_settings) {
-    ##Loop over all interventions
-    for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
-
-        ##Only perform pertubations on interventions where it is specified ot do so.
-
-        if ('perturbation' %in% names(intervention_settings[[intervention]])){
-
-            ##get the random distribution from covidcommon package
-            pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
-
-            ##get the npi values for this distribution
-            ind <- (snpi[["npi_name"]] == intervention)
-	    if(!any(ind)){
-              next
-	    }
-
-            ##add the pertubation...for now always parameterized in terms of a "reduction"
-            snpi_new <- snpi[["reduction"]][ind] + pert_dist(sum(ind))
-
-            ##check that this is in bounds (equivalent to having a positive probability)
-            in_bounds_index <- covidcommon::as_density_distribution(
-                                                intervention_settings[[intervention]][['value']]
-                                            )(snpi_new) > 0
-
-            ##return all in bounds proposals
-            snpi$reduction[ind][in_bounds_index] <- snpi_new[in_bounds_index]
-        }
+  ##Loop over all interventions
+  for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
+    
+    ##Only perform pertubations on interventions where it is specified ot do so.
+    
+    if ('perturbation' %in% names(intervention_settings[[intervention]])){
+      
+      ##get the random distribution from covidcommon package
+      pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
+      
+      ##get the npi values for this distribution
+      ind <- (snpi[["npi_name"]] == intervention)
+      if(!any(ind)){
+        next
+      }
+      
+      ##add the pertubation...for now always parameterized in terms of a "reduction"
+      snpi_new <- snpi[["reduction"]][ind] + pert_dist(sum(ind))
+      
+      ##check that this is in bounds (equivalent to having a positive probability)
+      in_bounds_index <- covidcommon::as_density_distribution(
+        intervention_settings[[intervention]][['value']]
+      )(snpi_new) > 0
+      
+      ##return all in bounds proposals
+      snpi$reduction[ind][in_bounds_index] <- snpi_new[in_bounds_index]
     }
-    return(snpi)
+  }
+  return(snpi)
 }
 
 ##' Fuction perturbs an npi parameter file based on
@@ -277,32 +318,45 @@ perturb_snpi <- function(snpi, intervention_settings) {
 ##' @return a pertubed data frame
 ##' @export
 perturb_hpar <- function(hpar, intervention_settings) {
-    ##Loop over all interventions
-
-    for(intervention in names(intervention_settings)){
-      for(quantity in names(intervention_settings[[intervention]])){
-        if('perturbation' %in% names(intervention_settings[[intervention]][[quantity]])){
-          intervention_quantity <- intervention_settings[[intervention]][[quantity]]
-          ## get the random distribution from covidcommon package
-          pert_dist <- covidcommon::as_random_distribution(intervention_quantity[['perturbation']])
-
-          ##get the hpar values for this distribution
-          ind <- (hpar[["outcome"]] == intervention) & (hpar[["quantity"]] == quantity) # & (hpar[['source']] == intervention_settings[[intervention]][['source']])
-	  if(!any(ind)){
-            next
-	  }
-
-          ## add the perturbation...
-          hpar_new <- hpar[["value"]][ind] + pert_dist(sum(ind))
-
-          ## Check that this is in the support of the original distribution
-          in_bounds_index <- covidcommon::as_density_distribution(intervention_quantity[['value']])(hpar_new) > 0
-          hpar$value[ind][in_bounds_index] <- hpar_new[in_bounds_index]
+  ##Loop over all interventions
+  
+  for(intervention in names(intervention_settings)){
+    for(quantity in names(intervention_settings[[intervention]])){
+      if('perturbation' %in% names(intervention_settings[[intervention]][[quantity]])){
+        intervention_quantity <- intervention_settings[[intervention]][[quantity]]
+        ## get the random distribution from covidcommon package
+        pert_dist <- covidcommon::as_random_distribution(intervention_quantity[['perturbation']])
+        
+        ##get the hpar values for this distribution
+        ind <- (hpar[["outcome"]] == intervention) & (hpar[["quantity"]] == quantity) # & (hpar[['source']] == intervention_settings[[intervention]][['source']])
+        if(!any(ind)){
+          next
         }
+        
+        ## add the perturbation...
+        if (!is.null(intervention_quantity[['perturbation']][["transform"]])) {
+          if (intervention_quantity[['perturbation']][["transform"]] == "logit") {
+            # For [0,1] bounded parameters add on logit scale
+            x <- hpar[["value"]][ind]
+            hpar_new <- 1/(1+exp(-(log(x/(1-x)) + pert_dist(sum(ind)))))
+          } else if (intervention_quantity[['perturbation']][["transform"]] == "log") {
+            # For [0, Inf) bounded parameters add on log scale
+            hpar_new <- exp(log(hpar[["value"]][ind]) + pert_dist(sum(ind)))
+          } else {
+            stop("unkown transform")
+          }
+        } else {
+          hpar_new <- hpar[["value"]][ind] + pert_dist(sum(ind))
+        }
+        
+        ## Check that this is in the support of the original distribution
+        in_bounds_index <- covidcommon::as_density_distribution(intervention_quantity[['value']])(hpar_new) > 0
+        hpar$value[ind][in_bounds_index] <- hpar_new[in_bounds_index]
       }
     }
-
-    return(hpar)
+  }
+  
+  return(hpar)
 }
 ##' Function to go through to accept or reject seedings in a block manner based
 ##' on a geoid specific likelihood.
@@ -329,21 +383,21 @@ accept_reject_new_seeding_npis <- function(
   rc_seeding <- seeding_orig
   rc_snpi <- snpi_orig
   rc_hpar <- hpar_orig
-
+  
   if(!all(orig_lls$geoid == prop_lls$geoid)){stop("geoids must match")}
   ##draw accepts/rejects
   ratio <- exp(prop_lls$ll - orig_lls$ll)
   accept <- ratio>runif(length(ratio),0,1)
-
+  
   orig_lls$ll[accept] <- prop_lls$ll[accept]
-
-
+  
+  
   for (place in orig_lls$geoid[accept]) {
     rc_seeding[rc_seeding$place ==place, ] <- seeding_prop[seeding_prop$place ==place, ]
     rc_snpi[rc_snpi$geoid == place,] <- snpi_prop[snpi_prop$geoid == place, ]
     rc_hpar[rc_hpar$geoid == place,] <- hpar_prop[hpar_prop$geoid == place, ]
   }
-
+  
   return(list(seeding=rc_seeding, snpi=rc_snpi, hpar = rc_hpar, lls = orig_lls))
 }
 
