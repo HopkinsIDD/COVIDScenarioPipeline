@@ -20,6 +20,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id,
     out_sim_ids = np.arange(out_sim_id, out_sim_id + nsim)
 
     parameters = read_parameters_from_config(config, in_run_id, in_prefix, in_sim_ids, scenario_outcomes)
+    print(parameters)
     loaded_values = None
     if (n_jobs == 1) or (nsim == 1):  # run single process for debugging/profiling purposes
         for sim_offset in np.arange(nsim):
@@ -110,10 +111,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                 
                 parameters[class_name]['probability'] = config_outcomes[new_comp]['probability']['value']
                     
-                if (parameters[class_name]['source'] != 'incidI'):
-                    parameters[class_name]['source'] = parameters[class_name]['source'] + subclass
-                else:
-                    parameters[class_name]['probability'] = parameters[class_name]['probability']/len(subclasses)
+                parameters[class_name]['source'] = parameters[class_name]['source'] + subclass
 
                 
                 parameters[class_name]['delay'] = config_outcomes[new_comp]['delay']['value']
