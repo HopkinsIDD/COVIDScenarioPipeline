@@ -81,6 +81,7 @@ from Outcomes import outcomes
 @click.option("--stoch_traj_flag", "--stoch_traj_flag", "stoch_traj_flag", envvar="COVID_STOCHASTIC", type = bool, default=True, 
               show_default=True, help= "True: stochastic outcomes simulations, False: continuous deterministic simulations")
 
+
 def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenarios_outcomes, nsim, jobs, index, stoch_traj_flag):
     config.set_file(config_file)
     if not scenarios_outcomes:
@@ -106,6 +107,7 @@ def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenario
 >> Starting {nsim} model runs beginning from {index} on {jobs} processes
 >> Scenario: {scenario_outcomes} 
 >> writing to folder : {out_prefix}
+>> running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** trajectories
           """)
         
         if (config["outcomes"]["method"].get() == 'delayframe'):
@@ -120,6 +122,7 @@ def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenario
                                              nsim,
                                              jobs,
                                              stoch_traj_flag)
+
         else:
             raise ValueError(f"Only method 'delayframe' is supported at the moment.")
 
