@@ -2,23 +2,23 @@
 library(inference)
 library(tidyverse)
 
-setwd("C:/Users/eclee/COVIDWorking")
+setwd("~/COVIDWorking")
 
 
 opt <- list()
 
 opt$jobs <- 2
-opt$forecast_date <- "2020-09-06"
-opt$end_date <- "2020-10-17"
+opt$forecast_date <- "2020-09-13"
+opt$end_date <- "2020-10-24"
 opt$geodata <- "geodata_territories.csv"
 opt$death_filter <- "low"
 opt$num_simulationsulations <- 2000
-opt$outfile <- "2020-09-06-JHU_IDD-CovidSP_low_deathoptim.csv"
+opt$outfile <- "2020-09-13-JHU_IDD-CovidSP_low_deathoptim.csv"
 opt$include_hosp <- TRUE
 
 arguments<- list()
 # arguments$args <- "usa_runs_2020-7-27"
-arguments$args <- "usa_runs_2020-9-7-deathoptim"
+arguments$args <- "usa_runs_2020-9-14-deathoptim"
 
 opt$reichify <-TRUE
 

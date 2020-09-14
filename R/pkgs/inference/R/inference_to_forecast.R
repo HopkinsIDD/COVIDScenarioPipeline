@@ -54,15 +54,31 @@ create_cum_death_forecast <- function(sim_data,
     if(forecast_date>max(obs_data$time)+1) {stop("forecast date must be within one day after the range of observed times")}
     if(forecast_date+1<min(sim_data$time)) {stop("no simulation support for first forecast date")}
     
-    ##convert data to a cumdeath forecast.
-    start_deaths <- obs_data%>%
+    if(max(obs_data$time)==forecast_date){
+      ## USA Facts Data updates mid-day so forecasts run after noon will have a forecast date that overlaps with the obs_data
+      ##convert data to a cumdeath forecast.
+      print(glue::glue("Accumulate deaths through {forecast_date}, typically for USA Facts aggregation after noon."))
+      start_deaths <- obs_data%>%
         filter(time==forecast_date)%>%
         select(!!sym(loc_column),cumDeaths)
+      
+      forecast_sims <- cum_death_forecast(sim_data,
+                                          forecast_date,
+                                          start_deaths,
+                                          loc_column)
+    } else{
+      ## CSSE data updates at midnight so forecasts will not typically have a forecast date one day after the end of the obs_data       
+      print(glue::glue("Accumulate deaths through {forecast_date-1}, typically for CSSE aggregation."))
+      start_deaths <- obs_data%>%
+      filter(time==forecast_date-1)%>%
+        select(!!sym(loc_column),cumDeaths)
+      
+      forecast_sims <- cum_death_forecast(sim_data,
+                                          forecast_date-1,
+                                          start_deaths,
+                                          loc_column)
+    }
     
-    forecast_sims <- cum_death_forecast(sim_data,
-                                        forecast_date,
-                                        start_deaths,
-                                        loc_column)
     
     ##aggregated data to the right scale
     if (aggregation=="day") {
