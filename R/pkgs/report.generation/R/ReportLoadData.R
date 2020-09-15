@@ -609,12 +609,12 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
   if(aggregate){
     usaf_dat <- usaf_dat %>%
       dplyr::group_by(date, source) %>%
-      dplyr::summarize_all(sum, na.rm = TRUE) %>%
+      dplyr::summarise(across(-geoid, ~sum(na.rm=TRUE))) %>%
       dplyr::ungroup() %>%
       dplyr::rename(NcumulConfirmed=Confirmed,
                     NcumulDeathsObs=Deaths,
                     NincidConfirmed=incidI,
-                    NincidDeathsObs=deaths)
+                    NincidDeathsObs=incidDeath)
       
   } else{
     usaf_dat <- usaf_dat %>%

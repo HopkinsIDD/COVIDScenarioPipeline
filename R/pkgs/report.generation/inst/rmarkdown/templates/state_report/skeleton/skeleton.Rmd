@@ -157,9 +157,29 @@ cum_inf_dates <- load_cum_inf_geounit_dates(outcome_dir=runs_dir,
 ```{r load_case_data}
 ## load case data 
 usaf_dat <- load_USAFacts_for_report(incl_geoids = included_geoids,
-                                     aggregate=TRUE)
+                                     aggregate=FALSE)
 ```
 
+## Key Findings 
+```{r state_validation, fig.height=14, fig.cap=cap}
+compare_plts<-plot_model_vs_obs(jhu_obs_dat=usaf_dat,
+                                state_hosp_totals,
+                                scenario_colors=scn_colors,
+                                sim_start_date=sim_start_date,
+                                sim_end_date=sim_end_date,
+                                pdeath_filter=pdeath_default,
+                                week=TRUE, #aggregate to week? 
+                                hosp=FALSE) #is there hosp data with colname "currhosp"?
+
+compare_plts[[1]] <- compare_plts[[1]] + ylab("Weekly Incident Cases")
+compare_plts[[2]] <- compare_plts[[2]] + ylab("Weekly Incident Deaths")
+
+ggpubr::ggarrange(plotlist=compare_plts, ncol=1)
+
+cap<- paste0("**Fig. ", fig_counter, "** Calibration of estimated incident cases and deaths to reported data from USA Facts. Here, modeled cases are calculated as a percent of modeled infection that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for each scenario at ",pdeath_default_label," assumptions. Note that USA Facts data were reported as daily cumulative cases and deaths. In this figure, daily cumulative case and death counts were differenced and then aggregated by week. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")
+
+     fig_counter<-fig_counter+1
+``` 
 
 ```{r, include=FALSE}
 # Must have at least two scenarios
