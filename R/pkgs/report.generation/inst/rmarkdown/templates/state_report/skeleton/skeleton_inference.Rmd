@@ -194,75 +194,75 @@ fig_counter<-fig_counter+1
 ```
 
 ```{r, include=FALSE}
-# n_periods <- length(display_dates) - 1
-# 
-# plot_comparison <- list()
-# for(i in 1:n_periods){
-# 
-#   plot_comparison[[i+1]] <-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
-#                                                    start_date=display_dates[i],
-#                                                    end_date=display_dates[i+1],
-#                                                    pdeath_filter=pdeath_default,
-#                                                    scenario_colors=scn_colors,
-#                                                    pi_lo=0.05,
-#                                                    pi_hi=0.95) +
-#     theme(legend.position="none",
-#           axis.text.y=element_blank(),
-#           axis.ticks.y=element_blank(),
-#           axis.title.y = element_blank(),
-#           axis.text.x=element_text(color="black", size=16),
-#           axis.title.x=element_blank(),
-#           plot.subtitle = element_text(size=18,
-#                                        face="bold")
-#           )+
-#     labs(subtitle=paste0(format(as.Date(display_dates)[i], "%b %d"),
-#                          "-",
-#                          format(as.Date(display_dates)[i+1], "%b %d"))
-#          )
-# 
-# 
-#   if(i==n_periods) {
-#   plot_comparison[[1]] <- plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
-#                                                   start_date=first(display_dates),
-#                                                   end_date=last(display_dates),
-#                                                   pdeath_filter=pdeath_default,
-#                                                   scenario_colors=scn_colors,
-#                                                   pi_lo=0.05,
-#                                                   pi_hi=0.95) +
-#     theme(legend.position="none",
-#           axis.title.x=element_blank(),
-#           axis.title.y=element_blank(),
-#           axis.text.y=element_text(color="black", size=20),
-#           axis.text.x=element_text(color="black", size=16),
-#           plot.subtitle = element_text(size=18,face="bold")
-#           )+
-#     labs(subtitle=paste0(format(first(as.Date(display_dates)), "%b %d"),
-#                          "-",
-#                          format(last(as.Date(display_dates)), "%b %d"))
-#          )
-#   }
-# 
-# }
-# 
-# 
-# plot_time<-ggarrange(plots=plot_comparison,
-#                      nrow=1,
-#                      bottom=grid::textGrob(
-#                        paste0('Relative to ',scn_labels[1],' scenario'),
-#                        gp = grid::gpar(col = "black", fontsize = 16)))
+n_periods <- length(display_dates) - 1
+
+plot_comparison <- list()
+for(i in 1:n_periods){
+
+  plot_comparison[[i+1]] <-plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
+                                                   start_date=display_dates[i],
+                                                   end_date=display_dates[i+1],
+                                                   pdeath_filter=pdeath_default,
+                                                   scenario_colors=scn_colors,
+                                                   pi_lo=0.05,
+                                                   pi_hi=0.95) +
+    theme(legend.position="none",
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.x=element_text(color="black", size=16),
+          axis.title.x=element_blank(),
+          plot.subtitle = element_text(size=18,
+                                       face="bold")
+          )+
+    labs(subtitle=paste0(format(as.Date(display_dates)[i], "%b %d"),
+                         "-",
+                         format(as.Date(display_dates)[i+1], "%b %d"))
+         )
+
+
+  if(i==n_periods) {
+  plot_comparison[[1]] <- plot_scn_outcomes_ratio(hosp_state_totals = state_hosp_totals,
+                                                  start_date=first(display_dates),
+                                                  end_date=last(display_dates),
+                                                  pdeath_filter=pdeath_default,
+                                                  scenario_colors=scn_colors,
+                                                  pi_lo=0.05,
+                                                  pi_hi=0.95) +
+    theme(legend.position="none",
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          axis.text.y=element_text(color="black", size=20),
+          axis.text.x=element_text(color="black", size=16),
+          plot.subtitle = element_text(size=18,face="bold")
+          )+
+    labs(subtitle=paste0(format(first(as.Date(display_dates)), "%b %d"),
+                         "-",
+                         format(last(as.Date(display_dates)), "%b %d"))
+         )
+  }
+
+}
+
+
+plot_time<-ggarrange(plots=plot_comparison,
+                     nrow=1,
+                     bottom=grid::textGrob(
+                       paste0('Relative to ',scn_labels[1],' scenario'),
+                       gp = grid::gpar(col = "black", fontsize = 16)))
 
 ``` 
 
 ```{r, fig.cap=cap, fig.width=16, fig.height=8}
-# legend<-get_legend(plot_comparison[[1]]+theme(legend.position="bottom",
-#                             legend.text=element_text(size=16),
-#                             legend.title=element_blank()))
-# 
-# plot_grid(plot_time, legend, nrow=2, rel_heights = c(1,0.1))
-# 
-# cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the ',scn_labels[1] ,' scenario with 95% prediction intervals. Estimates are shown across ', n_periods,' time periods at ',pdeath_default_label,' assumptions.')
-# 
-# fig_counter<-fig_counter+1
+legend<-get_legend(plot_comparison[[1]]+theme(legend.position="bottom",
+                            legend.text=element_text(size=16),
+                            legend.title=element_blank()))
+
+plot_grid(plot_time, legend, nrow=2, rel_heights = c(1,0.1))
+
+cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the ',scn_labels[1] ,' scenario with 95% prediction intervals. Estimates are shown across ', n_periods,' time periods at ',pdeath_default_label,' assumptions.')
+
+fig_counter<-fig_counter+1
 ```
 
 ```{r summary_fig, fig.cap = cap}
