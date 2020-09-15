@@ -1226,7 +1226,9 @@ make_sparkline_tab_r <- function(r_dat,
   r_tab[is.na(r_tab)] <- ""
   
   # Plotting
-  fill_values <- RColorBrewer::brewer.pal(length(npi_labels), brewer_palette)
+  npi_num = length(npi_labels)
+  expand_palette = colorRampPalette(RColorBrewer::brewer.pal(npi_num, brewer_palette))
+  fill_values <- expand_palette(npi_num)
   color_values <- colorspace::darken(fill_values, 0.3)
 
   
@@ -1351,7 +1353,9 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
   r_tab[is.na(r_tab)] <- ""
   
   # Plotting
-  fill_values <- RColorBrewer::brewer.pal(length(npi_labels), brewer_palette)
+  npi_num = length(npi_labels)
+  expand_palette = colorRampPalette(RColorBrewer::brewer.pal(npi_num, brewer_palette))
+  fill_values <- expand_palette(npi_num)
   color_values <- colorspace::darken(fill_values, 0.3)
   
   
