@@ -23,7 +23,6 @@ create_testing_simulations <- function(){
             time = rep(lubridate::ymd('2020-01-01') + lubridate::days(1:10), each = 10),
             geoid = rep(1:10, each=10),
             incidI = sample(1:100, 100),
-            incidC = sample(1:100, 100),
             incidH = sample(1:100, 100),
             incidD = sample(1:100, 100),
             incidICU = sample(1:100, 100),
@@ -93,7 +92,7 @@ test_that("Simulation loading works", {
             incl_geoids = included_geoids,
             inference=FALSE
         ))
-    }, 17
+    }, 16
     )
     # expect_error({
     #     load_hosp_sims_filtered(

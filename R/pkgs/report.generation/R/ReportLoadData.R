@@ -187,7 +187,8 @@ load_hosp_geocombined_totals <- function(outcome_dir,
   
   require(tidyverse)
   
-  hosp_post_process <- function(x) {
+  if(inference){
+    hosp_post_process <- function(x) {
     x %>%
       dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
       dplyr::arrange(time) %>%
@@ -212,6 +213,31 @@ load_hosp_geocombined_totals <- function(outcome_dir,
       dplyr::mutate(scenario_name = factor(scenario,
                                            levels = scenario_levels, 
                                            labels = scenario_labels))
+    }
+  } else {
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
+        dplyr::arrange(time) %>%
+        dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
+        dplyr::mutate(cum_death=cumsum(incidD)) %>%
+        dplyr::mutate(cum_inf=cumsum(incidI)) %>%
+        dplyr::group_by(pdeath, scenario, time, sim_num) %>%
+        dplyr::summarize(NhospCurr=sum(hosp_curr),
+                         NICUCurr=sum(icu_curr),
+                         NincidDeath=sum(incidD),
+                         NincidInf=sum(incidI),
+                         NincidICU=sum(incidICU),
+                         NincidHosp=sum(incidH),
+                         NincidVent=sum(incidVent),
+                         NVentCurr=sum(vent_curr),
+                         cum_hosp=sum(cum_hosp),
+                         cum_death=sum(cum_death),
+                         cum_inf=sum(cum_inf)) %>%
+        dplyr::mutate(scenario_name = factor(scenario,
+                                             levels = scenario_levels, 
+                                             labels = scenario_labels))
+    }
   }
   
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
@@ -275,7 +301,8 @@ load_hosp_county <- function(outcome_dir,
   
   require(tidyverse)
   
-  hosp_post_process <- function(x) {
+  if(inference){
+    hosp_post_process <- function(x) {
     x %>%
       dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
       dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
@@ -295,6 +322,27 @@ load_hosp_county <- function(outcome_dir,
       dplyr::mutate(scenario_name = factor(scenario,
                                            levels = scenario_levels, 
                                            labels = scenario_labels)) 
+    }
+  } else{
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
+        dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
+        dplyr::mutate(cum_death=cumsum(incidD)) %>%
+        dplyr::mutate(cum_inf=cumsum(incidI)) %>%
+        dplyr::rename(NhospCurr=hosp_curr,
+                      NICUCurr=icu_curr,
+                      NincidDeath=incidD,
+                      NincidInf=incidI,
+                      NincidICU=incidICU,
+                      NincidHosp=incidH,
+                      NincidVent=incidVent,
+                      NVentCurr=vent_curr) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(scenario_name = factor(scenario,
+                                             levels = scenario_levels, 
+                                             labels = scenario_labels)) 
+    }
   }
   
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
@@ -338,7 +386,8 @@ load_hosp_geounit_threshold <- function(threshold,
                                         incl_geoids,
                                         scenario_labels, 
                                         scenario_levels,
-                                        outcome_dir
+                                        outcome_dir, 
+                                        inference=TRUE
 ){
     if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
     catch_all_threshold <- Inf
@@ -360,7 +409,8 @@ load_hosp_geounit_threshold <- function(threshold,
                            pdeath_filter=pdeath_filter,, 
                            scenario_levels=scenario_levels,
                            scenario_labels=scenario_labels,
-                           incl_geoids=incl_geoids)
+                           incl_geoids=incl_geoids,
+                           inference=inference)
     rc <- rc %>%
       dplyr::group_by(geoid, scenario, sim_num) %>%
       group_map(function(.x,.y){
