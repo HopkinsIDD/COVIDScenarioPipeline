@@ -105,7 +105,7 @@ modeled_states <- state.abb[which(state.abb %in% config$spatial_setup$modeled_st
 display_dates<-config$report$formatting$display_dates
 scn_colors<-config$report$formatting$scenario_colors
 scn_labels <- config$report$formatting$scenario_labels
-scn_levels<- config$report$formatting$scenario_levels
+scn_levels<- config$interventions$scenarios
 
 npi_names<- names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="value"))]) %>%
   str_remove(npi_trimmer) %>%
