@@ -86,11 +86,9 @@ load_hosp_sims_filtered <- function(outcome_dir,
   }
   
   rc <- rc %>%
-    dplyr::group_by(pdeath, scenario, geoid, location) %>%
-    dplyr::distinct(sim_id)%>%
+    dplyr::group_by(pdeath, scenario, geoid, location, time) %>%
     dplyr::mutate(sim_num=seq_along(sim_id)) %>%
     dplyr::ungroup() %>%
-    dplyr::right_join(rc) %>%
     dplyr::mutate(time=as.Date(time))
   
   rc <- rc %>%
@@ -185,7 +183,7 @@ load_spar_sims_filtered <- function(outcome_dir,
     pre_process(...)%>%
     dplyr::collect() %>% 
     dplyr::group_by(scenario)%>%
-    dplyr::mutate(sim_num = order(sim_id)) %>%
+    dplyr::mutate(sim_num = seq_along(sim_id)) %>%
     dplyr::ungroup()
   
   message("Finished loading. Note pdeaths of the same scenario are treated as different simulations.")
@@ -235,7 +233,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
     pre_process(...)%>%
     dplyr::collect() %>%
     dplyr::group_by(geoid, npi_name, scenario)%>%
-    dplyr::mutate(sim_num = order(sim_id)) %>%
+    dplyr::mutate(sim_num = seq_along(sim_id)) %>%
     dplyr::select(-date, -lik_type, -is_final) %>%
     dplyr::ungroup()
   

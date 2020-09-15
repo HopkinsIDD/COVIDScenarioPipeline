@@ -55,14 +55,16 @@ test_that("Simulation loading works", {
             incl_geoids = included_geoids
         )
     }, "'pdeath' not found")
+    
     expect_error({
         load_hosp_sims_filtered(
             outcome_dir = "a_b", 
             partitions = c("location", "scenario", "pdeath", "date", "lik_type", "is_final"),
             incl_geoids = included_geoids,
             inference=FALSE
+        )}, message="input 'sim_num'"
         )
-    }, "must use existing variables")
+    
     
     # expect_equal({
     #     load_hosp_sims_filtered(
