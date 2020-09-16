@@ -14,9 +14,8 @@ params:
   runs_dir: "model_output" # directory with model output (i.e. with subdirs: hosp, snpi, spar)
   pdeath_default: "high"
   pdeath_default_label: "1% IFR"
+  case_report_rate: 0.2
   projection_start: "YYYY/MM/DD" # Initial date of projetion, the system's date is used if none is specified 
-  npi_label: "[NONE]"  # OPTIONAL: should match number of intervention categories (see npi_names). Example: ["Baseline", "School Lockdown", "Lockdown", "Post Lockdown"]
-  npi_trimmer: "[[A-Z]].+\\_" #used by str_remove to group the same types of interventions when intervention periods vary by geoid (i.e. if there are affected geoids in config$interventions$settings). Ignore if intervention periods do not vary by geoid.
 ---
 
 Prepared by [Johns Hopkins ID Dynamics](https://iddynamics.jhsph.edu/) Working Group  
@@ -59,11 +58,10 @@ if (params$state_usps=="[STATE USPS]") {stop("Must define a target state by USPS
 ```{r  load_config}
 runs_dir<-params$runs_dir
 reportStateUSPS <- params$state_usps 
-npi_trimmer<-params$npi_trimmer
-npi_label<-ifelse(params$npi_label=="[NONE]", NA, params$npi_label)
 projection_start <- ifelse(params$projection_start=="YYYY/MM/DD", Sys.Date(), params$projection_start)
 pdeath_default<-params$pdeath_default
 pdeath_default_label<-params$pdeath_default_label
+case_report_rate<-params$case_report_rate
 
 ## Block loads the config file and geodata
 config <- covidcommon:::load_config(params$config_file)
@@ -170,14 +168,15 @@ compare_plts<-plot_model_vs_obs(jhu_obs_dat=usaf_dat,
                                 sim_end_date=sim_end_date,
                                 pdeath_filter=pdeath_default,
                                 week=TRUE, #aggregate to week? 
-                                hosp=FALSE) #is there hosp data with colname "currhosp"?
+                                hosp=FALSE, #is there a colname "currhosp" in jhu_obs_dat?
+                                assumed_reporting_rate=case_report_rate) 
 
 compare_plts[[1]] <- compare_plts[[1]] + ylab("Weekly Incident Cases")
 compare_plts[[2]] <- compare_plts[[2]] + ylab("Weekly Incident Deaths")
 
 ggpubr::ggarrange(plotlist=compare_plts, ncol=1)
 
-cap<- paste0("**Fig. ", fig_counter, "** Calibration of estimated incident cases and deaths to reported data from USA Facts. Here, modeled cases are calculated as a percent of modeled infection that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for each scenario at ",pdeath_default_label," assumptions. Note that USA Facts data were reported as daily cumulative cases and deaths. In this figure, daily cumulative case and death counts were differenced and then aggregated by week. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")
+cap<- paste0("**Fig. ", fig_counter, "** Calibration of estimated incident cases and deaths to reported data from USA Facts. Here, modeled cases are calculated as a percent of modeled infection that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for each scenario at ",pdeath_default_label," assumptions. We assumed a reporting rate of ",case_report_rate*100,"% to estimate cases. Note that USA Facts data were reported as daily cumulative cases and deaths. In this figure, daily cumulative case and death counts were differenced and then aggregated by week. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")
 
      fig_counter<-fig_counter+1
 ``` 
@@ -195,7 +194,8 @@ for(i in 1:n_periods){
                                                    pdeath_filter=pdeath_default,
                                                    scenario_colors=scn_colors,
                                                    pi_lo=0.05,
-                                                   pi_hi=0.95) +
+                                                   pi_hi=0.95,
+                                                   assumed_reporting_rate=case_report_rate) +
     theme(legend.position="none",
           axis.text.y=element_blank(),
           axis.ticks.y=element_blank(),
@@ -218,7 +218,8 @@ for(i in 1:n_periods){
                                                   pdeath_filter=pdeath_default,
                                                   scenario_colors=scn_colors,
                                                   pi_lo=0.05,
-                                                  pi_hi=0.95) +
+                                                  pi_hi=0.95,
+                                                  assumed_reporting_rate=case_report_rate) +
     theme(legend.position="none",
           axis.title.x=element_blank(),
           axis.title.y=element_blank(),
@@ -250,7 +251,7 @@ legend<-get_legend(plot_comparison[[1]]+theme(legend.position="bottom",
 
 plot_grid(plot_time, legend, nrow=2, rel_heights = c(1,0.1))
 
-cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the ',scn_labels[1] ,' scenario with 95% prediction intervals. Estimates are shown across ', n_periods,' time periods at ',pdeath_default_label,' assumptions.')
+cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the ',scn_labels[1] ,' scenario with 95% prediction intervals. Estimates are shown across ', n_periods,' time periods at ',pdeath_default_label,' assumptions and assumed ',case_report_rate*100,'% of infections are reported as cases.')
 
 fig_counter<-fig_counter+1
 ```
