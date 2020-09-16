@@ -212,7 +212,8 @@ load_hosp_geocombined_totals <- function(outcome_dir,
                        cum_inf=sum(cum_inf)) %>%
       dplyr::mutate(scenario_name = factor(scenario,
                                            levels = scenario_levels, 
-                                           labels = scenario_labels))
+                                           labels = scenario_labels)) %>%
+        ungroup()
     }
   } else {
     hosp_post_process <- function(x) {
@@ -236,7 +237,8 @@ load_hosp_geocombined_totals <- function(outcome_dir,
                          cum_inf=sum(cum_inf)) %>%
         dplyr::mutate(scenario_name = factor(scenario,
                                              levels = scenario_levels, 
-                                             labels = scenario_labels))
+                                             labels = scenario_labels)) %>%
+        ungroup()
     }
   }
   

@@ -827,6 +827,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
     dplyr::filter(between(date, as.Date(sim_start_date), as.Date(sim_end_date))) %>%
     dplyr::group_by(source, date) %>%
     dplyr::summarise_all(sum, na.rm=TRUE) %>% 
+    ungroup()%>%
     rename(NincidConfirmed=incidI,
            NincidDeathsObs=incidDeath) 
   
