@@ -68,7 +68,8 @@ pdeath_default_label<-params$pdeath_default_label
 ## Block loads the config file and geodata
 config <- covidcommon:::load_config(params$config_file)
 geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
-                             geoid_len=5)
+                             geoid_len=5,
+                             names =TRUE)
 
 included_geoids <- (geodata %>% filter(USPS==reportStateUSPS))$geoid
 ```
@@ -119,7 +120,8 @@ state_hosp_totals<-load_hosp_geocombined_totals(runs_dir,
 
 ```{r load_truth}
 
-truth_dat <- load_USAFacts_for_report(included_geoids=included_geoids)
+truth_dat <- load_USAFacts_for_report(incl_geoids=included_geoids,
+                                      aggregate=FALSE)
 
 ```
 
