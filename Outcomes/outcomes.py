@@ -83,6 +83,8 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
         # Load the actual csv file
         branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pa.parquet.read_table(branching_file).to_pandas()
+        if ('relative_probability' not in list(branching_data['quantity'])):
+            raise ValueError(f"No 'relative_probablity' quantity in {branching_file}, therefor making it useless")
 
         print('Loaded geoids in loaded relative probablity file:', len(branching_data.geoid.unique()), '', end='')
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
@@ -231,7 +233,6 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
             else:
                 probability = parameters[new_comp]['probability'].as_random_distribution()(size=len(places))
                 if 'rel_probability' in parameters[new_comp]:
-                    print('ok in rel', probability, parameters[new_comp]['rel_probability'], new_comp   )
                     probability = probability * parameters[new_comp]['rel_probability']
 
                 delay = int(np.round(parameters[new_comp]['delay'].as_random_distribution()(size=1)))
