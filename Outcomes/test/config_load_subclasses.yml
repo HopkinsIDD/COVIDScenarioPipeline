@@ -1,0 +1,63 @@
+name: test_inference
+start_date: 2020-04-01
+end_date: 2020-05-15
+nsimulations: 1
+dt: 0.25
+
+spatial_setup:
+  base_path: data
+  setup_name: test1
+  geodata: geodata.csv
+  mobility: mobility.csv
+  popnodes: population
+  nodenames: geoid
+  census_year: 2018
+  modeled_states:
+    - HI
+
+        
+outcomes:
+  method: delayframe
+  param_from_file: True
+  param_place_file: test_rel_subclasses.parquet
+  subclasses: ['_A', '_B']
+  scenarios:
+    - high_death_rate
+  settings:
+    high_death_rate:
+      incidH:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: .1
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: hosp_curr
+      incidD:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: .01
+        delay:
+          value:
+            distribution: fixed
+            value: 2
+      incidICU:
+        source: incidH
+        probability:
+          value:
+            distribution: fixed
+            value: .4
+        delay:
+          value:
+            distribution: fixed
+            value: 0
+
