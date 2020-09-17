@@ -7,7 +7,6 @@ import pytest
 from Outcomes import outcomes
 
 
-
 def test_outcomes():
 
     stoch_traj_flag = True
@@ -20,17 +19,17 @@ def test_outcomes():
     
     # Config definition:
     parameters = {'T': {'source': 'incidI',        # T mimics the incidI
-                            'probability': 1,
-                            'delay': 0,
-                            'duration': 4,
+                            'probability': {'value':{'distribution':'fixed','value': 1}},
+                            'delay': {'value':{'distribution':'fixed','value': 0}},
+                            'duration': {'value':{'distribution':'fixed','value': 4}},
                             'duration_name': 'TCHOU' # TCHOU is incidI with duration 4  
                     },
                 'G': {'source': 'T',                 # G is T delayed 5
-                            'probability': 1,
-                            'delay': 5},
+                            'probability': {'value':{'distribution':'fixed','value':  1}},
+                            'delay': {'value':{'distribution':'fixed','value': 5}}},
                 'V': {'source': 'G',                 # V is G delayed 3
-                            'probability': 1,
-                            'delay': 3},
+                            'probability': {'value':{'distribution':'fixed','value': 1}},
+                            'delay': {'value':{'distribution':'fixed','value': 3}}},
                 'TGV': {'sum': ['T','G','V']}        # TGV is sum of T,G, V
                 }
 

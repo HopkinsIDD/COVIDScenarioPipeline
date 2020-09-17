@@ -20,7 +20,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id,
     out_sim_ids = np.arange(out_sim_id, out_sim_id + nsim)
 
     parameters = read_parameters_from_config(config, in_run_id, in_prefix, in_sim_ids, scenario_outcomes)
-    print(parameters)
+
     loaded_values = None
     if (n_jobs == 1) or (nsim == 1):  # run single process for debugging/profiling purposes
         for sim_offset in np.arange(nsim):
@@ -83,18 +83,13 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
         # Load the actual csv file
         branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pa.parquet.read_table(branching_file).to_pandas()
-        print(branching_data)
+
         print('Loaded geoids in loaded relative probablity file:', len(branching_data.geoid.unique()), '', end='')
         branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
         print('Intersect with seir simulation: ', len(branching_data.geoid.unique()), 'keeped')
-        #branching_data["colname"] = "R" + branching_data["outcome"] + "|" + branching_data["source"]
-        #branching_data = branching_data[["geoid", "colname", "value"]]
-        #branching_data = pd.pivot(branching_data, index="geoid", columns="colname", values="value")
+
         if (len(branching_data.geoid.unique()) != diffI.drop('time', axis=1).columns.shape[0]):
             raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
-        print(places)
-        print(branching_data)
-        #branching_data = branching_data.loc[places] #re-order
 
     subclasses = ['']
     if config["outcomes"]["subclasses"].exists():
@@ -129,6 +124,10 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                                                  (branching_data['quantity']=='relative_probability')]
                     if len(rel_probability) > 0:
                         print(f"Using 'param_from_file' for relative probability {parameters[new_comp]['source']} -->  {new_comp}")
+                        # Sort it in case the relative probablity file is misecified
+                        rel_probability.geoid = rel_probability.geoid.astype("category")
+                        rel_probability.geoid.cat.set_categories(diffI.drop('time', axis=1).columns, inplace=True)
+                        rel_probability = rel_probability.sort_values(["geoid"])
                         parameters[new_comp]['rel_probability'] = rel_probability['value'].to_numpy()
                     else:
                         print(f"*NOT* Using 'param_from_file' for relative probability {parameters[new_comp]['source']} -->  {new_comp}")
@@ -222,7 +221,6 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
             # 2. compute duration if needed
             source = parameters[new_comp]['source']
             if loaded_values is not None:
-                print(loaded_values)
                 probability = \
                     loaded_values[(loaded_values['quantity'] == 'probability') & (loaded_values['outcome'] == new_comp)
                                   & (loaded_values['source'] == source)]['value'].to_numpy()
@@ -231,8 +229,9 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
                         loaded_values[(loaded_values['quantity'] == 'delay') & (loaded_values['outcome'] == new_comp)
                                       & (loaded_values['source'] == source)]['value'].to_numpy())))
             else:
-                probability = parameters[new_comp]['probability'].as_random_distribution()(size=1)
+                probability = parameters[new_comp]['probability'].as_random_distribution()(size=len(places))
                 if 'rel_probability' in parameters[new_comp]:
+                    print('ok in rel', probability, parameters[new_comp]['rel_probability'], new_comp   )
                     probability = probability * parameters[new_comp]['rel_probability']
 
                 delay = int(np.round(parameters[new_comp]['delay'].as_random_distribution()(size=1)))
