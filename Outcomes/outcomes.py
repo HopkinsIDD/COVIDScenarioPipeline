@@ -105,12 +105,11 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                 parameters[class_name] = {}
                 # Read the config for this compartement
                 parameters[class_name]['source'] = config_outcomes[new_comp]['source'].as_str()
+                if (parameters[class_name]['source'] != 'incidI'):
+                    parameters[class_name]['source'] = parameters[class_name]['source'] + subclass
                 
                 parameters[class_name]['probability'] = config_outcomes[new_comp]['probability']['value']
-                    
-                parameters[class_name]['source'] = parameters[class_name]['source'] + subclass
 
-                
                 parameters[class_name]['delay'] = config_outcomes[new_comp]['delay']['value']
                 
                 if config_outcomes[new_comp]['duration'].exists():
@@ -121,18 +120,18 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                         parameters[class_name]['duration_name'] = new_comp + '_curr' + subclass
                 
                 if (config["outcomes"]["param_from_file"].get()):
-                    rel_probability = branching_data[(branching_data['source']==parameters[new_comp]['source']) & 
-                                                 (branching_data['outcome']==new_comp) & 
+                    rel_probability = branching_data[(branching_data['source']==parameters[class_name]['source']) & 
+                                                 (branching_data['outcome']==class_name) & 
                                                  (branching_data['quantity']=='relative_probability')]
                     if len(rel_probability) > 0:
-                        print(f"Using 'param_from_file' for relative probability {parameters[new_comp]['source']} -->  {new_comp}")
+                        print(f"Using 'param_from_file' for relative probability {parameters[class_name]['source']} -->  {class_name}")
                         # Sort it in case the relative probablity file is misecified
                         rel_probability.geoid = rel_probability.geoid.astype("category")
                         rel_probability.geoid.cat.set_categories(diffI.drop('time', axis=1).columns, inplace=True)
                         rel_probability = rel_probability.sort_values(["geoid"])
-                        parameters[new_comp]['rel_probability'] = rel_probability['value'].to_numpy()
+                        parameters[class_name]['rel_probability'] = rel_probability['value'].to_numpy()
                     else:
-                        print(f"*NOT* Using 'param_from_file' for relative probability {parameters[new_comp]['source']} -->  {new_comp}")
+                        print(f"*NOT* Using 'param_from_file' for relative probability {parameters[class_name]['source']} -->  {class_name}")
             
             # We need to compute sum across classes if there is subclasses
             if (subclasses != ['']):
