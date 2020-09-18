@@ -2,6 +2,7 @@
 ##' Convenience function to load cumulative geounit infections at multiple specific dates for the given scenarios
 ##'
 ##' @param outcome_dir paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
+##' @param varname with variable to download (e.g. 'incidI' or 'incidC')
 ##' @param display_dates config$report$formatting$display_dates character vector of dates to for which cumulative infections should be extracted
 ##' @param scenariolevels config$report$formatting$scenario_labels_short character vector of scenario levels
 ##' @param scenariolabels config$report$formatting$scenario_labels character vector of scenario labels
@@ -19,6 +20,7 @@
 ##'
 ##' @export
 load_cum_inf_geounit_dates <- function(outcome_dir,
+                                       varname="incidI",
                                        display_dates=config$report$formatting$display_dates,
                                        scenario_levels=NULL,
                                        scenario_labels=NULL,
@@ -26,14 +28,14 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
                                        pdeath_filter="med",
                                        inference=TRUE)
 {
-  warning("This function loads infection data from hospitalization outputs. Only one IFR scenario is needed to load these data for a given set of model outputs because infection counts will be the same across IFR scenarios.")
+  warning("This function loads infection or case data from hospitalization outputs. Only one IFR scenario is needed to load these data for a given set of model outputs because infection counts will be the same across IFR scenarios.")
   
   display_dates <- as.Date(display_dates)
   max_date <- max(display_dates)
   
   hosp_pre_process <- function(x) {
     x %>%
-      dplyr::select(geoid, scenario, pdeath, location, time, sim_id, incidI)
+      dplyr::select(geoid, scenario, pdeath, location, time, sim_id, !!varname)
   }
   ##filter to munge the data at the scenario level
   if (!is.null(incl_geoids)) {
@@ -42,7 +44,7 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
         dplyr::mutate(time=as.Date(time))%>%
         dplyr::filter(!is.na(time) & geoid %in% incl_geoids, time <= max_date) %>%
         dplyr::group_by(geoid, sim_num, scenario) %>%
-        dplyr::mutate(N = cumsum(incidI)) %>%
+        dplyr::mutate(N = cumsum(!!varname)) %>%
         dplyr::ungroup() %>%
         dplyr::filter(time %in% display_dates)
     }
@@ -52,7 +54,7 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
         dplyr::mutate(time=as.Date(time))%>%
         dplyr::filter(!is.na(time) & time <= max_date) %>%
         dplyr::group_by(geoid, sim_num, scenario) %>%
-        dplyr::mutate(N = cumsum(incidI)) %>%
+        dplyr::mutate(N = cumsum(!!varname)) %>%
         dplyr::ungroup() %>%
         dplyr::filter(time %in% display_dates)
     }
@@ -187,7 +189,6 @@ load_hosp_geocombined_totals <- function(outcome_dir,
   
   require(tidyverse)
   
-  if(inference){
     hosp_post_process <- function(x) {
     x %>%
       dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
@@ -215,32 +216,6 @@ load_hosp_geocombined_totals <- function(outcome_dir,
                                            labels = scenario_labels)) %>%
         ungroup()
     }
-  } else {
-    hosp_post_process <- function(x) {
-      x %>%
-        dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
-        dplyr::arrange(time) %>%
-        dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
-        dplyr::mutate(cum_death=cumsum(incidD)) %>%
-        dplyr::mutate(cum_inf=cumsum(incidI)) %>%
-        dplyr::group_by(pdeath, scenario, time, sim_num) %>%
-        dplyr::summarize(NhospCurr=sum(hosp_curr),
-                         NICUCurr=sum(icu_curr),
-                         NincidDeath=sum(incidD),
-                         NincidInf=sum(incidI),
-                         NincidICU=sum(incidICU),
-                         NincidHosp=sum(incidH),
-                         NincidVent=sum(incidVent),
-                         NVentCurr=sum(vent_curr),
-                         cum_hosp=sum(cum_hosp),
-                         cum_death=sum(cum_death),
-                         cum_inf=sum(cum_inf)) %>%
-        dplyr::mutate(scenario_name = factor(scenario,
-                                             levels = scenario_levels, 
-                                             labels = scenario_labels)) %>%
-        ungroup()
-    }
-  }
   
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
                                pdeath_filter=pdeath_filter,
@@ -303,7 +278,6 @@ load_hosp_county <- function(outcome_dir,
   
   require(tidyverse)
   
-  if(inference){
     hosp_post_process <- function(x) {
     x %>%
       dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
@@ -325,27 +299,6 @@ load_hosp_county <- function(outcome_dir,
                                            levels = scenario_levels, 
                                            labels = scenario_labels)) 
     }
-  } else{
-    hosp_post_process <- function(x) {
-      x %>%
-        dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
-        dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
-        dplyr::mutate(cum_death=cumsum(incidD)) %>%
-        dplyr::mutate(cum_inf=cumsum(incidI)) %>%
-        dplyr::rename(NhospCurr=hosp_curr,
-                      NICUCurr=icu_curr,
-                      NincidDeath=incidD,
-                      NincidInf=incidI,
-                      NincidICU=incidICU,
-                      NincidHosp=incidH,
-                      NincidVent=incidVent,
-                      NVentCurr=vent_curr) %>%
-        dplyr::ungroup() %>%
-        dplyr::mutate(scenario_name = factor(scenario,
-                                             levels = scenario_levels, 
-                                             labels = scenario_labels)) 
-    }
-  }
   
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
                                pdeath_filter=pdeath_filter,

@@ -14,7 +14,6 @@ params:
   runs_dir: "model_output" # directory with model output (i.e. with subdirs: hosp, snpi, spar)
   pdeath_default: "high"
   pdeath_default_label: "1% IFR"
-  case_report_rate: 0.2
   projection_start: "YYYY/MM/DD" # Initial date of projetion, the system's date is used if none is specified 
 ---
 
@@ -61,7 +60,6 @@ reportStateUSPS <- params$state_usps
 projection_start <- ifelse(params$projection_start=="YYYY/MM/DD", Sys.Date(), params$projection_start)
 pdeath_default<-params$pdeath_default
 pdeath_default_label<-params$pdeath_default_label
-case_report_rate<-params$case_report_rate
 
 ## Block loads the config file and geodata
 config <- covidcommon:::load_config(params$config_file)
@@ -91,6 +89,7 @@ infect_period <- c(1/(eval(parse(text=config$seir$parameters$gamma$high))),
                    1/(eval(parse(text=config$seir$parameters$gamma$low))))
 R0_range <- c(config$seir$parameters$R0s$low, config$seir$parameters$R0s$high)
 modeled_states <- state.abb[which(state.abb %in% config$spatial_setup$modeled_states)]
+case_report_rate<-config$outcomes$settings[[1]]$incidC$probability$value$mean
 
 display_dates<-config$report$formatting$display_dates
 scn_colors<-config$report$formatting$scenario_colors
@@ -168,8 +167,8 @@ compare_plts<-plot_model_vs_obs(jhu_obs_dat=usaf_dat,
                                 sim_end_date=sim_end_date,
                                 pdeath_filter=pdeath_default,
                                 week=TRUE, #aggregate to week? 
-                                hosp=FALSE, #is there a colname "currhosp" in jhu_obs_dat?
-                                assumed_reporting_rate=case_report_rate) 
+                                hosp=FALSE #is there a colname "currhosp" in jhu_obs_dat?
+                                ) 
 
 compare_plts[[1]] <- compare_plts[[1]] + ylab("Weekly Incident Cases")
 compare_plts[[2]] <- compare_plts[[2]] + ylab("Weekly Incident Deaths")
@@ -194,8 +193,7 @@ for(i in 1:n_periods){
                                                    pdeath_filter=pdeath_default,
                                                    scenario_colors=scn_colors,
                                                    pi_lo=0.05,
-                                                   pi_hi=0.95,
-                                                   assumed_reporting_rate=case_report_rate) +
+                                                   pi_hi=0.95) +
     theme(legend.position="none",
           axis.text.y=element_blank(),
           axis.ticks.y=element_blank(),
@@ -218,8 +216,7 @@ for(i in 1:n_periods){
                                                   pdeath_filter=pdeath_default,
                                                   scenario_colors=scn_colors,
                                                   pi_lo=0.05,
-                                                  pi_hi=0.95,
-                                                  assumed_reporting_rate=case_report_rate) +
+                                                  pi_hi=0.95) +
     theme(legend.position="none",
           axis.title.x=element_blank(),
           axis.title.y=element_blank(),
