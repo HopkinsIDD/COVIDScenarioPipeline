@@ -45,7 +45,7 @@ library(report.generation)
 library(covidImportation)
 library(doParallel)
 library(cowplot)
-# library(egg)
+library(egg)
 # library(gt)
 library(purrr)
 
