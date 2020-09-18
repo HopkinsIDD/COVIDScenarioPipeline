@@ -1,0 +1,344 @@
+---
+title: "Laying out multiple plots on a page"
+author: "Baptiste Auguié"
+date: '`r Sys.Date()`'
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Laying out multiple plots on a page}
+  %\VignetteEncoding{UTF-8}
+output:
+  rmarkdown::html_vignette:
+  toc: true
+  toc_depth: 3
+---
+
+```{r setup, echo=FALSE, results='hide', message=FALSE}
+library(knitr)
+library(gridExtra)
+library(egg)
+library(gtable)
+library(grid)
+opts_chunk$set(
+  message = FALSE,
+  fig.width = 6,
+  fig.height = 3,
+  cache = FALSE
+)
+```
+
+An individual ggplot object contains multiple pieces -- axes, plot panel(s), titles, legends --, and their layout is defined and enforced via the `gtable` package, itself built around the lower-level `grid` package. Plots themselves become _graphical objects_, which can be arranged on a page using e.g. the `gridExtra` or `egg` packages, which provide helper functions for such multi-object layouts. The following schematic illustrates the main relations between these packages.
+
+![Schematic illustration of the links between packages `ggplot2`, `gtable`, `grid`, `egg` and `gridExtra`.](ecosystem.png)
+
+## Arranging multiple plots on a page
+
+To begin, we'll create four example plots that we can experiment with. 
+
+```{r basic, echo=2:6, fig.height=5, fig.cap="A few plots that we want to organise on a page."}
+set.seed(123)
+library(ggplot2)
+p1 <- qplot(mpg, wt, data = mtcars, colour = cyl)
+p2 <- qplot(mpg, data = mtcars) + ggtitle("title")
+p3 <- qplot(mpg, data = mtcars, geom = "dotplot")
+p4 <-
+  p1 + facet_wrap( ~ carb, nrow = 1) + theme(legend.position = "none") +
+  ggtitle("facetted plot")
+library(gridExtra)
+grid.arrange(p1,
+             p2,
+             p3,
+             p4,
+             layout_matrix = rbind(c(1, 2, 3),
+                                   c(4, 4, 4)),
+             widths = c(1.2, 1, 1))
+```
+
+### Basic strategy
+
+The easiest approach to assemble multiple plots on a page is to use the `grid.arrange()` function from the `gridExtra` package; in fact, that's what we used for the previous figure. With `grid.arrange()`, one can reproduce the behaviour of the base functions `par(mfrow=c(r,c))`, specifying either the number of rows or columns,
+```{r arrange1, echo=TRUE, fig.height=3, fig.cap="Basic usage of `grid.arrange()`"}
+grid.arrange(p1, p2, nrow = 1)
+```
+
+If layout parameters are ommitted altogether, `grid.arrange()` will calculate a default number of rows and columns to organise the plots.
+
+More complex layouts can be achieved by passing specific dimensions (widths or heights), or a layout matrix defining the position of each plot in a rectangular grid. For the sake of clarity, we'll use a list `gl` of dummy rectangles, but the process is identical for plots.
+
+```{r arrange2, echo=-c(1:2), fig.width=4, fig.height=3, fig.cap="Illustrating further arguments of `grid.arrange()`, namely  `layout_matrix` and relative widths."}
+cols <- c(
+  "#FBB4AE",
+  "#B3CDE3",
+  "#CCEBC5",
+  "#DECBE4",
+  "#FED9A6",
+  "#FFFFCC",
+  "#E5D8BD",
+  "#FDDAEC"
+)
+gl <- lapply(1:4, function(x)
+  grobTree(rectGrob(gp = gpar(fill = cols[x])), textGrob(paste("plot", x))))
+grid.arrange(
+  grobs = gl,
+  widths = c(2, 1, 1),
+  layout_matrix = rbind(c(1, 2, NA),
+                        c(3, 3, 4))
+)
+```
+
+Further examples are available in a dedicated `gridExtra` [vignette](https://CRAN.R-project.org/package=gridExtra/vignettes/arrangeGrob.html).
+
+### Plot insets
+
+A special case of layouts is where one of the plots is to be placed within another, typically as an inset of the plot panel. In this case, `grid.arrange()` cannot help, as it only provides rectangular layouts with non-overlapping cells. Instead, a simple solution is to convert the plot into a *grob*, and place it using `annotation_custom()` within the plot panel. Note the related `geom_custom()` function, suitable when different facets should display different annotations.
+
+```{r inset, fig.width=4, fig.height=3, fig.cap="Plot inset."}
+g <- ggplotGrob(qplot(1, 1) +
+                  theme(plot.background = element_rect(colour = "black")))
+qplot(1:10, 1:10) +
+  annotation_custom(
+    grob = g,
+    xmin = 1,
+    xmax = 5,
+    ymin = 5,
+    ymax = 10
+  ) +
+  annotation_custom(
+    grob = rectGrob(gp = gpar(fill = "white")),
+    xmin = 7.5,
+    xmax = Inf,
+    ymin = -Inf,
+    ymax = 5
+  )
+```
+
+In the second annotation, we used the convenient shorthand `+/-Inf` to signify the edge of the plot, irrespective of the data range. 
+
+An alternative way to place custom annotations within the plots is to use raw grid commands, which we will present at the end of this document. However, note that an advantage of using `annotation_custom` is that the inset plot is embedded in the main plot, therefore the whole layout can be saved with `ggsave()`, which will not be the case for plot modifications at the `grid` level.
+
+### Aligning plot panels
+
+A common request for presenting multiple plots on a single page is to align the plot panels. Often, *facetting* the plot solves this issue, with a flexible syntax, and in the true spirit of the Grammar of Graphics that inspired the ggplot2 design. However, in some situations, the various plot panels cannot easily be combined in a unique plot; for instance when using different geoms, or different colour scales. 
+
+`grid.arrange()` makes no attempt at aligning the plot panels; instead, it merely places the objects into a rectangular grid, where they fit each cell according to the varying size of plot elements. The following figure illustrates the typical structure of ggplots.
+
+```{r plotstructure, echo=FALSE, fig.width=6, fig.height=3, fig.cap="Colour-coded structure of examplar ggplot layouts. Note how the panels (red) vary in size from plot to plot, as they accommodate the other graphical components."}
+
+pl <- lapply(list(p1, p2, p3, p4), expose_layout, FALSE, FALSE)
+layouts <- arrangeGrob(
+  grobs = pl,
+  widths = c(1.2, 1, 1),
+  layout_matrix = rbind(c(1, 2, 3),
+                        c(4, 4, 4))
+)
+
+ids <-
+  c("background", "panel", "axis", "lab", "guide", "strip", "title")
+cols <-
+  c(
+    "grey95",
+    "#FBB4AE",
+    "#B3CDE3",
+    "#CCEBC5",
+    "#DECBE4",
+    "#FED9A6",
+    "#FFFFCC",
+    "#E5D8BD",
+    "#FDDAEC"
+  )
+
+leg <- lapply(ids, textGrob, hjust = 0, x = 0.1)
+legend <- gtable_matrix(
+  "legend",
+  matrix(leg, ncol = 1),
+  widths = 1.2 * grobWidth(leg[[1]]),
+  heights = unit(rep(1, length(leg)), "line")
+)
+legend <- gtable_add_cols(legend, unit(1, "line"), 0)
+
+legend <- gtable_add_grob(legend,
+                          t = seq_along(leg),
+                          l = 1,
+                          lapply(cols[seq_along(ids)], function(x) rectGrob(gp = gpar(fill = x, col = NA))))
+
+grid.arrange(layouts, legend, 
+             widths = unit.c(unit(1, "null"),
+                             1.2 * sum(legend$widths)))
+
+```
+
+As we can readily appreciate, each plot panel stretches or shrinks according to the other plot elements, e.g. guides, axes, titles, etc. This often results in misaligned plot panels.
+
+In this situation, instead of using `grid.arrange()`, we recommend to switch to the more powerful `gtable` package. In particular, the `rbind()`, `cbind()`, and `join` functions can provide a better alignment. The plots must first be converted to grobs (more specifically, gtables), using the `ggplotGrob()` function. The second step is to `bind` the two gtables, using the sizes from the first object, then assigning them to the maximum. Finally, the resulting object, a gtable, can be displayed using `grid.draw()` (it is no longer a `ggplot`, so `print()` no longer renders it on a device).
+
+```{r rbind, fig.height=4, fig.width=4, fig.cap="Aligning plot panels. Note that the two y axes have different widths."}
+library(gtable)
+g2 <- ggplotGrob(p2)
+g3 <- ggplotGrob(p3)
+g <- rbind(g2, g3, size = "first")
+g$widths <- unit.pmax(g2$widths, g3$widths)
+grid.newpage()
+grid.draw(g)
+```
+
+### Aligning complex plots
+
+One possible strategy, implemented in `egg` with the low-level `gtable_frame` and high-level `ggarrange` functions, is to take the following steps:
+
+- decompose each plot into a 3x3 layout, where the central cell corresponds to the core panels, surrounded by axes, legends, etc.
+- set the core width and height to a fixed dimension
+- bind the individual 3x3 gtables
+
+Aligning plots is achieved simply as follows,
+
+```{r egg, fig.height=3, fig.width=6}
+p1 <- ggplot(mtcars, aes(mpg, wt, colour = factor(cyl))) +
+  geom_point()+ theme_article() + theme(legend.position = 'top') 
+p2 <- ggplot(mtcars, aes(mpg, wt, colour = factor(cyl))) +
+  geom_point() + facet_wrap(~ cyl, ncol = 2, scales = "free") +
+  guides(colour = "none") +
+  theme_article()
+  
+ggarrange(p1, p2, widths = c(1.5,2))
+```
+
+where many parameters are common to the `grid.arrange()` function from `gridExtra`.
+
+### Multiple pages?
+
+Plots produced by `ggplot2`, including those with facets, and those combined with `grid.arrange()`, are always displayed on a single page. Sometimes, however, there isn't enough room to display all the information, and it becomes necessary to split the output on multiple pages. A convenient approach consists in storing all the plots in a list, and plotting subsets of them on subsequent pages. The `gridExtra` package can simplify this process with the helper function `marrangeGrob()`, sharing a common syntax with `grid.arrange()`, but outputting as many pages as required by the total number of plots and per-page layout.
+
+## Mixed graphical components
+
+
+### Titles and subtitles
+
+Adding a global title and/or subtitle to a page with multiple plots is easy with `grid.arrange()`: use the `top`, `bottom`, `left`, or `right` parameters to pass either a text string, or a grob for finer control.
+
+```{r titles}
+grid.arrange(
+  p3,
+  p3,
+  p3,
+  nrow = 1,
+  top = "Title of the page",
+  bottom = textGrob(
+    "this footnote is right-justified",
+    gp = gpar(fontface = 3, fontsize = 9),
+    hjust = 1,
+    x = 1
+  )
+)
+```
+
+Recent versions of ggplot2 have added built-in options to add a subtitle and a caption; the two stategies are somewhat complementary (`grid.arrange` aligns elements with respect to the entire plot, whereas ggplot2 places them with respect to the plot panel area).
+
+### Legends
+
+When arranging multiple plots, one may wish to share a legend between some of them (although in general this is a clear hint that facetting might be a better option). The procedure involves extracting the legend from one graph, creating a custom layout, and inserting the plots and legend in their corresponding cell.
+
+```{r legend, echo=TRUE, fig.height=4}
+grid_arrange_shared_legend <-
+  function(...,
+           ncol = length(list(...)),
+           nrow = 1,
+           position = c("bottom", "right")) {
+    
+    plots <- list(...)
+    position <- match.arg(position)
+    g <-
+      ggplotGrob(plots[[1]] + theme(legend.position = position))$grobs
+    legend <- g[[which(sapply(g, function(x)
+      x$name) == "guide-box")]]
+    lheight <- sum(legend$height)
+    lwidth <- sum(legend$width)
+    gl <- lapply(plots, function(x)
+      x + theme(legend.position = "none"))
+    gl <- c(gl, ncol = ncol, nrow = nrow)
+    
+    combined <- switch(
+      position,
+      "bottom" = arrangeGrob(
+        do.call(arrangeGrob, gl),
+        legend,
+        ncol = 1,
+        heights = unit.c(unit(1, "npc") - lheight, lheight)
+      ),
+      "right" = arrangeGrob(
+        do.call(arrangeGrob, gl),
+        legend,
+        ncol = 2,
+        widths = unit.c(unit(1, "npc") - lwidth, lwidth)
+      )
+    )
+    
+    grid.newpage()
+    grid.draw(combined)
+    
+    # return gtable invisibly
+    invisible(combined)
+    
+  }
+
+grid_arrange_shared_legend(p1, p2)
+
+```
+
+### Tables and other grobs
+
+As we've seen in the previous examples, `ggplots` are grobs, which can be placed and manipulated. Likewise, other grobs can be added to the mix. For instance, one may wish to add a small table next to the plot, as produced by the `tableGrob` function in `gridExtra`.
+
+```{r tables}
+grid.arrange(
+  tableGrob(mtcars[1:4, 1:4]),
+  p2,
+  ncol = 2,
+  widths = c(1.5, 1),
+  clip = FALSE
+)
+```
+
+## Alternative options
+
+We've focused on `grid.arrange()` and `ggarrange` for simplicity, but there are numerous alternatives to achieve similar arrangements of plots (all of which ultimately based on `grid`). We list below a few alternatives, in chronological order.
+
+```{r comparison, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+tabl <- "
+| Package           | Function(s)   | ggsave compat. | alignment  |
+|-------------------|:-------------:|:------:|:----------:|
+| grid              | `viewport`, `grid.layout`      |   no   | no         |
+| [gridExtra][1]    | `grid.arrange`  |   yes  | no         |
+| [(r cookbook)][2] | `multiplot`     |   no   | no         |
+| [gtable][3]       | `rbind`, `cbind`|   yes  | yes        |
+| [cowplot][4]      | `plot_grid`     |   yes* | yes*       |
+| [multipanelfigure][5]    | `multi_panel_figure`     |   yes  | yes        |
+| [egg][6]          | `ggarrange`     |   yes  | yes        |
+| [patchwork][7]    | `plot_layout`     |   yes  | yes        |
+"
+cat(tabl) 
+```
+
+[1]: https://CRAN.R-project.org/package=gridExtra
+[2]: http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)
+[3]: https://CRAN.R-project.org/package=gtable
+[4]: https://CRAN.R-project.org/package=cowplot
+[5]: https://CRAN.R-project.org/package=multipanelfigure
+[6]: https://CRAN.R-project.org/package=egg
+[7]: https://github.com/thomasp85/patchwork
+
+
+### grid viewports and layouts
+
+Underlying all these other packages is the `grid` package, included in the core R distribution. This package provides the low-level functions used for drawing and placing objects on a device. 
+
+```{r comp}
+pushViewport(viewport(layout = grid.layout(2, 2)))
+vplayout <- function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
+print(p1, vp = vplayout(1, 1:2))
+print(p2, vp = vplayout(2, 1))
+print(p3, vp = vplayout(2, 2))
+```
+
+## Acknowledgements 
+
+Parts of this document were [originally written by Hadley Wickham as a draft vignette](https://github.com/tidyverse/ggplot2/issues/1239) for the `ggplot2` package; the contents have since been shuffled around quite a bit and I have lost track of the exact history of edits.
+

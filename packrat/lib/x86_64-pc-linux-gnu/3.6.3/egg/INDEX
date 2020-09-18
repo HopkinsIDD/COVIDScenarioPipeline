@@ -1,0 +1,12 @@
+expose_layout           expose_layout
+geom_custom             geom_custom
+ggarrange               ggarrange
+gtable_frame            gtable_frame
+set_panel_size          set_panel_size
+symmetric_range         symmetric_range
+tag_facet               tag_facet
+tag_facet_outside       tag_facet_outside
+theme_article           Theme with minimalistic (and opinionated)
+                        defaults suitable for publication
+theme_presentation      Theme with minimalistic (and opinionated)
+                        defaults suitable for presentation
