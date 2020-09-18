@@ -222,6 +222,7 @@ plot_hist_incidHosp_state <- function(hosp_state_totals,
 ##' Plot map showing infections per 10K on a specific date for one scenario
 ##'
 ##' @param cum_inf_geounit_dates dataframe with cumulative infections up through a specific date, produced by load_cum_inf_geounit_dates, perhaps
+##' @param varlabel whether showing 'Infections' or 'Cases'
 ##' @param geodat as loaded by skeleton
 ##' @param shp shapefile with geounits
 ##' @param scenariolabel scenario label character string
@@ -234,12 +235,13 @@ plot_hist_incidHosp_state <- function(hosp_state_totals,
 ##' @export
 ##'
 plot_geounit_attack_rate_map <- function (cum_inf_geounit_dates,
-                                           geodat,
-                                           shp,
-                                           scenariolabel = config$report$formatting$scenario_labels[1],
-                                           popnodes = config$spatial_setup$popnodes,
-                                           display_date,
-                                           viridis_palette = "plasma") {
+                                          geodat,
+                                          shp,
+                                          varlabel = "Infections",
+                                          scenariolabel = config$report$formatting$scenario_labels[1],
+                                          popnodes = config$spatial_setup$popnodes,
+                                          display_date,
+                                          viridis_palette = "plasma") {
 
   display_date <- as.Date(display_date)
   shp$geoid <- as.character(shp$geoid)
@@ -258,7 +260,7 @@ plot_geounit_attack_rate_map <- function (cum_inf_geounit_dates,
   rc <- ggplot(plot_shp) +
     geom_sf(aes(fill=attack_rate)) +
     theme_minimal() +
-    scale_fill_viridis_c("Infections\nper 10K", option=viridis_palette, labels = scales::comma) +
+    scale_fill_viridis_c(paste0(varlabel, "\nper 10K"), option=viridis_palette, labels = scales::comma) +
     ggtitle(print_pretty_date_short(display_date)) +
     theme(axis.title.x=element_blank(),
           axis.text.x=element_blank(),
@@ -812,14 +814,8 @@ plot_model_vs_obs <- function(state_hosp_totals,
                               sim_start_date,
                               sim_end_date,
                               week=FALSE,
-                              hosp=FALSE,
-                              assumed_reporting_rate=0.2) {
-  
-  if(!"NincidCase" %in% colnames(state_hosp_totals)){
-   warning(paste0("Assumes a reporting rate of ", assumed_reporting_rate*100,"%"))
-    state_hosp_totals<-state_hosp_totals%>%
-      mutate(NincidCase=NincidInf*assumed_reporting_rate)
-  }
+                              hosp=FALSE
+                              ) {
 
   state_hosp_totals <-
     state_hosp_totals %>%
@@ -1703,14 +1699,9 @@ plot_scn_outcomes_ratio<-function(hosp_state_totals,
                                   pdeath_filter,
                                   scenario_colors,
                                   pi_lo,
-                                  pi_hi,
-                                  assumed_reporting_rate=0.2){
+                                  pi_hi
+                                  ){
   
-  if(!"NincidCase" %in%  colnames(hosp_state_totals)){
-    warning(paste0("Assumes a reporting rate of ", assumed_reporting_rate*100,"%"))
-            hosp_state_totals<-hosp_state_totals%>%
-              mutate(NincidCase=NincidInf*assumed_reporting_rate)
-  }
   start_date<-as.Date(start_date)
   end_date<-as.Date(end_date)
   
@@ -2163,7 +2154,7 @@ plot_hosp_effec <- function(current_scenario,
     dplyr::filter(!is.na(time)) %>% 
     dplyr::filter(time >= start_date, time <= end_date) %>% 
     dplyr::group_by(pdeath, sim_num, geoid) %>%
-    dplyr::summarize(TotalIncidHosp = sum(NincidHosp, na.rm = TRUE)) %>%
+    dplyr::summarize(TotalIncidHosp = sum(NincidHosp, na.rm = TRUE)) %>% # TODO user-defined vars
     dplyr::ungroup() %>%
     dplyr::left_join(geodat) %>%
     dplyr::mutate(est=TotalIncidHosp/pop2010*1000) %>%

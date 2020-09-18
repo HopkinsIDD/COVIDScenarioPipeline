@@ -23,6 +23,7 @@ create_testing_simulations <- function(){
             time = rep(lubridate::ymd('2020-01-01') + lubridate::days(1:5), each = 5),
             geoid = rep(1:5, 5),
             incidI = sample(1:100, 25),
+            incidC = sample(1:100, 25),
             incidH = sample(1:100, 25),
             incidD = sample(1:100, 25),
             incidICU = sample(1:100, 25),
@@ -112,7 +113,7 @@ test_that("Simulation loading works", {
             incl_geoids = included_geoids,
             inference=FALSE
         ))
-    }, 20
+    }, 22
     )
     
     unlink(dir, recursive=TRUE)  
