@@ -265,3 +265,7 @@ def test_outcomes_read_write_hpar_subclasses():
     hpar_read = pq.read_table('model_output/hpar/000000001.12.hpar.parquet').to_pandas()
     hpar_wrote = pq.read_table('model_output/hpar/000000001.13.hpar.parquet').to_pandas()
     assert((hpar_read == hpar_wrote).all().all())
+
+    hosp_read = pq.read_table('model_output/hosp/000000001.12.hosp.parquet').to_pandas()
+    hosp_wrote = pq.read_table('model_output/hosp/000000001.13.hosp.parquet').to_pandas()
+    assert((hosp_read == hosp_wrote).all().all())
