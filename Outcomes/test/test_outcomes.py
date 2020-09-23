@@ -26,6 +26,8 @@ date_data = datetime.date(2020,4,15)
 subclasses = ['_A', '_B']
 
 def test_outcomes_scenario():
+    config.clear()
+    config.read(user=False)
     config.set_file('config.yml')
     run_id = 1
     index = 1
@@ -71,6 +73,8 @@ def test_outcomes_scenario():
 
 
 def test_outcomes_scenario_with_load():
+    config.clear()
+    config.read(user=False)
     config.set_file('config_load.yml')
 
     run_id = 1
@@ -101,6 +105,8 @@ def test_outcomes_scenario_with_load():
 
 
 def test_outcomes_read_write_hpar():
+    config.clear()
+    config.read(user=False)     
     config.set_file('config_load.yml')
 
     run_id = 1
@@ -118,6 +124,8 @@ def test_outcomes_read_write_hpar():
 
 
 def test_outcomes_scenario_subclasses():
+    config.clear()
+    config.read(user=False)
     config.set_file('config_subclasses.yml')
 
     run_id = 1
@@ -188,6 +196,8 @@ def test_outcomes_scenario_subclasses():
             assert((hpar[(hpar['geoid']== place) & (hpar['outcome']== f'incidH{cl}')]['source'] == f'incidI').all())
 
 def test_outcomes_scenario_with_load_subclasses():
+    config.clear()
+    config.read(user=False)
     config.set_file('config_load_subclasses.yml')
 
     run_id = 1
@@ -227,6 +237,8 @@ def test_outcomes_scenario_with_load_subclasses():
 
 
 def test_outcomes_read_write_hpar_subclasses():
+    config.clear()
+    config.read(user=False)
     config.set_file('config_load.yml')
 
     run_id = 1
@@ -234,10 +246,22 @@ def test_outcomes_read_write_hpar_subclasses():
     deathrate = 'high_death_rate'
     prefix = ''
     stoch_traj_flag = False
-    outcomes.onerun_delayframe_outcomes_load_hpar(config, 11, prefix, int(index), # input
-                                                        12, prefix, int(index), # output
+    outcomes.run_delayframe_outcomes(config, run_id, prefix, int(index), 12, prefix, int(index), # output
+                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+    config.clear()
+    config.read(user=False)
+    config.set_file('config_load.yml')
+
+    run_id = 1
+    index = 1
+    deathrate = 'high_death_rate'
+    prefix = ''
+    stoch_traj_flag = False
+    outcomes.onerun_delayframe_outcomes_load_hpar(config, 12, prefix, int(index), # input
+                                                        13, prefix, int(index), # output
                                                         deathrate, stoch_traj_flag)
 
-    hpar_read = pq.read_table('model_output/hpar/000000001.11.hpar.parquet').to_pandas()
-    hpar_wrote = pq.read_table('model_output/hpar/000000001.12.hpar.parquet').to_pandas()
+
+    hpar_read = pq.read_table('model_output/hpar/000000001.12.hpar.parquet').to_pandas()
+    hpar_wrote = pq.read_table('model_output/hpar/000000001.13.hpar.parquet').to_pandas()
     assert((hpar_read == hpar_wrote).all().all())
