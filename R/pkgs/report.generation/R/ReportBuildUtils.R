@@ -1200,8 +1200,7 @@ make_sparkline_tab_r <- function(r_dat,
     dplyr::group_by(geoid, name, date) %>%
     dplyr::summarize(est_lo=quantile(r, pi_lo, na.rm=TRUE),
                      est_hi=quantile(r, pi_hi, na.rm=TRUE),
-                     estimate=mean(r, na.rm=TRUE)) %>%
-    dplyr::mutate_if(is.numeric, signif, digits=2)
+                     estimate=mean(r, na.rm=TRUE))
   
   r_dat <- r_dat %>%
     left_join(intervention_names) %>%
@@ -1216,6 +1215,7 @@ make_sparkline_tab_r <- function(r_dat,
   # Create table with summary values
   r_tab<-r_dat%>%
     dplyr::filter(mid_point==date) %>%
+    dplyr::mutate_if(is.numeric, signif, digits=2) %>%
     dplyr::mutate_if(is.numeric, as.character) %>%
     dplyr::mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels),
            est_lo = stringr::str_replace(est_lo, "^", '\n\\('),
