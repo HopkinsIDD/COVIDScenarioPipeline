@@ -122,7 +122,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                 if (config["outcomes"]["param_from_file"].get()):
                     rel_probability = branching_data[(branching_data['source']==parameters[class_name]['source']) & 
                                                  (branching_data['outcome']==class_name) & 
-                                                 (branching_data['quantity']=='relative_probability')]
+                                                 (branching_data['quantity']=='relative_probability')].copy(deep=True)
                     if len(rel_probability) > 0:
                         print(f"Using 'param_from_file' for relative probability {parameters[class_name]['source']} -->  {class_name}")
                         # Sort it in case the relative probablity file is misecified
@@ -233,7 +233,6 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
                 probability = parameters[new_comp]['probability'].as_random_distribution()(size=len(places))
                 if 'rel_probability' in parameters[new_comp]:
                     probability = probability * parameters[new_comp]['rel_probability']
-
                 delay = int(np.round(parameters[new_comp]['delay'].as_random_distribution()(size=1)))
 
             # Create new compartment incidence:
