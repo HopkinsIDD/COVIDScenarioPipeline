@@ -222,9 +222,13 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
             # 2. compute duration if needed
             source = parameters[new_comp]['source']
             if loaded_values is not None:
+                print('Using LOADED VALUES !!!')
                 probability = \
                     loaded_values[(loaded_values['quantity'] == 'probability') & (loaded_values['outcome'] == new_comp)
                                   & (loaded_values['source'] == source)]['value'].to_numpy()
+                print(probability, new_comp, source)
+                print(loaded_values)
+                print('END LOADED VALUES')
                 delay = int(
                     np.round(np.mean(
                         loaded_values[(loaded_values['quantity'] == 'delay') & (loaded_values['outcome'] == new_comp)
