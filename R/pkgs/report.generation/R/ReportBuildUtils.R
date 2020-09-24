@@ -1229,10 +1229,12 @@ make_sparkline_tab_r <- function(r_dat,
   
   r_tab[is.na(r_tab)] <- ""
   
+  
   # Plotting
   npi_num = length(npi_labels)
   expand_palette = colorRampPalette(RColorBrewer::brewer.pal(npi_num, brewer_palette))
   fill_values <- expand_palette(npi_num)
+  
   color_values <- colorspace::darken(fill_values, 0.3)
 
   
@@ -1247,6 +1249,7 @@ make_sparkline_tab_r <- function(r_dat,
                            levels=c(npi_levels, "blank"), 
                            labels=c(npi_labels,"blank"))) %>%
     dplyr::select(name, date, estimate, plot_var, npi_name) %>%
+    dplyr::arrange(name)%>%
     dplyr::group_by(name) %>%
     tidyr::nest() %>%
     dplyr::mutate(plot=purrr::map(data, ~ggplot(., aes(x=date, y=plot_var))+
@@ -1368,6 +1371,7 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
   r_plot <- r_dat %>%
     dplyr::mutate(npi_name=factor(npi_name, levels=npi_levels, labels=npi_labels)) %>%
     dplyr::select(name, start_date, estimate, est_lo, est_hi, npi_name) %>%
+    dplyr::arrange(name)%>%
     dplyr::group_by(name) %>%
     dplyr::mutate(time=1, 
                   time=cumsum(time))%>%
@@ -1633,11 +1637,12 @@ plot_rt_ts <- function(county_dat,
     rc[[i]]<-county_dat %>%
       dplyr::filter(scenario==scenario_levels[i],
                     pdeath==pdeath_filter) %>%
-      dplyr::select(geoid, sim_num, cum_inf, pop2010, scenario, date=time) %>%
+      left_join(geodat)%>%
+      dplyr::select(geoid, sim_num, cum_inf, !!as.symbol(pop_col), scenario, date=time) %>%
       dplyr::right_join(rc[[i]]) %>%
       dplyr::group_by(scenario, date) %>%
-      dplyr::mutate(r=r*(1-cum_inf/pop2010)) %>%
-      dplyr::mutate(weight = pop2010/sum(pop2010))
+      dplyr::mutate(r=r*(1-cum_inf/!!as.symbol(pop_col))) %>%
+      dplyr::mutate(weight = !!as.symbol(pop_col)/sum(!!as.symbol(pop_col)))
     }
     
     
