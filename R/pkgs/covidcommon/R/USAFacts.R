@@ -39,6 +39,59 @@ download_USAFacts_data <- function(filename, url, value_col_name){
   return(usafacts_data)
 }
 
+##'
+##' Download CSSE US data
+##'
+##' Downloads the CSSE US case and death count data
+##'
+##' @param filename where case data will be stored
+##' @param url URL to CSV on CSSE website
+##' @return data frame
+##'
+##' @importFrom dplyr select rename filter mutate distinct
+##' @importFrom lubridate mdy
+##' @importFrom readr read_csv col_character
+##' @importFrom tidyr pivot_longer
+##' @importFrom magrittr %>%
+##' @importFrom stringr str_replace str_length str_pad fixed
+##' @importFrom tibble as_tibble
+##'
+download_CSSE_US_data <- function(filename, url, value_col_name){
+
+  dir.create(dirname(filename), showWarnings = FALSE, recursive = TRUE)
+  message(paste("Downloading", url, "to", filename))
+  download.file(url, filename, "auto")
+
+  csse_data <- readr::read_csv(filename, col_types = list("FIPS" = col_character())) %>% tibble::as_tibble() 
+  # csse_data <- csse_data %>%
+  #   dplyr::filter(!grepl("out of", Admin2, ignore.case = TRUE) & 
+  #                 !grepl("unassigned", Admin2, ignore.case = TRUE) &
+  #                 !grepl("princess", Province_State, ignore.case = TRUE)) 
+  csse_data <- csse_data %>%
+    tidyr::pivot_longer(cols=contains("/"), names_to="Update", values_to=value_col_name) %>%
+    dplyr::mutate(Update=as.Date(lubridate::mdy(Update)),
+                  FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""),
+                  FIPS = ifelse(stringr::str_length(FIPS)==2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0"))) %>% 
+    dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>% 
+    dplyr::distinct()
+  csse_data <- suppressWarnings(
+    csse_data %>%
+        dplyr::mutate(state_abb = state.abb[match(Province_State, state.name)]) %>%
+        dplyr::mutate(source = ifelse(Province_State=="District of Columbia", "DC",
+                                         ifelse(is.na(state_abb) & Country_Region=="US", iso2, state_abb)))
+    )
+  csse_data <- csse_data %>%
+    dplyr::select(FIPS, source, Update, !!value_col_name)
+  
+  validation_date <- Sys.getenv("VALIDATION_DATE")
+  if ( validation_date != '' ) {
+    print(paste("(USAFacts.R) Limiting CSSE US data to:", validation_date, sep=" "))
+    csse_data <- csse_data %>% dplyr::filter( Update < validation_date )
+  }
+  
+  return(csse_data)
+}
+
 
 ##'
 ##' Pulls island area data from NY Times
@@ -184,6 +237,25 @@ fix_negative_counts <- function(
   return(df)
 }
 
+# Aggregate county data to state level
+#
+aggregate_counties_to_state <- function(df, state_fips){
+  aggregated <- df %>%
+    dplyr::filter(grepl(paste0("^", state_fips), FIPS)) %>%
+    group_by(source, Update) %>%
+    dplyr::summarise(Confirmed = sum(Confirmed), Deaths = sum(Deaths), incidI = sum(incidI), incidDeath = sum(incidDeath)) %>%
+    dplyr::mutate(FIPS = paste0(state_fips, "000")) %>%
+    ungroup
+  nonaggregated <- df %>%
+    dplyr::filter(!grepl(paste0("^", state_fips), FIPS))
+
+  rc <- dplyr::bind_rows(nonaggregated, aggregated) %>%
+    dplyr::arrange(source, FIPS, Update)
+
+  return(rc)
+}
+
+
 ##'
 ##' Pull case and death count data from USAFacts
 ##'
@@ -200,10 +272,9 @@ fix_negative_counts <- function(
 ##'  $ incidI     : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
 ##'  $ incidDeath : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
 ##'
-##' @return the case data frame
+##' @return the case and deaths data frame
 ##'
-##' @importFrom covidImportation est_daily_incidence
-##' @importFrom dplyr rename group_modify group_by
+##' @importFrom dplyr rename group_modify group_by full_join select
 ##'
 ##' @export
 ##' 
@@ -238,6 +309,63 @@ get_USAFacts_data <- function(case_data_filename = "data/case_data/USAFacts_case
 
   return(usafacts_data)
 }
+
+##'
+##' Pull case and death count data from JHU CSSE
+##'
+##' Pulls the CSSE cumulative case count and death data. Calculates incident counts.
+##'
+##' Returned data preview:
+##' tibble [352,466 × 7] (S3: grouped_df/tbl_df/tbl/data.frame)
+##'  $ FIPS       : chr [1:352466] "00001" "00001" "00001" "00001" ...
+##'  $ source     : chr [1:352466] "NY" "NY" "NY" "NY" ...
+##'  $ Update     : Date[1:352466], format: "2020-01-22" "2020-01-23" ...
+##'  $ Confirmed  : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ Deaths     : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ incidI     : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ incidDeath : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
+##'
+##' @return the case and deaths data frame
+##'
+##' @importFrom dplyr rename group_modify group_by full_join select
+##'
+##' @export
+##' 
+get_JHUCSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_case_data_crude.csv",
+                              death_data_filename = "data/case_data/jhucsse_us_death_data_crude.csv"){
+  
+  CSSE_US_CASE_DATA_URL <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
+  CSSE_US_DEATH_DATA_URL <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"
+  csse_us_case <- download_CSSE_US_data(case_data_filename, CSSE_US_CASE_DATA_URL, "Confirmed")
+  csse_us_death <- download_CSSE_US_data(death_data_filename, CSSE_US_DEATH_DATA_URL, "Deaths")
+
+  csse_us_data <- dplyr::full_join(csse_us_case, csse_us_death)
+  csse_us_data <- dplyr::select(csse_us_data, Update, source, FIPS, Confirmed, Deaths)
+  csse_us_data <- dplyr::arrange(csse_us_data, source, FIPS, Update)
+
+  # Create columns incidI and incidDeath
+  csse_us_data <- dplyr::group_modify(
+    dplyr::group_by(
+      csse_us_data,
+      FIPS
+    ),
+    function(.x,.y){
+      .x$incidI = c(.x$Confirmed[1],diff(.x$Confirmed))
+      .x$incidDeath = c(.x$Deaths[1],diff(.x$Deaths,))
+      return(.x)
+    }
+  )
+
+  # Fix incidence counts that go negative and NA values or missing dates
+  csse_us_data <- fix_negative_counts(csse_us_data, "Confirmed", "incidI")
+  csse_us_data <- fix_negative_counts(csse_us_data, "Deaths", "incidDeath")
+
+  # Aggregate county-level data for Puerto Rico
+  csse_us_data <- aggregate_counties_to_state(csse_us_data, "72")
+
+  return(csse_us_data)
+}
+
 
 
 
