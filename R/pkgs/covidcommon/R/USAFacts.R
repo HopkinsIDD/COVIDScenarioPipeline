@@ -63,14 +63,15 @@ download_CSSE_US_data <- function(filename, url, value_col_name){
   download.file(url, filename, "auto")
 
   csse_data <- readr::read_csv(filename, col_types = list("FIPS" = col_character())) %>% tibble::as_tibble() 
-  # csse_data <- csse_data %>%
-  #   dplyr::filter(!grepl("out of", Admin2, ignore.case = TRUE) & 
-  #                 !grepl("unassigned", Admin2, ignore.case = TRUE) &
-  #                 !grepl("princess", Province_State, ignore.case = TRUE)) 
+  csse_data <- csse_data %>%
+    dplyr::filter(!grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
+                  !grepl("unassigned", Admin2, ignore.case = TRUE) & ## probable cases
+                  !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
+                  !is.na(FIPS)) 
   csse_data <- csse_data %>%
     tidyr::pivot_longer(cols=contains("/"), names_to="Update", values_to=value_col_name) %>%
     dplyr::mutate(Update=as.Date(lubridate::mdy(Update)),
-                  FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""),
+                  FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
                   FIPS = ifelse(stringr::str_length(FIPS)==2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0"))) %>% 
     dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>% 
     dplyr::distinct()
