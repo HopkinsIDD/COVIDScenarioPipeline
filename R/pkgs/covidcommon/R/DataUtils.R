@@ -32,7 +32,7 @@ download_USAFacts_data <- function(filename, url, value_col_name){
   
   validation_date <- Sys.getenv("VALIDATION_DATE")
   if ( validation_date != '' ) {
-    print(paste("(USAFacts.R) Limiting USAFacts data to:", validation_date, sep=" "))
+    print(paste("(DataUtils.R) Limiting USAFacts data to:", validation_date, sep=" "))
     usafacts_data <- usafacts_data %>% dplyr::filter( Update < validation_date )
   }
   
@@ -341,7 +341,7 @@ download_CSSE_US_data <- function(filename, url, value_col_name){
   
   validation_date <- Sys.getenv("VALIDATION_DATE")
   if ( validation_date != '' ) {
-    print(paste("(USAFacts.R) Limiting CSSE US data to:", validation_date, sep=" "))
+    print(paste("(DataUtils.R) Limiting CSSE US data to:", validation_date, sep=" "))
     csse_data <- csse_data %>% dplyr::filter( Update < validation_date )
   }
   
@@ -464,7 +464,7 @@ download_CSSE_global_data <- function(filename, url, value_col_name){
   
   validation_date <- Sys.getenv("VALIDATION_DATE")
   if ( validation_date != '' ) {
-    print(paste("(USAFacts.R) Limiting CSSE global data to:", validation_date, sep=" "))
+    print(paste("(DataUtils.R) Limiting CSSE global data to:", validation_date, sep=" "))
     csse_data <- csse_data %>% dplyr::filter( Update < validation_date )
   }
   
