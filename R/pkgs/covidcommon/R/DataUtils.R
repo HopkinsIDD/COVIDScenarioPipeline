@@ -371,7 +371,7 @@ download_CSSE_US_data <- function(filename, url, value_col_name){
 ##'
 ##' @export
 ##' 
-get_JHUCSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_case_data_crude.csv",
+get_CSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_case_data_crude.csv",
                               death_data_filename = "data/case_data/jhucsse_us_death_data_crude.csv"){
   
   CSSE_US_CASE_DATA_URL <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
@@ -499,7 +499,7 @@ download_CSSE_global_data <- function(filename, url, value_col_name){
 ##'
 ##' @export
 ##' 
-get_JHUCSSE_global_data <- function(case_data_filename = "data/case_data/jhucsse_case_data_crude.csv",
+get_CSSE_global_data <- function(case_data_filename = "data/case_data/jhucsse_case_data_crude.csv",
                               death_data_filename = "data/case_data/jhucsse_death_data_crude.csv",
                               append_wiki = TRUE){
   
