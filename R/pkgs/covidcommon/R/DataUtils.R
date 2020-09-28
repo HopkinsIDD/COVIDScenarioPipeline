@@ -327,7 +327,7 @@ download_CSSE_US_data <- function(filename, url, value_col_name){
     tidyr::pivot_longer(cols=contains("/"), names_to="Update", values_to=value_col_name) %>%
     dplyr::mutate(Update=as.Date(lubridate::mdy(Update)),
                   FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
-                  FIPS = ifelse(stringr::str_length(FIPS)==2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0"))) %>% 
+                  FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0"))) %>% 
     dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>% 
     dplyr::distinct()
   csse_data <- suppressWarnings(
@@ -545,6 +545,148 @@ get_CSSE_global_data <- function(case_data_filename = "data/case_data/jhucsse_ca
 }
 
 
+
+##'
+##' Download Reich Lab data
+##'
+##' Downloads the Reich Lab's US case and death count data
+##'
+##' @param filename where case data will be stored
+##' @param url URL to CSV on Reich Lab website
+##' @return data frame
+##'
+##' @importFrom dplyr select rename mutate filter
+##' @importFrom lubridate mdy
+##' @importFrom readr read_csv col_character
+##' @importFrom magrittr %>%
+##' @importFrom stringr str_pad str_sub str_length
+##' @importFrom tibble as_tibble
+##' @importFrom cdlTools fips
+##'
+download_reichlab_data <- function(filename, url, value_col_name){
+  
+  dir.create(dirname(filename), showWarnings = FALSE, recursive = TRUE)
+  message(paste("Downloading", url, "to", filename))
+  download.file(url, filename, "auto")
+
+  reichlab_data <- readr::read_csv(filename, col_types = list("location" = col_character())) %>% 
+    tibble::as_tibble() 
+  reichlab_data <- reichlab_data %>%
+    dplyr::mutate(Update = as.Date(date),
+                  source = cdlTools::fips(stringr::str_sub(location, 1, 2), to = "Abbreviation"),
+                  scale = ifelse(nchar(location)==2, "state", "county")) %>%
+    dplyr::rename(!!value_col_name := value,
+                  FIPS = location) %>%
+    dplyr::mutate(FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0"))) %>%
+    dplyr::select(FIPS, source, scale, Update, !!value_col_name)
+
+  validation_date <- Sys.getenv("VALIDATION_DATE")
+  if ( validation_date != '' ) {
+    print(paste("(DataUtils.R) Limiting Reich Lab data to:", validation_date, sep=" "))
+    reichlab_data <- reichlab_data %>% dplyr::filter( Update < validation_date )
+  }
+
+  return(reichlab_data)
+}
+
+
+
+
+##'
+##' Pull state-level case and death count data from Reich Lab
+##'
+##' Pulls the Reich Lab incident and cumulative case count and death data. 
+##'
+##' Returned data preview:
+##' tibble 
+##'  $ Update     : Date "2020-01-22" "2020-01-23" ...
+##'  $ Confirmed  : num 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ Deaths     : num 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ incidI     : num 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ incidDeath : num 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ FIPS       : chr "01000" "01000" "01000" ...
+##'  $ source     : chr "NY" "NY" "NY" "NY" ...
+##'
+##' @return the case and deaths data frame
+##'
+##' @importFrom dplyr full_join select filter arrange
+##'
+##' @export
+##' 
+get_reichlab_st_data <- function(cum_case_filename = "data/case_data/rlab_cum_case_data.csv",
+                  cum_death_filename = "data/case_data/rlab_cum_death_data.csv",
+                  inc_case_filename = "data/case_data/rlab_inc_case_data.csv",
+                  inc_death_filename = "data/case_data/rlab_inc_death_data.csv"){
+  
+  REICHLAB_CUM_CASE_DATA_URL <-  "https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-truth/truth-Cumulative%20Cases.csv"
+  REICHLAB_CUM_DEATH_DATA_URL <- "https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-truth/truth-Cumulative%20Deaths.csv"
+  REICHLAB_INC_CASE_DATA_URL <- "https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-truth/truth-Incident%20Cases.csv"
+  REICHLAB_INC_DEATH_DATA_URL <- "https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-truth/truth-Incident%20Deaths.csv"
+
+  rlab_cum_case <- download_reichlab_data(cum_case_filename, REICHLAB_CUM_CASE_DATA_URL, "Confirmed")
+  rlab_cum_death <- download_reichlab_data(cum_death_filename, REICHLAB_CUM_DEATH_DATA_URL, "Deaths")
+  rlab_inc_case <- download_reichlab_data(inc_case_filename, REICHLAB_INC_CASE_DATA_URL, "incidI")
+  rlab_inc_death <- download_reichlab_data(inc_death_filename, REICHLAB_INC_DEATH_DATA_URL, "incidDeath")
+
+  rlab_st_data <- dplyr::full_join(rlab_cum_case, rlab_cum_death) %>%
+    dplyr::full_join(rlab_inc_case) %>%
+    dplyr::full_join(rlab_inc_death) %>%
+    dplyr::filter(scale == "state") %>%
+    dplyr::select(Update, Confirmed, Deaths, incidI, incidDeath, FIPS, source) %>%
+    dplyr::arrange(source, FIPS, Update)
+
+  return(rlab_st_data)
+
+}
+
+
+
+##'
+##' Pull county-level case and death count data from Reich Lab
+##'
+##' Pulls the Reich Lab incident and cumulative case count and death data. 
+##'
+##' Returned data preview:
+##' tibble 
+##'  $ Update     : Date "2020-01-22" "2020-01-23" ...
+##'  $ Confirmed  : num 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ Deaths     : num 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ incidI     : num 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ incidDeath : num 0 0 0 0 0 0 0 0 0 0 ...
+##'  $ FIPS       : chr "01001" "01001" "01001" ...
+##'  $ source     : chr "NY" "NY" "NY" "NY" ...
+##'
+##' @return the case and deaths data frame
+##'
+##' @importFrom dplyr full_join select filter arrange
+##'
+##' @export
+##' 
+get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_case_data.csv",
+                  cum_death_filename = "data/case_data/rlab_cum_death_data.csv",
+                  inc_case_filename = "data/case_data/rlab_inc_case_data.csv",
+                  inc_death_filename = "data/case_data/rlab_inc_death_data.csv"){
+  
+  REICHLAB_CUM_CASE_DATA_URL <-  "https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-truth/truth-Cumulative%20Cases.csv"
+  REICHLAB_CUM_DEATH_DATA_URL <- "https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-truth/truth-Cumulative%20Deaths.csv"
+  REICHLAB_INC_CASE_DATA_URL <- "https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-truth/truth-Incident%20Cases.csv"
+  REICHLAB_INC_DEATH_DATA_URL <- "https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-truth/truth-Incident%20Deaths.csv"
+
+  rlab_cum_case <- download_reichlab_data(cum_case_filename, REICHLAB_CUM_CASE_DATA_URL, "Confirmed")
+  rlab_cum_death <- download_reichlab_data(cum_death_filename, REICHLAB_CUM_DEATH_DATA_URL, "Deaths")
+  rlab_inc_case <- download_reichlab_data(inc_case_filename, REICHLAB_INC_CASE_DATA_URL, "incidI")
+  rlab_inc_death <- download_reichlab_data(inc_death_filename, REICHLAB_INC_DEATH_DATA_URL, "incidDeath")
+
+  rlab_cty_data <- dplyr::full_join(rlab_cum_case, rlab_cum_death) %>%
+    dplyr::full_join(rlab_inc_case) %>%
+    dplyr::full_join(rlab_inc_death) %>%
+    dplyr::filter(scale == "county") %>%
+    dplyr::select(Update, Confirmed, Deaths, incidI, incidDeath, FIPS, source) %>%
+    dplyr::arrange(source, FIPS, Update)
+
+  return(rlab_cty_data)
+
+}
 
 
 
