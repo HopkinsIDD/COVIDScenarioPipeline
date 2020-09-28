@@ -688,6 +688,97 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 
 }
 
+##'
+##' Wrapper function to pull data from different sources
+##'
+##' Pulls a groundtruth dataset with the variables specified
+##'
+##' @param source name of data source: reichlab, usafacts, csse
+##' @param scale geographic scale: US county, US state, country (csse only), complete (csse only)
+##' @param variables vector that may include one or more of the following variable names: Confirmed, Deaths, incidI, incidDeath
+##' @return data frame
+##'
+##' @importFrom dplyr select mutate filter group_by summarise_if bind_rows
+##' @importFrom magrittr %>%
+##' @importFrom stringr str_sub
+##'
+##'
+##' @export
+##' 
+get_groundtruth_from_source <- function(source = "reichlab", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath")){
 
+  if(source == "reichlab" & scale == "US county"){
 
+    rc <- get_reichlab_cty_data() %>%
+      dplyr::select(Update, FIPS, source, !!variables)
 
+  } else if(source == "reichlab" & scale == "US state"){
+
+    rc <- get_reichlab_st_data() %>%
+      dplyr::select(Update, FIPS, source, !!variables)
+
+  } else if(source == "usafacts" & scale == "US county"){
+
+    rc <- get_USAFacts_data() %>%
+      dplyr::select(Update, FIPS, source, !!variables)
+
+  } else if(source == "usafacts" & scale == "US state"){
+
+    rc <- get_USAFacts_data() %>%
+      dplyr::select(Update, FIPS, source, !!variables) %>%
+      dplyr::mutate(FIPS = stringr::str_sub(FIPS, 1, 2)) %>%
+      dplyr::group_by(Update, FIPS, source) %>%
+      dplyr::summarise_if(is.numeric, sum)
+
+  } else if(source == "csse" & scale == "US county"){
+
+    rc <- get_CSSE_US_data() %>%
+      dplyr::select(Update, FIPS, source, !!variables)
+
+  } else if(source == "csse" & scale == "US state"){
+
+    rc <- get_CSSE_global_data() %>%
+      dplyr::select(Update, FIPS, source, !!variables) %>%
+      dplyr::mutate(FIPS = stringr::str_sub(FIPS, 1, 2)) %>%
+      dplyr::group_by(Update, FIPS, source) %>%
+      dplyr::summarise_if(is.numeric, sum)
+
+  } else if(source == "csse" & scale == "country"){
+
+    rc <- get_CSSE_global_data() %>%
+      dplyr::select(UID, iso2, iso3, Province_State, Country_Region, Latitude, Longitude, Update, source, !!variables)
+
+  } else if(source == "csse" & scale == "complete"){
+
+    us <- get_CSSE_US_matchGlobal_data() %>%
+      dplyr::select(Update, UID, iso2, iso3, Latitude, Longitude, source, !!variables, Country_Region, Province_State, source) 
+    rc <- get_CSSE_global_data() %>%
+      dplyr::select(Update, UID, iso2, iso3, Latitude, Longitude, source, !!variables, Country_Region, Province_State, source) %>%
+      dplyr::bind_rows(us)
+  
+  } else{
+    warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning NULL object.")))
+    rc <- NULL
+  }
+
+  return(rc)
+
+}
+
+##'
+##' Pull CSSE US data in format similar to that of global data
+##'
+##' Pulls the CSSE US confirmed cases and deaths and calculates incident cases and deaths, putting them into a verbose geographic format like that with the global dataframe
+##' @return data frame
+##'
+##'
+##'
+##' @export
+##' 
+get_CSSE_US_matchGlobal_data <- function(){
+
+  warning("This function is still in progress. Returning NA-filled dataframe.")
+  rc <- data.frame(Update = NA, UID = NA, iso2 = NA, iso3 = NA, Latitude = NA, Longitude = NA, source = NA, Confirmed = NA, Deaths = NA, incidI = NA, incidDeath = NA, Country_Region = NA, Province_State = NA, source = NA)
+  return(rc)
+
+}
