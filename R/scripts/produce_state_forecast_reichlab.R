@@ -13,11 +13,11 @@ opt$end_date <- "2020-11-07"
 opt$geodata <- "geodata_territories_2019.csv"
 opt$death_filter <- "low"
 opt$num_simulationsulations <- 2000
-opt$outfile <- "2020-09-27-JHU_IDD-CovidSP_low_deathoptim.csv"
+opt$outfile <- "2020-09-27-JHU_IDD-CovidSP_low_caseoptim.csv"
 opt$include_hosp <- TRUE
 
 arguments<- list()
-arguments$args <- "usa_runs_2020-9-28-deathoptim"
+arguments$args <- "usa_runs_2020-9-28-caseoptim"
 
 opt$reichify <-TRUE
 
@@ -33,14 +33,19 @@ res_geoid <- arrow::open_dataset(sprintf("%s/hosp",arguments$args),
                                                  "death_rate", 
                                                  "date", 
                                                  "lik_type", 
-                                                 "is_final", 
-                                                 "sim_id"))%>%
-  select(time, geoid, incidD, incidH, incidC, death_rate, sim_id)%>%
+                                                 "is_final"#, 
+                                                 #"sim_id"
+                                                 ))%>%
+  select(time, geoid, incidD, incidH, incidC, death_rate#, sim_id
+         )%>%
   filter(time>=opt$forecast_date& time<=opt$end_date)%>%
   collect()%>%
   filter(stringr::str_detect(death_rate,opt$death_filter))%>%
   mutate(time=as.Date(time))%>%
-  mutate(sim_num = sim_id)
+  group_by(time, geoid, death_rate) %>%
+  dplyr::mutate(sim_num = as.character(seq_along(geoid))) %>%
+  ungroup
+  # mutate(sim_num = sim_id)
   
 
 
@@ -64,7 +69,8 @@ opt$end_date <- as.Date(opt$end_date)
 
 rlab_deaths <- covidcommon::get_reichlab_st_data() %>%
   dplyr::select(Update, Deaths, incidDeath, FIPS, source) %>%
-  dplyr::rename(geoid=FIPS, time=Update, cumDeaths=Deaths, USPS=source)
+  dplyr::rename(geoid=FIPS, time=Update, cumDeaths=Deaths, USPS=source) %>%
+  dplyr::mutate(incidDeath = ifelse(is.na(incidDeath), 0, incidDeath))
 
 ##Make the forecast for daily cumlative cases
 state_cum_deaths<- create_cum_death_forecast(res_state,
