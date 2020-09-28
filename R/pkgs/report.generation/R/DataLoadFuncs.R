@@ -182,11 +182,11 @@ load_spar_sims_filtered <- function(outcome_dir,
     dplyr::filter(pdeath %in% pdeath_filter) %>%
     pre_process(...)%>%
     dplyr::collect() %>% 
-    dplyr::group_by(scenario)%>%
+    dplyr::group_by(scenario, pdeath)%>%
     dplyr::mutate(sim_num = seq_along(sim_id)) %>%
     dplyr::ungroup()
   
-  message("Finished loading. Note pdeaths of the same scenario are treated as different simulations.")
+  message("Finished loading.")
   return(spar)
   
 }
@@ -232,12 +232,13 @@ load_snpi_sims_filtered <- function(outcome_dir,
     dplyr::filter(geoid %in% incl_geoids) %>%
     pre_process(...)%>%
     dplyr::collect() %>%
-    dplyr::group_by(geoid, npi_name, scenario)%>%
+    dplyr::group_by(geoid, npi_name, scenario, pdeath)%>%
     dplyr::mutate(sim_num = seq_along(sim_id)) %>%
     dplyr::select(-date, -lik_type, -is_final) %>%
     dplyr::ungroup()
+
+  message("Finished loading.")
   
-  message("Finished loading. Note pdeaths of the same scenario are treated as different simulations.")
   return(snpi)
   
 }

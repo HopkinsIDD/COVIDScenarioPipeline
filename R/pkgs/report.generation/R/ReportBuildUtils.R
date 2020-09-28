@@ -1189,7 +1189,8 @@ make_sparkline_tab_r <- function(r_dat,
   
   if(susceptible){
     r_dat<-county_dat %>%
-      dplyr::filter(scenario==current_scenario) %>%
+      dplyr::filter(scenario==current_scenario,
+                    pdeath==pdeath_filter) %>%
       dplyr::select(geoid, scenario, pdeath, sim_num, cum_inf, date=time) %>%
       dplyr::right_join(r_dat) %>%
       dplyr::left_join(geodat) %>%
@@ -1560,7 +1561,7 @@ plot_truth_by_county <- function(truth_dat,
           strip.background.x = element_blank(),
           strip.background.y=element_rect(fill="white"),
           strip.text.y =element_text(face="bold"))+
-    ylab("Counts (log scale)")+
+    ylab("Counts")+
     xlab("Time (weeks)")+ 
     facet_grid(name~ type, scales="free") +
     scale_y_sqrt()
@@ -2165,19 +2166,19 @@ plot_hosp_effec <- function(current_scenario,
     dplyr::mutate(est=TotalIncidHosp/pop2010*1000) %>%
     dplyr::group_by(pdeath, name, geoid) %>% 
     dplyr::summarize(est = mean(est)) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(pdeath=factor(pdeath, 
-                                levels=pdeath_levels, 
-                                labels=pdeath_labels))
+    dplyr::ungroup() 
   
   rc <- r_dat%>%
-    dplyr::group_by(geoid, scenario) %>%
+    dplyr::group_by(geoid, scenario, pdeath) %>%
     dplyr::filter(scenario==current_scenario) %>%
     dplyr::filter(npi_name!="local_variance" & max(end_date)==end_date)%>%
     dplyr::summarize(reduc=mean(reduction))%>%
     dplyr::right_join(rc) 
   
     rc<-rc%>%
+      dplyr::mutate(pdeath=factor(pdeath, 
+                                  levels=pdeath_levels, 
+                                  labels=pdeath_labels)) %>%
     ggplot(aes(x=est, y=reduc, label = name, col=pdeath)) +
     ggrepel::geom_text_repel(segment.size = 0.2, alpha = 0.75, segment.alpha=0.5) +
     geom_point() +
