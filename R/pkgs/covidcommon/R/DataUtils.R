@@ -633,6 +633,8 @@ get_reichlab_st_data <- function(cum_case_filename = "data/case_data/rlab_cum_ca
     dplyr::full_join(rlab_inc_death) %>%
     dplyr::filter(scale == "state") %>%
     dplyr::select(Update, Confirmed, Deaths, incidI, incidDeath, FIPS, source) %>%
+    dplyr::mutate(incidDeath = ifelse(is.na(incidDeath), 0, incidDeath),
+                  incidI = ifelse(is.na(incidI), 0, incidI)) %>%
     dplyr::arrange(source, FIPS, Update)
 
   return(rlab_st_data)
@@ -682,6 +684,8 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
     dplyr::full_join(rlab_inc_death) %>%
     dplyr::filter(scale == "county") %>%
     dplyr::select(Update, Confirmed, Deaths, incidI, incidDeath, FIPS, source) %>%
+    dplyr::mutate(incidDeath = ifelse(is.na(incidDeath), 0, incidDeath),
+                  incidI = ifelse(is.na(incidI), 0, incidI)) %>%
     dplyr::arrange(source, FIPS, Update)
 
   return(rlab_cty_data)
