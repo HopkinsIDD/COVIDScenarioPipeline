@@ -575,6 +575,7 @@ download_reichlab_data <- function(filename, url, value_col_name){
     dplyr::mutate(Update = as.Date(date),
                   source = cdlTools::fips(stringr::str_sub(location, 1, 2), to = "Abbreviation"),
                   scale = ifelse(nchar(location)==2, "state", "county")) %>%
+    dplyr::filter(location != "US") %>%
     dplyr::rename(!!value_col_name := value,
                   FIPS = location) %>%
     dplyr::mutate(FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0"))) %>%
