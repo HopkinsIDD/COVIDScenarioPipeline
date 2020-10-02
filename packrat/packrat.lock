@@ -129,6 +129,12 @@ Version: 3.4.3
 Hash: e9b50bc56e655025fde6f2f4b65154de
 Requires: R6, processx
 
+Package: cdlTools
+Source: CRAN
+Version: 0.15
+Hash: 911340c54649e220bb49603e37f8b0b5
+Requires: httr, raster
+
 Package: cellranger
 Source: CRAN
 Version: 1.1.0
@@ -180,7 +186,7 @@ Hash: 6cc063b236e3bbc174a73959145488ef
 
 Package: covidImportation
 Source: github
-Version: 1.8
+Version: 1.6.1
 Hash: 19ccb07938df6c97b7397e7a0493b818
 Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
     dplyr, fitdistrplus, geosphere, ggplot2, ggvoronoi,
