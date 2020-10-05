@@ -1545,27 +1545,35 @@ plot_truth_by_county <- function(truth_dat,
                      confirmed=if_else(confirmed==0, NA_real_, confirmed))
   }
   
-  rc %>%
-    dplyr::group_by(type, !!as.symbol(group_var), geoid)%>%
-    dplyr::filter(time<max(time))%>%
-    dplyr::ungroup()%>%
-    dplyr::filter(time>as.Date(start_date), time<as.Date(end_date))%>%
-    dplyr::left_join(geodat)%>%
-    ggplot(aes(x=time)) +
-    geom_line(aes(y=est, color=!!as.symbol(group_var))) +
-    geom_ribbon(alpha=0.1, aes(fill=!!as.symbol(group_var), ymin=low, ymax=high))+
-    geom_point(aes(y=confirmed), color="black") +
-    theme_bw()+
-    theme(panel.grid = element_blank(),
-          legend.title=element_blank(),
-          legend.position="bottom",
-          strip.background.x = element_blank(),
-          strip.background.y=element_rect(fill="white"),
-          strip.text.y =element_text(face="bold"))+
-    ylab("Counts")+
-    xlab("Time (weeks)")+ 
-    facet_grid(name~ type, scales="free") +
-    scale_y_sqrt()
+  plot_rc<-list()
+  
+  for(i in 1:length(unique(as.character(rc$type)))){
+    plot_rc[[i]]<-rc %>%
+      filter(type==unique(as.character(rc$type))[i]) %>%
+      dplyr::group_by(!!as.symbol(group_var), geoid)%>%
+      dplyr::filter(time<max(time))%>%
+      dplyr::ungroup()%>%
+      dplyr::filter(time>as.Date(start_date), time<as.Date(end_date))%>%
+      dplyr::left_join(geodat)%>%
+      ggplot(aes(x=time)) +
+      geom_line(aes(y=est, color=!!as.symbol(group_var))) +
+      geom_ribbon(alpha=0.1, aes(fill=!!as.symbol(group_var), ymin=low, ymax=high))+
+      geom_point(aes(y=confirmed), color="black") +
+      theme_bw()+
+      theme(panel.grid = element_blank(),
+            legend.title=element_blank(),
+            legend.position="bottom",
+            strip.background.x = element_blank(),
+            strip.background.y=element_rect(fill="white"),
+            strip.text.y =element_text(face="bold"))+
+      ylab("Counts (log scale)")+
+      xlab("Time (weeks)")+ 
+      facet_grid(rows=vars(name), scales="free") +
+      scale_y_sqrt()+
+      labs(subtitle = unique(as.character(rc$type))[i])
+  }
+  
+  plot_rc
 }
 
 ##' Time series comparing Rt estimates by scenario over time
