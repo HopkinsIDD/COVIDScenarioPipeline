@@ -1378,13 +1378,14 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
                   time=cumsum(time))%>%
     tidyr::nest() %>%
     dplyr::mutate(plot=purrr::map(data, ~ggplot(., aes(x=time, y=estimate, ymin=est_lo, ymax=est_hi))+
-                                    geom_col(aes(fill=npi_name), stat="identity")+
-                                    geom_errorbar(aes(col=npi_name), size=3) +
+                                    geom_point(aes(fill=npi_name), stat="identity", size=15)+
+                                    geom_errorbar(aes(col=npi_name), size=5) +
                                     scale_color_manual(values= c(color_values),
                                                        breaks=c(npi_labels))+
                                     scale_fill_manual(values=c(fill_values),
                                                       breaks=c(npi_labels))+
                                     geom_hline(yintercept=1, col="black", size=3)+
+                                    geom_hline(yintercept=0, col="black", size=3,  linetype="dashed")+
                                     theme(legend.position="none",
                                           axis.line = element_blank(),
                                           axis.title = element_blank(),
