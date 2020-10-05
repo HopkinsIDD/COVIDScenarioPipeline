@@ -33,13 +33,13 @@ test_that("Simulation loading works", {
             outcome_dir = 'a_b',
             partitions = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")
         )
-    }, "'pdeath' not found")
+    }, "couldn't infer type")
     expect_error({
         load_spar_sims_filtered(
             outcome_dir = "a_b", 
             partitions = c("location", "scenario", "pdeath", "lik_type", "is_final")
         )
-    }, "at least one array to create a converter")
+    }, "object 'NA' not found")
     
     # expect_equal({
     #     load_spar_sims_filtered(
@@ -56,7 +56,7 @@ test_that("Simulation loading works", {
         ncol(load_spar_sims_filtered(
             outcome_dir = 'a_b'
         ))
-    }, 10
+    }, 9
     )
     
     expect_error({

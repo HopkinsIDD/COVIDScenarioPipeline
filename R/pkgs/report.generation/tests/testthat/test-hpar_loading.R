@@ -41,34 +41,21 @@ test_that("Simulation loading works", {
             partitions = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
             incl_geoids = included_geoids
         )
-    }, "'pdeath' not found")
+    }, "couldn't infer type")
     expect_error({
         load_hpar_sims_filtered(
             outcome_dir = "a_b", 
             partitions = c("location", "scenario", "pdeath", "lik_type", "is_final"),
             incl_geoids = included_geoids
         )
-    }, "at least one array to create a converter")
-    
-    # expect_equal({
-    #     load_hpar_sims_filtered(
-    #         outcome_dir = 'a_b',
-    #         pre_process = function(x){x},
-    #         incl_geoids = included_geoids
-    #     )
-    # },
-    # load_hpar_sims_filtered(
-    #     outcome_dir = 'a_b',
-    #     incl_geoids = included_geoids
-    # )
-    # )
+    }, "object 'NA' not found")
     
     expect_equal({
         ncol(load_hpar_sims_filtered(
             outcome_dir = 'a_b',
             incl_geoids = included_geoids
         ))
-    }, 13
+    }, 12
     )
     
     expect_error({

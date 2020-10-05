@@ -64,7 +64,7 @@ test_that("Simulation loading works", {
             pdeath_filter = "low",
             incl_geoids = included_geoids
         )
-    }, "at least one array to create a converter")
+    }, "Nothing was loaded")
     
     expect_warning({
         load_hosp_geocombined_totals(
@@ -92,16 +92,6 @@ test_that("Simulation loading works", {
     #     incl_geoids = included_geoids
     # )
     # )
-    
-    expect_equal({
-        ncol(load_hosp_geocombined_totals(
-            outcome_dir = 'a_b',
-            scenario_levels = 'scn',
-            scenario_labels = 'baseline',
-            incl_geoids = included_geoids
-        ))
-    }, 18
-    )
     
     expect_equal({
         ncol(load_hosp_geocombined_totals(

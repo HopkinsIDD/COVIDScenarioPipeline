@@ -50,18 +50,24 @@ test_that("Simulation loading works", {
     expect_error({
         load_hosp_sims_filtered(
             outcome_dir = 'a_b',
-            partitions = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
+            partitions = c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_id"),
             incl_geoids = included_geoids
         )
-    }, "'pdeath' not found")
+    }, "couldn't infer type")
     
-    expect_error({
-        load_hosp_sims_filtered(
+    expect_equal(
+        (load_hosp_sims_filtered(
             outcome_dir = "a_b", 
             partitions = c("location", "scenario", "pdeath", "date", "lik_type", "is_final"),
             incl_geoids = included_geoids,
             inference=FALSE
-        )}, message="input 'sim_num'"
+        ))$sim_num, (
+            load_hosp_sims_filtered(
+            outcome_dir = "a_b", 
+            partitions = c("location", "scens", "death_rate", "date", "likelihood", "final"),
+            incl_geoids = included_geoids,
+            inference=FALSE
+        ))$sim_num
         )
     
     
@@ -83,7 +89,7 @@ test_that("Simulation loading works", {
             outcome_dir = 'a_b',
             incl_geoids = included_geoids
         ))
-    }, 19
+    }, 18
     )
     
     expect_equal({
@@ -92,7 +98,7 @@ test_that("Simulation loading works", {
             incl_geoids = included_geoids,
             inference=FALSE
         ))
-    }, 16
+    }, 15
     )
     # expect_error({
     #     load_hosp_sims_filtered(
