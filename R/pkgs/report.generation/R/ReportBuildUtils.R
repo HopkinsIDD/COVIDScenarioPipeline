@@ -1573,7 +1573,7 @@ plot_truth_by_county <- function(truth_dat,
       labs(subtitle = unique(as.character(rc$type))[i])
   }
   
-  plot_rc
+  return(plot_rc)
 }
 
 ##' Time series comparing Rt estimates by scenario over time
@@ -2255,29 +2255,39 @@ plot_county_outcomes <- function(county_dat,
                                labels=var_labels))
   
   rc<-dplyr::bind_rows(county_dat%>%
-                     dplyr::select(name, var, time, est=hosp, lo=hosp_lo, hi=hosp_hi) %>%
-                     dplyr::mutate(type="Occupied Hospital Beds"),
-                   county_dat%>%
-                     dplyr::select(name, var, time, est=icu, lo=icu_lo, hi=icu_hi) %>%
-                     dplyr::mutate(type="Occupied ICU Beds"),
-                   county_dat%>%
-                     dplyr::select(name, var, time, est=case, lo=case_lo, hi=case_hi) %>%
-                     dplyr::mutate(type="Incident Cases")) %>%
-    ggplot(aes(x=time))+
-    geom_line(aes(y=est, color=var))+
-    geom_ribbon(aes(ymin=lo, ymax=hi, fill=var), alpha=0.1)+
-    facet_grid(name~type, scales = "free_y") +
-    scale_y_sqrt()+
-    theme_bw()+
-    theme(legend.position="top",
-          legend.title=element_blank(),
-          panel.grid=element_blank(),
-          strip.background.x=element_blank(),
-          strip.text=element_text(face="bold"),
-          strip.background.y = element_rect(fill="white"))+
-    ylab("Estimate") +
-    xlab("Time")+
-    scale_x_date(limits = c(start_date, end_date))
+                         dplyr::select(name, var, time, est=hosp, lo=hosp_lo, hi=hosp_hi) %>%
+                         dplyr::mutate(type=2),
+                       county_dat%>%
+                         dplyr::select(name, var, time, est=icu, lo=icu_lo, hi=icu_hi) %>%
+                         dplyr::mutate(type=3),
+                       county_dat%>%
+                         dplyr::select(name, var, time, est=case, lo=case_lo, hi=case_hi) %>%
+                         dplyr::mutate(type=1)) %>%
+    mutate(type=factor(type, levels=c(1, 2, 3), labels=c("Incident Cases", "Occupied Hospital Beds", "Occupied ICU Beds")))
   
-  return(rc)
+  plot_rc<-list()
+  rc_type<-levels(rc$type)
+  
+  for(i in 1:length(rc_type)){
+    plot_rc[[i]]<-rc %>%
+      filter(type==rc_type[i]) %>%
+      ggplot(aes(x=time)) +
+      geom_line(aes(y=est, color=var)) +
+      geom_ribbon(aes(ymin=lo, ymax=hi, fill=var), alpha=0.1)+
+      facet_grid(name~type, scales = "free_y") +
+      scale_y_sqrt()+
+      theme_bw()+
+      theme(legend.position="top",
+            legend.title=element_blank(),
+            panel.grid=element_blank(),
+            strip.background.x=element_blank(),
+            strip.text=element_text(face="bold"),
+            strip.background.y = element_rect(fill="white"))+
+      ylab("Estimate") +
+      xlab("Time")+
+      scale_x_date(limits = c(start_date, end_date)) +
+      labs(subtitle = rc_type[i])
+  }
+  
+  return(plot_rc)
 }
