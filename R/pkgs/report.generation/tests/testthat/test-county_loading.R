@@ -66,7 +66,7 @@ test_that("Simulation loading works", {
             pdeath_filter = "low",
             incl_geoids = included_geoids
         )
-    }, "at least one array to create a converter")
+    }, "Nothing was loaded")
     
     expect_warning({
         load_hosp_county(
@@ -78,23 +78,6 @@ test_that("Simulation loading works", {
     }, "Scenario levels were not correctly specified"
     )
     
-    # expect_equal({
-    #     load_hosp_county(
-    #         outcome_dir = 'a_b',
-    #         scenario_levels = 'scn',
-    #         scenario_labels = 'baseline',
-    #         pre_process = function(x){x},
-    #         incl_geoids = included_geoids
-    #     )
-    # },
-    # load_hosp_county(
-    #     outcome_dir = 'a_b',
-    #     scenario_levels = 'scn',
-    #     scenario_labels = 'baseline',
-    #     incl_geoids = included_geoids
-    # )
-    # )
-    
     expect_equal({
         ncol(load_hosp_county(
             outcome_dir = 'a_b',
@@ -102,18 +85,14 @@ test_that("Simulation loading works", {
             scenario_labels = 'baseline',
             incl_geoids = included_geoids
         ))
-    }, 24
-    )
-    
-    expect_equal({
-        ncol(load_hosp_county(
+    }, {ncol(load_hosp_county(
             outcome_dir = 'a_c',
             scenario_levels = 'scn',
             scenario_labels = 'baseline',
             incl_geoids = included_geoids,
             inference=FALSE
-        ))
-    }, 22
+    ))+2
+        }
     )
     
     unlink(dir, recursive=TRUE)  
