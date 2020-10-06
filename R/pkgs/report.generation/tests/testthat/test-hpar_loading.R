@@ -38,7 +38,7 @@ test_that("Simulation loading works", {
     expect_error({
         load_hpar_sims_filtered(
             outcome_dir = 'a_b',
-            partitions = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id"),
+            partitions = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id", "other_partition"),
             incl_geoids = included_geoids
         )
     }, "couldn't infer type")

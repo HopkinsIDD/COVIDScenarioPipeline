@@ -64,7 +64,8 @@ test_that("Simulation loading works", {
             pdeath_filter = "low",
             incl_geoids = included_geoids
         )
-    }, "Nothing was loaded")
+    }, NULL
+    )
     
     expect_warning({
         load_hosp_geocombined_totals(
