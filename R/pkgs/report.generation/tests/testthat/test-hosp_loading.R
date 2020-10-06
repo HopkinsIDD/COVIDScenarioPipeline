@@ -47,10 +47,10 @@ test_that("Simulation loading works", {
             incl_geoids = included_geoids
         )
     }, "'x' must be a string")
-    expect_error({
+    expect_error({ # test error when specifying too many partitions
         load_hosp_sims_filtered(
             outcome_dir = 'a_b',
-            partitions = c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_id"),
+            partitions = c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_id", "other_partition"),
             incl_geoids = included_geoids
         )
     }, "couldn't infer type")
