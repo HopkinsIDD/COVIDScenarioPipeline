@@ -35,7 +35,8 @@ jobs:
         shell: bash
       - name: Run pytest Outcomes
         run: |
-          /home/app/python_venv/bin/pytest Outcomes/
+          cd Outcomes/test
+          /home/app/python_venv/bin/pytest
         shell: bash
       - name: Run covidcommon tests
         run: |

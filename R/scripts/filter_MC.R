@@ -256,11 +256,9 @@ for(scenario in scenarios) {
         stop("SEIR failed to run")
       }
 
-      err <- py$onerun_HOSP(this_index)
+      err <- py$onerun_OUTCOMES_loadID(this_index)
+      print(err)
       err <- ifelse(err == 1,0,1)
-      if(length(err) == 0){
-        stop("HOSP failed to run")
-      }
       if(err != 0){
         stop("HOSP failed to run")
       }
