@@ -45,7 +45,7 @@ test_that("filtering by VALIDATION_DATE results in less data",{
   
   usafacts_case_all <- download_USAFacts_data(case_data_filename, USAFACTS_CASE_DATA_URL, "Confirmed")
 
-  Sys.setenv(VALIDATION_DATE="2020/03/01")
+  Sys.setenv(VALIDATION_DATE="2020-03-01")
   
   usafacts_case_filtered <- download_USAFacts_data(case_data_filename, USAFACTS_CASE_DATA_URL, "Confirmed")
   
