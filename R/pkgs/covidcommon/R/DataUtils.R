@@ -719,17 +719,20 @@ get_groundtruth_from_source <- function(source = "reichlab", scale = "US county"
   if(source == "reichlab" & scale == "US county"){
 
     rc <- get_reichlab_cty_data() %>%
-      dplyr::select(Update, FIPS, source, !!variables)
+      dplyr::select(Update, FIPS, source, !!variables) %>%
+      tidyr::drop_na(tidyselect::everything())
 
   } else if(source == "reichlab" & scale == "US state"){
 
     rc <- get_reichlab_st_data() %>%
-      dplyr::select(Update, FIPS, source, !!variables)
+      dplyr::select(Update, FIPS, source, !!variables) %>%
+      tidyr::drop_na(tidyselect::everything())
 
   } else if(source == "usafacts" & scale == "US county"){
 
     rc <- get_USAFacts_data() %>%
-      dplyr::select(Update, FIPS, source, !!variables)
+      dplyr::select(Update, FIPS, source, !!variables) %>%
+      tidyr::drop_na(tidyselect::everything())
 
   } else if(source == "usafacts" & scale == "US state"){
 
@@ -737,12 +740,14 @@ get_groundtruth_from_source <- function(source = "reichlab", scale = "US county"
       dplyr::select(Update, FIPS, source, !!variables) %>%
       dplyr::mutate(FIPS = stringr::str_sub(FIPS, 1, 2)) %>%
       dplyr::group_by(Update, FIPS, source) %>%
-      dplyr::summarise_if(is.numeric, sum)
+      dplyr::summarise_if(is.numeric, sum) %>%
+      tidyr::drop_na(tidyselect::everything())
 
   } else if(source == "csse" & scale == "US county"){
 
     rc <- get_CSSE_US_data() %>%
-      dplyr::select(Update, FIPS, source, !!variables)
+      dplyr::select(Update, FIPS, source, !!variables) %>%
+      tidyr::drop_na(tidyselect::everything())
 
   } else if(source == "csse" & scale == "US state"){
 
@@ -750,12 +755,14 @@ get_groundtruth_from_source <- function(source = "reichlab", scale = "US county"
       dplyr::select(Update, FIPS, source, !!variables) %>%
       dplyr::mutate(FIPS = stringr::str_sub(FIPS, 1, 2)) %>%
       dplyr::group_by(Update, FIPS, source) %>%
-      dplyr::summarise_if(is.numeric, sum)
+      dplyr::summarise_if(is.numeric, sum) %>%
+      tidyr::drop_na(tidyselect::everything())
 
   } else if(source == "csse" & scale == "country"){
 
     rc <- get_CSSE_global_data() %>%
-      dplyr::select(UID, iso2, iso3, Province_State, Country_Region, Latitude, Longitude, Update, source, !!variables)
+      dplyr::select(UID, iso2, iso3, Province_State, Country_Region, Latitude, Longitude, Update, source, !!variables) %>%
+      tidyr::drop_na(tidyselect::everything())
 
   } else if(source == "csse" & scale == "complete"){
 
@@ -763,7 +770,8 @@ get_groundtruth_from_source <- function(source = "reichlab", scale = "US county"
       dplyr::select(Update, UID, iso2, iso3, Latitude, Longitude, source, !!variables, Country_Region, Province_State, source) 
     rc <- get_CSSE_global_data() %>%
       dplyr::select(Update, UID, iso2, iso3, Latitude, Longitude, source, !!variables, Country_Region, Province_State, source) %>%
-      dplyr::bind_rows(us)
+      dplyr::bind_rows(us) %>%
+      tidyr::drop_na(tidyselect::everything())
   
   } else{
     warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning NULL object.")))
