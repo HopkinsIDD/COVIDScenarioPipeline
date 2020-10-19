@@ -1,4 +1,6 @@
 library(dplyr)
+Sys.setenv(VALIDATION_DATE="2020-08-01")
+
 test_that("get_CSSE_US_data works", {
   csse <- get_CSSE_US_data()
 
@@ -45,7 +47,7 @@ test_that("filtering by VALIDATION_DATE results in less data",{
   
   csse_us_case_all <- download_CSSE_US_data(case_data_filename, CSSE_US_CASE_DATA_URL, "Confirmed")
 
-  Sys.setenv(VALIDATION_DATE="2020/03/01")
+  Sys.setenv(VALIDATION_DATE="2020-03-01")
   
   csse_us_case_filtered <- download_CSSE_US_data(case_data_filename, CSSE_US_CASE_DATA_URL, "Confirmed")
   
