@@ -635,7 +635,9 @@ get_reichlab_st_data <- function(cum_case_filename = "data/case_data/rlab_cum_ca
     dplyr::filter(scale == "state") %>%
     dplyr::select(Update, Confirmed, Deaths, incidI, incidDeath, FIPS, source) %>%
     dplyr::mutate(incidDeath = ifelse(is.na(incidDeath), 0, incidDeath),
-                  incidI = ifelse(is.na(incidI), 0, incidI)) %>%
+                  incidI = ifelse(is.na(incidI), 0, incidI),
+                  Confirmed = ifelse(is.na(Confirmed) & Update < "2020-02-01", 0, Confirmed),
+                  Deaths = ifelse(is.na(Deaths) & Update < "2020-02-01", 0, Deaths)) %>%
     dplyr::arrange(source, FIPS, Update)
 
   return(rlab_st_data)
@@ -686,7 +688,9 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
     dplyr::filter(scale == "county") %>%
     dplyr::select(Update, Confirmed, Deaths, incidI, incidDeath, FIPS, source) %>%
     dplyr::mutate(incidDeath = ifelse(is.na(incidDeath), 0, incidDeath),
-                  incidI = ifelse(is.na(incidI), 0, incidI)) %>%
+                  incidI = ifelse(is.na(incidI), 0, incidI),
+                  Confirmed = ifelse(is.na(Confirmed) & Update < "2020-02-01", 0, Confirmed),
+                  Deaths = ifelse(is.na(Deaths) & Update < "2020-02-01", 0, Deaths)) %>%
     dplyr::arrange(source, FIPS, Update)
 
   return(rlab_cty_data)
