@@ -772,6 +772,7 @@ get_groundtruth_from_source <- function(source = "reichlab", scale = "US county"
       dplyr::select(Update, UID, iso2, iso3, Latitude, Longitude, source, !!variables, Country_Region, Province_State, source) %>%
       dplyr::bind_rows(us) %>%
       tidyr::drop_na(tidyselect::everything())
+    warning(print(paste("The combination of ", source, "and", scale, "is not fully working. County-level US data may be missing from this data frame.")))
   
   } else{
     warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning NULL object.")))
