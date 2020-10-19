@@ -1,5 +1,7 @@
 library(dplyr)
 library(magrittr)
+Sys.setenv(VALIDATION_DATE="2020-08-01")
+
 test_that("get_groundtruth_from_source works", {
   usaf <- get_groundtruth_from_source(source = "usafacts", scale = "US state", variables = c("Confirmed", "incidI"))
   usaf_cty <- get_groundtruth_from_source(source = "usafacts", scale = "US county", variables = c("Confirmed", "incidI"))
