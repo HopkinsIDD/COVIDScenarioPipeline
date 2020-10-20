@@ -39,29 +39,28 @@ jobs:
         echo "::set-output name=reftag::${IMAGE_TAG_REF##*/}-r$IMAGE_TAG_RUN"
 
     - name: Build Push Master
-      uses: docker/build-push-action@v1
+      uses: docker/build-push-action@v2
       if: contains( github.ref, 'master') || contains( github.base_ref, 'master' )
       with:
+        push: true
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: hopkinsidd/covidscenariopipeline
-        tags: latest,latest-master,${{steps.tags.outputs.shashort}},${{steps.tags.outputs.reftag}},${{ github.sha }}
+        tags: |
+          hopkinsidd/covidscenariopipeline:latest
+          hopkinsidd/covidscenariopipeline:latest-master
+          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.shashort}}
+          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.reftag}}
+          hopkinsidd/covidscenariopipeline:${{ github.sha }}
 
     - name: Build Push Dev
-      uses: docker/build-push-action@v1
+      uses: docker/build-push-action@v2
       with:
+        push: true
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: hopkinsidd/covidscenariopipeline
-        tags: latest-dev,${{steps.tags.outputs.shashort}},${{steps.tags.outputs.reftag}},${{ github.sha }}
+        tags: |
+          hopkinsidd/covidscenariopipeline:latest-dev
+          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.shashort}}
+          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.reftag}}
+          hopkinsidd/covidscenariopipeline:${{ github.sha }}
       if: contains( github.ref , 'dev') || contains( github.base_ref, 'dev' )
-
-
-    - name: Build Push Dataseed
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: hopkinsidd/covidscenariopipeline
-        tags: latest-dataseed,${{steps.tags.outputs.shashort}},${{steps.tags.outputs.reftag}},${{ github.sha }}
-      if: contains( github.ref , 'dataseed') || contains( github.base_ref, 'dataseed' )
