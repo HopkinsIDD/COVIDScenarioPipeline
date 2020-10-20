@@ -51,6 +51,12 @@ Source: CRAN
 Version: 1.0.4.6
 Hash: 8b95553bc32a59321b8981aa02bfbf72
 
+Package: RcppArmadillo
+Source: CRAN
+Version: 0.10.1.0.0
+Hash: 096760ac8f9ea33ca2678e722558ad56
+Requires: Rcpp
+
 Package: XML
 Source: CRAN
 Version: 3.99-0.3
@@ -186,17 +192,21 @@ Hash: 6cc063b236e3bbc174a73959145488ef
 
 Package: covidImportation
 Source: github
-Version: 1.6.1
-Hash: 19ccb07938df6c97b7397e7a0493b818
+Version: 1.7
+Hash: 5d79cb03d5565ba3a2280e80aab3f657
 Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
-    dplyr, fitdistrplus, geosphere, ggplot2, ggvoronoi,
-    globaltoolboxlite, gpclib, httr, igraph, lubridate, magrittr,
-    maptools, purrr, raster, readr, reshape2, rgdal, rlist, sf, tibble,
-    tidycensus, tidyr, tidyverse, truncnorm
+    dplyr, fitdistrplus, geosphere, ggplot2, globaltoolboxlite, gpclib,
+    httr, igraph, lubridate, magrittr, nnls, purrr, readr, reshape2,
+    rlist, sf, splines2, tibble, tidycensus, tidyr, truncnorm
 GithubRepo: covidImportation
 GithubUsername: HopkinsIDD
 GithubRef: v1.8
-GithubSha1: 3cf2341907d23e1b19a3a3190dfca29b50d22218
+GithubSha1: 4750837e300762be2259d062c80252139828a0b2
+RemoteHost: api.github.com
+RemoteRepo: covidImportation
+RemoteUsername: HopkinsIDD
+RemoteRef: v1.8
+RemoteSha: 4750837e300762be2259d062c80252139828a0b2
 
 Package: covidcommon
 Source: source
@@ -216,6 +226,11 @@ Source: CRAN
 Version: 1.0.0
 Hash: 70e09cab441d1307901bb1f60cb61d8d
 Requires: ggplot2, gtable, rlang, scales
+
+Package: cpp11
+Source: CRAN
+Version: 0.2.3
+Hash: e0152940d0445aed0cd5f9d4a8f3848e
 
 Package: crayon
 Source: CRAN
@@ -288,6 +303,12 @@ Source: CRAN
 Version: 1.7-3
 Hash: f851e9de06edec144aa7d996bbf32538
 Requires: class
+
+Package: egg
+Source: CRAN
+Version: 0.4.5
+Hash: 06272cd702d468cf5cf2f90a54447415
+Requires: ggplot2, gridExtra, gtable
 
 Package: ellipsis
 Source: CRAN
