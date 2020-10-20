@@ -1,4 +1,6 @@
 library(dplyr)
+Sys.setenv(VALIDATION_DATE="2020-08-01")
+
 test_that("get_USAFacts_data works", {
   usaf <- get_USAFacts_data()
 
