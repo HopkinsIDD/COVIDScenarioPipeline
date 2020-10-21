@@ -95,7 +95,7 @@ COPY --chown=app:app packrat $HOME/packrat
 COPY --chown=app:app Docker.Rprofile $HOME/.Rprofile
 COPY --chown=app:app R/pkgs $HOME/R/pkgs
 RUN Rscript -e 'packrat::restore()'
-RUN Rscript -e 'install.packages(list.files("R/pkgs",full.names=TRUE),type="source",repos=NULL)'
+RUN Rscript -e 'install.packages(list.files("R",full.names=TRUE,recursive=TRUE),type="source",repos=NULL)'
 
 
 #####
