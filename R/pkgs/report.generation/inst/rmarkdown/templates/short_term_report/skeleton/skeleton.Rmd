@@ -550,17 +550,40 @@ tab_counter<-tab_counter+1
 
 ```
 
-```{r outcomes, fig.height=60, fig.cap = cap}
-plot_county_outcomes(res_state,
-                     filter_by = "pdeath", 
-                     filter_val = pdeath_default,
-                     var_levels = scn_levels,
-                     var_labels = scn_labels,
-                     start_date=projection_start,
-                     end_date=sim_end_date)
+```{r, include=FALSE}
+calib<-plot_county_outcomes(res_state,
+                            filter_by = "pdeath", 
+                            filter_val = pdeath_default,
+                            var_levels = scn_levels,
+                            var_labels = scn_labels,
+                            start_date=projection_start,
+                            end_date=sim_end_date)
 
-cap <- paste0("**Fig. ", fig_counter ,"** Estimated number of incident cases (left) and occuppied hospital (center) and ICU beds (right) by county between ", format(as.Date(projection_start), "%B %d")," and ", format(as.Date(sim_end_date), "%B %d"),". Mean estimates are shown at 1% IFR (red), 0.5% IFR (green), and 0.25% IFR (blue).")
+cases<-calib[[1]]+theme(legend.position="none",
+                        strip.text = element_blank(), 
+                        strip.background.y = element_blank(),
+                        axis.title.y = element_blank())
 
+cases<-ggplot_gtable(ggplot_build(cases))
+
+deaths<-calib[[2]]+theme(legend.position="none",
+                         axis.title.y = element_blank(),
+                         strip.text.y = element_text(size=10, face="bold"),
+                         strip.text.x=element_blank())
+
+deaths<-ggplot_gtable(ggplot_build(deaths))
+
+cases$widths<-deaths$widths
+
+plot_calib<-gridExtra::grid.arrange(grobs = list(cases, deaths), ncol=2, nrow=1)
+legend<-get_legend(calib[[1]]+theme(legend.position="bottom"))
+```
+
+```{r outcomes, fig.cap = cap, fig.height=40}
+cowplot::plot_grid(plot_calib, legend, nrow=2, rel_heights = c(1, 0.01))
+
+cap <- paste0("**Fig. ", fig_counter ,"** Estimated number of incident cases (left) and ICU beds (right) by county between ", format(as.Date(projection_start), "%B %d")," and ", format(as.Date(sim_end_date), "%B %d"),"at ",pdeath_default_label ,"  assumptions.")
+fig_counter<-fig_counter+1
 ```
 
 ## Appendix 2: Methods
