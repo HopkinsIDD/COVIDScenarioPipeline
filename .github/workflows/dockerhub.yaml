@@ -17,6 +17,7 @@ on:
       - 'R/pkgs/**'
       - '.Rprofile'
       - 'packrat/**'
+      - '.github/workflows/**'
 
 name: Deploy to DockerHub
 
