@@ -426,7 +426,7 @@ initialize_mcmc_first_block <- function(
   if("hosp_filename" %in% global_file_names) {
     ## Not sure this will work at all
     python_reticulate$onerun_SEIR(block - 1,python_reticulate$s)
-    python_reticulate$onerun_HOSP(block - 1)
+    python_reticulate$onerun_OUTCOMES(block - 1)
   }
   
   ## llik

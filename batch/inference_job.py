@@ -288,7 +288,7 @@ class BatchJobHandler(object):
                 },
                 retryStrategy = {'attempts': 3})
 
-        print(f"Final output will be: {results_path}/final_output/")
+        print(f"Final output will be: {results_path}/model_output/")
 
 
 if __name__ == '__main__':

@@ -25,7 +25,7 @@ ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
-def onerun_SEIR(sim_id, s):
+def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
     scipy.random.seed()
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
@@ -40,7 +40,8 @@ def onerun_SEIR(sim_id, s):
 
     states = steps_SEIR_nb(*parameters, y0,
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
+                           mobility_geoid_indices, mobility_data_indices, 
+                           mobility_data, s.dynfilter, stoch_traj_flag)
 
     postprocess_and_write(sim_id, s, states, p_draw, npi, seeding)
 
@@ -112,7 +113,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
     
     return out_df
 
-def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
+def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
     if (s.write_parquet and s.write_csv):
         print("Confused between reading .csv or parquet. Assuming input file is .parquet")
     if s.write_parquet:
@@ -161,7 +162,8 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
 
     states = steps_SEIR_nb(*parameters, y0,
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices, mobility_data, s.dynfilter)
+                           mobility_geoid_indices, mobility_data_indices, 
+                           mobility_data, s.dynfilter, stoch_traj_flag)
 
     out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding)
 

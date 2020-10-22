@@ -9,7 +9,7 @@ from .base import NPIBase
 REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
 
 "Cap on # of reduction metadata entries to store in memory"
-REDUCTION_METADATA_CAP = 250
+REDUCTION_METADATA_CAP = 300
 
 
 class Stacked(NPIBase):

@@ -22,7 +22,7 @@ months = mdates.MonthLocator()  # every month
 years_fmt = mdates.DateFormatter('%Y-%m')
 
 @click.command()
-@click.option("-m", "--max_files", type=click.IntRange(min=1), default=100, help="Maximum number of sims to load")
+@click.option("-m", "--max_files", type=click.IntRange(min=1), default=500, help="Maximum number of sims to load")
 @click.option("-f", "--filename", type=str, default=f'{str(datetime.date.today())}_multiplot.pdf',  help="filename to write the pdf in")
 @click.option("-c", "--config", "config_file", envvar="CONFIG_PATH", type=click.Path(exists=True), required=False, help="configuration file for this simulation")
 
@@ -34,18 +34,19 @@ def generate_pdf(max_files, filename, config_file):
     print(f">>> Sampling {max_files} simulations...")
 
 
+    folder = [x for x in Path('model_output/hosp').glob('*') if not x.is_file()]
+    #folder = [x[0] for x in os.walk('model_output/hosp')]
 
-    folder = [x for x in Path('hospitalization/model_output/').glob('*') if not x.is_file()]
 
     all_hosp_sim = {}
 
     for fold in folder:
         if ('importation' not in str(fold)):
             data = []
-            print(f'loading {str(fold)[29:]} ... ', end = '')
+            print(f'Exploring {str(fold)[:]} ... ', end = '')
             files_loaded = 0
             for filename in Path(str(fold)).rglob('*.csv'):
-                if files_loaded < max_files and 'high' in str(filename):
+                if files_loaded < max_files:
                     sim = pd.read_csv(filename)
                     sim = sim.groupby('time').sum()
                     sim.drop(['geo_ind', 'date_inds'], axis =1, inplace=True)  # 'geoid'
@@ -53,15 +54,16 @@ def generate_pdf(max_files, filename, config_file):
                     data.append(sim)
                     files_loaded += 1
             for filename in Path(str(fold)).rglob('*.parquet'):
-                if files_loaded < max_files and 'high' in str(filename):
+                if files_loaded < max_files:
                     sim = pq.read_table(filename).to_pandas()
                     sim = sim.groupby('time').sum()
-                    sim.drop(['geo_ind', 'date_inds'], axis =1, inplace=True)  # 'geoid' 'sim_num', 'sim_num_good',
+                    #sim.drop(['geo_ind', 'date_inds'], axis =1, inplace=True)  # 'geoid' 'sim_num', 'sim_num_good',
                     data.append(sim)
                     files_loaded += 1
 
-            print(f'... {len(data)} loaded')
-            all_hosp_sim [str(fold)[29:]] = data
+            if (len(data) > 0): 
+                print(f'... {len(data)} loaded')
+                all_hosp_sim[str(fold)[:]] = data
 
     try:
         config.set_file(config_file)
@@ -117,40 +119,39 @@ def generate_pdf(max_files, filename, config_file):
         fig.autofmt_xdate()
     pdf.savefig(fig)
 
-
-
-    fig, axes = plt.subplots(len(varplot),1, figsize =(15,15))
-
-    for i, var in enumerate(varplot):
-        ax = axes.flat[i]
-        # hide axes
-        fig.patch.set_visible(False)
-        ax.axis('off')
-        ax.axis('tight')
-        ax.set_title(f'Median of MAX of {var} until date')
-        col = list(all_hosp_sim.keys())
-        col.insert(0, 'dates')
-        df = pd.DataFrame(0, columns=col, index = dates)
-        df['dates'] = dates
-        for scn, key in enumerate(list(all_hosp_sim.keys())):
-            sim_of_var = []
-            for sim in all_hosp_sim[key]:
-                temp = sim[var]
-                sim_of_var.append(temp)
-            temp = pd.concat(sim_of_var,axis=1)
-            
-            for j, d in enumerate(dates):
-                df.iloc[j,scn+1] = int(temp[:datetime.datetime.strptime(d, '%Y-%m-%d').date()].max().quantile(.5))
-                
-            
-        ax.table(cellText=df.values, colLabels=df.columns, loc='center')
-
-    fig.tight_layout()
-    pdf.savefig(fig)
+    #fig, axes = plt.subplots(len(varplot),1, figsize =(15,15))
+#
+    #for i, var in enumerate(varplot):
+    #    ax = axes.flat[i]
+    #    # hide axes
+    #    fig.patch.set_visible(False)
+    #    ax.axis('off')
+    #    ax.axis('tight')
+    #    ax.set_title(f'Median of MAX of {var} until date')
+    #    col = list(all_hosp_sim.keys())
+    #    col.insert(0, 'dates')
+    #    df = pd.DataFrame(0, columns=col, index = dates)
+    #    df['dates'] = dates
+    #    for scn, key in enumerate(list(all_hosp_sim.keys())):
+    #        sim_of_var = []
+    #        for sim in all_hosp_sim[key]:
+    #            temp = sim[var]
+    #            sim_of_var.append(temp)
+    #        temp = pd.concat(sim_of_var,axis=1)
+    #        
+    #        for j, d in enumerate(dates):
+    #            df.iloc[j,scn+1] = int(temp[:datetime.datetime.strptime(d, '%Y-%m-%d').date()].max().quantile(.5))
+    #            
+    #    print(df)
+    #    print('ok')
+    #    ax.table(cellText=df.values, colLabels=df.columns, loc='center')
+#
+    #fig.tight_layout()
+    #pdf.savefig(fig)
 
     print('Done ploot')
 
-    folder = [x for x in Path('model_output/').glob('*') if not x.is_file()]
+    folder = [x for x in Path('model_output/seir').glob('*') if not x.is_file()]
 
     all_seir_sim_cumI = {}
     all_seir_sim_diffI = {}
@@ -159,7 +160,7 @@ def generate_pdf(max_files, filename, config_file):
         if ('importation' not in str(fold)):
             data_cumI = []
             data_diffI = []
-            print(f'loading {str(fold)[13:]} ... ', end = '')
+            print(f'loading {str(fold)[:]} ... ', end = '')
             files_loaded = 0
             for filename in Path(str(fold)).rglob('*.csv'):
                 if files_loaded < max_files:
@@ -196,25 +197,29 @@ def generate_pdf(max_files, filename, config_file):
                     files_loaded += 1
 
             data_cumI = pd.concat(data_cumI,axis=1)
-            print(f'... {len(data_cumI.columns)} loaded')
-            data_diffI = pd.concat(data_diffI,axis=1)
-            all_seir_sim_cumI[str(fold)[13:]] = data_cumI
-            all_seir_sim_diffI[str(fold)[13:]] = data_diffI
+            if (len(data_cumI.columns)>0):
+                print(f'... {len(data_cumI.columns)} loaded')
+                data_diffI = pd.concat(data_diffI,axis=1)
+                all_seir_sim_cumI[str(fold)[:]] = data_cumI
+                all_seir_sim_diffI[str(fold)[:]] = data_diffI
 
 
     fig, axes = plt.subplots(2,1, figsize =(12,12), sharex=True)
 
 
     for key, value in all_seir_sim_cumI.items():
+        axes[0].plot(value, linewidth = .3)
         axes[0].plot(value.quantile(.5, axis = 1), label = key, linewidth = 2)
         axes[0].fill_between(value.index, value.quantile(.05, axis = 1), 
                           value.quantile(.95, axis = 1), alpha =.1 )
+        
 
     axes[0].legend()
     axes[0].grid()
     axes[0].set_title(f'cumI accross all node. Median and 95% CI')
 
     for key, value in all_seir_sim_diffI.items():
+        axes[1].plot(value, linewidth = .3)
         axes[1].plot(value.quantile(.5, axis = 1), label = key, linewidth = 2)
         axes[1].fill_between(value.index, value.quantile(.05, axis = 1), 
                           value.quantile(.95, axis = 1), alpha =.1 )
