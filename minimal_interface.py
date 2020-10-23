@@ -64,12 +64,13 @@ from Outcomes import outcomes
 
 config.set_file(config_path)
 
-#config.set_file('config.yml')
+# config.set_file('config.yml')
 
 spatial_config = config["spatial_setup"]
 spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 scenario = scenario
 deathrate = deathrate
+stoch_traj_flag= stoch_traj_flag # Truthy: stochastic simulation, Falsy: determnistic mean of the binomial draws
 nsim = 10
 interactive = False
 write_csv = False
@@ -103,33 +104,23 @@ s = setup.Setup(
     out_prefix = prefix
 )
 
-
-
-
 print(f"""
+>> Running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** SEIR and Outcomes modules
 >> Scenario: {scenario}
 >> Starting {s.nsim} model runs beginning from {s.first_sim_index}
 >> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}
 >> writing to folder : {s.datadir}{s.setup_name}
     """)
 
-
 setup_name = s.setup_name
-def onerun_HOSP(index):
-    outcomes.run_delayframe_outcomes(
-        config,
-        run_id, # input
-        prefix, # input
-        run_id, # output
-        prefix, # output
-        deathrate,
-        file_paths.create_file_name(run_id, prefix, int(index), 'hpar', 'parquet'), # output
-        1,
-        int(index),
-        1
-    )
-    return(1)
-
-onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load))
-onerun_SEIR = lambda sim_id2write, s: seir.onerun_SEIR(int(sim_id2write), s)
-
+print(scenario, deathrate, index, run_id, prefix)
+onerun_OUTCOMES_loadID = lambda index: outcomes.onerun_delayframe_outcomes_load_hpar(config,
+                                                                                     run_id, prefix, int(index), # input
+                                                                                     run_id, prefix, int(index), # output
+                                                                                     deathrate, stoch_traj_flag)
+onerun_OUTCOMES = lambda index: outcomes.run_delayframe_outcomes(config,
+                                                                 run_id, prefix, int(index), # input
+                                                                 run_id, prefix, int(index), # output
+                                                                 deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load), stoch_traj_flag)
+onerun_SEIR = lambda sim_id2write, s: seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
