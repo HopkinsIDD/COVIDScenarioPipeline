@@ -16,8 +16,8 @@ option_list = list(
 
 parser <- optparse::OptionParser(option_list=option_list)
 opt <- optparse::parse_args(parser)
-opt$run_id = "final_inf"
-opt$scenario = "sau_inf"
+#opt$run_id = "final_inf"
+#opt$scenario = "sau_inf"
 do_int <- opt$do_int
 redo <- opt$redo
 runid <- opt$run_id
@@ -120,16 +120,33 @@ sim_stats <- getPosteriors(param = "hosp",
                            setup = setup, 
                            runid = runid, 
                            outdir = outdir, 
-                           ingest_proc_fun = inference::compute_totals, 
+                            ingest_proc_fun = function(x) {
+                             inference::compute_totals(x) %>% 
+                               inference::compute_cumulative_counts()
+                           }, 
                            postproc_fun = function(x) {
-                             x %>% 
-                               filter(time < as.Date("2020-10-15")) %>% 
-                               gather(var, value, -time, -geoid, -sim) %>% 
+                             long_x <- x %>% 
+                               gather(var, value, -time, -geoid, -sim) 
+                             
+                             stats <- long_x %>% 
                                group_by(time, geoid, var) %>% 
                                summarise(q025 = quantile(value, .025),
                                          q25 = quantile(value, .25),
                                          q75 = quantile(value, .75),
                                          q975 = quantile(value, .975))
+                             
+                             peaks <- long_x %>% 
+                               group_by(geoid, var, sim) %>% 
+                               mutate(value = cummax(value)) %>% ungroup() %>%
+			       filter(!str_detect(var, "cum")) %>% 
+                               group_by(time, geoid, var) %>% 
+                               summarise(q025 = quantile(value, .025),
+                                         q25 = quantile(value, .25),
+                                         q75 = quantile(value, .75),
+                                         q975 = quantile(value, .975)) %>% 
+                                 mutate(var = str_c(var, "_peak"))
+                               
+                               bind_rows(stats, peaks)
                            }, 
                            return_res = T,
                            redo = opt$redo)
