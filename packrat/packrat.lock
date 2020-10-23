@@ -594,6 +594,12 @@ Version: 1.7.8
 Hash: ffe401bdcb9ccaea3d41a08f482a3aad
 Requires: Rcpp, generics
 
+Package: lwgeom
+Source: CRAN
+Version: 0.2-5
+Hash: 04c14b99940b7e3d08706da5fcf88b02
+Requires: Rcpp, sf, units
+
 Package: magrittr
 Source: CRAN
 Version: 1.5
@@ -917,8 +923,8 @@ Requires: cli, withr
 
 Package: sf
 Source: CRAN
-Version: 0.9-2
-Hash: 51f6e222d5e8c331e37b512e80e5062d
+Version: 0.9-6
+Hash: 309a6935dd5a3a298f6601a0b67e4917
 Requires: DBI, Rcpp, classInt, magrittr, units
 
 Package: sp
