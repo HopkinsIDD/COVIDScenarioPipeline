@@ -107,7 +107,9 @@ if (us_model){
   # from file ---------------------------------
   
 } else {
-  
+  if (!file.exists(config$seeding$lambda_file)) {
+
+
   print(paste0("Using case data from ", opts$data, " for seeding ", config$spatial_setup$setup_name))
   
   case_data <- readr::read_csv(opts$data, col_types = list(geoid = col_character()))
@@ -139,10 +141,11 @@ if (us_model){
         )
     })
 }
+}
 
 
 
-
+if (!file.exists(config$seeding$lambda_file)) {
 names(incident_cases) <- c('place','date','amount')
 
 incident_cases <- incident_cases %>%
@@ -157,7 +160,7 @@ readr::write_csv(
   incident_cases,
   file.path(config$seeding$lambda_file)	 
 )
-
+}
 print(paste("Saved seeding to",config$seeding$lambda_file))
 
 ## @endcond
