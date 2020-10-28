@@ -1651,6 +1651,10 @@ plot_rt_ts <- function(county_dat,
       dplyr::group_by(scenario, date) %>%
       dplyr::mutate(r=r*(1-cum_inf/!!as.symbol(pop_col))) %>%
       dplyr::mutate(weight = !!as.symbol(pop_col)/sum(!!as.symbol(pop_col)))
+    } else {
+      rc[[i]]<- rc[[i]] %>%
+        group_by(scenario, date) %>%
+        mutate(weight=1/n())
     }
     
     
