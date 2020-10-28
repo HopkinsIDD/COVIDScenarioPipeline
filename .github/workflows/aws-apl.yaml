@@ -17,6 +17,7 @@ on:
       - 'R/pkgs/**'
       - '.Rprofile'
       - 'packrat/**'
+      - '.github/workflows/aws-apl.yml'
 
 name: Deploy to Amazon ECR APL
 
