@@ -19,7 +19,7 @@ on:
       - 'R/pkgs/**'
       - '.Rprofile'
       - 'packrat/**'
-      - '.github/workflows/aws.yml'
+      - '.github/workflows/aws.yaml'
 
 name: Deploy to Amazon ECR
 
