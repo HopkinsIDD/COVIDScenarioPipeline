@@ -115,12 +115,15 @@ plot_ts_hosp_state_sample <- function (hosp_state_totals,
                                        sim_end_date,
                                        plot_intervention = FALSE, ## may not want to plot if it is too complicated
                                        interv_start_date = NA,
-                                       interv_end_date = NA) {
+                                       interv_end_date = NA,
+                                       sampled_sims=NULL) {
 
   ##TODO: Make this so each scenario does not use the same sims...though should not matter.
-  sampled_sims <- sample(unique(hosp_state_totals$sim_num), 
+  if(is.null(sampled_sims)){
+    sampled_sims <- sample(unique(hosp_state_totals$sim_num), 
                          min(num_sims, length(unique(hosp_state_totals$sim_num))),
                          replace=FALSE) 
+  }
   
   to_plt <- hosp_state_totals %>%
     dplyr::filter(pdeath==pdeath_filter,
@@ -1125,6 +1128,9 @@ plot_inference_r <- function(r_dat,
 ##' @param county_dat df with cumulative infections, scenario, pdeath, sim_num, and 
 ##' time across geoids and all simulations
 ##' @param current_scenario name of scenario inputs to use
+##' @param susceptible whether to show estimates adjusted for cumulative infections, 
+##' in which case the estimate reflects the median Rt for past interventions and the Rt for
+##' Sys.Date() for ongoing interventions
 ##' @param npi_labels labels for plotted NPIs
 ##' @param npi_levels levels of NPIs 
 ##' @param pdeath_filter which pdeath value to select, does not support multiple pdeath
@@ -1135,7 +1141,7 @@ plot_inference_r <- function(r_dat,
 ##' @param wh_ratio sparkline width:height ratio passed on to ggplot_image
 ##' @param brewer_palette pallete name passed on to brewer.pal
 ##' 
-##' @return a table with the R per intervention period and a bar graph
+##' @return a table with the R per intervention period and a bar graph - note 
 ##' 
 ##'
 ##'
