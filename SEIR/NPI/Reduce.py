@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import datetime
 
 from .base import NPIBase
 
@@ -93,6 +94,8 @@ class Reduce(NPIBase):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
         self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']]
+        self.parameters["start_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["start_date"]]
+        self.parameters["end_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["end_date"]]
         self.affected_geoids = set(self.parameters.index)
         self.param_name = self.parameters["parameter"].unique()
 
