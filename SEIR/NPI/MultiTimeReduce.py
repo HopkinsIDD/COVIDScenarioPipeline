@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import re
 import datetime
 
 from .base import NPIBase
@@ -95,9 +94,6 @@ class MultiTimeReduce(NPIBase):
         start_dates = []
         end_dates = []
         if npi_config["periods"].exists():
-            index = 0;
-            # self.parameters.at[geoid,"start_date"] = pd.Series()
-            # self.parameters["end_date"][index] = pd.Series()
             for period in npi_config["periods"]:
                 start_dates = start_dates + [period["start_date"].as_date()]
                 end_dates = end_dates + [period["end_date"].as_date()]
@@ -109,20 +105,13 @@ class MultiTimeReduce(NPIBase):
           self.parameters["end_date"][geoid] = end_dates
         self.parameters["parameter"] = self.param_name
         self.parameters["reduction"] = self.dist(size=self.parameters.shape[0])
-        print(self.parameters)
 
     def __createFromDf(self, loaded_df):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
         self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']]
-        self.parameters["start_date"] = [[
-            datetime.date.fromisoformat(re.sub("(\d+)-(\d)-(\d+)$","\\1-0\\2-\\3",re.sub("(\d+)-(\d+)-(\d)$","\\1-\\2-0\\3",date))) for date in 
-            re.sub("[\[\]]","",re.sub("datetime.date\((\d+), ?(\d+), ?(\d+)\)", "\\1-\\2-\\3", strdate)).split(", ")
-            ] for strdate in self.parameters["start_date"] ]
-        self.parameters["end_date"] = [[
-            datetime.date.fromisoformat(re.sub("(\d+)-(\d)-(\d+)$","\\1-0\\2-\\3",re.sub("(\d+)-(\d+)-(\d)$","\\1-\\2-0\\3",date))) for date in 
-            re.sub("[\[\]]","",re.sub("datetime.date\((\d+), ?(\d+), ?(\d+)\)", "\\1-\\2-\\3", strdate)).split(", ")
-            ] for strdate in self.parameters["end_date"] ]
+        self.parameters["start_date"] = [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["start_date"]]
+        self.parameters["end_date"] =   [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["end_date"]]
         self.affected_geoids = set(self.parameters.index)
         self.param_name = self.parameters["parameter"].unique()
 
@@ -136,7 +125,7 @@ class MultiTimeReduce(NPIBase):
     def getReductionToWrite(self):
         df = self.parameters
         df.index.name = "geoid"
-        df["start_date"] = df["start_date"].astype("str")
-        df["end_date"] = df["end_date"].astype("str")
+        df["start_date"] = df["start_date"].apply(lambda l: ','.join([d.strftime('%Y-%m-%d') for d in l]))
+        df["end_date"] = df["end_date"].apply(lambda l: ','.join([d.strftime('%Y-%m-%d') for d in l]))
         df = df.reset_index()
         return df
