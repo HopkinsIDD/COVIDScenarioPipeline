@@ -35,7 +35,7 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
   
   hosp_pre_process <- function(x) {
     x %>%
-      dplyr::select(geoid, scenario, pdeath, location, time, sim_id, !!varname)
+      dplyr::select(geoid, scenario, pdeath, location, time, !!varname)
   }
   ##filter to munge the data at the scenario level
   if (!is.null(incl_geoids)) {
@@ -69,8 +69,7 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
   
   rc<-rc%>%
     dplyr::mutate(scenario_name = factor(scenario, levels=scenario_levels, labels=scenario_labels), 
-                  scenario_num = seq_along(scenario)) %>%
-    dplyr::select(-sim_id)
+                  scenario_num = seq_along(scenario))
   
   return(rc)
   
