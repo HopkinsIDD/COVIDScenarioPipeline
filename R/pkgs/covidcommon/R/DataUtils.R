@@ -7,12 +7,6 @@
 ##' @param url URL to CSV on USAFacts website
 ##' @return data frame
 ##'
-##' @importFrom dplyr select rename filter mutate
-##' @importFrom lubridate mdy
-##' @importFrom readr read_csv col_character
-##' @importFrom tidyr pivot_longer
-##' @importFrom magrittr %>%
-##'
 download_USAFacts_data <- function(filename, url, value_col_name){
 
   dir.create(dirname(filename), showWarnings = FALSE, recursive = TRUE)
@@ -20,20 +14,18 @@ download_USAFacts_data <- function(filename, url, value_col_name){
   download.file(url, filename, "auto")
 
   usafacts_data <- readr::read_csv(filename, col_types=list(stateFIPS=readr::col_character()))
-  usafacts_data <- usafacts_data %>% 
-    dplyr::select(-stateFIPS,-`County Name`) %>% # Drop stateFIPS columns
-    dplyr::rename(FIPS=countyFIPS, source=State) %>%
-    dplyr::filter(FIPS != 0) # Remove "Statewide Unallocated" cases
+  usafacts_data <- dplyr::select(usafacts_data, -stateFIPS,-`County Name`) # Drop stateFIPS columns
+  usafacts_data <- dplyr::rename(usafacts_data, FIPS=countyFIPS, source=State) 
+  usafacts_data <- dplyr::filter(usafacts_data, FIPS != 0) # Remove "Statewide Unallocated" cases
   col_names <- names(usafacts_data)
   date_cols <- col_names[grepl("^\\d+/\\d+/\\d+$", col_names)]
-  usafacts_data <- usafacts_data %>% 
-    tidyr::pivot_longer(date_cols, names_to="Update", values_to=value_col_name) %>%
-    dplyr::mutate(Update=lubridate::mdy(Update), FIPS=sprintf("%05d", FIPS))
+  usafacts_data <- tidyr::pivot_longer(usafacts_data, date_cols, names_to="Update", values_to=value_col_name)
+  usafacts_data <- dplyr::mutate(usafacts_data, Update=lubridate::mdy(Update), FIPS=sprintf("%05d", FIPS))
   
   validation_date <- Sys.getenv("VALIDATION_DATE")
   if ( validation_date != '' ) {
     print(paste("(DataUtils.R) Limiting USAFacts data to:", validation_date, sep=" "))
-    usafacts_data <- usafacts_data %>% dplyr::filter( Update < validation_date )
+    usafacts_data <- dplyr::filter(usafacts_data, Update < validation_date )
   }
   
   return(usafacts_data)
@@ -55,11 +47,6 @@ download_USAFacts_data <- function(filename, url, value_col_name){
 ##'
 ##' @return the case data frame
 ##' 
-##' @importFrom dplyr rename filter mutate
-##' @importFrom plyr revalue
-##' @importFrom readr read_csv
-##' @importFrom magrittr %>%
-##'
 get_islandareas_data <- function() {
   NYTIMES_DATA_URL <- "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv"
   nyt_data <- readr::read_csv(url(NYTIMES_DATA_URL))
@@ -72,10 +59,9 @@ get_islandareas_data <- function() {
     "Puerto Rico" = "PR", 
     "Virgin Islands" = "VI")
   
-  nyt_data <- nyt_data %>% 
-    dplyr::filter(state %in% names(ISLAND_AREAS)) %>%
-    dplyr::rename(Update=date, source=state, FIPS=fips, Confirmed=cases, Deaths=deaths) %>% # Rename columns
-    dplyr::mutate(FIPS=paste0(FIPS,"000"), source=plyr::revalue(source, ISLAND_AREAS, warn_missing=FALSE))
+  nyt_data <- dplyr::filter(nyt_data, state %in% names(ISLAND_AREAS))
+  nyt_data <- dplyr::rename(nyt_data, Update=date, source=state, FIPS=fips, Confirmed=cases, Deaths=deaths) # Rename columns
+  nyt_data <- dplyr::mutate(nyt_data, FIPS=paste0(FIPS,"000"), source=plyr::revalue(source, ISLAND_AREAS, warn_missing=FALSE))
 
   return(nyt_data)
 }
@@ -170,16 +156,15 @@ fix_negative_counts <- function(
     return(df)
   }
 
-  df <- df %>%
-    dplyr::group_by(FIPS,source) %>%
+  df <- dplyr::group_by(df, FIPS,source) 
     # Add missing dates
-    tidyr::complete(!!rlang::sym(date_col_name) := min_date + seq_len(max_date - min_date)-1) %>%
-    dplyr::group_map(fix_negative_counts_single_geoid,
+  df <- tidyr::complete(df, !!rlang::sym(date_col_name) := min_date + seq_len(max_date - min_date)-1)
+  df <- dplyr::group_map(df, fix_negative_counts_single_geoid,
                           incid_col_name=incid_col_name, 
                           date_col_name=date_col_name, 
                           cum_col_name=cum_col_name,
-                          type=type) %>%
-    do.call(what=rbind)
+                          type=type)
+  df <- do.call(what=rbind, df)
 
   return(df)
 }
@@ -203,16 +188,15 @@ fix_negative_counts_global <- function(
     return(df)
   }
 
-  df <- df %>%
-    dplyr::group_by(Country_Region, Province_State, source) %>%
+  df <- dplyr::group_by(df, Country_Region, Province_State, source) 
     # Add missing dates
-    tidyr::complete(!!rlang::sym(date_col_name) := min_date + seq_len(max_date - min_date)-1) %>%
-    dplyr::group_map(fix_negative_counts_single_geoid,
+  df <- tidyr::complete(df, !!rlang::sym(date_col_name) := min_date + seq_len(max_date - min_date)-1) 
+  df <- dplyr::group_map(df, fix_negative_counts_single_geoid,
                           incid_col_name=incid_col_name, 
                           date_col_name=date_col_name, 
                           cum_col_name=cum_col_name,
-                          type=type) %>%
-    do.call(what=rbind)
+                          type=type) 
+  df <- do.call(what=rbind, df)
 
   return(df)
 }
@@ -221,14 +205,12 @@ fix_negative_counts_global <- function(
 # Aggregate county data to state level
 #
 aggregate_counties_to_state <- function(df, state_fips){
-  aggregated <- df %>%
-    dplyr::filter(grepl(paste0("^", state_fips), FIPS)) %>%
-    group_by(source, Update) %>%
-    dplyr::summarise(Confirmed = sum(Confirmed), Deaths = sum(Deaths), incidI = sum(incidI), incidDeath = sum(incidDeath)) %>%
-    dplyr::mutate(FIPS = paste0(state_fips, "000")) %>%
-    dplyr::ungroup()
-  nonaggregated <- df %>%
-    dplyr::filter(!grepl(paste0("^", state_fips), FIPS))
+  aggregated <- dplyr::filter(df, grepl(paste0("^", state_fips), FIPS)) 
+  aggregated <- group_by(aggregated, source, Update) 
+  aggregated <- dplyr::summarise(aggregated, Confirmed = sum(Confirmed), Deaths = sum(Deaths), incidI = sum(incidI), incidDeath = sum(incidDeath)) 
+  aggregated <- dplyr::mutate(aggregated, FIPS = paste0(state_fips, "000")) 
+  aggregated <- dplyr::ungroup(aggregated)
+  nonaggregated <- dplyr::filter(df, !grepl(paste0("^", state_fips), FIPS))
 
   rc <- dplyr::bind_rows(nonaggregated, aggregated) %>%
     dplyr::arrange(source, FIPS, Update)
@@ -317,32 +299,28 @@ download_CSSE_US_data <- function(filename, url, value_col_name){
   message(paste("Downloading", url, "to", filename))
   download.file(url, filename, "auto")
 
-  csse_data <- readr::read_csv(filename, col_types = list("FIPS" = col_character())) %>% tibble::as_tibble() 
-  csse_data <- csse_data %>%
-    dplyr::filter(!grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
+  csse_data <- readr::read_csv(filename, col_types = list("FIPS" = col_character())) 
+  csse_data <- tibble::as_tibble(csse_data) 
+  csse_data <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
                   !grepl("unassigned", Admin2, ignore.case = TRUE) & ## probable cases
                   !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
                   !is.na(FIPS)) 
-  csse_data <- csse_data %>%
-    tidyr::pivot_longer(cols=contains("/"), names_to="Update", values_to=value_col_name) %>%
-    dplyr::mutate(Update=as.Date(lubridate::mdy(Update)),
+  csse_data <- tidyr::pivot_longer(csse_data, cols=contains("/"), names_to="Update", values_to=value_col_name) 
+  csse_data <- dplyr::mutate(csse_data, Update=as.Date(lubridate::mdy(Update)),
                   FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
-                  FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0"))) %>% 
-    dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>% 
-    dplyr::distinct()
-  csse_data <- suppressWarnings(
-    csse_data %>%
-        dplyr::mutate(state_abb = state.abb[match(Province_State, state.name)]) %>%
-        dplyr::mutate(source = ifelse(Province_State=="District of Columbia", "DC",
-                                         ifelse(is.na(state_abb) & Country_Region=="US", iso2, state_abb)))
-    )
-  csse_data <- csse_data %>%
-    dplyr::select(FIPS, source, Update, !!value_col_name)
+                  FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0"))) 
+  csse_data <- dplyr::filter(csse_data, as.Date(Update) <= as.Date(Sys.time())) 
+  csse_data <- dplyr::distinct(csse_data)
+  csse_data <- suppressWarnings(dplyr::mutate(csse_data, state_abb = state.abb[match(Province_State, state.name)])) 
+  csse_data <- suppressWarnings(dplyr::mutate(csse_data, source = ifelse(Province_State=="District of Columbia", "DC",
+                  ifelse(is.na(state_abb) & Country_Region=="US", iso2, state_abb))))
+    
+  csse_data <- dplyr::select(csse_data, FIPS, source, Update, !!value_col_name)
   
   validation_date <- Sys.getenv("VALIDATION_DATE")
   if ( validation_date != '' ) {
     print(paste("(DataUtils.R) Limiting CSSE US data to:", validation_date, sep=" "))
-    csse_data <- csse_data %>% dplyr::filter( Update < validation_date )
+    csse_data <- dplyr::filter(csse_data, Update < validation_date)
   }
   
   return(csse_data)
@@ -433,39 +411,37 @@ download_CSSE_global_data <- function(filename, url, value_col_name){
   message(paste("Downloading", url, "to", filename))
   download.file(url, filename, "auto")
 
-  csse_data <- readr::read_csv(filename) %>% 
-    tibble::as_tibble() %>%
-    dplyr::rename(Province_State = `Province/State`,
+  csse_data <- readr::read_csv(filename) 
+  csse_data <- tibble::as_tibble(csse_data) 
+  csse_data <- dplyr::rename(csse_data, 
+                  Province_State = `Province/State`,
                   Country_Region = `Country/Region`,
                   Latitude = Lat,
                   Longitude = Long)
   
-  csse_data <- csse_data %>%
-    dplyr::mutate(iso3 = globaltoolboxlite::get_iso(Country_Region)) %>%
-    dplyr::mutate(iso2 = globaltoolboxlite::get_iso2_from_ISO3(iso3),
-                  UID = ifelse(!is.na(Province_State), paste0(iso3, "-", Province_State), iso3)) %>%
-    dplyr::select(UID, Province_State:Longitude, iso2, iso3, tidyselect::everything())
+  csse_data <- dplyr::mutate(csse_data, iso3 = globaltoolboxlite::get_iso(Country_Region))
+  csse_data <- dplyr::mutate(csse_data, 
+      iso2 = globaltoolboxlite::get_iso2_from_ISO3(iso3),
+      UID = ifelse(!is.na(Province_State), paste0(iso3, "-", Province_State), iso3)) 
+  csse_data <- dplyr::select(csse_data, UID, Province_State:Longitude, iso2, iso3, tidyselect::everything())
   
-  csse_data <- csse_data %>%
-    tidyr::pivot_longer(cols=contains("/"), names_to="Update", values_to=value_col_name) %>%
-    dplyr::mutate(Update=as.Date(lubridate::mdy(Update))) %>% 
-    dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>% 
-    dplyr::distinct()
+  csse_data <- tidyr::pivot_longer(csse_data, cols=contains("/"), names_to="Update", values_to=value_col_name)
+  csse_data <- dplyr::mutate(csse_data, Update=as.Date(lubridate::mdy(Update)))
+  csse_data <- dplyr::filter(csse_data, as.Date(Update) <= as.Date(Sys.time()))
+  csse_data <- dplyr::distinct(csse_data)
 
   # Define a single source location variable
   # - USA: States used for source
   # - China: Provinces used for source
   # - Others: Country used for source
-  csse_data <- csse_data %>% 
-      dplyr::mutate(source = ifelse(iso3=="CHN" & !is.na(Province_State), Province_State, iso3)) 
+  csse_data <- dplyr::mutate(csse_data, source = ifelse(iso3=="CHN" & !is.na(Province_State), Province_State, iso3)) 
 
-  csse_data <- csse_data %>%
-    dplyr::select(UID, iso2, iso3, Province_State, Country_Region, source, Latitude, Longitude, Update, !!value_col_name)
+  csse_data <- dplyr::select(csse_data, UID, iso2, iso3, Province_State, Country_Region, source, Latitude, Longitude, Update, !!value_col_name)
   
   validation_date <- Sys.getenv("VALIDATION_DATE")
   if ( validation_date != '' ) {
     print(paste("(DataUtils.R) Limiting CSSE global data to:", validation_date, sep=" "))
-    csse_data <- csse_data %>% dplyr::filter( Update < validation_date )
+    csse_data <- dplyr::filter(csse_data, Update < validation_date)
   }
   
   return(csse_data)
@@ -514,10 +490,9 @@ get_CSSE_global_data <- function(case_data_filename = "data/case_data/jhucsse_ca
 
   if (append_wiki){
     data("wikipedia_cases", package = "covidcommon")
-    wikipedia_cases <- wikipedia_cases %>%
-      dplyr::mutate(Country_Region = ifelse(Country_Region=="Mainland China", "China", Country_Region), Update = as.Date(Update), iso2 = "CN", iso3 = "CHN", Latitude = 30.9756, Longitude = 112.2707) %>%
-      dplyr::mutate(UID = ifelse(!is.na(Province_State), paste0(iso3, "-", Province_State), iso3)) %>%
-      dplyr::select(-Suspected)
+    wikipedia_cases <- dplyr::mutate(wikipedia_cases, Country_Region = ifelse(Country_Region=="Mainland China", "China", Country_Region), Update = as.Date(Update), iso2 = "CN", iso3 = "CHN", Latitude = 30.9756, Longitude = 112.2707) 
+    wikipedia_cases <- dplyr::mutate(wikipedia_cases, UID = ifelse(!is.na(Province_State), paste0(iso3, "-", Province_State), iso3))
+    wikipedia_cases <- dplyr::select(wikipedia_cases, -Suspected)
 
     csse_global_data <- dplyr::bind_rows(csse_global_data, wikipedia_cases)
     csse_global_data <- dplyr::arrange(csse_global_data, Country_Region, Province_State, Update)
@@ -569,22 +544,21 @@ download_reichlab_data <- function(filename, url, value_col_name){
   message(paste("Downloading", url, "to", filename))
   download.file(url, filename, "auto")
 
-  reichlab_data <- readr::read_csv(filename, col_types = list("location" = col_character())) %>% 
-    tibble::as_tibble() 
-  reichlab_data <- reichlab_data %>%
-    dplyr::mutate(Update = as.Date(date),
+  reichlab_data <- readr::read_csv(filename, col_types = list("location" = col_character())) 
+  reichlab_data <- tibble::as_tibble(reichlab_data) 
+  reichlab_data <- dplyr::mutate(reichlab_data, Update = as.Date(date),
                   source = cdlTools::fips(stringr::str_sub(location, 1, 2), to = "Abbreviation"),
-                  scale = ifelse(nchar(location)==2, "state", "county")) %>%
-    dplyr::filter(location != "US") %>%
-    dplyr::rename(!!value_col_name := value,
-                  FIPS = location) %>%
-    dplyr::mutate(FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0"))) %>%
-    dplyr::select(FIPS, source, scale, Update, !!value_col_name)
+                  scale = ifelse(nchar(location)==2, "state", "county"))
+  reichlab_data <- dplyr::filter(reichlab_data, location != "US")
+  reichlab_data <- dplyr::rename(reichlab_data, !!value_col_name := value,
+                  FIPS = location)
+  reichlab_data <- dplyr::mutate(reichlab_data, FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0"))) 
+  reichlab_data <- dplyr::select(reichlab_data, FIPS, source, scale, Update, !!value_col_name)
 
   validation_date <- Sys.getenv("VALIDATION_DATE")
   if ( validation_date != '' ) {
     print(paste("(DataUtils.R) Limiting Reich Lab data to:", validation_date, sep=" "))
-    reichlab_data <- reichlab_data %>% dplyr::filter( Update < validation_date )
+    reichlab_data <- dplyr::filter(reichlab_data, Update < validation_date)
   }
 
   return(reichlab_data)
@@ -629,16 +603,16 @@ get_reichlab_st_data <- function(cum_case_filename = "data/case_data/rlab_cum_ca
   rlab_inc_case <- download_reichlab_data(inc_case_filename, REICHLAB_INC_CASE_DATA_URL, "incidI")
   rlab_inc_death <- download_reichlab_data(inc_death_filename, REICHLAB_INC_DEATH_DATA_URL, "incidDeath")
 
-  rlab_st_data <- dplyr::full_join(rlab_cum_case, rlab_cum_death) %>%
-    dplyr::full_join(rlab_inc_case) %>%
-    dplyr::full_join(rlab_inc_death) %>%
-    dplyr::filter(scale == "state") %>%
-    dplyr::select(Update, Confirmed, Deaths, incidI, incidDeath, FIPS, source) %>%
-    dplyr::mutate(incidDeath = ifelse(is.na(incidDeath), 0, incidDeath),
+  rlab_st_data <- dplyr::full_join(rlab_cum_case, rlab_cum_death) 
+  rlab_st_data <- dplyr::full_join(rlab_st_data, rlab_inc_case)
+  rlab_st_data <- dplyr::full_join(rlab_st_data, rlab_inc_death) 
+  rlab_st_data <- dplyr::filter(rlab_st_data, scale == "state")
+  rlab_st_data <- dplyr::select(rlab_st_data, Update, Confirmed, Deaths, incidI, incidDeath, FIPS, source)
+  rlab_st_data <- dplyr::mutate(rlab_st_data, incidDeath = ifelse(is.na(incidDeath), 0, incidDeath),
                   incidI = ifelse(is.na(incidI), 0, incidI),
                   Confirmed = ifelse(is.na(Confirmed) & Update < "2020-02-01", 0, Confirmed),
-                  Deaths = ifelse(is.na(Deaths) & Update < "2020-02-01", 0, Deaths)) %>%
-    dplyr::arrange(source, FIPS, Update)
+                  Deaths = ifelse(is.na(Deaths) & Update < "2020-02-01", 0, Deaths)) 
+  rlab_st_data <- dplyr::arrange(rlab_st_data, source, FIPS, Update)
 
   return(rlab_st_data)
 
@@ -682,16 +656,16 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
   rlab_inc_case <- download_reichlab_data(inc_case_filename, REICHLAB_INC_CASE_DATA_URL, "incidI")
   rlab_inc_death <- download_reichlab_data(inc_death_filename, REICHLAB_INC_DEATH_DATA_URL, "incidDeath")
 
-  rlab_cty_data <- dplyr::full_join(rlab_cum_case, rlab_cum_death) %>%
-    dplyr::full_join(rlab_inc_case) %>%
-    dplyr::full_join(rlab_inc_death) %>%
-    dplyr::filter(scale == "county") %>%
-    dplyr::select(Update, Confirmed, Deaths, incidI, incidDeath, FIPS, source) %>%
-    dplyr::mutate(incidDeath = ifelse(is.na(incidDeath), 0, incidDeath),
+  rlab_cty_data <- dplyr::full_join(rlab_cum_case, rlab_cum_death) 
+  rlab_cty_data <- dplyr::full_join(rlab_cty_data, rlab_inc_case) 
+  rlab_cty_data <- dplyr::full_join(rlab_cty_data, rlab_inc_death) 
+  rlab_cty_data <- dplyr::filter(rlab_cty_data, scale == "county") 
+  rlab_cty_data <- dplyr::select(rlab_cty_data, Update, Confirmed, Deaths, incidI, incidDeath, FIPS, source) 
+  rlab_cty_data <- dplyr::mutate(rlab_cty_data, incidDeath = ifelse(is.na(incidDeath), 0, incidDeath),
                   incidI = ifelse(is.na(incidI), 0, incidI),
                   Confirmed = ifelse(is.na(Confirmed) & Update < "2020-02-01", 0, Confirmed),
-                  Deaths = ifelse(is.na(Deaths) & Update < "2020-02-01", 0, Deaths)) %>%
-    dplyr::arrange(source, FIPS, Update)
+                  Deaths = ifelse(is.na(Deaths) & Update < "2020-02-01", 0, Deaths))
+  rlab_cty_data <- dplyr::arrange(rlab_cty_data, source, FIPS, Update)
 
   return(rlab_cty_data)
 
@@ -718,60 +692,60 @@ get_groundtruth_from_source <- function(source = "reichlab", scale = "US county"
 
   if(source == "reichlab" & scale == "US county"){
 
-    rc <- get_reichlab_cty_data() %>%
-      dplyr::select(Update, FIPS, source, !!variables) %>%
-      tidyr::drop_na(tidyselect::everything())
+    rc <- get_reichlab_cty_data()
+    rc <- dplyr::select(rc, Update, FIPS, source, !!variables) 
+    rc <- tidyr::drop_na(rc, tidyselect::everything())
 
   } else if(source == "reichlab" & scale == "US state"){
 
-    rc <- get_reichlab_st_data() %>%
-      dplyr::select(Update, FIPS, source, !!variables) %>%
-      tidyr::drop_na(tidyselect::everything())
+    rc <- get_reichlab_st_data()
+    rc <- dplyr::select(rc, Update, FIPS, source, !!variables) 
+    rc <- tidyr::drop_na(rc, tidyselect::everything())
 
   } else if(source == "usafacts" & scale == "US county"){
 
-    rc <- get_USAFacts_data() %>%
-      dplyr::select(Update, FIPS, source, !!variables) %>%
-      tidyr::drop_na(tidyselect::everything())
+    rc <- get_USAFacts_data() 
+    rc <- dplyr::select(rc, Update, FIPS, source, !!variables)
+    rc <- tidyr::drop_na(rc, tidyselect::everything())
 
   } else if(source == "usafacts" & scale == "US state"){
 
-    rc <- get_USAFacts_data() %>%
-      dplyr::select(Update, FIPS, source, !!variables) %>%
-      dplyr::mutate(FIPS = stringr::str_sub(FIPS, 1, 2)) %>%
-      dplyr::group_by(Update, FIPS, source) %>%
-      dplyr::summarise_if(is.numeric, sum) %>%
-      tidyr::drop_na(tidyselect::everything())
+    rc <- get_USAFacts_data() 
+    rc <- dplyr::select(rc, Update, FIPS, source, !!variables) 
+    rc <- dplyr::mutate(rc, FIPS = stringr::str_sub(FIPS, 1, 2)) 
+    rc <- dplyr::group_by(rc, Update, FIPS, source)
+    rc <- dplyr::summarise_if(rc, is.numeric, sum)
+    rc <- tidyr::drop_na(rc, tidyselect::everything())
 
   } else if(source == "csse" & scale == "US county"){
 
-    rc <- get_CSSE_US_data() %>%
-      dplyr::select(Update, FIPS, source, !!variables) %>%
-      tidyr::drop_na(tidyselect::everything())
+    rc <- get_CSSE_US_data()
+    rc <- dplyr::select(rc, Update, FIPS, source, !!variables) 
+    rc <- tidyr::drop_na(rc, tidyselect::everything())
 
   } else if(source == "csse" & scale == "US state"){
 
-    rc <- get_CSSE_global_data() %>%
-      dplyr::select(Update, FIPS, source, !!variables) %>%
-      dplyr::mutate(FIPS = stringr::str_sub(FIPS, 1, 2)) %>%
-      dplyr::group_by(Update, FIPS, source) %>%
-      dplyr::summarise_if(is.numeric, sum) %>%
-      tidyr::drop_na(tidyselect::everything())
+    rc <- get_CSSE_global_data()
+    rc <- dplyr::select(rc, Update, FIPS, source, !!variables) 
+    rc <- dplyr::mutate(rc, FIPS = stringr::str_sub(FIPS, 1, 2)) 
+    rc <- dplyr::group_by(rc, Update, FIPS, source)
+    rc <- dplyr::summarise_if(rc, is.numeric, sum)
+    rc <- tidyr::drop_na(rc, tidyselect::everything())
 
   } else if(source == "csse" & scale == "country"){
 
-    rc <- get_CSSE_global_data() %>%
-      dplyr::select(UID, iso2, iso3, Province_State, Country_Region, Latitude, Longitude, Update, source, !!variables) %>%
-      tidyr::drop_na(tidyselect::everything())
+    rc <- get_CSSE_global_data()
+    rc <- dplyr::select(rc, UID, iso2, iso3, Province_State, Country_Region, Latitude, Longitude, Update, source, !!variables)
+    rc <- tidyr::drop_na(rc, tidyselect::everything())
 
   } else if(source == "csse" & scale == "complete"){
 
-    us <- get_CSSE_US_matchGlobal_data() %>%
-      dplyr::select(Update, UID, iso2, iso3, Latitude, Longitude, source, !!variables, Country_Region, Province_State, source) 
-    rc <- get_CSSE_global_data() %>%
-      dplyr::select(Update, UID, iso2, iso3, Latitude, Longitude, source, !!variables, Country_Region, Province_State, source) %>%
-      dplyr::bind_rows(us) %>%
-      tidyr::drop_na(tidyselect::everything())
+    us <- get_CSSE_US_matchGlobal_data()
+    us <- dplyr::select(us, Update, UID, iso2, iso3, Latitude, Longitude, source, !!variables, Country_Region, Province_State, source) 
+    rc <- get_CSSE_global_data()
+    rc <- dplyr::select(rc, Update, UID, iso2, iso3, Latitude, Longitude, source, !!variables, Country_Region, Province_State, source)
+    rc <- dplyr::bind_rows(rc, us)
+    rc <- tidyr::drop_na(rc, tidyselect::everything())
     warning(print(paste("The combination of ", source, "and", scale, "is not fully working. County-level US data may be missing from this data frame.")))
   
   } else{
