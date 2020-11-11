@@ -93,7 +93,7 @@ class Reduce(NPIBase):
     def __createFromDf(self, loaded_df):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
-        self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']]
+        self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']].copy()
         self.parameters["start_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["start_date"]]
         self.parameters["end_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["end_date"]]
         self.affected_geoids = set(self.parameters.index)
