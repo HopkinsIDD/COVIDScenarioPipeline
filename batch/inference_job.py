@@ -195,7 +195,7 @@ class BatchJobHandler(object):
                 {"name": "COVID_CONFIG_PATH", "value": config_file},
                 {"name": "COVID_NSIMULATIONS", "value": str(self.num_jobs)},
                 {"name": "SIMS_PER_JOB", "value": str(self.sims_per_job) },
-                {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job) }
+                {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job) },
                 {"name": "COVID_STOCHASTIC", "value": str(self.stochastic) }
         ]
 
