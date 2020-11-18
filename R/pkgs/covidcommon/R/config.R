@@ -26,12 +26,8 @@ load_config <- function(fname) {
   if (missing(fname)) {
     fname <- Sys.getenv("CONFIG_PATH")
   }
-  if (!missing(fname)) {
-    handlers <- list(map=function(x) { class(x) <- "config"; return(x) })
-    return(tryCatch(yaml.load_file(fname, handlers=handlers), error = function(e) { stop(paste("Could not find file: ", fname)) }))
-  } else {
-    return(NA)
-  }
+  handlers <- list(map=function(x) { class(x) <- "config"; return(x) })
+  yaml.load_file(fname, handlers=handlers)
 }
 
 ##'
