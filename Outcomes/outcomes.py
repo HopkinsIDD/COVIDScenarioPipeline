@@ -233,6 +233,9 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
                 probability = parameters[new_comp]['probability'].as_random_distribution()(size=len(places))
                 if 'rel_probability' in parameters[new_comp]:
                     probability = probability * parameters[new_comp]['rel_probability']
+                    probability[probability > 1] = 1
+                    probability[probability < 0] = 0
+                    
                 delay = int(np.round(parameters[new_comp]['delay'].as_random_distribution()(size=1)))
 
             # Create new compartment incidence:
