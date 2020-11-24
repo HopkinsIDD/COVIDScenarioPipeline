@@ -5,9 +5,11 @@
 ##'
 ##' @param filename where case data will be stored
 ##' @param url URL to CSV on USAFacts website
+##' @param value_col_name Confirmed or Deaths
+##' @param incl_unassigned Includes data unassigned to counties (default is FALSE)
 ##' @return data frame
 ##'
-download_USAFacts_data <- function(filename, url, value_col_name){
+download_USAFacts_data <- function(filename, url, value_col_name, incl_unassigned = FALSE){
 
   dir.create(dirname(filename), showWarnings = FALSE, recursive = TRUE)
   message(paste("Downloading", url, "to", filename))
@@ -16,7 +18,9 @@ download_USAFacts_data <- function(filename, url, value_col_name){
   usafacts_data <- readr::read_csv(filename, col_types=list(stateFIPS=readr::col_character()))
   usafacts_data <- dplyr::select(usafacts_data, -stateFIPS,-`County Name`) # Drop stateFIPS columns
   usafacts_data <- dplyr::rename(usafacts_data, FIPS=countyFIPS, source=State) 
-  usafacts_data <- dplyr::filter(usafacts_data, FIPS != 0) # Remove "Statewide Unallocated" cases
+  if (!incl_unassigned){
+      usafacts_data <- dplyr::filter(usafacts_data, FIPS != 0) # Remove "Statewide Unallocated" cases
+  }
   col_names <- names(usafacts_data)
   date_cols <- col_names[grepl("^\\d+/\\d+/\\d+$", col_names)]
   usafacts_data <- tidyr::pivot_longer(usafacts_data, date_cols, names_to="Update", values_to=value_col_name)
@@ -235,6 +239,9 @@ aggregate_counties_to_state <- function(df, state_fips){
 ##'  $ incidI     : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
 ##'  $ incidDeath : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
 ##'
+##' @param case_data_filename Filename where case data are stored
+##' @param death_data_filename Filename where death data are stored
+##' @param incl_unassigned Includes data unassigned to counties (default is FALSE)
 ##' @return the case and deaths data frame
 ##'
 ##' @importFrom dplyr rename group_modify group_by full_join select
@@ -242,12 +249,13 @@ aggregate_counties_to_state <- function(df, state_fips){
 ##' @export
 ##' 
 get_USAFacts_data <- function(case_data_filename = "data/case_data/USAFacts_case_data.csv",
-                              death_data_filename = "data/case_data/USAFacts_death_data.csv"){
+                              death_data_filename = "data/case_data/USAFacts_death_data.csv",
+                              incl_unassigned = FALSE){
   
   USAFACTS_CASE_DATA_URL <- "https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_confirmed_usafacts.csv"
   USAFACTS_DEATH_DATA_URL <- "https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv"
-  usafacts_case <- download_USAFacts_data(case_data_filename, USAFACTS_CASE_DATA_URL, "Confirmed")
-  usafacts_death <- download_USAFacts_data(death_data_filename, USAFACTS_DEATH_DATA_URL, "Deaths")
+  usafacts_case <- download_USAFacts_data(case_data_filename, USAFACTS_CASE_DATA_URL, "Confirmed", incl_unassigned)
+  usafacts_death <- download_USAFacts_data(death_data_filename, USAFACTS_DEATH_DATA_URL, "Deaths", incl_unassigned)
 
   usafacts_data <- dplyr::full_join(usafacts_case, usafacts_death)
   usafacts_data <- dplyr::select(usafacts_data, Update, source, FIPS, Confirmed, Deaths)
@@ -283,17 +291,12 @@ get_USAFacts_data <- function(case_data_filename = "data/case_data/USAFacts_case
 ##'
 ##' @param filename where case data will be stored
 ##' @param url URL to CSV on CSSE website
+##' @param value_col_name Confirmed or Deaths
+##' @param incl_unassigned Includes data unassigned to county-level (default is FALSE)
 ##' @return data frame
 ##'
-##' @importFrom dplyr select rename filter mutate distinct
-##' @importFrom lubridate mdy
-##' @importFrom readr read_csv col_character
-##' @importFrom tidyr pivot_longer
-##' @importFrom magrittr %>%
-##' @importFrom stringr str_replace str_length str_pad fixed
-##' @importFrom tibble as_tibble
 ##'
-download_CSSE_US_data <- function(filename, url, value_col_name){
+download_CSSE_US_data <- function(filename, url, value_col_name, incl_unassigned = FALSE){
 
   dir.create(dirname(filename), showWarnings = FALSE, recursive = TRUE)
   message(paste("Downloading", url, "to", filename))
@@ -301,10 +304,16 @@ download_CSSE_US_data <- function(filename, url, value_col_name){
 
   csse_data <- readr::read_csv(filename, col_types = list("FIPS" = col_character())) 
   csse_data <- tibble::as_tibble(csse_data) 
-  csse_data <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
+  if (incl_unassigned){
+    csse_data <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
+                  !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
+                  !is.na(FIPS)) 
+  } else{
+    csse_data <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
                   !grepl("unassigned", Admin2, ignore.case = TRUE) & ## probable cases
                   !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
                   !is.na(FIPS)) 
+  }
   csse_data <- tidyr::pivot_longer(csse_data, cols=contains("/"), names_to="Update", values_to=value_col_name) 
   csse_data <- dplyr::mutate(csse_data, Update=as.Date(lubridate::mdy(Update)),
                   FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
@@ -343,19 +352,22 @@ download_CSSE_US_data <- function(filename, url, value_col_name){
 ##'  $ incidI     : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
 ##'  $ incidDeath : num [1:352466] 0 0 0 0 0 0 0 0 0 0 ...
 ##'
+##' @param case_data_filename where case data will be stored
+##' @param death_data_filename where death data will be stored
+##' @param incl_unassigned Includes data unassigned to county-level (default is FALSE)
 ##' @return the case and deaths data frame
 ##'
-##' @importFrom dplyr rename group_modify group_by full_join select
 ##'
 ##' @export
 ##' 
 get_CSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_case_data_crude.csv",
-                              death_data_filename = "data/case_data/jhucsse_us_death_data_crude.csv"){
+                              death_data_filename = "data/case_data/jhucsse_us_death_data_crude.csv",
+                              incl_unassigned = FALSE){
   
   CSSE_US_CASE_DATA_URL <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
   CSSE_US_DEATH_DATA_URL <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"
-  csse_us_case <- download_CSSE_US_data(case_data_filename, CSSE_US_CASE_DATA_URL, "Confirmed")
-  csse_us_death <- download_CSSE_US_data(death_data_filename, CSSE_US_DEATH_DATA_URL, "Deaths")
+  csse_us_case <- download_CSSE_US_data(case_data_filename, CSSE_US_CASE_DATA_URL, "Confirmed", incl_unassigned)
+  csse_us_death <- download_CSSE_US_data(death_data_filename, CSSE_US_DEATH_DATA_URL, "Deaths", incl_unassigned)
 
   csse_us_data <- dplyr::full_join(csse_us_case, csse_us_death)
   csse_us_data <- dplyr::select(csse_us_data, Update, source, FIPS, Confirmed, Deaths)
