@@ -9,7 +9,7 @@ test_that("load_config works", {
 
   expect_error(
     load_config(";lkdjaoijdsfjoasidjfaoiwerfj q2fu8ja8erfasdiofj aewr;fj aff409a urfa8rf a';j 38i a0fuadf "),
-    "file"
+    "connection"
   )
 
   expect_error(
