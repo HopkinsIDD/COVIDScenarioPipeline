@@ -53,6 +53,9 @@ def teardown_function(self):
 def test_simple():
     _success("test_simple")
 
+def test_multitime():
+    _success("test_multitime")
+
 def test_old_hospitalization():
     _success("test_old_hospitalization")
 
