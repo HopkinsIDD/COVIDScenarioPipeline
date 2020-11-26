@@ -39,7 +39,9 @@ from SEIR import file_paths
               help="The amount of RAM in megabytes needed per CPU running simulations")
 @click.option("-r", "--restart-from", "restart_from", type=str, default=None,
               help="The location of an S3 run to use as the initial to the first block of the current run")
-def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from):
+@click.option("--stochastic/--non-stochastic", "--stochastic/--non-stochastic", "stochastic", type=bool, default=True,
+              help="Flag determining whether to run stochastic simulations or not")
+def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from, stochastic):
 
     config = None
     with open(config_file) as f:
@@ -61,7 +63,7 @@ def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, output
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
 
-    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from)
+    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from, stochastic)
 
     job_queues = get_job_queues(job_queue_prefix)
     scenarios = config['interventions']['scenarios']
@@ -127,7 +129,7 @@ def get_job_queues(job_queue_prefix):
 
 
 class BatchJobHandler(object):
-    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from):
+    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from, stochastic):
         self.run_id = run_id
         self.num_jobs = num_jobs
         self.sims_per_job = sims_per_job
@@ -138,6 +140,7 @@ class BatchJobHandler(object):
         self.vcpus = vcpus
         self.memory = memory
         self.restart_from = restart_from
+        self.stochastic = stochastic
 
     def launch(self, job_name, config_file, scenarios, p_death_names, job_queues):
 
@@ -192,7 +195,8 @@ class BatchJobHandler(object):
                 {"name": "COVID_CONFIG_PATH", "value": config_file},
                 {"name": "COVID_NSIMULATIONS", "value": str(self.num_jobs)},
                 {"name": "SIMS_PER_JOB", "value": str(self.sims_per_job) },
-                {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job) }
+                {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job) },
+                {"name": "COVID_STOCHASTIC", "value": str(self.stochastic) }
         ]
 
         runner_script_path = f"s3://{self.s3_bucket}/{runner_script_name}"
