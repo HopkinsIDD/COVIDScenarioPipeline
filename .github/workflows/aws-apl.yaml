@@ -12,7 +12,11 @@ on:
       - 'packages.R'
       - 'local_install.R'
       - 'Dockerfile'
-      - 'R/pkgs/**' name: Deploy to Amazon ECR APL jobs:
+      - 'R/pkgs/**' 
+
+name: Deploy to Amazon ECR APL 
+
+jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
