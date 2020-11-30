@@ -8,16 +8,16 @@ setwd("~/COVIDWorking")
 opt <- list()
 
 opt$jobs <- 2
-opt$forecast_date <- "2020-09-27"
-opt$end_date <- "2020-11-07"
+opt$forecast_date <- "2020-11-30"
+opt$end_date <- "2021-01-09"
 opt$geodata <- "geodata_territories_2019.csv"
 opt$death_filter <- "low"
-opt$num_simulationsulations <- 2000
-opt$outfile <- "2020-09-27-JHU_IDD-CovidSP_low_caseoptim.csv"
+opt$num_simulations <- 2000
+opt$outfile <- "more_space/2020-11-29-JHU_IDD-CovidSP_copt.csv"
 opt$include_hosp <- TRUE
 
 arguments<- list()
-arguments$args <- "usa_runs_2020-9-28-caseoptim"
+arguments$args <- "more_space/usa_runs_2020-11-29-copt-pois-seas"
 
 opt$reichify <-TRUE
 
