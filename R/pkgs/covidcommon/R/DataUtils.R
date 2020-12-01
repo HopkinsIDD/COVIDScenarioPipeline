@@ -700,7 +700,7 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 ##'
 ##' @export
 ##' 
-get_groundtruth_from_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath")){
+get_groundtruth_from_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath", incl_unass = FALSE)){
 
   if(source == "reichlab" & scale == "US county"){
 
@@ -716,13 +716,13 @@ get_groundtruth_from_source <- function(source = "csse", scale = "US county", va
 
   } else if(source == "usafacts" & scale == "US county"){
 
-    rc <- get_USAFacts_data() 
+    rc <- get_USAFacts_data(incl_unassigned = incl_unass) 
     rc <- dplyr::select(rc, Update, FIPS, source, !!variables)
     rc <- tidyr::drop_na(rc, tidyselect::everything())
 
   } else if(source == "usafacts" & scale == "US state"){
 
-    rc <- get_USAFacts_data() 
+    rc <- get_USAFacts_data(incl_unassigned = incl_unass) 
     rc <- dplyr::select(rc, Update, FIPS, source, !!variables) 
     rc <- dplyr::mutate(rc, FIPS = stringr::str_sub(FIPS, 1, 2)) 
     rc <- dplyr::group_by(rc, Update, FIPS, source)
@@ -731,13 +731,13 @@ get_groundtruth_from_source <- function(source = "csse", scale = "US county", va
 
   } else if(source == "csse" & scale == "US county"){
 
-    rc <- get_CSSE_US_data()
+    rc <- get_CSSE_US_data(incl_unassigned = incl_unass)
     rc <- dplyr::select(rc, Update, FIPS, source, !!variables) 
     rc <- tidyr::drop_na(rc, tidyselect::everything())
 
   } else if(source == "csse" & scale == "US state"){
 
-    rc <- get_CSSE_US_data()
+    rc <- get_CSSE_US_data(incl_unassigned = incl_unass)
     rc <- dplyr::select(rc, Update, FIPS, source, !!variables) 
     rc <- dplyr::mutate(rc, FIPS = stringr::str_sub(FIPS, 1, 2)) 
     rc <- dplyr::group_by(rc, Update, FIPS, source)
