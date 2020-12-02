@@ -50,7 +50,7 @@ test_that("get_groundtruth_from_source works", {
   expect_false(is.infinite(max(csse_comp$Deaths)))
 
   # Including unassigned data adds more cases and deaths than not including it
-  expect_true(sum(csse_st_all$incidI) >= sum(csse_st_ctyonly$indicI))
+  expect_true(sum(csse_st_all$incidI) >= sum(csse_st_ctyonly$incidI))
   expect_false(sum(csse_st_ctyonly$incidDeath) > sum(csse_st_all$incidDeath))
 
  

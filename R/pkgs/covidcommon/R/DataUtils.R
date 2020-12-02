@@ -859,7 +859,7 @@ get_CSSE_US_matchGlobal_data <- function(){
 ##' $ Update                                        <date> 2020-10-01, 2020...
 ##' @return the full hospitalization data frame
 ##'
-##'
+##' @importFrom magrittr %>%
 ##' @export
 ##' 
 get_hhsCMU_allHosp_st_data <- function(startdate = "20200101",
@@ -892,10 +892,10 @@ get_hhsCMU_allHosp_st_data <- function(startdate = "20200101",
 
   hosp_ls <- hosp_ls[!is.na(hosp_ls)]
   hosp <- data.table::rbindlist(hosp_ls)
-  hosp <- dplyr::left_join(hosp, state_cw, by = c("state" = "State"))
-  hosp <- dplyr::mutate(hosp, Update = lubridate::ymd(date))
-  hosp <- dplyr::rename(hosp, source = state)
-  hosp <- dplyr::select(hosp, -date)
+  hosp <- dplyr::left_join(hosp, state_cw, by = c("state" = "State")) %>%
+    dplyr::mutate(Update = lubridate::ymd(date)) %>%
+    dplyr::rename(source = state) %>%
+    dplyr::select(-date)
 
   return(hosp)
 
@@ -934,7 +934,7 @@ get_hhsCMU_incidH_st_data <- function(startdate = "20200101",
 ##'
 ##' @export
 get_hhsCMU_hospCurr_st_data <- function(startdate = "20200101",
-                                      enddate = stringr::str_replace_all(Sys.Date(), "-")){
+                                      enddate = stringr::str_remove_all(as.character(Sys.Date()), "-")){
 
   rc <- get_hhsCMU_allHosp_st_data(startdate, enddate)
   rc <- dplyr::mutate(rc, total_adult_patients_hosp_confirmed_covid = ifelse(is.na(total_adult_patients_hosp_confirmed_covid), 0, total_adult_patients_hosp_confirmed_covid),
