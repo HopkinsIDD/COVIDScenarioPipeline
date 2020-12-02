@@ -29,10 +29,12 @@ jobs:
       - name: Install SEIR and Outcomes packages
         run: /home/app/python_venv/bin/python setup.py install
         shell: bash
+      - name: Install local R packages
+        run: /home/app/python_venv/bin/python setup.py install
+        shell: bash
       - name: Run pytest SEIR
         run: |
-          /home/app/python_venv/bin/pytest SEIR/
-        shell: bash
+          Rscript local_install.R
       - name: Run pytest Outcomes
         run: |
           cd Outcomes/test
