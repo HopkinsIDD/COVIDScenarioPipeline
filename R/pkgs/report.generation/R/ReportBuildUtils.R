@@ -829,7 +829,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
     dplyr::filter(between(date, as.Date(sim_start_date), as.Date(sim_end_date)))
   
   jhu_obs_dat <- jhu_obs_dat %>%
-    dplyr::select(-geoid, -USPS, -name, -pop2010) %>%
+    dplyr::select(-geoid, -USPS, -name, -pop) %>%
     dplyr::filter(between(date, as.Date(sim_start_date), as.Date(sim_end_date))) %>%
     dplyr::group_by(source, date) %>%
     dplyr::summarise_all(sum, na.rm=TRUE) %>% 
@@ -1200,7 +1200,7 @@ make_sparkline_tab_r <- function(r_dat,
       dplyr::select(geoid, scenario, pdeath, sim_num, cum_inf, date=time) %>%
       dplyr::right_join(r_dat) %>%
       dplyr::left_join(geodat) %>%
-      dplyr::mutate(r=r*(1-cum_inf/pop2010)) 
+      dplyr::mutate(r=r*(1-cum_inf/pop)) 
   }
   
   r_dat <- r_dat %>%
@@ -1593,7 +1593,7 @@ plot_truth_by_county <- function(truth_dat,
 ##' @param scenario_labels label applied to scenarios
 ##' @param start_date start of timeline
 ##' @param end_date end of timeline
-##' @param geodat df with geoid and pop2010 
+##' @param geodat df with geoid and pop 
 ##' @param pi_lo lower limit to interval
 ##' @param pi_hi upper limit to interval
 ##' @param pop_col name of geodat column with population data
@@ -2110,9 +2110,9 @@ plot_outcome_rate<- function(current_scenario,
                      TotalIncidDeath = sum(NincidDeath, na.rm = TRUE)) %>%
     dplyr::ungroup() %>%
     dplyr::left_join(geodat) %>%
-    dplyr::mutate(Case=TotalIncidCase/pop2010*1000,
-                  Hosp=TotalIncidHosp/pop2010*1000,
-                  Death=TotalIncidDeath/pop2010*1000)%>%
+    dplyr::mutate(Case=TotalIncidCase/pop*1000,
+                  Hosp=TotalIncidHosp/pop*1000,
+                  Death=TotalIncidDeath/pop*1000)%>%
     dplyr::group_by(pdeath, name) %>% 
     dplyr::summarize(Case = mean(Case),
                      Hosp = mean(Hosp),
@@ -2180,7 +2180,7 @@ plot_hosp_effec <- function(current_scenario,
     dplyr::summarize(TotalIncidHosp = sum(NincidHosp, na.rm = TRUE)) %>% # TODO user-defined vars
     dplyr::ungroup() %>%
     dplyr::left_join(geodat) %>%
-    dplyr::mutate(est=TotalIncidHosp/pop2010*1000) %>%
+    dplyr::mutate(est=TotalIncidHosp/pop*1000) %>%
     dplyr::group_by(pdeath, name, geoid) %>% 
     dplyr::summarize(est = mean(est)) %>%
     dplyr::ungroup() 
