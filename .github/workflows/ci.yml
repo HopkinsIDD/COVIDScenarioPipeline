@@ -35,6 +35,7 @@ jobs:
       - name: Run pytest SEIR
         run: |
           Rscript local_install.R
+        shell: bash
       - name: Run pytest Outcomes
         run: |
           cd Outcomes/test
