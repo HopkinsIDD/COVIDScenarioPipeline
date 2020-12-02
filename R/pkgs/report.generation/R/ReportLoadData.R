@@ -428,8 +428,6 @@ load_geodata_file <- function(filename,
                        dplyr::mutate(name=stringr::str_remove(name, " County")))
   }
   
-  geodata <- geodata %>%
-    dplyr::rename(pop=starts_with("pop"))
   return(geodata)
 }
 
