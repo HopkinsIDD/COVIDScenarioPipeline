@@ -26,21 +26,13 @@ test_that("get_hhsCMU_hospCurr_st_data works",{
   expect_equal(any(is.na(hospCurr$hospCurr_all)), FALSE)
   
 })
-test_that("incidH and hospCurr have same number of rows",{
-
-  incidH <- get_hhsCMU_incidH_st_data()
-  hospCurr <- get_hhsCMU_hospCurr_st_data()
-
-  expect_equal(nrow(incidH), nrow(hospCurr))
-  
-})
 test_that("filtering by VALIDATION_DATE results in less data",{
 
-  small_data <- get_hhsCMU_allHosp_st_data()
+  big_data <- get_hhsCMU_allHosp_st_data()
 
   Sys.setenv(VALIDATION_DATE="2020-03-01")
   
-  big_data <- get_hhsCMU_allHosp_st_data()
+  small_data <- get_hhsCMU_allHosp_st_data()
   
   expect_true(nrow(small_data) < nrow(big_data))
 })
