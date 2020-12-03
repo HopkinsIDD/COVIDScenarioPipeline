@@ -7,18 +7,17 @@ setwd("~/COVIDWorking")
 
 opt <- list()
 
-opt$jobs <- 20
-opt$forecast_date <- "2020-09-06" #"2020-08-09"
-opt$end_date <- "2020-10-17"
-opt$geodata <- "geodata_territories.csv"
+opt$jobs <- 2
+opt$forecast_date <- "2020-11-29"
+opt$end_date <- "2021-01-09"
+opt$geodata <- "geodata_territories_2019.csv"
 opt$death_filter <- "low"
-opt$num_simulationsulations <- 2000
-opt$outfile <- "2020-09-06-JHU_IDD-CovidSP_low_caseoptim.csv"
+opt$num_simulations <- 2000
+opt$outfile <- "more_space/2020-11-29-JHU_IDD-CovidSP_copt.csv"
 opt$include_hosp <- TRUE
 
 arguments<- list()
-# arguments$args <- "usa_runs_2020-7-27"
-arguments$args <- "usa_runs_2020-9-7-caseoptim"
+arguments$args <- "more_space/usa_runs_2020-11-29-copt-pois-seas"
 
 opt$reichify <-TRUE
 
@@ -34,14 +33,15 @@ res_geoid <- arrow::open_dataset(sprintf("%s/hosp",arguments$args),
                                                  "death_rate", 
                                                  "date", 
                                                  "lik_type", 
-                                                 "is_final", 
-                                                 "sim_id"))%>%
-  select(time, geoid, incidD, incidH, incidC, death_rate, sim_id)%>%
+                                                 "is_final"))%>%
+  select(time, geoid, incidD, incidH, incidC, death_rate)%>%
   filter(time>=opt$forecast_date& time<=opt$end_date)%>%
   collect()%>%
   filter(stringr::str_detect(death_rate,opt$death_filter))%>%
   mutate(time=as.Date(time))%>%
-  mutate(sim_num = sim_id)
+  group_by(time, geoid, death_rate) %>%
+  dplyr::mutate(sim_num = as.character(seq_along(geoid))) %>%
+  ungroup
   
 
 
@@ -63,8 +63,11 @@ opt$forecast_date <- as.Date(opt$forecast_date)
 opt$end_date <- as.Date(opt$end_date)
 # 
 
+csse_deaths <- covidcommon::get_groundtruth_from_source(source = "csse", scale = "US county") %>%
+  dplyr::select(Update, Deaths, incidDeath, FIPS, source)
 
-usa_facts_deaths <- covidcommon::get_USAFacts_data() %>%
+
+jhu_csse_deaths <- csse_deaths %>%
   rename(geoid=FIPS, time=Update, cumDeaths=Deaths, USPS=source)%>%
   group_by(USPS,time)%>%
   summarize(cumDeaths=sum(cumDeaths))%>%
@@ -72,7 +75,7 @@ usa_facts_deaths <- covidcommon::get_USAFacts_data() %>%
 
 ##Make the forecast for daily cumlative cases
 state_cum_deaths<- create_cum_death_forecast(res_state,
-                                          usa_facts_deaths,
+                                          jhu_csse_deaths,
                                           opt$forecast_date,
                                           aggregation="day",
                                           loc_column = "USPS")
@@ -114,7 +117,7 @@ res_us <- res_state%>%
   ungroup()%>%
   mutate(location="US")
   
-usa_facts_deaths_us <- usa_facts_deaths %>%
+jhu_csse_deaths_us <- jhu_csse_deaths %>%
   group_by(time)%>%
   summarize(cumDeaths=sum(cumDeaths))%>%
   ungroup()%>%
@@ -122,7 +125,7 @@ usa_facts_deaths_us <- usa_facts_deaths %>%
 
 
 us_cum_deaths<- create_cum_death_forecast(res_us,
-                                          usa_facts_deaths_us,
+                                          jhu_csse_deaths_us,
                                           opt$forecast_date,
                                           aggregation="day",
                                           loc_column = "location")
