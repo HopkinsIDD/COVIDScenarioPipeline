@@ -45,6 +45,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id,
 """)
     return 1
 
+
 def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, stoch_traj_flag = True):
     parameters = read_parameters_from_config(config, in_run_id, in_prefix, [in_sim_id], scenario_outcomes)
 
@@ -96,7 +97,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
     subclasses = ['']
     if config["outcomes"]["subclasses"].exists():
         subclasses = config["outcomes"]["subclasses"].get()
-    
+
     parameters = {}
     for new_comp in config_outcomes:
         if config_outcomes[new_comp]['source'].exists():
@@ -107,21 +108,21 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                 parameters[class_name]['source'] = config_outcomes[new_comp]['source'].as_str()
                 if (parameters[class_name]['source'] != 'incidI'):
                     parameters[class_name]['source'] = parameters[class_name]['source'] + subclass
-                
+
                 parameters[class_name]['probability'] = config_outcomes[new_comp]['probability']['value']
 
                 parameters[class_name]['delay'] = config_outcomes[new_comp]['delay']['value']
-                
+
                 if config_outcomes[new_comp]['duration'].exists():
                     parameters[class_name]['duration'] = config_outcomes[new_comp]['duration']['value']
                     if config_outcomes[new_comp]['duration']['name'].exists():
                         parameters[class_name]['duration_name'] = config_outcomes[new_comp]['duration']['name'].as_str() + subclass
                     else:
                         parameters[class_name]['duration_name'] = new_comp + '_curr' + subclass
-                
+
                 if (config["outcomes"]["param_from_file"].get()):
-                    rel_probability = branching_data[(branching_data['source']==parameters[class_name]['source']) & 
-                                                 (branching_data['outcome']==class_name) & 
+                    rel_probability = branching_data[(branching_data['source']==parameters[class_name]['source']) &
+                                                 (branching_data['outcome']==class_name) &
                                                  (branching_data['quantity']=='relative_probability')].copy(deep=True)
                     if len(rel_probability) > 0:
                         print(f"Using 'param_from_file' for relative probability {parameters[class_name]['source']} -->  {class_name}")
@@ -132,7 +133,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                         parameters[class_name]['rel_probability'] = rel_probability['value'].to_numpy()
                     else:
                         print(f"*NOT* Using 'param_from_file' for relative probability {parameters[class_name]['source']} -->  {class_name}")
-            
+
             # We need to compute sum across classes if there is subclasses
             if (subclasses != ['']):
                 parameters[new_comp] = {}
@@ -151,7 +152,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
             raise ValueError(f"No 'source' or 'sum' specified for comp {new_comp}")
 
     return parameters
-    
+
 
 def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values=None, stoch_traj_flag = True):
 
@@ -235,7 +236,7 @@ def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_val
                     probability = probability * parameters[new_comp]['rel_probability']
                     probability[probability > 1] = 1
                     probability[probability < 0] = 0
-                    
+
                 delay = int(np.round(parameters[new_comp]['delay'].as_random_distribution()(size=1)))
 
             # Create new compartment incidence:
@@ -331,4 +332,142 @@ def shift(arr, num, fill_value=0):
     #    result[:num] = arr[-num:]
     # else:
     #    result[:] = arr
+    return result
+
+
+""" Compute delay frame based on temporally varying input"""
+##
+# @function
+# @brief Compute delay frame based on temporally varying input
+# ## Parameters
+# @comp_parameters Parameters from a yaml config in the form of a dictionary
+# ```yaml
+# outcomes:
+#   output_var_name:
+#     source: input_var_name
+#     ... # finish later
+# @source_data numpy matrix of dates x places
+# @places Index for the places dimension of source_data
+# @dates Index for dates dimension of source_data.  dates should be one day apart a closed interval
+# @loaded_values A numpy array of dimensions place x time with values containing the probabilities
+def compute_new_outcomes(comp_parameters, source_data, places, dates, loaded_values):
+    new_outcomes = np.empty_like(source_data);
+
+    ## Compute the number remaining in each compartment
+    comp_parameters["probability"].as_random_distribution()
+    if loaded_values is not None:
+        ## This may be unnecessary
+        probability = \
+            loaded_values[
+                (loaded_values['quantity'] == 'probability') &
+                (loaded_values['outcome'] == new_comp) &
+                (loaded_values['source'] == source)
+            ]['value'].to_numpy()
+        delays = int(np.round(
+            loaded_values[
+                (loaded_values['quantity'] == 'delay') &
+                (loaded_values['outcome'] == new_comp) &
+                (loaded_values['source'] == source)
+            ]['value'].to_numpy()
+        ))
+    else:
+        probability = comp_parameters['probability'].as_random_distribution()(size=len(places))
+        if 'rel_probability' in parameters[new_comp]:
+            raise ValueError(f"relative probability not yet supported")
+            probability = probability * parameters[new_comp]['rel_probability']
+            probability[probability > 1] = 1
+            probability[probability < 0] = 0
+
+        delays = comp_parameters['delay'].as_random_distribution()(size=len(places))
+
+    # Create new compartment incidence:
+    new_outcomes = np.empty_like(source_data)
+    # Draw with from source compartment
+    if stoch_traj_flag:
+        new_outcomes = np.random.binomial(source_data.astype(np.int32), probability * np.ones_like(source_data))
+    else:
+        new_outcomes = source_data *  (probability * np.ones_like(source_data))
+
+    # Shift to account for the delay
+    ## stoch_delay_flag is whether to use stochastic delays or not
+    new_outcomes = shift_multidelay(new_outcomes, delays, fill_value = 0, stoch_delay_flag)
+    # Produce a dataframe an merge it
+    df = dataframe_from_array(all_data[new_comp], places, dates, new_comp)
+    outcomes = pd.merge(outcomes, df)
+
+    hpar = pd.concat(
+        [
+            hpar,
+            pd.DataFrame.from_dict(
+                {'geoid': places,
+                 'quantity': ['probability'] * len(places),
+                 'outcome': [new_comp] * len(places),
+                 'source': [source] * len(places),
+                 'value': probability * np.ones(len(places))}),
+            pd.DataFrame.from_dict(
+                {'geoid': places,
+                 'quantity': ['delay'] * len(places),
+                 'outcome': [new_comp] * len(places),
+                 'source': [source] * len(places),
+                 'value': delays * np.ones(len(places))})
+        ],
+        axis=0)
+
+    # Make duration
+    if 'duration' in comp_parameters:
+        if loaded_values is not None:
+            durations = int(np.round(
+                loaded_values[
+                    (loaded_values['quantity'] == 'duration') &
+                    (loaded_values['outcome'] == new_comp) &
+                    (loaded_values['source'] == source)
+                ]['value'].to_numpy()
+            ))
+        else:
+            durations = comp_parameters['duration'].as_random_distribution()(size=len(places))
+            all_data[comp_parameters['duration_name']] = \
+                np.cumsum(all_data[new_comp], axis=0) - \
+                shift_multidelay(np.cumsum(all_data[new_comp], axis=0), durations, fill_value = 0, stoch_delay_flag)
+
+            df = dataframe_from_array(all_data[parameters[new_comp]['duration_name']], places,
+                                      dates, parameters[new_comp]['duration_name'])
+            outcomes = pd.merge(outcomes, df)
+
+            hpar = pd.concat(
+                [
+                    hpar,
+                    pd.DataFrame.from_dict(
+                        {'geoid': places,
+                         'quantity': ['duration'] * len(places),
+                         'outcome': [new_comp] * len(places),
+                         'source': [source] * len(places),
+                         'value': durations * np.ones(len(places))
+                        }
+                    )
+                ],axis=0)
+
+
+def shift_multidelay(arr, shifts, fill_value=0, stoch_delay_flag = True):
+    if(arr.size() != shifts.size()):
+        raise ValueError("There should be one shift for each original")
+
+    result = np.empty_like(arr)
+    if(not stoch_delay_flag):
+        for i,row in reversed(enumerate(np.rows(arr))):
+            for j,elem in reversed(enumerate(row)):
+                if(i + shifts[i] < np.rows(arr)):
+                    result[i+shifts[i][j]][j] += elem
+                    result[i][j] = 0
+    else:
+        for i,row in reversed(enumerate(np.rows(arr))):
+            for j,elem in reversed(enumerate(row)):
+                ## This function takes in :
+                ##  - elem (int > 0)
+                ##  - delay (single average delay)
+                ## and outputs
+                ##  - vector of fixed size where the k element stores # of people who are delayed by k
+                percentages = np.random.multinomial(el<fixed based on delays[i][j]>)
+                cases = diff(round(cumsum(percentages)*elem))
+                for k,case in enumerate(cases):
+                    results[i+k][j] = cases[k]
     return result
