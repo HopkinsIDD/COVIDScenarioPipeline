@@ -114,9 +114,9 @@ class MultiTimeReduce(NPIBase):
                 start_dates = [self.start_date]
                 end_dates = [self.end_date]
             for geoid in affected_geoids_grp:
-                self.parameters["start_date"][geoid] = start_dates
-                self.parameters["end_date"][geoid] = end_dates
-                self.parameters["reduction"][geoid]= self.dist(size=1)
+                self.parameters.at[geoid, "start_date"] = start_dates
+                self.parameters.at[geoid, "end_date"] = end_dates
+                self.parameters.at[geoid, "reduction"]= self.dist(size=1)
 
     def __createFromDf(self, loaded_df):
         loaded_df.index = loaded_df.geoid
