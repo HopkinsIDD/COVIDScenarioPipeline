@@ -87,7 +87,6 @@ class MultiTimeReduce(NPIBase):
             if grp_config["affected_geoids"].get() == "all":
                 affected_geoids_grp += self.geoids
             else:
-                print(grp_config["affected_geoids"])
                 affected_geoids_grp += [str(n.get()) for n in grp_config["affected_geoids"]]
 
         print(affected_geoids_grp)
@@ -99,9 +98,13 @@ class MultiTimeReduce(NPIBase):
         self.dist = npi_config["value"].as_random_distribution()
         self.parameters["npi_name"] = self.name
         self.parameters["parameter"] = self.param_name
+        print(self.parameters)
         
         for grp_config in npi_config['groups']:
-            print(self.parameters)
+            if grp_config["affected_geoids"].get() == "all":
+                affected_geoids_grp = self.geoids
+            else:
+                affected_geoids_grp = [str(n.get()) for n in grp_config["affected_geoids"]]
             # Create reduction
             start_dates = []
             end_dates = []
@@ -112,10 +115,11 @@ class MultiTimeReduce(NPIBase):
             else:
                 start_dates = [self.start_date]
                 end_dates = [self.end_date]
-            for geoid in self.geoids:
+            print(start_dates)
+            for geoid in affected_geoids_grp:
                 self.parameters["start_date"][geoid] = start_dates
                 self.parameters["end_date"][geoid] = end_dates
-            self.parameters["reduction"] = self.dist(size=self.parameters.shape[0])
+                self.parameters["reduction"][geoid]= self.dist(size=1)
 
     def __createFromDf(self, loaded_df):
         loaded_df.index = loaded_df.geoid
