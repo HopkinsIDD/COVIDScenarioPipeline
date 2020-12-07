@@ -89,7 +89,6 @@ class MultiTimeReduce(NPIBase):
             else:
                 affected_geoids_grp += [str(n.get()) for n in grp_config["affected_geoids"]]
 
-        print(affected_geoids_grp)
         self.affected_geoids = set(affected_geoids_grp)
         if len(self.affected_geoids) != len(affected_geoids_grp):
             raise ValueError(f"In NPI {self.name}, some geoids belong to several groups. This is unsupported.")
@@ -98,7 +97,6 @@ class MultiTimeReduce(NPIBase):
         self.dist = npi_config["value"].as_random_distribution()
         self.parameters["npi_name"] = self.name
         self.parameters["parameter"] = self.param_name
-        print(self.parameters)
         
         for grp_config in npi_config['groups']:
             if grp_config["affected_geoids"].get() == "all":
@@ -115,7 +113,6 @@ class MultiTimeReduce(NPIBase):
             else:
                 start_dates = [self.start_date]
                 end_dates = [self.end_date]
-            print(start_dates)
             for geoid in affected_geoids_grp:
                 self.parameters["start_date"][geoid] = start_dates
                 self.parameters["end_date"][geoid] = end_dates
