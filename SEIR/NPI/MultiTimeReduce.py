@@ -83,9 +83,9 @@ class MultiTimeReduce(NPIBase):
         # If values of "affected_geoids" is "all" or unspecified, run on all geoids.
         # Otherwise, run only on geoids specified.
         self.affected_geoids = set(self.geoids)
+       
         if npi_config["affected_geoids"].exists() and npi_config["affected_geoids"].get() != "all":
             self.affected_geoids = {str(n.get()) for n in npi_config["affected_geoids"]}
-
         self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids)]
         # Create reduction
         self.dist = npi_config["value"].as_random_distribution()
@@ -100,9 +100,9 @@ class MultiTimeReduce(NPIBase):
         else:
             start_dates = [self.start_date]
             end_dates = [self.end_date]
-        for geoid in self.geoids:
-          self.parameters["start_date"][geoid] = start_dates
-          self.parameters["end_date"][geoid] = end_dates
+        for geoid in self.affected_geoids:
+          self.parameters.at[geoid, "start_date"] = start_dates
+          self.parameters.at[geoid, "end_date"] = end_dates
         self.parameters["parameter"] = self.param_name
         self.parameters["reduction"] = self.dist(size=self.parameters.shape[0])
 
