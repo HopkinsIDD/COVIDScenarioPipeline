@@ -870,14 +870,14 @@ plot_model_vs_obs <- function(state_hosp_totals,
   
   if(week){
     jhu_obs_dat <- jhu_obs_dat %>%
-      dplyr::group_by(date=lubridate::floor_date(date, "weeks", 3)) %>%
+      dplyr::group_by(date=lubridate::ceiling_date(date, "weeks")) %>%
       dplyr::summarize(NincidConfirmed=sum(NincidConfirmed),
                        NincidDeathsObs=sum(NincidDeathsObs))
   }
   
   state_inf_summary <-
     state_hosp_totals %>%
-    {if(week) dplyr::group_by(.,date=lubridate::floor_date(date, "weeks", 3), scenario_name, sim_num) %>%
+    {if(week) dplyr::group_by(.,date=lubridate::ceiling_date(date, "weeks"), scenario_name, sim_num) %>%
         dplyr::summarize(NincidInf=sum(NincidInf),
                          NincidCase=sum(NincidCase))
       else(.)}%>%
@@ -916,7 +916,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
   
   state_death_summary <-
     state_hosp_totals %>%
-    {if(week) dplyr::group_by(.,date=lubridate::floor_date(date, "weeks", 3), scenario_name, sim_num) %>%
+    {if(week) dplyr::group_by(.,date=lubridate::ceiling_date(date, "weeks"), scenario_name, sim_num) %>%
         dplyr::summarize(NincidDeath=sum(NincidDeath))
       else(.)}%>%
     dplyr::group_by(date, scenario_name) %>%
@@ -1466,7 +1466,7 @@ plot_truth_by_county <- function(truth_dat,
   
   county_dat<-county_dat%>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
-    dplyr::group_by(geoid, !!as.symbol(group_var), sim_num, time=lubridate::floor_date(time, unit="week", week_start=3))%>%
+    dplyr::group_by(geoid, !!as.symbol(group_var), sim_num, time=lubridate::ceiling_date(time, unit="week"))%>%
     dplyr::summarize(NincidCase=sum(NincidCase, na.rm=TRUE),
                       NincidDeath=sum(NincidDeath, na.rm=TRUE),
                       NhospCurr=mean(NhospCurr, na.rm=TRUE)) %>%
@@ -1479,7 +1479,7 @@ plot_truth_by_county <- function(truth_dat,
       fig_labs <- c("Incident Cases", "Incident Deaths", "Occupied Hospital Beds")
     }
     truth_dat <- truth_dat %>%
-      dplyr::group_by(geoid, time=lubridate::floor_date(date, unit="week", week_start=3)) %>%
+      dplyr::group_by(geoid, time=lubridate::ceiling_date(date, unit="week")) %>%
       dplyr::summarize(incidI=sum(incidI, na.rm=TRUE),
                         incidDeath=sum(incidDeath, na.rm=TRUE),
                         currhosp=mean(currhosp, na.rm=TRUE)) %>%
@@ -1521,7 +1521,7 @@ plot_truth_by_county <- function(truth_dat,
   } else{
     
     truth_dat <- truth_dat %>%
-      dplyr::group_by(geoid, time=lubridate::floor_date(date, unit="week", week_start=3)) %>%
+      dplyr::group_by(geoid, time=lubridate::ceiling_date(date, unit="week")) %>%
       dplyr::summarize(incidI=sum(incidI),
                        incidDeath=sum(incidDeath)) %>%
       dplyr::filter(time<max(time))
