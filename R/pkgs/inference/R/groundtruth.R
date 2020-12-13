@@ -1,17 +1,19 @@
 #' Function to load US COVID data from JHUCSSE
 #' @param data_path Path where to write the data
+#' @param cache logical indicating whether to cache the data (default = TRUE)
+#' @param gt_source string indicating source of ground truth data. options include "csse" or "usafacts" (default csse) 
 #'
 #' @return NULL
 #'
 #' @export
-get_ground_truth_file <- function(data_path, cache = TRUE) {
+get_ground_truth_file <- function(data_path, cache = TRUE, gt_source = "csse") {
   data_dir <- dirname(data_path)
   if(!dir.exists(data_dir)){
     suppressWarnings(dir.create(data_dir,recursive=TRUE))
   }
   if(!(file.exists(data_path) & cache)){
-    message("*** Loading Data from USAFacts\n")
-    cases_deaths <- suppressMessages(covidcommon::get_USAFacts_data(tempfile(),tempfile()))
+    message(paste("*** Loading Data from", gt_source, "\n"))
+    cases_deaths <- suppressMessages(covidcommon::get_groundtruth_from_source(source = gt_source, scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE))
     cases_deaths  <- dplyr::arrange(
       dplyr::rename(
         dplyr::mutate(
@@ -46,8 +48,8 @@ get_ground_truth_file <- function(data_path, cache = TRUE) {
 #' @param data_path Path where to write the data
 #'
 #' @export
-get_ground_truth <- function(data_path, fips_codes, fips_column_name, start_date, end_date, cache = TRUE){
-  get_ground_truth_file(data_path,cache)
+get_ground_truth <- function(data_path, fips_codes, fips_column_name, start_date, end_date, cache = TRUE, gt_source = "csse"){
+  get_ground_truth_file(data_path,cache,gt_source)
 
   rc <- suppressMessages(readr::read_csv(data_path,col_types = list(FIPS = readr::col_character())))
   rc <- dplyr::filter(

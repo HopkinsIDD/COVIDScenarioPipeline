@@ -114,7 +114,14 @@ if("priors"%in%names(config$filtering)) {
 
 ## Runner Script---------------------------------------------------------------------
 
-obs <- inference::get_ground_truth(data_path,geodata[[obs_nodename]],obs_nodename, config$start_date, config$end_date)
+## backwards compatibility with configs that don't have filtering$gt_source parameter will use the previous default data source (USA Facts)
+if(is.null(config$filtering$gt_source)){
+  gt_source <- "usafacts"
+} else{
+  gt_source <- config$filtering$gt_source
+}
+
+obs <- inference::get_ground_truth(data_path,geodata[[obs_nodename]],obs_nodename, config$start_date, config$end_date, TRUE, gt_source)
 
 geonames <- unique(obs[[obs_nodename]])
 
