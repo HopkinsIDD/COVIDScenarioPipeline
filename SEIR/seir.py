@@ -35,14 +35,45 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
+    print("A")
     p_draw = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
-    parameters = setup.parameters_reduce(p_draw[0:4], npi, s.dt)
+    print("B")
+    parameters = setup.parameters_reduce(p_draw[:4], npi, s.dt)
+    print("C")
 
-    states = steps_SEIR_nb(*parameters, y0, seeding,
-                           p_draw[5], p_draw[6], p_draw[7],
-                           s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices,
-                           mobility_data, s.dynfilter, stoch_traj_flag)
+    print(f"""parameters count: { len(parameters)}""")
+    print(f"""    parameters 0 : { parameters[0][0][0]}""")
+    print(f"""    parameters 1 : { parameters[1][0][0]}""")
+    print(f"""    parameters 2 : { parameters[2][0][0]}""")
+    print(f"""    parameters 3 : { parameters[3][0][0]}""")
+
+    print(f"""y0: { y0}""")
+    print(f"""seeding shape : { seeding.shape }""")
+    print(f"""p_draw[4] : { p_draw[4] }""")
+    print(f"""p_draw[5] : { p_draw[5] }""")
+    print(f"""p_draw[6] : { p_draw[6] }""")
+    print(f"""dt : { s.dt }""")
+    print(f"""t_inter shape : { s.t_inter.shape }""")
+    print(f"""nnodes : { s.nnodes }""")
+    print(f"""popnodes.shape : { s.popnodes.shape }""")
+    states = steps_SEIR_nb(
+        *parameters,
+        y0,
+        seeding,
+        p_draw[4],
+        p_draw[5],
+        p_draw[6],
+        s.dt,
+        s.t_inter,
+        s.nnodes,
+        s.popnodes,
+        mobility_geoid_indices,
+        mobility_data_indices,
+        mobility_data,
+        s.dynfilter,
+        stoch_traj_flag
+    )
+    print(f"""FINISHED""")
 
     postprocess_and_write(sim_id, s, states, p_draw, npi, seeding)
 
@@ -52,18 +83,20 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
     # Tidyup data for  R, to save it:
     if (s.write_csv or s.write_parquet):
         # Write output to .snpi.*, .spar.*, and .seir.* files
-        a = states.copy()[:, :, ::int(1 / s.dt)]
+        a = states.copy()[:, :, :, ::int(1 / s.dt)]
+        a = np.moveaxis(a, 2, 3)
         a = np.moveaxis(a, 1, 2)
         a = np.moveaxis(a, 0, 1)
         b = np.diff(a, axis=0)
-        difI = np.zeros((s.t_span + 1, s.nnodes))
+        difI = np.zeros((s.t_span + 1, p_draw[4], s.nnodes))
         difI[1:, :] = b[:, cumI, :]
-        na = np.zeros((s.t_span + 1, ncomp + 1, s.nnodes))
+        na = np.zeros((s.t_span + 1, ncomp + 1, p_draw[4], s.nnodes))
         na[:, :-1, :] = a
         na[:, -1, :] = difI
-        m, n, r = na.shape
-        out_arr = np.column_stack((np.tile(np.arange(n),
-                                           m), na.reshape(n * m, -1)))
+        m, n, i, r = na.shape
+        #FIX ME: No clue if this is right or not
+        out_arr = np.column_stack((np.tile(np.arange(n*i),
+                                           m), na.reshape(n * m * i, -1)))
         out_df = pd.DataFrame(
             out_arr,
             columns=['comp'] + s.spatset.nodenames,

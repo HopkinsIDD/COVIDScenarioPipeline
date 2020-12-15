@@ -10,16 +10,49 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 @cc.export(
     "steps_SEIR_nb",
-    "float64[:,:,:,:](float64[:,:], float64[:,:], float64[:,:], float64[:,:], float64[:,:], float64[:,:],"
-    "int32, float64[:], float64[:],"
-    "float64, float64[:], int64, int64[:], int32[:], int32[:],"
-    "float64[:], float64[:,:], boolean)"
+    "float64[:,:,:,:]("
+    "float64[:,:],"
+    "float64[:,:],"
+    "float64[:,:],"
+    "float64[:,:],"
+    "float64[:,:],"
+    "float64[:,:],"
+    "int32,"
+    "float64[:],"
+    "float64[:],"
+    "float64,"
+    "float64[:],"
+    "int64,"
+    "int64[:],"
+    "int32[:],"
+    "int32[:],"
+    "float64[:],"
+    "float64[:,:],"
+    "boolean"
+    ")"
 )
-def steps_SEIR_nb(alpha, beta, sigma, gamma, y0, seeding,
-                  nvac, vac_trans_red, vac_infect_res,
-                  dt, t_inter, nnodes, popnodes, mobility_row_indices, mobility_data_indices,
-                  mobility_data, dynfilter, stoch_traj_flag):
-    y = np.zeros((y0.shape[0], nvac, y0.shape[1]))
+def steps_SEIR_nb(
+        alpha,
+        beta,
+        sigma,
+        gamma,
+        y0,
+        seeding,
+        nvac,
+        vac_trans_red,
+        vac_infect_res,
+        dt,
+        t_inter,
+        nnodes,
+        popnodes,
+        mobility_row_indices,
+        mobility_data_indices,
+        mobility_data,
+        dynfilter,
+        stoch_traj_flag
+):
+    print(f"""STARTING SIMULATION\n""")
+    y = np.zeros((ncomp, nvac, nnodes))
     y[:,0,:] = y0
     states = np.zeros((ncomp, nvac, nnodes, len(t_inter)))
 
