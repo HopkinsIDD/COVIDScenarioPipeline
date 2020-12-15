@@ -36,11 +36,12 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
     p_draw = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
-    parameters = setup.parameters_reduce(p_draw, npi, s.dt)
+    parameters = setup.parameters_reduce(p_draw[0:4], npi, s.dt)
 
-    states = steps_SEIR_nb(*parameters, y0,
-                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices, 
+    states = steps_SEIR_nb(*parameters, y0, seeding,
+                           p_draw[5], p_draw[6], p_draw[7],
+                           s.dt, s.t_inter, s.nnodes, s.popnodes,
+                           mobility_geoid_indices, mobility_data_indices,
                            mobility_data, s.dynfilter, stoch_traj_flag)
 
     postprocess_and_write(sim_id, s, states, p_draw, npi, seeding)
@@ -110,7 +111,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
               pa_df,
               file_paths.create_file_name(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "seir","parquet")
             )
-    
+
     return out_df
 
 def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
@@ -145,7 +146,7 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
-    
+
     p_draw = setup.parameters_load(
         file_paths.create_file_name_without_extension(
             s.in_run_id, # Not sure about this one
@@ -157,12 +158,13 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
         len(s.t_inter),
         s.nnodes
     )
-    
+
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
-    states = steps_SEIR_nb(*parameters, y0,
-                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices, 
+    states = steps_SEIR_nb(*parameters, y0, seeding,
+                           p_draw[5], p_draw[6], p_draw[7],
+                           s.dt, s.t_inter, s.nnodes, s.popnodes,
+                           mobility_geoid_indices, mobility_data_indices,
                            mobility_data, s.dynfilter, stoch_traj_flag)
 
     out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding)
@@ -183,4 +185,3 @@ def run_parallel(s, *, n_jobs=1):
     print(f"""
 >> {s.nsim} simulations completed in {time.monotonic()-start:.1f} seconds
 """)
-
