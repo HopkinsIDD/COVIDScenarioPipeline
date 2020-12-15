@@ -49,7 +49,7 @@ get_ground_truth_file <- function(data_path, cache = TRUE, gt_source = "csse") {
 #'
 #' @export
 get_ground_truth <- function(data_path, fips_codes, fips_column_name, start_date, end_date, cache = TRUE, gt_source = "csse"){
-  get_ground_truth_file(data_path,cache,gt_source)
+  get_ground_truth_file(data_path = data_path, cache = cache, gt_source = gt_source)
 
   rc <- suppressMessages(readr::read_csv(data_path,col_types = list(FIPS = readr::col_character())))
   rc <- dplyr::filter(

@@ -121,7 +121,14 @@ if(is.null(config$filtering$gt_source)){
   gt_source <- config$filtering$gt_source
 }
 
-obs <- inference::get_ground_truth(data_path,geodata[[obs_nodename]],obs_nodename, config$start_date, config$end_date, TRUE, gt_source)
+obs <- inference::get_ground_truth(
+          data_path = data_path, 
+          fips_codes = geodata[[obs_nodename]],
+          fips_column_name = obs_nodename, 
+          start_date = config$start_date, 
+          end_date = config$end_date, 
+          gt_source = gt_source
+        )
 
 geonames <- unique(obs[[obs_nodename]])
 
