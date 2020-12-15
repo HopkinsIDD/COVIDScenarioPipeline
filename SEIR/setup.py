@@ -313,11 +313,28 @@ def parameters_quick_draw(p_config, nt_inter, nnodes):
     beta = R0s * gamma / n_Icomp
     beta = np.full((nt_inter, nnodes), beta)
 
-    ndose = p_config["vaccination"]["doses"]
-    dose_effectiveness = [0] + map(p_config["vaccination"]["dose_effectiveness"], lambda x : x.as_random_distribution()())
-    dose_trans_reduction = [0] + map(p_config["vaccination"]["dose_transmission_reduction"], lambda x : x.as_random_distribution()())
 
-    return (alpha, beta, sigma, gamma, ndose, dose_effectiveness, dose_transmission_reduction)
+    ndose = 1
+    dose_effectiveness = np.ones((ndose), dtype = 'float64')
+    dose_trans_reduction = np.ones((ndose), dtype = 'float64')
+    if "vaccination" in p_config:
+        if not "doses" in p_config["vaccination"]:
+            raise ValueError(f"A config specifying vaccination should also specify a number of doses")
+        ndose = p_config["vaccination"]["doses"].as_evaled_expression()
+        for elem in range(ndose):
+            if "dose_effectiveness" in p_config["vaccination"]:
+                dose_effectiveness[dose] = \
+                    p_config["vaccination"]["dose_effectiveness"][dose].as_random_distribution()()
+            else: # If missing, assume 100% effective
+                dose_effectiveness[dose] = 0
+            if "dose_trans_reduction" in p_config["vaccination"]:
+                dose_trans_reduction[dose] = \
+                    p_config["vaccination"]["dose_trans_reduction"][dose].as_random_distribution()()
+            else: # If missing, assume 100% effective
+                dose_trans_reduction[dose] = 0.
+
+    # Fix me, values have misleading names
+    return (alpha, beta, sigma, gamma, ndose, dose_effectiveness, dose_trans_reduction)
 
 # Returns alpha, beta, sigma, and gamma parameters in a tuple.
 # All parameters are arrays of shape (nt_inter, nnodes).
@@ -349,12 +366,12 @@ def parameters_write(parameters, fname, extension):
                             beta[0][0] * n_Icomp / gamma[0][0],
                             sigma[0][0],
                             gamma[0][0] / n_Icomp,
-                            ndose[0][0],
-                            ## This will probably fail
-                            dose_effectiveness[0][0],
-                            dose_transmission_reduction[0][0]
+                            ndose,
+                            ##FIX ME: This will definitely not work
+                            dose_effectiveness.tostring(),
+                            dose_transmission_reduction.tostring()
     ], \
-                            index = ["alpha","R0","sigma","gamma"], columns = ["value"])
+                            index = ["alpha","R0","sigma","gamma", "doses", "dose effectiveness", "dose reduction"], columns = ["value"])
 
     if extension == "csv":
         out_df.to_csv(f"{fname}.{extension}", index_label="parameter")
@@ -383,8 +400,9 @@ def parameters_load(fname, extension, nt_inter, nnodes):
     gamma = float(pars[pars['parameter'] == 'gamma'].value) * n_Icomp
     beta =  float(pars[pars['parameter'] == 'R0'].value) * gamma / n_Icomp
     alpha = float(pars[pars['parameter'] == 'ndose'].value)
-    alpha = float(pars[pars['parameter'] == 'dose_effectiveness'].value)
-    alpha = float(pars[pars['parameter'] == 'dose_transmission_reduction'].value)
+    dose_effectiveness = np.fromstring(pars[pars['parameter'] == 'dose_effectiveness'].value, dtype = 'float64')
+
+    dose_transmission_reduction = np.fromstring(pars[pars['parameter'] == 'dose_transmission_reduction'].value, dtype = 'float64')
 
     alpha = np.full((nt_inter, nnodes), alpha)
     sigma = np.full((nt_inter, nnodes), sigma)
