@@ -102,10 +102,8 @@ def steps_SEIR_nb(
 
             if stoch_traj_flag:
                 ## Fix this:
-                for vac_i in range(nvac-1):
-                    exposure_rate = 0.
-                    exposure_rate = exposure_rate + vac_infect_res[vac_i] * p_expose
-                    exposeCases[i][vac_i] = np.random.binomial(y[S][vac_i][i], exposure_rate)
+                for vac_i in range(nvac):
+                    exposeCases[i][vac_i] = np.random.binomial(y[S][vac_i][i], vac_infect_res[vac_i] * p_expose)
                     incidentCases[i][vac_i] = np.random.binomial(y[E][vac_i][i], p_infect)
                     incident2Cases[i][vac_i] = np.random.binomial(y[I1][vac_i][i], p_recover)
                     incident3Cases[i][vac_i] = np.random.binomial(y[I2][vac_i][i], p_recover)
@@ -125,6 +123,16 @@ def steps_SEIR_nb(
         y[I3] += incident3Cases - recoveredCases
         y[R] += recoveredCases
         y[cumI] += incidentCases
+
+#        ## Vaccination
+#        if stoch_traj_flag:
+#            vaccinatedCases[:,:,:] = np.random.binomial(y[:,:,:], p_vacc[:,:,:])
+#        else:
+#            vaccinatedCases[:,:,:] = y[:,:,:] * p_vacc[:,:,:]
+#        for dose in range(nvac-1):
+#            y[:,dose+1,:] = y[:,dose+1,:] - vaccinatedCases[:,dose+1,:] + vaccinatedCases[:,dose,:]
+
+
         states[:, :, :, it] = y
         if (it % (1/dt) == 0 and (y[cumI] < dynfilter[int(it % (1/dt))]).any()):
             return -np.ones((ncomp, nvac, nnodes, len(t_inter)))

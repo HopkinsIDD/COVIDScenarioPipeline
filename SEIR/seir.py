@@ -192,10 +192,10 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
         s.nnodes
     )
 
-    parameters = setup.parameters_reduce(p_draw, npi, s.dt)
+    parameters = setup.parameters_reduce(p_draw[:4], npi, s.dt)
 
     states = steps_SEIR_nb(*parameters, y0, seeding,
-                           p_draw[5], p_draw[6], p_draw[7],
+                           p_draw[4], p_draw[5], p_draw[6],
                            s.dt, s.t_inter, s.nnodes, s.popnodes,
                            mobility_geoid_indices, mobility_data_indices,
                            mobility_data, s.dynfilter, stoch_traj_flag)
