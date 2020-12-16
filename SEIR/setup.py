@@ -315,17 +315,22 @@ def parameters_quick_draw(p_config, nt_inter, nnodes):
 
 
     ndose = 1
-    p_vacc = np.zeros((nt_inter, nnodes, ndose))
-    dose_effectiveness = np.ones((ndose), dtype = 'float64')
-    dose_trans_reduction = np.ones((ndose), dtype = 'float64')
     if "vaccination" in p_config:
         if not "doses" in p_config["vaccination"]:
             raise ValueError(f"A config specifying vaccination should also specify a number of doses")
         ndose = p_config["vaccination"]["doses"].as_evaled_expression()
-        for elem in range(ndose):
+    p_vacc = np.zeros((nt_inter, nnodes, ndose))
+    dose_effectiveness = np.ones((ndose), dtype = 'float64')
+    dose_trans_reduction = np.ones((ndose), dtype = 'float64')
+    if "vaccination" in p_config:
+        for dose in range(ndose):
             if "probability" in p_config["vaccination"]:
-                p_vacc[:,:,dose] = \
-                    p_config["vaccination"]["probability"][dose].as_random_distribution()()
+                print(f"""dose is {dose}""")
+                print(f"""p_config["vaccination"]["probability"][dose] is {p_config["vaccination"]["probability"][dose]}""")
+                tmp = p_config["vaccination"]["probability"][dose].as_random_distribution()()
+                print(f"""tmp is {tmp}""")
+                print(f"""p_vacc[:,:,dose] is {p_vacc[:,:,dose]}""")
+                p_vacc[:,:,dose] = tmp
             else: # If missing, assume 100% effective
                 dose_effectiveness[dose] = 0
             if "dose_effectiveness" in p_config["vaccination"]:
@@ -333,9 +338,9 @@ def parameters_quick_draw(p_config, nt_inter, nnodes):
                     p_config["vaccination"]["dose_effectiveness"][dose].as_random_distribution()()
             else: # If missing, assume 100% effective
                 dose_effectiveness[dose] = 0
-            if "dose_trans_reduction" in p_config["vaccination"]:
+            if "dose_transmission_reduction" in p_config["vaccination"]:
                 dose_trans_reduction[dose] = \
-                    p_config["vaccination"]["dose_trans_reduction"][dose].as_random_distribution()()
+                    p_config["vaccination"]["dose_transmission_reduction"][dose].as_random_distribution()()
             else: # If missing, assume 100% effective
                 dose_trans_reduction[dose] = 0.
 

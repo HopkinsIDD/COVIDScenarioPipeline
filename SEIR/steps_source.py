@@ -63,7 +63,7 @@ def steps_SEIR_nb(
     incident2Cases = np.empty((nnodes, nvac))
     incident3Cases = np.empty((nnodes, nvac))
     recoveredCases = np.empty((nnodes, nvac))
-    vaccinatedCases = np.empty((ncomp,nvac,nnodes))
+    vaccinatedCases = np.zeros((ncomp,nvac,nnodes))
     p_expose = 0
 
     percent_who_move = np.zeros((nnodes))
@@ -112,7 +112,7 @@ def steps_SEIR_nb(
                     incident3Cases[i][vac_i] = np.random.binomial(y[I2][vac_i][i], p_recover)
                     recoveredCases[i][vac_i] = np.random.binomial(y[I3][vac_i][i], p_recover)
             else:
-                for vac_i in range(nvac-1):
+                for vac_i in range(nvac):
                     exposeCases[i][vac_i] = y[S,vac_i][i] * p_expose * vac_infect_res[vac_i]
                     incidentCases[i][vac_i] =  y[E][vac_i][i] * p_infect
                     incident2Cases[i][vac_i] = y[I1][vac_i][i] * p_recover

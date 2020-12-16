@@ -88,7 +88,10 @@ def test_hospitalization_branching():
 
     assert_dir("model_output/hosp")
     assert_dir("model_output/seir")
-    
+
+def test_vaccination():
+    _success("test_vaccination")
+
 def test_inference():
     os.chdir("test_inference")
 
@@ -170,7 +173,7 @@ def test_inference_multiblock():
     intermediate_prefix = "test_inference/Scenario1/low/test_inference/global/intermediate/000000001."
     final_filename = file_paths.create_file_name("test_inference",final_prefix,1,"llik","parquet")
     intermediate_filename = file_paths.create_file_name("test_inference",intermediate_prefix,2,"llik","parquet")
-    
+
     final_hash = ""
     with open(final_filename,"rb") as f:
         bytes = f.read()
@@ -183,7 +186,7 @@ def test_inference_multiblock():
 
     assert(final_hash == intermediate_hash)
 
-   
+
 
     assert_file("data/test1/seeding.csv")
     assert_file("data/us_data.csv")
