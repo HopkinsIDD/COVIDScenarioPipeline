@@ -373,8 +373,8 @@ def parameters_write(parameters, fname, extension):
                             *[reduction for reduction in dose_transmission_reduction]
     ], \
                             index = ["alpha","R0","sigma","gamma", "doses",
-                                     *[str(x) + " dose effectiveness " for x in range(ndose)],
-                                     *[str(x) + " dose reduction " for x in range(ndose)]
+                                     *[str(x) + " dose effectiveness" for x in range(ndose)],
+                                     *[str(x) + " dose reduction" for x in range(ndose)]
                             ], columns = ["value"])
 
     if extension == "csv":
@@ -403,7 +403,7 @@ def parameters_load(fname, extension, nt_inter, nnodes):
     sigma = float(pars[pars['parameter'] == 'sigma'].value)
     gamma = float(pars[pars['parameter'] == 'gamma'].value) * n_Icomp
     beta =  float(pars[pars['parameter'] == 'R0'].value) * gamma / n_Icomp
-    ndose = float(pars[pars['parameter'] == 'ndose'].value)
+    ndose = int(pars[pars['parameter'] == 'doses'].value)
     dose_effectiveness = np.ones((ndose), dtype = 'float64')
     dose_trans_reduction = np.ones((ndose), dtype = 'float64')
     for dose in range(ndose):
@@ -416,4 +416,4 @@ def parameters_load(fname, extension, nt_inter, nnodes):
     gamma = np.full((nt_inter, nnodes), gamma)
     beta =  np.full((nt_inter, nnodes), beta)
 
-    return (alpha, beta, sigma, gamma, ndose, dose_effectiveness, dose_transmission_reduction)
+    return (alpha, beta, sigma, gamma, ndose, dose_effectiveness, dose_trans_reduction)
