@@ -4,7 +4,7 @@ import datetime
 
 from .base import NPIBase
 
-REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
+REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma", "p_vacc", "vacc_efficacy", "vacc_trans_reduction"]
 
 
 class Reduce(NPIBase):
