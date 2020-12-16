@@ -89,13 +89,18 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
         na[:, :-1, :] = a
         na[:, -1, :] = difI
         m, n, i, r = na.shape
+        # r : number of nodes
+        # i : number of vaccination states
+        # n : number of compartments
+        # m : number of times
+
         #FIX ME: No clue if this is right or not
-        out_arr = np.column_stack((np.tile(np.arange(n*i),
-                                           m), na.reshape(n * m * i, -1)))
+        out_arr = np.column_stack((np.tile(np.arange(n),
+                                           m*i), na.reshape(n * m * i, -1)))
         out_df = pd.DataFrame(
             out_arr,
             columns=['comp'] + s.spatset.nodenames,
-            index=pd.date_range(s.ti, s.tf, freq='D').repeat(ncomp + 1))
+            index=pd.date_range(s.ti, s.tf, freq='D').repeat((ncomp+1)*p_draw[4]))
         out_df['comp'].replace(S, 'S', inplace=True)
         out_df['comp'].replace(E, 'E', inplace=True)
         out_df['comp'].replace(I1, 'I1', inplace=True)
