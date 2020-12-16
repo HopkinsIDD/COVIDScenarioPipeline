@@ -15,11 +15,12 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
     "float64[:,:],"
     "float64[:,:],"
     "float64[:,:],"
-    "float64[:,:],"
-    "float64[:,:],"
     "int32,"
+    "float64[:,:,:],"
     "float64[:],"
     "float64[:],"
+    "float64[:,:],"
+    "float64[:,:],"
     "float64,"
     "float64[:],"
     "int64,"
@@ -36,11 +37,12 @@ def steps_SEIR_nb(
         beta,
         sigma,
         gamma,
-        y0,
-        seeding,
         nvac,
+        p_vacc,
         vac_trans_red,
         vac_infect_res,
+        y0,
+        seeding,
         dt,
         t_inter,
         nnodes,
@@ -61,6 +63,7 @@ def steps_SEIR_nb(
     incident2Cases = np.empty((nnodes, nvac))
     incident3Cases = np.empty((nnodes, nvac))
     recoveredCases = np.empty((nnodes, nvac))
+    vaccinatedCases = np.empty((ncomp,nvac,nnodes))
     p_expose = 0
 
     percent_who_move = np.zeros((nnodes))
@@ -124,13 +127,24 @@ def steps_SEIR_nb(
         y[R] += recoveredCases
         y[cumI] += incidentCases
 
-#        ## Vaccination
-#        if stoch_traj_flag:
-#            vaccinatedCases[:,:,:] = np.random.binomial(y[:,:,:], p_vacc[:,:,:])
-#        else:
-#            vaccinatedCases[:,:,:] = y[:,:,:] * p_vacc[:,:,:]
-#        for dose in range(nvac-1):
-#            y[:,dose+1,:] = y[:,dose+1,:] - vaccinatedCases[:,dose+1,:] + vaccinatedCases[:,dose,:]
+        ## Vaccination
+        for i in range(nnodes):
+            for comp in range(ncomp):
+                for vac_i in range(nvac):
+                    if stoch_traj_flag:
+                        n = y[comp][vac_i][i]
+                        p = p_vacc[it][i][vac_i]
+                        print("HERE")
+                        print(n)
+                        print(p)
+                        # vaccinatedCases[comp][vac_i][i] = np.random.binomial(y[comp][vac_i][i], p_vacc[it][i][vac_i])
+                    else:
+                        vaccinatedCases[comp][vac_i][i] = y[comp][vac_i][i] * p_vacc[it][i][vac_i]
+        for dose in range(nvac):
+            if dose < (nvac - 1):
+                y[:,dose,:] -= vaccinatedCases[:,dose,:]
+            if dose > 0:
+                y[:,dose,:] += vaccinatedCases[:,dose-1,:]
 
 
         states[:, :, :, it] = y
