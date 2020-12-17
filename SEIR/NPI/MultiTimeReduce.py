@@ -5,6 +5,8 @@ import datetime
 from .base import NPIBase
 
 REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
+PARALLEL_COMP_PARAMS = ["transmissibility_reduction", "susceptibility_reduction"]
+PARALLEL_TRANS_PARAMS = ["transition_rate"]
 
 
 class MultiTimeReduce(NPIBase):
@@ -15,13 +17,33 @@ class MultiTimeReduce(NPIBase):
         self.start_date = global_config["start_date"].as_date()
         self.end_date = global_config["end_date"].as_date()
 
+        n_parallel_compartments = 1
+        n_parallel_transitions = 0
+        if "parallel_structure" in global_config["seir"]["parameters"]:
+            if not "compartments" in global_config["seir"]["parameters"]["parallel_structure"]:
+                raise ValueError(f"A config specifying a parallel structure should assign compartments to that structure")
+            compartments_map = global_config["seir"]["parameters"]["parallel_structure"]["compartments"].get()
+            n_parallel_compartments = len(compartments_map)
+            compartments_dict = {k : v for v,k in enumerate(compartments_map)}
+            if not "transitions" in global_config["seir"]["parameters"]["parallel_structure"]:
+                raise ValueError(f"A config specifying a parallel structure should assign transitions to that structure")
+            transitions_map = global_config["seir"]["parameters"]["parallel_structure"]["transitions"].get()
+            n_parallel_transitions = len(transitions_map)
+        self.all_parameters = REDUCE_PARAMS
+        for param in PARALLEL_COMP_PARAMS:
+            for compartment in range(n_parallel_compartments):
+                self.all_parameters += [param + " " + str(compartment)]
+        for param in PARALLEL_TRANS_PARAMS:
+            for transition in range(n_parallel_transitions):
+                self.all_parameters += [param + " " + str(transition)]
+
         self.geoids = geoids
 
         self.npi = pd.DataFrame(0.0, index=self.geoids,
                                 columns=pd.date_range(self.start_date, self.end_date))
 
         self.parameters = pd.DataFrame(data = {
-                                                  "npi_name": [""] * len(self.geoids), 
+                                                  "npi_name": [""] * len(self.geoids),
                                                   "parameter": [""] * len(self.geoids),
                                                   "start_date": [[self.start_date]] * len(self.geoids),
                                                   "end_date": [[self.end_date]] * len(self.geoids),
@@ -65,7 +87,7 @@ class MultiTimeReduce(NPIBase):
             if n not in self.geoids:
                 raise ValueError(f"Invalid config value {n} not in geoids")
 
-        if self.param_name not in REDUCE_PARAMS:
+        if self.param_name not in self.all_parameters:
             raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
 
         # Validate
@@ -83,7 +105,7 @@ class MultiTimeReduce(NPIBase):
         # If values of "affected_geoids" is "all" or unspecified, run on all geoids.
         # Otherwise, run only on geoids specified.
         self.affected_geoids = set(self.geoids)
-       
+
         if npi_config["affected_geoids"].exists() and npi_config["affected_geoids"].get() != "all":
             self.affected_geoids = {str(n.get()) for n in npi_config["affected_geoids"]}
         self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids)]

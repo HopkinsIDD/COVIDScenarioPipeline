@@ -27,34 +27,45 @@ seir:
       distribution: uniform
       low: 2
       high: 3
-    vaccination:
-      doses: 3
-      probability:
-        - distribution: fixed
-          value: 0
-        - distribution: fixed
-          value: 0.1
-        - distribution: fixed
-          value: 0.2
-      dose_transmission_reduction:
-        - distribution: fixed
-          value: 0
-        - distribution: fixed
-          value: 0.1
-        - distribution: fixed
-          value: 0.2
-      dose_effectiveness:
-        - distribution: fixed
-          value: 0
-        - distribution: fixed
-          value: 0.1
-        - distribution: fixed
-          value: 0.2
+    parallel_structure:
+      compartments:
+        unvaccinated:
+          transmissibility_reduction:
+            distribution: fixed
+            value: 0
+          susceptibility_reduction:
+            distribution: fixed
+            value: 0
+        first_dose:
+          transmissibility_reduction:
+            distribution: fixed
+            value: 0.5
+          susceptibility_reduction:
+            distribution: fixed
+            value: 0.5
+        second_dose:
+          transmissibility_reduction:
+            distribution: fixed
+            value: 1
+          susceptibility_reduction:
+            distribution: fixed
+            value: 1
+      transitions:
+        - from: unvaccinated
+          to: first_dose
+          rate:
+            distribution: fixed
+            value: .1
+        - from: first_dose
+          to: second_dose
+          rate:
+            distribution: fixed
+            value: .1
 
 interventions:
   scenarios:
-    - None
     - Scenario1
+    - None
   settings:
     None:
       template: Reduce
@@ -64,17 +75,17 @@ interventions:
       value:
         distribution: fixed
         value: 0
-    Place1:
-      template: ReduceR0
+    Dose1:
+      template: Reduce
+      parameter: "transition_rate 0"
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
       value:
-        distribution: uniform
-        low: .14
-        high: .33
-    Place2:
+        distribution: fixed
+        value: .3
+    Dose2:
       template: Reduce
-      parameter: gamma
+      parameter: "transition_rate 1"
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
       value:
@@ -83,9 +94,8 @@ interventions:
     Scenario1:
       template: Stacked
       scenarios:
-        - Place1
-        - None
-        - Place2
+        - Dose1
+        - Dose2
 
 outcomes:
   method: delayframe
