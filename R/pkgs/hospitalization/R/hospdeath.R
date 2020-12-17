@@ -340,6 +340,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   prob_dat,
   p_death,
   p_hosp_inf,
+  p_mild_inf,
   data_dir,
   dscenario_name,
   time_hosp_pars = c(1.23, 0.79),
@@ -364,7 +365,8 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   ## scale prob_dat to match defined IFR, p_hosp_inf
   prob_dat$p_death_inf_scaled <- prob_dat$rr_death_inf * p_death
   prob_dat$p_hosp_inf_scaled <- prob_dat$rr_hosp_inf * p_hosp_inf
-
+  prob_dat$p_mild_inf_scaled <- prob_dat$rr_mild_inf * p_mild_inf
+  
 
   print(paste("Running over",n_sim,"simulations"))
 
@@ -384,6 +386,10 @@ build_hospdeath_geoid_fixedIFR_par <- function(
       left_join(prob_dat, by="geoid")
 
     # Add time things
+    dat_Mild <- hosp_create_delay_frame('incidI',
+                                     dat_$p_mild_inf_scaled,
+                                     dat_,
+                                     time_hosp_pars,"Mild")
     dat_H <- hosp_create_delay_frame('incidI',
                                      dat_$p_hosp_inf_scaled,
                                      dat_,
@@ -408,9 +414,10 @@ build_hospdeath_geoid_fixedIFR_par <- function(
 
     # Using `merge` instead of full_join for performance reasons
     res <- Reduce(function(x, y, ...) merge(x, y, all = TRUE, ...),
-                  list(dat_I, dat_H, data_ICU, data_Vent, data_D)) %>%
+                  list(dat_I, dat_Mild, dat_H, data_ICU, data_Vent, data_D)) %>%
       replace_na(
         list(incidI = 0,
+             incidMild = 0,
              incidH = 0,
              incidICU = 0,
              incidVent = 0,
@@ -446,3 +453,10 @@ build_hospdeath_geoid_fixedIFR_par <- function(
   }
   doParallel::stopImplicitCluster()
 }
+
+
+
+
+
+
+
