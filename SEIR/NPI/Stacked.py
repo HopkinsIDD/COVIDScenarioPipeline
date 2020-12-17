@@ -3,6 +3,7 @@ import warnings
 
 import confuse
 import pandas as pd
+import re
 
 from .base import NPIBase
 
