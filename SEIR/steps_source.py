@@ -9,26 +9,32 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
 
 @cc.export(
+    ## name
     "steps_SEIR_nb",
-    "float64[:,:,:,:]("
-    "float64[:,:],"
-    "float64[:,:],"
-    "float64[:,:],"
-    "float64[:,:],"
+    ## Return
+    "float64[:,:,:,:](" # times x compartments x parallel_compartments x nodes
+    ## Parameters
+    "float64[:,:]," # times x nodes
+    "float64[:,:]," # times x nodes
+    "float64[:,:]," # times x nodes
+    "float64[:,:]," # times x nodes
     "int32,"
-    "float64[:,:,:],"
-    "float64[:],"
-    "float64[:],"
-    "float64[:,:],"
-    "float64[:,:],"
+    "float64[:,:,:]," # times x parallel_compartments x nodes
+    "float64[:,:,:]," # times x parallel_compartments x nodes
+    "int32,"
+    "float64[:,:,:]," # times x parallel_transitions x nodes
+    "int32[:]," # parallel_compartments
+    "int32[:]," # parallel_compartments
+    ## Non-parameters
+    "float64[:,:]," # compartments x nodes
+    "float64[:,:]," # times x nodes
     "float64,"
-    "float64[:],"
+    "float64[:]," # times
     "int64,"
-    "int64[:],"
-    "int32[:],"
-    "int32[:],"
-    "float64[:],"
-    "float64[:,:],"
+    "int64[:]," # sparse nodes x nodes
+    "int32[:]," # sparse nodes x nodes
+    "int32[:]," # sparse nodes x nodes
+    "float64[:]," # compartments x parallel_compartments x nnodes
     "boolean"
     ")"
 )
@@ -37,10 +43,13 @@ def steps_SEIR_nb(
         beta,
         sigma,
         gamma,
-        nvac,
-        p_vacc,
-        vac_trans_red,
-        vac_infect_res,
+        n_parallel_compartments,
+        susceptibility_ratio, # actually a reduction
+        transmissibility_ratio, # actually a reduction
+        n_parallel_transitions,
+        transition_rate,
+        transition_from,
+        transition_to,
         y0,
         seeding,
         dt,
@@ -50,20 +59,21 @@ def steps_SEIR_nb(
         mobility_row_indices,
         mobility_data_indices,
         mobility_data,
-        dynfilter,
         stoch_traj_flag
 ):
-    print(f"""STARTING SIMULATION\n""")
-    y = np.zeros((ncomp, nvac, nnodes))
+    print("Starting simulation")
+    y = np.zeros((ncomp, n_parallel_compartments, nnodes))
     y[:,0,:] = y0
-    states = np.zeros((ncomp, nvac, nnodes, len(t_inter)))
+    states = np.zeros((ncomp, n_parallel_compartments, nnodes, len(t_inter)))
+    susceptibility_ratio = 1 - susceptibility_ratio
+    transmissibility_ratio = 1 - transmissibility_ratio
 
-    exposeCases = np.empty((nnodes, nvac))
-    incidentCases = np.empty((nnodes, nvac))
-    incident2Cases = np.empty((nnodes, nvac))
-    incident3Cases = np.empty((nnodes, nvac))
-    recoveredCases = np.empty((nnodes, nvac))
-    vaccinatedCases = np.zeros((ncomp,nvac,nnodes))
+    exposeCases = np.empty((n_parallel_compartments, nnodes))
+    incidentCases = np.empty((n_parallel_compartments, nnodes))
+    incident2Cases = np.empty((n_parallel_compartments, nnodes))
+    incident3Cases = np.empty((n_parallel_compartments, nnodes))
+    recoveredCases = np.empty((n_parallel_compartments, nnodes))
+    vaccinatedCases = np.zeros((ncomp,n_parallel_compartments,nnodes))
     p_expose = 0
 
     percent_who_move = np.zeros((nnodes))
@@ -84,9 +94,13 @@ def steps_SEIR_nb(
             row_index = mobility_row_indices[index]
             n_infected_local = 0
             n_infected_away = np.zeros(len(row_index,))
-            for dose in range(nvac):
-                n_infected_local = n_infected_local + (y[I1][dose][i] + y[I2][dose][i] + y[I3][dose][i]) * vac_trans_red[i]
-                n_infected_away = n_infected_away + (y[I1][dose][row_index] + y[I2][dose][row_index] + y[I3][dose][row_index]) * vac_trans_red[row_index]
+            for dose in range(n_parallel_compartments):
+                n_infected_local = n_infected_local + \
+                    (y[I1][dose][i] + y[I2][dose][i] + y[I3][dose][i]) *\
+                    transmissibility_ratio[it][dose][i]
+                n_infected_away = n_infected_away + \
+                    (y[I1][dose][row_index] + y[I2][dose][row_index] + y[I3][dose][row_index]) * \
+                    transmissibility_ratio[it][dose][row_index]
             p_expose = 1.0 - np.exp(-dt * (
               (
                   (1 - percent_day_away * percent_who_move[i]) * beta[it][i] *
@@ -105,19 +119,22 @@ def steps_SEIR_nb(
 
             if stoch_traj_flag:
                 ## Fix this:
-                for vac_i in range(nvac):
-                    exposeCases[i][vac_i] = np.random.binomial(y[S][vac_i][i], vac_infect_res[vac_i] * p_expose)
-                    incidentCases[i][vac_i] = np.random.binomial(y[E][vac_i][i], p_infect)
-                    incident2Cases[i][vac_i] = np.random.binomial(y[I1][vac_i][i], p_recover)
-                    incident3Cases[i][vac_i] = np.random.binomial(y[I2][vac_i][i], p_recover)
-                    recoveredCases[i][vac_i] = np.random.binomial(y[I3][vac_i][i], p_recover)
+                for compartment in range(n_parallel_compartments):
+                    exposure_probability = susceptibility_ratio[it][compartment][i] * p_expose
+                    if exposure_probability > 1 :
+                        exposure_probability = 1
+                    exposeCases[compartment][i] = np.random.binomial(y[S][compartment][i], exposure_probability)
+                    incidentCases[compartment][i] = np.random.binomial(y[E][compartment][i], p_infect)
+                    incident2Cases[compartment][i] = np.random.binomial(y[I1][compartment][i], p_recover)
+                    incident3Cases[compartment][i] = np.random.binomial(y[I2][compartment][i], p_recover)
+                    recoveredCases[compartment][i] = np.random.binomial(y[I3][compartment][i], p_recover)
             else:
-                for vac_i in range(nvac):
-                    exposeCases[i][vac_i] = y[S,vac_i][i] * p_expose * vac_infect_res[vac_i]
-                    incidentCases[i][vac_i] =  y[E][vac_i][i] * p_infect
-                    incident2Cases[i][vac_i] = y[I1][vac_i][i] * p_recover
-                    incident3Cases[i][vac_i] = y[I2][vac_i][i] * p_recover
-                    recoveredCases[i][vac_i] = y[I3][vac_i][i] * p_recover
+                for compartment in range(n_parallel_compartments):
+                    exposeCases[compartment][i] = y[S,compartment][i] * p_expose * susceptibility_ratio[it][compartment][i]
+                    incidentCases[compartment][i] =  y[E][compartment][i] * p_infect
+                    incident2Cases[compartment][i] = y[I1][compartment][i] * p_recover
+                    incident3Cases[compartment][i] = y[I2][compartment][i] * p_recover
+                    recoveredCases[compartment][i] = y[I3][compartment][i] * p_recover
 
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases
@@ -129,27 +146,23 @@ def steps_SEIR_nb(
 
         ## Vaccination
         for i in range(nnodes):
-            for comp in range(ncomp):
-                for vac_i in range(nvac):
+            for comp in range(ncomp-1):
+                for compartment in range(n_parallel_compartments):
                     if stoch_traj_flag:
-                        n = y[comp][vac_i][i]
-                        p = p_vacc[it][i][vac_i]
-                        print("HERE")
-                        print(n)
-                        print(p)
-                        # vaccinatedCases[comp][vac_i][i] = np.random.binomial(y[comp][vac_i][i], p_vacc[it][i][vac_i])
+                        n = y[comp][compartment][i]
+                        p = transition_rate[it][compartment][i]
+                        vaccinatedCases[comp][compartment][i] = \
+                            np.random.binomial(y[comp][compartment][i], transition_rate[it][compartment][i])
                     else:
-                        vaccinatedCases[comp][vac_i][i] = y[comp][vac_i][i] * p_vacc[it][i][vac_i]
-        for dose in range(nvac):
-            if dose < (nvac - 1):
+                        vaccinatedCases[comp][compartment][i] = \
+                            y[comp][compartment][i] * transition_rate[it][compartment][i]
+        for dose in range(n_parallel_compartments):
+            if dose < (n_parallel_compartments - 1):
                 y[:,dose,:] -= vaccinatedCases[:,dose,:]
             if dose > 0:
                 y[:,dose,:] += vaccinatedCases[:,dose-1,:]
 
-
         states[:, :, :, it] = y
-        if (it % (1/dt) == 0 and (y[cumI] < dynfilter[int(it % (1/dt))]).any()):
-            return -np.ones((ncomp, nvac, nnodes, len(t_inter)))
 
     return states
 

@@ -38,22 +38,12 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
     p_draw = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
-    print(f"""parameters count: { len(parameters)}""")
-    print(f"""    parameters 0 : { parameters[0][0][0]} : { parameters[0].shape }""")
-    print(f"""    parameters 1 : { parameters[1][0][0]} : { parameters[1].shape }""")
-    print(f"""    parameters 2 : { parameters[2][0][0]} : { parameters[2].shape }""")
-    print(f"""    parameters 3 : { parameters[3][0][0]} : { parameters[3].shape }""")
-    print(f"""    parameters 4 : { parameters[4]}""")
-    print(f"""    parameters 5 : { parameters[5]} : { parameters[5].shape }""")
-    print(f"""    parameters 6 : { parameters[6]} : { parameters[6].shape }""")
-    print(f"""    parameters 7 : { parameters[7]} : { parameters[7].shape }""")
+    for parameter in parameters:
+        try:
+            print(f"""shape {parameter.shape}, type {parameter.dtype}""")
+        except:
+            print(f"""value {parameter}""")
 
-    print(f"""y0: { y0}""")
-    print(f"""seeding shape : { seeding.shape }""")
-    print(f"""dt : { s.dt }""")
-    print(f"""t_inter shape : { s.t_inter.shape }""")
-    print(f"""nnodes : { s.nnodes }""")
-    print(f"""popnodes.shape : { s.popnodes.shape }""")
     states = steps_SEIR_nb(
         *parameters,
         y0,
@@ -65,7 +55,6 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
         mobility_geoid_indices,
         mobility_data_indices,
         mobility_data,
-        s.dynfilter,
         stoch_traj_flag
     )
     print(f"""FINISHED""")
@@ -194,26 +183,27 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
 
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
-    print(f"""parameters count: { len(parameters)}""")
-    print(f"""    parameters 0 : { parameters[0][0][0]} : { parameters[0].shape }""")
-    print(f"""    parameters 1 : { parameters[1][0][0]} : { parameters[1].shape }""")
-    print(f"""    parameters 2 : { parameters[2][0][0]} : { parameters[2].shape }""")
-    print(f"""    parameters 3 : { parameters[3][0][0]} : { parameters[3].shape }""")
-    print(f"""    parameters 4 : { parameters[4]}""")
-    print(f"""    parameters 5 : { parameters[5]} : { parameters[5].shape }""")
-    print(f"""    parameters 6 : { parameters[6]} : { parameters[6].shape }""")
-    print(f"""    parameters 7 : { parameters[7]} : { parameters[7].shape }""")
-
-    print(f"""y0: { y0}""")
-    print(f"""seeding shape : { seeding.shape }""")
-    print(f"""dt : { s.dt }""")
-    print(f"""t_inter shape : { s.t_inter.shape }""")
-    print(f"""nnodes : { s.nnodes }""")
-    print(f"""popnodes.shape : { s.popnodes.shape }""")
-    states = steps_SEIR_nb(*parameters, y0, seeding,
-                           s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices,
-                           mobility_data, s.dynfilter, stoch_traj_flag)
+    print("First 4 parameters")
+    print(map(parameters[:4], lambda x : x.shape))
+    print("Next 3 parameters")
+    print(f"""value { parameters[4] }""")
+    print(map(parameters[5:7], lambda x : x.shape))
+    print("Last 4 parameters")
+    print(f"""value { parameters[7] }""")
+    print(map(parameters[8:], lambda x : x.shape))
+    states = steps_SEIR_nb(
+        *parameters,
+        y0,
+        seeding,
+        s.dt,
+        s.t_inter,
+        s.nnodes,
+        s.popnodes,
+        mobility_geoid_indices,
+        mobility_data_indices,
+        mobility_data,
+        stoch_traj_flag
+    )
 
     out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding)
 
