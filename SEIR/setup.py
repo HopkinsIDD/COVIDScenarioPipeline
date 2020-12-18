@@ -505,13 +505,13 @@ def parameters_load(fname, extension, nt_inter, nnodes):
     n_parallel_compartments = int(pars[pars['parameter'] == 'n_parallel_compartments'].value)
     n_parallel_transitions = int(pars[pars['parameter'] == 'n_parallel_transitions'].value)
 
-    susceptibility_reduction = np.ones((n_parallel_compartments), dtype = 'float64')
-    transmissibility_reduction = np.ones((n_parallel_compartments), dtype = 'float64')
-    transition_rate = np.zeros((n_parallel_transitions), dtype = 'float64')
+    susceptibility_reduction = np.ones((nt_inter, n_parallel_compartments, nnodes), dtype = 'float64')
+    transmissibility_reduction = np.ones((nt_inter, n_parallel_compartments, nnodes), dtype = 'float64')
+    transition_rate = np.zeros((nt_inter, n_parallel_transitions, nnodes), dtype = 'float64')
     transition_from = np.zeros((n_parallel_transitions), dtype = 'int32')
     transition_to = np.zeros((n_parallel_transitions), dtype = 'int32')
 
-    for compatment in range(n_parallel_compartments):
+    for compartment in range(n_parallel_compartments):
         susceptibility_reduction[:,compartment,:] = \
             float(pars[pars['parameter'] == (str(compartment) + ' susceptibility reduction')].value)
         transmissibility_reduction[:,compartment,:] = \
@@ -519,9 +519,9 @@ def parameters_load(fname, extension, nt_inter, nnodes):
     for transition in range(n_parallel_transitions):
         transition_rate[:,transition,:] = \
             float(pars[pars['parameter'] == (str(transition) + ' transition_rate')].value)
-        transition_from[:,transition,:] = \
+        transition_from[transition] = \
             int(pars[pars['parameter'] == (str(transition) + ' transition_from')].value)
-        transition_to[:,transition,:] = \
+        transition_to[transition] = \
             int(pars[pars['parameter'] == (str(transition) + ' transition_to')].value)
 
 
