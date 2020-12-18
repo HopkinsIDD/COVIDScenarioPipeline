@@ -183,14 +183,6 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
 
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
-    print("First 4 parameters")
-    print(map(parameters[:4], lambda x : x.shape))
-    print("Next 3 parameters")
-    print(f"""value { parameters[4] }""")
-    print(map(parameters[5:7], lambda x : x.shape))
-    print("Last 4 parameters")
-    print(f"""value { parameters[7] }""")
-    print(map(parameters[8:], lambda x : x.shape))
     states = steps_SEIR_nb(
         *parameters,
         y0,
@@ -213,7 +205,6 @@ def run_parallel(s, *, n_jobs=1):
     start = time.monotonic()
     sim_ids = np.arange(1, s.nsim + 1)
 
-    print("A")
     if n_jobs == 1:          # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
             onerun_SEIR(sim_id, s)
