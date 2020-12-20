@@ -1,6 +1,7 @@
 import itertools
 import time, random
 import warnings
+from numba import jit
 
 import numpy as np
 import pandas as pd
@@ -155,11 +156,11 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
 
 
 def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values=None, stoch_traj_flag = True):
-
     # Read files
     diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
     # Compute outcomes
     outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag)
+    #outcomes, hpar = compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag)
 
     # Write output
     write_outcome_sim(outcomes, out_run_id, out_prefix, out_sim_id)
@@ -322,7 +323,7 @@ def dataframe_from_array(data, places, dates, comp_name):
 # @function
 # @brief Compute delay frame based on temporally varying input
 # ## Parameters
-# @comp_parameters Parameters from a yaml config in the form of a dictionary
+# @parameters[new_comp] Parameters from a yaml config in the form of a dictionary
 # ```yaml
 # outcomes:
 #   output_var_name:
@@ -332,87 +333,65 @@ def dataframe_from_array(data, places, dates, comp_name):
 # @places Index for the places dimension of source_data
 # @dates Index for dates dimension of source_data.  dates should be one day apart a closed interval
 # @loaded_values A numpy array of dimensions place x time with values containing the probabilities
-def compute_new_outcomes(comp_parameters, source_data, places, dates, loaded_values):
-    new_outcomes = np.empty_like(source_data)
+def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag = True):
 
-    ## Compute the number remaining in each compartment
-    comp_parameters["probability"].as_random_distribution()
-    if loaded_values is not None:
-        ## This may be unnecessary
-        probability = \
-            loaded_values[
-                (loaded_values['quantity'] == 'probability') &
-                (loaded_values['outcome'] == new_comp) &
-                (loaded_values['source'] == source)
-            ]['value'].to_numpy()
-        delays = int(np.round(
-            loaded_values[
-                (loaded_values['quantity'] == 'delay') &
-                (loaded_values['outcome'] == new_comp) &
-                (loaded_values['source'] == source)
-            ]['value'].to_numpy()
-        ))
-    else:
-        probability = comp_parameters['probability'].as_random_distribution()(size=len(places))
-        if 'rel_probability' in parameters[new_comp]:
-            raise ValueError(f"relative probability not yet supported")
-            probability = probability * parameters[new_comp]['rel_probability']
-            probability[probability > 1] = 1
-            probability[probability < 0] = 0
+    all_data = {}
+    # We store them as numpy matrices. Dimensions is dates X places
+    all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy()#.astype(np.int32)
 
-        delays = comp_parameters['delay'].as_random_distribution()(size=len(places))
+    hpar = pd.DataFrame(columns=['geoid', 'quantity', 'outcome', 'source', 'value'])
 
-    # Create new compartment incidence:
-    new_outcomes = np.empty_like(source_data)
-    # Draw with from source compartment
-    if stoch_traj_flag:
-        new_outcomes = np.random.binomial(source_data.astype(np.int32), probability * np.ones_like(source_data))
-    else:
-        new_outcomes = source_data *  (probability * np.ones_like(source_data))
+    outcomes = pd.melt(diffI, id_vars='time', value_name='incidI', var_name='geoid')
+    for new_comp in parameters:
+        if 'source' in parameters[new_comp]:
+            # Read the config for this compartment: if a source is specified, we
+            # 1. compute incidence from binomial draw
+            # 2. compute duration if needed
+            source = parameters[new_comp]['source']
 
-    # Shift to account for the delay
-    ## stoch_delay_flag is whether to use stochastic delays or not
-    new_outcomes = shift_multidelay(new_outcomes, delays, fill_value = 0, stoch_delay_flag = stoch_delay_flag)
-    # Produce a dataframe an merge it
-    df = dataframe_from_array(all_data[new_comp], places, dates, new_comp)
-    outcomes = pd.merge(outcomes, df)
+            if loaded_values is not None:
+                raise ValueError('NOT IMPLEMENTED')
+                ## This may be unnecessary
+                probabilities = \
+                    loaded_values[
+                        (loaded_values['quantity'] == 'probability') &
+                        (loaded_values['outcome'] == new_comp) &
+                        (loaded_values['source'] == source)
+                    ]['value'].to_numpy()
+                delays = int(np.round(
+                    loaded_values[
+                        (loaded_values['quantity'] == 'delay') &
+                        (loaded_values['outcome'] == new_comp) &
+                        (loaded_values['source'] == source)
+                    ]['value'].to_numpy()
+                ))
+            else:
+                probabilities = parameters[new_comp]['probability'].as_random_distribution()(size=len(places)) # one draw per geoid
+                probabilities = np.repeat(probabilities[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
+                if 'rel_probability' in parameters[new_comp]:
+                    raise ValueError(f"relative probability not yet supported")
+                    probabilities = probabilities * parameters[new_comp]['rel_probability']
+                    probabilities[probabilities > 1] = 1
+                    probabilities[probabilities < 0] = 0
 
-    hpar = pd.concat(
-        [
-            hpar,
-            pd.DataFrame.from_dict(
-                {'geoid': places,
-                 'quantity': ['probability'] * len(places),
-                 'outcome': [new_comp] * len(places),
-                 'source': [source] * len(places),
-                 'value': probability * np.ones(len(places))}),
-            pd.DataFrame.from_dict(
-                {'geoid': places,
-                 'quantity': ['delay'] * len(places),
-                 'outcome': [new_comp] * len(places),
-                 'source': [source] * len(places),
-                 'value': delays * np.ones(len(places))})
-        ],
-        axis=0)
+                delays = parameters[new_comp]['delay'].as_random_distribution()(size=len(places)) # one draw per geoid
+                delays = np.repeat(delays[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
+                delays = np.round(delays).astype(int)
 
-    # Make duration
-    if 'duration' in comp_parameters:
-        if loaded_values is not None:
-            durations = int(np.round(
-                loaded_values[
-                    (loaded_values['quantity'] == 'duration') &
-                    (loaded_values['outcome'] == new_comp) &
-                    (loaded_values['source'] == source)
-                ]['value'].to_numpy()
-            ))
-        else:
-            durations = comp_parameters['duration'].as_random_distribution()(size=len(places))
-            all_data[comp_parameters['duration_name']] = \
-                np.cumsum(all_data[new_comp], axis=0) - \
-                shift_multidelay(np.cumsum(all_data[new_comp], axis=0), durations, fill_value = 0, stoch_delay_flag=stoch_delay_flag)
+            # Create new compartment incidence:
+            all_data[new_comp] = np.empty_like(all_data['incidI'])
+            # Draw with from source compartment
+            if stoch_traj_flag:
+                all_data[new_comp] = np.random.binomial(all_data[source].astype(np.int32), probabilities)
+            else:
+                all_data[new_comp] = all_data[source] *  (probability * np.ones_like(all_data[source]))
 
-            df = dataframe_from_array(all_data[parameters[new_comp]['duration_name']], places,
-                                      dates, parameters[new_comp]['duration_name'])
+            # Shift to account for the delay
+            ## stoch_delay_flag is whether to use stochastic delays or not
+            stoch_delay_flag = False
+            all_data[new_comp] = multishift(all_data[new_comp], delays, stoch_delay_flag = stoch_delay_flag)
+            # Produce a dataframe an merge it
+            df = dataframe_from_array(all_data[new_comp], places, dates, new_comp)
             outcomes = pd.merge(outcomes, df)
 
             hpar = pd.concat(
@@ -420,16 +399,64 @@ def compute_new_outcomes(comp_parameters, source_data, places, dates, loaded_val
                     hpar,
                     pd.DataFrame.from_dict(
                         {'geoid': places,
-                         'quantity': ['duration'] * len(places),
-                         'outcome': [new_comp] * len(places),
-                         'source': [source] * len(places),
-                         'value': durations * np.ones(len(places))
-                        }
-                    )
-                ],axis=0)
+                        'quantity': ['probability'] * len(places),
+                        'outcome': [new_comp] * len(places),
+                        'source': [source] * len(places),
+                        'value': probabilities[0] * np.ones(len(places))}),
+                    pd.DataFrame.from_dict(
+                        {'geoid': places,
+                        'quantity': ['delay'] * len(places),
+                        'outcome': [new_comp] * len(places),
+                        'source': [source] * len(places),
+                        'value': delays[0] * np.ones(len(places))})
+                ],
+                axis=0)
+
+            # Make duration
+            if 'duration' in parameters[new_comp]:
+                if loaded_values is not None:
+                    raise ValueError("NOT IMPLEMENTED")
+                    durations = int(np.round(
+                        loaded_values[
+                            (loaded_values['quantity'] == 'duration') &
+                            (loaded_values['outcome'] == new_comp) &
+                            (loaded_values['source'] == source)
+                        ]['value'].to_numpy()
+                    ))
+                else:
+                    durations = parameters[new_comp]['duration'].as_random_distribution()(size=len(places)) # one draw per geoid
+                    durations = np.repeat(durations[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
+                    durations = np.round(durations).astype(int)
+                    all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis=0) - \
+                        multishift(np.cumsum(all_data[new_comp], axis=0), durations, stoch_delay_flag=stoch_delay_flag)
+
+                    df = dataframe_from_array(all_data[parameters[new_comp]['duration_name']], places,
+                                            dates, parameters[new_comp]['duration_name'])
+                    outcomes = pd.merge(outcomes, df)
+
+                    hpar = pd.concat(
+                        [
+                            hpar,
+                            pd.DataFrame.from_dict(
+                                {'geoid': places,
+                                'quantity': ['duration'] * len(places),
+                                'outcome': [new_comp] * len(places),
+                                'source': [source] * len(places),
+                                'value': durations[0] * np.ones(len(places))
+                                }
+                            )
+                        ],axis=0)
+        elif 'sum' in parameters[new_comp]:
+            # Sum all concerned compartment.
+            outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
+
+    return outcomes, hpar
+
+
 
 """ Quite fast shift implementation, along the first axis, 
     which is date. num is an integer not negative nor zero """
+@jit(nopython=True)
 def shift(arr, num, fill_value=0):
     if (num == 0):
         return arr
@@ -445,22 +472,25 @@ def shift(arr, num, fill_value=0):
     #    result[:] = arr
     return result
 
-def shift_multidelay(arr, shifts, fill_value=0, stoch_delay_flag = True):
+
+#@jit(nopython=True)
+def multishift(arr, shifts, stoch_delay_flag = True):
     """ Shift along first (0) axis """
     result = np.zeros_like(arr)
 
     if (stoch_delay_flag):
-        for i, row in reversed(enumerate(np.rows(arr))):
-            for j,elem in reversed(enumerate(row)):
+        raise ValueError("NOT SUPPORTED YET")
+        #for i, row in reversed(enumerate(np.rows(arr))):
+        #    for j,elem in reversed(enumerate(row)):
                 ## This function takes in :
                 ##  - elem (int > 0)
                 ##  - delay (single average delay)
                 ## and outputs
                 ##  - vector of fixed size where the k element stores # of people who are delayed by k
                 #percentages = np.random.multinomial(el<fixed based on delays[i][j]>)
-                cases = diff(round(cumsum(percentages)*elem))
-                for k,case in enumerate(cases):
-                    results[i+k][j] = cases[k]
+        #        cases = diff(round(cumsum(percentages)*elem))
+        #        for k,case in enumerate(cases):
+        #            results[i+k][j] = cases[k]
     else:
         for i, row in enumerate(arr):
             for j, elem in enumerate(row):
