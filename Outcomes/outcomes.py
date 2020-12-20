@@ -390,7 +390,7 @@ def compute_new_outcomes(comp_parameters, source_data, places, dates, loaded_val
 
     # Shift to account for the delay
     ## stoch_delay_flag is whether to use stochastic delays or not
-    new_outcomes = shift_multidelay(new_outcomes, delays, fill_value = 0, stoch_delay_flag)
+    new_outcomes = shift_multidelay(new_outcomes, delays, fill_value = 0, stoch_delay_flag = stoch_delay_flag)
     # Produce a dataframe an merge it
     df = dataframe_from_array(all_data[new_comp], places, dates, new_comp)
     outcomes = pd.merge(outcomes, df)
@@ -427,7 +427,7 @@ def compute_new_outcomes(comp_parameters, source_data, places, dates, loaded_val
             durations = comp_parameters['duration'].as_random_distribution()(size=len(places))
             all_data[comp_parameters['duration_name']] = \
                 np.cumsum(all_data[new_comp], axis=0) - \
-                shift_multidelay(np.cumsum(all_data[new_comp], axis=0), durations, fill_value = 0, stoch_delay_flag)
+                shift_multidelay(np.cumsum(all_data[new_comp], axis=0), durations, fill_value = 0, stoch_delay_flag=stoch_delay_flag)
 
             df = dataframe_from_array(all_data[parameters[new_comp]['duration_name']], places,
                                       dates, parameters[new_comp]['duration_name'])
@@ -452,13 +452,8 @@ def shift_multidelay(arr, shifts, fill_value=0, stoch_delay_flag = True):
         raise ValueError("There should be one shift for each original")
 
     result = np.empty_like(arr)
-    if(not stoch_delay_flag):
-        for i,row in reversed(enumerate(np.rows(arr))):
-            for j,elem in reversed(enumerate(row)):
-                if(i + shifts[i] < np.rows(arr)):
-                    result[i+shifts[i][j]][j] += elem
-                    result[i][j] = 0
-    else:
+
+    if (stoch_delay_flag):
         for i,row in reversed(enumerate(np.rows(arr))):
             for j,elem in reversed(enumerate(row)):
                 ## This function takes in :
@@ -466,8 +461,14 @@ def shift_multidelay(arr, shifts, fill_value=0, stoch_delay_flag = True):
                 ##  - delay (single average delay)
                 ## and outputs
                 ##  - vector of fixed size where the k element stores # of people who are delayed by k
-                percentages = np.random.multinomial(el<fixed based on delays[i][j]>)
+                #percentages = np.random.multinomial(el<fixed based on delays[i][j]>)
                 cases = diff(round(cumsum(percentages)*elem))
                 for k,case in enumerate(cases):
                     results[i+k][j] = cases[k]
+    else:
+        for i,row in reversed(enumerate(np.rows(arr))):
+            for j,elem in reversed(enumerate(row)):
+                if(i + shifts[i] < np.rows(arr)):
+                    result[i+shifts[i][j]][j] += elem
+                    result[i][j] = 0
     return result
