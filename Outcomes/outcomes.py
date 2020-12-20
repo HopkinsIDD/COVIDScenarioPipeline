@@ -159,8 +159,8 @@ def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_
     # Read files
     diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
     # Compute outcomes
-    outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag)
-    #outcomes, hpar = compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag)
+    #outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag)
+    outcomes, hpar = compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag)
 
     # Write output
     write_outcome_sim(outcomes, out_run_id, out_prefix, out_sim_id)
@@ -473,8 +473,7 @@ def shift(arr, num, fill_value=0):
     return result
 
 
-#@jit(nopython=True)
-def multishift(arr, shifts, stoch_delay_flag = True):
+def multishiftee(arr, shifts, stoch_delay_flag = True):
     """ Shift along first (0) axis """
     result = np.zeros_like(arr)
 
@@ -496,4 +495,29 @@ def multishift(arr, shifts, stoch_delay_flag = True):
             for j, elem in enumerate(row):
                 if(i + shifts[i][j] < arr.shape[0]):
                     result[i+shifts[i][j]][j] += elem
+    return result
+
+@jit(nopython=True, cache=True)
+def multishift(arr, shifts, stoch_delay_flag = True):
+    """ Shift along first (0) axis """
+    result = np.zeros_like(arr)
+
+    if (stoch_delay_flag):
+        raise ValueError("NOT SUPPORTED YET")
+        #for i, row in reversed(enumerate(np.rows(arr))):
+        #    for j,elem in reversed(enumerate(row)):
+                ## This function takes in :
+                ##  - elem (int > 0)
+                ##  - delay (single average delay)
+                ## and outputs
+                ##  - vector of fixed size where the k element stores # of people who are delayed by k
+                #percentages = np.random.multinomial(el<fixed based on delays[i][j]>)
+        #        cases = diff(round(cumsum(percentages)*elem))
+        #        for k,case in enumerate(cases):
+        #            results[i+k][j] = cases[k]
+    else:
+        for i in range(arr.shape[0]):            # numba nopython does not allow iterating over 2D array
+            for j in range(arr.shape[1]):
+                if(i + shifts[i,j] < arr.shape[0]):
+                    result[i+shifts[i,j], j] += arr[i,j]
     return result
