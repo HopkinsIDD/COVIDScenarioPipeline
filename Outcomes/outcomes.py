@@ -317,24 +317,6 @@ def dataframe_from_array(data, places, dates, comp_name):
     return df
 
 
-""" Quite fast shift implementation, along the first axis, 
-    which is date. num is an integer not negative nor zero """
-def shift(arr, num, fill_value=0):
-    if (num == 0):
-        return arr
-    else:
-        result = np.empty_like(arr)
-        # if num > 0:
-        result[:num] = fill_value
-        result[num:] = arr[:-num]
-    # elif num < 0:
-    #    result[num:] = fill_value
-    #    result[:num] = arr[-num:]
-    # else:
-    #    result[:] = arr
-    return result
-
-
 """ Compute delay frame based on temporally varying input"""
 ##
 # @function
@@ -351,7 +333,7 @@ def shift(arr, num, fill_value=0):
 # @dates Index for dates dimension of source_data.  dates should be one day apart a closed interval
 # @loaded_values A numpy array of dimensions place x time with values containing the probabilities
 def compute_new_outcomes(comp_parameters, source_data, places, dates, loaded_values):
-    new_outcomes = np.empty_like(source_data);
+    new_outcomes = np.empty_like(source_data)
 
     ## Compute the number remaining in each compartment
     comp_parameters["probability"].as_random_distribution()
@@ -446,15 +428,29 @@ def compute_new_outcomes(comp_parameters, source_data, places, dates, loaded_val
                     )
                 ],axis=0)
 
+""" Quite fast shift implementation, along the first axis, 
+    which is date. num is an integer not negative nor zero """
+def shift(arr, num, fill_value=0):
+    if (num == 0):
+        return arr
+    else:
+        result = np.empty_like(arr)
+        # if num > 0:
+        result[:num] = fill_value
+        result[num:] = arr[:-num]
+    # elif num < 0:
+    #    result[num:] = fill_value
+    #    result[:num] = arr[-num:]
+    # else:
+    #    result[:] = arr
+    return result
 
 def shift_multidelay(arr, shifts, fill_value=0, stoch_delay_flag = True):
-    if(arr.size() != shifts.size()):
-        raise ValueError("There should be one shift for each original")
-
-    result = np.empty_like(arr)
+    """ Shift along first (0) axis """
+    result = np.zeros_like(arr)
 
     if (stoch_delay_flag):
-        for i,row in reversed(enumerate(np.rows(arr))):
+        for i, row in reversed(enumerate(np.rows(arr))):
             for j,elem in reversed(enumerate(row)):
                 ## This function takes in :
                 ##  - elem (int > 0)
@@ -466,9 +462,8 @@ def shift_multidelay(arr, shifts, fill_value=0, stoch_delay_flag = True):
                 for k,case in enumerate(cases):
                     results[i+k][j] = cases[k]
     else:
-        for i,row in reversed(enumerate(np.rows(arr))):
-            for j,elem in reversed(enumerate(row)):
-                if(i + shifts[i] < np.rows(arr)):
+        for i, row in enumerate(arr):
+            for j, elem in enumerate(row):
+                if(i + shifts[i][j] < arr.shape[0]):
                     result[i+shifts[i][j]][j] += elem
-                    result[i][j] = 0
     return result
