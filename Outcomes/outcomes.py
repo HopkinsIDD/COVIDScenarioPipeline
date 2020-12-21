@@ -427,7 +427,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             if stoch_traj_flag:
                 all_data[new_comp] = np.random.binomial(all_data[source].astype(np.int32), probabilities)
             else:
-                all_data[new_comp] = all_data[source] *  (probability * np.ones_like(all_data[source]))
+                all_data[new_comp] = all_data[source] *  (probabilities * np.ones_like(all_data[source]))
 
             # Shift to account for the delay
             ## stoch_delay_flag is whether to use stochastic delays or not
