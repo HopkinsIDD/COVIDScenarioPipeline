@@ -61,17 +61,20 @@ def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id
         'parquet'
     )).to_pandas()
 
-    npi = NPI.NPIBase.execute(
-        npi_config=npi_config[0],
-        global_config=npi_config[1],
-        geoids=places,
-        loaded_df = npi_load(
-            file_paths.create_file_name_without_extension(
-                in_run_id,
-                in_prefix, 
-                in_sim_id,
-                "hnpi"),'parquet')
-    )
+    if npi_config is not None:
+        npi = NPI.NPIBase.execute(
+            npi_config=npi_config[0],
+            global_config=npi_config[1],
+            geoids=places,
+            loaded_df = npi_load(
+                file_paths.create_file_name_without_extension(
+                    in_run_id,
+                    in_prefix, 
+                    in_sim_id,
+                    "hnpi"),'parquet')
+        )
+    else:
+        npi = None
 
 
     onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values, stoch_traj_flag, npi)
@@ -389,7 +392,6 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             source = parameters[new_comp]['source']
 
             if loaded_values is not None:
-                raise ValueError('NOT IMPLEMENTED')
                 ## This may be unnecessary
                 probabilities = \
                     loaded_values[
@@ -397,24 +399,23 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                         (loaded_values['outcome'] == new_comp) &
                         (loaded_values['source'] == source)
                     ]['value'].to_numpy()
-                delays = int(np.round(
-                    loaded_values[
+                delays = loaded_values[
                         (loaded_values['quantity'] == 'delay') &
                         (loaded_values['outcome'] == new_comp) &
                         (loaded_values['source'] == source)
                     ]['value'].to_numpy()
-                ))
+
             else:
                 probabilities = parameters[new_comp]['probability'].as_random_distribution()(size=len(places)) # one draw per geoid  
                 if 'rel_probability' in parameters[new_comp]:
                     probabilities = probabilities * parameters[new_comp]['rel_probability']
                     probabilities[probabilities > 1] = 1
                     probabilities[probabilities < 0] = 0
-                probabilities = np.repeat(probabilities[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
-
                 delays = parameters[new_comp]['delay'].as_random_distribution()(size=len(places)) # one draw per geoid
-                delays = np.repeat(delays[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
-                delays = np.round(delays).astype(int)
+            
+            probabilities = np.repeat(probabilities[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
+            delays = np.repeat(delays[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
+            delays = np.round(delays).astype(int)
             if npi is not None:
                 delays = _parameter_reduce(delays, npi.getReduction(f"{new_comp}-delay".lower()), 1)
                 delays = np.round(delays).astype(int)
@@ -457,18 +458,15 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             # Make duration
             if 'duration' in parameters[new_comp]:
                 if loaded_values is not None:
-                    raise ValueError("NOT IMPLEMENTED")
-                    durations = int(np.round(
-                        loaded_values[
+                    durations = loaded_values[
                             (loaded_values['quantity'] == 'duration') &
                             (loaded_values['outcome'] == new_comp) &
                             (loaded_values['source'] == source)
                         ]['value'].to_numpy()
-                    ))
                 else:
                     durations = parameters[new_comp]['duration'].as_random_distribution()(size=len(places)) # one draw per geoid
-                    durations = np.repeat(durations[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
-                    durations = np.round(durations).astype(int)
+                durations = np.repeat(durations[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
+                durations = np.round(durations).astype(int)
                 if npi is not None:
                     import matplotlib.pyplot as plt
                     plt.imshow(durations)
