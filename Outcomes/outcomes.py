@@ -14,7 +14,7 @@ import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
 from SEIR import file_paths
-from SEIR.setup import _parameter_reduce
+from SEIR.setup import _parameter_reduce, npi_load
 
 
 def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, nsim = 1, n_jobs=1, stoch_traj_flag = True):
@@ -61,9 +61,20 @@ def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id
         'parquet'
     )).to_pandas()
 
-    # TODO LOAD HNPI HERE
+    npi = NPI.NPIBase.execute(
+        npi_config=npi_config[0],
+        global_config=npi_config[1],
+        geoids=places,
+        loaded_df = npi_load(
+            file_paths.create_file_name_without_extension(
+                in_run_id,
+                in_prefix, 
+                in_sim_id,
+                "hnpi"),'parquet')
+    )
 
-    onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values, stoch_traj_flag, npi_config)
+
+    onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values, stoch_traj_flag, npi)
     return 1
 
 
@@ -169,9 +180,13 @@ def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_
     # Read files
     diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
 
-    # Compute NPI, if exist:
-    if npi_config is not None:
+    # If a list, then it's just the config from run confing, so build the NPI
+    #otherwise it's None (no NPI) or an NPI already loaded
+    if isinstance(npi_config, list):
+        print(npi_config[0].get())
         npi = NPI.NPIBase.execute(npi_config=npi_config[0], global_config=npi_config[1], geoids=places)
+    elif npi_config is not None:
+        npi = npi_config
 
     # Compute outcomes
     #outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag, npi)
@@ -180,6 +195,9 @@ def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_
     # Write output
     write_outcome_sim(outcomes, out_run_id, out_prefix, out_sim_id)
     write_outcome_hpar(hpar, out_run_id, out_prefix, out_sim_id)
+    if npi is not None:
+        write_outcome_hnpi(npi, out_run_id, out_prefix, out_sim_id)
+
 
 
 def read_seir_sim(run_id, prefix, sim_id):
@@ -220,8 +238,12 @@ def write_outcome_hpar(hpar, run_id, prefix, sim_id):
                                sim_id,
                                'hpar',
                                'parquet'
+                               )
                            )
-                           )
+def write_outcome_hnpi(npi, run_id, prefix, sim_id):
+    npi.writeReductions(
+        file_paths.create_file_name_without_extension(run_id, prefix,sim_id, "hnpi"), "parquet"
+        )
 
 
 def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag = True, npi = None):
@@ -393,9 +415,9 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 delays = np.repeat(delays[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
                 delays = np.round(delays).astype(int)
             if npi is not None:
-                delays = _parameter_reduce(delays, npi.getReduction(f"{new_comp}-delay"), 1)
+                delays = _parameter_reduce(delays, npi.getReduction(f"{new_comp}-delay".lower()), 1)
                 delays = np.round(delays).astype(int)
-                probabilities = _parameter_reduce(probabilities, npi.getReduction(f"{new_comp}-delay"), 1)
+                probabilities = _parameter_reduce(probabilities, npi.getReduction(f"{new_comp}-probability".lower()), 1)
 
             # Create new compartment incidence:
             all_data[new_comp] = np.empty_like(all_data['incidI'])
@@ -447,8 +469,17 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     durations = np.repeat(durations[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
                     durations = np.round(durations).astype(int)
                 if npi is not None:
-                    durations = _parameter_reduce(durations, npi.getReduction(f"{new_comp}-delay"), 1)
+                    import matplotlib.pyplot as plt
+                    plt.imshow(durations)
+                    plt.title(np.mean(durations))
+                    plt.savefig('Dbefore'+new_comp + '-' + source)
+                    print(new_comp, npi.getReduction(f"{new_comp}-duration".lower()))
+                    durations = _parameter_reduce(durations, npi.getReduction(f"{new_comp}-duration".lower()), 1)
                     durations = np.round(durations).astype(int)
+                    plt.imshow(durations)
+                    plt.title(np.mean(durations))
+                    plt.savefig('Dafter'+new_comp + '-' + source)
+
                 all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis=0) - \
                     multishift(np.cumsum(all_data[new_comp], axis=0), durations, stoch_delay_flag=stoch_delay_flag)
 
