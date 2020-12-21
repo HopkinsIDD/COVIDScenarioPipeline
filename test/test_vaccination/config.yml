@@ -55,12 +55,12 @@ seir:
           to: first_dose
           rate:
             distribution: fixed
-            value: .1
+            value: 0.1
         - from: first_dose
           to: second_dose
           rate:
             distribution: fixed
-            value: .1
+            value: 0.1
 
 interventions:
   scenarios:

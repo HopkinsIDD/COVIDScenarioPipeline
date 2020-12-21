@@ -94,13 +94,13 @@ def steps_SEIR_nb(
             row_index = mobility_row_indices[index]
             n_infected_local = 0
             n_infected_away = np.zeros(len(row_index,))
-            for dose in range(n_parallel_compartments):
+            for p_compartment in range(n_parallel_compartments):
                 n_infected_local = n_infected_local + \
-                    (y[I1][dose][i] + y[I2][dose][i] + y[I3][dose][i]) *\
-                    transmissibility_ratio[it][dose][i]
+                    (y[I1][p_compartment][i] + y[I2][p_compartment][i] + y[I3][p_compartment][i]) *\
+                    transmissibility_ratio[it][p_compartment][i]
                 n_infected_away = n_infected_away + \
-                    (y[I1][dose][row_index] + y[I2][dose][row_index] + y[I3][dose][row_index]) * \
-                    transmissibility_ratio[it][dose][row_index]
+                    (y[I1][p_compartment][row_index] + y[I2][p_compartment][row_index] + y[I3][p_compartment][row_index]) * \
+                    transmissibility_ratio[it][p_compartment][row_index]
             p_expose = 1.0 - np.exp(-dt * (
               (
                   (1 - percent_day_away * percent_who_move[i]) * beta[it][i] *
@@ -119,22 +119,22 @@ def steps_SEIR_nb(
 
             if stoch_traj_flag:
                 ## Fix this:
-                for compartment in range(n_parallel_compartments):
-                    exposure_probability = susceptibility_ratio[it][compartment][i] * p_expose
+                for p_compartment in range(n_parallel_compartments):
+                    exposure_probability = susceptibility_ratio[it][p_compartment][i] * p_expose
                     if exposure_probability > 1 :
                         exposure_probability = 1
-                    exposeCases[compartment][i] = np.random.binomial(y[S][compartment][i], exposure_probability)
-                    incidentCases[compartment][i] = np.random.binomial(y[E][compartment][i], p_infect)
-                    incident2Cases[compartment][i] = np.random.binomial(y[I1][compartment][i], p_recover)
-                    incident3Cases[compartment][i] = np.random.binomial(y[I2][compartment][i], p_recover)
-                    recoveredCases[compartment][i] = np.random.binomial(y[I3][compartment][i], p_recover)
+                    exposeCases[p_compartment][i] = np.random.binomial(y[S][p_compartment][i], exposure_probability)
+                    incidentCases[p_compartment][i] = np.random.binomial(y[E][p_compartment][i], p_infect)
+                    incident2Cases[p_compartment][i] = np.random.binomial(y[I1][p_compartment][i], p_recover)
+                    incident3Cases[p_compartment][i] = np.random.binomial(y[I2][p_compartment][i], p_recover)
+                    recoveredCases[p_compartment][i] = np.random.binomial(y[I3][p_compartment][i], p_recover)
             else:
-                for compartment in range(n_parallel_compartments):
-                    exposeCases[compartment][i] = y[S,compartment][i] * p_expose * susceptibility_ratio[it][compartment][i]
-                    incidentCases[compartment][i] =  y[E][compartment][i] * p_infect
-                    incident2Cases[compartment][i] = y[I1][compartment][i] * p_recover
-                    incident3Cases[compartment][i] = y[I2][compartment][i] * p_recover
-                    recoveredCases[compartment][i] = y[I3][compartment][i] * p_recover
+                for p_compartment in range(n_parallel_compartments):
+                    exposeCases[p_compartment][i] = y[S,p_compartment][i] * p_expose * susceptibility_ratio[it][p_compartment][i]
+                    incidentCases[p_compartment][i] =  y[E][p_compartment][i] * p_infect
+                    incident2Cases[p_compartment][i] = y[I1][p_compartment][i] * p_recover
+                    incident3Cases[p_compartment][i] = y[I2][p_compartment][i] * p_recover
+                    recoveredCases[p_compartment][i] = y[I3][p_compartment][i] * p_recover
 
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases
@@ -163,6 +163,14 @@ def steps_SEIR_nb(
                 y[:,dose,:] += vaccinatedCases[:,dose-1,:]
 
         states[:, :, :, it] = y
+    # print("y[S]")
+    # print(states[S,:,:,:])
+    # print("y[E]")
+    # print(states[E,:,:,:])
+    # print("y[I]")
+    # print(states[I1,:,:,:] + states[I2,:,:,:] + states[I3,:,:,:])
+    # print("y[R]")
+    # print(states[R,:,:,:])
 
     return states
 

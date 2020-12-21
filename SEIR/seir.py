@@ -84,11 +84,12 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
         # m : number of times
 
         #FIX ME: No clue if this is right or not
-        out_arr = np.column_stack((np.tile(np.arange(n),
-                                           m*i), na.reshape(n * m * i, -1)))
+        c_index = np.tile(np.arange(n),m*i)
+        pc_index = np.moveaxis(np.tile(np.arange(i),(m,n,1)),1,2).reshape(m*n*i)
+        out_arr = np.column_stack((c_index, pc_index, na.reshape(n * m * i, -1)))
         out_df = pd.DataFrame(
             out_arr,
-            columns=['comp'] + s.spatset.nodenames,
+            columns=['comp','p_comp'] + s.spatset.nodenames,
             index=pd.date_range(s.ti, s.tf, freq='D').repeat((ncomp+1)*p_draw[4]))
         out_df['comp'].replace(S, 'S', inplace=True)
         out_df['comp'].replace(E, 'E', inplace=True)
