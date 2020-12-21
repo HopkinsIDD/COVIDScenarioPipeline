@@ -14,6 +14,7 @@ import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
 from SEIR import file_paths
+from SEIR.setup import _parameter_reduce
 
 
 def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, nsim = 1, n_jobs=1, stoch_traj_flag = True):
@@ -170,12 +171,11 @@ def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_
 
     # Compute NPI, if exist:
     if npi_config is not None:
-        print("building NPI")
         npi = NPI.NPIBase.execute(npi_config=npi_config[0], global_config=npi_config[1], geoids=places)
 
     # Compute outcomes
-    #outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag)
-    outcomes, hpar = compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag)
+    #outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag, npi)
+    outcomes, hpar = compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag, npi)
 
     # Write output
     write_outcome_sim(outcomes, out_run_id, out_prefix, out_sim_id)
@@ -224,7 +224,7 @@ def write_outcome_hpar(hpar, run_id, prefix, sim_id):
                            )
 
 
-def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag = True):
+def compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag = True, npi = None):
     all_data = {}
     # We store them as numpy matrices. Dimensions is dates X places
     all_data['incidI'] = diffI.drop(['time'], axis=1).to_numpy()#.astype(np.int32)
@@ -348,7 +348,7 @@ def dataframe_from_array(data, places, dates, comp_name):
 # @places Index for the places dimension of source_data
 # @dates Index for dates dimension of source_data.  dates should be one day apart a closed interval
 # @loaded_values A numpy array of dimensions place x time with values containing the probabilities
-def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag = True):
+def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag = True, npi=None):
 
     all_data = {}
     # We store them as numpy matrices. Dimensions is dates X places
@@ -392,6 +392,10 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 delays = parameters[new_comp]['delay'].as_random_distribution()(size=len(places)) # one draw per geoid
                 delays = np.repeat(delays[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
                 delays = np.round(delays).astype(int)
+            if npi is not None:
+                delays = _parameter_reduce(delays, npi.getReduction(f"{new_comp}-delay"), 1)
+                delays = np.round(delays).astype(int)
+                probabilities = _parameter_reduce(probabilities, npi.getReduction(f"{new_comp}-delay"), 1)
 
             # Create new compartment incidence:
             all_data[new_comp] = np.empty_like(all_data['incidI'])
@@ -442,25 +446,28 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     durations = parameters[new_comp]['duration'].as_random_distribution()(size=len(places)) # one draw per geoid
                     durations = np.repeat(durations[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
                     durations = np.round(durations).astype(int)
-                    all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis=0) - \
-                        multishift(np.cumsum(all_data[new_comp], axis=0), durations, stoch_delay_flag=stoch_delay_flag)
+                if npi is not None:
+                    durations = _parameter_reduce(durations, npi.getReduction(f"{new_comp}-delay"), 1)
+                    durations = np.round(durations).astype(int)
+                all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis=0) - \
+                    multishift(np.cumsum(all_data[new_comp], axis=0), durations, stoch_delay_flag=stoch_delay_flag)
 
-                    df = dataframe_from_array(all_data[parameters[new_comp]['duration_name']], places,
-                                            dates, parameters[new_comp]['duration_name'])
-                    outcomes = pd.merge(outcomes, df)
+                df = dataframe_from_array(all_data[parameters[new_comp]['duration_name']], places,
+                                        dates, parameters[new_comp]['duration_name'])
+                outcomes = pd.merge(outcomes, df)
 
-                    hpar = pd.concat(
-                        [
-                            hpar,
-                            pd.DataFrame.from_dict(
-                                {'geoid': places,
-                                'quantity': ['duration'] * len(places),
-                                'outcome': [new_comp] * len(places),
-                                'source': [source] * len(places),
-                                'value': durations[0] * np.ones(len(places))
-                                }
-                            )
-                        ],axis=0)
+                hpar = pd.concat(
+                    [
+                        hpar,
+                        pd.DataFrame.from_dict(
+                            {'geoid': places,
+                            'quantity': ['duration'] * len(places),
+                            'outcome': [new_comp] * len(places),
+                            'source': [source] * len(places),
+                            'value': durations[0] * np.ones(len(places))
+                            }
+                        )
+                    ],axis=0)
         elif 'sum' in parameters[new_comp]:
             # Sum all concerned compartment.
             outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
@@ -512,7 +519,7 @@ def multishiftee(arr, shifts, stoch_delay_flag = True):
                     result[i+shifts[i][j]][j] += elem
     return result
 
-@jit(nopython=True, cache=True)
+@jit(nopython=True)
 def multishift(arr, shifts, stoch_delay_flag = True):
     """ Shift along first (0) axis """
     result = np.zeros_like(arr)
