@@ -6,8 +6,6 @@ import pandas as pd
 
 from .base import NPIBase
 
-REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
-
 "Cap on # of reduction metadata entries to store in memory"
 REDUCTION_METADATA_CAP = 325
 
@@ -20,7 +18,8 @@ class Stacked(NPIBase):
         self.end_date = global_config["end_date"].as_date()
 
         self.geoids = geoids
-        self.reductions = {param: 1 for param in REDUCE_PARAMS}
+        self.REDUCE_PARAMS_LIST = []
+        self.reductions = {} #{param: 1 for param in REDUCE_PARAMS}
         self.reduction_params = collections.deque()
         self.reduction_cap_exceeded = False
 
@@ -44,7 +43,11 @@ class Stacked(NPIBase):
 
             sub_npi = NPIBase.execute(npi_config=scenario_npi_config, global_config=global_config, geoids=geoids,
                                       loaded_df=loaded_df)
-            for param in REDUCE_PARAMS:
+            if sub_npi.param_name not in self.REDUCE_PARAMS_LIST:
+                self.REDUCE_PARAMS_LIST.append(sub_npi.param_name)
+                self.reductions[sub_npi.param_name] = 1
+
+            for param in self.REDUCE_PARAMS_LIST:
                 reduction = sub_npi.getReduction(param, default=0.0)
                 self.reductions[param] *= (1 - reduction)
 
@@ -59,7 +62,7 @@ class Stacked(NPIBase):
                     self.reduction_cap_exceeded = True
                     self.reduction_params.clear()
 
-        for param in REDUCE_PARAMS:
+        for param in self.REDUCE_PARAMS_LIST:
             self.reductions[param] = 1 - self.reductions[param]
 
         self.__checkErrors()

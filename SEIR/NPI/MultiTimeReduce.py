@@ -4,9 +4,6 @@ import datetime
 
 from .base import NPIBase
 
-REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
-
-
 class MultiTimeReduce(NPIBase):
     def __init__(self, *, npi_config, global_config, geoids, loaded_df=None):
         super().__init__(name=getattr(npi_config, "key",
@@ -65,8 +62,8 @@ class MultiTimeReduce(NPIBase):
             if n not in self.geoids:
                 raise ValueError(f"Invalid config value {n} not in geoids")
 
-        if self.param_name not in REDUCE_PARAMS:
-            raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
+        #if self.param_name not in REDUCE_PARAMS:
+        #    raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
 
         # Validate
         if (self.npi == 0).all(axis=None):

@@ -4,9 +4,6 @@ import datetime
 
 from .base import NPIBase
 
-REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
-
-
 class Reduce(NPIBase):
     def __init__(self, *, npi_config, global_config, geoids, loaded_df=None):
         super().__init__(name=getattr(npi_config, "key",
@@ -27,7 +24,7 @@ class Reduce(NPIBase):
             self.__createFromConfig(npi_config)
         else:
             self.__createFromDf(loaded_df)
-
+        
         # if parameters are exceeding global start/end dates, index of parameter df will be out of range so check first
         if self.parameters["start_date"].min() < self.start_date or self.parameters["end_date"].max() > self.end_date:
             raise ValueError("at least one period start or end date is not between global dates")
@@ -57,8 +54,8 @@ class Reduce(NPIBase):
             if n not in self.geoids:
                 raise ValueError(f"Invalid config value {n} not in geoids")
 
-        if self.param_name not in REDUCE_PARAMS:
-            raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
+        #if self.param_name not in REDUCE_PARAMS:
+        #    raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
 
         # Validate
         if (self.npi == 0).all(axis=None):
