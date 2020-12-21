@@ -7,7 +7,7 @@ import pandas as pd
 from .base import NPIBase
 
 "Cap on # of reduction metadata entries to store in memory"
-REDUCTION_METADATA_CAP = 325
+REDUCTION_METADATA_CAP = 350
 
 
 class Stacked(NPIBase):

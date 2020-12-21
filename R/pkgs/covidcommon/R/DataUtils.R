@@ -716,7 +716,7 @@ get_groundtruth_from_source <- function(source = "csse", scale = "US county", va
 
   } else if(source == "usafacts" & scale == "US county"){
 
-    rc <- get_USAFacts_data(incl_unassigned = incl_unass) 
+    rc <- get_USAFacts_data(tempfile(), tempfile(), incl_unassigned = incl_unass) 
     rc <- dplyr::select(rc, Update, FIPS, source, !!variables)
     rc <- tidyr::drop_na(rc, tidyselect::everything())
 
@@ -731,7 +731,7 @@ get_groundtruth_from_source <- function(source = "csse", scale = "US county", va
 
   } else if(source == "csse" & scale == "US county"){
 
-    rc <- get_CSSE_US_data(incl_unassigned = incl_unass)
+    rc <- get_CSSE_US_data(tempfile(),tempfile(), incl_unassigned = incl_unass)
     rc <- dplyr::select(rc, Update, FIPS, source, !!variables) 
     rc <- tidyr::drop_na(rc, tidyselect::everything())
 
