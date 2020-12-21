@@ -186,7 +186,6 @@ def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_
     # If a list, then it's just the config from run confing, so build the NPI
     #otherwise it's None (no NPI) or an NPI already loaded
     if isinstance(npi_config, list):
-        print(npi_config[0].get())
         npi = NPI.NPIBase.execute(npi_config=npi_config[0], global_config=npi_config[1], geoids=places)
     elif npi_config is not None:
         npi = npi_config
@@ -470,14 +469,18 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 if npi is not None:
                     import matplotlib.pyplot as plt
                     plt.imshow(durations)
-                    plt.title(np.mean(durations))
-                    plt.savefig('Dbefore'+new_comp + '-' + source)
-                    print(new_comp, npi.getReduction(f"{new_comp}-duration".lower()))
+                    plt.title(durations.mean())
+                    plt.colorbar()
+                    plt.savefig('Dbef'+new_comp + '-' + source)
+                    plt.close()
+                    print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
                     durations = _parameter_reduce(durations, npi.getReduction(f"{new_comp}-duration".lower()), 1)
                     durations = np.round(durations).astype(int)
                     plt.imshow(durations)
-                    plt.title(np.mean(durations))
-                    plt.savefig('Dafter'+new_comp + '-' + source)
+                    plt.title(durations.mean())
+                    plt.colorbar()
+                    plt.savefig('Daft'+new_comp + '-' + source)
+                    plt.close()
 
                 all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis=0) - \
                     multishift(np.cumsum(all_data[new_comp], axis=0), durations, stoch_delay_flag=stoch_delay_flag)

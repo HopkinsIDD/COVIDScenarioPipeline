@@ -97,9 +97,9 @@ class MultiTimeReduce(NPIBase):
         else:
             start_dates = [self.start_date]
             end_dates = [self.end_date]
-        for geoid in self.geoids:
-          self.parameters["start_date"][geoid] = start_dates
-          self.parameters["end_date"][geoid] = end_dates
+        for geoid in self.affected_geoids:
+           self.parameters.at[geoid, "start_date"] = start_dates
+           self.parameters.at[geoid, "end_date"] = end_dates
         self.parameters["parameter"] = self.param_name
         self.parameters["reduction"] = self.dist(size=self.parameters.shape[0])
 

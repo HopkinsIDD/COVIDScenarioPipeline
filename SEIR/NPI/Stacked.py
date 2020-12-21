@@ -73,6 +73,7 @@ class Stacked(NPIBase):
                 raise ValueError(f"The intervention in config: {self.name} has reduction of {param} which is greater than 100% reduced.")
 
     def getReduction(self, param, default=0.0):
+        print("you wanted", param, self.reductions.keys())
         return self.reductions.get(param, default)
 
     def getReductionToWrite(self):
