@@ -405,13 +405,12 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     ]['value'].to_numpy()
                 ))
             else:
-                probabilities = parameters[new_comp]['probability'].as_random_distribution()(size=len(places)) # one draw per geoid
-                probabilities = np.repeat(probabilities[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
+                probabilities = parameters[new_comp]['probability'].as_random_distribution()(size=len(places)) # one draw per geoid  
                 if 'rel_probability' in parameters[new_comp]:
-                    raise ValueError(f"relative probability not yet supported")
                     probabilities = probabilities * parameters[new_comp]['rel_probability']
                     probabilities[probabilities > 1] = 1
                     probabilities[probabilities < 0] = 0
+                probabilities = np.repeat(probabilities[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
 
                 delays = parameters[new_comp]['delay'].as_random_distribution()(size=len(places)) # one draw per geoid
                 delays = np.repeat(delays[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
