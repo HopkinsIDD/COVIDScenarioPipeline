@@ -9,6 +9,7 @@ import scipy
 import tqdm.contrib.concurrent
 
 from SEIR.utils import config
+import SEIR.NPI as NPI
 import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
@@ -20,12 +21,12 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id,
     in_sim_ids = np.arange(in_sim_id, in_sim_id + nsim)
     out_sim_ids = np.arange(out_sim_id, out_sim_id + nsim)
 
-    parameters = read_parameters_from_config(config, in_run_id, in_prefix, in_sim_ids, scenario_outcomes)
+    parameters, npi_config = read_parameters_from_config(config, in_run_id, in_prefix, in_sim_ids, scenario_outcomes)
 
     loaded_values = None
     if (n_jobs == 1) or (nsim == 1):  # run single process for debugging/profiling purposes
         for sim_offset in np.arange(nsim):
-            onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_ids[sim_offset], out_run_id, out_prefix, out_sim_ids[sim_offset], parameters, loaded_values, stoch_traj_flag)
+            onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_ids[sim_offset], out_run_id, out_prefix, out_sim_ids[sim_offset], parameters, loaded_values, stoch_traj_flag, npi_config)
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
@@ -38,6 +39,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id,
             itertools.repeat(parameters),
             itertools.repeat(loaded_values),
             itertools.repeat(stoch_traj_flag),
+            itertools.repeat(npi_config),
             max_workers=n_jobs
         )
 
@@ -48,7 +50,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id,
 
 
 def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, stoch_traj_flag = True):
-    parameters = read_parameters_from_config(config, in_run_id, in_prefix, [in_sim_id], scenario_outcomes)
+    parameters, npi_config = read_parameters_from_config(config, in_run_id, in_prefix, [in_sim_id], scenario_outcomes)
 
     loaded_values = pyarrow.parquet.read_table(file_paths.create_file_name(
         in_run_id,
@@ -58,7 +60,9 @@ def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id
         'parquet'
     )).to_pandas()
 
-    onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values, stoch_traj_flag)
+    # TODO LOAD HNPI HERE
+
+    onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values, stoch_traj_flag, npi_config)
     return 1
 
 
@@ -152,12 +156,23 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
         else:
             raise ValueError(f"No 'source' or 'sum' specified for comp {new_comp}")
 
-    return parameters
+    npi = None
+    if config["outcomes"]["interventions"]["settings"][scenario_outcomes].exists():
+        npi_config = [config["outcomes"]["interventions"]["settings"][scenario_outcomes], config]
 
 
-def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values=None, stoch_traj_flag = True):
+    return parameters, npi_config
+
+
+def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values=None, stoch_traj_flag = True, npi_config = None):
     # Read files
     diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
+
+    # Compute NPI, if exist:
+    if npi_config is not None:
+        print("building NPI")
+        npi = NPI.NPIBase.execute(npi_config=npi_config[0], global_config=npi_config[1], geoids=places)
+
     # Compute outcomes
     #outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag)
     outcomes, hpar = compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag)
