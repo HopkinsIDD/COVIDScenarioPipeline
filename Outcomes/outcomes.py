@@ -168,7 +168,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
         else:
             raise ValueError(f"No 'source' or 'sum' specified for comp {new_comp}")
 
-    npi = None
+    npi_config = None
     if config["outcomes"]["interventions"]["settings"][scenario_outcomes].exists():
         npi_config = [config["outcomes"]["interventions"]["settings"][scenario_outcomes], config]
 
