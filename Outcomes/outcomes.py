@@ -187,6 +187,8 @@ def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_
         npi = NPI.NPIBase.execute(npi_config=npi_config[0], global_config=npi_config[1], geoids=places)
     elif npi_config is not None:
         npi = npi_config
+    else:
+        npi = None
 
     # Compute outcomes
     #outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag, npi)
