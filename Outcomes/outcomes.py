@@ -467,20 +467,20 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 durations = np.repeat(durations[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
                 durations = np.round(durations).astype(int)
                 if npi is not None:
-                    import matplotlib.pyplot as plt
-                    plt.imshow(durations)
-                    plt.title(durations.mean())
-                    plt.colorbar()
-                    plt.savefig('Dbef'+new_comp + '-' + source)
-                    plt.close()
-                    print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
+                    #import matplotlib.pyplot as plt
+                    #plt.imshow(durations)
+                    #plt.title(durations.mean())
+                    #plt.colorbar()
+                    #plt.savefig('Dbef'+new_comp + '-' + source)
+                    #plt.close()
+                    #print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
                     durations = _parameter_reduce(durations, npi.getReduction(f"{new_comp}-duration".lower()), 1)
                     durations = np.round(durations).astype(int)
-                    plt.imshow(durations)
-                    plt.title(durations.mean())
-                    plt.colorbar()
-                    plt.savefig('Daft'+new_comp + '-' + source)
-                    plt.close()
+                    #plt.imshow(durations)
+                    #plt.title(durations.mean())
+                    #plt.colorbar()
+                    #plt.savefig('Daft'+new_comp + '-' + source)
+                    #plt.close()
 
                 all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis=0) - \
                     multishift(np.cumsum(all_data[new_comp], axis=0), durations, stoch_delay_flag=stoch_delay_flag)
