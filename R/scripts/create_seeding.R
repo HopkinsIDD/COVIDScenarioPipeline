@@ -52,9 +52,16 @@ if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
 
-cases_deaths <- covidcommon::get_USAFacts_data()
+## backwards compatibility with configs that don't have filtering$gt_source parameter will use the previous default data source (USA Facts)
+if(is.null(config$filtering$gt_source)){
+  gt_source <- "usafacts"
+} else{
+  gt_source <- config$filtering$gt_source
+}
 
-print("Successfully pulled USAFacts data for seeding.")
+cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = "US county")
+
+print(paste("Successfully pulled", gt_source, "data for seeding."))
 
 all_times <- lubridate::ymd(config$start_date) +
   seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
