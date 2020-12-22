@@ -18,7 +18,7 @@ class Stacked(NPIBase):
         self.end_date = global_config["end_date"].as_date()
 
         self.geoids = geoids
-        self.REDUCE_PARAMS_LIST = []
+        self.param_name = []
         self.reductions = {} #{param: 1 for param in REDUCE_PARAMS}
         self.reduction_params = collections.deque()
         self.reduction_cap_exceeded = False
@@ -43,11 +43,15 @@ class Stacked(NPIBase):
 
             sub_npi = NPIBase.execute(npi_config=scenario_npi_config, global_config=global_config, geoids=geoids,
                                       loaded_df=loaded_df)
-            if sub_npi.param_name not in self.REDUCE_PARAMS_LIST:
-                self.REDUCE_PARAMS_LIST.append(sub_npi.param_name)
-                self.reductions[sub_npi.param_name] = 1
+            new_params = sub_npi.param_name # either a list (if stacked) or a string
+            new_params= [new_params] if isinstance(new_params, str) else new_params # convert to list
+            # Add each parameter at first encounter
+            for new_p in new_params:
+                if new_p not in self.param_name:
+                    self.param_name.append(new_p)
+                    self.reductions[new_p] = 1
 
-            for param in self.REDUCE_PARAMS_LIST:
+            for param in self.param_name:
                 reduction = sub_npi.getReduction(param, default=0.0)
                 self.reductions[param] *= (1 - reduction)      
 
@@ -62,7 +66,7 @@ class Stacked(NPIBase):
                     self.reduction_cap_exceeded = True
                     self.reduction_params.clear()
 
-        for param in self.REDUCE_PARAMS_LIST:
+        for param in self.param_name:
             self.reductions[param] = 1 - self.reductions[param]
 
         self.__checkErrors()
