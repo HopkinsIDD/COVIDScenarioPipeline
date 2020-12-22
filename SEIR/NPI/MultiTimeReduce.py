@@ -122,7 +122,7 @@ class MultiTimeReduce(NPIBase):
         self.parameters["start_date"] = [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["start_date"]]
         self.parameters["end_date"] =   [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["end_date"]]
         self.affected_geoids = set(self.parameters.index)
-        self.param_name = self.parameters["parameter"].unique()
+        self.param_name = self.parameters["parameter"].unique()[0]          # [0] to convert ndarray to str
 
     def getReduction(self, param, default=0.0):
         "Return the reduction for this param, `default` if no reduction defined"

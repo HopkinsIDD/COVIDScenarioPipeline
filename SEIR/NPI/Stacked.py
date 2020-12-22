@@ -49,7 +49,7 @@ class Stacked(NPIBase):
 
             for param in self.REDUCE_PARAMS_LIST:
                 reduction = sub_npi.getReduction(param, default=0.0)
-                self.reductions[param] *= (1 - reduction)
+                self.reductions[param] *= (1 - reduction)      
 
             # FIXME: getReductionToWrite() returns a concat'd set of stacked scenario params, which is
             # serialized as a giant dataframe to parquet. move this writing to be incremental, but need to
