@@ -46,10 +46,10 @@ seir:
         second_dose:
           transmissibility_reduction:
             distribution: fixed
-            value: 1
+            value: 0.95
           susceptibility_reduction:
             distribution: fixed
-            value: 1
+            value: 0.95
       transitions:
         - from: unvaccinated
           to: first_dose
