@@ -123,7 +123,6 @@ class Reduce(NPIBase):
 
     def getReduction(self, param, default=0.0):
         "Return the reduction for this param, `default` if no reduction defined"
-
         if param == self.param_name:
             return self.npi
         return default

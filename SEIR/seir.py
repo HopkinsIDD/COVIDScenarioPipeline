@@ -36,13 +36,22 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
     p_draw = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
+
+    print("Parameters without interventions")
+    for parameter in p_draw:
+        try:
+            print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+        except:
+            print(f"""    value {parameter}""")
+
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
+    print("Parameters with interventions")
     for parameter in parameters:
         try:
-            print(f"""shape {parameter.shape}, type {parameter.dtype}""")
+            print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
         except:
-            print(f"""value {parameter}""")
+            print(f"""    value {parameter}""")
 
     states = steps_SEIR_nb(
         *parameters,

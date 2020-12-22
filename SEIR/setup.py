@@ -326,18 +326,18 @@ def parameters_quick_draw(p_config, nt_inter, nnodes):
     transition_from = np.zeros((n_parallel_transitions), dtype = 'int32')
     transition_to = np.zeros((n_parallel_transitions), dtype = 'int32')
     if "parallel_structure" in p_config:
-        for compartment in range(n_parallel_compartments):
-            if "susceptibility_reduction" in p_config["parallel_structure"]["compartments"][compartment][compartment]:
-                susceptibility_reduction[compartment] = \
-                    p_config["parallel_structure"]["compartments"][compartment]["susceptibility_reduction"].as_random_distribution()
+        for index,compartment in enumerate(p_config["parallel_structure"]["compartments"]):
+            if "susceptibility_reduction" in p_config["parallel_structure"]["compartments"][compartment]:
+                susceptibility_reduction[:,index,:] = \
+                    p_config["parallel_structure"]["compartments"][compartment]["susceptibility_reduction"].as_random_distribution()()
             else:
-                susceptibility_reduction[compartment] = 0
+                susceptibility_reduction[:,index,:] = 0
 
-                if "transmissibility_reduction" in p_config[compartment]:
-                    transmissibility_reduction[compartment] = \
-                        p_config[compartment]["transmissibility_reduction"].as_random_distribution()
-                else:
-                    transmissibility_reduction[compartment] = 0
+            if "transmissibility_reduction" in p_config["parallel_structure"]["compartments"][compartment]:
+                transmissibility_reduction[:,index,:] = \
+                    p_config["parallel_structure"]["compartments"][compartment]["transmissibility_reduction"].as_random_distribution()()
+            else:
+                transmissibility_reduction[:,index,:] = 0
 
         for transition in range(n_parallel_transitions):
             transition_rate[:,transition,:] = \
@@ -400,7 +400,8 @@ def parameters_reduce(p_draw, npi, dt):
         transition_rate[:,transition,:] = _parameter_reduce(
             transition_rate[:,transition,:],
             npi.getReduction("transition_rate" + " " + str(transition)),
-            dt
+            dt,
+            "addative"
         )
 
     return (
