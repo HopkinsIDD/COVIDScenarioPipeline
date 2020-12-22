@@ -61,11 +61,11 @@ def steps_SEIR_nb(
         mobility_data,
         stoch_traj_flag
 ):
-    print("Starting simulation")
     y = np.zeros((ncomp, n_parallel_compartments, nnodes))
     y[:,0,:] = y0
     states = np.zeros((ncomp, n_parallel_compartments, nnodes, len(t_inter)))
     susceptibility_ratio = 1 - susceptibility_ratio
+
     transmissibility_ratio = 1 - transmissibility_ratio
 
     exposeCases = np.empty((n_parallel_compartments, nnodes))
@@ -122,6 +122,9 @@ def steps_SEIR_nb(
                 for p_compartment in range(n_parallel_compartments):
                     exposure_probability = susceptibility_ratio[it][p_compartment][i] * p_expose
                     if exposure_probability > 1 :
+                        print("SUSCEPTIBILITY OUT OF BOUNDS")
+                        print(p_expose)
+                        print(susceptibility_ratio[it][p_compartment][i])
                         exposure_probability = 1
                     exposeCases[p_compartment][i] = np.random.binomial(y[S][p_compartment][i], exposure_probability)
                     incidentCases[p_compartment][i] = np.random.binomial(y[E][p_compartment][i], p_infect)
@@ -148,14 +151,19 @@ def steps_SEIR_nb(
         for i in range(nnodes):
             for comp in range(ncomp-1):
                 for compartment in range(n_parallel_compartments):
+                    n = y[comp][compartment][i]
+                    p = transition_rate[it][compartment][i]
+                    if p > 1:
+                        p = 1
+                        print("TRANSITION RATE OUT OF BOUNDS")
+                        print(n)
+                        print(transition_rate[it][compartment][i])
                     if stoch_traj_flag:
-                        n = y[comp][compartment][i]
-                        p = transition_rate[it][compartment][i]
                         vaccinatedCases[comp][compartment][i] = \
-                            np.random.binomial(y[comp][compartment][i], transition_rate[it][compartment][i])
+                            np.random.binomial(n, p)
                     else:
                         vaccinatedCases[comp][compartment][i] = \
-                            y[comp][compartment][i] * transition_rate[it][compartment][i]
+                            n * p
         for dose in range(n_parallel_compartments):
             if dose < (n_parallel_compartments - 1):
                 y[:,dose,:] -= vaccinatedCases[:,dose,:]
@@ -163,14 +171,6 @@ def steps_SEIR_nb(
                 y[:,dose,:] += vaccinatedCases[:,dose-1,:]
 
         states[:, :, :, it] = y
-    # print("y[S]")
-    # print(states[S,:,:,:])
-    # print("y[E]")
-    # print(states[E,:,:,:])
-    # print("y[I]")
-    # print(states[I1,:,:,:] + states[I2,:,:,:] + states[I3,:,:,:])
-    # print("y[R]")
-    # print(states[R,:,:,:])
 
     return states
 

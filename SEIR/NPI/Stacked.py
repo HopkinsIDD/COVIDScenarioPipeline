@@ -43,7 +43,11 @@ class Stacked(NPIBase):
         self.end_date = global_config["end_date"].as_date()
 
         self.geoids = geoids
-        self.reductions = {param: 1 for param in self.all_parameters}
+        self.reductions = {param: 1.0 for param in self.all_parameters}
+        for param in self.all_parameters:
+            if re.match("^transition_rate \d+$",param):
+                self.reductions[param] = 0.0
+        self.reductions
         self.reduction_params = collections.deque()
         self.reduction_cap_exceeded = False
 
@@ -86,14 +90,15 @@ class Stacked(NPIBase):
                     self.reduction_params.clear()
 
         for param in self.all_parameters:
-            self.reductions[param] = 1 - self.reductions[param]
+            if not re.match("^transition_rate \d+$",param):
+                self.reductions[param] = 1 - self.reductions[param]
 
         self.__checkErrors()
 
     def __checkErrors(self):
         for param, reduction in self.reductions.items():
             if isinstance(reduction, pd.DataFrame) and (reduction > 1).any(axis=None):
-                raise ValueError(f"The intervention in config: {self.name} has reduction of {param} which is greater than 100% reduced.")
+                raise ValueError(f"The intervention in config: {self.name} has reduction of {param} with value {self.reductions.get(param).max().max()} which is greater than 100% reduced.")
 
     def getReduction(self, param, default=0.0):
         return self.reductions.get(param, default)
