@@ -59,7 +59,18 @@ if(is.null(config$filtering$gt_source)){
   gt_source <- config$filtering$gt_source
 }
 
-cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = "US county")
+# Aggregation to state level if in config
+state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
+if(state_level){
+  gt_scale <- "US state"
+} else{
+  gt_scale <- "US county"
+}
+
+
+cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale) 
+cases_deaths <- cases_deaths %>%
+  mutate(FIPS = stringr::str_pad(FIPS, width = 5, side="right", pad="0"))
 
 print(paste("Successfully pulled", gt_source, "data for seeding."))
 
