@@ -76,7 +76,7 @@ importation_make_command <- function(simulation,prefix=""){
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": ",
-    dependency_name, "\n", 
+    dependency_name, "\n",
     "\t",command_name, "\n",
     "\t",touch_name, "\n"
   ))
@@ -108,7 +108,7 @@ filter_make_command <- function(simulation,prefix=""){
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files/directory_exists ",
-    dependency_name, "\n", 
+    dependency_name, "\n",
     "\t",command_name, "\n",
     "\t",touch_name, "\n"
   ))
@@ -130,7 +130,7 @@ hospitalization_make_command <- function(simulation,scenario,deathrate, prefix =
     )
   } else if(method == 'branching_age_adjusted') {
     command_name <- paste(
-      "$(PYTHON) $(PIPELINE)/Outcomes/simulate.py",
+      "$(PYTHON) -m Outcomes",
       "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) --in-id $(RUN_ID) --out-id $(RUN_ID)",
       "--in-prefix", covidcommon::create_prefix(config_name,scenario,run_id,trailing_separator='/', sep='/'),
       "--out-prefix", covidcommon::create_prefix(config_name,scenario,deathrate,run_id,trailing_separator='/', sep='/')
@@ -141,7 +141,7 @@ hospitalization_make_command <- function(simulation,scenario,deathrate, prefix =
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files/directory_exists ",
-    dependency_name, "\n", 
+    dependency_name, "\n",
     "\t",command_name, "\n",
     "\t",touch_name, "\n"
   ))
@@ -172,7 +172,7 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files/directory_exists ",
-    dependency_name, "\n", 
+    dependency_name, "\n",
     "\t",command_name, "\n",
     "\t",touch_name, "\n"
   ))
@@ -191,7 +191,7 @@ report_html_make_command <- function(report_name, scenarios, simulations, deathr
   renderCmd = paste0(renderCmd, sprintf(", params=list(state_usps=\"%s\"", config$report$state_usps))
   if(length(config$report$continue_on_error) != 0)
   {
-    renderCmd = paste0(renderCmd, 
+    renderCmd = paste0(renderCmd,
                       sprintf(", continue_on_error=%s", config$report$continue_on_error))
   }
   renderCmd = paste0(renderCmd, "))'")
@@ -226,7 +226,7 @@ run_dependencies <- function(scenarios, simulations, deathrates) {
 
 sink("Makefile")
 
- 
+
 cat("
 .PHONY: rerun rerun_simulations rerun_hospitalization clean_hospitalization clean clean_simulations
 
