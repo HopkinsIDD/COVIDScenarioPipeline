@@ -34,6 +34,7 @@ library(dplyr)
 library(tidyr)
 library(tidycensus)
 
+
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
   optparse::make_option(c("-p", "--path"), action="store", default=Sys.getenv("COVID_PATH", "COVIDScenarioPipeline"), type='character', help="path to the COVIDScenarioPipeline directory"),
@@ -48,20 +49,26 @@ if (length(config) == 0) {
 
 outdir <- config$spatial_setup$base_path
 filterUSPS <- config$spatial_setup$modeled_states
+dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
+
+# Aggregation to state level if in config
+state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
 
 # Get census key
 census_key = Sys.getenv("CENSUS_API_KEY")
-if(length(config$importation$census_api_key) != 0)
-{
+if(length(config$importation$census_api_key) != 0){
   census_key = config$importation$census_api_key
 }
-if(census_key == "")
-{
+if(census_key == ""){
   stop("no census key found -- please set CENSUS_API_KEY environment variable or specify importation::census_api_key in config file")
 }
 tidycensus::census_api_key(key = census_key)
 
-# CENSUS DATA
+
+
+
+# CENSUS DATA -------------------------------------------------------------
+
 census_data <- tidycensus::get_acs(geography="county", state=filterUSPS, 
                                    variables="B01003_001", year=config$spatial_setup$census_year, 
                                    keep_geo_vars=TRUE, geometry=FALSE, show_call=TRUE)
@@ -75,7 +82,9 @@ data(fips_codes)
 fips_geoid_codes <- mutate(fips_codes, geoid=paste0(state_code,county_code)) %>% 
   group_by(geoid) %>% 
   summarize(USPS=unique(state))
+
 census_data <- census_data %>% left_join(fips_geoid_codes, by="geoid")
+
 
 # Make each territory one county.
 # Puerto Rico is the only one in the 2018 ACS estimates right now. Aggregate it.
@@ -84,7 +93,7 @@ name_changer <- setNames(
   unique(census_data$geoid),
   unique(census_data$geoid)
 )
-name_changer[grepl("^60",name_changer)] <- "60000" # Amerian Samoa
+name_changer[grepl("^60",name_changer)] <- "60000" # American Samoa
 name_changer[grepl("^66",name_changer)] <- "66000" # Guam
 name_changer[grepl("^69",name_changer)] <- "69000" # Northern Mariana Islands
 name_changer[grepl("^72",name_changer)] <- "72000" # Puerto Rico
@@ -95,12 +104,25 @@ census_data <- census_data %>%
   group_by(geoid) %>%
   summarize(USPS = unique(USPS), population = sum(population))
 
+
 # Territory populations (except Puerto Rico) taken from from https://www.census.gov/prod/cen2010/cph-2-1.pdf
-terr_census_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","census_tracts_island_areas_2010.csv",sep='/'))
+terr_census_data <- readr::read_csv(file.path(opt$p,"sample_data","united-states-commutes","census_tracts_island_areas_2010.csv"))
 
 census_data <- terr_census_data %>% 
   filter(length(filterUSPS) == 0 | ((USPS %in% filterUSPS) & !(USPS %in% census_data)))%>%
   rbind(census_data)
+
+
+# State-level aggregation if desired ------------------------------------------
+if (state_level){
+  census_data <- census_data %>%
+    mutate(geoid = as.character(paste0(substr(geoid,1,2), "000"))) %>%
+    group_by(USPS, geoid) %>%
+    summarise(population=sum(population, na.rm=TRUE)) %>%
+    as_tibble()
+}
+
+
 
 # Sort by population
 census_data <- census_data %>%
@@ -109,7 +131,6 @@ census_data <- census_data %>%
 if (!is.null(config$spatial_setup$popnodes)) {
   names(census_data)[names(census_data) == "population"] <- config$spatial_setup$popnodes
 }
-dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 if (length(config$spatial_setup$geodata) > 0) {
   geodata_file <- config$spatial_setup$geodata
@@ -119,7 +140,11 @@ if (length(config$spatial_setup$geodata) > 0) {
 write.csv(file = file.path(outdir, geodata_file), census_data, row.names=FALSE)
 print(paste("Wrote geodata file:", file.path(outdir, geodata_file)))
 
-# COMMUTE DATA
+
+
+
+# COMMUTE DATA ------------------------------------------------------------
+
 commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
 commute_data <- commute_data %>%
   mutate(OFIPS = substr(OFIPS,1,5), DFIPS = substr(DFIPS,1,5)) %>%
@@ -128,6 +153,17 @@ commute_data <- commute_data %>%
   group_by(OFIPS,DFIPS) %>%
   summarize(FLOW = sum(FLOW)) %>%
   filter(OFIPS != DFIPS)
+
+# State-level aggregation if desired ------------------------------------------
+if (state_level){
+  commute_data_state <- commute_data %>%
+    mutate(OFIPS_state = as.character(paste0(substr(OFIPS, 1,2), "000")),
+           DFIPS_state = as.character(paste0(substr(DFIPS, 1,2), "000"))) %>%
+    group_by(OFIPS_state, DFIPS_state) %>%
+    summarise(FLOW = sum(FLOW, na.rm=TRUE))
+}
+
+
 
 if(opt$w){
   mobility_file <- 'mobility.txt'
@@ -138,6 +174,10 @@ if(opt$w){
 }
 
 if(endsWith(mobility_file, '.txt')) {
+  
+  # Throw an error if state_level is specified. THis has not been incorportated yet if mobility file is a txt
+  stopifnot("State level build is not available if mobility file is .txt"=state_level) 
+
   # Pads 0's for every geoid and itself, so that nothing gets dropped on the pivot
   padding_table <- tibble(
     OFIPS = census_data$geoid,
@@ -154,11 +194,24 @@ if(endsWith(mobility_file, '.txt')) {
     stop("There was a problem generating the mobility matrix")
   }
   write.table(file = file.path(outdir, mobility_file), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
+  
 } else if(endsWith(mobility_file, '.csv')) {
+  
   rc <- commute_data
   names(rc) <- c("ori","dest","amount")
+  
+  # State-level aggregation if desired ------------------------------------------
+  if (state_level){
+    rc <- rc %>% 
+      mutate(ori = as.character(paste0(substr(ori, 1,2), "000")),
+             dest = as.character(paste0(substr(dest, 1,2), "000"))) %>%
+      group_by(ori, dest) %>%
+      summarise(amount = sum(amount, na.rm=TRUE))
+  }
+  
   rc <- rc[rc$ori != rc$dest,]
   write.csv(file = file.path(outdir, mobility_file), rc, row.names=FALSE)
+  
 } else {
   stop("Only .txt and .csv extensions supported for mobility matrix. Please check config's spatial_setup::mobility.")
 }

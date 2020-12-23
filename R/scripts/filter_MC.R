@@ -53,6 +53,11 @@ if(!('lambda_file' %in% names(config$seeding))) {
   stop("Despite being a folder draw method, filtration method requires the seeding to provide a lambda_file argument.")
 }
 
+
+# Aggregation to state level if in config
+state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
+
+
 ##Load infromationon geographic locations from geodata file.
 suppressMessages(geodata <- report.generation::load_geodata_file(
   paste(
@@ -121,14 +126,32 @@ if(is.null(config$filtering$gt_source)){
   gt_source <- config$filtering$gt_source
 }
 
+
+
+gt_scale <- "US county"
+fips_codes_ <- geodata[[obs_nodename]]
+
+# State-level Ground Truth
+if (state_level){
+  gt_scale <- "US state"
+  fips_codes_ <- substr(fips_codes_, 1,2)
+}
+
 obs <- inference::get_ground_truth(
           data_path = data_path, 
-          fips_codes = geodata[[obs_nodename]],
+          fips_codes = fips_codes_,
           fips_column_name = obs_nodename, 
           start_date = config$start_date, 
           end_date = config$end_date, 
-          gt_source = gt_source
+          gt_source = gt_source,
+          scale = gt_scale
         )
+
+# State-level Ground Truth
+if (state_level){
+  obs <- obs %>%
+    mutate(geoid = as.character(paste0(substr(geoid, 1,2), "000")))
+}
 
 geonames <- unique(obs[[obs_nodename]])
 
