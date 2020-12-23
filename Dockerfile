@@ -135,14 +135,4 @@ RUN . $PYTHON_VENV_DIR/bin/activate \
     && pip install -r $HOME/requirements.txt
 
 
-#####
-# Spark
-#####
-
-ENV SPARK_VERSION 2.4.5
-
-RUN cd /opt \
-    && curl -L http://mirrors.ocf.berkeley.edu/apache/spark/spark-$SPARK_VERSION/spark-$SPARK_VERSION-bin-hadoop2.7.tgz | sudo tar xvfz - \
-    && sudo ln -s spark-$SPARK_VERSION-bin-hadoop2.7 spark
-
 CMD ["/bin/bash"]
