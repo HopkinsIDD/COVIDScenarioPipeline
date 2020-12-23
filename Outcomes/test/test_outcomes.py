@@ -269,3 +269,41 @@ def test_outcomes_read_write_hpar_subclasses():
     hosp_read = pq.read_table('model_output/hosp/000000001.12.hosp.parquet').to_pandas()
     hosp_wrote = pq.read_table('model_output/hosp/000000001.13.hosp.parquet').to_pandas()
     assert((hosp_read == hosp_wrote).all().all())
+
+def test_multishift_notstochdelays():
+    shp = (10, 2) # dateXplace
+    array = np.array(
+            [[28, 39],
+            [24, 16],
+            [11, 24],
+            [19, 32],
+            [ 4, 30],
+            [11, 28],
+            [35,  6],
+            [25,  3],
+            [12,  3],
+            [36, 29]])
+    shifts = np.array(
+            [[1, 0],
+            [2, 1],
+            [1, 0],
+            [2, 2],
+            [1, 2],
+            [0, 1],
+            [1, 1],
+            [1, 2],
+            [1, 2],
+            [1, 0]])
+    expected = np.array(
+       [[ 0, 39],
+        [28,  0],
+        [ 0, 40],
+        [35,  0],
+        [ 0,  0],
+        [34, 32],
+        [ 0, 58],
+        [35,  6],
+        [25,  0],
+        [12, 32]])
+    assert((outcomes.multishift(array, shifts, stoch_delay_flag=False) == expected).all())
+
