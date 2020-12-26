@@ -213,7 +213,7 @@ def read_seir_sim(run_id, prefix, sim_id):
         'parquet'
     ))
     diffI = diffI[diffI['comp'] == 'diffI']
-    dates = diffI.time
+    dates = diffI[diffI['p_comp'] == diffI['p_comp'].unique()[0]].time
     diffI.drop(['comp'], inplace=True, axis=1)
     places = diffI.drop(['time', 'p_comp'], axis=1).columns
     return diffI, places, dates
