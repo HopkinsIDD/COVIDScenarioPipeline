@@ -376,64 +376,126 @@ def dataframe_from_array(data, places, dates, comp_name):
 # @loaded_values A numpy array of dimensions place x time with values containing the probabilities
 def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag = True, npi=None):
     hpar = pd.DataFrame(columns=['geoid', 'p_comp', 'quantity', 'outcome', 'source', 'value'])
-    p_outcomes = pd.DataFrame()
-    for p_comp in diffI['p_comp'].unique():
-        all_data = {}
-        # We store them as numpy matrices. Dimensions is dates X places
-        all_data['incidI'] = diffI[diffI['p_comp']==p_comp].drop(['time', 'p_comp'], axis=1).to_numpy()#.astype(np.int32)
-        outcomes = pd.melt(diffI, id_vars='time', value_name='incidI', var_name='geoid')
-        for new_comp in parameters:
-            if 'source' in parameters[new_comp]:
-                # Read the config for this compartment: if a source is specified, we
-                # 1. compute incidence from binomial draw
-                # 2. compute duration if needed
-                source = parameters[new_comp]['source']
+    all_data = {}
+    p_comps = diffI['p_comp'].unique()
+    for p_comp in p_comps:
+        all_data[p_comp] = {}
+        all_data[p_comp]['incidI'] = diffI[diffI['p_comp']==p_comp].drop(['time', 'p_comp'], axis=1).to_numpy()#.astype(np.int32)
+        
+    # We store them as numpy matrices. Dimensions is dates X places
+    
+    outcomes = pd.melt(diffI, id_vars=['time', 'p_comp'], value_name='incidI', var_name='geoid')
+    for new_comp in parameters:
+        if 'source' in parameters[new_comp]:
+            # Read the config for this compartment: if a source is specified, we
+            # 1. compute incidence from binomial draw
+            # 2. compute duration if needed
+            source = parameters[new_comp]['source']
 
-                if loaded_values is not None:
-                    ## This may be unnecessary
-                    probabilities = \
-                        loaded_values[
-                            (loaded_values['quantity'] == 'probability') &
-                            (loaded_values['outcome'] == new_comp) &
-                            (loaded_values['source'] == source)
-                        ]['value'].to_numpy()
-                    delays = loaded_values[
-                            (loaded_values['quantity'] == 'delay') &
-                            (loaded_values['outcome'] == new_comp) &
-                            (loaded_values['source'] == source)
-                        ]['value'].to_numpy()
+            if loaded_values is not None:
+                ## This may be unnecessary
+                probabilities = \
+                    loaded_values[
+                        (loaded_values['quantity'] == 'probability') &
+                        (loaded_values['outcome'] == new_comp) &
+                        (loaded_values['source'] == source)
+                    ]['value'].to_numpy()
+                delays = loaded_values[
+                        (loaded_values['quantity'] == 'delay') &
+                        (loaded_values['outcome'] == new_comp) &
+                        (loaded_values['source'] == source)
+                    ]['value'].to_numpy()
 
-                else:
-                    probabilities = parameters[new_comp]['probability'].as_random_distribution()(size=len(places)) # one draw per geoid  
-                    if 'rel_probability' in parameters[new_comp]:
-                        probabilities = probabilities * parameters[new_comp]['rel_probability']
-                        probabilities[probabilities > 1] = 1
-                        probabilities[probabilities < 0] = 0
-                    delays = parameters[new_comp]['delay'].as_random_distribution()(size=len(places)) # one draw per geoid
-                
-                probabilities = np.repeat(probabilities[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
-                delays = np.repeat(delays[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
+            else:
+                probabilities = parameters[new_comp]['probability'].as_random_distribution()(size=len(places)) # one draw per geoid  
+                if 'rel_probability' in parameters[new_comp]:
+                    probabilities = probabilities * parameters[new_comp]['rel_probability']
+                    probabilities[probabilities > 1] = 1
+                    probabilities[probabilities < 0] = 0
+                delays = parameters[new_comp]['delay'].as_random_distribution()(size=len(places)) # one draw per geoid
+            
+            probabilities = np.repeat(probabilities[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
+            delays = np.repeat(delays[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
+            delays = np.round(delays).astype(int)
+            if npi is not None:
+                delays = _parameter_reduce(delays, npi.getReduction(f"{new_comp}-delay".lower()), 1)
                 delays = np.round(delays).astype(int)
-                if npi is not None:
-                    delays = _parameter_reduce(delays, npi.getReduction(f"{new_comp}-delay".lower()), 1)
-                    delays = np.round(delays).astype(int)
-                    probabilities = _parameter_reduce(probabilities, npi.getReduction(f"{new_comp}-probability".lower()), 1)
+                probabilities = _parameter_reduce(probabilities, npi.getReduction(f"{new_comp}-probability".lower()), 1)
 
+            for p_comp in p_comps:
                 # Create new compartment incidence:
-                all_data[new_comp] = np.empty_like(all_data['incidI'])
+                all_data[p_comp][new_comp] = np.empty_like(all_data[p_comp]['incidI'])
                 # Draw with from source compartment
                 if stoch_traj_flag:
-                    all_data[new_comp] = np.random.binomial(all_data[source].astype(np.int32), probabilities)
+                    all_data[p_comp][new_comp] = np.random.binomial(all_data[p_comp][source].astype(np.int32), probabilities)
                 else:
-                    all_data[new_comp] = all_data[source] *  (probabilities * np.ones_like(all_data[source]))
+                    all_data[p_comp][new_comp] = all_data[p_comp][source] *  (probabilities * np.ones_like(all_data[p_comp][source]))
 
                 # Shift to account for the delay
                 ## stoch_delay_flag is whether to use stochastic delays or not
                 stoch_delay_flag = False
-                all_data[new_comp] = multishift(all_data[new_comp], delays, stoch_delay_flag = stoch_delay_flag)
+                all_data[p_comp][new_comp] = multishift(all_data[p_comp][new_comp], delays, stoch_delay_flag = stoch_delay_flag)
                 # Produce a dataframe an merge it
-                df = dataframe_from_array(all_data[new_comp], places, dates, new_comp)
+                df = dataframe_from_array(all_data[p_comp][new_comp], places, dates, new_comp)
+                df['p_comp'] = p_comp
                 outcomes = pd.merge(outcomes, df)
+
+            hpar = pd.concat(
+                [
+                    hpar,
+                    pd.DataFrame.from_dict(
+                        {'geoid': places,
+                        'p_comp': [p_comp] * len(places),
+                        'quantity': ['probability'] * len(places),
+                        'outcome': [new_comp] * len(places),
+                        'source': [source] * len(places),
+                        'value': probabilities[0] * np.ones(len(places))}),
+                    pd.DataFrame.from_dict(
+                        {'geoid': places,
+                        'p_comp': [p_comp] * len(places),
+                        'quantity': ['delay'] * len(places),
+                        'outcome': [new_comp] * len(places),
+                        'source': [source] * len(places),
+                        'value': delays[0] * np.ones(len(places))})
+                ],
+                axis=0)
+
+            # Make duration
+            if 'duration' in parameters[new_comp]:
+                if loaded_values is not None:
+                    durations = loaded_values[
+                            (loaded_values['quantity'] == 'duration') &
+                            (loaded_values['outcome'] == new_comp) &
+                            (loaded_values['source'] == source)
+                        ]['value'].to_numpy()
+                else:
+                    durations = parameters[new_comp]['duration'].as_random_distribution()(size=len(places)) # one draw per geoid
+                durations = np.repeat(durations[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
+                durations = np.round(durations).astype(int)
+                if npi is not None:
+                    #import matplotlib.pyplot as plt
+                    #plt.imshow(durations)
+                    #plt.title(durations.mean())
+                    #plt.colorbar()
+                    #plt.savefig('Dbef'+new_comp + '-' + source)
+                    #plt.close()
+                    #print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
+                    durations = _parameter_reduce(durations, npi.getReduction(f"{new_comp}-duration".lower()), 1)
+                    durations = np.round(durations).astype(int)
+                    #plt.imshow(durations)
+                    #plt.title(durations.mean())
+                    #plt.colorbar()
+                    #plt.savefig('Daft'+new_comp + '-' + source)
+                    #plt.close()
+
+                for p_comp in p_comps:
+                    all_data[p_comp][parameters[new_comp]['duration_name']] = np.cumsum(all_data[p_comp][new_comp], axis=0) - \
+                        multishift(np.cumsum(all_data[p_comp][new_comp], axis=0), durations, stoch_delay_flag=stoch_delay_flag)
+
+                    df = dataframe_from_array(all_data[p_comp][parameters[new_comp]['duration_name']], places,
+                                            dates, parameters[new_comp]['duration_name'])
+                    df['p_comp'] = p_comp
+                    outcomes = pd.merge(outcomes, df)
 
                 hpar = pd.concat(
                     [
@@ -441,74 +503,18 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                         pd.DataFrame.from_dict(
                             {'geoid': places,
                             'p_comp': [p_comp] * len(places),
-                            'quantity': ['probability'] * len(places),
+                            'quantity': ['duration'] * len(places),
                             'outcome': [new_comp] * len(places),
                             'source': [source] * len(places),
-                            'value': probabilities[0] * np.ones(len(places))}),
-                        pd.DataFrame.from_dict(
-                            {'geoid': places,
-                            'p_comp': [p_comp] * len(places),
-                            'quantity': ['delay'] * len(places),
-                            'outcome': [new_comp] * len(places),
-                            'source': [source] * len(places),
-                            'value': delays[0] * np.ones(len(places))})
-                    ],
-                    axis=0)
+                            'value': durations[0] * np.ones(len(places))
+                            }
+                        )
+                    ],axis=0)
+        elif 'sum' in parameters[new_comp]:
+            # Sum all concerned compartment.
+            outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
 
-                # Make duration
-                if 'duration' in parameters[new_comp]:
-                    if loaded_values is not None:
-                        durations = loaded_values[
-                                (loaded_values['quantity'] == 'duration') &
-                                (loaded_values['outcome'] == new_comp) &
-                                (loaded_values['source'] == source)
-                            ]['value'].to_numpy()
-                    else:
-                        durations = parameters[new_comp]['duration'].as_random_distribution()(size=len(places)) # one draw per geoid
-                    durations = np.repeat(durations[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
-                    durations = np.round(durations).astype(int)
-                    if npi is not None:
-                        #import matplotlib.pyplot as plt
-                        #plt.imshow(durations)
-                        #plt.title(durations.mean())
-                        #plt.colorbar()
-                        #plt.savefig('Dbef'+new_comp + '-' + source)
-                        #plt.close()
-                        #print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
-                        durations = _parameter_reduce(durations, npi.getReduction(f"{new_comp}-duration".lower()), 1)
-                        durations = np.round(durations).astype(int)
-                        #plt.imshow(durations)
-                        #plt.title(durations.mean())
-                        #plt.colorbar()
-                        #plt.savefig('Daft'+new_comp + '-' + source)
-                        #plt.close()
-
-                    all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp], axis=0) - \
-                        multishift(np.cumsum(all_data[new_comp], axis=0), durations, stoch_delay_flag=stoch_delay_flag)
-
-                    df = dataframe_from_array(all_data[parameters[new_comp]['duration_name']], places,
-                                            dates, parameters[new_comp]['duration_name'])
-                    outcomes = pd.merge(outcomes, df)
-
-                    hpar = pd.concat(
-                        [
-                            hpar,
-                            pd.DataFrame.from_dict(
-                                {'geoid': places,
-                                'p_comp': [p_comp] * len(places),
-                                'quantity': ['duration'] * len(places),
-                                'outcome': [new_comp] * len(places),
-                                'source': [source] * len(places),
-                                'value': durations[0] * np.ones(len(places))
-                                }
-                            )
-                        ],axis=0)
-            elif 'sum' in parameters[new_comp]:
-                # Sum all concerned compartment.
-                outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
-        p_outcomes = pd.concat([p_outcomes, outcomes])
-
-    return p_outcomes, hpar
+    return outcomes, hpar
 
 
 
