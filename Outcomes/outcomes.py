@@ -97,8 +97,8 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
         ))
         diffI = diffI[diffI['comp'] == 'diffI']
         dates = diffI.time
-        diffI.drop(['comp'], inplace = True, axis = 1)
-        places = diffI.drop(['time'], axis=1).columns
+        diffI.drop(['comp', ], inplace = True, axis = 1)
+        places = diffI.drop(['time', 'p_comp'], axis=1).columns
 
         # Load the actual csv file
         # Load the actual csv file
@@ -108,10 +108,10 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
             raise ValueError(f"No 'relative_probablity' quantity in {branching_file}, therefor making it useless")
 
         print('Loaded geoids in loaded relative probablity file:', len(branching_data.geoid.unique()), '', end='')
-        branching_data = branching_data[branching_data['geoid'].isin(diffI.drop('time', axis=1).columns)]
+        branching_data = branching_data[branching_data['geoid'].isin(places)]
         print('Intersect with seir simulation: ', len(branching_data.geoid.unique()), 'keeped')
 
-        if (len(branching_data.geoid.unique()) != diffI.drop('time', axis=1).columns.shape[0]):
+        if (len(branching_data.geoid.unique()) != places.shape[0]):
             raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
 
     subclasses = ['']
