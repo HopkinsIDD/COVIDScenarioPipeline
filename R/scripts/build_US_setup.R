@@ -143,10 +143,14 @@ print(paste("Wrote geodata file:", file.path(outdir, geodata_file)))
 
 
 # COMMUTE DATA ------------------------------------------------------------
-if(state_level & !file.exists(paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility)){
+if(state_level & !file.exists(paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility))){
+
   warning(paste("State-level mobility files must be created manually because `build_US_setup.R` does not generate a state-level mobility file automatically. No valid mobility file named", paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility), "(specified in the config) currently exists. Please check again."))
-} else if(state_level & file.exists(paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility)){
+  
+} else if(state_level & file.exists(paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility))){
+
   warning(paste("Using existing state-level mobility file named", paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility)))
+
 } else{
 
   commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
