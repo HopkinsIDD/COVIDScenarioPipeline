@@ -70,7 +70,7 @@ runs_dir<-params$runs_dir
 reportStateUSPS <- params$state_usps 
 npi_trimmer<-params$npi_trimmer
 npi_label<-ifelse(params$npi_label=="[NONE]", NA, params$npi_label)
-projection_start <- ifelse(params$projection_start=="YYYY/MM/DD", Sys.Date(), params$projection_start)
+projection_start <- ifelse(params$projection_start=="YYYY/MM/DD", as.character(Sys.Date()), params$projection_start)
 pdeath_default<-params$pdeath_default
 pdeath_default_label<-params$pdeath_default_label
 
