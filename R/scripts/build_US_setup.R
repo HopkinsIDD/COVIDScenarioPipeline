@@ -83,7 +83,7 @@ fips_geoid_codes <- dplyr::mutate(fips_codes, geoid=paste0(state_code,county_cod
   dplyr::group_by(geoid) %>% 
   dplyr::summarize(USPS=unique(state))
 
-census_data <- tidyr::left_join(census_data, fips_geoid_codes, by="geoid")
+census_data <- dplyr::left_join(census_data, fips_geoid_codes, by="geoid")
 
 
 # Make each territory one county.
