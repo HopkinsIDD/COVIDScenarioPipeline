@@ -73,17 +73,17 @@ census_data <- tidycensus::get_acs(geography="county", state=filterUSPS,
                                    variables="B01003_001", year=config$spatial_setup$census_year, 
                                    keep_geo_vars=TRUE, geometry=FALSE, show_call=TRUE)
 census_data <- census_data %>%
-  rename(population=estimate, geoid=GEOID) %>%
-  select(geoid, population) %>%
-  mutate(geoid = substr(geoid,1,5))
+  dplyr::rename(population=estimate, geoid=GEOID) %>%
+  dplyr::select(geoid, population) %>%
+  dplyr::mutate(geoid = substr(geoid,1,5))
 
 # Add USPS column
 data(fips_codes)
-fips_geoid_codes <- mutate(fips_codes, geoid=paste0(state_code,county_code)) %>% 
-  group_by(geoid) %>% 
-  summarize(USPS=unique(state))
+fips_geoid_codes <- dplyr::mutate(fips_codes, geoid=paste0(state_code,county_code)) %>% 
+  dplyr::group_by(geoid) %>% 
+  dplyr::summarize(USPS=unique(state))
 
-census_data <- census_data %>% left_join(fips_geoid_codes, by="geoid")
+census_data <- tidyr::left_join(census_data, fips_geoid_codes, by="geoid")
 
 
 # Make each territory one county.
@@ -100,33 +100,33 @@ name_changer[grepl("^72",name_changer)] <- "72000" # Puerto Rico
 name_changer[grepl("^78",name_changer)] <- "78000" # Virgin Islands
 
 census_data <- census_data %>%
-  mutate(geoid = name_changer[geoid]) %>%
-  group_by(geoid) %>%
-  summarize(USPS = unique(USPS), population = sum(population))
+  dplyr::mutate(geoid = name_changer[geoid]) %>%
+  dplyr::group_by(geoid) %>%
+  dplyr::summarize(USPS = unique(USPS), population = sum(population))
 
 
 # Territory populations (except Puerto Rico) taken from from https://www.census.gov/prod/cen2010/cph-2-1.pdf
 terr_census_data <- readr::read_csv(file.path(opt$p,"sample_data","united-states-commutes","census_tracts_island_areas_2010.csv"))
 
 census_data <- terr_census_data %>% 
-  filter(length(filterUSPS) == 0 | ((USPS %in% filterUSPS) & !(USPS %in% census_data)))%>%
+  dplyr::filter(length(filterUSPS) == 0 | ((USPS %in% filterUSPS) & !(USPS %in% census_data)))%>%
   rbind(census_data)
 
 
 # State-level aggregation if desired ------------------------------------------
 if (state_level){
   census_data <- census_data %>%
-    mutate(geoid = as.character(paste0(substr(geoid,1,2), "000"))) %>%
-    group_by(USPS, geoid) %>%
-    summarise(population=sum(population, na.rm=TRUE)) %>%
-    as_tibble()
+    dplyr::mutate(geoid = as.character(paste0(substr(geoid,1,2), "000"))) %>%
+    dplyr::group_by(USPS, geoid) %>%
+    dplyr::summarise(population=sum(population, na.rm=TRUE)) %>%
+    tibble::as_tibble()
 }
 
 
 
 # Sort by population
 census_data <- census_data %>%
-  arrange(population)
+  dplyr::arrange(population)
 
 if (!is.null(config$spatial_setup$popnodes)) {
   names(census_data)[names(census_data) == "population"] <- config$spatial_setup$popnodes
@@ -147,20 +147,20 @@ print(paste("Wrote geodata file:", file.path(outdir, geodata_file)))
 
 commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
 commute_data <- commute_data %>%
-  mutate(OFIPS = substr(OFIPS,1,5), DFIPS = substr(DFIPS,1,5)) %>%
-  mutate(OFIPS = name_changer[OFIPS], DFIPS = name_changer[DFIPS]) %>%
-  filter(OFIPS %in% census_data$geoid, DFIPS %in% census_data$geoid) %>%
-  group_by(OFIPS,DFIPS) %>%
-  summarize(FLOW = sum(FLOW)) %>%
-  filter(OFIPS != DFIPS)
+  dplyr::mutate(OFIPS = substr(OFIPS,1,5), DFIPS = substr(DFIPS,1,5)) %>%
+  dplyr::mutate(OFIPS = name_changer[OFIPS], DFIPS = name_changer[DFIPS]) %>%
+  dplyr::filter(OFIPS %in% census_data$geoid, DFIPS %in% census_data$geoid) %>%
+  dplyr::group_by(OFIPS,DFIPS) %>%
+  dplyr::summarize(FLOW = sum(FLOW)) %>%
+  dplyr::filter(OFIPS != DFIPS)
 
 # State-level aggregation if desired ------------------------------------------
 if (state_level){
-  commute_data_state <- commute_data %>%
-    mutate(OFIPS_state = as.character(paste0(substr(OFIPS, 1,2), "000")),
-           DFIPS_state = as.character(paste0(substr(DFIPS, 1,2), "000"))) %>%
-    group_by(OFIPS_state, DFIPS_state) %>%
-    summarise(FLOW = sum(FLOW, na.rm=TRUE))
+  commute_data <- commute_data %>%
+    dplyr::mutate(OFIPS_state = as.character(paste0(substr(OFIPS, 1,2), "000")),
+                  DFIPS_state = as.character(paste0(substr(DFIPS, 1,2), "000"))) %>%
+    dplyr::group_by(OFIPS_state, DFIPS_state) %>%
+    dplyr::summarise(FLOW = sum(FLOW, na.rm=TRUE))
 }
 
 
@@ -176,18 +176,20 @@ if(opt$w){
 if(endsWith(mobility_file, '.txt')) {
   
   # Throw an error if state_level is specified. THis has not been incorportated yet if mobility file is a txt
-  stopifnot("State level build is not available if mobility file is .txt"=state_level) 
+  if(state_level){
+    stop("State level build is not available if mobility file is .txt. Change the mobility file name to a csv file type in the configuration file if the state level argument is true.")
+  } 
 
   # Pads 0's for every geoid and itself, so that nothing gets dropped on the pivot
-  padding_table <- tibble(
+  padding_table <- tibble::tibble(
     OFIPS = census_data$geoid,
     DFIPS = census_data$geoid,
     FLOW = 0
   )
 
-  rc <- padding_table %>% bind_rows(commute_data)
-  rc <- rc %>% arrange(match(OFIPS, census_data$geoid), match(DFIPS, census_data$geoid))
-  rc <- rc %>% pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
+  rc <- dplyr::bind_rows(padding_table, commute_data) %>% 
+    dplyr::arrange(match(OFIPS, census_data$geoid), match(DFIPS, census_data$geoid)) %>% 
+    dplyr::pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
   if(!isTRUE(all(rc$OFIPS == census_data$geoid))){
     print(rc$OFIPS)
     print(census_data$geoid)
@@ -203,10 +205,10 @@ if(endsWith(mobility_file, '.txt')) {
   # State-level aggregation if desired ------------------------------------------
   if (state_level){
     rc <- rc %>% 
-      mutate(ori = as.character(paste0(substr(ori, 1,2), "000")),
-             dest = as.character(paste0(substr(dest, 1,2), "000"))) %>%
-      group_by(ori, dest) %>%
-      summarise(amount = sum(amount, na.rm=TRUE))
+      dplyr::mutate(ori = as.character(paste0(substr(ori, 1,2), "000")),
+                    dest = as.character(paste0(substr(dest, 1,2), "000"))) %>%
+      dplyr::group_by(ori, dest) %>%
+      dplyr::summarise(amount = sum(amount, na.rm=TRUE))
   }
   
   rc <- rc[rc$ori != rc$dest,]
