@@ -27,14 +27,14 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
                                       incl_geoids=NULL,
                                       geoid_len = 0,
                                       padding_char = "0",
-                                      file_extension = 'auto',
+                                      file_extension = "auto",
                                       name_filter)
 {
-  if(is.null(scenariolabels)){
-      warning("You have not specified scenario labels for this function. You may encounter future errors.")  
+  if (is.null(scenariolabels)) {
+      warning("You have not specified scenario labels for this function. You may encounter future errors.")
     }
   warning("This function loads infection data from hospitalization outputs. Only one IFR scenario is needed to load these data for a given set of model outputs because infection counts will be the same across IFR scenarios.")
-	  
+
   display_dates <- as.Date(display_dates)
   max_date <- max(display_dates)
 
@@ -58,9 +58,9 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
               dplyr::filter(time %in% display_dates)
       }
   }
-  
+
   rc <- list()
-  for (i in 1:length(scn_dirs)) {
+  for (i in seq_len(length(scn_dirs))) {
       rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
                                          num_files = num_files,
                                          name_filter = name_filter,
@@ -95,62 +95,63 @@ load_cum_inf_geounit_dates <- function(scn_dirs,
 ##'          - scenario_name
 ##'
 ##' @export
-load_cum_hosp_geounit_date <- function(scn_dirs,
-                                    num_files = NA,
-                                    scenariolabels = NULL,
-                                    name_filter,
-                                    display_date=config$end_date,
-                                    incl_geoids=NULL,
-                                    geoid_len = 0,
-                                    padding_char = "0",
-                                    file_extension = 'auto'){
+load_cum_hosp_geounit_date <- function(
+  scn_dirs,
+  num_files = NA,
+  scenariolabels = NULL,
+  name_filter,
+  display_date=config$end_date,
+  incl_geoids=NULL,
+  geoid_len = 0,
+  padding_char = "0",
+  file_extension = "auto"
+) {
+  if (is.null(scenariolabels)) {
+    warning("You have not specified scenario labels for this function. You may encounter future errors.")
+  }
 
-    if(is.null(scenariolabels)){
-      warning("You have not specified scenario labels for this function. You may encounter future errors.")
+  display_date <- as.Date(display_date)
+  ##filter to munge the data at the scenario level
+  if (!is.null(incl_geoids)) {
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::filter(!is.na(time) & geoid %in% incl_geoids, time <= display_date) %>%
+        group_by(geoid, sim_num) %>%
+        dplyr::summarize(NincidDeath = sum(incidD),
+          NincidInf = sum(incidI),
+          NincidICU = sum(incidICU),
+          NincidHosp = sum(incidH),
+          NincidVent = sum(incidVent)) %>%
+        ungroup()
     }
-
-    display_date <- as.Date(display_date)
-    ##filter to munge the data at the scenario level
-    if (!is.null(incl_geoids)) {
-         hosp_post_process <- function(x) {
-            x %>%
-                dplyr::filter(!is.na(time) & geoid %in% incl_geoids, time <= display_date) %>%
-                group_by(geoid, sim_num) %>%
-                dplyr::summarize(NincidDeath = sum(incidD),
-                                 NincidInf = sum(incidI),
-                                 NincidICU=sum(incidICU),
-                                 NincidHosp=sum(incidH),
-                                 NincidVent = sum(incidVent)) %>%
-                ungroup()
-        }
-    } else {
-        hosp_post_process <- function(x) {
-            x %>%
-                dplyr::filter(!is.na(time) & time <= display_date) %>%
-                group_by(geoid, sim_num) %>%
-                dplyr::summarize(NincidDeath = sum(incidD),
-                                 NincidInf = sum(incidI),
-                                 NincidICU=sum(incidICU),
-                                 NincidHosp=sum(incidH),
-                                 NincidVent = sum(incidVent)) %>%
-                ungroup()
-        }
+  } else {
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::filter(!is.na(time) & time <= display_date) %>%
+        group_by(geoid, sim_num) %>%
+        dplyr::summarize(NincidDeath = sum(incidD),
+          NincidInf = sum(incidI),
+          NincidICU = sum(incidICU),
+          NincidHosp = sum(incidH),
+          NincidVent = sum(incidVent)) %>%
+        ungroup()
     }
+  }
 
 
-    rc <- list(length=length(scn_dirs))
-    for (i in 1:length(scn_dirs)) {
-        rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
-                                           num_files = num_files,
-                                           name_filter = name_filter,
-                                           post_process = hosp_post_process,
-                                           geoid_len = geoid_len,
-                                           padding_char = padding_char,
-                                           file_extension = file_extension)
-        rc[[i]]$scenario_num <- i
-        rc[[i]]$scenario_name <- scenariolabels[[i]]
-    }
-
+  rc <- list(length = length(scn_dirs))
+  for (i in seq_len(length(scn_dirs))) {
+    rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
+      num_files = num_files,
+      name_filter = name_filter,
+      post_process = hosp_post_process,
+      geoid_len = geoid_len,
+      padding_char = padding_char,
+      file_extension = file_extension)
+    rc[[i]]$scenario_num <- i
+    rc[[i]]$scenario_name <- scenariolabels[[i]]
+  }
+}
 
 
 ##'
@@ -182,10 +183,10 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                         incl_geoids = NULL,
                                         geoid_len = 0,
                                         padding_char = "0",
-                                        file_extension = 'auto') {
+                                        file_extension = "auto") {
 
-    if(is.null(scenariolabels)){
-      warning("You have not specified scenario labels for this function. You may encounter future errors.")  
+    if (is.null(scenariolabels)) {
+      warning("You have not specified scenario labels for this function. You may encounter future errors.")
     }
 
     ##filter to munge the data at the scenario level
@@ -213,16 +214,16 @@ load_hosp_geocombined_totals <- function(scn_dirs,
                                  NICUCurr = sum(icu_curr),
                                  NincidDeath = sum(incidD),
                                  NincidInf = sum(incidI),
-                                 NincidICU=sum(incidICU),
-                                 NincidHosp=sum(incidH),
+                                 NincidICU = sum(incidICU),
+                                 NincidHosp = sum(incidH),
                                  NincidVent = sum(incidVent),
                                  NVentCurr = sum(vent_curr)) %>%
                 ungroup()
         }
     }
 
-    rc <- list(length=length(scn_dirs))
-    for (i in 1:length(scn_dirs)) {
+    rc <- list(length = length(scn_dirs))
+    for (i in seq_len(length(scn_dirs))) {
         rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
                                            name_filter = name_filter,
                                            num_files = num_files,
@@ -233,8 +234,8 @@ load_hosp_geocombined_totals <- function(scn_dirs,
         rc[[i]]$scenario_num <- i
         rc[[i]]$scenario_name <- scenariolabels[[i]]
     }
-    
-    rc %>% 
+
+    rc %>%
       dplyr::bind_rows() %>%
       return()
 }
@@ -251,7 +252,7 @@ load_hosp_geocombined_totals <- function(scn_dirs,
 ##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
 ##' @param geoid_len required length of geoid
 ##' @param padding_char padding
-##' 
+##'
 ##' @return a data frame with columns
 ##'         - sim_num
 ##'         - NhospCurr number of people in hospital on a day
@@ -272,32 +273,35 @@ load_hosp_geounit_threshold <- function(
   scenario_labels = NULL,
   geoid_len = 0,
   padding_char = "0",
-  file_extension = 'auto' 
-){
-    if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
+  file_extension = "auto"
+) {
+  if (sum(names(threshold) == "") > 1) {
+    stop("You provided more than one catch all threshold")
+  }
     catch_all_threshold <- Inf
-    if(sum(names(threshold) == "") > 0){
+    if (sum(names(threshold) == "") > 0) {
       catch_all_threshold <- threshold[names(threshold) == ""]
     }
 
-    if(is.null(scenario_labels)){
-      warning("You have not specified scenario labels for this function. You may encounter future errors.")  
+    if (is.null(scenario_labels)) {
+      warning("You have not specified scenario labels for this function. You may encounter future errors.")
     }
 
-    if(!variable %in% c("incidI", "incidH",  "hosp_curr", "incidICU", "icu_curr", "incidVent", "vent_curr", "incidD")){
+    if (!variable %in% c("incidI", "incidH",  "hosp_curr", "incidICU", "icu_curr", "incidVent", "vent_curr", "incidD")) {
       warning("You have specified a variable name that may not be supported in the current output. You may encounter future errors")
     }
-    
+
     end_date <- as.Date(end_date)
     if (!is.null(incl_geoids)) {
          hosp_post_process <- function(x) {
             x %>%
                 dplyr::filter(!is.na(time), geoid %in% incl_geoids, time <= end_date) %>%
-                group_by(geoid) %>% 
-                group_map(function(.x,.y){
-                  .x <- .x %>% arrange(time)
+                group_by(geoid) %>%
+                group_map(function(.x, .y) {
+                  #' @importFrom magrittr %>%
+                  .x <- .x %>% dplyr::arrange(time)
                   # Take the first element of the arranged data frame that meets the threshold
-                  if(.y$geoid %in% names(threshold)) {
+                  if (.y$geoid %in% names(threshold)) {
                     .x <- .x[which(.x[[variable]] >= threshold[.y$geoid])[1], ]
                     .x$threshold_value <- threshold[.y$geoid]
                   } else {
@@ -307,18 +311,19 @@ load_hosp_geounit_threshold <- function(
                   .x$geoid <- .y$geoid
                   return(.x)
                 }, keep = TRUE) %>%
-                do.call(what=dplyr::bind_rows) %>%
+                do.call(what = dplyr::bind_rows) %>%
                 ungroup()
         }
     } else {
         hosp_post_process <- function(x) {
             x %>%
                 dplyr::filter(!is.na(time), time <= end_date) %>%
-                group_by(geoid) %>% 
-                group_map(function(.x,.y){
-                  .x <- .x %>% arrange(time)
+                group_by(geoid) %>%
+                group_map(function(.x, .y) {
+                  #' @importFrom magritr %>%
+                  .x <- .x %>% dplyr::arrange(time)
                   # Take the first element of the arranged data frame that meets the threshold
-                  if(.y$geoid %in% names(threshold)) {
+                  if (.y$geoid %in% names(threshold)) {
                     .x <- .x[which(.x[[variable]] >= threshold[.y$geoid])[1], ]
                     .x$threshold_value <- threshold[.y$geoid]
                   } else {
@@ -328,12 +333,12 @@ load_hosp_geounit_threshold <- function(
                   .x$geoid <- .y$geoid
                   return(.x)
                 }, keep = TRUE) %>%
-                do.call(what=dplyr::bind_rows) %>%
+                do.call(what = dplyr::bind_rows) %>%
                 ungroup()
         }
     }
-    rc <- list(length=length(scn_dirs))
-    for (i in 1:length(scn_dirs)) {
+    rc <- list(length = length(scn_dirs))
+    for (i in seq_len(length(scn_dirs))) {
         rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
                                            num_files = num_files,
                                            name_filter = name_filter,
@@ -345,7 +350,7 @@ load_hosp_geounit_threshold <- function(
         rc[[i]]$scenario_label <- scenario_labels[[i]]
     }
 
-    rc %>% 
+    rc %>%
       dplyr::bind_rows() %>%
       dplyr::rename(NhospCurr = hosp_curr,
                     NICUCurr = icu_curr,
@@ -364,11 +369,11 @@ load_hosp_geounit_threshold <- function(
 ##'
 ##' @param filename geodata.csv filename
 ##' @param geoid_len length of geoid character string
-##' @param geoid_pad what to pad the geoid character string with 
+##' @param geoid_pad what to pad the geoid character string with
 ##' @param to_lower whether to make all column names lowercase
-##' 
+##'
 ##' @return a data frame with columns
-##'         - 
+##'         -
 ##' @export
 ### all of the peak times for each sim and each county so we can make a figure for when things peak
 load_geodata_file <- function(
@@ -377,16 +382,20 @@ load_geodata_file <- function(
   geoid_pad = "0",
   to_lower = FALSE
 ) {
-  if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
+  if (!file.exists(filename)) {
+    stop(paste(filename, "does not exist in", getwd()))
+  }
   geodata <- readr::read_csv(filename)
 
-  if(to_lower){
+  if (to_lower) {
     names(geodata) <- tolower(names(geodata))
   }
-  if(!('geoid' %in% names(geodata))){stop(paste(filename,"does not have a column named geoid"))}
+  if (!("geoid" %in% names(geodata))) {
+    stop(paste(filename, "does not have a column named geoid"))
+  }
 
-  if(geoid_len > 0){
-    geodata$geoid <- stringr::str_pad(geodata$geoid,geoid_len, pad = geoid_pad)
+  if (geoid_len > 0) {
+    geodata$geoid <- stringr::str_pad(geodata$geoid, geoid_len, pad = geoid_pad)
   }
   return(geodata)
 }
@@ -397,29 +406,35 @@ load_geodata_file <- function(
 ##'
 ##' @param filename shapefile name
 ##' @param geoid_len length of geoid character string
-##' @param geoid_pad what to pad the geoid character string with 
+##' @param geoid_pad what to pad the geoid character string with
 ##' @param to_lower whether to make all column names lowercase
-##' 
+##'
 ##' @return a data frame with columns
-##'         - 
+##'         -
 ##' @export
-load_shape_file<- function(
+load_shape_file <- function(
   filename,
   geoid_len = 0,
   geoid_pad = "0",
   to_lower = FALSE
 ) {
-  if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
+  if (!file.exists(filename)) {
+    stop(paste(filename, "does not exist in", getwd()))
+  }
   shp <- suppressMessages(sf::st_read(filename, quiet = TRUE))
 
-  if(to_lower){
+  if (to_lower) {
     names(shp) <- tolower(names(shp))
   }
-  if(!('geoid' %in% names(shp))){stop(paste(filename,"does not have a column named geoid"))}
-  if(geoid_len > 0){
+  if (!("geoid" %in% names(shp))) {
+    stop(paste(filename, "does not have a column named geoid"))
+  }
+  if (geoid_len > 0) {
 
-    if(is.na(geoid_pad) | nchar(geoid_pad)>1){stop(paste("Invalid geoid_pad value. Please provide a character or numeric value"))}
-    shp$geoid <- stringr::str_pad(shp$geoid,geoid_len, pad = geoid_pad)
+    if (is.na(geoid_pad) | nchar(geoid_pad) > 1) {
+      stop(paste("Invalid geoid_pad value. Please provide a character or numeric value"))
+    }
+    shp$geoid <- stringr::str_pad(shp$geoid, geoid_len, pad = geoid_pad)
   }
   return(shp)
 }
@@ -430,44 +445,44 @@ load_shape_file<- function(
 ##' @param jhu_data_dir data directory
 ##' @param countries character vector of countries
 ##' @param states character vector of states (state abbreviations is US-only)
-##' 
+##'
 ##' @return a data frame with columns
 ##'         - date
 ##'         - NcumulConfirmed
 ##'         - NcumulDeathsObs
 ##'         - NincidConfirmed
 ##'         - NincidDeathsObs
-##'         
+##'
 ##' @export
 load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
                                      countries = c("US"),
                                      states) {
 
   require(magrittr)
-  
-  us_data_only = (countries == c("US"))
-  if(us_data_only) {
+
+  us_data_only <- (countries == c("US"))
+  if (us_data_only) {
     message("For US data, consider using load_usafacts_for_report() instead of load_jhu_csse_for_report().")
   }
 
-  jhu_cases <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID", 
+  jhu_cases <- covidImportation::get_clean_JHUCSSE_data(aggr_level = "UID",
                                    case_data_dir = jhu_data_dir,
-                                   save_raw_data=TRUE,
-                                   us_data_only=us_data_only)
+                                   save_raw_data = TRUE,
+                                   us_data_only = us_data_only)
 
-  jhu_deaths <- covidImportation::get_clean_JHUCSSE_deaths(aggr_level = "UID", 
+  jhu_deaths <- covidImportation::get_clean_JHUCSSE_deaths(aggr_level = "UID",
                                    case_data_dir = jhu_data_dir,
-                                   save_raw_data=TRUE,
-                                   us_data_only=us_data_only)
+                                   save_raw_data = TRUE,
+                                   us_data_only = us_data_only)
 
   jhu_dat <- dplyr::full_join(jhu_cases, jhu_deaths)
 
-  if(us_data_only)
-  {
-    jhu_dat <- jhu_dat %>% dplyr::mutate(Province_State=state_abb)
+  if (us_data_only) {
+    #' @importFrom magrittr %>%
+    jhu_dat <- jhu_dat %>% dplyr::mutate(Province_State = state_abb)
   }
 
-  jhu_dat <- 
+  jhu_dat <-
     jhu_dat %>%
     dplyr::mutate(date = as.Date(Update)) %>%
     dplyr::filter(Country_Region %in% countries) %>%
@@ -486,23 +501,23 @@ load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
 ##'
 ##' @param data_dir data directory to download raw USAFacts data to
 ##' @param states character vector of states (state abbreviations is US-only)
-##' 
+##'
 ##' @return a data frame with columns
 ##'         - date
 ##'         - NcumulConfirmed
 ##'         - NcumulDeathsObs
 ##'         - NincidConfirmed
 ##'         - NincidDeathsObs
-##'         
+##'
 ##' @export
 load_USAFacts_for_report <- function(data_dir = "data/case_data",
                                      states) {
 
   require(magrittr)
 
-  usaf_dat <- covidcommon::get_USAFacts_data(case_data_filename = file.path(data_dir,"USAFacts_case_data.csv"),
+  usaf_dat <- covidcommon::get_USAFacts_data(case_data_filename = file.path(data_dir, "USAFacts_case_data.csv"),
                                               death_data_filename = file.path(data_dir, "USAFacts_death_data.csv"))
-  usaf_dat <- 
+  usaf_dat <-
     usaf_dat %>%
     dplyr::mutate(date = as.Date(Update)) %>%
     dplyr::filter(source %in% states) %>%
@@ -529,7 +544,7 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
 ##' @param scenario_labels config$report$formatting$scenario_labels character vector of scenario labels
 ##' @param geoid_len required length of geoid
 ##' @param padding_char padding
-##' 
+##'
 ##' @return a data frame with columns
 ##'         - scenario_name
 ##'         - geoid
@@ -552,36 +567,38 @@ load_hosp_geounit_relative_to_threshold <- function(
                       scenario_labels = NULL,
                       geoid_len = 0,
                       padding_char = "0",
-                      file_extension = 'auto'
-                      ){
+                      file_extension = "auto"
+                      ) {
 
-  if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
-    catch_all_threshold <- Inf
-  if(sum(names(threshold) == "") > 0){
+  if (sum(names(threshold) == "") > 1) {
+    stop("You provided more than one catch all threshold")
+  }
+  catch_all_threshold <- Inf
+  if (sum(names(threshold) == "") > 0) {
     catch_all_threshold <- threshold[names(threshold) == ""]
   }
-  if(is.null(scenario_labels)){
-    warning("You have not specified scenario labels for this function. You may encounter future errors.")  
+  if (is.null(scenario_labels)) {
+    warning("You have not specified scenario labels for this function. You may encounter future errors.")
   }
 
   end_date <- lubridate::as_date(end_date)
 
-  if(!is.null(incl_geoids)){
-    hosp_post_process <- function(x){
+  if (!is.null(incl_geoids)) {
+    hosp_post_process <- function(x) {
       x %>%
         dplyr::filter(!is.na(time), geoid %in% incl_geoids) %>%
-        dplyr::filter(time <= end_date)  
+        dplyr::filter(time <= end_date)
     }
   } else{
-    hosp_post_process <- function(x){
+    hosp_post_process <- function(x) {
       x %>%
         dplyr::filter(!is.na(time)) %>%
-        dplyr::filter(time <= end_date)  
+        dplyr::filter(time <= end_date)
     }
   }
 
-  rc <- list(length=length(scn_dirs))
-  for (i in 1:length(scn_dirs)) {
+  rc <- list(length = length(scn_dirs))
+  for (i in seq_len(length(scn_dirs))) {
       rc[[i]] <- load_hosp_sims_filtered(scn_dirs[i],
                                          num_files = num_files,
                                          name_filter = name_filter,
@@ -593,7 +610,7 @@ load_hosp_geounit_relative_to_threshold <- function(
       rc[[i]]$scenario_label <- scenario_labels[[i]]
   }
 
-  rc %>% 
+  rc %>%
     dplyr::bind_rows() %>%
     group_by(scenario_label, geoid, time) %>%
     dplyr::summarise(NhospCurr = round(mean(hosp_curr)),
@@ -602,16 +619,17 @@ load_hosp_geounit_relative_to_threshold <- function(
     ungroup %>%
     left_join(data.frame(geoid = names(threshold), threshold_value = threshold), by = c("geoid")) %>%
     dplyr::rename(pltVar = !!variable) %>%
-    dplyr::mutate(prop_needed = pltVar/threshold_value) %>%
+    dplyr::mutate(prop_needed = pltVar / threshold_value) %>%
     dplyr::mutate(log_prop_needed = log(prop_needed)) %>%
-    dplyr::mutate(log_prop_needed = ifelse(pltVar == 0, 
+    ## if numerator is 0, set the value to the floor of the min value among all other log values (for plotting purposes)
+    dplyr::mutate(log_prop_needed = ifelse(pltVar == 0,
                                             floor(min(log_prop_needed[which(is.finite(log_prop_needed))])),
-                                            log_prop_needed)) %>% ## if numerator is 0, set the value to the floor of the min value among all other log values (for plotting purposes)
-    dplyr::mutate(log_prop_needed = ifelse(threshold_value == 0 & pltVar > 0, 
+                                            log_prop_needed)) %>%
+    ## if threshold is 0, set the value to the ceiling of the max value among all other logs values (for plotting purposes)
+    dplyr::mutate(log_prop_needed = ifelse(threshold_value == 0 & pltVar > 0,
                                           ceiling(max(log_prop_needed[which(is.finite(log_prop_needed))])),
-                                          log_prop_needed)) %>% ## if threshold is 0, set the value to the ceiling of the max value among all other logs values (for plotting purposes)
+                                          log_prop_needed)) %>%
     dplyr::rename(!!variable := pltVar) %>%
     return()
 
 }
-
