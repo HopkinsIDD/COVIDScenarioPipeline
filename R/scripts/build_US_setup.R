@@ -143,61 +143,64 @@ print(paste("Wrote geodata file:", file.path(outdir, geodata_file)))
 
 
 # COMMUTE DATA ------------------------------------------------------------
-if(state_level & !file.exists(config$spatial_setup$mobility)){
-  warning(paste("State-level mobility files must be created manually because `build_US_setup.R` does not generate a state-level mobility file automatically. No valid mobility file named", config$spatial_setup$mobility, "(specified in the config) currently exists. Please check again."))
+if(state_level & !file.exists(paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility)){
+  warning(paste("State-level mobility files must be created manually because `build_US_setup.R` does not generate a state-level mobility file automatically. No valid mobility file named", paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility), "(specified in the config) currently exists. Please check again."))
+} else if(state_level & file.exists(paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility)){
+  warning(paste("Using existing state-level mobility file named", paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility)))
 } else{
 
-}
+  commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
+  commute_data <- commute_data %>%
+    dplyr::mutate(OFIPS = substr(OFIPS,1,5), DFIPS = substr(DFIPS,1,5)) %>%
+    dplyr::mutate(OFIPS = name_changer[OFIPS], DFIPS = name_changer[DFIPS]) %>%
+    dplyr::filter(OFIPS %in% census_data$geoid, DFIPS %in% census_data$geoid) %>%
+    dplyr::group_by(OFIPS,DFIPS) %>%
+    dplyr::summarize(FLOW = sum(FLOW)) %>%
+    dplyr::filter(OFIPS != DFIPS)
 
-commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
-commute_data <- commute_data %>%
-  dplyr::mutate(OFIPS = substr(OFIPS,1,5), DFIPS = substr(DFIPS,1,5)) %>%
-  dplyr::mutate(OFIPS = name_changer[OFIPS], DFIPS = name_changer[DFIPS]) %>%
-  dplyr::filter(OFIPS %in% census_data$geoid, DFIPS %in% census_data$geoid) %>%
-  dplyr::group_by(OFIPS,DFIPS) %>%
-  dplyr::summarize(FLOW = sum(FLOW)) %>%
-  dplyr::filter(OFIPS != DFIPS)
-
-if(opt$w){
-  mobility_file <- 'mobility.txt'
-} else if (length(config$spatial_setup$mobility) > 0) {
-  mobility_file <- config$spatial_setup$mobility
-} else {
-  mobility_file <- 'mobility.csv'
-}
-
-if(endsWith(mobility_file, '.txt')) {
-  
-  # Pads 0's for every geoid and itself, so that nothing gets dropped on the pivot
-  padding_table <- tibble::tibble(
-    OFIPS = census_data$geoid,
-    DFIPS = census_data$geoid,
-    FLOW = 0
-  )
-
-  rc <- dplyr::bind_rows(padding_table, commute_data) %>% 
-    dplyr::arrange(match(OFIPS, census_data$geoid), match(DFIPS, census_data$geoid)) %>% 
-    dplyr::pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
-  if(!isTRUE(all(rc$OFIPS == census_data$geoid))){
-    print(rc$OFIPS)
-    print(census_data$geoid)
-    stop("There was a problem generating the mobility matrix")
-  }
-  write.table(file = file.path(outdir, mobility_file), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
-  
-  } else if(endsWith(mobility_file, '.csv')) {
-    
-    rc <- commute_data
-    names(rc) <- c("ori","dest","amount")
-      
-    rc <- rc[rc$ori != rc$dest,]
-    write.csv(file = file.path(outdir, mobility_file), rc, row.names=FALSE)
-    
+  if(opt$w){
+    mobility_file <- 'mobility.txt'
+  } else if (length(config$spatial_setup$mobility) > 0) {
+    mobility_file <- config$spatial_setup$mobility
   } else {
-    stop("Only .txt and .csv extensions supported for mobility matrix. Please check config's spatial_setup::mobility.")
+    mobility_file <- 'mobility.csv'
   }
 
-  print(paste("Wrote mobility file:", file.path(outdir, mobility_file)))
+  if(endsWith(mobility_file, '.txt')) {
+    
+    # Pads 0's for every geoid and itself, so that nothing gets dropped on the pivot
+    padding_table <- tibble::tibble(
+      OFIPS = census_data$geoid,
+      DFIPS = census_data$geoid,
+      FLOW = 0
+    )
+
+    rc <- dplyr::bind_rows(padding_table, commute_data) %>% 
+      dplyr::arrange(match(OFIPS, census_data$geoid), match(DFIPS, census_data$geoid)) %>% 
+      dplyr::pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
+    if(!isTRUE(all(rc$OFIPS == census_data$geoid))){
+      print(rc$OFIPS)
+      print(census_data$geoid)
+      stop("There was a problem generating the mobility matrix")
+    }
+    write.table(file = file.path(outdir, mobility_file), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
+    
+    } else if(endsWith(mobility_file, '.csv')) {
+      
+      rc <- commute_data
+      names(rc) <- c("ori","dest","amount")
+        
+      rc <- rc[rc$ori != rc$dest,]
+      write.csv(file = file.path(outdir, mobility_file), rc, row.names=FALSE)
+      
+    } else {
+      stop("Only .txt and .csv extensions supported for mobility matrix. Please check config's spatial_setup::mobility.")
+    }
+
+    print(paste("Wrote mobility file:", file.path(outdir, mobility_file)))
+  }
 }
+
+
 
 ## @endcond
