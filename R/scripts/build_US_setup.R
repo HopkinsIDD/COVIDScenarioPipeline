@@ -144,8 +144,9 @@ print(paste("Wrote geodata file:", file.path(outdir, geodata_file)))
 
 
 # COMMUTE DATA ------------------------------------------------------------
+if (!file.exists(config$spatial_setup$mobility)){
 
-commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
+  commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
 commute_data <- commute_data %>%
   dplyr::mutate(OFIPS = substr(OFIPS,1,5), DFIPS = substr(DFIPS,1,5)) %>%
   dplyr::mutate(OFIPS = name_changer[OFIPS], DFIPS = name_changer[DFIPS]) %>%
@@ -157,9 +158,9 @@ commute_data <- commute_data %>%
 # State-level aggregation if desired ------------------------------------------
 if (state_level){
   commute_data <- commute_data %>%
-    dplyr::mutate(OFIPS_state = as.character(paste0(substr(OFIPS, 1,2), "000")),
-                  DFIPS_state = as.character(paste0(substr(DFIPS, 1,2), "000"))) %>%
-    dplyr::group_by(OFIPS_state, DFIPS_state) %>%
+    dplyr::mutate(OFIPS = as.character(paste0(substr(OFIPS, 1,2), "000")),
+                  DFIPS = as.character(paste0(substr(DFIPS, 1,2), "000"))) %>%
+    dplyr::group_by(OFIP, DFIPS) %>%
     dplyr::summarise(FLOW = sum(FLOW, na.rm=TRUE))
 }
 
@@ -197,27 +198,28 @@ if(endsWith(mobility_file, '.txt')) {
   }
   write.table(file = file.path(outdir, mobility_file), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
   
-} else if(endsWith(mobility_file, '.csv')) {
-  
-  rc <- commute_data
-  names(rc) <- c("ori","dest","amount")
-  
-  # State-level aggregation if desired ------------------------------------------
-  if (state_level){
-    rc <- rc %>% 
-      dplyr::mutate(ori = as.character(paste0(substr(ori, 1,2), "000")),
-                    dest = as.character(paste0(substr(dest, 1,2), "000"))) %>%
-      dplyr::group_by(ori, dest) %>%
-      dplyr::summarise(amount = sum(amount, na.rm=TRUE))
+  } else if(endsWith(mobility_file, '.csv')) {
+    
+    rc <- commute_data
+    names(rc) <- c("ori","dest","amount")
+    
+    # State-level aggregation if desired ------------------------------------------
+    if (state_level){
+      rc <- rc %>% 
+        dplyr::mutate(ori = as.character(paste0(substr(ori, 1,2), "000")),
+                      dest = as.character(paste0(substr(dest, 1,2), "000"))) %>%
+        dplyr::group_by(ori, dest) %>%
+        dplyr::summarise(amount = sum(amount, na.rm=TRUE))
+    }
+    
+    rc <- rc[rc$ori != rc$dest,]
+    write.csv(file = file.path(outdir, mobility_file), rc, row.names=FALSE)
+    
+  } else {
+    stop("Only .txt and .csv extensions supported for mobility matrix. Please check config's spatial_setup::mobility.")
   }
-  
-  rc <- rc[rc$ori != rc$dest,]
-  write.csv(file = file.path(outdir, mobility_file), rc, row.names=FALSE)
-  
-} else {
-  stop("Only .txt and .csv extensions supported for mobility matrix. Please check config's spatial_setup::mobility.")
-}
 
-print(paste("Wrote mobility file:", file.path(outdir, mobility_file)))
+  print(paste("Wrote mobility file:", file.path(outdir, mobility_file)))
+}
 
 ## @endcond
