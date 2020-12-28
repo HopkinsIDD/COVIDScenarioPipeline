@@ -123,7 +123,6 @@ if (state_level){
 }
 
 
-
 # Sort by population
 census_data <- census_data %>%
   dplyr::arrange(population)
@@ -144,9 +143,13 @@ print(paste("Wrote geodata file:", file.path(outdir, geodata_file)))
 
 
 # COMMUTE DATA ------------------------------------------------------------
-if (!file.exists(config$spatial_setup$mobility)){
+if(state_level & !file.exists(config$spatial_setup$mobility)){
+  warning(paste("State-level mobility files must be created manually because `build_US_setup.R` does not generate a state-level mobility file automatically. No valid mobility file named", config$spatial_setup$mobility, "(specified in the config) currently exists. Please check again."))
+} else{
 
-  commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
+}
+
+commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
 commute_data <- commute_data %>%
   dplyr::mutate(OFIPS = substr(OFIPS,1,5), DFIPS = substr(DFIPS,1,5)) %>%
   dplyr::mutate(OFIPS = name_changer[OFIPS], DFIPS = name_changer[DFIPS]) %>%
@@ -154,17 +157,6 @@ commute_data <- commute_data %>%
   dplyr::group_by(OFIPS,DFIPS) %>%
   dplyr::summarize(FLOW = sum(FLOW)) %>%
   dplyr::filter(OFIPS != DFIPS)
-
-# State-level aggregation if desired ------------------------------------------
-if (state_level){
-  commute_data <- commute_data %>%
-    dplyr::mutate(OFIPS = as.character(paste0(substr(OFIPS, 1,2), "000")),
-                  DFIPS = as.character(paste0(substr(DFIPS, 1,2), "000"))) %>%
-    dplyr::group_by(OFIPS, DFIPS) %>%
-    dplyr::summarise(FLOW = sum(FLOW, na.rm=TRUE))
-}
-
-
 
 if(opt$w){
   mobility_file <- 'mobility.txt'
@@ -176,11 +168,6 @@ if(opt$w){
 
 if(endsWith(mobility_file, '.txt')) {
   
-  # Throw an error if state_level is specified. THis has not been incorportated yet if mobility file is a txt
-  if(state_level){
-    stop("State level build is not available if mobility file is .txt. Change the mobility file name to a csv file type in the configuration file if the state level argument is true.")
-  } 
-
   # Pads 0's for every geoid and itself, so that nothing gets dropped on the pivot
   padding_table <- tibble::tibble(
     OFIPS = census_data$geoid,
@@ -202,16 +189,7 @@ if(endsWith(mobility_file, '.txt')) {
     
     rc <- commute_data
     names(rc) <- c("ori","dest","amount")
-    
-    # State-level aggregation if desired ------------------------------------------
-    if (state_level){
-      rc <- rc %>% 
-        dplyr::mutate(ori = as.character(paste0(substr(ori, 1,2), "000")),
-                      dest = as.character(paste0(substr(dest, 1,2), "000"))) %>%
-        dplyr::group_by(ori, dest) %>%
-        dplyr::summarise(amount = sum(amount, na.rm=TRUE))
-    }
-    
+      
     rc <- rc[rc$ori != rc$dest,]
     write.csv(file = file.path(outdir, mobility_file), rc, row.names=FALSE)
     
