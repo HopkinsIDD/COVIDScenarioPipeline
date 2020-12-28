@@ -160,7 +160,7 @@ if (state_level){
   commute_data <- commute_data %>%
     dplyr::mutate(OFIPS = as.character(paste0(substr(OFIPS, 1,2), "000")),
                   DFIPS = as.character(paste0(substr(DFIPS, 1,2), "000"))) %>%
-    dplyr::group_by(OFIP, DFIPS) %>%
+    dplyr::group_by(OFIPS, DFIPS) %>%
     dplyr::summarise(FLOW = sum(FLOW, na.rm=TRUE))
 }
 
