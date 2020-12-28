@@ -78,7 +78,8 @@ pdeath_default_label<-params$pdeath_default_label
 config <- covidcommon:::load_config(params$config_file)
 geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
                              geoid_len=5,
-                             names = TRUE)
+                             names = TRUE) %>%
+  rename(pop=starts_with("pop"))
 included_geoids <- (geodata %>% filter(USPS==reportStateUSPS))$geoid
 
 ```
