@@ -24,19 +24,30 @@ test_that("all blocks are accpeted when all proposals are better",{
     hpar_orig$value <- runif(nrow(hpar_orig))
     hpar_prop <- npis_prop
     hpar_prop$value <- runif(nrow(hpar_prop))
-                             
+
 
     orig_lls <- data.frame(geoid=c("A","B","C"),ll=rep(-10,3))
     prop_lls <-  data.frame(geoid=c("A","B","C"),ll=rep(-9,3))
 
 
-    tmp <- accept_reject_new_seeding_npis(seed_orig, seed_prop, npis_orig, npis_prop,
-                                          hpar_orig, hpar_prop, orig_lls, prop_lls)
+    tmp <- accept_reject_new_seeding_npis(
+      seeding_orig = seed_orig,
+      seeding_prop = seed_prop,
+      snpi_orig = npis_orig,
+      snpi_prop = npis_prop,
+      hnpi_orig = npis_orig,
+      hnpi_prop = npis_prop,
+      hpar_orig = hpar_orig,
+      hpar_prop = hpar_prop,
+      orig_lls = orig_lls,
+      prop_lls = prop_lls
+    )
 
 
 
     expect_that(tmp$seeding$value, equals(seed_prop$value))
     expect_that(tmp$snpi$value, equals(npis_prop$value))
+    expect_that(tmp$hnpi$value, equals(npis_prop$value))
     expect_that(tmp$hpar$value, equals(hpar_prop$value))
     expect_that(tmp$lls$ll, equals(prop_lls$ll))
 
@@ -75,8 +86,18 @@ test_that("all blocks are rejected when all proposals are 1x10^12 times worse",{
     prop_lls <-  data.frame(geoid=c("A","B","C"),ll=rep(-13,3))
 
 
-    tmp <- accept_reject_new_seeding_npis(seed_orig, seed_prop, npis_orig, npis_prop,
-                                            hpar_orig, hpar_prop, orig_lls, prop_lls)
+    tmp <- accept_reject_new_seeding_npis(
+      seeding_orig = seed_orig,
+      seeding_prop = seed_prop,
+      snpi_orig = npis_orig,
+      snpi_prop = npis_prop,
+      hnpi_orig = npis_orig,
+      hnpi_prop = npis_prop,
+      hpar_orig = hpar_orig,
+      hpar_prop = hpar_prop,
+      orig_lls = orig_lls,
+      prop_lls = prop_lls
+    )
 
 
     expect_that(tmp$seeding$value, equals(seed_orig$value))
@@ -108,7 +129,7 @@ test_that("only middle block is accepted when appropriate",{
                             name=rep(c("X","Y","Z"),3),
                             value=(1:9)*10)
 
-    
+
 
     hpar_orig <- npis_orig
     hpar_orig$value <- runif(nrow(hpar_orig))
@@ -121,8 +142,18 @@ test_that("only middle block is accepted when appropriate",{
     prop_lls$ll[prop_lls$geoid=="B"] <- -1
 
 
-    tmp <- accept_reject_new_seeding_npis(seed_orig, seed_prop, npis_orig, npis_prop,
-                                            hpar_orig, hpar_prop, orig_lls, prop_lls)
+    tmp <- accept_reject_new_seeding_npis(
+      seeding_orig = seed_orig,
+      seeding_prop = seed_prop,
+      snpi_orig = npis_orig,
+      snpi_prop = npis_prop,
+      hnpi_orig = npis_orig,
+      hnpi_prop = npis_prop,
+      hpar_orig = hpar_orig,
+      hpar_prop = hpar_prop,
+      orig_lls = orig_lls,
+      prop_lls = prop_lls
+    )
 
     sd_inds <- which(seed_orig$place!="B")
     npi_inds <- which(npis_orig$geoid!="B")
