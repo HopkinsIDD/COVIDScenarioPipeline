@@ -2,7 +2,7 @@
 #' @param data_path Path where to write the data
 #' @param cache logical indicating whether to cache the data (default = TRUE)
 #' @param gt_source string indicating source of ground truth data. options include "csse" or "usafacts" (default csse)
-#' @param scale string indicating whether "US county" or "US state"-level data 
+#' @param gt_scale string indicating whether "US county" or "US state"-level data 
 #'
 #' @return NULL
 #'
@@ -14,7 +14,7 @@ get_ground_truth_file <- function(data_path, cache = TRUE, gt_source = "csse", g
   }
   if(!(file.exists(data_path) & cache)){
     message(paste("*** Loading Data from", gt_source, "\n"))
-    cases_deaths <- suppressMessages(covidcommon::get_groundtruth_from_source(source = gt_source, gt_scale = gt_scale, variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = ifelse(gt_scale == "US state", TRUE, FALSE)))
+    cases_deaths <- suppressMessages(covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = ifelse(gt_scale == "US state", TRUE, FALSE)))
     cases_deaths  <- dplyr::arrange(
       dplyr::rename(
         dplyr::mutate(
