@@ -122,11 +122,11 @@ if(is.null(config$filtering$gt_source)){
 }
 
 obs <- inference::get_ground_truth(
-          data_path = data_path, 
+          data_path = data_path,
           fips_codes = geodata[[obs_nodename]],
-          fips_column_name = obs_nodename, 
-          start_date = config$start_date, 
-          end_date = config$end_date, 
+          fips_column_name = obs_nodename,
+          start_date = config$start_date,
+          end_date = config$end_date,
           gt_source = gt_source
         )
 
@@ -199,17 +199,18 @@ for(scenario in scenarios) {
       py,
       function(x){
         inference::aggregate_and_calc_loc_likelihoods(
-          dplyr::filter(x,x$time >= min(obs$date),x$time <= max(obs$date)),
-	  all_locations = unique(names(data_stats)),
+          modeled_outcome = dplyr::filter(x,x$time >= min(obs$date),x$time <= max(obs$date)),
+          all_locations = unique(names(data_stats)),
           obs_nodename = obs_nodename,
           config = config,
           obs = obs,
-          data_stats = data_stats,
+          ground_truth_data = data_stats,
           hosp_file = first_global_files[['hosp_filename']],
           hierarchical_stats = hierarchical_stats,
           defined_priors = defined_priors,
           geodata = geodata,
           snpi = arrow::read_parquet(first_global_files[['snpi_filename']]),
+          hnpi = arrow::read_parquet(first_global_files[['hnpi_filename']]),
           hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,source,outcome,sep='_'))
         )
       }
@@ -222,6 +223,7 @@ for(scenario in scenarios) {
     suppressMessages(initial_seeding <- readr::read_csv(first_chimeric_files[['seed_filename']], col_types=readr::cols(place=readr::col_character())))
     initial_seeding$amount <- as.integer(round(initial_seeding$amount))
     initial_snpi <- arrow::read_parquet(first_chimeric_files[['snpi_filename']])
+    initial_hnpi <- arrow::read_parquet(first_chimeric_files[['hnpi_filename']])
     initial_spar <- arrow::read_parquet(first_chimeric_files[['spar_filename']])
     initial_hpar <- arrow::read_parquet(first_chimeric_files[['hpar_filename']])
     chimeric_likelihood_data <- arrow::read_parquet(first_chimeric_files[['llik_filename']])
@@ -251,6 +253,7 @@ for(scenario in scenarios) {
       proposed_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,
                                                     c(lubridate::ymd(c(config$start_date,config$end_date))))
       proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
+      proposed_hnpi <- inference::perturb_snpi(initial_hnpi, config$interventions$settings)
       proposed_spar <- initial_spar
       if(!deathrate %in% names(config$outcomes$settings)){
         stop(paste("Deathrate",deathrate,"does not appear in outcomes::settings in the config"))
@@ -260,6 +263,7 @@ for(scenario in scenarios) {
       ## Write files that need to be written for other code to read
       write.csv(proposed_seeding,this_global_files[['seed_filename']])
       arrow::write_parquet(proposed_snpi,this_global_files[['snpi_filename']])
+      arrow::write_parquet(proposed_hnpi,this_global_files[['hnpi_filename']])
       arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
       arrow::write_parquet(proposed_hpar,this_global_files[['hpar_filename']])
 
@@ -287,18 +291,19 @@ for(scenario in scenarios) {
       all_locations <- rhs[rhs %in% lhs]
 
       proposed_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
-        all_locations,
-        sim_hosp,
-        obs_nodename,
-        config,
-        obs,
-        data_stats,
-        this_global_files[['llik_filename']],
-        hierarchical_stats,
-        defined_priors,
-        geodata,
-        proposed_snpi,
-        dplyr::mutate(proposed_hpar,parameter=paste(quantity,source,outcome, sep = '_'))
+        all_locations = all_locations,
+        modeled_outcome = sim_hosp,
+        obs_nodename = obs_nodename,
+        config = config,
+        obs = obs,
+        ground_truth_data = data_stats,
+        hosp_file = this_global_files[["llik_filename"]],
+        hierarchical_stats = hierarchical_stats,
+        defined_priors = defined_priors,
+        geodata = geodata,
+        snpi = proposed_snpi,
+        hnpi = proposed_hnpi,
+        hpar = dplyr::mutate(proposed_hpar, parameter = paste(quantity, source, outcome, sep = "_"))
       )
 
 
@@ -330,6 +335,8 @@ for(scenario in scenarios) {
         seeding_prop = proposed_seeding,
         snpi_orig = initial_snpi,
         snpi_prop = proposed_snpi,
+        hnpi_orig = initial_hnpi,
+        hnpi_prop = proposed_hnpi,
         hpar_orig = initial_hpar,
         hpar_prop = proposed_hpar,
         orig_lls = chimeric_likelihood_data,
@@ -337,6 +344,7 @@ for(scenario in scenarios) {
       )
       initial_seeding <- seeding_npis_list$seeding
       initial_snpi <- seeding_npis_list$snpi
+      initial_hnpi <- seeding_npis_list$hnpi
       initial_hpar <- seeding_npis_list$hpar
       chimeric_likelihood_data <- seeding_npis_list$ll
       arrow::write_parquet(chimeric_likelihood_data, this_chimeric_files[['llik_filename']])
@@ -347,6 +355,7 @@ for(scenario in scenarios) {
 
       ###Memory managment
       rm(proposed_snpi)
+      rm(proposed_hnpi)
       rm(proposed_hpar)
       rm(proposed_seeding)
     }
@@ -369,6 +378,7 @@ for(scenario in scenarios) {
     output_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block)
     readr::write_csv(initial_seeding,output_chimeric_files[['seed_filename']])
     arrow::write_parquet(initial_snpi,output_chimeric_files[['snpi_filename']])
+    arrow::write_parquet(initial_hnpi,output_chimeric_files[['hnpi_filename']])
     arrow::write_parquet(initial_spar,output_chimeric_files[['spar_filename']])
     arrow::write_parquet(initial_hpar,output_chimeric_files[['hpar_filename']])
     arrow::write_parquet(chimeric_likelihood_data,output_chimeric_files[['llik_filename']])
