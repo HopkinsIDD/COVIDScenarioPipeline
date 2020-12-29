@@ -119,41 +119,11 @@ def _success_x2(test_dir):
     os.chdir(test_dir)
     subprocess.run(["make", "clean"])
 
-    # Make Makefile
-    cmd = ["Rscript", "../../R/scripts/make_makefile.R",
-            "-c", "config.yml",
-            "-p", "../..",
-            "-n", str(multiprocessing.cpu_count()),
-            "-y", sys.executable]
-    complete = subprocess.run(cmd)
-    assert complete.returncode == 0, f"make_makefile.R failed with code {complete.returncode}"
-
-    assert_file("Makefile")
-
-    # Run the Makefile
-    cmd = ["make"]
-    complete = subprocess.run(cmd)
-    assert complete.returncode == 0, f"make failed with code {complete.returncode}"
-
-    assert_dir("model_output/seir")
-    assert_dir("model_output/snpi")
-    assert_dir("model_output/spar")
-    assert_dir("model_output/hosp")
-
+    _success('.')
     # Make clean
     subprocess.run(["make", "clean"])
 
-    # Run the Makefile a second time
-    cmd = ["make"]
-    complete = subprocess.run(cmd)
-    assert complete.returncode == 0, f"make failed with code {complete.returncode}"
-
-    assert_dir("model_output/seir")
-    assert_dir("model_output/snpi")
-    assert_dir("model_output/spar")
-    assert_dir("model_output/hosp")
-    assert_dir("model_output/hpar")
-
+    _success('.')
     # Make clean again
     subprocess.run(["make", "clean"])
 
