@@ -416,13 +416,6 @@ build_hospdeath_geoid_fixedIFR_par <- function(
       left_join(prob_dat, by="geoid")
 
     # Add time things
-    dat_Mild <- hosp_create_delay_frame(
-      "incidI",
-      dat_$p_mild_inf,
-      dat_,
-      c(-Inf,0),
-      "Mild"
-    )
     dat_H <- hosp_create_delay_frame(
       "incidI",
       dat_$p_hosp_inf,
@@ -453,7 +446,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
     )
     data_C <- hosp_create_delay_frame(
       "incidI",
-      dat_$p_confirmed_inf, 
+      dat_$p_confirmed_inf,
       dat_,
       time_hosp_pars,
       "C"
@@ -464,7 +457,6 @@ build_hospdeath_geoid_fixedIFR_par <- function(
 
     stopifnot(
       is.data.table(dat_I) &&
-        is.data.table(dat_Mild) &&
         is.data.table(dat_H) &&
         is.data.table(data_ICU) &&
         is.data.table(data_Vent) &&
@@ -477,13 +469,12 @@ build_hospdeath_geoid_fixedIFR_par <- function(
       function(x, y, ...){
         merge(x, y, all = TRUE, ...)
       },
-      list(dat_I, dat_Mild, dat_H, data_ICU, data_Vent, data_D, data_C)
+      list(dat_I, dat_H, data_ICU, data_Vent, data_D, data_C)
     ) %>%
       replace_na(
         list(
           incidI = 0,
           incidH = 0,
-          incidMild = 0,
           incidICU = 0,
           incidVent = 0,
           incidD = 0,
