@@ -602,7 +602,7 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
 ##'         - prop_needed ratio of needed beds/ventilators relative to threshold value
 ##'         - log_prop_needed log ratio of needed beds/ventilators with plotting edits on the borders
 ##' @export
-load_hosp_geounit_relative_to_threshold <- function(county_dat,
+load_hosp_geounit_relative_to_threshold <- function(outcome_dir,
                                                     threshold,
                                                     variable,
                                                     scenario_levels,
@@ -610,7 +610,8 @@ load_hosp_geounit_relative_to_threshold <- function(county_dat,
                                                     end_date = config$end_date,
                                                     incl_geoids=NULL,
                                                     pdeath_filter,
-                                                    geodat=geodata
+                                                    geodat=geodata, 
+                                                    inference=TRUE
                                                     ){
   
 
@@ -629,6 +630,13 @@ load_hosp_geounit_relative_to_threshold <- function(county_dat,
   
   if(is.null(incl_geoids)){incl_geoids<-unique(county_dat$geoid)}
   
+  county_dat<-load_hosp_sims_filtered(outcome_dir=outcome_dir, 
+                                      pdeath_filter=pdeath_filter, 
+                                      incl_geoids=incl_geoids,
+                                      inference=inference,
+                                      pre_process=function(x){x%>%
+                                          select(geoid, time, pdeath, scenario, ends_with("curr"))})
+  
   county_dat %>% 
     dplyr::left_join(geodat) %>%
     dplyr::mutate(name = factor(name, levels = sort(geodat$name, decreasing=TRUE))) %>%
@@ -636,9 +644,9 @@ load_hosp_geounit_relative_to_threshold <- function(county_dat,
     dplyr::filter(pdeath==pdeath_filter) %>%
     dplyr::mutate(scenario_name=factor(scenario, levels= scenario_levels, labels=scenario_labels)) %>%
     dplyr::group_by(scenario_name, geoid, time, name) %>%
-    dplyr::summarize(NhospCurr=round(mean(NhospCurr)),
-                     NICUCurr=round(mean(NICUCurr)),
-                     NVentCurr=round(mean(NVentCurr)))%>%
+    dplyr::summarize(NhospCurr=round(mean(hosp_curr)),
+                     NICUCurr=round(mean(icu_curr)),
+                     NVentCurr=round(mean(vent_curr)))%>%
     dplyr::ungroup() %>%
     dplyr::left_join(data.frame(geoid = names(threshold), threshold_value = threshold), by = c("geoid")) %>%
     dplyr::rename(pltVar = !!variable) %>%
