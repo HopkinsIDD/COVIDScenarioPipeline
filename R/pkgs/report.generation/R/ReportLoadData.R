@@ -582,7 +582,7 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
 
 ##' Convenience function to display log proportion  
 ##'
-##' @param county_dat df with disaggregated hosp outcomes
+##' @param outcome_dir df with disaggregated hosp outcomes
 ##' @param threshold A named numeric vector where the names are geoids and values are thresholds
 ##' @param variable character string of variable to which to compare threshold
 ##' @param end_date simulation end date character string
@@ -590,6 +590,8 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
 ##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
 ##' @param scenario_levels config$report$formatting$scenario_labels_short character vector of scenario levels
 ##' @param scenario_labels config$report$formatting$scenario_labels character vector of scenario labels
+##' @param inference passed on to load_hosp_sims
+##' @param week will return an estimate for the weekly log_prop_needed peak of needed beds/ventilators
 ##' 
 ##' @return a data frame with columns
 ##'         - scenario_name
@@ -611,7 +613,8 @@ load_hosp_geounit_relative_to_threshold <- function(outcome_dir,
                                                     incl_geoids=NULL,
                                                     pdeath_filter,
                                                     geodat=geodata, 
-                                                    inference=TRUE
+                                                    inference=TRUE,
+                                                    week=FALSE
                                                     ){
   
 
@@ -637,17 +640,35 @@ load_hosp_geounit_relative_to_threshold <- function(outcome_dir,
                                       pre_process=function(x){x%>%
                                           select(geoid, time, pdeath, scenario, ends_with("curr"))})
   
-  county_dat %>% 
+  county_dat<-county_dat %>% 
     dplyr::left_join(geodat) %>%
     dplyr::mutate(name = factor(name, levels = sort(geodat$name, decreasing=TRUE))) %>%
     dplyr::filter(time<=end_date) %>%
     dplyr::filter(pdeath==pdeath_filter) %>%
-    dplyr::mutate(scenario_name=factor(scenario, levels= scenario_levels, labels=scenario_labels)) %>%
-    dplyr::group_by(scenario_name, geoid, time, name) %>%
-    dplyr::summarize(NhospCurr=round(mean(hosp_curr)),
-                     NICUCurr=round(mean(icu_curr)),
-                     NVentCurr=round(mean(vent_curr)))%>%
-    dplyr::ungroup() %>%
+    dplyr::mutate(scenario_name=factor(scenario, levels= scenario_levels, labels=scenario_labels)) 
+  
+  if(week){
+    county_dat<-county_dat %>%
+      dplyr::group_by(scenario_name, geoid, name, time=lubridate::ceiling_date(time, "weeks"), sim_num) %>%
+      dplyr::summarize(hosp_curr=max(hosp_curr),
+                       icu_curr=max(icu_curr),
+                       vent_curr=max(vent_curr))%>%
+      dplyr::group_by(scenario_name, geoid, name, time) %>%
+      dplyr::summarize(NhospCurr=round(mean(hosp_curr)),
+                       NICUCurr=round(mean(icu_curr)),
+                       NVentCurr=round(mean(vent_curr)))%>%
+      dplyr::ungroup()
+    
+  } else{
+    county_dat<-county_dat %>%
+      dplyr::group_by(scenario_name, geoid, name, time) %>%
+      dplyr::summarize(NhospCurr=round(mean(hosp_curr)),
+                       NICUCurr=round(mean(icu_curr)),
+                       NVentCurr=round(mean(vent_curr)))%>%
+      dplyr::ungroup()
+  }
+  
+  county_dat %>%
     dplyr::left_join(data.frame(geoid = names(threshold), threshold_value = threshold), by = c("geoid")) %>%
     dplyr::rename(pltVar = !!variable) %>%
     dplyr::mutate(prop_needed = pltVar/threshold_value) %>%
