@@ -294,6 +294,7 @@ get_USAFacts_data <- function(case_data_filename = "data/case_data/USAFacts_case
 ##' @param value_col_name Confirmed or Deaths
 ##' @param incl_unassigned Includes data unassigned to county-level (default is FALSE)
 ##' @return data frame
+##' @importFrom magrittr %>%
 ##'
 ##'
 download_CSSE_US_data <- function(filename, url, value_col_name, incl_unassigned = FALSE){
@@ -302,24 +303,26 @@ download_CSSE_US_data <- function(filename, url, value_col_name, incl_unassigned
   message(paste("Downloading", url, "to", filename))
   download.file(url, filename, "auto")
 
-  csse_data <- readr::read_csv(filename, col_types = list("FIPS" = col_character())) 
-  csse_data <- tibble::as_tibble(csse_data) 
+  csse_data <- readr::read_csv(filename, col_types = list("FIPS" = col_character())) %>%
+    tibble::as_tibble() 
   if (incl_unassigned){
     csse_data <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
                   !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
                   !is.na(FIPS)) 
   } else{
     csse_data <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
-                  !grepl("unassigned", Admin2, ignore.case = TRUE) & ## probable cases
-                  !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
-                  !is.na(FIPS)) 
+                    !grepl("unassigned", Admin2, ignore.case = TRUE) & ## probable cases
+                    !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
+                    !is.na(FIPS)) 
   }
-  csse_data <- tidyr::pivot_longer(csse_data, cols=contains("/"), names_to="Update", values_to=value_col_name) 
-  csse_data <- dplyr::mutate(csse_data, Update=as.Date(lubridate::mdy(Update)),
+  csse_data <- tidyr::pivot_longer(csse_data, cols=dplyr::contains("/"), names_to="Update", values_to=value_col_name) %>% 
+    dplyr::mutate(Update=as.Date(lubridate::mdy(Update)),
                   FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
-                  FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0"))) 
-  csse_data <- dplyr::filter(csse_data, as.Date(Update) <= as.Date(Sys.time())) 
-  csse_data <- dplyr::distinct(csse_data)
+                  FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0")),
+                  FIPS = ifelse(stringr::str_sub(FIPS, 1, 3)=="900", paste0(stringr::str_sub(FIPS, 4, 5), "000"), FIPS) ## clean FIPS codes for unassigned data
+                  ) %>%
+    dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>%
+    dplyr::distinct()
   csse_data <- suppressWarnings(dplyr::mutate(csse_data, state_abb = state.abb[match(Province_State, state.name)])) 
   csse_data <- suppressWarnings(dplyr::mutate(csse_data, source = ifelse(Province_State=="District of Columbia", "DC",
                   ifelse(is.na(state_abb) & Country_Region=="US", iso2, state_abb))))
@@ -731,18 +734,20 @@ get_groundtruth_from_source <- function(source = "csse", scale = "US county", va
 
   } else if(source == "csse" & scale == "US county"){
 
-    rc <- get_CSSE_US_data(tempfile(),tempfile(), incl_unassigned = incl_unass)
-    rc <- dplyr::select(rc, Update, FIPS, source, !!variables) 
-    rc <- tidyr::drop_na(rc, tidyselect::everything())
+    rc <- get_CSSE_US_data(tempfile(),tempfile(), incl_unassigned = incl_unass) %>%
+      dplyr::select(Update, FIPS, source, !!variables) %>%
+      tidyr::drop_na(tidyselect::everything()) %>%
+      dplyr::ungroup()
 
   } else if(source == "csse" & scale == "US state"){
 
-    rc <- get_CSSE_US_data(incl_unassigned = incl_unass)
-    rc <- dplyr::select(rc, Update, FIPS, source, !!variables) 
-    rc <- dplyr::mutate(rc, FIPS = stringr::str_sub(FIPS, 1, 2)) 
-    rc <- dplyr::group_by(rc, Update, FIPS, source)
-    rc <- dplyr::summarise_if(rc, is.numeric, sum)
-    rc <- tidyr::drop_na(rc, tidyselect::everything())
+    rc <- get_CSSE_US_data(tempfile(), tempfile(),incl_unassigned = incl_unass) %>%
+      dplyr::select(Update, FIPS, source, !!variables) %>%
+      dplyr::mutate(FIPS = paste0(stringr::str_sub(FIPS, 1, 2), "000")) %>%
+      dplyr::group_by(Update, FIPS, source) %>%
+      dplyr::summarise_if(is.numeric, sum) %>%
+      tidyr::drop_na(tidyselect::everything()) %>%
+      dplyr::ungroup()
 
   } else if(source == "csse" & scale == "country"){
 
