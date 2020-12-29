@@ -322,6 +322,7 @@ def test_outcomes_npi():
 
     hosp = pq.read_table('model_output/hosp/000000001.105.hosp.parquet').to_pandas()
     hosp.set_index('time', drop=True, inplace = True)
+    # same as config.yaml (doubled, then NPI halve it)
     for i, place  in enumerate(geoid):
         for dt in hosp.index:
             if dt == date_data:
@@ -345,14 +346,15 @@ def test_outcomes_npi():
                 assert(hosp[hosp['geoid']==place]['incidD'][dt-datetime.timedelta(4)] == 0)
                 assert(hosp[hosp['geoid']==place]['incidICU'][dt] == 0)
     hpar = pq.read_table('model_output/hpar/000000001.105.hpar.parquet').to_pandas()
+    # Doubled everything from previous config.yaml
     for i, place  in enumerate(geoid):
-        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'probability')]['value']) == 0.1)
-        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'delay')]['value']) == 7)
-        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'duration')]['value']) == 7)
-        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidD') & (hpar['quantity'] == 'probability')]['value']) == 0.01)
-        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidD') & (hpar['quantity'] == 'delay')]['value']) == 2)
-        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidICU') & (hpar['quantity'] == 'probability')]['value']) == 0.4)
-        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidICU') & (hpar['quantity'] == 'delay')]['value']) == 0)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'probability')]['value']) == 0.1*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'delay')]['value']) == 7*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'duration')]['value']) == 7*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidD') & (hpar['quantity'] == 'probability')]['value']) == 0.01*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidD') & (hpar['quantity'] == 'delay')]['value']) == 2*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidICU') & (hpar['quantity'] == 'probability')]['value']) == 0.4*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidICU') & (hpar['quantity'] == 'delay')]['value']) == 0*2)
 
 
 

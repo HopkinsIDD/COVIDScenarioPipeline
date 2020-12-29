@@ -199,8 +199,8 @@ def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_
     # Write output
     write_outcome_sim(outcomes, out_run_id, out_prefix, out_sim_id)
     write_outcome_hpar(hpar, out_run_id, out_prefix, out_sim_id)
-    if npi is not None:
-        write_outcome_hnpi(npi, out_run_id, out_prefix, out_sim_id)
+    #if npi is not None:
+    write_outcome_hnpi(npi, out_run_id, out_prefix, out_sim_id)
 
 
 
@@ -245,9 +245,24 @@ def write_outcome_hpar(hpar, run_id, prefix, sim_id):
                                )
                            )
 def write_outcome_hnpi(npi, run_id, prefix, sim_id):
-    npi.writeReductions(
-        file_paths.create_file_name_without_extension(run_id, prefix,sim_id, "hnpi"), "parquet"
-        )
+    if npi is not None:
+        npi.writeReductions(
+            file_paths.create_file_name_without_extension(run_id, prefix,sim_id, "hnpi"), "parquet"
+            )
+    else: 
+        hnpi = pd.DataFrame(columns = ['geoid', 'npi_name', 'start_date', 'end_date', 'parameter', 'reduction'])
+        out_hnpi = pa.Table.from_pandas(hnpi, preserve_index=False)
+        pa.parquet.write_table(out_hnpi,
+                           file_paths.create_file_name(
+                               run_id,
+                               prefix,
+                               sim_id,
+                               'hnpi',
+                               'parquet'
+                               )
+                           )
+
+    
 
 def dataframe_from_array(data, places, dates, comp_name):
     """ 
@@ -319,6 +334,27 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             probabilities = np.repeat(probabilities[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
             delays = np.repeat(delays[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
             delays = np.round(delays).astype(int)
+            # write hpar before NPI
+            for p_comp in p_comps:
+                hpar = pd.concat(
+                    [
+                        hpar,
+                        pd.DataFrame.from_dict(
+                            {'geoid': places,
+                            'p_comp': [p_comp] * len(places),
+                            'quantity': ['probability'] * len(places),
+                            'outcome': [new_comp] * len(places),
+                            'source': [source] * len(places),
+                            'value': probabilities[0] * np.ones(len(places))}),
+                        pd.DataFrame.from_dict(
+                            {'geoid': places,
+                            'p_comp': [p_comp] * len(places),
+                            'quantity': ['delay'] * len(places),
+                            'outcome': [new_comp] * len(places),
+                            'source': [source] * len(places),
+                            'value': delays[0] * np.ones(len(places))})
+                    ],
+                    axis=0)
             if npi is not None:
                 delays = _parameter_reduce(delays, npi.getReduction(f"{new_comp}::delay".lower()), 1)
                 delays = np.round(delays).astype(int)
@@ -342,25 +378,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 df['p_comp'] = p_comp
                 outcomes = pd.merge(outcomes, df)
 
-            hpar = pd.concat(
-                [
-                    hpar,
-                    pd.DataFrame.from_dict(
-                        {'geoid': places,
-                        'p_comp': [p_comp] * len(places),
-                        'quantity': ['probability'] * len(places),
-                        'outcome': [new_comp] * len(places),
-                        'source': [source] * len(places),
-                        'value': probabilities[0] * np.ones(len(places))}),
-                    pd.DataFrame.from_dict(
-                        {'geoid': places,
-                        'p_comp': [p_comp] * len(places),
-                        'quantity': ['delay'] * len(places),
-                        'outcome': [new_comp] * len(places),
-                        'source': [source] * len(places),
-                        'value': delays[0] * np.ones(len(places))})
-                ],
-                axis=0)
+
 
             # Make duration
             if 'duration' in parameters[new_comp]:
@@ -374,6 +392,21 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     durations = parameters[new_comp]['duration'].as_random_distribution()(size=len(places)) # one draw per geoid
                 durations = np.repeat(durations[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
                 durations = np.round(durations).astype(int)
+                for p_comp in p_comps:
+                    hpar = pd.concat(
+                        [
+                            hpar,
+                            pd.DataFrame.from_dict(
+                                {'geoid': places,
+                                'p_comp': [p_comp] * len(places),
+                                'quantity': ['duration'] * len(places),
+                                'outcome': [new_comp] * len(places),
+                                'source': [source] * len(places),
+                                'value': durations[0] * np.ones(len(places))
+                                }
+                            )
+                        ],axis=0)
+
                 if npi is not None:
                     #import matplotlib.pyplot as plt
                     #plt.imshow(durations)
@@ -399,19 +432,6 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     df['p_comp'] = p_comp
                     outcomes = pd.merge(outcomes, df)
 
-                hpar = pd.concat(
-                    [
-                        hpar,
-                        pd.DataFrame.from_dict(
-                            {'geoid': places,
-                            'p_comp': [p_comp] * len(places),
-                            'quantity': ['duration'] * len(places),
-                            'outcome': [new_comp] * len(places),
-                            'source': [source] * len(places),
-                            'value': durations[0] * np.ones(len(places))
-                            }
-                        )
-                    ],axis=0)
         elif 'sum' in parameters[new_comp]:
             # Sum all concerned compartment.
             outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
