@@ -62,6 +62,7 @@ def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id
     )).to_pandas()
 
     if npi_config is not None:
+        diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
         npi = NPI.NPIBase.execute(
             npi_config=npi_config[0],
             global_config=npi_config[1],
@@ -249,7 +250,7 @@ def write_outcome_hnpi(npi, run_id, prefix, sim_id):
         npi.writeReductions(
             file_paths.create_file_name_without_extension(run_id, prefix,sim_id, "hnpi"), "parquet"
             )
-    else: 
+    else:  
         hnpi = pd.DataFrame(columns = ['geoid', 'npi_name', 'start_date', 'end_date', 'parameter', 'reduction'])
         out_hnpi = pa.Table.from_pandas(hnpi, preserve_index=False)
         pa.parquet.write_table(out_hnpi,
@@ -360,6 +361,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 delays = np.round(delays).astype(int)
                 probabilities = _parameter_reduce(probabilities, npi.getReduction(f"{new_comp}::probability".lower()), 1)
 
+            df = pd.DataFrame()
             for p_comp in p_comps:
                 # Create new compartment incidence:
                 all_data[p_comp][new_comp] = np.empty_like(all_data[p_comp]['incidI'])
@@ -374,9 +376,10 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 stoch_delay_flag = False
                 all_data[p_comp][new_comp] = multishift(all_data[p_comp][new_comp], delays, stoch_delay_flag = stoch_delay_flag)
                 # Produce a dataframe an merge it
-                df = dataframe_from_array(all_data[p_comp][new_comp], places, dates, new_comp)
-                df['p_comp'] = p_comp
-                outcomes = pd.merge(outcomes, df)
+                df_p = dataframe_from_array(all_data[p_comp][new_comp], places, dates, new_comp)
+                df_p['p_comp'] = p_comp
+                df = pd.concat([df, df_p])
+            outcomes = pd.merge(outcomes, df)
 
 
 
@@ -423,14 +426,16 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     #plt.savefig('Daft'+new_comp + '-' + source)
                     #plt.close()
 
+                df = pd.DataFrame()
                 for p_comp in p_comps:
                     all_data[p_comp][parameters[new_comp]['duration_name']] = np.cumsum(all_data[p_comp][new_comp], axis=0) - \
                         multishift(np.cumsum(all_data[p_comp][new_comp], axis=0), durations, stoch_delay_flag=stoch_delay_flag)
 
-                    df = dataframe_from_array(all_data[p_comp][parameters[new_comp]['duration_name']], places,
+                    df_p = dataframe_from_array(all_data[p_comp][parameters[new_comp]['duration_name']], places,
                                             dates, parameters[new_comp]['duration_name'])
-                    df['p_comp'] = p_comp
-                    outcomes = pd.merge(outcomes, df)
+                    df_p['p_comp'] = p_comp
+                    df = pd.concat([df, df_p])
+                outcomes = pd.merge(outcomes, df)
 
         elif 'sum' in parameters[new_comp]:
             # Sum all concerned compartment.
