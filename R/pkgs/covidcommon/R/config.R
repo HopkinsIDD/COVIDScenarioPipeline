@@ -17,7 +17,8 @@ config <- NA
 ##'
 ##'Returns a map of configuration loaded from the config YAML
 ##'@param fname Load configuration from fname (optional, otherwise loads from CONFIG_PATH env var)
-##'@example config$parameters_seir$gamma
+##'@examples 
+##'config$parameters_seir$gamma
 ##'
 ##'@export
 load_config <- function(fname) {
@@ -36,7 +37,8 @@ load_config <- function(fname) {
 
 ##'
 ##'Evaluates an expression, returning a numeric value
-##'@example as_evaled_expression(c("2+2", "9*9")) -> (4, 81)
+##'@examples 
+##'as_evaled_expression(c("2+2", "9*9")) -> (4, 81)
 ##'
 ##'@param l the object (scalar or vector) to evaluate
 ##'@return a float evaluation of the expression
@@ -62,7 +64,8 @@ as_evaled_expression <- function(l) {
 
 ##'
 ##'Evaluates an expression, returning a numeric value
-##'@example as_evaled_expression("2+2") -> 4
+##'@examples 
+##'as_evaled_expression("2+2") -> 4
 ##'
 ##'@param obj the string to evaluate
 ##'@return a float evaluation of the expression
