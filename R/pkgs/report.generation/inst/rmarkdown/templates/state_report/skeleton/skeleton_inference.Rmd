@@ -374,7 +374,7 @@ fig_counter <- fig_counter+1
 
 ```{r load_hosp_geounit_relative}
 
-# icu_geounit_relative <- load_hosp_geounit_relative_to_threshold(county_dat=res_state,
+# icu_geounit_relative <- load_hosp_geounit_relative_to_threshold(outcome_dir=runs_dir,
 #                                                                 scenario_levels=scn_levels,
 #                                                                 scenario_labels =scn_labels,
 #                                                                 threshold = beddata_icu,
@@ -384,7 +384,7 @@ fig_counter <- fig_counter+1
 #                                                                 pdeath_filter=pdeath_default)
 # 
 # 
-# hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(county_dat=res_state,
+# hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(outcome_dir=runs_dir,
 #                                                                  threshold = beddata_hosp,
 #                                                                  variable = "NhospCurr",
 #                                                                  scenario_levels=scn_levels,
