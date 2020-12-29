@@ -121,23 +121,9 @@ create_seeding_target_name <- function() {
   return(file.path(config$seeding$lambda_file))
 }
 
-create_US_seeding_make_command <- function() {
+create_seeding_make_command <- function() {
   command_name <- paste0(create_seeding_target_name(),":\n")
   command_name <- paste0(command_name, "\t$(RSCRIPT) $(PIPELINE)/R/scripts/create_seeding.R -c $(CONFIG)")
-  return(command_name)
-}
-
-create_nonUS_seeding_casedata_name <- function() {
-  return(file.path(config$seeding$casedata_file))
-}
-
-create_US_seeding_casedata_name <- function() {
-  return(file.path("data/case_data/case_data.csv"))
-}
-
-create_nonUS_seeding_make_command <- function() {
-  command_name <- paste0(create_seeding_target_name(),":\n")
-  command_name <- paste0(command_name, "\t$(RSCRIPT) $(PIPELINE)/R/scripts/create_seeding.R -c $(CONFIG) -d ", create_nonUS_seeding_casedata_name())
   return(command_name)
 }
 
@@ -285,11 +271,7 @@ if(building_US_setup){
 
 cat("\n")
 
-if(building_US_setup){
-  cat(create_US_seeding_make_command())
-} else{
-  cat(create_nonUS_seeding_make_command())
-}
+cat(create_seeding_make_command())
 
 cat("\n")
 
@@ -363,7 +345,7 @@ if(building_US_setup)
 {
 cat(paste0("
 clean_location_setup:
-\trm -f ", build_location_setup_target_name(), " ", geodata_name(), " ", create_US_seeding_casedata_name()
+\trm -f ", build_location_setup_target_name(), " ", geodata_name(), " ", file.path("data/case_data/case_data.csv")
 ))
 }else{
 cat(paste0("

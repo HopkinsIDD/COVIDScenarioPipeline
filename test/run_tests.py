@@ -93,8 +93,7 @@ def _success_create_seeding_US(test_dir):
 
     # Run Seeding script
     cmd = ["Rscript", "../../R/scripts/create_seeding.R",
-            "-c", "config.yml",
-            "-s", "CSSE"]
+            "-c", "config.yml"]
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"create_seeding.R failed for US setup using JHU CSSE data with code {complete.returncode}"
 
@@ -107,8 +106,7 @@ def _success_create_seeding_nonUS(test_dir):
 
     # Make Makefile
     cmd = ["Rscript", "../../R/scripts/create_seeding.R",
-            "-c", "config.yml",
-            "-d", "data/case_data/case_data.csv"]
+            "-c", "config.yml"]
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"create_seeding.R failed for non-US setup with code {complete.returncode}"
 
@@ -170,7 +168,7 @@ def test_hospitalization_branching():
     assert_dir("model_output/spar")
     assert_dir("model_output/hosp")
     assert_dir("model_output/hpar")
-    
+
 def test_inference():
     os.chdir("test_inference")
 
@@ -252,7 +250,7 @@ def test_inference_multiblock():
     intermediate_prefix = "test_inference/Scenario1/low/test_inference/global/intermediate/000000001."
     final_filename = file_paths.create_file_name("test_inference",final_prefix,1,"llik","parquet")
     intermediate_filename = file_paths.create_file_name("test_inference",intermediate_prefix,2,"llik","parquet")
-    
+
     final_hash = ""
     with open(final_filename,"rb") as f:
         bytes = f.read()
@@ -265,7 +263,7 @@ def test_inference_multiblock():
 
     assert(final_hash == intermediate_hash)
 
-   
+
 
     assert_file("data/test1/seeding.csv")
     assert_file("data/us_data.csv")
@@ -291,4 +289,3 @@ def test_create_seeding_nonUS():
 
 def test_simple_x2():
     _success_x2("test_simple_x2")
-    
