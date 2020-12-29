@@ -307,3 +307,52 @@ def test_multishift_notstochdelays():
         [12, 32]])
     assert((outcomes.multishift(array, shifts, stoch_delay_flag=False) == expected).all())
 
+def test_outcomes_npi():
+    config.clear()
+    config.read(user=False)
+    config.set_file('config_npi.yml')
+    run_id = 1
+    index = 1
+    deathrate = 'high_death_rate'
+    prefix = ''
+    stoch_traj_flag = False
+    outcomes.run_delayframe_outcomes(config, run_id, prefix, int(index), 
+                                             105, prefix, int(index), # output
+                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+
+    hosp = pq.read_table('model_output/hosp/000000001.105.hosp.parquet').to_pandas()
+    hosp.set_index('time', drop=True, inplace = True)
+    for i, place  in enumerate(geoid):
+        for dt in hosp.index:
+            if dt == date_data:
+                assert(hosp[hosp['geoid']==place]['incidI'][dt] == diffI[i])
+                assert(hosp[hosp['geoid']==place]['incidH'][dt+datetime.timedelta(7)] == diffI[i]*.1)
+                assert(hosp[hosp['geoid']==place]['incidD'][dt+datetime.timedelta(2) ] == diffI[i]*.01)
+                assert(hosp[hosp['geoid']==place]['incidICU'][dt+datetime.timedelta(7)] == diffI[i]*.1*.4)
+                for j in range(7):
+                    assert(hosp[hosp['geoid']==place]['hosp_curr'][dt+datetime.timedelta(7+j)] == diffI[i]*.1)
+                assert(hosp[hosp['geoid']==place]['hosp_curr'][dt+datetime.timedelta(7+8)] == 0)
+
+            elif dt < date_data:
+                assert(hosp[hosp['geoid']==place]['incidH'][dt+datetime.timedelta(7)] == 0)
+                assert(hosp[hosp['geoid']==place]['incidI'][dt] == 0)
+                assert(hosp[hosp['geoid']==place]['incidD'][dt+datetime.timedelta(2)] == 0)
+                assert(hosp[hosp['geoid']==place]['incidICU'][dt+datetime.timedelta(7)] == 0)
+                assert(hosp[hosp['geoid']==place]['hosp_curr'][dt+datetime.timedelta(7)] == 0)
+            elif dt > (date_data + datetime.timedelta(7)):
+                assert(hosp[hosp['geoid']==place]['incidH'][dt] == 0)
+                assert(hosp[hosp['geoid']==place]['incidI'][dt-datetime.timedelta(7)] == 0)
+                assert(hosp[hosp['geoid']==place]['incidD'][dt-datetime.timedelta(4)] == 0)
+                assert(hosp[hosp['geoid']==place]['incidICU'][dt] == 0)
+    hpar = pq.read_table('model_output/hpar/000000001.105.hpar.parquet').to_pandas()
+    for i, place  in enumerate(geoid):
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'probability')]['value']) == 0.1)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'delay')]['value']) == 7)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'duration')]['value']) == 7)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidD') & (hpar['quantity'] == 'probability')]['value']) == 0.01)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidD') & (hpar['quantity'] == 'delay')]['value']) == 2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidICU') & (hpar['quantity'] == 'probability')]['value']) == 0.4)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidICU') & (hpar['quantity'] == 'delay')]['value']) == 0)
+
+
+
