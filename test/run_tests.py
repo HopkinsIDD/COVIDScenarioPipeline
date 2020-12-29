@@ -40,6 +40,8 @@ def _success(test_dir):
     assert complete.returncode == 0, f"make failed with code {complete.returncode}"
 
     assert_dir("model_output/seir")
+    assert_dir("model_output/snpi")
+    assert_dir("model_output/spar")
     assert_dir("model_output/hosp")
 
 # teardown
@@ -133,9 +135,10 @@ def _success_x2(test_dir):
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"make failed with code {complete.returncode}"
 
-    assert_dir("model_parameters")
-    assert_dir("model_output")
-    assert_dir("hospitalization")
+    assert_dir("model_output/seir")
+    assert_dir("model_output/snpi")
+    assert_dir("model_output/spar")
+    assert_dir("model_output/hosp")
 
     # Make clean
     subprocess.run(["make", "clean"])
@@ -145,9 +148,11 @@ def _success_x2(test_dir):
     complete = subprocess.run(cmd)
     assert complete.returncode == 0, f"make failed with code {complete.returncode}"
 
-    assert_dir("model_parameters")
-    assert_dir("model_output")
-    assert_dir("hospitalization")
+    assert_dir("model_output/seir")
+    assert_dir("model_output/snpi")
+    assert_dir("model_output/spar")
+    assert_dir("model_output/hosp")
+    assert_dir("model_output/hpar")
 
     # Make clean again
     subprocess.run(["make", "clean"])
@@ -190,8 +195,11 @@ def test_hosp_age_adjust():
 def test_hospitalization_branching():
     _success("test_hospitalization_branching")
 
-    assert_dir("model_output/hosp")
     assert_dir("model_output/seir")
+    assert_dir("model_output/snpi")
+    assert_dir("model_output/spar")
+    assert_dir("model_output/hosp")
+    assert_dir("model_output/hpar")
     
 def test_inference():
     os.chdir("test_inference")
