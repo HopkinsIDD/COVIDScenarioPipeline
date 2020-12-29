@@ -335,14 +335,15 @@ create_filename_list <- function(
   return(rc)
 }
 
-## Create 
+##'@name initialize_mcmc_first_block
+##'@title initialize_mcmc_first_block
 ##'@param slot what is the current slot numbe
 ##'@param block what is the current block
 ##'@param run_id what is the id of this run
 ##'@param global_prefix the prefix to use for global files
 ##'@param chimeric_prefix the prefix to use for chimeric files
 ##'@param python_reticulate An already initialized copy of python set up to do hospitalization runs
-#' @export
+##' @export
 initialize_mcmc_first_block <- function(
   run_id,
   block,
