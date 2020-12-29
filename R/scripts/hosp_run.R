@@ -179,6 +179,10 @@ if (cmd == "all") {
   message(paste("Invalid cmd argument:", cmd, "did not match any of the named args in", paste( p_death, collapse = ", "), "\n"))
   quit("yes", status = 1)
 }
+is_international <- config$spatial_setup$us_model
+if(is.null(is_international)){
+  is_international <- FALSE
+}
 
 ## Running age-adjusted script
 if(run_age_adjust){
