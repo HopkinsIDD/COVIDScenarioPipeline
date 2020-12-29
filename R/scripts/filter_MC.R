@@ -134,7 +134,6 @@ fips_codes_ <- geodata[[obs_nodename]]
 # State-level Ground Truth
 if (state_level){
   gt_scale <- "US state"
-  fips_codes_ <- substr(fips_codes_, 1,2)
 }
 
 obs <- inference::get_ground_truth(
