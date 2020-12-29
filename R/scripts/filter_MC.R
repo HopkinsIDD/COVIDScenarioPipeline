@@ -126,15 +126,8 @@ if(is.null(config$filtering$gt_source)){
   gt_source <- config$filtering$gt_source
 }
 
-
-
-gt_scale <- "US county"
+gt_scale <- ifelse(state_level, "US state", "US county")
 fips_codes_ <- geodata[[obs_nodename]]
-
-# State-level Ground Truth
-if (state_level){
-  gt_scale <- "US state"
-}
 
 obs <- inference::get_ground_truth(
           data_path = data_path, 
@@ -143,14 +136,8 @@ obs <- inference::get_ground_truth(
           start_date = config$start_date, 
           end_date = config$end_date, 
           gt_source = gt_source,
-          scale = gt_scale
+          gt_scale = gt_scale
         )
-
-# State-level Ground Truth
-if (state_level){
-  obs <- obs %>%
-    mutate(geoid = as.character(paste0(substr(geoid, 1,2), "000")))
-}
 
 geonames <- unique(obs[[obs_nodename]])
 
