@@ -63,12 +63,12 @@ if(is.null(config$filtering$gt_source)){
 state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
 if(state_level){
   gt_scale <- "US state"
+  cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = TRUE) 
 } else{
   gt_scale <- "US county"
+  cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale) 
 }
 
-
-cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale) 
 cases_deaths <- cases_deaths %>%
   mutate(FIPS = stringr::str_pad(FIPS, width = 5, side="right", pad="0"))
 
