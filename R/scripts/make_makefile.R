@@ -3,8 +3,7 @@ option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
   optparse::make_option(c("-p", "--pipepath"), action="store", default=Sys.getenv("COVID_PATH", "COVIDScenarioPipeline"), type='character', help="path to the COVIDScenarioPipeline directory"),
   optparse::make_option(c("-n", "--ncoreper"), action="store", default="1", type='character', help="Number of CPUS/jobs for pipeline"),
-  optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable"),  
-  optparse::make_option(c("-f", "--file_prefix"), action="store", default=FALSE, type='logical', help="whether to use the config$spatial_setup$setup_name as the file prefix")
+  optparse::make_option(c("-y", "--python"), action="store", default="python3", type='character', help="path to python executable")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -56,7 +55,6 @@ if(is.null(config$spatial_setup$us_model)) {
   }
 }
 building_US_setup <- config$spatial_setup$us_model
-file_prefix <- ifelse(use_file_prefix, config$spatial_setup$setup_name, "") # prefix of file names 
 
 if(generating_report)
 {
@@ -151,6 +149,7 @@ hospitalization_make_command <- function(simulation,scenario,deathrate, prefix =
   target_name <- hospitalization_target_name(simulation,scenario,deathrate, prefix = prefix)
   dependency_name <- simulation_target_name(simulation,scenario, prefix = prefix)
   if(method == 'age_adjusted'){
+    warning("The age adjusted method is deprecated, and will be removed in the next release")
     command_name <- paste(
       "$(RSCRIPT) $(PIPELINE)/R/scripts/hosp_run.R",
       "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) -p $(PIPELINE) --in-id $(RUN_ID) --out-id $(RUN_ID)",
@@ -191,13 +190,9 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   if(using_importation){
     dependency_name <- paste(dependency_name,importation_target_name(simulation,prefix))
   }
-<<<<<<< HEAD
-  command_name <- paste0("$(PYTHON) -m SEIR -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER) --in-id $(RUN_ID) --out-id $(RUN_ID)")
-=======
   dependency_name <- paste(dependency_name, build_location_setup_target_name())
   dependency_name <- paste(dependency_name, create_seeding_target_name())
-  command_name <- paste0("$(PYTHON) -m SEIR -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER)")
->>>>>>> dev
+  command_name <- paste0("$(PYTHON) -m SEIR -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER) --in-id $(RUN_ID) --out-id $(RUN_ID)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files/directory_exists ",
@@ -240,14 +235,14 @@ report_rmd_make_command <- function(report_name) {
 report_rmd_target_name(report_name), report_name))
 }
 
-run_dependencies <- function(scenarios, simulations, deathrates, prefix="") {
+run_dependencies <- function(scenarios, simulations, deathrates) {
   s <- ":"
   for(scenario in scenarios)
   {
-    s <- paste0(s, " ", simulation_target_name(simulations, scenario, prefix = prefix))
+    s <- paste0(s, " ", simulation_target_name(simulations, scenario))
     for(deathrate in deathrates)
     {
-      s <- paste0(s, " ", hospitalization_target_name(simulations, scenario, deathrate, prefix=prefix))
+      s <- paste0(s, " ", hospitalization_target_name(simulations, scenario, deathrate))
     }
   }
   return(s)
@@ -277,7 +272,7 @@ if(generating_report) {
   cat(report_rmd_make_command(report_name))
 } else {
   cat("run")
-  cat(run_dependencies(scenarios, simulations, deathrates, prefix = file_prefix))
+  cat(run_dependencies(scenarios, simulations, deathrates))
 }
 
 cat("\n")
@@ -308,9 +303,9 @@ for(sim_idx in seq_len(length(simulations))){
   sim <- simulations[sim_idx]
   prev_sim <- dplyr::lag(simulations)[sim_idx]
   for(scenario in scenarios){
-    cat(simulation_make_command(sim,scenario,prev_sim, prefix = file_prefix))
+    cat(simulation_make_command(sim,scenario,prev_sim))
     for(deathrate in deathrates){
-      cat(hospitalization_make_command(sim,scenario,deathrate, prefix = file_prefix))
+      cat(hospitalization_make_command(sim,scenario,deathrate))
     }
   }
 }
@@ -338,23 +333,12 @@ rerun_importation:
 \trm -f .files/*_importation
 "))
 }
-if(use_file_prefix){
-cat(paste0("
-rerun_simulations: clean_simulations
-\trm -f .files/*", file_prefix, scenario, "_simulation*
-rerun_hospitalization:
-\trm -f .files/*", file_prefix, simulations, "_hospitalization*
-clean: clean_simulations clean_hospitalization"
-)) 
-}else{
 cat(paste0("
 rerun_simulations: clean_simulations
 \trm -f .files/*_simulation*
 rerun_hospitalization:
 \trm -f .files/*_hospitalization*
-clean: clean_simulations clean_hospitalization clean_location_setup"
-))  
-}
+clean: clean_simulations clean_hospitalization clean_location_setup"))  
 if(using_importation){
   cat(" clean_importation")
 }
@@ -362,14 +346,6 @@ if(generating_report)
 {
   cat(" clean_reports")
 }
-if(use_file_prefix){
-cat("
-\trm -rf .files
-clean_simulations: rerun_simulations
-\trm -rf model_output/", file_prefix, 
-"clean_hospitalization: rerun_hospitalization
-\trm -rf hospitalization/", file_prefix)
-}else{
 cat("
 \trm -rf .files
 clean_simulations: rerun_simulations
@@ -377,7 +353,6 @@ clean_simulations: rerun_simulations
 clean_hospitalization: rerun_hospitalization
 \trm -rf hospitalization
 ")
-}
 if(generating_report)
 {
 cat(paste0("
