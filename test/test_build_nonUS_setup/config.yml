@@ -21,7 +21,6 @@ spatial_setup:
 seeding:
   method: PoissonDistributed
   lambda_file: data/seeding.csv
-  casedata_file: data/case_data/case_data.csv
 
 seir:
   parameters:

@@ -4,9 +4,9 @@
 #
 # @details
 #
-# 
+#
 # ## Configuration Items
-# 
+#
 # ```yaml
 # start_date: <date>
 # end_date: <date>
@@ -84,31 +84,31 @@ if(!is.null(gt_source)){
   cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = "US county")
   print(paste("Successfully pulled", gt_source, "data for seeding."))
 } else {
-  data_path <- config$filtering$data_path 
+  data_path <- config$filtering$data_path
   if(is.null(data_path)){
     data_path <- config$seeding$casedata_file
     if(is.null(data_path)){
       stop("Please provide a ground truth file for non-us runs with no data source as filtering::data_path or seeding::casedata_file")
     }
   }
-  cases_deaths <- report.generation:::read_file_of_type(gsub(".*[.]", "", data_path))(data_path)
+  cases_deaths <- read.csv(data_path)
   print(paste("Successfully loaded data from ", data_path, "for seeding."))
 }
 
 ## Check some data attributes:
 ## This is a hack:
 if("geoid" %in% names(cases_deaths)){
-  cases_deaths$FIPS = cases_deaths$geoid
+  cases_deaths$FIPS <- cases_deaths$geoid
   warning("Changing FIPS name in seeding. This is a hack")
 }
 if("date" %in% names(cases_deaths)){
-  cases_deaths$Update = cases_deaths$date
+  cases_deaths$Update <- cases_deaths$date
   warning("Changing Update name in seeding. This is a hack")
 }
 obs_nodename <- config$spatial_setup$nodenames
-required_column_names <- c("FIPS", "Update", "Deaths", "incidI")
+required_column_names <- c("FIPS", "Update", "incidI")
 if(!(all(required_column_names %in% names(cases_deaths)))){
-  stop(paste("To create seeding, we require the following columns to exist in the case data",paste(required_column_names, collapse = ", ")))
+  stop(paste("To create seeding, we require the following columns to exist in the case data", paste(required_column_names, collapse = ", ")))
 }
 
 
