@@ -178,8 +178,8 @@ load_hosp_sims_filtered <- function(scenario_dir = 'model_output/hosp',
   
     read_file(files[i]) %>%
       padfn %>%
-      post_process(...) %>%
-      mutate(sim_num = i)
+      mutate(sim_num = i) %>%
+      post_process(...) 
   }
   
   rc<- dplyr::bind_rows(rc)

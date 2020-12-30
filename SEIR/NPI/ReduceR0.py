@@ -4,8 +4,6 @@ import numpy as np
 from .base import NPIBase
 from .Reduce import Reduce
 
-
-
 class ReduceR0(Reduce):
     def __init__(self, *, npi_config, global_config, geoids, loaded_df = None):
         npi_config["parameter"] = "r0"
