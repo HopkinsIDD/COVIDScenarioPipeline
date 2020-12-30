@@ -156,12 +156,12 @@ class TestInterventionsReduce:
                                     npi_config = config["toobig"],
                                     geoids = ["10001","2020","40"])
 
-    def test_Reduce_invalid_parameter(self):
-        config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
-        with pytest.raises(ValueError, match=r'Invalid parameter name.*'):
-            test_result = Reduce(global_config = config["trivial_global"],
-                                    npi_config = config["invalid_parameter"],
-                                    geoids = ["10001","2020","40"])
+    # def test_Reduce_invalid_parameter(self):
+    #     config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
+    #     with pytest.raises(ValueError, match=r'Invalid parameter name.*'):
+    #         test_result = Reduce(global_config = config["trivial_global"],
+    #                                 npi_config = config["invalid_parameter"],
+    #                                 geoids = ["10001","2020","40"])
 
     def test_Reduce_bad_start_date(self):
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")

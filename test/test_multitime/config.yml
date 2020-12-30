@@ -36,11 +36,13 @@ interventions:
     None:
       template: MultiTimeReduce
       parameter: r0
-      periods:
-        - start_date: 2020-04-01
-          end_date: 2020-04-15
-        - start_date: 2020-05-01
-          end_date: 2020-05-15
+      groups:
+        - affected_geoids: "all"
+          periods:
+          - start_date: 2020-04-01
+            end_date: 2020-04-15
+          - start_date: 2020-05-01
+            end_date: 2020-05-15
       value:
         distribution: fixed
         value: 0

@@ -29,6 +29,8 @@ class SpatialSetup:
         if popnodes_key not in self.data:
             raise ValueError(f"popnodes_key: {popnodes_key} does not correspond to a column in geodata.");
         self.popnodes = self.data[popnodes_key].to_numpy() # population
+        if len(np.argwhere(self.popnodes == 0)):
+            raise ValueError(f"There are {len(np.argwhere(self.popnodes == 0))} nodes with population zero, this is not supported.")
 
         # nodenames_key is the name of the column in geodata_file with geoids
         if nodenames_key not in self.data:
@@ -72,6 +74,15 @@ class SpatialSetup:
             for r,c,v in zip(rows, cols, values):
                 errmsg += f"\n({r}, {c}) = {self.mobility[r,c]} > population of '{self.nodenames[r]}' = {self.popnodes[r]}"
             raise ValueError(f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}")
+        
+        tmp = self.popnodes - np.squeeze(np.asarray(self.mobility.sum(axis=1)))
+        tmp[tmp > 0] = 0
+        if tmp.any():
+            row, = np.where(tmp)
+            errmsg = ""
+            for r in row:
+                errmsg += f"\n sum accross row {r} exceed population of node '{self.nodenames[r]}' ({self.popnodes[r]}), by {-tmp[r]}"
+            raise ValueError(f'The following rows in the mobility data exceed the source node populations in geodata:{errmsg}')
 
 
 class Setup:
@@ -135,7 +146,6 @@ class Setup:
         self.spatset = spatial_setup
 
         self.build_setup()
-        self.dynfilter = -np.ones((self.t_span, self.nnodes))
 
         if (self.write_csv or self.write_parquet):
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -153,13 +163,7 @@ class Setup:
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
 
-    def set_filter(self, dynfilter):
-        if dynfilter.shape != (self.t_span, self.nnodes):
-            raise ValueError(f"Filter must have dimensions ({self.t_span}, {self.nnodes}). Actual: ({dynfilter.shape})")
-        self.dynfilter = dynfilter
 
-    def load_filter(self, dynfilter_path):
-        self.set_filter(np.loadtxt(dynfilter_path))
 
 def seeding_draw(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
@@ -290,6 +294,7 @@ def npi_load(fname, extension):
     else:
         raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
     return in_df
+
 # Returns alpha, beta, sigma, and gamma parameters in a tuple.
 # All parameters are arrays of shape (nt_inter, nnodes).
 # They are returned as a tuple because it is numba-friendly for steps_SEIR_nb().
@@ -313,7 +318,60 @@ def parameters_quick_draw(p_config, nt_inter, nnodes):
     beta = R0s * gamma / n_Icomp
     beta = np.full((nt_inter, nnodes), beta)
 
-    return (alpha, beta, sigma, gamma)
+
+    n_parallel_compartments = 1
+    n_parallel_transitions = 0
+    if "parallel_structure" in p_config:
+        if not "compartments" in p_config["parallel_structure"]:
+            raise ValueError(f"A config specifying a parallel structure should assign compartments to that structure")
+        compartments_map = p_config["parallel_structure"]["compartments"].get()
+        n_parallel_compartments = len(compartments_map)
+        compartments_dict = {k : v for v,k in enumerate(compartments_map)}
+        if not "transitions" in p_config["parallel_structure"]:
+            raise ValueError(f"A config specifying a parallel structure should assign transitions to that structure")
+        transitions_map = p_config["parallel_structure"]["transitions"].get()
+        n_parallel_transitions = len(transitions_map)
+    susceptibility_reduction = np.zeros((nt_inter, n_parallel_compartments, nnodes), dtype = 'float64')
+    transmissibility_reduction = np.zeros((nt_inter, n_parallel_compartments, nnodes), dtype = 'float64')
+    transition_rate = np.zeros((nt_inter, n_parallel_transitions, nnodes), dtype = 'float64')
+    transition_from = np.zeros((n_parallel_transitions), dtype = 'int32')
+    transition_to = np.zeros((n_parallel_transitions), dtype = 'int32')
+    if "parallel_structure" in p_config:
+        for index,compartment in enumerate(p_config["parallel_structure"]["compartments"]):
+            if "susceptibility_reduction" in p_config["parallel_structure"]["compartments"][compartment]:
+                susceptibility_reduction[:,index,:] = \
+                    p_config["parallel_structure"]["compartments"][compartment]["susceptibility_reduction"].as_random_distribution()()
+            else:
+                susceptibility_reduction[:,index,:] = 0
+
+            if "transmissibility_reduction" in p_config["parallel_structure"]["compartments"][compartment]:
+                transmissibility_reduction[:,index,:] = \
+                    p_config["parallel_structure"]["compartments"][compartment]["transmissibility_reduction"].as_random_distribution()()
+            else:
+                transmissibility_reduction[:,index,:] = 0
+
+        for transition in range(n_parallel_transitions):
+            transition_rate[:,transition,:] = \
+                p_config["parallel_structure"]["transitions"][transition]["rate"].as_random_distribution()()
+            from_raw = p_config["parallel_structure"]["transitions"][transition]["from"].get()
+            transition_from[transition] = compartments_dict[from_raw]
+            to_raw = p_config["parallel_structure"]["transitions"][transition]["to"].get()
+            transition_to[transition] = compartments_dict[to_raw]
+
+    # Fix me, values have misleading names
+    return (
+        alpha,
+        beta,
+        sigma,
+        gamma,
+        n_parallel_compartments,
+        susceptibility_reduction,
+        transmissibility_reduction,
+        n_parallel_transitions,
+        transition_rate,
+        transition_from,
+        transition_to
+    )
 
 # Returns alpha, beta, sigma, and gamma parameters in a tuple.
 # All parameters are arrays of shape (nt_inter, nnodes).
@@ -321,31 +379,106 @@ def parameters_quick_draw(p_config, nt_inter, nnodes):
 #
 # They are reduced according to the NPI provided.
 def parameters_reduce(p_draw, npi, dt):
-    alpha, beta, sigma, gamma = p_draw # tuple of dataframes
+    alpha, \
+        beta, \
+        sigma, \
+        gamma, \
+        n_parallel_compartments, \
+        susceptibility_reduction, \
+        transmissibility_reduction, \
+        n_parallel_transitions, \
+        transition_rate, \
+        transition_from, \
+        transition_to = p_draw
 
     alpha = _parameter_reduce(alpha, npi.getReduction("alpha"), dt)
     beta = _parameter_reduce(beta, npi.getReduction("r0"), dt)
     sigma = _parameter_reduce(sigma, npi.getReduction("sigma"), dt)
     gamma = _parameter_reduce(gamma, npi.getReduction("gamma"), dt)
+    for compartment in range(n_parallel_compartments):
+        susceptibility_reduction[:,compartment,:] = _parameter_reduce(
+            susceptibility_reduction[:,compartment,:],
+            npi.getReduction("susceptibility_reduction" + " " + str(compartment)),
+            dt
+        )
+        transmissibility_reduction[:,compartment,:] = _parameter_reduce(
+            transmissibility_reduction[:,compartment,:],
+            npi.getReduction("transmissibility_reduction" + " " + str(compartment)),
+            dt
+        )
 
-    return (alpha, beta, sigma, gamma)
+    for transition in range(n_parallel_transitions):
+        transition_rate[:,transition,:] = _parameter_reduce(
+            transition_rate[:,transition,:],
+            npi.getReduction("transition_rate" + " " + str(transition)),
+            dt,
+            "addative"
+        )
+
+    return (
+        alpha,
+        beta,
+        sigma,
+        gamma,
+        n_parallel_compartments,
+        susceptibility_reduction,
+        transmissibility_reduction,
+        n_parallel_transitions,
+        transition_rate,
+        transition_from,
+        transition_to
+    )
 
 # Helper function
-def _parameter_reduce(parameter, reduction, dt):
-    if isinstance(reduction, pd.DataFrame):
-        reduction = reduction.T
-        reduction.index = pd.to_datetime(reduction.index.astype(str))
-        reduction = reduction.resample(str(dt * 24) + 'H').ffill().to_numpy()
-    return parameter * (1 - reduction)
+def _parameter_reduce(parameter, modification, dt, method="multiplicative"):
+    if isinstance(modification, pd.DataFrame):
+        modification = modification.T
+        modification.index = pd.to_datetime(modification.index.astype(str))
+        modification = modification.resample(str(dt * 24) + 'H').ffill().to_numpy()
+    if method == "multiplicative":
+        return parameter * (1 - modification)
+    elif method == "addative":
+        return parameter + modification
+
 
 # Write parameters generated by parameters_quick_draw() to file
 def parameters_write(parameters, fname, extension):
-    alpha, beta, sigma, gamma = parameters
+    alpha, \
+        beta, \
+        sigma, \
+        gamma, \
+        n_parallel_compartments, \
+        susceptibility_reduction, \
+        transmissibility_reduction, \
+        n_parallel_transitions, \
+        transition_rate, \
+        transition_from, \
+        transition_to = parameters
+
     out_df = pd.DataFrame([alpha[0][0],
                             beta[0][0] * n_Icomp / gamma[0][0],
                             sigma[0][0],
-                            gamma[0][0] / n_Icomp], \
-                            index = ["alpha","R0","sigma","gamma"], columns = ["value"])
+                            gamma[0][0] / n_Icomp,
+                            n_parallel_compartments,
+                            *[effect for effect in susceptibility_reduction[0,:,0]],
+                            *[reduction for reduction in transmissibility_reduction[0,:,0]],
+                            n_parallel_transitions,
+                            *[rate for rate in transition_rate[0,:,0] ],
+                            *[compartment for compartment in transition_from ],
+                            *[compartment for compartment in transition_to ]
+    ], \
+                            index = ["alpha",
+                                     "R0",
+                                     "sigma",
+                                     "gamma",
+                                     "n_parallel_compartments",
+                                     *[str(x) + " susceptibility reduction" for x in range(n_parallel_compartments)],
+                                     *[str(x) + " transmissibility reduction" for x in range(n_parallel_compartments)],
+                                     "n_parallel_transitions",
+                                     *[str(x) + " transition rate" for x in range(n_parallel_transitions)],
+                                     *[str(x) + " transition from" for x in range(n_parallel_transitions)],
+                                     *[str(x) + " transition to" for x in range(n_parallel_transitions)],
+                            ], columns = ["value"])
 
     if extension == "csv":
         out_df.to_csv(f"{fname}.{extension}", index_label="parameter")
@@ -357,6 +490,7 @@ def parameters_write(parameters, fname, extension):
     else:
         raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
 
+# Write seeding used to file
 def seeding_write(seeding, fname, extension):
     raise NotImplementedError(f"It is not yet possible to write the seeding to a file")
 
@@ -370,16 +504,50 @@ def parameters_load(fname, extension, nt_inter, nnodes):
         raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
 
     alpha = float(pars[pars['parameter'] == 'alpha'].value)
-    sigma = float(pars[pars['parameter'] == 'sigma'].value)
     gamma = float(pars[pars['parameter'] == 'gamma'].value) * n_Icomp
     beta =  float(pars[pars['parameter'] == 'R0'].value) * gamma / n_Icomp
+    sigma = float(pars[pars['parameter'] == 'sigma'].value)
 
     alpha = np.full((nt_inter, nnodes), alpha)
+    beta =  np.full((nt_inter, nnodes), beta)
     sigma = np.full((nt_inter, nnodes), sigma)
     gamma = np.full((nt_inter, nnodes), gamma)
-    beta =  np.full((nt_inter, nnodes), beta)
-
-    return (alpha, beta, sigma, gamma)
 
 
+    n_parallel_compartments = int(pars[pars['parameter'] == 'n_parallel_compartments'].value)
+    n_parallel_transitions = int(pars[pars['parameter'] == 'n_parallel_transitions'].value)
 
+    susceptibility_reduction = np.ones((nt_inter, n_parallel_compartments, nnodes), dtype = 'float64')
+    transmissibility_reduction = np.ones((nt_inter, n_parallel_compartments, nnodes), dtype = 'float64')
+    transition_rate = np.zeros((nt_inter, n_parallel_transitions, nnodes), dtype = 'float64')
+    transition_from = np.zeros((n_parallel_transitions), dtype = 'int32')
+    transition_to = np.zeros((n_parallel_transitions), dtype = 'int32')
+
+    for compartment in range(n_parallel_compartments):
+        susceptibility_reduction[:,compartment,:] = \
+            float(pars[pars['parameter'] == (str(compartment) + ' susceptibility reduction')].value)
+        transmissibility_reduction[:,compartment,:] = \
+            float(pars[pars['parameter'] == (str(compartment) + ' transmissibility reduction')].value)
+    for transition in range(n_parallel_transitions):
+        transition_rate[:,transition,:] = \
+            float(pars[pars['parameter'] == (str(transition) + ' transition_rate')].value)
+        transition_from[transition] = \
+            int(pars[pars['parameter'] == (str(transition) + ' transition_from')].value)
+        transition_to[transition] = \
+            int(pars[pars['parameter'] == (str(transition) + ' transition_to')].value)
+
+
+
+    return (
+        alpha,
+        beta,
+        sigma,
+        gamma,
+        n_parallel_compartments,
+        susceptibility_reduction,
+        transmissibility_reduction,
+        n_parallel_transitions,
+        transition_rate,
+        transition_from,
+        transition_to
+    )

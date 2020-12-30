@@ -54,6 +54,11 @@ dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 # Aggregation to state level if in config
 state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
 
+dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
+# commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
+# census_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","census_tracts_2010.csv", sep = '/'))
+
+
 # Get census key
 census_key = Sys.getenv("CENSUS_API_KEY")
 if(length(config$importation$census_api_key) != 0){
@@ -63,8 +68,6 @@ if(census_key == ""){
   stop("no census key found -- please set CENSUS_API_KEY environment variable or specify importation::census_api_key in config file")
 }
 tidycensus::census_api_key(key = census_key)
-
-
 
 
 # CENSUS DATA -------------------------------------------------------------

@@ -139,7 +139,7 @@ if (!file.exists(file.path(outdir, paste0(last_sim_id, "imps.csv")))) {
 }
 
 
-if (!file.exists(file.path(outdir, paste0(last_sim_id, "impa.csv")))) {
+if (!file.exists(file.path(outdir, paste0(sprintf("%09d",num_simulations), ".impa.csv")))) {
   print("IMPORT 3: DISTRIBUTE")
   run_full_distrib_imports(
     states_of_interest=dest,
@@ -158,7 +158,7 @@ if (!file.exists(file.path(outdir, paste0(last_sim_id, "impa.csv")))) {
     cores=opts$j,
     n_sim=num_simulations
   )
- } 
+} 
 
 ## Move files
 for(simulation in seq_len(num_simulations)){

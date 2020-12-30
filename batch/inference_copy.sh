@@ -54,6 +54,7 @@ do
 		# Copy the data
 		copy_file_of_type $all_files "hosp" $i
 		copy_file_of_type $all_files "snpi" $i
+		copy_file_of_type $all_files "hnpi" $i
 		copy_file_of_type $all_files "spar" $i
 	fi
 done
