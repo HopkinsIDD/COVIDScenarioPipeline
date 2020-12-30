@@ -10,7 +10,7 @@ get_minimal_setup <- function () {
     #3geoids
     geoids <- c("06001", "06002", "06003", "32001","32002","32003")
     USPS <- c(rep("CA",3), rep("NY",3))
-    
+
     ##list of lcations to consider...all of them
     all_locations <- geoids
 
@@ -21,7 +21,7 @@ get_minimal_setup <- function () {
     ##TODO
     times <- seq(as.Date("2020-02-15"),as.Date("2020-06-30"), by="days")
     day <- 1:length(times)
-    
+
     obs_sims <- list()
     for (i in 1:length(geoids)) {
         obs_sims[[i]] <- dplyr::tibble(date = times,
@@ -30,7 +30,7 @@ get_minimal_setup <- function () {
                               confirmed_incid = rpois(length(day), 10000*dnorm(day, 32, 10)))
     }
     obs <- dplyr::bind_rows(obs_sims)
-    
+
 
     ##Aggregate the observed data to the appropriate level
     geonames <- unique(obs[[obs_nodename]])
@@ -61,7 +61,7 @@ get_minimal_setup <- function () {
              likelihood = list(
                  dist="sqrtnorm",
                  param=0.5))
-    
+
 
     ## Compute statistics
     data_stats <- lapply(
@@ -75,19 +75,19 @@ get_minimal_setup <- function () {
                            stat_list = config$filtering$statistics)
         }) %>%
         setNames(geonames)
-    
+
     ##Simulated data per geoid, multiple vars. Just perturb obs  by default
     sim_hosp <- obs %>%
         dplyr::rename(incidD = death_incid, incidC = confirmed_incid) %>%
         dplyr::mutate(incidD = incidD + rpois(length(incidD), incidD))%>%
         dplyr::mutate(incidC = incidC + rpois(length(incidC), incidC))%>%
         dplyr::rename(time=date)
-    
+
     ##the observed node name.
     obs_nodename <- "geoid"
 
-    
-    
+
+
     ##dummy file name
     hosp_file <- "SillyFile.parquet"
 
@@ -125,9 +125,26 @@ get_minimal_setup <- function () {
                     end_date = "2020-05-22",
                     parameter = "r0",
                     reduction = runif(3,-.8, -.5))
-             
+
     snpi <- dplyr::bind_rows(npi1, npi2A, npi2B)
 
+    ##The file containing information on the given hospitalization npis. Creating 2 by default.
+    npi1 <- dplyr::tibble(geoid=geoids,
+                   npi_name = "local_variance",
+                   start_date = "2020-01-01",
+                   end_date = "2020-06-30",
+                   parameter = "hosp::inf",
+                   reduction = runif(6,-.5, .5))
+
+    npi2 <- dplyr::tibble(geoid = geoids[1:3],
+                    npi_name = "full_lockdown_CA",
+                    start_date = "2020-03-25",
+                    end_date = "2020-06-01",
+                    parameter = "confirmed::inf",
+                    reduction = runif(3,-.8, -.5))
+
+
+    hnpi <- dplyr::bind_rows(npi1, npi2)
 
     ##Set up hospitalizatoin params.
     hpar1 <- dplyr::tibble(geoid=geoids,
@@ -139,7 +156,7 @@ get_minimal_setup <- function () {
                     value=.07)
 
     hpar <- dplyr::bind_rows(hpar1, hpar2)
-    
+
 
     return(list(all_locations=all_locations,
                 sim_hosp=sim_hosp,
@@ -152,31 +169,34 @@ get_minimal_setup <- function () {
                 defined_priors=defined_priors,
                 geodata = geodata,
                 snpi=snpi,
+                hnpi=hnpi,
                 hpar=hpar))
 }
 
 
 
-test_that("aggregate_and_calc_loc_likelihoods returns a likelihood per location and right columsn", {
+test_that("aggregate_and_calc_loc_likelihoods returns a likelihood per location and right columns", {
 
     stuff <- get_minimal_setup()
 
-    tmp <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                              stuff$sim_hosp,
-                                              stuff$obs_nodename,
-                                              stuff$config,
-                                              stuff$obs,
-                                              stuff$data_stats,
-                                              stuff$hosp_file,
-                                              stuff$hierarchical_stats,
-                                              stuff$defined_priors,
-                                              stuff$geodata,
-                                              stuff$snpi)
+    tmp <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
 
     expect_that(nrow(tmp), equals(length(stuff$all_locations)))
     expect_that(sort(colnames(tmp)), equals(sort(c("ll","filename",stuff$obs_nodename))))
-    
+
 })
 
 test_that("likelihood of perfect data is less that likelihood of imperfect data", {
@@ -184,37 +204,41 @@ test_that("likelihood of perfect data is less that likelihood of imperfect data"
     stuff <- get_minimal_setup()
 
     alt_sim_hosp <- stuff$sim_hosp
-    
+
     alt_sim_hosp$incidD <- stuff$obs$death_incid
     alt_sim_hosp$incidC <- stuff$obs$confirmed_incid
 
-    
-    tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                              stuff$sim_hosp,
-                                              stuff$obs_nodename,
-                                              stuff$config,
-                                              stuff$obs,
-                                              stuff$data_stats,
-                                              stuff$hosp_file,
-                                              stuff$hierarchical_stats,
-                                              stuff$defined_priors,
-                                              stuff$geodata,
-                                              stuff$snpi)
 
-    tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                              alt_sim_hosp,
-                                              stuff$obs_nodename,
-                                              stuff$config,
-                                              stuff$obs,
-                                              stuff$data_stats,
-                                              stuff$hosp_file,
-                                              stuff$hierarchical_stats,
-                                              stuff$defined_priors,
-                                              stuff$geodata,
-                                              stuff$snpi)
+    tmp1 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
+
+    tmp2 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = alt_sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
 
-    
+
     expect_gt(sum(tmp2$ll), sum(tmp1$ll))
 
 })
@@ -223,154 +247,170 @@ test_that("likelihood of perfect data is less that likelihood of imperfect data"
 test_that("removing deaths as a stat makes the likelihood invariant to changes in deaths",{
 
     stuff <- get_minimal_setup()
-    
+
     stuff$config$filtering$statistics$sum_deaths <- NULL
 
     ##remove deaths as a variable
-    for(location in stuff$all_locations) { 
+    for(location in stuff$all_locations) {
         stuff$data_stats[[location]]$sum_deaths <- NULL
     }
 
-    
+
     alt_sim_hosp <-stuff$sim_hosp
     alt_sim_hosp$incidD <-  alt_sim_hosp$incidD + 200 #or any arbitrary pertibation
-    
-    tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi)
 
-    
+    tmp1 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
-     tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                                alt_sim_hosp,
-                                                stuff$obs_nodename,
-                                                stuff$config,
-                                                stuff$obs,
-                                                stuff$data_stats,
-                                                stuff$hosp_file,
-                                                stuff$hierarchical_stats,
-                                                stuff$defined_priors,
-                                                stuff$geodata,
-                                                stuff$snpi)
+
+
+    tmp2 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = alt_sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
      expect_equal(sum(tmp1$ll), sum(tmp2$ll))
 
      ##make sure perturbing confirmed still has an effect
      alt_sim_hosp$incidC <-  alt_sim_hosp$incidC + 2 #or any arbitrary pertibationb
-     
-      tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi)
 
-    
+    tmp1 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
-     tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                                alt_sim_hosp,
-                                                stuff$obs_nodename,
-                                                stuff$config,
-                                                stuff$obs,
-                                                stuff$data_stats,
-                                                stuff$hosp_file,
-                                                stuff$hierarchical_stats,
-                                                stuff$defined_priors,
-                                                stuff$geodata,
-                                                stuff$snpi)
+
+
+    tmp2 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = alt_sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
      expect_false(sum(tmp1$ll)==sum(tmp2$ll))
 
 })
-          
 
-         
+
+
 test_that("removing confirmed as a stat makes the likelihood invariant to changes in deaths",{
 
     stuff <- get_minimal_setup()
-    
+
     stuff$configfiltering$statistics$sum_conf <- NULL
 
     ##remove deaths as a variable
-    for(location in stuff$all_locations) { 
+    for(location in stuff$all_locations) {
         stuff$data_stats[[location]]$sum_conf <- NULL
     }
 
-    
+
     alt_sim_hosp <-stuff$sim_hosp
     alt_sim_hosp$incidC <-  alt_sim_hosp$incidC + 200 #or any arbitrary pertibation
-    
-    tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi)
 
-    
+    tmp1 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
-     tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                                alt_sim_hosp,
-                                                stuff$obs_nodename,
-                                                stuff$config,
-                                                stuff$obs,
-                                                stuff$data_stats,
-                                                stuff$hosp_file,
-                                                stuff$hierarchical_stats,
-                                                stuff$defined_priors,
-                                                stuff$geodata,
-                                                stuff$snpi)
+
+
+    tmp2 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = alt_sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
      expect_equal(sum(tmp1$ll), sum(tmp2$ll))
 
      ##make sure perturbing deaths  still has an effect
      alt_sim_hosp$incidD <-  alt_sim_hosp$incidD + 2 #or any arbitrary pertibationb
-     
-     tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi)
 
-    
+    tmp1 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
-     tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                                alt_sim_hosp,
-                                                stuff$obs_nodename,
-                                                stuff$config,
-                                                stuff$obs,
-                                                stuff$data_stats,
-                                                stuff$hosp_file,
-                                                stuff$hierarchical_stats,
-                                                stuff$defined_priors,
-                                                stuff$geodata,
-                                                stuff$snpi)
 
-     
+
+    tmp2 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = alt_sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
+
+
      expect_false(sum(tmp1$ll)==sum(tmp2$ll))
 
 })
@@ -383,34 +423,38 @@ test_that("likelihoood insenstive to parameters with no multi-level compoenent o
     snpi2 <- stuff$snpi
     snpi2$reduction <- snpi2$reduction*runif(6)
 
-    
-     tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi)
 
-    
+    tmp1 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
-     tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                                stuff$sim_hosp,
-                                                stuff$obs_nodename,
-                                                stuff$config,
-                                                stuff$obs,
-                                                stuff$data_stats,
-                                                stuff$hosp_file,
-                                                stuff$hierarchical_stats,
-                                                stuff$defined_priors,
-                                                stuff$geodata,
-                                                snpi2)
 
-     
+
+    tmp2 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = snpi2
+    )
+
+
 
      expect_equal(sum(tmp1$ll), sum(tmp2$ll))
 })
@@ -425,7 +469,7 @@ test_that("likelihood is senstive to changes to correct npi paramerers when mult
         geo_group_col = "USPS",
         transform= "none"
     )
-    
+
     snpi2 <- stuff$snpi
     snpi2$reduction[snpi2$npi_name=="local_variance"] <- snpi2$reduction[snpi2$npi_name=="local_variance"]*runif(6)
 
@@ -433,51 +477,57 @@ test_that("likelihood is senstive to changes to correct npi paramerers when mult
     snpi3 <- stuff$snpi
     snpi3$reduction[snpi3$npi_name=="full_lockdown_NY"] <- snpi3$reduction[snpi3$npi_name=="full_lockdown_NY"]*runif(3)
 
-    
-    tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi)
 
-    
-    
-    tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               snpi2)
+    tmp1 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
 
-    tmp3 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               snpi3)
+
+    tmp2 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = snpi2
+    )
+
+
+    tmp3 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = snpi3
+    )
 
 
 
     expect_true(sum(tmp1$ll) != sum(tmp2$ll))
     expect_equal(sum(tmp1$ll), sum(tmp3$ll))
-    
+
 })
 
 
@@ -498,54 +548,60 @@ test_that("likelihood is sensitive to changes to correct hpar parameters when mu
     hpar3 <- stuff$hpar
     hpar3$value[hpar3$parameter=="p_hosp_inf"] <- hpar3$value[hpar3$parameter=="p_hosp_inf"]*runif(6)
 
-    
-    tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi,
-                                               stuff$hpar)
 
-    
-    
-    tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi,
-                                               hpar2)
+    tmp1 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi,
+      hpar = stuff$hpar
+    )
 
 
-    tmp3 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi,
-                                               hpar3)
+
+    tmp2 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi,
+      hpar = hpar2
+    )
+
+
+    tmp3 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi,
+      hpar = hpar3
+    )
 
 
     expect_true(sum(tmp1$ll) != sum(tmp2$ll))
     expect_equal(sum(tmp1$ll), sum(tmp3$ll))
-    
-    
+
+
 })
 
 
@@ -567,44 +623,50 @@ test_that("when prior is specified, likilhood is higher when nearer prior mean f
     snpi3$reduction[snpi3$npi_name=="full_lockdown_NY"] <- snpi3$reduction[snpi3$npi_name=="full_lockdown_NY"]/4
 
 
-      tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi)
-
-    
-    
-    tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               snpi2)
+    tmp1 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
 
-    tmp3 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               snpi3)
+
+    tmp2 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = snpi2
+    )
+
+
+    tmp3 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = snpi3
+    )
 
 
 
@@ -621,7 +683,7 @@ test_that("when prior is specified, likilhood is higher when nearer prior mean f
                                                  module="hospitalization",
                                                  likelihood=list(
                                                      dist="logit_normal",
-                                                     param=c(.1,4))) 
+                                                     param=c(.1,4)))
 
 
     hpar2 <- stuff$hpar
@@ -631,53 +693,59 @@ test_that("when prior is specified, likilhood is higher when nearer prior mean f
     hpar3 <- stuff$hpar
     hpar3$value[hpar3$parameter=="p_hosp_inf"] <- .1
 
-    
-    tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi,
-                                               stuff$hpar)
 
-    
-    
-    tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi,
-                                               hpar2)
+    tmp1 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi,
+      hpar = stuff$hpar
+    )
 
 
-    tmp3 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi,
-                                               hpar3)
+
+    tmp2 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi,
+      hpar = hpar2
+    )
+
+
+    tmp3 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi,
+      hpar = hpar3
+    )
 
 
     expect_lte(sum(tmp1$ll), sum(tmp2$ll))
     expect_equal(sum(tmp1$ll), sum(tmp3$ll))
-    
+
 
 })
 
@@ -704,57 +772,65 @@ test_that("Hierarchical structure works on interventions not defined for all loc
     snpi4$reduction[snpi3$npi_name=="full_lockdown_CA"] <- snpi3$reduction[snpi3$npi_name=="full_lockdown_CA"]*runif(3)
 
 
-    tmp1 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               stuff$snpi)
-
-    
-    
-    tmp2 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               snpi2)
+    tmp1 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = stuff$snpi
+    )
 
 
-    tmp3 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               snpi3)
+
+    tmp2 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = snpi2
+    )
 
 
-    tmp4 <- aggregate_and_calc_loc_likelihoods(stuff$all_locations,
-                                               stuff$sim_hosp,
-                                               stuff$obs_nodename,
-                                               stuff$config,
-                                               stuff$obs,
-                                               stuff$data_stats,
-                                               stuff$hosp_file,
-                                               stuff$hierarchical_stats,
-                                               stuff$defined_priors,
-                                               stuff$geodata,
-                                               snpi4)
+    tmp3 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = snpi3
+    )
+
+
+    tmp4 <- aggregate_and_calc_loc_likelihoods(
+      all_locations = stuff$all_locations,
+      modeled_outcome = stuff$sim_hosp,
+      obs_nodename = stuff$obs_nodename,
+      config = stuff$config,
+      obs = stuff$obs,
+      ground_truth_data = stuff$data_stats,
+      hosp_file = stuff$hosp_file,
+      hierarchical_stats = stuff$hierarchical_stats,
+      defined_priors = stuff$defined_priors,
+      geodata = stuff$geodata,
+      snpi = snpi4
+    )
 
 
 
@@ -764,8 +840,6 @@ test_that("Hierarchical structure works on interventions not defined for all loc
     expect_equal(sum(tmp1$ll), sum(tmp2$ll))
     expect_true(sum(tmp1$ll)!=sum(tmp3$ll))
     expect_equal(sum(tmp1$ll), sum(tmp4$ll))
-    
-    
+
+
 })
-
-

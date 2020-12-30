@@ -4,8 +4,9 @@ import datetime
 
 from .base import NPIBase
 
-REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
-
+### REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
+### PARALLEL_COMP_PARAMS = ["transmissibility_reduction", "susceptibility_reduction"]
+### PARALLEL_TRANS_PARAMS = ["transition_rate"]
 
 class Reduce(NPIBase):
     def __init__(self, *, npi_config, global_config, geoids, loaded_df=None):
@@ -15,6 +16,26 @@ class Reduce(NPIBase):
         self.start_date = global_config["start_date"].as_date()
         self.end_date = global_config["end_date"].as_date()
 
+        ### n_parallel_compartments = 1
+        ### n_parallel_transitions = 0
+        ### if "parallel_structure" in global_config["seir"]["parameters"]:
+            ### if not "compartments" in global_config["seir"]["parameters"]["parallel_structure"]:
+                ### raise ValueError(f"A config specifying a parallel structure should assign compartments to that structure")
+            ### compartments_map = global_config["seir"]["parameters"]["parallel_structure"]["compartments"].get()
+            ### n_parallel_compartments = len(compartments_map)
+            ### compartments_dict = {k : v for v,k in enumerate(compartments_map)}
+            ### if not "transitions" in global_config["seir"]["parameters"]["parallel_structure"]:
+                ### raise ValueError(f"A config specifying a parallel structure should assign transitions to that structure")
+            ### transitions_map = global_config["seir"]["parameters"]["parallel_structure"]["transitions"].get()
+            ### n_parallel_transitions = len(transitions_map)
+        ### self.all_parameters = REDUCE_PARAMS
+        ### for param in PARALLEL_COMP_PARAMS:
+            ### for compartment in range(n_parallel_compartments):
+                ### self.all_parameters += [param + " " + str(compartment)]
+        ### for param in PARALLEL_TRANS_PARAMS:
+            ### for transition in range(n_parallel_transitions):
+                ### self.all_parameters += [param + " " + str(transition)]
+###
         self.geoids = geoids
 
         self.npi = pd.DataFrame(0.0, index=self.geoids,
@@ -57,8 +78,11 @@ class Reduce(NPIBase):
             if n not in self.geoids:
                 raise ValueError(f"Invalid config value {n} not in geoids")
 
-        if self.param_name not in REDUCE_PARAMS:
-            raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
+        ### if self.param_name not in REDUCE_PARAMS:
+        ###     raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
+
+
+
 
         # Validate
         if (self.npi == 0).all(axis=None):
@@ -97,11 +121,10 @@ class Reduce(NPIBase):
         self.parameters["start_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["start_date"]]
         self.parameters["end_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["end_date"]]
         self.affected_geoids = set(self.parameters.index)
-        self.param_name = self.parameters["parameter"].unique()
+        self.param_name = self.parameters["parameter"].unique()[0]  # [0] to convert ndarray to str
 
     def getReduction(self, param, default=0.0):
         "Return the reduction for this param, `default` if no reduction defined"
-
         if param == self.param_name:
             return self.npi
         return default
