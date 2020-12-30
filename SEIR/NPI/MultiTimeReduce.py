@@ -119,7 +119,7 @@ class MultiTimeReduce(NPIBase):
         self.dist = npi_config["value"].as_random_distribution()
         self.parameters["npi_name"] = self.name
         self.parameters["parameter"] = self.param_name
-
+        
         for grp_config in npi_config['groups']:
             if grp_config["affected_geoids"].get() == "all":
                 affected_geoids_grp = self.geoids

@@ -12,7 +12,6 @@ ENV LC_ALL en_US.UTF-8
 # set noninteractive installation
 ENV DEBIAN_FRONTEND noninteractive
 ENV R_VERSION 3.6.3-1bionic
-ENV RSTUDIO_VERSION 1.2.5033
 
 # see https://www.digitalocean.com/community/tutorials/how-to-install-r-on-ubuntu-18-04
 # https://cran.r-project.org/bin/linux/debian/
@@ -70,7 +69,6 @@ RUN apt-get update && \
     supervisor \
     awscli \
     r-base-dev=$R_VERSION \
-    openjdk-8-jdk \
     # make sure we have up-to-date CA certs or curling some https endpoints (like python.org) may fail
     ca-certificates \
     # app user creation
@@ -96,14 +94,9 @@ RUN Rscript -e "install.packages('packrat',repos='https://cloud.r-project.org/')
 COPY --chown=app:app packrat $HOME/packrat
 COPY --chown=app:app Docker.Rprofile $HOME/.Rprofile
 COPY --chown=app:app R/pkgs $HOME/R/pkgs
-RUN Rscript -e 'packrat::restore()' \
-    && curl -O https://download2.rstudio.org/server/bionic/amd64/rstudio-server-$RSTUDIO_VERSION-amd64.deb \
-    && sudo apt-get install -f -y ./rstudio-server-$RSTUDIO_VERSION-amd64.deb \
-    && rm -f ./rstudio-server-$RSTUDIO_VERSION-amd64.deb
-RUN Rscript -e 'install.packages(list.files("R/pkgs",full.names=TRUE),type="source",repos=NULL)' \
+RUN Rscript -e 'packrat::restore()'
+RUN Rscript -e 'install.packages(list.files("R/pkgs",full.names=TRUE,recursive=TRUE),type="source",repos=NULL)'
 
-# expose Rstudio port
-EXPOSE 8787
 
 #####
 # Python (managed via pyenv)
@@ -133,6 +126,5 @@ COPY requirements.txt $HOME/requirements.txt
 RUN . $PYTHON_VENV_DIR/bin/activate \
     && pip install --upgrade pip setuptools \
     && pip install -r $HOME/requirements.txt
-
 
 CMD ["/bin/bash"]
