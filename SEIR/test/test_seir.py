@@ -96,17 +96,17 @@ def test_constant_population():
 
     states = seir.steps_SEIR_nb(*parameters, y0,
                        seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                       mobility_geoid_indices, mobility_data_indices, 
-                       mobility_data, s.dynfilter, True)
+                       mobility_geoid_indices, mobility_data_indices,
+                       mobility_data, True)
 
     completepop = s.popnodes.sum()
     origpop = s.popnodes
     for it in range(len(s.t_inter)):
         totalpop = 0
         for i in range(s.nnodes):
-            totalpop += states[:5, i, it].sum()
+            totalpop += states[:5, :, i, it].sum()
             #Sum of S, E, I#, R for the geoid that is 'i'
-            assert(origpop[i] == states[:5, i, it].sum())
+            assert(origpop[i] == states[:5, :, i, it].sum())
         assert(completepop == totalpop)
 
 
@@ -148,11 +148,11 @@ def test_steps_SEIR_nb_simple_spread():
     for i in range(100):
         states = seir.steps_SEIR_nb(*parameters, y0,
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices, 
-                           mobility_data, s.dynfilter, True)
+                           mobility_geoid_indices, mobility_data_indices,
+                           mobility_data,True)
 
 
-        assert states[seir.cumI][1].max() > 0
+        assert states[seir.cumI, :, 1, :].max() > 0
 
 def test_steps_SEIR_no_spread():
     config.set_file(f"{DATA_DIR}/config.yml")
@@ -192,8 +192,9 @@ def test_steps_SEIR_no_spread():
     for i in range(100):
         states = seir.steps_SEIR_nb(*parameters, y0,
                            seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices, 
-                           mobility_data, s.dynfilter, True)
+                           mobility_geoid_indices, mobility_data_indices,
+                           mobility_data, True)
 
 
-        assert states[seir.cumI][1].max() == 0
+        assert states[seir.cumI,:,1,:].max().shape == ()
+        assert states[seir.cumI,:,1,:].max() == 0

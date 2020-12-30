@@ -13,7 +13,6 @@
 # start_date: <date>
 # end_date: <date>
 # dt: float
-# dynfilter_path: <path to file> optional. Will not do filter step if not present
 # nsimulations: <integer> overridden by the -n/--nsim script parameter
 # spatial_setup:
 #   setup_name: <string>
@@ -195,11 +194,6 @@ def simulate(config_file, in_run_id, out_run_id, scenarios, nsim, jobs, interact
                         in_prefix = config["name"].get() + "/",
                         out_run_id = out_run_id,
                         out_prefix = config["name"].get() + "/" + str(scenario) + "/" + out_run_id + "/")
-        try:
-            s.load_filter(config["dynfilter_path"].get())
-            print(' We are using a filter')
-        except:
-            print('No filter used')
 
         print(f"""
 >> Scenario: {scenario}

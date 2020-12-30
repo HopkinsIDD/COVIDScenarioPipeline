@@ -169,6 +169,9 @@ def test_hospitalization_branching():
     assert_dir("model_output/hosp")
     assert_dir("model_output/hpar")
 
+def test_vaccination():
+    _success("test_vaccination")
+
 def test_inference():
     os.chdir("test_inference")
 
