@@ -108,7 +108,7 @@ create_delay_frame <- function(data, name, local_config){
       geoid %in% all_geoids
     ) %>%
     dplyr::arrange(geoid,time) %>%
-    ungroup()
+    dplyr::ungroup()
 
   data <- dplyr::arrange(data,geoid,time)
 
@@ -119,6 +119,9 @@ create_delay_frame <- function(data, name, local_config){
 
   return(data)
 }
+
+
+
 
 hosp_create_delay_frame <- function(X, p_X, data_, X_pars, varname) {
     X_ <- rbinom(length(data_[[X]]),data_[[X]],p_X)
@@ -443,7 +446,7 @@ build_hospdeath_geoid_fixedIFR_par <- function(
     )
     data_C <- hosp_create_delay_frame(
       "incidI",
-      dat_$p_confirmed_inf, 
+      dat_$p_confirmed_inf,
       dat_,
       time_hosp_pars,
       "C"
