@@ -13,7 +13,7 @@
 ##' @return NULL
 #' @export
 periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k, aggregator, na.rm = F) {
-  if(na.rm) {
+  if (na.rm) {
     dates <- dates[!is.na(data)]
     data <- data[!is.na(data)]
   }
@@ -24,8 +24,8 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
     data <- data[dates <= end_date]
     dates <- dates[dates <= end_date]
   }
-  
-  
+
+
   xtsobj <- xts::as.xts(zoo::zoo(data, dates))
   stats <- xts::period.apply(xtsobj,
                              xts::endpoints(xtsobj, on = period_unit, k = period_k),
@@ -44,17 +44,23 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
 #' @export
 getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
   rc <- list()
-  for(stat in names(stat_list)){
+  for (stat in names(stat_list)) {
     s <- stat_list[[stat]]
     aggregator <- match.fun(s$aggregator)
     ## Get the time period over whith to apply aggregation
     period_info <- strsplit(s$period, " ")[[1]]
-    
-    if(!all(c(time_col, s[[var_col]]) %in% names(df)))
-    {
-      stop(paste0("At least one of columns: [",time_col,",", s[[var_col]],"] not in df columns: ", paste(names(df), collapse=",")))
+
+    if (!all(c(time_col, s[[var_col]]) %in% names(df))) {
+      stop(paste0(
+        "At least one of columns: [",
+        time_col,
+        ",",
+        s[[var_col]],
+        "] not in df columns: ",
+        paste(names(df), collapse = ",")
+      ))
     }
-    
+
     res <- inference::periodAggregate(df[[s[[var_col]]]],
                                       df[[time_col]],
                                       end_date,
@@ -87,7 +93,7 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
   if (add_one) {
     sim[sim == 0] = 1
   }
-  
+
   if(distr == "pois") {
     rc <- dpois(obs, sim, log = T)
   } else if (distr == "norm") {
@@ -104,7 +110,7 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
   } else {
     stop("Invalid stat specified")
   }
-  
+
   return(rc)
 }
 
@@ -135,9 +141,9 @@ calc_hierarchical_likadj <- function (stat,
                                       stat_col="reduction",
                                       transform = "none",
                                       min_sd=.1) {
-  
+
   require(dplyr)
-  
+
   if (transform == "logit") {
     infer_frame <- infer_frame  %>%
       #mutate(value = value)
@@ -147,12 +153,12 @@ calc_hierarchical_likadj <- function (stat,
   } else if (transform!="none") {
     stop("specified transform not yet supported")
   }
-  
+
   ##print(stat)
   ##cat("sd=",max(sd(infer_frame[[stat_col]]), min_sd,na.rm=T),"\n")
   ##cat("mean=",mean(infer_frame[[stat_col]]),"\n")
   ##print(range(infer_frame[[stat_col]]))
-  
+
   rc <- infer_frame%>%
     filter(!!sym(stat_name_col)==stat)%>%
     inner_join(geodata)%>%
@@ -162,7 +168,7 @@ calc_hierarchical_likadj <- function (stat,
                           max(sd(!!sym(stat_col)), min_sd, na.rm=T), log=TRUE))%>%
     ungroup()%>%
     select(geoid, likadj)
-  
+
   return(rc)
 }
 
@@ -182,7 +188,7 @@ calc_hierarchical_likadj <- function (stat,
 calc_prior_likadj  <- function(params,
                                dist,
                                dist_pars) {
-  
+
   if (dist=="normal") {
     rc <- dnorm(params, dist_pars[[1]], dist_pars[[2]], log=TRUE)
   } else  if (dist=="logit_normal") {
@@ -192,7 +198,7 @@ calc_prior_likadj  <- function(params,
   } else {
     stop("This distribution is unsupported")
   }
-  
+
   return(rc)
 }
 
@@ -207,15 +213,15 @@ calc_prior_likadj  <- function(params,
 ##' @export
 ##'
 compute_cumulative_counts <- function(sim_hosp) {
-  res <- sim_hosp %>% 
-    gather(var, value, -time, -geoid) %>% 
-    group_by(geoid, var) %>% 
-    arrange(time) %>% 
-    mutate(cumul = cumsum(value)) %>% 
-    ungroup() %>% 
-    pivot_wider(names_from = "var", values_from = c("value", "cumul")) %>% 
+  res <- sim_hosp %>%
+    gather(var, value, -time, -geoid) %>%
+    group_by(geoid, var) %>%
+    arrange(time) %>%
+    mutate(cumul = cumsum(value)) %>%
+    ungroup() %>%
+    pivot_wider(names_from = "var", values_from = c("value", "cumul")) %>%
     select(-(contains("cumul") & contains("curr")))
-  
+
   colnames(res) <- str_replace_all(colnames(res), c("value_" = "", "cumul_incid" = "cumul"))
   return(res)
 }
@@ -231,11 +237,11 @@ compute_cumulative_counts <- function(sim_hosp) {
 ##' @export
 ##'
 compute_totals <- function(sim_hosp) {
-  sim_hosp %>% 
+  sim_hosp %>%
     group_by(time) %>%
-    summarise_if(is.numeric, sum, na.rm = TRUE) %>% 
-    mutate(geoid = "all") %>% 
-    select(all_of(colnames(sim_hosp))) %>% 
+    summarise_if(is.numeric, sum, na.rm = TRUE) %>%
+    mutate(geoid = "all") %>%
+    select(all_of(colnames(sim_hosp))) %>%
     rbind(sim_hosp)
 }
 
@@ -261,10 +267,12 @@ perturb_seeding <- function(seeding,sd,date_bounds) {
       amount=round(pmax(rnorm(length(amount),amount,1),0)),
       date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
     )
-  
+
   return(seeding)
-  
+
 }
+
+
 
 
 ##' Fuction perturbs an npi parameter file based on
@@ -279,33 +287,75 @@ perturb_seeding <- function(seeding,sd,date_bounds) {
 perturb_snpi <- function(snpi, intervention_settings) {
   ##Loop over all interventions
   for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
-    
+
     ##Only perform pertubations on interventions where it is specified ot do so.
-    
+
     if ('perturbation' %in% names(intervention_settings[[intervention]])){
-      
+
       ##get the random distribution from covidcommon package
       pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
-      
+
       ##get the npi values for this distribution
       ind <- (snpi[["npi_name"]] == intervention)
       if(!any(ind)){
         next
       }
-      
+
       ##add the pertubation...for now always parameterized in terms of a "reduction"
       snpi_new <- snpi[["reduction"]][ind] + pert_dist(sum(ind))
-      
+
       ##check that this is in bounds (equivalent to having a positive probability)
       in_bounds_index <- covidcommon::as_density_distribution(
         intervention_settings[[intervention]][['value']]
       )(snpi_new) > 0
-      
+
       ##return all in bounds proposals
       snpi$reduction[ind][in_bounds_index] <- snpi_new[in_bounds_index]
     }
   }
   return(snpi)
+}
+
+
+##' Fuction perturbs an npi parameter file based on
+##' user-specified distributions
+##'
+##' @param hnpi the original npis.
+##' @param intervention_settings a list of perturbation specificationss
+##'
+##'
+##' @return a pertubed data frame
+##' @export
+perturb_hnpi <- function(hnpi, intervention_settings) {
+  ##Loop over all interventions
+  for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
+
+    ##Only perform pertubations on interventions where it is specified ot do so.
+
+    if ('perturbation' %in% names(intervention_settings[[intervention]])){
+
+      ##get the random distribution from covidcommon package
+      pert_dist <- covidcommon::as_random_distribution(intervention_settings[[intervention]][['perturbation']])
+
+      ##get the npi values for this distribution
+      ind <- (hnpi[["npi_name"]] == intervention)
+      if(!any(ind)){
+        next
+      }
+
+      ##add the pertubation...for now always parameterized in terms of a "reduction"
+      hnpi_new <- hnpi[["reduction"]][ind] + pert_dist(sum(ind))
+
+      ##check that this is in bounds (equivalent to having a positive probability)
+      in_bounds_index <- covidcommon::as_density_distribution(
+        intervention_settings[[intervention]][['value']]
+      )(hnpi_new) > 0
+
+      ##return all in bounds proposals
+      hnpi$reduction[ind][in_bounds_index] <- hnpi_new[in_bounds_index]
+    }
+  }
+  return(hnpi)
 }
 
 ##' Fuction perturbs an npi parameter file based on
@@ -319,20 +369,20 @@ perturb_snpi <- function(snpi, intervention_settings) {
 ##' @export
 perturb_hpar <- function(hpar, intervention_settings) {
   ##Loop over all interventions
-  
+
   for(intervention in names(intervention_settings)){
     for(quantity in names(intervention_settings[[intervention]])){
       if('perturbation' %in% names(intervention_settings[[intervention]][[quantity]])){
         intervention_quantity <- intervention_settings[[intervention]][[quantity]]
         ## get the random distribution from covidcommon package
         pert_dist <- covidcommon::as_random_distribution(intervention_quantity[['perturbation']])
-        
+
         ##get the hpar values for this distribution
         ind <- (hpar[["outcome"]] == intervention) & (hpar[["quantity"]] == quantity) # & (hpar[['source']] == intervention_settings[[intervention]][['source']])
         if(!any(ind)){
           next
         }
-        
+
         ## add the perturbation...
         if (!is.null(intervention_quantity[['perturbation']][["transform"]])) {
           if (intervention_quantity[['perturbation']][["transform"]] == "logit") {
@@ -348,14 +398,14 @@ perturb_hpar <- function(hpar, intervention_settings) {
         } else {
           hpar_new <- hpar[["value"]][ind] + pert_dist(sum(ind))
         }
-        
+
         ## Check that this is in the support of the original distribution
         in_bounds_index <- covidcommon::as_density_distribution(intervention_quantity[['value']])(hpar_new) > 0
         hpar$value[ind][in_bounds_index] <- hpar_new[in_bounds_index]
       }
     }
   }
-  
+
   return(hpar)
 }
 ##' Function to go through to accept or reject seedings in a block manner based
@@ -366,6 +416,8 @@ perturb_hpar <- function(hpar, intervention_settings) {
 ##' @param seeding_prop proposal seeding (must have column place)
 ##' @param snpi_orig original npi data frame  (must have column geoid)
 ##' @param snpi_prop proposal npi data frame  (must have column geoid)
+##' @param hnpi_orig original npi data frame  (must have column geoid)
+##' @param hnpi_prop proposal npi data frame  (must have column geoid)
 ##' @param orig_lls original ll data frame  (must have column ll and geoid)
 ##' @param prop_lls proposal ll fata frame (must have column ll and geoid)
 ##' @return a new data frame with the confirmed seedin.
@@ -375,6 +427,8 @@ accept_reject_new_seeding_npis <- function(
   seeding_prop,
   snpi_orig,
   snpi_prop,
+  hnpi_orig,
+  hnpi_prop,
   hpar_orig,
   hpar_prop,
   orig_lls,
@@ -382,23 +436,33 @@ accept_reject_new_seeding_npis <- function(
 ) {
   rc_seeding <- seeding_orig
   rc_snpi <- snpi_orig
+  rc_hnpi <- hnpi_orig
   rc_hpar <- hpar_orig
-  
-  if(!all(orig_lls$geoid == prop_lls$geoid)){stop("geoids must match")}
+
+  if (!all(orig_lls$geoid == prop_lls$geoid)) {
+    stop("geoids must match")
+  }
   ##draw accepts/rejects
   ratio <- exp(prop_lls$ll - orig_lls$ll)
-  accept <- ratio>runif(length(ratio),0,1)
-  
+  accept <- ratio > runif(length(ratio), 0, 1)
+
   orig_lls$ll[accept] <- prop_lls$ll[accept]
-  
-  
+
+
   for (place in orig_lls$geoid[accept]) {
-    rc_seeding[rc_seeding$place ==place, ] <- seeding_prop[seeding_prop$place ==place, ]
-    rc_snpi[rc_snpi$geoid == place,] <- snpi_prop[snpi_prop$geoid == place, ]
-    rc_hpar[rc_hpar$geoid == place,] <- hpar_prop[hpar_prop$geoid == place, ]
+    rc_seeding[rc_seeding$place == place, ] <- seeding_prop[seeding_prop$place ==place, ]
+    rc_snpi[rc_snpi$geoid == place, ] <- snpi_prop[snpi_prop$geoid == place, ]
+    rc_hnpi[rc_hnpi$geoid == place, ] <- hnpi_prop[hnpi_prop$geoid == place, ]
+    rc_hpar[rc_hpar$geoid == place, ] <- hpar_prop[hpar_prop$geoid == place, ]
   }
-  
-  return(list(seeding=rc_seeding, snpi=rc_snpi, hpar = rc_hpar, lls = orig_lls))
+
+  return(list(
+    seeding = rc_seeding,
+    snpi = rc_snpi,
+    hnpi = rc_hnpi,
+    hpar = rc_hpar,
+    lls = orig_lls
+  ))
 }
 
 
@@ -409,7 +473,7 @@ accept_reject_new_seeding_npis <- function(
 ##' @param ll_new likelihood of proposal
 ##' @return boolean whether to accept the likelihood
 ##' @export
-iterateAccept <- function(ll_ref,ll_new) {
+iterateAccept <- function(ll_ref, ll_new) {
     if (length(ll_ref) != 1 | length(ll_new) !=1) {
         stop("Iterate accept currently on works with single row data frames")
     }

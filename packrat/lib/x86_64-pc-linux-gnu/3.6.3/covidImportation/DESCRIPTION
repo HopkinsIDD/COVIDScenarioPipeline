@@ -9,9 +9,8 @@ Description: What the package does (one paragraph).
 Depends: R (>= 3.5), dplyr, tidyr
 Imports: doParallel, httr, lubridate, countrycode, globaltoolboxlite,
     fitdistrplus, data.table, abind, reshape2, arrayhelpers, truncnorm,
-    geosphere, ggvoronoi, gpclib, igraph, magrittr, maptools, raster,
-    rgdal, rlist, sf, tidycensus, purrr, readr, tibble, ggplot2,
-    parallel, splines2, nnls
+    geosphere, gpclib, igraph, magrittr, rlist, sf, tidycensus, purrr,
+    readr, tibble, ggplot2, parallel, splines2, nnls
 License: What license it uses
 Encoding: UTF-8
 LazyData: true
@@ -20,17 +19,17 @@ RemoteType: github
 RemoteHost: api.github.com
 RemoteRepo: covidImportation
 RemoteUsername: HopkinsIDD
-RemoteRef: v1.7
-RemoteSha: 8552fe5040a2a9f3a72ddab455eec9fc3edc775b
+RemoteRef: v1.8
+RemoteSha: 4750837e300762be2259d062c80252139828a0b2
 GithubRepo: covidImportation
 GithubUsername: HopkinsIDD
-GithubRef: v1.7
-GithubSHA1: 8552fe5040a2a9f3a72ddab455eec9fc3edc775b
+GithubRef: v1.8
+GithubSHA1: 4750837e300762be2259d062c80252139828a0b2
 NeedsCompilation: no
-Packaged: 2020-05-23 22:36:08 UTC; app
+Packaged: 2020-10-21 17:32:49 UTC; app
 Author: Shaun A. Truelove [aut, cre], Stephen A. Lauer [ctb]
 Maintainer: Shaun A. Truelove <shauntruelove@jhu.edu>
-Built: R 3.6.3; ; 2020-05-23 22:36:17 UTC; unix
+Built: R 3.6.3; ; 2020-10-21 17:32:52 UTC; unix
 InstallAgent: packrat 0.5.0
 InstallSource: github
-Hash: aea7a82752e3bb6e16b660971684dd80
+Hash: 5d79cb03d5565ba3a2280e80aab3f657

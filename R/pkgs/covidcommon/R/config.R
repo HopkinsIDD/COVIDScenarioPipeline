@@ -28,8 +28,15 @@ load_config <- function(fname) {
     fname <- Sys.getenv("CONFIG_PATH")
   }
   if (!missing(fname)) {
-    handlers <- list(map=function(x) { class(x) <- "config"; return(x) })
-    return(tryCatch(yaml.load_file(fname, handlers=handlers), error = function(e) { stop(paste("Could not find file: ", fname)) }))
+    
+    if(!file.exists(fname)){
+      stop(paste("Could not find file:", fname))
+    } else{
+      handlers <- list(map=function(x) { class(x) <- "config"; return(x) })
+      return(tryCatch(yaml.load_file(fname, handlers=handlers), error = function(e) { stop(paste("The config", fname, "has an error. Run `yaml::read_yaml(", fname, ")` to identify the line where the error exists.")) }))
+    } 
+
+    
   } else {
     return(NA)
   }

@@ -333,6 +333,7 @@ download_CSSE_US_data <- function(filename, url, value_col_name, incl_unassigned
                   FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
                   FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0")),
                   FIPS = ifelse(stringr::str_sub(FIPS, 1, 3)=="900", paste0(stringr::str_sub(FIPS, 4, 5), "000"), FIPS) ## clean FIPS codes for unassigned data
+
                   ) %>%
     dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>%
     dplyr::distinct()
@@ -749,14 +750,13 @@ get_groundtruth_from_source <- function(source = "csse", scale = "US county", va
 
   } else if(source == "csse" & scale == "US county"){
 
-    rc <- get_CSSE_US_data(tempfile(),tempfile(), incl_unassigned = incl_unass) %>%
+    rc <- get_CSSE_US_data(tempfile(), tempfile(), incl_unassigned = incl_unass) %>%
       dplyr::select(Update, FIPS, source, !!variables) %>%
-      tidyr::drop_na(tidyselect::everything()) %>%
-      dplyr::ungroup()
+      tidyr::drop_na(tidyselect::everything())
 
   } else if(source == "csse" & scale == "US state"){
 
-    rc <- get_CSSE_US_data(tempfile(), tempfile(),incl_unassigned = incl_unass) %>%
+    rc <- get_CSSE_US_data(tempfile(), tempfile(), incl_unassigned = incl_unass) %>%
       dplyr::select(Update, FIPS, source, !!variables) %>%
       dplyr::mutate(FIPS = paste0(stringr::str_sub(FIPS, 1, 2), "000")) %>%
       dplyr::group_by(Update, FIPS, source) %>%
