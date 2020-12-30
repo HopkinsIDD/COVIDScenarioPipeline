@@ -51,6 +51,12 @@ Source: CRAN
 Version: 1.0.4.6
 Hash: 8b95553bc32a59321b8981aa02bfbf72
 
+Package: RcppArmadillo
+Source: CRAN
+Version: 0.10.1.0.0
+Hash: 096760ac8f9ea33ca2678e722558ad56
+Requires: Rcpp
+
 Package: XML
 Source: CRAN
 Version: 3.99-0.3
@@ -105,6 +111,12 @@ Version: 0.9-7
 Hash: 4b195615d19ba49c114eb04e09e30a96
 Requires: bit
 
+Package: blob
+Source: CRAN
+Version: 1.2.1
+Hash: de88fed092924767ccb739b695f35d2b
+Requires: rlang, vctrs
+
 Package: brew
 Source: CRAN
 Version: 1.0-6
@@ -122,6 +134,12 @@ Source: CRAN
 Version: 3.4.3
 Hash: e9b50bc56e655025fde6f2f4b65154de
 Requires: R6, processx
+
+Package: cdlTools
+Source: CRAN
+Version: 0.15
+Hash: 911340c54649e220bb49603e37f8b0b5
+Requires: httr, raster
 
 Package: cellranger
 Source: CRAN
@@ -175,21 +193,20 @@ Hash: 6cc063b236e3bbc174a73959145488ef
 Package: covidImportation
 Source: github
 Version: 1.7
-Hash: aea7a82752e3bb6e16b660971684dd80
+Hash: 5d79cb03d5565ba3a2280e80aab3f657
 Requires: abind, arrayhelpers, countrycode, data.table, doParallel,
-    dplyr, fitdistrplus, geosphere, ggplot2, ggvoronoi,
-    globaltoolboxlite, gpclib, httr, igraph, lubridate, magrittr,
-    maptools, nnls, purrr, raster, readr, reshape2, rgdal, rlist, sf,
-    splines2, tibble, tidycensus, tidyr, truncnorm
+    dplyr, fitdistrplus, geosphere, ggplot2, globaltoolboxlite, gpclib,
+    httr, igraph, lubridate, magrittr, nnls, purrr, readr, reshape2,
+    rlist, sf, splines2, tibble, tidycensus, tidyr, truncnorm
 GithubRepo: covidImportation
 GithubUsername: HopkinsIDD
-GithubRef: v1.7
-GithubSha1: 8552fe5040a2a9f3a72ddab455eec9fc3edc775b
+GithubRef: v1.8
+GithubSha1: 4750837e300762be2259d062c80252139828a0b2
 RemoteHost: api.github.com
 RemoteRepo: covidImportation
 RemoteUsername: HopkinsIDD
-RemoteRef: v1.7
-RemoteSha: 8552fe5040a2a9f3a72ddab455eec9fc3edc775b
+RemoteRef: v1.8
+RemoteSha: 4750837e300762be2259d062c80252139828a0b2
 
 Package: covidcommon
 Source: source
@@ -209,6 +226,11 @@ Source: CRAN
 Version: 1.0.0
 Hash: 70e09cab441d1307901bb1f60cb61d8d
 Requires: ggplot2, gtable, rlang, scales
+
+Package: cpp11
+Source: CRAN
+Version: 0.2.3
+Hash: e0152940d0445aed0cd5f9d4a8f3848e
 
 Package: crayon
 Source: CRAN
@@ -281,6 +303,12 @@ Source: CRAN
 Version: 1.7-3
 Hash: f851e9de06edec144aa7d996bbf32538
 Requires: class
+
+Package: egg
+Source: CRAN
+Version: 0.4.5
+Hash: 06272cd702d468cf5cf2f90a54447415
+Requires: ggplot2, gridExtra, gtable
 
 Package: ellipsis
 Source: CRAN
@@ -501,14 +529,6 @@ Version: 1.2.5
 Hash: 56cd6b00fa9864975f6678b4d1a46b50
 Requires: Matrix, magrittr, pkgconfig
 
-Package: inference
-Source: source
-Version: 0.0.1
-Hash: 5fd71045346617041927f33ec8b1bac1
-Requires: covidcommon, report.generation, arrow, dplyr, foreach,
-    magrittr, readr, reticulate, stringr, truncnorm, xts
-SourcePath: /home/app/R/pkgs//inference
-
 Package: ini
 Source: CRAN
 Version: 0.3.1
@@ -573,6 +593,12 @@ Source: CRAN
 Version: 1.7.8
 Hash: ffe401bdcb9ccaea3d41a08f482a3aad
 Requires: Rcpp, generics
+
+Package: lwgeom
+Source: CRAN
+Version: 0.2-5
+Hash: 04c14b99940b7e3d08706da5fcf88b02
+Requires: Rcpp, sf, units
 
 Package: magrittr
 Source: CRAN
@@ -897,8 +923,8 @@ Requires: cli, withr
 
 Package: sf
 Source: CRAN
-Version: 0.9-2
-Hash: 51f6e222d5e8c331e37b512e80e5062d
+Version: 0.9-6
+Hash: 309a6935dd5a3a298f6601a0b67e4917
 Requires: DBI, Rcpp, classInt, magrittr, units
 
 Package: sp
