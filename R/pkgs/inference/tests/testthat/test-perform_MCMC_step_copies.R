@@ -26,6 +26,7 @@ test_that("MCMC step copies are correctly performed when we are not at the start
     llik_src <- covidcommon::create_file_name(run_id,global_local_prefix,current_index,'llik','parquet')
     snpi_src <- covidcommon::create_file_name(run_id,global_local_prefix,current_index,'snpi','parquet')
     spar_src <- covidcommon::create_file_name(run_id,global_local_prefix,current_index,'spar','parquet')
+    hnpi_src <- covidcommon::create_file_name(run_id,global_local_prefix,current_index,'hnpi','parquet')
     hpar_src <- covidcommon::create_file_name(run_id,global_local_prefix,current_index,'hpar','parquet')
 
 
@@ -37,6 +38,7 @@ test_that("MCMC step copies are correctly performed when we are not at the start
     arrow::write_parquet(data.frame(file="llik"), llik_src)
     arrow::write_parquet(data.frame(file="snpi"), snpi_src)
     arrow::write_parquet(data.frame(file="spar"), spar_src)
+    arrow::write_parquet(data.frame(file="hnpi"), hnpi_src)
     arrow::write_parquet(data.frame(file="hpar"), hpar_src)
 
     ##print(hosp_src)
@@ -85,6 +87,7 @@ test_that("MCMC step copies are correctly performed when we are at the start of 
     llik_src <- covidcommon::create_file_name(run_id,global_block_prefix,block-1,'llik','parquet')
     snpi_src <- covidcommon::create_file_name(run_id,global_block_prefix,block-1,'snpi','parquet')
     spar_src <- covidcommon::create_file_name(run_id,global_block_prefix,block-1,'spar','parquet')
+    hnpi_src <- covidcommon::create_file_name(run_id,global_block_prefix,block-1,'hnpi','parquet')
     hpar_src <- covidcommon::create_file_name(run_id,global_block_prefix,block-1,'hpar','parquet')
 
 
@@ -96,6 +99,7 @@ test_that("MCMC step copies are correctly performed when we are at the start of 
     arrow::write_parquet(data.frame(file="llik"), llik_src)
     arrow::write_parquet(data.frame(file="snpi"), snpi_src)
     arrow::write_parquet(data.frame(file="spar"), spar_src)
+    arrow::write_parquet(data.frame(file="hnpi"), hnpi_src)
     arrow::write_parquet(data.frame(file="hpar"), hpar_src)
 
     print(hosp_src)
