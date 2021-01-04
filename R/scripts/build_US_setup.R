@@ -184,7 +184,7 @@ if(state_level & !file.exists(paste0(config$spatial_setup$base_path, "/", config
 
     rc <- dplyr::bind_rows(padding_table, commute_data) %>% 
       dplyr::arrange(match(OFIPS, census_data$geoid), match(DFIPS, census_data$geoid)) %>% 
-      dplyr::pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
+      tidyr::pivot_wider(OFIPS,names_from=DFIPS,values_from=FLOW, values_fill=c("FLOW"=0),values_fn = list(FLOW=sum))
     if(!isTRUE(all(rc$OFIPS == census_data$geoid))){
       print(rc$OFIPS)
       print(census_data$geoid)
