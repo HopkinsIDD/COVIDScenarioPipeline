@@ -126,6 +126,14 @@ def steps_SEIR_nb(
                         print(p_expose)
                         print(susceptibility_ratio[it][p_compartment][i])
                         exposure_probability = 1
+                    if p_infect > 1 :
+                        print("SYMPTOMATIC RATE OUT OF BOUNDS")
+                        print(p_infect)
+                        p_infect = 1
+                    if p_recover > 1 :
+                        print("RECOVERY RATE OUT OF BOUNDS")
+                        print(p_recover)
+                        p_recover = 1
                     exposeCases[p_compartment][i] = np.random.binomial(y[S][p_compartment][i], exposure_probability)
                     incidentCases[p_compartment][i] = np.random.binomial(y[E][p_compartment][i], p_infect)
                     incident2Cases[p_compartment][i] = np.random.binomial(y[I1][p_compartment][i], p_recover)
