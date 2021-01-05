@@ -329,10 +329,11 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 probabilities = parameters[new_comp]['probability'].as_random_distribution()(size=len(places)) # one draw per geoid
                 if 'rel_probability' in parameters[new_comp]:
                     probabilities = probabilities * parameters[new_comp]['rel_probability']
-                    probabilities[probabilities > 1] = 1
-                    probabilities[probabilities < 0] = 0
+
                 delays = parameters[new_comp]['delay'].as_random_distribution()(size=len(places)) # one draw per geoid
             
+            probabilities[probabilities > 1] = 1
+            probabilities[probabilities < 0] = 0
             probabilities = np.repeat(probabilities[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
             delays = np.repeat(delays[:,np.newaxis], len(dates), axis = 1).T  # duplicate in time
             delays = np.round(delays).astype(int)
