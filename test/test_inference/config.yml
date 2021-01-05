@@ -102,16 +102,16 @@ interventions:
     Dose1:
       template: Reduce
       parameter: "transition_rate 0"
-      period_start_date: 2020-02-01
-      period_end_date: 2020-02-03
+      period_start_date: 2020-05-01
+      period_end_date: 2020-05-03
       value:
         distribution: fixed
         value: 0.9
     Dose2:
       template: Reduce
       parameter: "transition_rate 1"
-      period_start_date: 2020-02-01
-      period_end_date: 2020-02-03
+      period_start_date: 2020-05-01
+      period_end_date: 2020-05-03
       value:
         distribution: fixed
         value: 0.9
