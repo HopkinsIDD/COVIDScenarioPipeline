@@ -74,7 +74,7 @@ class SpatialSetup:
             for r,c,v in zip(rows, cols, values):
                 errmsg += f"\n({r}, {c}) = {self.mobility[r,c]} > population of '{self.nodenames[r]}' = {self.popnodes[r]}"
             raise ValueError(f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}")
-        
+
         tmp = self.popnodes - np.squeeze(np.asarray(self.mobility.sum(axis=1)))
         tmp[tmp > 0] = 0
         if tmp.any():
@@ -529,12 +529,15 @@ def parameters_load(fname, extension, nt_inter, nnodes):
         transmissibility_reduction[:,compartment,:] = \
             float(pars[pars['parameter'] == (str(compartment) + ' transmissibility reduction')].value)
     for transition in range(n_parallel_transitions):
+        print(f""" all parameters are : { pars }""")
+        print(f""" expected name is : { (str(transition) + " " + "transition rate") }""")
+        print(f""" appropriate parameters are : { pars[pars['parameter'] == (str(transition) + " " + "transition rate")] }""")
         transition_rate[:,transition,:] = \
-            float(pars[pars['parameter'] == (str(transition) + ' transition_rate')].value)
+            float(pars[pars['parameter'] == (str(transition) + " " + "transition rate")].value)
         transition_from[transition] = \
-            int(pars[pars['parameter'] == (str(transition) + ' transition_from')].value)
+            int(pars[pars['parameter'] == (str(transition) + " " + "transition rate")].value)
         transition_to[transition] = \
-            int(pars[pars['parameter'] == (str(transition) + ' transition_to')].value)
+            int(pars[pars['parameter'] == (str(transition) + " " + "transition rate")].value)
 
 
 
