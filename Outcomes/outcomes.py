@@ -316,16 +316,17 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     loaded_values[
                         (loaded_values['quantity'] == 'probability') &
                         (loaded_values['outcome'] == new_comp) &
+                        (loaded_values['p_comp'] == p_comps[0]) &
                         (loaded_values['source'] == source)
                     ]['value'].to_numpy()
                 delays = loaded_values[
                         (loaded_values['quantity'] == 'delay') &
                         (loaded_values['outcome'] == new_comp) &
+                        (loaded_values['p_comp'] == p_comps[0]) &
                         (loaded_values['source'] == source)
                     ]['value'].to_numpy()
-
             else:
-                probabilities = parameters[new_comp]['probability'].as_random_distribution()(size=len(places)) # one draw per geoid  
+                probabilities = parameters[new_comp]['probability'].as_random_distribution()(size=len(places)) # one draw per geoid
                 if 'rel_probability' in parameters[new_comp]:
                     probabilities = probabilities * parameters[new_comp]['rel_probability']
                     probabilities[probabilities > 1] = 1
@@ -389,6 +390,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     durations = loaded_values[
                             (loaded_values['quantity'] == 'duration') &
                             (loaded_values['outcome'] == new_comp) &
+                            (loaded_values['p_comp'] == p_comps[0]) &
                             (loaded_values['source'] == source)
                         ]['value'].to_numpy()
                 else:
