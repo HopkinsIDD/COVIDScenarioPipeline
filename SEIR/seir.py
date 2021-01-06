@@ -24,8 +24,9 @@ except ModuleNotFoundError as e:
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
+global_debug_print = True
 
-def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
+def onerun_SEIR(sim_id, s, stoch_traj_flag = True, debug_print = global_debug_print):
     scipy.random.seed()
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
@@ -37,21 +38,23 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
     mobility_data = s.mobility.data
     p_draw = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
 
-    print("Parameters without interventions")
-    for parameter in p_draw:
-        try:
-            print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
-        except:
-            print(f"""    value {parameter}""")
+    if(debug_print):
+        print("Parameters without interventions")
+        for parameter in p_draw:
+            try:
+                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+            except:
+                print(f"""    value {parameter}""")
 
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
-    print("Parameters with interventions")
-    for parameter in parameters:
-        try:
-            print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
-        except:
-            print(f"""    value {parameter}""")
+    if(debug_print):
+        print("Parameters with interventions")
+        for parameter in parameters:
+            try:
+                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+            except:
+                print(f"""    value {parameter}""")
 
     states = steps_SEIR_nb(
         *parameters,
@@ -148,7 +151,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
 
     return out_df
 
-def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
+def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True, debug_print = global_debug_print):
     if (s.write_parquet and s.write_csv):
         print("Confused between reading .csv or parquet. Assuming input file is .parquet")
     if s.write_parquet:
@@ -194,6 +197,24 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
     )
 
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
+
+    if(debug_print):
+        print("Parameters without interventions")
+        for parameter in p_draw:
+            try:
+                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+            except:
+                print(f"""    value {parameter}""")
+
+    parameters = setup.parameters_reduce(p_draw, npi, s.dt)
+
+    if(debug_print):
+        print("Parameters with interventions")
+        for parameter in parameters:
+            try:
+                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+            except:
+                print(f"""    value {parameter}""")
 
     states = steps_SEIR_nb(
         *parameters,
