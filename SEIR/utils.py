@@ -81,6 +81,8 @@ def as_random_distribution(self):
     elif dist == "poisson":
         return functools.partial(np.random.poisson, self["lam"].as_evaled_expression())
     elif dist == "binomial":
+        if((self["p"] < 0) or (self["p"] > 1)):
+            raise ValueError(f"""p value { self["p"] } is out of range [0,1]""")
         return functools.partial(np.random.binomial, self["n"].as_evaled_expression(), self["p"].as_evaled_expression())
     elif dist == "truncnorm":
         return get_truncated_normal(mean=self["mean"].as_evaled_expression(), sd=self["sd"].as_evaled_expression(),
