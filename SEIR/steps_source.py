@@ -190,7 +190,6 @@ def steps_SEIR_nb(
             to_compartment = transition_to[transition]
             y[:-1,from_compartment,:] -= vaccinatedCases[:-1,from_compartment,:]
             y[:-1,to_compartment,:] += vaccinatedCases[:-1,from_compartment,:]
-        print("  vaccinated [", vaccinatedCases.min(), ", ", vaccinatedCases.max(), "]")
 
         states[:, :, :, it] = y
         print("Y extremes:")
