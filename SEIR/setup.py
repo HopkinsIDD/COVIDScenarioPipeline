@@ -7,6 +7,7 @@ import os
 import scipy.sparse
 import pyarrow as pa
 import pyarrow.parquet as pq
+import copy
 
 from .utils import config
 from . import file_paths
@@ -389,7 +390,7 @@ def parameters_reduce(p_draw, npi, dt):
         n_parallel_transitions, \
         transition_rate, \
         transition_from, \
-        transition_to = p_draw
+        transition_to = copy.deepcopy(p_draw)
 
     alpha = _parameter_reduce(alpha, npi.getReduction("alpha"), dt)
     beta = _parameter_reduce(beta, npi.getReduction("r0"), dt)
