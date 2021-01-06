@@ -73,7 +73,7 @@ def steps_SEIR_nb(
     incident2Cases = np.empty((n_parallel_compartments, nnodes))
     incident3Cases = np.empty((n_parallel_compartments, nnodes))
     recoveredCases = np.empty((n_parallel_compartments, nnodes))
-    vaccinatedCases = np.zeros((ncomp,n_parallel_compartments,nnodes))
+    vaccinatedCases = np.zeros((ncomp,n_parallel_transitions,nnodes))
     p_expose = 0
 
     percent_who_move = np.zeros((nnodes))
@@ -117,31 +117,33 @@ def steps_SEIR_nb(
             p_infect = 1 - np.exp(-dt * sigma[it][i])
             p_recover = 1 - np.exp(-dt * gamma[it][i])
 
-            if stoch_traj_flag:
                 ## Fix this:
-                for p_compartment in range(n_parallel_compartments):
-                    exposure_probability = susceptibility_ratio[it][p_compartment][i] * p_expose
-                    if exposure_probability > 1 :
-                        print("SUSCEPTIBILITY OUT OF BOUNDS")
-                        print(p_expose)
-                        print(susceptibility_ratio[it][p_compartment][i])
-                        exposure_probability = 1
-                    if p_infect > 1 :
-                        print("SYMPTOMATIC RATE OUT OF BOUNDS")
-                        print(p_infect)
-                        p_infect = 1
-                    if p_recover > 1 :
-                        print("RECOVERY RATE OUT OF BOUNDS")
-                        print(p_recover)
-                        p_recover = 1
+            for p_compartment in range(n_parallel_compartments):
+                exposure_probability = susceptibility_ratio[it][p_compartment][i] * p_expose
+                if (np.isnan(exposure_probability)) or (exposure_probability > 1) or (exposure_probability < 0) :
+                    print("SUSCEPTIBILITY OUT OF BOUNDS")
+                    print(p_expose)
+                    print(susceptibility_ratio[it][p_compartment][i])
+                    # exposure_probability = 1
+                    exposeCases[p_compartment][i] = np.random.binomial(-1, .5)
+                if (np.isnan(p_infect)) or (p_infect > 1) or (p_infect < 0) :
+                    print("SYMPTOMATIC RATE OUT OF BOUNDS")
+                    print(p_infect)
+                    # p_infect = 1
+                    exposeCases[p_compartment][i] = np.random.binomial(-1, .5)
+                if (np.isnan(p_recover)) or (p_recover > 1) or (p_recover < 0) :
+                    print("RECOVERY RATE OUT OF BOUNDS")
+                    print(p_recover)
+                    exposeCases[p_compartment][i] = np.random.binomial(-1, .5)
+                    # p_recover = 1
+                if stoch_traj_flag:
                     exposeCases[p_compartment][i] = np.random.binomial(y[S][p_compartment][i], exposure_probability)
                     incidentCases[p_compartment][i] = np.random.binomial(y[E][p_compartment][i], p_infect)
                     incident2Cases[p_compartment][i] = np.random.binomial(y[I1][p_compartment][i], p_recover)
                     incident3Cases[p_compartment][i] = np.random.binomial(y[I2][p_compartment][i], p_recover)
                     recoveredCases[p_compartment][i] = np.random.binomial(y[I3][p_compartment][i], p_recover)
-            else:
-                for p_compartment in range(n_parallel_compartments):
-                    exposeCases[p_compartment][i] = y[S,p_compartment][i] * p_expose * susceptibility_ratio[it][p_compartment][i]
+                else:
+                    exposeCases[p_compartment][i] = y[S][p_compartment][i] * exposure_probability
                     incidentCases[p_compartment][i] =  y[E][p_compartment][i] * p_infect
                     incident2Cases[p_compartment][i] = y[I1][p_compartment][i] * p_recover
                     incident3Cases[p_compartment][i] = y[I2][p_compartment][i] * p_recover
@@ -158,25 +160,30 @@ def steps_SEIR_nb(
         ## Vaccination
         for i in range(nnodes):
             for comp in range(ncomp-1):
-                for compartment in range(n_parallel_compartments):
-                    n = y[comp][compartment][i]
-                    p = transition_rate[it][compartment][i]
-                    if p > 1:
-                        p = 1
+                for transition in range(n_parallel_transitions):
+                    from_compartment = transition_from[transition]
+                    n = y[comp][from_compartment][i]
+                    p = transition_rate[it][transition][i]
+                    if (np.isnan(p)) or (p > 1) or (p < 0):
+                        # p = 1
                         print("TRANSITION RATE OUT OF BOUNDS")
+                        print("time is")
+                        print(t)
+                        print("n is")
                         print(n)
-                        print(transition_rate[it][compartment][i])
+                        print("p is")
+                        print(transition_rate[it][transition][i])
                     if stoch_traj_flag:
-                        vaccinatedCases[comp][compartment][i] = \
+                        vaccinatedCases[comp][transition][i] = \
                             np.random.binomial(n, p)
                     else:
-                        vaccinatedCases[comp][compartment][i] = \
+                        vaccinatedCases[comp][transition][i] = \
                             n * p
-        for dose in range(n_parallel_compartments):
-            if dose < (n_parallel_compartments - 1):
-                y[:,dose,:] -= vaccinatedCases[:,dose,:]
-            if dose > 0:
-                y[:,dose,:] += vaccinatedCases[:,dose-1,:]
+        for transition in range(n_parallel_transitions):
+            from_compartment = transition_from[transition]
+            to_compartment = transition_to[transition]
+            y[:,from_compartment,:] -= vaccinatedCases[:,from_compartment,:]
+            y[:,to_compartment,:] += vaccinatedCases[:,to_compartment,:]
 
         states[:, :, :, it] = y
 
