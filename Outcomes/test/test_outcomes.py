@@ -524,9 +524,9 @@ def test_outcomes_pcomp_read_write():
     prefix = ''
     stoch_traj_flag = False
 
-    outcomes.run_delayframe_outcomes(config, 111, prefix, int(index), 
+    outcomes.onerun_delayframe_outcomes_load_hpar(config, 111, prefix, int(index), 
                                              112, prefix, int(index), # output
-                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+                            deathrate, stoch_traj_flag = stoch_traj_flag)
     hpar_read = pq.read_table('model_output/hpar/000000001.111.hpar.parquet').to_pandas()
     hpar_wrote = pq.read_table('model_output/hpar/000000001.112.hpar.parquet').to_pandas()
     assert((hpar_read == hpar_wrote).all().all())

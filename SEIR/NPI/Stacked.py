@@ -74,14 +74,15 @@ class Stacked(NPIBase):
             for new_p in new_params:
                 if new_p not in self.param_name:
                     self.param_name.append(new_p)
-                    if re.match("^transition_rate \d+$",new_p):
+                    if re.match("^transition_rate [1234567890]+$",new_p):
                         self.reductions[new_p] = 0
                     else:
                         self.reductions[new_p] = 1
 
             for param in self.param_name:
+                print(f"""{self.name} : param is {param}""")
                 reduction = sub_npi.getReduction(param, default=0.0)
-                if re.match("^transition_rate \d+$",param):
+                if re.match("^transition_rate [1234567890]+$",param):
                     self.reductions[param] += reduction
                 else:
                     self.reductions[param] *= (1 - reduction)
