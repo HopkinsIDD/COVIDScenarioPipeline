@@ -68,12 +68,12 @@ def steps_SEIR_nb(
 
     transmissibility_ratio = 1 - transmissibility_ratio
 
-    exposeCases = np.empty((n_parallel_compartments, nnodes))
-    incidentCases = np.empty((n_parallel_compartments, nnodes))
-    incident2Cases = np.empty((n_parallel_compartments, nnodes))
-    incident3Cases = np.empty((n_parallel_compartments, nnodes))
-    recoveredCases = np.empty((n_parallel_compartments, nnodes))
-    vaccinatedCases = np.zeros((ncomp,n_parallel_transitions,nnodes))
+    exposeCases = np.zeros((n_parallel_compartments, nnodes)) - 1
+    incidentCases = np.zeros((n_parallel_compartments, nnodes)) - 1
+    incident2Cases = np.zeros((n_parallel_compartments, nnodes)) - 1
+    incident3Cases = np.zeros((n_parallel_compartments, nnodes)) - 1
+    recoveredCases = np.zeros((n_parallel_compartments, nnodes)) - 1
+    vaccinatedCases = np.zeros((ncomp,n_parallel_transitions,nnodes)) - 1
     p_expose = 0
 
     percent_who_move = np.zeros((nnodes))
@@ -149,6 +149,12 @@ def steps_SEIR_nb(
                     incident3Cases[p_compartment][i] = y[I2][p_compartment][i] * p_recover
                     recoveredCases[p_compartment][i] = y[I3][p_compartment][i] * p_recover
 
+        print("Movement")
+        print("  exposed [", exposeCases.min(), ", ", exposeCases.max(), "]")
+        print("  incident [", incidentCases.min(), ", ", incidentCases.max(), "]")
+        print("  incident2 [", incident2Cases.min(), ", ", incident2Cases.max(), "]")
+        print("  incident3 [", incident3Cases.min(), ", ", incident3Cases.max(), "]")
+        print("  recovered [", recoveredCases.min(), ", ", recoveredCases.max(), "]")
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases
         y[I1] += incidentCases - incident2Cases
@@ -182,11 +188,21 @@ def steps_SEIR_nb(
         for transition in range(n_parallel_transitions):
             from_compartment = transition_from[transition]
             to_compartment = transition_to[transition]
-            y[:,from_compartment,:] -= vaccinatedCases[:,from_compartment,:]
-            y[:,to_compartment,:] += vaccinatedCases[:,to_compartment,:]
+            y[:-1,from_compartment,:] -= vaccinatedCases[:-1,from_compartment,:]
+            y[:-1,to_compartment,:] += vaccinatedCases[:-1,from_compartment,:]
+        print("  vaccinated [", vaccinatedCases.min(), ", ", vaccinatedCases.max(), "]")
 
         states[:, :, :, it] = y
+        print("Y extremes:")
+        print(y.min())
+        print(y.max())
+        print("  by compartment extremes:")
+        for comp in range(ncomp):
+            print("  " , y[comp].min())
+            print("  " , y[comp].max())
 
+        if((y.min() < 0) or (y.max() > 10 ** 10)):
+           raise ValueError("Overflow error")
     return states
 
 
