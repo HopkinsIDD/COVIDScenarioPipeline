@@ -85,6 +85,45 @@ make_CI <- function(lo, hi){
 }
 
 ##'
+##'Function to add one row per intervention period for interventions using the MultiTimeReduce template
+##'
+##'@param rt_dat df with estimates of snpi/spar outputs, with columns for geoid, scenario, pdeath, unique intervention names (must start with "npi"), start_date, end_date, 
+##'@param n_periods maximum number of non-contiguous dates 
+
+mtr_estimates <- function(rt_dat, 
+                          n_periods=10){
+  
+  mtr_start <- rt_dat %>%
+    select(geoid, scenario, pdeath, starts_with("npi"), start_date) %>%
+    distinct() %>%
+    separate(start_date, into = as.character(c(1:n_periods)), sep=",")
+  
+  mtr_end <- rt_dat %>%
+    select(geoid, scenario, pdeath, starts_with("npi"), start_date) %>%
+    distinct() %>%
+    separate(start_date, into = as.character(c(1:n_periods)), sep=",")
+  
+  xx <- tibble()
+  
+  for(i in 1:n_periods){
+    
+    xx<-mtr_start %>%
+      select(geoid, scenario, pdeath, starts_with("npi"), start_date=as.symbol(i)) %>%
+      left_join(mtr_end %>%
+                  select(geoid, scenario, pdeath, starts_with("npi"), end_date=as.symbol(i))) %>%
+      drop_na() %>%
+      right_join(rt_dat%>%
+                   select(-start_date, -end_date)) %>%
+      drop_na() %>%
+      mutate(across(ends_with("date"), ~lubridate::ymd(.x)))%>%
+      bind_rows(xx)
+  }
+  
+  return(xx)
+  
+}
+
+##'
 ##' Plot figure showing 15 random sims of hospitalization occupancy
 ##'
 ##' TODO ADD OPTION TO CHANGE VARIABLE THAT IS PLOTTED TO ANYTHING IN HOSP OUTCOMES DATASET
