@@ -306,7 +306,7 @@ load_hosp_county <- function(outcome_dir,
                                incl_geoids=incl_geoids,
                                inference=inference)
   
-  if(!unique(rc$scenario) %in% scenario_levels) {warning("Scenario levels were not correctly specified you may encounter errors in the future")}
+  if(anyNA(rc$scenario_name)) {warning("Scenario levels were not correctly specified you may encounter errors in the future")}
   
   return(rc)
   
