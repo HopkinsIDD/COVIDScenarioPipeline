@@ -99,9 +99,9 @@ mtr_estimates <- function(rt_dat,
     separate(start_date, into = as.character(c(1:n_periods)), sep=",")
   
   mtr_end <- rt_dat %>%
-    select(geoid, scenario, pdeath, starts_with("npi"), start_date) %>%
+    select(geoid, scenario, pdeath, starts_with("npi"), end_date) %>%
     distinct() %>%
-    separate(start_date, into = as.character(c(1:n_periods)), sep=",")
+    separate(end_date, into = as.character(c(1:n_periods)), sep=",")
   
   xx <- tibble()
   
