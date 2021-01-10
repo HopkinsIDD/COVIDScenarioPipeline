@@ -41,6 +41,8 @@ from SEIR import file_paths
               help="The location of an S3 run to use as the initial to the first block of the current run")
 @click.option("--stochastic/--non-stochastic", "--stochastic/--non-stochastic", "stochastic", type=bool, default=True,
               help="Flag determining whether to run stochastic simulations or not")
+@click.option("--stacked-max","--stacked-max", "max_stacked_interventions", envvar="COVID_MAX_STACK_SIZE", type=str, default=file_paths.run_id(),
+              help="Unique identifier for this run")
 def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from, stochastic):
 
     config = None
@@ -194,6 +196,7 @@ class BatchJobHandler(object):
                 {"name": "S3_RESULTS_PATH", "value": results_path},
                 {"name": "COVID_CONFIG_PATH", "value": config_file},
                 {"name": "COVID_NSIMULATIONS", "value": str(self.num_jobs)},
+                {"name": "COVID_MAX_STACK_SIZE", "value": str(self.max_stacked_interventions)},
                 {"name": "SIMS_PER_JOB", "value": str(self.sims_per_job) },
                 {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job) },
                 {"name": "COVID_STOCHASTIC", "value": str(self.stochastic) }
