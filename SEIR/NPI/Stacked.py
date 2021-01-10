@@ -4,6 +4,7 @@ import warnings
 import confuse
 import pandas as pd
 import re
+import os
 
 from .base import NPIBase
 
@@ -12,7 +13,8 @@ from .base import NPIBase
 ### PARALLEL_TRANS_PARAMS = ["transition_rate"]
 
 "Cap on # of reduction metadata entries to store in memory"
-REDUCTION_METADATA_CAP = 350
+
+REDUCTION_METADATA_CAP = os.getenv("COVID_MAX_STACK_SIZE",350)
 
 
 class Stacked(NPIBase):
@@ -47,6 +49,7 @@ class Stacked(NPIBase):
         self.reductions = {} #{param: 1 for param in REDUCE_PARAMS}
         self.reduction_params = collections.deque()
         self.reduction_cap_exceeded = False
+        self.reduction_number = 0
 
         # the confuse library's config resolution mechanism makes slicing the configuration object expensive; instead,
         # just preload all settings
@@ -94,6 +97,7 @@ class Stacked(NPIBase):
             if not self.reduction_cap_exceeded:
                 if len(self.reduction_params) < REDUCTION_METADATA_CAP:
                     self.reduction_params.append(sub_npi.getReductionToWrite())
+                    self.reduction_number += len(self.reduction_params)
                 else:
                     self.reduction_cap_exceeded = True
                     self.reduction_params.clear()
@@ -114,6 +118,6 @@ class Stacked(NPIBase):
 
     def getReductionToWrite(self):
         if self.reduction_cap_exceeded:
-            warnings.warn("Not writing reduction metadata (*.snpi.*) as memory buffer cap exceeded")
+            warnings.warn(f"""Not writing reduction metadata (*.snpi.*) as memory buffer cap exceeded {self.reduction_number}""")
             return pd.DataFrame({"error": ["No reduction metadata as memory buffer cap exceeded"]})
         return pd.concat(self.reduction_params, ignore_index=True)
