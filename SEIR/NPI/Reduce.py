@@ -51,7 +51,7 @@ class Reduce(NPIBase):
 
         # if parameters are exceeding global start/end dates, index of parameter df will be out of range so check first
         if self.parameters["start_date"].min() < self.start_date or self.parameters["end_date"].max() > self.end_date:
-            raise ValueError("at least one period start or end date is not between global dates")
+            raise ValueError(f"""{self.name} : at least one period start or end date is not between global dates""")
 
         for index in self.parameters.index:
             period_range = pd.date_range(self.parameters["start_date"][index], self.parameters["end_date"][index])
