@@ -14,7 +14,7 @@ from .base import NPIBase
 
 "Cap on # of reduction metadata entries to store in memory"
 
-REDUCTION_METADATA_CAP = os.getenv("COVID_MAX_STACK_SIZE",350)
+REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE",350))
 
 
 class Stacked(NPIBase):
@@ -95,7 +95,7 @@ class Stacked(NPIBase):
             # verify there are no downstream consumers of the dataframe. in the meantime, limit the amount
             # of data we'll pin in memory
             if not self.reduction_cap_exceeded:
-                if len(self.reduction_params) < REDUCTION_METADATA_CAP:
+                if len(self.reduction_params) < int(REDUCTION_METADATA_CAP):
                     self.reduction_params.append(sub_npi.getReductionToWrite())
                     self.reduction_number += len(self.reduction_params)
                 else:
