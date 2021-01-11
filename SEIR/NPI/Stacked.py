@@ -7,6 +7,7 @@ import re
 
 from .base import NPIBase
 
+debug_print = False
 ### REDUCE_PARAMS = ["alpha", "r0", "gamma", "sigma"]
 ### PARALLEL_COMP_PARAMS = ["transmissibility_reduction", "susceptibility_reduction"]
 ### PARALLEL_TRANS_PARAMS = ["transition_rate"]
@@ -80,7 +81,8 @@ class Stacked(NPIBase):
                         self.reductions[new_p] = 1
 
             for param in self.param_name:
-                print(f"""{self.name} : param is {param}""")
+                if debug_print:
+                    print(f"""{self.name} : param is {param}""")
                 reduction = sub_npi.getReduction(param, default=0.0)
                 if re.match("^transition_rate [1234567890]+$",param):
                     self.reductions[param] += reduction
