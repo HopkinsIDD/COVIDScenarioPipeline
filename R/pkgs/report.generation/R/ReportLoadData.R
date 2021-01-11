@@ -816,3 +816,35 @@ load_r_daily_sims_filtered <- function(outcome_dir,
   return(rc)
   
 }
+
+##' Convenience function to load intervention effectiveness estimates 
+##' 
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param pdeath_filter string that indicates which pdeath(s) to import from outcome_dir
+##' @param incl_geoids character vector of geoids that are included in the report
+##' 
+##' @return a combined data frame of daily Rt and total effectiveness estimates per geoid/sim 
+##' 
+##'
+##'
+##'@export
+load_npi_sims_filtered <- function(outcome_dir,
+                                       pdeath_filter=c("high", "med", "low"),
+                                       incl_geoids,
+                                       ...
+) {
+  
+  require(tidyverse)
+  
+  npi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
+                                 pre_process=function(x) {x %>% dplyr::filter(parameter=="r0")}, 
+                                 pdeath_filter=pdeath_filter, 
+                                 incl_geoids=incl_geoids,
+                                 ...) %>%
+    dplyr::select(-parameter, -date)
+  
+  warning("Finished loading")
+  
+  return(npi)
+  
+}
