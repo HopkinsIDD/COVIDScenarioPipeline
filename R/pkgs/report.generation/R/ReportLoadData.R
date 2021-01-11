@@ -790,10 +790,12 @@ load_r_daily_sims_filtered <- function(outcome_dir,
   } else {
     npi <- snpi %>%
       left_join(spar) %>% 
-      dplyr::select(-date)
+      dplyr::select(-date) %>%
+      mutate(start_date=lubridate::ymd(start_date),
+             end_date=lubridate::ymd(end_date))
   }
   
-  geoiddate<-crossing(geoid=incl_geoids, time=seq(min(as.Date(rc$start_date)), max(as.Date(rc$end_date)), 1))
+  geoiddate<-crossing(geoid=incl_geoids, time=seq(min(as.Date(npi$start_date)), max(as.Date(npi$end_date)), 1))
   
   rc<-list()
   
@@ -810,7 +812,8 @@ load_r_daily_sims_filtered <- function(outcome_dir,
       mutate(rt=reduction*r0)
   }
   
-  rc<-bind_rows(rc)
+  rc<-bind_rows(rc) %>%
+    ungroup()
   
   warning("Finished loading")
   return(rc)
