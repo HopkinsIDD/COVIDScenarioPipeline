@@ -7,6 +7,8 @@ cc.verbose = True
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
+debug_mode = False
+debug_print = False
 
 @cc.export(
     ## name
@@ -120,22 +122,13 @@ def steps_SEIR_nb(
                 ## Fix this:
             for p_compartment in range(n_parallel_compartments):
                 exposure_probability = susceptibility_ratio[it][p_compartment][i] * p_expose
-                if (np.isnan(exposure_probability)) or (exposure_probability > 1) or (exposure_probability < 0) :
-                    print("SUSCEPTIBILITY OUT OF BOUNDS")
-                    print(p_expose)
-                    print(susceptibility_ratio[it][p_compartment][i])
-                    # exposure_probability = 1
-                    exposeCases[p_compartment][i] = np.random.binomial(-1, .5)
-                if (np.isnan(p_infect)) or (p_infect > 1) or (p_infect < 0) :
-                    print("SYMPTOMATIC RATE OUT OF BOUNDS")
-                    print(p_infect)
-                    # p_infect = 1
-                    exposeCases[p_compartment][i] = np.random.binomial(-1, .5)
-                if (np.isnan(p_recover)) or (p_recover > 1) or (p_recover < 0) :
-                    print("RECOVERY RATE OUT OF BOUNDS")
-                    print(p_recover)
-                    exposeCases[p_compartment][i] = np.random.binomial(-1, .5)
-                    # p_recover = 1
+                if(debug_mode):
+                    if (np.isnan(exposure_probability)) or (exposure_probability > 1) or (exposure_probability < 0) :
+                        raise ValueError("SUSCEPTIBILITY OUT OF BOUNDS")
+                    if (np.isnan(p_infect)) or (p_infect > 1) or (p_infect < 0) :
+                        raise ValueError("SYMPTOMATIC RATE OUT OF BOUNDS")
+                    if (np.isnan(p_recover)) or (p_recover > 1) or (p_recover < 0) :
+                        raise ValueError("RECOVERY RATE OUT OF BOUNDS")
                 if stoch_traj_flag:
                     exposeCases[p_compartment][i] = np.random.binomial(y[S][p_compartment][i], exposure_probability)
                     incidentCases[p_compartment][i] = np.random.binomial(y[E][p_compartment][i], p_infect)
@@ -149,12 +142,14 @@ def steps_SEIR_nb(
                     incident3Cases[p_compartment][i] = y[I2][p_compartment][i] * p_recover
                     recoveredCases[p_compartment][i] = y[I3][p_compartment][i] * p_recover
 
-        print("Movement")
-        print("  exposed [", exposeCases.min(), ", ", exposeCases.max(), "]")
-        print("  incident [", incidentCases.min(), ", ", incidentCases.max(), "]")
-        print("  incident2 [", incident2Cases.min(), ", ", incident2Cases.max(), "]")
-        print("  incident3 [", incident3Cases.min(), ", ", incident3Cases.max(), "]")
-        print("  recovered [", recoveredCases.min(), ", ", recoveredCases.max(), "]")
+        if debug_print:
+            print("Movement")
+            print("  exposed [", exposeCases.min(), ", ", exposeCases.max(), "]")
+            print("  incident [", incidentCases.min(), ", ", incidentCases.max(), "]")
+            print("  incident2 [", incident2Cases.min(), ", ", incident2Cases.max(), "]")
+            print("  incident3 [", incident3Cases.min(), ", ", incident3Cases.max(), "]")
+            print("  recovered [", recoveredCases.min(), ", ", recoveredCases.max(), "]")
+
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases
         y[I1] += incidentCases - incident2Cases
@@ -170,15 +165,9 @@ def steps_SEIR_nb(
                     from_compartment = transition_from[transition]
                     n = y[comp][from_compartment][i]
                     p = transition_rate[it][transition][i]
-                    if (np.isnan(p)) or (p > 1) or (p < 0):
-                        # p = 1
-                        print("TRANSITION RATE OUT OF BOUNDS")
-                        print("time is")
-                        print(t)
-                        print("n is")
-                        print(n)
-                        print("p is")
-                        print(transition_rate[it][transition][i])
+                    if debug_mode:
+                        if (np.isnan(p)) or (p > 1) or (p < 0):
+                            raise ValueError("TRANSITION RATE OUT OF BOUNDS")
                     if stoch_traj_flag:
                         vaccinatedCases[comp][transition][i] = \
                             np.random.binomial(n, p)
@@ -192,13 +181,14 @@ def steps_SEIR_nb(
             y[:-1,to_compartment,:] += vaccinatedCases[:-1,from_compartment,:]
 
         states[:, :, :, it] = y
-        print("Y extremes:")
-        print(y.min())
-        print(y.max())
-        print("  by compartment extremes:")
-        for comp in range(ncomp):
-            print("  " , y[comp].min())
-            print("  " , y[comp].max())
+        if debug_print:
+            print("Y extremes:")
+            print(y.min())
+            print(y.max())
+            print("  by compartment extremes:")
+            for comp in range(ncomp):
+                print("  " , y[comp].min())
+                print("  " , y[comp].max())
 
         if((y.min() < 0) or (y.max() > 10 ** 10)):
            raise ValueError("Overflow error")
