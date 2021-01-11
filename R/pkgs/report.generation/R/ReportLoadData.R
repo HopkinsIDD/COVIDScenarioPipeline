@@ -745,3 +745,74 @@ load_r_sims_filtered <- function(outcome_dir,
   return(rc)
   
 }
+
+##' Convenience function for loading daily Rt and total effectiveness estimates 
+##' 
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param pdeath_filter string that indicates which pdeath(s) to import from outcome_dir
+##' @param incl_geoids character vector of geoids that are included in the report
+##' @param mtr logical to determine if non-contiguous interventions were applied - default TRUE
+##' @param n_periods maximum number of non-contiguous periods for any geoid/intervention
+##' 
+##' @return a combined data frame of daily Rt and total effectiveness estimates per geoid/sim 
+##' 
+##'
+##'
+##'@export
+load_r_daily_sims_filtered <- function(outcome_dir,
+                                       pdeath_filter=c("high", "med", "low"),
+                                       incl_geoids,
+                                       mtr=TRUE,
+                                       n_periods=10,
+                                       ...
+) {
+  
+  require(tidyverse)
+  
+  spar <- load_spar_sims_filtered(outcome_dir=outcome_dir, 
+                                  pre_process=function(x) {x %>% dplyr::filter(parameter=="R0")}, 
+                                  pdeath_filter=pdeath_filter,
+                                  ...) %>%
+    dplyr::select(r0=value, location, scenario, pdeath, date, sim_num)
+  
+  snpi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
+                                 pre_process=function(x) {x %>% dplyr::filter(parameter=="r0")}, 
+                                 pdeath_filter=pdeath_filter, 
+                                 incl_geoids=incl_geoids,
+                                 ...) %>%
+    dplyr::select(-parameter)
+  
+  if(mtr){
+    npi <- snpi %>%
+      left_join(spar) %>% 
+      dplyr::select(-date) %>%
+      mtr_estimates(n_periods=n_periods)
+  } else {
+    npi <- snpi %>%
+      left_join(spar) %>% 
+      dplyr::select(-date)
+  }
+  
+  geoiddate<-crossing(geoid=incl_geoids, time=seq(min(as.Date(rc$start_date)), max(as.Date(rc$end_date)), 1))
+  
+  rc<-list()
+  
+  for(i in 1:length(incl_geoids)){
+    rc[[i]]<-npi %>%
+      filter(geoid == incl_geoids[i])%>%
+      left_join(geoiddate)%>%
+      mutate(end_date=if_else(start_date>time | end_date<time, NA_Date_, end_date))%>%
+      drop_na() %>%
+      group_by(geoid, sim_num, time, pdeath, scenario, location) %>%
+      mutate(reduction=1-reduction)%>%
+      summarize(reduction=prod(reduction),
+                r0=unique(r0)) %>%
+      mutate(rt=reduction*r0)
+  }
+  
+  rc<-bind_rows(rc)
+  
+  warning("Finished loading")
+  return(rc)
+  
+}
