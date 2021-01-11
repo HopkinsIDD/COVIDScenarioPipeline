@@ -1622,20 +1622,16 @@ plot_truth_by_county <- function(truth_dat,
 }
 
 ##' Time series comparing Rt estimates by scenario over time
-##' @param outcome_dir directory with spar/snpi folders
-##' @param truth_dat df with date, geoid, incidI, incidDeath
-##' @param r_dat df with inference dat from load_r_sims_filtered
-##' @param incl_geoids passed on to calcR0 when using county-level data
+##' @param county_dat df with geoid, sim_num, cum_inf, scenario, and time columns
+##' @param truth_dat df with date, geoid, incidI, and NcumulConfirmed
+##' @param r_dat df with daily estimate of Rt from load_r_daily_sims_filtered
+##' @param geodat df with geoid and population columns
 ##' @param pdeath_filter which pdeath to select
 ##' @param scenario_colors colors for each scenario
 ##' @param scenario_levels levels applied to scenarios
 ##' @param scenario_labels label applied to scenarios
-##' @param start_date start of timeline
-##' @param end_date end of timeline
-##' @param geodat df with geoid and pop 
 ##' @param pi_lo lower limit to interval
 ##' @param pi_hi upper limit to interval
-##' @param pop_col name of geodat column with population data
 ##' 
 ##' @return a table with the effectiveness per intervention period and a bar graph
 ##' 
@@ -1651,69 +1647,49 @@ plot_rt_ts <- function(county_dat,
                        scenario_colors,
                        scenario_levels,
                        scenario_labels,
-                       incl_geoids,
-                       start_date,
-                       end_date, 
                        geodat=geodata,
                        susceptible=TRUE,
                        pi_lo=0.025,
-                       pi_hi=0.975,
-                       pop_col=config$spatial_setup$popnodes
+                       pi_hi=0.975
 ){
   require(tidyverse)
   if(length(pdeath_filter)>1){stop("Currently plots for")}
-  start_date<-as.Date(start_date)
-  end_date<-as.Date(end_date)
   
-  geoiddate<-crossing(geoid=geodat$geoid, date=seq(start_date, end_date, by=1))
+  incl_geoids <- geodat %>%
+    pull(geoid)
   
-  rc<-list()
-  for(i in 1:length(scenario_levels)){
-    rc[[i]]<-r_dat %>%
-      dplyr::filter(scenario==scenario_levels[i],
-                    pdeath==pdeath_filter) %>%
-      dplyr::select(geoid, sim_num, npi_name, reduction, local_r, scenario, start_date, end_date) %>%
-      dplyr::group_by(geoid, sim_num) %>%
-      dplyr::mutate(end_date=if_else(npi_name=="local_variance",
-                              lead(start_date)-1,
-                              end_date)) %>%
-      dplyr::left_join(geoiddate)%>%
-      dplyr::mutate(reduction=if_else(date<start_date | date>end_date, NA_real_, reduction)) %>% 
-      drop_na() %>%
-      dplyr::mutate(reduction=ifelse(npi_name=="local_variance", 1, 1-reduction)) %>%
-      dplyr::group_by(geoid, sim_num, date, scenario) %>%
-      dplyr::summarize(reduction=prod(reduction),
-                       local_r=unique(local_r)) %>%
-      dplyr::mutate(r=reduction*local_r)
-    
-    if(susceptible){
-    rc[[i]]<-county_dat %>%
-      dplyr::filter(scenario==scenario_levels[i],
-                    pdeath==pdeath_filter) %>%
+  geodat <- geodat %>%
+    rename(pop=starts_with("pop"))
+  
+  r_dat<-r_dat %>%
+    dplyr::filter(pdeath==pdeath_filter) %>%
+    dplyr::filter(geoid %in% incl_geoids) 
+  
+  if(susceptible){
+    rc<-county_dat %>%
+      dplyr::filter(pdeath==pdeath_filter) %>%
+      dplyr::filter(geoid %in% incl_geoids) %>%
       left_join(geodat)%>%
-      dplyr::select(geoid, sim_num, cum_inf, !!as.symbol(pop_col), scenario, date=time) %>%
-      dplyr::right_join(rc[[i]]) %>%
-      dplyr::group_by(scenario, date) %>%
-      dplyr::mutate(r=r*(1-cum_inf/!!as.symbol(pop_col))) %>%
-      dplyr::mutate(weight = !!as.symbol(pop_col)/sum(!!as.symbol(pop_col)))
+      dplyr::select(geoid, sim_num, cum_inf, pop, scenario, time) %>%
+      dplyr::right_join(r_dat) %>%
+      dplyr::group_by(scenario, date=time) %>%
+      dplyr::mutate(rt=rt*(1-cum_inf/pop)) %>%
+      dplyr::mutate(weight = pop/sum(pop))
     } else {
-      rc[[i]]<- rc[[i]] %>%
-        group_by(scenario, date) %>%
-        mutate(weight=1/n())
+      rc<- r_dat%>%
+        dplyr::group_by(scenario, date=time) %>%
+        dplyr::mutate(weight=1/n())
     }
-    
-    
-  }
   
-  rc<-dplyr::bind_rows(rc) %>%
+  rc<-rc %>%
     dplyr::group_by(scenario, date) %>%
-    dplyr::summarize(estimate=Hmisc::wtd.mean(r, weights=weight, normwt=TRUE),
-                     lower=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_lo),
-                     upper=Hmisc::wtd.quantile(r, weights=weight, normwt=TRUE, probs=pi_hi))
+    dplyr::summarize(estimate=Hmisc::wtd.mean(rt, weights=weight, normwt=TRUE),
+                     lower=Hmisc::wtd.quantile(rt, weights=weight, normwt=TRUE, probs=pi_lo),
+                     upper=Hmisc::wtd.quantile(rt, weights=weight, normwt=TRUE, probs=pi_hi))
   
   truth_dat<-truth_dat%>%
     dplyr::filter(NcumulConfirmed!=0)%>%
-    calcR0(geodat=geodat, by_geoid=FALSE, incl_geoids = incl_geoids, pop_col=pop_col) %>%
+    calcR0(geodat=geodat, by_geoid=FALSE, incl_geoids = incl_geoids, pop_col="pop") %>%
     dplyr::mutate(scenario="USA Facts")
   
   dplyr::bind_rows(rc, truth_dat) %>%
