@@ -197,7 +197,7 @@ class BatchJobHandler(object):
                 {"name": "S3_RESULTS_PATH", "value": results_path},
                 {"name": "COVID_CONFIG_PATH", "value": config_file},
                 {"name": "COVID_NSIMULATIONS", "value": str(self.num_jobs)},
-                {"name": "COVID_MAX_STACK_SIZE", "value": str(max_stacked_interventions)},
+                {"name": "COVID_MAX_STACK_SIZE", "value": str(self.max_stacked_interventions)},
                 {"name": "SIMS_PER_JOB", "value": str(self.sims_per_job) },
                 {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job) },
                 {"name": "COVID_STOCHASTIC", "value": str(self.stochastic) }
