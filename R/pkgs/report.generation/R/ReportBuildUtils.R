@@ -124,6 +124,52 @@ mtr_estimates <- function(rt_dat,
 }
 
 ##'
+##'Function to generate summary estimates of daily rt  
+##' 
+##' @param rt_dat df with daily rt estimates by geoid
+##' @param county_dat df with geoid, scenario, pdeath, sim_num, time, location, and cum_inf columns
+##' @param lo 
+##' @param hi
+##' 
+
+rt_estimates <- function(rt_dat, 
+                         county_dat, 
+                         geodat,
+                         lo=0.025,
+                         hi=0.975){
+  
+  geodat<-geodat %>%
+    rename(pop=starts_with("pop"))
+  
+  rc<-county_dat %>%
+    select(geoid, scenario, pdeath, sim_num, time, location, cum_inf) %>% 
+    left_join(geodata) %>%
+    right_join(rt_dat) %>%
+    group_by(scenario, time, location) %>%
+    mutate(rt=rt*(1-cum_inf/pop), 
+           weight=pop/sum(pop))
+  
+  rc_state<-rc%>%
+    group_by(scenario, time, pdeath, location) %>%
+    summarize(mean=Hmisc::wtd.mean(rt, weights = weight, normwt=TRUE), 
+              median=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=0.5),
+              ci_lo=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=lo),
+              ci_hi=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=hi)) %>%
+    rename(geoid=location)
+  
+  rc<-rc %>%
+    group_by(scenario, time, pdeath, geoid) %>%
+    summarize(mean=mean(rt),
+              median=quantile(rt, probs=0.5),
+              ci_lo=quantile(rt, probs=lo),
+              ci_hi=quantile(rt, probs=hi)) %>%
+    bind_rows(rc_state)
+  
+  return(rc)
+              
+}
+
+##'
 ##' Plot figure showing 15 random sims of hospitalization occupancy
 ##'
 ##' TODO ADD OPTION TO CHANGE VARIABLE THAT IS PLOTTED TO ANYTHING IN HOSP OUTCOMES DATASET
