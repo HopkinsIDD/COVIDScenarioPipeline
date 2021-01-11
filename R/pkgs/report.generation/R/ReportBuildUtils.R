@@ -2100,7 +2100,7 @@ calcR0 <- function(USAfacts,
       group_by(Date) %>%
       summarise_if(is.numeric, sum) %>%
       ungroup()
-    pop <- sum(geodat[geodat$geoid == incl_geoids, pop_col])
+    pop <- sum(geodat[geodat$geoid %in% incl_geoids, pop_col])
     incid <- setNames(covid$New.Cases,1:nrow(covid))
     estR0 <- R0::estimate.R(incid, mGT, begin=1, end=as.numeric(length(incid)), methods=c("TD"), pop.size=pop, nsim=1000)
     Rt1 <- cbind(covid$Date,estR0$estimates$TD$R,estR0$estimates$TD$conf.int)
