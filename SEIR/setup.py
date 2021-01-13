@@ -536,9 +536,9 @@ def parameters_load(fname, extension, nt_inter, nnodes):
         transition_rate[:,transition,:] = \
             float(pars[pars['parameter'] == (str(transition) + " " + "transition rate")].value)
         transition_from[transition] = \
-            int(pars[pars['parameter'] == (str(transition) + " " + "transition rate")].value)
+            int(pars[pars['parameter'] == (str(transition) + " " + "transition from")].value)
         transition_to[transition] = \
-            int(pars[pars['parameter'] == (str(transition) + " " + "transition rate")].value)
+            int(pars[pars['parameter'] == (str(transition) + " " + "transition to")].value)
 
 
 
