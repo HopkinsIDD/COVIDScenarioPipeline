@@ -142,13 +142,6 @@ def steps_SEIR_nb(
                     incident3Cases[p_compartment][i] = y[I2][p_compartment][i] * p_recover
                     recoveredCases[p_compartment][i] = y[I3][p_compartment][i] * p_recover
 
-        if debug_print:
-            print("Movement")
-            print("  exposed [", exposeCases.min(), ", ", exposeCases.max(), "]")
-            print("  incident [", incidentCases.min(), ", ", incidentCases.max(), "]")
-            print("  incident2 [", incident2Cases.min(), ", ", incident2Cases.max(), "]")
-            print("  incident3 [", incident3Cases.min(), ", ", incident3Cases.max(), "]")
-            print("  recovered [", recoveredCases.min(), ", ", recoveredCases.max(), "]")
 
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases
@@ -174,6 +167,15 @@ def steps_SEIR_nb(
                     else:
                         vaccinatedCases[comp][transition][i] = \
                             n * p
+        if debug_print:
+            print("Movement")
+            print("  exposed [", exposeCases.min(), ", ", exposeCases.max(), "]")
+            print("  incident [", incidentCases.min(), ", ", incidentCases.max(), "]")
+            print("  incident2 [", incident2Cases.min(), ", ", incident2Cases.max(), "]")
+            print("  incident3 [", incident3Cases.min(), ", ", incident3Cases.max(), "]")
+            print("  recovered [", recoveredCases.min(), ", ", recoveredCases.max(), "]")
+            print("  vaccinated [",vaccinatedCases.min(),", ",vaccinatedCases.max())
+
         for transition in range(n_parallel_transitions):
             from_compartment = transition_from[transition]
             to_compartment = transition_to[transition]
