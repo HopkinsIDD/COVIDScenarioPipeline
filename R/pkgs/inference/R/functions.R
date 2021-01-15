@@ -26,10 +26,36 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
   }
 
 
+  if (period_unit != "weeks") {
+    stop("Non-week units not supported right now")
+  }
+  if (period_k != 1) {
+    stop("Non-week units not supported right now")
+  }
+  period_unit <- c(lubridate::epiweek,lubridate::epiyear)
+  is_time_unit_valid <- function(dates, units) {
+    return(length(unique(dates)) == 7)
+  }
+  tmp <- data.frame(date = dates, value = data)
+  for (this_unit in seq_len(length(period_unit))) {
+    tmp[[paste("time_unit", this_unit, sep = "_")]] <- period_unit[[this_unit]](dates)
+  }
+  tmp <- tmp %>%
+    tidyr::unite("time_unit", names(tmp)[grepl("time_unit_", names(tmp))]) %>%
+    group_by(time_unit) %>%
+    summarize(first_date = min(date), value = aggregator(value), valid = is_time_unit_valid(date,time_unit)) %>%
+    ungroup() %>%
+    arrange(first_date) %>%
+    filter(valid)
+  return(matrix(tmp$value, ncol = 1, dimnames = list(as.character(tmp$first_date))))
+
+
+  ## Original
   xtsobj <- xts::as.xts(zoo::zoo(data, dates))
   stats <- xts::period.apply(xtsobj,
                              xts::endpoints(xtsobj, on = period_unit, k = period_k),
                              aggregator)
+  stats
   return(stats)
 }
 
