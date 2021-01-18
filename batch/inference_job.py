@@ -43,6 +43,8 @@ from SEIR import file_paths
               help="Flag determining whether to run stochastic simulations or not")
 @click.option("--stacked-max","--stacked-max", "max_stacked_interventions", envvar="COVID_MAX_STACK_SIZE", type=click.IntRange(min=350), default=350,
               help="Maximum number of interventions to allow in a stacked intervention")
+@click.option("--validation-end-date","--validation-end-date", "last_validation_date", envvar="VALIDATION_DATE", type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today())),
+              help="Last date to pull for ground truth data")
 def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from, stochastic, max_stacked_interventions):
 
     config = None
@@ -131,7 +133,7 @@ def get_job_queues(job_queue_prefix):
 
 
 class BatchJobHandler(object):
-    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from, stochastic, max_stacked_interventions):
+    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from, stochastic, max_stacked_interventions, last_validation_date):
         self.run_id = run_id
         self.num_jobs = num_jobs
         self.sims_per_job = sims_per_job
@@ -144,6 +146,7 @@ class BatchJobHandler(object):
         self.restart_from = restart_from
         self.stochastic = stochastic
         self.max_stacked_interventions = max_stacked_interventions
+        self.last_validation_date = last_validation_date
 
     def launch(self, job_name, config_file, scenarios, p_death_names, job_queues):
 
@@ -198,6 +201,7 @@ class BatchJobHandler(object):
                 {"name": "COVID_CONFIG_PATH", "value": config_file},
                 {"name": "COVID_NSIMULATIONS", "value": str(self.num_jobs)},
                 {"name": "COVID_MAX_STACK_SIZE", "value": str(self.max_stacked_interventions)},
+                {"name": "VALIDATION_DATE", "value": str(self.last_validation_date)},
                 {"name": "SIMS_PER_JOB", "value": str(self.sims_per_job) },
                 {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job) },
                 {"name": "COVID_STOCHASTIC", "value": str(self.stochastic) }
