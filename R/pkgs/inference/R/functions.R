@@ -42,11 +42,11 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
   }
   tmp <- tmp %>%
     tidyr::unite("time_unit", names(tmp)[grepl("time_unit_", names(tmp))]) %>%
-    group_by(time_unit) %>%
-    summarize(first_date = min(date), value = aggregator(value), valid = is_time_unit_valid(date,time_unit)) %>%
-    ungroup() %>%
-    arrange(first_date) %>%
-    filter(valid)
+    dplyr::group_by(time_unit) %>%
+    dplyr::summarize(first_date = min(date), value = aggregator(value), valid = is_time_unit_valid(date,time_unit)) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(first_date) %>%
+    dplyr::filter(valid)
   return(matrix(tmp$value, ncol = 1, dimnames = list(as.character(tmp$first_date))))
 
 
