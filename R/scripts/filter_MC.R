@@ -128,13 +128,15 @@ if(is.null(config$filtering$gt_source)){
 
 gt_scale <- ifelse(state_level, "US state", "US county")
 fips_codes_ <- geodata[[obs_nodename]]
+gt_end_date <- ifelse(is.null(config$end_date_groundtruth), config$end_date, config$end_date_groundtruth)
+
 
 obs <- inference::get_ground_truth(
           data_path = data_path, 
           fips_codes = fips_codes_,
           fips_column_name = obs_nodename, 
           start_date = config$start_date, 
-          end_date = config$end_date, 
+          end_date = gt_end_date, 
           gt_source = gt_source,
           gt_scale = gt_scale
 )
@@ -260,7 +262,7 @@ for(scenario in scenarios) {
 
       ## Do perturbations from accepted
       proposed_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,
-                                                    c(lubridate::ymd(c(config$start_date,config$end_date))))
+                                                    c(lubridate::ymd(c(config$start_date,gt_end_date))))
       proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
       proposed_hnpi <- inference::perturb_snpi(initial_hnpi, config$interventions$settings)
       proposed_spar <- initial_spar
