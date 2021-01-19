@@ -10,7 +10,7 @@ import pathlib
 import subprocess
 import sys
 import tarfile
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 import yaml
 from SEIR import file_paths
 
