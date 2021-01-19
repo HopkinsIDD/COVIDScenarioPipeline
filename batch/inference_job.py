@@ -67,7 +67,7 @@ def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, output
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
 
-    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from, stochastic, max_stacked_interventions)
+    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from, stochastic, max_stacked_interventions, last_validation_date)
 
     job_queues = get_job_queues(job_queue_prefix)
     scenarios = config['interventions']['scenarios']
