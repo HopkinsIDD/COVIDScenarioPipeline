@@ -45,7 +45,7 @@ from SEIR import file_paths
               help="Maximum number of interventions to allow in a stacked intervention")
 @click.option("--validation-end-date","--validation-end-date", "last_validation_date", envvar="VALIDATION_DATE", type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()),
               help="Last date to pull for ground truth data")
-def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from, stochastic, max_stacked_interventions):
+def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from, stochastic, max_stacked_interventions, last_validation_date):
 
     config = None
     with open(config_file) as f:
