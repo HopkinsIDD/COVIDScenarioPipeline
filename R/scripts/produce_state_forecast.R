@@ -2,22 +2,22 @@
 library(inference)
 library(tidyverse)
 
-setwd("~/COVIDWorking")
+setwd("~/COVIDWorking/more_space")
 
 
 opt <- list()
 
 opt$jobs <- 2
-opt$forecast_date <- "2020-11-29"
-opt$end_date <- "2021-01-09"
+opt$forecast_date <- "2021-01-17"
+opt$end_date <- "2021-02-27"
 opt$geodata <- "geodata_territories_2019.csv"
-opt$death_filter <- "low"
+opt$death_filter <- "med"
 opt$num_simulations <- 2000
-opt$outfile <- "more_space/2020-11-29-JHU_IDD-CovidSP_copt.csv"
+opt$outfile <- "2021-01-17-JHU_IDD-CovidSP_med_mtr_updpars.csv"
 opt$include_hosp <- TRUE
 
 arguments<- list()
-arguments$args <- "more_space/usa_runs_2020-11-29-copt-pois-seas"
+arguments$args <- "usa_runs_2021-01-17-med-mtr-updpars"
 
 opt$reichify <-TRUE
 
@@ -113,7 +113,7 @@ res_us <- res_state%>%
   group_by(time, sim_num)%>%
   summarize(incidD=sum(incidD),
             incidH=sum(incidH),
-            incidC=sum(incidC))%>%
+              incidC=sum(incidC))%>%
   ungroup()%>%
   mutate(location="US")
   
