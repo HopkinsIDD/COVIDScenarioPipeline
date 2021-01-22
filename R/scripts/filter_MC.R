@@ -132,11 +132,11 @@ gt_end_date <- ifelse(is.null(config$end_date_groundtruth), config$end_date, con
 
 
 obs <- inference::get_ground_truth(
-          data_path = data_path, 
+          data_path = data_path,
           fips_codes = fips_codes_,
-          fips_column_name = obs_nodename, 
-          start_date = config$start_date, 
-          end_date = gt_end_date, 
+          fips_column_name = obs_nodename,
+          start_date = config$start_date,
+          end_date = gt_end_date,
           gt_source = gt_source,
           gt_scale = gt_scale
 )
@@ -261,10 +261,12 @@ for(scenario in scenarios) {
       reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
       ## Do perturbations from accepted
-      proposed_seeding <- inference::perturb_seeding(initial_seeding,config$seeding$perturbation_sd,
-                                                    c(lubridate::ymd(c(config$start_date,gt_end_date))))
+      proposed_seeding <- inference::perturb_seeding(
+        initial_seeding,
+        config$seeding$perturbation_sd,
+        c(lubridate::ymd(c(config$start_date,gt_end_date))))
       proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
-      proposed_hnpi <- inference::perturb_snpi(initial_hnpi, config$interventions$settings)
+      proposed_hnpi <- inference::perturb_hnpi(initial_hnpi, config$interventions$settings)
       proposed_spar <- initial_spar
       if(!deathrate %in% names(config$outcomes$settings)){
         stop(paste("Deathrate",deathrate,"does not appear in outcomes::settings in the config"))
