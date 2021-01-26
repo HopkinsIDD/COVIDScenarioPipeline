@@ -39,7 +39,7 @@ from SEIR import file_paths
               help="The amount of RAM in megabytes needed per CPU running simulations")
 @click.option("-r", "--restart-from", "restart_from", type=str, default=None,
               help="The location of an S3 run to use as the initial to the first block of the current run")
-@click.option("--stochastic/--non-stochastic", "--stochastic/--non-stochastic", "stochastic", type=bool, default=True,
+@click.option("--stochastic/--non-stochastic", "--stochastic/--non-stochastic", "stochastic", envvar="COVID_STOCHASTIC", type=bool, default=True,
               help="Flag determining whether to run stochastic simulations or not")
 @click.option("--stacked-max","--stacked-max", "max_stacked_interventions", envvar="COVID_MAX_STACK_SIZE", type=click.IntRange(min=350), default=350,
               help="Maximum number of interventions to allow in a stacked intervention")
