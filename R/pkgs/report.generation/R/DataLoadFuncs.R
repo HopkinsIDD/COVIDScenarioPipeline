@@ -57,7 +57,8 @@ load_hosp_sims_filtered <- function(outcome_dir,
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final"),
                                     pdeath_filter=c("high", "med", "low"),
                                     incl_geoids,
-                                    pre_process=function(x) {x},
+                                    pre_process=list(partitions=function(x) {x},
+                                                     data=function(x) {x}),
                                     post_process=function(x) {x},
                                     inference=TRUE,
                                     ...
@@ -66,38 +67,50 @@ load_hosp_sims_filtered <- function(outcome_dir,
   require(tidyverse)
   
   if(inference){
-    rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
+    hosp<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                             partitioning = partitions) %>%
       dplyr::filter(!!as.symbol(partitions[5])=="global",
                     !!as.symbol(partitions[6])=="final") %>%
       dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
-      dplyr::filter(geoid %in% incl_geoids) %>%
-      pre_process(...) %>%
-      dplyr::collect()
+      dplyr::filter(geoid %in% incl_geoids) 
   } else {
     if(length(partitions)==6){partitions <- partitions[-5:-6]}
     
-    rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
+    hosp<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                             partitioning = partitions) %>%
       dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
-      dplyr::filter(geoid %in% incl_geoids) %>%
-      pre_process(...) %>%
-      dplyr::collect()
+      dplyr::filter(geoid %in% incl_geoids) 
   }
   
-  rc <- rc %>%
-    dplyr::mutate(time=as.Date(time)) %>%
-    dplyr::group_by(geoid, time, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
-    dplyr::mutate(sim_num=seq_along(geoid)) %>%
+  fnames <- hosp$.data$files %>% 
+    stringr::str_split("\\/") %>% 
+    dplyr::tibble() %>% 
+    tidyr::unnest_wider(., col=`.`)
+  
+  fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
+  
+  colnames(fnames) <- c(partitions, "sim_num")
+  
+  fnames <- fnames %>%
+    pre_process$partitions() %>%
+    pull(sim_num)
+  
+  hosp<-hosp %>%
+    pre_process$partitions() %>%
+    pre_process$data() %>%
+    collect() %>%
+    group_by(geoid, time, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
+    mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$')), 
+           time=as.Date(time)) %>%
     dplyr::ungroup()
   
-  if(nrow(rc)==0){stop("Nothing was loaded, confirm filtering values are correct.")}
+  if(nrow(hosp)==0){stop("Nothing was loaded, confirm filtering values are correct.")}
   
-  rc <- rc %>%
+  hosp <- hosp %>%
       post_process(...) 
   
   message("Finished loading")
-  return(rc)
+  return(hosp)
   
 }
 
@@ -119,29 +132,45 @@ load_hpar_sims_filtered <- function(outcome_dir,
                                     model_output = 'hpar',
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final"),
                                     pdeath_filter=c("high", "med", "low"),
-                                    pre_process=function(x) {x},
+                                    pre_process=list(partitions=function(x) {x},
+                                                     data=function(x) {x}),
                                     incl_geoids,
                                     ...
 ) {
   
   require(tidyverse)
   
-  rc<-arrow::open_dataset(file.path(outcome_dir,model_output), 
+  hpar<-arrow::open_dataset(file.path(outcome_dir,model_output), 
                           partitioning = partitions) %>%
     dplyr::filter(!!as.symbol(partitions[5])=="global",
                   !!as.symbol(partitions[6])=="final") %>%
     dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
-    dplyr::filter(geoid %in% incl_geoids) %>%
-    pre_process(...) %>%
-    dplyr::collect() 
+    dplyr::filter(geoid %in% incl_geoids) 
   
-  rc<-rc%>%
-    dplyr::group_by(quantity, outcome, geoid, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
-    dplyr::mutate(sim_num=seq_along(geoid)) %>%
-    dplyr::ungroup() 
+  
+  fnames <- hpar$.data$files %>% 
+    stringr::str_split("\\/") %>% 
+    dplyr::tibble() %>% 
+    tidyr::unnest_wider(., col=`.`)
+  
+  fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
+  
+  colnames(fnames) <- c(partitions, "sim_num")
+  
+  fnames <- fnames %>%
+    pre_process$partitions() %>%
+    pull(sim_num)
+  
+  hpar<-hpar %>%
+    pre_process$partitions() %>%
+    pre_process$data() %>%
+    collect() %>%
+    group_by(quantity, outcome, geoid, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
+    mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$'))) %>%
+    dplyr::ungroup()
   
   message("Finished loading")
-  return(rc)
+  return(hpar)
   
 }
 
@@ -168,7 +197,8 @@ load_hpar_sims_filtered <- function(outcome_dir,
 load_spar_sims_filtered <- function(outcome_dir,
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final"),
                                     pdeath_filter=c("high", "med", "low"),
-                                    pre_process=function(x) {x},
+                                    pre_process=list(partitions=function(x) {x},
+                                                     data=function(x) {x}),
                                     ...
 ) {
   
@@ -178,11 +208,27 @@ load_spar_sims_filtered <- function(outcome_dir,
                               partitioning = partitions) %>%
     dplyr::filter(!!as.symbol(partitions[5])=="global",
                   !!as.symbol(partitions[6])=="final") %>%
-    dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
-    pre_process(...)%>%
-    dplyr::collect() %>% 
-    dplyr::group_by(parameter, !!as.symbol(partitions[2]), !!as.symbol(partitions[3]))%>%
-    dplyr::mutate(sim_num = seq_along(parameter)) %>%
+    dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) 
+  
+  fnames <- spar$.data$files %>% 
+    stringr::str_split("\\/") %>% 
+    dplyr::tibble() %>% 
+    tidyr::unnest_wider(., col=`.`)
+  
+  fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
+  
+  colnames(fnames) <- c(partitions, "sim_num")
+  
+  fnames <- fnames %>%
+    pre_process$partitions() %>%
+    pull(sim_num)
+  
+  spar<-spar %>%
+    pre_process$partitions() %>%
+    pre_process$data() %>%
+    collect() %>%
+    group_by(parameter, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
+    mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$'))) %>%
     dplyr::ungroup()
   
   message("Finished loading.")
@@ -218,7 +264,8 @@ load_spar_sims_filtered <- function(outcome_dir,
 load_snpi_sims_filtered <- function(outcome_dir,
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final"),
                                     pdeath_filter=c("high", "med", "low"),
-                                    pre_process=function(x) {x},
+                                    pre_process=list(partitions=function(x) {x},
+                                                     data=function(x) {x}),
                                     incl_geoids,
                                     ...
 ) {
@@ -230,13 +277,29 @@ load_snpi_sims_filtered <- function(outcome_dir,
     dplyr::filter(!!as.symbol(partitions[5])=="global",
                   !!as.symbol(partitions[6])=="final") %>%
     dplyr::filter(!!as.symbol(partitions[3]) %in% pdeath_filter) %>%
-    dplyr::filter(geoid %in% incl_geoids) %>%
-    pre_process(...)%>%
-    dplyr::collect() %>%
-    dplyr::group_by(geoid, npi_name, !!as.symbol(partitions[2]), !!as.symbol(partitions[3]))%>%
-    dplyr::mutate(sim_num = seq_along(geoid)) %>%
+    dplyr::filter(geoid %in% incl_geoids) 
+  
+  fnames <- snpi$.data$files %>% 
+    stringr::str_split("\\/") %>% 
+    dplyr::tibble() %>% 
+    tidyr::unnest_wider(., col=`.`)
+  
+  fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
+  
+  colnames(fnames) <- c(partitions, "sim_num")
+  
+  fnames <- fnames %>%
+    pre_process$partitions() %>%
+    pull(sim_num)
+  
+  snpi<-snpi %>%
+    pre_process$partitions() %>%
+    pre_process$data() %>%
+    collect() %>%
+    group_by(geoid, npi_name, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
+    mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$'))) %>%
     dplyr::ungroup()
-
+  
   message("Finished loading.")
   
   return(snpi)
