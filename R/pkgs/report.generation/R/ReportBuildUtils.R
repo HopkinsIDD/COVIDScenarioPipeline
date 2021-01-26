@@ -89,34 +89,36 @@ make_CI <- function(lo, hi){
 ##'
 ##'@param rt_dat df with estimates of snpi/spar outputs, with columns for geoid, scenario, pdeath, unique intervention names (must start with "npi"), start_date, end_date, 
 ##'@param n_periods maximum number of non-contiguous dates 
+##'
+##'@export
 
 mtr_estimates <- function(rt_dat, 
                           n_periods=10){
   
   mtr_start <- rt_dat %>%
-    select(geoid, scenario, pdeath, starts_with("npi"), start_date) %>%
-    distinct() %>%
-    separate(start_date, into = as.character(c(1:n_periods)), sep=",")
+    dplyr::select(geoid, scenario, pdeath, starts_with("npi"), start_date) %>%
+    dplyr::distinct() %>%
+    tidyr::separate(start_date, into = as.character(c(1:n_periods)), sep=",")
   
   mtr_end <- rt_dat %>%
-    select(geoid, scenario, pdeath, starts_with("npi"), end_date) %>%
-    distinct() %>%
-    separate(end_date, into = as.character(c(1:n_periods)), sep=",")
+    dplyr::select(geoid, scenario, pdeath, starts_with("npi"), end_date) %>%
+    dplyr::distinct() %>%
+    tidyr::separate(end_date, into = as.character(c(1:n_periods)), sep=",")
   
   xx <- tibble()
   
   for(i in 1:n_periods){
     
     xx<-mtr_start %>%
-      select(geoid, scenario, pdeath, starts_with("npi"), start_date=as.symbol(i)) %>%
-      left_join(mtr_end %>%
-                  select(geoid, scenario, pdeath, starts_with("npi"), end_date=as.symbol(i))) %>%
-      drop_na() %>%
-      right_join(rt_dat%>%
-                   select(-start_date, -end_date)) %>%
-      drop_na() %>%
-      mutate(across(ends_with("date"), ~lubridate::ymd(.x)))%>%
-      bind_rows(xx)
+      dplyr::select(geoid, scenario, pdeath, starts_with("npi"), start_date=as.symbol(i)) %>%
+      dplyr::left_join(mtr_end %>%
+                  dplyr::select(geoid, scenario, pdeath, starts_with("npi"), end_date=as.symbol(i))) %>%
+      tidyr::drop_na() %>%
+      dplyr::right_join(rt_dat%>%
+                   dplyr::select(-start_date, -end_date)) %>%
+      tidyr::drop_na() %>%
+      dplyr::mutate(across(ends_with("date"), ~lubridate::ymd(.x)))%>%
+      dplyr::bind_rows(xx)
   }
   
   return(xx)
@@ -126,47 +128,49 @@ mtr_estimates <- function(rt_dat,
 ##'
 ##'Function to generate summary estimates of daily rt  
 ##' 
-##' @param rt_dat df with daily rt estimates by geoid
+##' @param r_dat df with daily r estimates by geoid/sim
 ##' @param county_dat df with geoid, scenario, pdeath, sim_num, time, location, and cum_inf columns
 ##' @param lo 
 ##' @param hi
 ##' 
+##' 
+##' @export
 
-rt_estimates <- function(rt_dat, 
+rt_estimates <- function(r_dat, 
                          county_dat, 
                          geodat,
                          lo=0.025,
                          hi=0.975){
   
   geodat<-geodat %>%
-    rename(pop=starts_with("pop"))
+    dplyr::rename(pop=starts_with("pop"))
   
   rc<-county_dat %>%
-    select(geoid, scenario, pdeath, sim_num, time, location, cum_inf) %>% 
-    left_join(geodata) %>%
-    right_join(rt_dat) %>%
-    group_by(scenario, time, location) %>%
-    mutate(rt=rt*(1-cum_inf/pop), 
-           weight=pop/sum(pop))
+    dplyr::left_join(geodata) %>%
+    dplyr::right_join(r_dat) %>%
+    dplyr::group_by(scenario, time, location) %>%
+    dplyr::mutate(rt=rt*(1-cum_inf/pop), 
+                  weight=pop/sum(pop))
   
   rc_state<-rc%>%
-    group_by(scenario, time, pdeath, location) %>%
-    summarize(mean=Hmisc::wtd.mean(rt, weights = weight, normwt=TRUE), 
-              median=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=0.5),
-              ci_lo=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=lo),
-              ci_hi=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=hi)) %>%
-    rename(geoid=location)
+    dplyr::group_by(scenario, time, pdeath, location) %>%
+    dplyr::arrange(rt) %>% 
+    dplyr::summarize(mean=Hmisc::wtd.mean(rt, weights = weight, normwt=TRUE), 
+                     median=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=0.5),
+                     ci_lo=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=lo),
+                     ci_hi=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=hi)) %>%
+    dplyr::rename(geoid=location)
   
   rc<-rc %>%
-    group_by(scenario, time, pdeath, geoid) %>%
-    summarize(mean=mean(rt),
-              median=quantile(rt, probs=0.5),
-              ci_lo=quantile(rt, probs=lo),
-              ci_hi=quantile(rt, probs=hi)) %>%
-    bind_rows(rc_state)
+    dplyr::group_by(scenario, time, pdeath, geoid) %>%
+    dplyr::summarize(mean=mean(rt),
+                     median=quantile(rt, probs=0.5),
+                     ci_lo=quantile(rt, probs=lo),
+                     ci_hi=quantile(rt, probs=hi)) %>%
+    dplyr::bind_rows(rc_state)
   
   return(rc)
-              
+  
 }
 
 ##'
@@ -1669,7 +1673,7 @@ plot_truth_by_county <- function(truth_dat,
 
 ##' Time series comparing Rt estimates by scenario over time
 ##' @param county_dat df with geoid, sim_num, cum_inf, scenario, and time columns
-##' @param truth_dat df with date, geoid, incidI, and NcumulConfirmed
+##' @param truth_dat df with date, geoid, incidI, and Confirmed columns
 ##' @param r_dat df with daily estimate of Rt from load_r_daily_sims_filtered
 ##' @param geodat df with geoid and population columns
 ##' @param pdeath_filter which pdeath to select
@@ -1686,7 +1690,7 @@ plot_truth_by_county <- function(truth_dat,
 ##'@export
 ##'
 
-plot_rt_ts <- function(county_dat, 
+plot_rt_ts <- function(county_dat=NULL, 
                        truth_dat,
                        r_dat,
                        pdeath_filter = pdeath_default,
@@ -1696,10 +1700,11 @@ plot_rt_ts <- function(county_dat,
                        geodat=geodata,
                        susceptible=TRUE,
                        pi_lo=0.025,
-                       pi_hi=0.975
+                       pi_hi=0.975,
+                       truth_source="USA Facts"
 ){
   require(tidyverse)
-  if(length(pdeath_filter)>1){stop("Currently plots for")}
+  if(is.null(county_dat) & susceptible){stop("county_dat is missing")}
   
   incl_geoids <- geodat %>%
     pull(geoid)
@@ -1734,14 +1739,20 @@ plot_rt_ts <- function(county_dat,
                      upper=Hmisc::wtd.quantile(rt, weights=weight, normwt=TRUE, probs=pi_hi))
   
   truth_dat<-truth_dat%>%
+    filter(geoid %in% incl_geoids) %>%
+    group_by(date)%>% 
+    summarize(NincidConfirmed=sum(incidI), 
+              NcumulConfirmed=sum(Confirmed))
+  
+  truth_dat<-truth_dat%>%
     dplyr::filter(NcumulConfirmed!=0)%>%
     calcR0(geodat=geodat, by_geoid=FALSE, incl_geoids = incl_geoids, pop_col="pop") %>%
-    dplyr::mutate(scenario="USA Facts")
+    dplyr::mutate(scenario=truth_source)
   
   dplyr::bind_rows(rc, truth_dat) %>%
     dplyr::mutate(`Based on`=factor(scenario, 
-                             levels=c(scenario_levels, "USA Facts"),
-                             labels=c(scenario_labels, "USA Facts confirmed cases"))) %>%
+                             levels=c(scenario_levels, truth_source),
+                             labels=c(scenario_labels, paste0(truth_source, " confirmed cases")))) %>%
     ggplot(aes(x=date, y=estimate, ymin=lower, ymax=upper))+
     geom_line(aes(col=`Based on`), size=0.75)+
     geom_ribbon(aes(fill=`Based on`), alpha=0.12) +
