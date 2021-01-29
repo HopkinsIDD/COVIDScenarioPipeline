@@ -434,7 +434,7 @@ initialize_mcmc_first_block <- function(
   if (any(global_check)) {
     warning(paste(
       "Found file",
-      names(global_files)[!global_check],
+      names(global_files)[global_check],
       "when creating first block, using that",
       collapse = "\n"
     ))
@@ -442,7 +442,7 @@ initialize_mcmc_first_block <- function(
   if (any(chimeric_check)) {
     warning(paste(
       "Found file",
-      names(global_files)[!global_check],
+      names(global_files)[chimeric_check],
       "when creating first block, ignoring that file and replacing with global",
       collapse = "\n"
     ))
