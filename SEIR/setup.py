@@ -18,7 +18,7 @@ ncomp = 7
 # Number of infection components
 n_Icomp = 3
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
-all_compartments = (S, E, I1, I2, I3, R, cumI)
+all_compartments = ("S", "E", "I1", "I2", "I3", "R", "cumI")
 
 
 class SpatialSetup:

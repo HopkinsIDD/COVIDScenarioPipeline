@@ -51,10 +51,10 @@ class MultiTimeReduce(NPIBase):
                                                  },
                                        index = self.geoids)
 
-        if loaded_df is None:
-            self.__createFromConfig(npi_config)
-        else:
+        if (loaded_df is not None) and self.name in loaded_df['npi_name']:
             self.__createFromDf(loaded_df)
+        else:
+            self.__createFromConfig(npi_config)
 
         # if parameters are exceeding global start/end dates, index of parameter df will be out of range so check first
         too_early = min([min(i) for i in self.parameters["start_date"]]) < self.start_date
