@@ -18,6 +18,7 @@ ncomp = 7
 # Number of infection components
 n_Icomp = 3
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
+all_compartments = (S, E, I1, I2, I3, R, cumI)
 
 
 class SpatialSetup:
@@ -236,6 +237,30 @@ def seeding_draw(s, sim_id):
                 y0[S, pl_idx] = s.popnodes[pl_idx]
             else:
                 raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
+
+    elif (method == 'InitialConditionsFolderDraw'):
+        sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
+        states = pq.read_table(
+          file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id + s.first_sim_index - 1, s.seeding_config["initial_file_type"],"parquet"),
+        ).to_pandas()
+        states = states[states["time"] == s.config["start_date"] ]
+        if(states['p_comp'].max() > 0):
+            raise ValueError(f"We do not currently support initial conditions with parallel compartments")
+        if (states.empty):
+            raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
+
+        y0 = np.zeros((ncomp, s.nnodes))
+
+        for compartment in all_compartments:
+            states_compartment = states[states['comp'] == compartment]
+            for pl_idx, pl in enumerate(s.spatset.nodenames):
+                if pl in states.columns:
+                    y0[compartment][pl_idx] = float(states_compartment[pl])
+                elif s.seeding_config["ignore_missing"].get():
+                    print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
+                    y0[S, pl_idx] = s.popnodes[pl_idx]
+                else:
+                    raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
 
     else:
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
