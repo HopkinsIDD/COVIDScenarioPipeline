@@ -44,10 +44,10 @@ class Reduce(NPIBase):
         self.parameters = pd.DataFrame(0.0, index=self.geoids,
                                        columns=["npi_name","start_date","end_date","parameter","reduction"])
 
-        if loaded_df is None:
-            self.__createFromConfig(npi_config)
-        else:
+        if (loaded_df is not None) and self.name in loaded_df['npi_name']:
             self.__createFromDf(loaded_df)
+        else:
+            self.__createFromConfig(npi_config)
 
         # if parameters are exceeding global start/end dates, index of parameter df will be out of range so check first
         if self.parameters["start_date"].min() < self.start_date or self.parameters["end_date"].max() > self.end_date:
