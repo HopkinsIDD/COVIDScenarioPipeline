@@ -452,22 +452,20 @@ initialize_mcmc_first_block <- function(
 
   ## seed
   if ("seed_filename" %in% global_file_names) {
-    err <- system(paste(
-      opt$rpath,
-      paste(opt$pipepath, "R", "scripts", "create_seeding.R", sep = "/"),
-      "-c", opt$config
-    ))
-    if (err != 0) {
-      stop("Could not run seeding")
+    if(!file.exists(config$seeding$lambda_file)) {
+      err <- system(paste(
+        opt$rpath,
+        paste(opt$pipepath, "R", "scripts", "create_seeding.R", sep = "/"),
+        "-c", opt$config
+      ))
+      if (err != 0) {
+        stop("Could not run seeding")
+      }
     }
     err <- !(file.copy(config$seeding$lambda_file, global_files[["seed_filename"]]))
-    initial_seeding <- suppressMessages(readr::read_csv(
-      config$seeding$lambda_file, col_types = readr::cols(place = readr::col_character())
-    ))
-    write.csv(
-      initial_seeding,
-      file = global_files[["seed_filename"]]
-    )
+    if (err != 0) {
+      stop("Could not copy seeding")
+    }
   }
 
   ## seir, snpi, spar
