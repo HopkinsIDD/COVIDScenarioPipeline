@@ -4,7 +4,11 @@ import pytest
 import warnings
 
 
-from SEIR import setup, seir, NPI
+import pathlib
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+from SEIR import setup, seir, NPI, file_paths
 
 from ..utils import config
 
@@ -198,3 +202,111 @@ def test_steps_SEIR_no_spread():
 
         assert states[seir.cumI,:,1,:].max().shape == ()
         assert states[seir.cumI,:,1,:].max() == 0
+
+
+
+def test_resume_simple():
+    config.clear()
+    config.read(user=False)
+    config.set_file('data/config.yml')
+    scenario = 'Scenario1'
+    sim_id2write = 100
+    nsim = 1
+    interactive = False
+    write_csv = False
+    write_parquet = True
+    index = 1
+    run_id = 'test'
+    prefix = ''
+    stoch_traj_flag = True
+
+
+    spatial_config = config["spatial_setup"]
+    spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
+    s = setup.Setup(
+        setup_name=config["name"].get() + "_" + str(scenario),
+        spatial_setup=setup.SpatialSetup(
+            setup_name=spatial_config["setup_name"].get(),
+            geodata_file=spatial_base_path / spatial_config["geodata"].get(),
+            mobility_file=spatial_base_path / spatial_config["mobility"].get(),
+            popnodes_key=spatial_config["popnodes"].get(),
+            nodenames_key=spatial_config["nodenames"].get()
+        ),
+        nsim=nsim,
+        npi_scenario=scenario,
+        npi_config=config["interventions"]["settings"][scenario],
+        seeding_config=config["seeding"],
+        ti=config["start_date"].as_date(),
+        tf=config["end_date"].as_date(),
+        interactive=interactive,
+        write_csv=write_csv,
+        write_parquet=write_parquet,
+        dt=config["dt"].as_number(),
+        first_sim_index = index,
+        in_run_id = run_id,
+        in_prefix = prefix,
+        out_run_id = run_id,
+        out_prefix = prefix
+    )
+    seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
+
+    states_old = pq.read_table(
+          file_paths.create_file_name(s.in_run_id,s.in_prefix, 100,'seir',"parquet"),
+        ).to_pandas()
+    states_old = states_old[states_old["time"] == '2020-03-15'].reset_index(drop=True)
+
+    config.clear()
+    config.read(user=False)
+    config.set_file('data/config_resume.yml')
+    scenario = 'None'
+    sim_id2write = 100
+    nsim = 1
+    interactive = False
+    write_csv = False
+    write_parquet = True
+    index = 1
+    run_id = 'test'
+    prefix = ''
+    stoch_traj_flag = True
+
+
+    spatial_config = config["spatial_setup"]
+    spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
+    s = setup.Setup(
+        setup_name=config["name"].get() + "_" + str(scenario),
+        spatial_setup=setup.SpatialSetup(
+            setup_name=spatial_config["setup_name"].get(),
+            geodata_file=spatial_base_path / spatial_config["geodata"].get(),
+            mobility_file=spatial_base_path / spatial_config["mobility"].get(),
+            popnodes_key=spatial_config["popnodes"].get(),
+            nodenames_key=spatial_config["nodenames"].get()
+        ),
+        nsim=nsim,
+        npi_scenario=scenario,
+        npi_config=config["interventions"]["settings"][scenario],
+        seeding_config=config["seeding"],
+        ti=config["start_date"].as_date(),
+        tf=config["end_date"].as_date(),
+        interactive=interactive,
+        write_csv=write_csv,
+        write_parquet=write_parquet,
+        dt=config["dt"].as_number(),
+        first_sim_index = index,
+        in_run_id = run_id,
+        in_prefix = prefix,
+        out_run_id = run_id,
+        out_prefix = prefix
+    )
+    seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
+
+    states_new = pq.read_table(
+          file_paths.create_file_name(s.in_run_id,s.in_prefix, 100, 'seir',"parquet"),
+        ).to_pandas()
+    states_new = states_new[states_new["time"] == '2020-03-15'].reset_index(drop=True)
+
+    assert((states_old[states_old['comp'] != 'diffI'] == states_new[states_new['comp'] != 'diffI']).all().all())
+
+
+
+
+

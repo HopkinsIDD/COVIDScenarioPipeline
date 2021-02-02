@@ -1,0 +1,75 @@
+name: minimal
+start_date: 2020-03-15
+end_date: 2020-05-31
+nsimulations: 15
+dt: 0.25
+dynfilter_path: data/filter.txt
+
+spatial_setup:
+  base_path: data
+  setup_name: minimal
+  geodata: geodata.csv
+  mobility: mobility.txt
+  popnodes: population
+  nodenames: geoid
+
+seeding:
+  method: InitialConditionsFolderDraw
+  #seeding_file_type: seed
+  folder_path: importation/minimal/
+  initial_file_type: "seir"
+
+seir:
+  parameters:
+    alpha: 0.5
+    sigma: 1 / 5.2
+    gamma:
+      distribution: uniform
+      low: 1 / 6
+      high: 1 / 2.6
+    R0s:
+      distribution: uniform
+      low: 2
+      high: 3
+
+interventions:
+  scenarios:
+    - None
+    - Scenario1
+    - Scenario2
+  settings:
+    None:
+      template: Reduce
+      parameter: r0
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: 0
+    Wuhan:
+      template: Reduce
+      parameter: r0
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: uniform
+        low: .14
+        high: .33
+    KansasCity:
+      template: ReduceR0
+      parameter: r0
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: uniform
+        low: .04
+        high: .23
+    Scenario1:
+      template: Stacked
+      scenarios:
+        - Wuhan
+        - None
+    Scenario2:
+      template: Stacked
+      scenarios:
+        - Wuhan
