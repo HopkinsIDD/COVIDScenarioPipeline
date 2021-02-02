@@ -12,7 +12,7 @@
 ##' @param na.rm Remove Nas?
 ##' @return NULL
 #' @export
-periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k, aggregator, na.rm = F) {
+periodAggregate <- function(data, dates, end_date = NULL, period_unit_function, period_unit_validator, aggregator, na.rm = F) {
   if (na.rm) {
     dates <- dates[!is.na(data)]
     data <- data[!is.na(data)]
@@ -25,38 +25,19 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
     dates <- dates[dates <= end_date]
   }
 
-
-  if (period_unit != "weeks") {
-    stop("Non-week units not supported right now")
-  }
-  if (period_k != 1) {
-    stop("Non-week units not supported right now")
-  }
-  period_unit <- c(lubridate::epiweek,lubridate::epiyear)
-  is_time_unit_valid <- function(dates, units) {
-    return(length(unique(dates)) == 7)
-  }
   tmp <- data.frame(date = dates, value = data)
-  for (this_unit in seq_len(length(period_unit))) {
-    tmp[[paste("time_unit", this_unit, sep = "_")]] <- period_unit[[this_unit]](dates)
+
+  for (this_unit in seq_len(length(period_unit_function))) {
+    tmp[[paste("time_unit", this_unit, sep = "_")]] <- period_unit_function[[this_unit]](dates)
   }
   tmp <- tmp %>%
     tidyr::unite("time_unit", names(tmp)[grepl("time_unit_", names(tmp))]) %>%
     dplyr::group_by(time_unit) %>%
-    dplyr::summarize(first_date = min(date), value = aggregator(value), valid = is_time_unit_valid(date,time_unit)) %>%
+    dplyr::summarize(first_date = min(date), value = aggregator(value), valid = period_unit_validator(date,time_unit)) %>%
     dplyr::ungroup() %>%
     dplyr::arrange(first_date) %>%
     dplyr::filter(valid)
   return(matrix(tmp$value, ncol = 1, dimnames = list(as.character(tmp$first_date))))
-
-
-  ## Original
-  xtsobj <- xts::as.xts(zoo::zoo(data, dates))
-  stats <- xts::period.apply(xtsobj,
-                             xts::endpoints(xtsobj, on = period_unit, k = period_k),
-                             aggregator)
-  stats
-  return(stats)
 }
 
 
@@ -75,6 +56,22 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
     aggregator <- match.fun(s$aggregator)
     ## Get the time period over whith to apply aggregation
     period_info <- strsplit(s$period, " ")[[1]]
+    if (period_info[2] == "weeks") {
+      period_unit_function <- c(lubridate::epiweek, lubridate::epiyear)
+      period_unit_validator <- function(dates, units) {
+        return(length(unique(dates)) == 7)
+      }
+    } else if (period_info[2] == "days") {
+      period_unit_function <- c(lubridate::day, lubridate::year)
+      period_unit_validator <- function(dates, units) {
+        return(TRUE)
+      }
+    } else {
+      stop(paste(period_info[2], "as an aggregation unit is not supported right now"))
+    }
+    if (period_info[1] != 1) {
+      stop(paste(period_info[1], period_info[2], "as an aggregation unit is not supported right now"))
+    }
 
     if (!all(c(time_col, s[[var_col]]) %in% names(df))) {
       stop(paste0(
@@ -90,8 +87,8 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
     res <- inference::periodAggregate(df[[s[[var_col]]]],
                                       df[[time_col]],
                                       end_date,
-                                      period_info[2],
-                                      period_info[1],
+                                      period_unit_function,
+                                      period_unit_validator,
                                       aggregator,
                                       na.rm = s$remove_na)
     rc[[stat]] <- res %>%
