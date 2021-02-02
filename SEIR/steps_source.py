@@ -86,6 +86,9 @@ def steps_SEIR_nb(
           ].sum() / popnodes[node]
 
     for it, t in enumerate(t_inter):
+        
+        states[:, :, :, it] = y
+        
         if (it % int(1 / dt) == 0):
             y[E][0] = y[E][0] + seeding[int(t)]
             y[S][0] = y[S][0] - seeding[int(t)]
@@ -182,7 +185,7 @@ def steps_SEIR_nb(
             y[:-1,from_compartment,:] -= vaccinatedCases[:-1,from_compartment,:]
             y[:-1,to_compartment,:] += vaccinatedCases[:-1,from_compartment,:]
 
-        states[:, :, :, it] = y
+        
         if debug_print:
             print("Y extremes:")
             print(y.min())
