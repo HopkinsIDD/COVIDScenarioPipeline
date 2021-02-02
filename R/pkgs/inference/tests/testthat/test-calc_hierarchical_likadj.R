@@ -26,16 +26,15 @@ test_that("penalty is  based on selected stat", {
     tmp2 <- npi1[4:6]
     expect_that(calc_hierarchical_likadj("npi 1",infer_frame,
                                          geodata,"USPS")$likadj,
-                equals(c(dnorm(tmp,mean(tmp), sd(tmp), log=TRUE),
-                         dnorm(tmp2,mean(tmp2), sd(tmp2), log=TRUE))))
+                equals(c(dnorm(tmp,mean(tmp), max(sd(tmp),.1), log=TRUE),
+                         dnorm(tmp2,mean(tmp2), max(sd(tmp2),.1), log=TRUE))))
 
 
     tmp <- npi2[1:3]
     tmp2 <- npi2[4:6]
-    expect_that(calc_hierarchical_likadj("npi 2",infer_frame,
-                                         geodata,"USPS")$likadj,
-                equals(c(dnorm(tmp,mean(tmp), sd(tmp), log=TRUE),
-                         dnorm(tmp2,mean(tmp2), sd(tmp2), log=TRUE))))
+    expect_that(calc_hierarchical_likadj("npi 2",infer_frame,geodata,"USPS")$likadj,
+                equals(c(dnorm(tmp,mean(tmp), max(sd(tmp),.1), log=TRUE),
+                         dnorm(tmp2,mean(tmp2), max(sd(tmp2),.1), log=TRUE))))
 
 })
 
@@ -154,6 +153,7 @@ test_that("transforms give the appropriate likelihoods", {
 
     val<- runif(3,0,1)
 
+    # val <-  c(0.25698943, 0.23411552, 0.09412548)
     ##makes data frame with stats
     infer_frame <- dplyr::tibble(geoid=c("01001","01002","01003"),
                               npi_name=rep("val1", each=3),
@@ -173,7 +173,7 @@ test_that("transforms give the appropriate likelihoods", {
 
     
     expect_equal(untrans$likadj,
-                  dnorm(val, mean(val), max(sd(val, .1)), log=TRUE))
+                  dnorm(val, mean(val), max(sd(val), .1), log=TRUE))
     
 
     ##logit transmform
