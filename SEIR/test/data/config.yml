@@ -13,6 +13,11 @@ spatial_setup:
   popnodes: population
   nodenames: geoid
 
+seeding:
+  method: FolderDraw
+  seeding_file_type: seed
+  folder_path: importation/minimal/
+
 seir:
   parameters:
     alpha: 0.5
@@ -29,6 +34,8 @@ seir:
 interventions:
   scenarios:
     - None
+    - Scenario1
+    - Scenario2
   settings:
     None:
       template: Reduce
