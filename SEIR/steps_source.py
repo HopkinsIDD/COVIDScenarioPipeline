@@ -122,7 +122,7 @@ def steps_SEIR_nb(
             p_infect = 1 - np.exp(-dt * sigma[it][i])
             p_recover = 1 - np.exp(-dt * gamma[it][i])
 
-                ## Fix this:
+            ## Fix this:
             for p_compartment in range(n_parallel_compartments):
                 exposure_probability = susceptibility_ratio[it][p_compartment][i] * p_expose
                 if(debug_mode):
@@ -146,6 +146,7 @@ def steps_SEIR_nb(
                     recoveredCases[p_compartment][i] = y[I3][p_compartment][i] * p_recover
 
 
+
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases
         y[I1] += incidentCases - incident2Cases
@@ -160,7 +161,7 @@ def steps_SEIR_nb(
                 for transition in range(n_parallel_transitions):
                     from_compartment = transition_from[transition]
                     n = y[comp][from_compartment][i]
-                    p = transition_rate[it][transition][i]
+                    p = 1 - np.exp(-dt * transition_rate[it][transition][i])
                     if debug_mode:
                         if (np.isnan(p)) or (p > 1) or (p < 0):
                             raise ValueError("TRANSITION RATE OUT OF BOUNDS")
