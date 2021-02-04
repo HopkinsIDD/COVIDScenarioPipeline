@@ -158,13 +158,11 @@ def steps_SEIR_nb(
                 for transition in range(n_parallel_transitions):
                     from_compartment = transition_from[transition]
                     n = y[comp][from_compartment][i]
-                    p = transition_rate[it][transition][i]
+                    p = 1 - np.exp(-dt * transition_rate[it][transition][i])
                     if debug_mode:
                         if (np.isnan(p)) or (p > 1) or (p < 0):
                             raise ValueError("TRANSITION RATE OUT OF BOUNDS")
-                    if (it % int(1 / dt) != 0):
-                        vaccinatedCases[comp][transition][i] = 0
-                    elif stoch_traj_flag:
+                    if stoch_traj_flag:
                         vaccinatedCases[comp][transition][i] = \
                             np.random.binomial(n, p)
                     else:
