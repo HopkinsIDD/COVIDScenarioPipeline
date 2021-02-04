@@ -303,6 +303,8 @@ def test_resume_simple():
           file_paths.create_file_name(s.in_run_id,s.in_prefix, 100, 'seir',"parquet"),
         ).to_pandas()
     states_new = states_new[states_new["time"] == '2020-03-15'].reset_index(drop=True)
+    npis_new = pq.read_table(file_paths.create_file_name(s.in_run_id,s.in_prefix, 100, 'snpi',"parquet")).to_pandas()
+    assert((npis_new["end_date"] == '2020-05-16').all())
 
     assert((states_old[states_old['comp'] != 'diffI'] == states_new[states_new['comp'] != 'diffI']).all().all())
 

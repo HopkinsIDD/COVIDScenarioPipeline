@@ -42,7 +42,7 @@ interventions:
       template: Reduce
       parameter: r0
       period_start_date: 2020-04-01
-      period_end_date: 2020-05-15
+      period_end_date: 2020-05-16
       value:
         distribution: fixed
         value: 0
@@ -50,7 +50,7 @@ interventions:
       template: Reduce
       parameter: r0
       period_start_date: 2020-04-01
-      period_end_date: 2020-05-15
+      period_end_date: 2020-05-16
       value:
         distribution: uniform
         low: .14
@@ -59,7 +59,7 @@ interventions:
       template: ReduceR0
       parameter: r0
       period_start_date: 2020-04-01
-      period_end_date: 2020-05-15
+      period_end_date: 2020-05-16
       value:
         distribution: uniform
         low: .04
