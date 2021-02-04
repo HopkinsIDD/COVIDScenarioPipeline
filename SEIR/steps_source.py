@@ -119,7 +119,7 @@ def steps_SEIR_nb(
             p_infect = 1 - np.exp(-dt * sigma[it][i])
             p_recover = 1 - np.exp(-dt * gamma[it][i])
 
-                ## Fix this:
+            ## Fix this:
             for p_compartment in range(n_parallel_compartments):
                 exposure_probability = susceptibility_ratio[it][p_compartment][i] * p_expose
                 if(debug_mode):
@@ -143,6 +143,7 @@ def steps_SEIR_nb(
                     recoveredCases[p_compartment][i] = y[I3][p_compartment][i] * p_recover
 
 
+
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases
         y[I1] += incidentCases - incident2Cases
@@ -161,7 +162,9 @@ def steps_SEIR_nb(
                     if debug_mode:
                         if (np.isnan(p)) or (p > 1) or (p < 0):
                             raise ValueError("TRANSITION RATE OUT OF BOUNDS")
-                    if stoch_traj_flag:
+                    if (it % int(1 / dt) != 0):
+                        vaccinatedCases[comp][transition][i] = 0
+                    elif stoch_traj_flag:
                         vaccinatedCases[comp][transition][i] = \
                             np.random.binomial(n, p)
                     else:
