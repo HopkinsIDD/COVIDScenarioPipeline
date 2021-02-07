@@ -204,7 +204,6 @@ def test_steps_SEIR_no_spread():
         assert states[seir.cumI,:,1,:].max() == 0
 
 
-
 def test_resume_simple():
     config.clear()
     config.read(user=False)
@@ -219,7 +218,6 @@ def test_resume_simple():
     run_id = 'test'
     prefix = ''
     stoch_traj_flag = True
-
 
     spatial_config = config["spatial_setup"]
     spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
@@ -269,7 +267,6 @@ def test_resume_simple():
     prefix = ''
     stoch_traj_flag = True
 
-
     spatial_config = config["spatial_setup"]
     spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
     s = setup.Setup(
@@ -297,16 +294,25 @@ def test_resume_simple():
         out_run_id = run_id,
         out_prefix = prefix
     )
-    seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
+    seir.onerun_SEIR(sim_id2write, s, stoch_traj_flag)
 
     states_new = pq.read_table(
-          file_paths.create_file_name(s.in_run_id,s.in_prefix, 100, 'seir',"parquet"),
+          file_paths.create_file_name(s.in_run_id,s.in_prefix, sim_id2write, 'seir',"parquet"),
         ).to_pandas()
     states_new = states_new[states_new["time"] == '2020-03-15'].reset_index(drop=True)
-    npis_new = pq.read_table(file_paths.create_file_name(s.in_run_id,s.in_prefix, 100, 'snpi',"parquet")).to_pandas()
+    assert((states_old[states_old['comp'] != 'diffI'] == states_new[states_new['comp'] != 'diffI']).all().all())
+
+    npis_new = pq.read_table(file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id2write, 'snpi',"parquet")).to_pandas()
     assert((npis_new["end_date"] == '2020-05-16').all())
 
-    assert((states_old[states_old['comp'] != 'diffI'] == states_new[states_new['comp'] != 'diffI']).all().all())
+    seir.onerun_SEIR_loadID(sim_id2write=sim_id2write+1, s=s, sim_id2load=sim_id2write)
+    states_new = pq.read_table(
+          file_paths.create_file_name(s.in_run_id,s.in_prefix, sim_id2write+1, 'seir',"parquet"),
+        ).to_pandas()
+    states_new = states_new[states_new["time"] == '2020-03-15'].reset_index(drop=True)
+
+
+
 
 
 

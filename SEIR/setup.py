@@ -312,7 +312,8 @@ def seeding_load(s, sim_id):
         states = pq.read_table(
           file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id + s.first_sim_index - 1, s.seeding_config["initial_file_type"],"parquet"),
         ).to_pandas()
-        states = states[states["time"] == s.config["start_date"] ]
+        states = states[states["time"] == str(s.ti)]
+
         if(states['p_comp'].max() > 0):
             raise ValueError(f"We do not currently support initial conditions with parallel compartments")
         if (states.empty):
@@ -320,16 +321,17 @@ def seeding_load(s, sim_id):
 
         y0 = np.zeros((ncomp, s.nnodes))
 
-        for compartment in all_compartments:
+        for comp_id, compartment in enumerate(all_compartments):
             states_compartment = states[states['comp'] == compartment]
             for pl_idx, pl in enumerate(s.spatset.nodenames):
                 if pl in states.columns:
-                    y0[compartment][pl_idx] = float(states_compartment[pl])
+                    y0[comp_id][pl_idx] = float(states_compartment[pl])
                 elif s.seeding_config["ignore_missing"].get():
                     print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
                     y0[S, pl_idx] = s.popnodes[pl_idx]
                 else:
                     raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
+
     else:
         raise NotImplementedError(f"Seeding method in inference run must be FolderDraw, SetInitialConditions, or InitialConditionsFolderDraw [got: {method}]")
 
