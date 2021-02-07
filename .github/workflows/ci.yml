@@ -13,7 +13,6 @@ on:
       - dev
       - dataseed
       - inference
-      - inference_state
 
 jobs:
   unit-tests:
