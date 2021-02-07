@@ -51,7 +51,7 @@ class MultiTimeReduce(NPIBase):
                                                  },
                                        index = self.geoids)
 
-        if (loaded_df is not None) and self.name in loaded_df['npi_name']:
+        if (loaded_df is not None) and self.name in loaded_df['npi_name'].values:
             self.__createFromDf(loaded_df)
         else:
             self.__createFromConfig(npi_config)
