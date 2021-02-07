@@ -91,6 +91,7 @@ s = setup.Setup(
     npi_scenario=scenario,
     npi_config=config["interventions"]["settings"][scenario],
     seeding_config=config["seeding"],
+    parameters_config=config["seir"]["parameters"],
     ti=config["start_date"].as_date(),
     tf=config["end_date"].as_date(),
     interactive=interactive,

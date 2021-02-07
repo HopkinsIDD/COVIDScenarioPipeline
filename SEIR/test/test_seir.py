@@ -30,6 +30,7 @@ def test_check_values():
                         nsim=1,
                         npi_scenario="None",
                         npi_config=config["interventions"]["settings"]["None"],
+                        parameters_config=config["seir"]["parameters"],
                         ti=config["start_date"].as_date(),
                         tf=config["end_date"].as_date(),
                         interactive=True,
@@ -78,6 +79,7 @@ def test_constant_population():
                         nsim=1,
                         npi_scenario="None",
                         npi_config=config["interventions"]["settings"]["None"],
+                        parameters_config=config["seir"]["parameters"],
                         ti=config["start_date"].as_date(),
                         tf=config["end_date"].as_date(),
                         interactive=True,
@@ -95,7 +97,7 @@ def test_constant_population():
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
+    parameters = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
     parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     states = seir.steps_SEIR_nb(*parameters, y0,
@@ -128,6 +130,7 @@ def test_steps_SEIR_nb_simple_spread():
                         nsim=1,
                         npi_scenario="None",
                         npi_config=config["interventions"]["settings"]["None"],
+                        parameters_config=config["seir"]["parameters"],
                         ti=config["start_date"].as_date(),
                         tf=config["end_date"].as_date(),
                         interactive=True,
@@ -146,7 +149,7 @@ def test_steps_SEIR_nb_simple_spread():
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
+    parameters = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
     parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     for i in range(100):
@@ -172,6 +175,7 @@ def test_steps_SEIR_no_spread():
                         nsim=1,
                         npi_scenario="None",
                         npi_config=config["interventions"]["settings"]["None"],
+                        parameters_config=config["seir"]["parameters"],
                         ti=config["start_date"].as_date(),
                         tf=config["end_date"].as_date(),
                         interactive=True,
@@ -190,7 +194,7 @@ def test_steps_SEIR_no_spread():
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    parameters = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
+    parameters = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
     parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     for i in range(100):
@@ -233,6 +237,7 @@ def test_resume_simple():
         nsim=nsim,
         npi_scenario=scenario,
         npi_config=config["interventions"]["settings"][scenario],
+        parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
         ti=config["start_date"].as_date(),
         tf=config["end_date"].as_date(),
@@ -282,6 +287,7 @@ def test_resume_simple():
         npi_scenario=scenario,
         npi_config=config["interventions"]["settings"][scenario],
         seeding_config=config["seeding"],
+        parameters_config=config["seir"]["parameters"],
         ti=config["start_date"].as_date(),
         tf=config["end_date"].as_date(),
         interactive=interactive,
