@@ -1,5 +1,4 @@
 import pathlib
-
 import numpy as np
 import pandas as pd
 import datetime
@@ -205,8 +204,8 @@ class Parameters:
 
 def seeding_draw(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
-    y0 = np.zeros((ncomp, s.nnodes))
-    y0[S, :] = s.popnodes
+    y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
+    y0[S, 0, :] = s.popnodes
 
     method = s.seeding_config["method"].as_str()
     if (method == 'NegativeBinomialDistributed'):
@@ -256,21 +255,21 @@ def seeding_draw(s, sim_id):
         if (states.empty):
             raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
 
-        y0 = np.zeros((ncomp, s.nnodes))
+        y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
 
         for pl_idx, pl in enumerate(s.spatset.nodenames):
             if pl in list(states['place']):
                 states_pl = states[states['place'] == pl]
-                y0[S][pl_idx] =  float(states_pl[states_pl['comp'] == 'S']['amount'])
-                y0[E][pl_idx] =  float(states_pl[states_pl['comp'] == 'E']['amount'])
-                y0[I1][pl_idx] = float(states_pl[states_pl['comp'] == 'I1']['amount'])
-                y0[I2][pl_idx] = float(states_pl[states_pl['comp'] == 'I2']['amount'])
-                y0[I3][pl_idx] = float(states_pl[states_pl['comp'] == 'I3']['amount'])
-                y0[R][pl_idx] =  float(states_pl[states_pl['comp'] == 'R']['amount'])
-                y0[cumI][pl_idx] = y0[I1][pl_idx] + y0[I2][pl_idx] + y0[I3][pl_idx] + y0[R][pl_idx]
+                y0[S][0][pl_idx] =  float(states_pl[states_pl['comp'] == 'S']['amount'])
+                y0[E][0][pl_idx] =  float(states_pl[states_pl['comp'] == 'E']['amount'])
+                y0[I1][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I1']['amount'])
+                y0[I2][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I2']['amount'])
+                y0[I3][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I3']['amount'])
+                y0[R][0][pl_idx] =  float(states_pl[states_pl['comp'] == 'R']['amount'])
+                y0[cumI][0][pl_idx] = y0[I1][0][pl_idx] + y0[I2][0][pl_idx] + y0[I3][0][pl_idx] + y0[R][0][pl_idx]
             elif s.seeding_config["ignore_missing"].get():
                 print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                y0[S, pl_idx] = s.popnodes[pl_idx]
+                y0[S, 0, pl_idx] = s.popnodes[pl_idx]
             else:
                 raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
 
@@ -281,34 +280,34 @@ def seeding_draw(s, sim_id):
         ).to_pandas()
         states = states[states["time"] == str(s.ti)]
 
-        if(states['p_comp'].max() > 0):
-            raise ValueError(f"We do not currently support initial conditions with parallel compartments")
+        #if(states['p_comp'].max() > 0):
+        #    raise ValueError(f"We do not currently support initial conditions with parallel compartments")
         if (states.empty):
             raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
 
-        y0 = np.zeros((ncomp, s.nnodes))
+        y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
 
         for comp_id, compartment in enumerate(all_compartments):
             states_compartment = states[states['comp'] == compartment]
             for pl_idx, pl in enumerate(s.spatset.nodenames):
                 if pl in states.columns:
-                    y0[comp_id][pl_idx] = float(states_compartment[pl])
+                    for p_comp_id in range(s.params.n_parallel_compartments):
+                        y0[comp_id, p_comp_id, pl_idx] = float(states_compartment[states_compartment['p_comp'] == p_comp_id][pl])
                 elif s.seeding_config["ignore_missing"].get():
                     print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                    y0[S, pl_idx] = s.popnodes[pl_idx]
+                    y0[S, 0, pl_idx] = s.popnodes[pl_idx]
                 else:
                     raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
 
     else:
         raise NotImplementedError(f"unknown seeding method [got: {method}]")
 
-
     return y0, importation
 
 def seeding_load(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
-    y0 = np.zeros((ncomp, s.nnodes))
-    y0[S, :] = s.popnodes
+    y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
+    y0[S, 0, :] = s.popnodes
 
     method = s.seeding_config["method"].as_str()
     if (method == 'FolderDraw'):
@@ -326,21 +325,21 @@ def seeding_load(s, sim_id):
         if (states.empty):
             raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
 
-        y0 = np.zeros((ncomp, s.nnodes))
+        y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
 
         for pl_idx, pl in enumerate(s.spatset.nodenames):
             if pl in list(states['place']):
                 states_pl = states[states['place'] == pl]
-                y0[S][pl_idx] =  float(states_pl[states_pl['comp'] == 'S']['amount'])
-                y0[E][pl_idx] =  float(states_pl[states_pl['comp'] == 'E']['amount'])
-                y0[I1][pl_idx] = float(states_pl[states_pl['comp'] == 'I1']['amount'])
-                y0[I2][pl_idx] = float(states_pl[states_pl['comp'] == 'I2']['amount'])
-                y0[I3][pl_idx] = float(states_pl[states_pl['comp'] == 'I3']['amount'])
-                y0[R][pl_idx] =  float(states_pl[states_pl['comp'] == 'R']['amount'])
-                y0[cumI][pl_idx] = y0[I1][pl_idx] + y0[I2][pl_idx] + y0[I3][pl_idx] + y0[R][pl_idx]
+                y0[S][0][pl_idx] =  float(states_pl[states_pl['comp'] == 'S']['amount'])
+                y0[E][0][pl_idx] =  float(states_pl[states_pl['comp'] == 'E']['amount'])
+                y0[I1][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I1']['amount'])
+                y0[I2][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I2']['amount'])
+                y0[I3][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I3']['amount'])
+                y0[R][0][pl_idx] =  float(states_pl[states_pl['comp'] == 'R']['amount'])
+                y0[cumI][0][pl_idx] = y0[I1][0][pl_idx] + y0[I2][0][pl_idx] + y0[I3][0][pl_idx] + y0[R][0][pl_idx]
             elif s.seeding_config["ignore_missing"].get():
                 print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                y0[S, pl_idx] = s.popnodes[pl_idx]
+                y0[S, 0, pl_idx] = s.popnodes[pl_idx]
             else:
                 raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
     elif (method == 'InitialConditionsFolderDraw'):
@@ -350,21 +349,20 @@ def seeding_load(s, sim_id):
         ).to_pandas()
         states = states[states["time"] == str(s.ti)]
 
-        if(states['p_comp'].max() > 0):
-            raise ValueError(f"We do not currently support initial conditions with parallel compartments")
         if (states.empty):
             raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
 
-        y0 = np.zeros((ncomp, s.nnodes))
+        y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
 
         for comp_id, compartment in enumerate(all_compartments):
             states_compartment = states[states['comp'] == compartment]
             for pl_idx, pl in enumerate(s.spatset.nodenames):
                 if pl in states.columns:
-                    y0[comp_id][pl_idx] = float(states_compartment[pl])
+                    for p_comp_id in range(s.params.n_parallel_compartments):
+                        y0[comp_id, p_comp_id, pl_idx] = float(states_compartment[states_compartment['p_comp'] == p_comp_id][pl])
                 elif s.seeding_config["ignore_missing"].get():
                     print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                    y0[S, pl_idx] = s.popnodes[pl_idx]
+                    y0[S, 0, pl_idx] = s.popnodes[pl_idx]
                 else:
                     raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
 
