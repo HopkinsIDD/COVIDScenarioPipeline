@@ -88,8 +88,8 @@ def test_constant_population():
 
     seeding = np.zeros((len(s.t_inter), s.nnodes))
 
-    y0 = np.zeros((setup.ncomp, s.nnodes))
-    y0[setup.S, :] = s.popnodes
+    y0 = np.zeros((setup.ncomp, s.params.n_parallel_compartments, s.nnodes))
+    y0[setup.S, 0, :] = s.popnodes
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -140,8 +140,8 @@ def test_steps_SEIR_nb_simple_spread():
     seeding = np.zeros((len(s.t_inter), s.nnodes))
     seeding[:,0] = 100
 
-    y0 = np.zeros((setup.ncomp, s.nnodes))
-    y0[setup.S, :] = s.popnodes
+    y0 = np.zeros((setup.ncomp, s.params.n_parallel_compartments, s.nnodes))
+    y0[setup.S, 0, :] = s.popnodes
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -185,8 +185,8 @@ def test_steps_SEIR_no_spread():
     seeding = np.zeros((len(s.t_inter), s.nnodes))
     seeding[:,0] = 100
 
-    y0 = np.zeros((setup.ncomp, s.nnodes))
-    y0[setup.S, :] = s.popnodes
+    y0 = np.zeros((setup.ncomp, s.params.n_parallel_compartments, s.nnodes))
+    y0[setup.S, 0, :] = s.popnodes
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
