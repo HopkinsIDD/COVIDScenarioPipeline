@@ -118,12 +118,16 @@ class Reduce(NPIBase):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
         self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']].copy()
-        self.parameters["start_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["start_date"]]
-        self.parameters["end_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["end_date"]]
-        #self.parameters["start_date"] = npi_config["period_start_date"].as_date()  \
-        #    if npi_config["period_start_date"].exists() else self.start_date
-        #self.parameters["end_date"] = npi_config["period_end_date"].as_date() \
-        #    if npi_config["period_end_date"].exists() else self.end_date
+        
+        if npi_config["period_start_date"].exists():
+            self.parameters["start_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["start_date"]]
+        else:
+            self.parameters["start_date"] = self.start_date
+        if npi_config["period_end_date"].exists():
+            self.parameters["end_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["end_date"]]
+        else:
+            self.end_date
+            
         self.affected_geoids = set(self.parameters.index)
         self.param_name = self.parameters["parameter"].unique()[0]  # [0] to convert ndarray to str
 
