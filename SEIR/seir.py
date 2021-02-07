@@ -36,7 +36,7 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True, debug_print = global_debug_pr
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
-    p_draw = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
+    p_draw = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
 
     if(debug_print):
         print("Parameters without interventions")

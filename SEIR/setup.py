@@ -100,6 +100,7 @@ class Setup:
                  npi_scenario=None,
                  npi_config={},
                  seeding_config={},
+                 parameters_config={},
                  interactive=True,
                  write_csv=False,
                  write_parquet=False,
@@ -121,6 +122,7 @@ class Setup:
         self.npi_scenario = npi_scenario
         self.npi_config = npi_config
         self.seeding_config = seeding_config
+        self.parameters_config = parameters_config
         self.interactive = interactive
         self.write_csv = write_csv
         self.write_parquet = write_parquet
@@ -149,6 +151,8 @@ class Setup:
 
         self.build_setup()
 
+        self.params = Parameters(self.parameters_config)
+
         if (self.write_csv or self.write_parquet):
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             self.datadir = file_paths.create_dir_name(self.out_run_id,self.out_prefix,'seir')
@@ -164,6 +168,38 @@ class Setup:
         self.nnodes = self.spatset.nnodes
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
+
+
+
+class Parameters:
+    # Mnimal object to be easily picklable for // runs
+    def __init__(self, parameters_config):
+
+        n_parallel_compartments = 1
+        n_parallel_transitions = 0
+        compartments_dict = {}
+        if "parallel_structure" in parameters_config:
+            if not "compartments" in parameters_config["parallel_structure"]:
+                raise ValueError(f"A config specifying a parallel structure should assign compartments to that structure")
+            compartments_map = parameters_config["parallel_structure"]["compartments"].get()
+            n_parallel_compartments = len(compartments_map)
+            compartments_dict = {k : v for v,k in enumerate(compartments_map)}
+            if not "transitions" in parameters_config["parallel_structure"]:
+                raise ValueError(f"A config specifying a parallel structure should assign transitions to that structure")
+            transitions_map = parameters_config["parallel_structure"]["transitions"].get()
+            n_parallel_transitions = len(transitions_map)
+            self.transition_map =  transitions_map
+        
+        self.n_parallel_transitions = n_parallel_transitions
+        self.compartments_dict = compartments_dict
+        self.n_parallel_compartments = n_parallel_compartments
+
+        self.alpha_val = 1.0
+        if "alpha" in parameters_config:
+            self.alpha_val = parameters_config["alpha"].as_evaled_expression()
+        self.sigma_val = parameters_config["sigma"].as_evaled_expression()
+        self.gamma_dist = parameters_config["gamma"].as_random_distribution()
+        self.R0s_dist = parameters_config["R0s"].as_random_distribution()
 
 
 
@@ -354,61 +390,44 @@ def npi_load(fname, extension):
 # These are drawn based on the seir::parameters section of the config, passed in as p_config.
 # In the config, alpha is optional with a default of 1.0.
 # The other parameters sigma, gamma, and R0s are required.
-def parameters_quick_draw(p_config, nt_inter, nnodes):
-    alpha = 1.0
-    if "alpha" in p_config:
-        alpha = p_config["alpha"].as_evaled_expression()
-    alpha = np.full((nt_inter, nnodes), alpha)
+def parameters_quick_draw(p, nt_inter, nnodes):
+    alpha = np.full((nt_inter, nnodes), p.alpha_val)
+    
+    sigma = np.full((nt_inter, nnodes), p.sigma_val)
 
-    sigma = p_config["sigma"].as_evaled_expression()
-    sigma = np.full((nt_inter, nnodes), sigma)
+    #gamma = p_config["gamma"].as_random_distribution()() * n_Icomp
+    gamma = np.full((nt_inter, nnodes), p.gamma_dist() * n_Icomp)
 
-    gamma = p_config["gamma"].as_random_distribution()() * n_Icomp
-    gamma = np.full((nt_inter, nnodes), gamma)
-
-    R0s = p_config["R0s"].as_random_distribution()()
+    R0s = p.R0s_dist()
     beta = R0s * gamma / n_Icomp
     beta = np.full((nt_inter, nnodes), beta)
 
-
-    n_parallel_compartments = 1
-    n_parallel_transitions = 0
-    if "parallel_structure" in p_config:
-        if not "compartments" in p_config["parallel_structure"]:
-            raise ValueError(f"A config specifying a parallel structure should assign compartments to that structure")
-        compartments_map = p_config["parallel_structure"]["compartments"].get()
-        n_parallel_compartments = len(compartments_map)
-        compartments_dict = {k : v for v,k in enumerate(compartments_map)}
-        if not "transitions" in p_config["parallel_structure"]:
-            raise ValueError(f"A config specifying a parallel structure should assign transitions to that structure")
-        transitions_map = p_config["parallel_structure"]["transitions"].get()
-        n_parallel_transitions = len(transitions_map)
-    susceptibility_reduction = np.zeros((nt_inter, n_parallel_compartments, nnodes), dtype = 'float64')
-    transmissibility_reduction = np.zeros((nt_inter, n_parallel_compartments, nnodes), dtype = 'float64')
-    transition_rate = np.zeros((nt_inter, n_parallel_transitions, nnodes), dtype = 'float64')
-    transition_from = np.zeros((n_parallel_transitions), dtype = 'int32')
-    transition_to = np.zeros((n_parallel_transitions), dtype = 'int32')
-    if "parallel_structure" in p_config:
-        for index,compartment in enumerate(p_config["parallel_structure"]["compartments"]):
-            if "susceptibility_reduction" in p_config["parallel_structure"]["compartments"][compartment]:
-                susceptibility_reduction[:,index,:] = \
-                    p_config["parallel_structure"]["compartments"][compartment]["susceptibility_reduction"].as_random_distribution()()
+    susceptibility_reduction = np.zeros((nt_inter, p.n_parallel_compartments, nnodes), dtype = 'float64')
+    transmissibility_reduction = np.zeros((nt_inter, p.n_parallel_compartments, nnodes), dtype = 'float64')
+    transition_rate = np.zeros((nt_inter, p.n_parallel_transitions, nnodes), dtype = 'float64')
+    transition_from = np.zeros((p.n_parallel_transitions), dtype = 'int32')
+    transition_to = np.zeros((p.n_parallel_transitions), dtype = 'int32')
+    
+    if p.n_parallel_compartments > 1.5:
+    #if"parallel_structure" in p_config:
+        #for index, compartment in enumerate(p_config["parallel_structure"]["compartments"]):
+        for index, compartment in p.compartments_dict.items():
+            #if "susceptibility_reduction" in p_config["parallel_structure"]["compartments"][compartment]:
+            if "susceptibility_reduction" in compartment:
+                susceptibility_reduction[:,index,:] = compartment["susceptibility_reduction"].as_random_distribution()()
             else:
                 susceptibility_reduction[:,index,:] = 0
-
-            if "transmissibility_reduction" in p_config["parallel_structure"]["compartments"][compartment]:
-                transmissibility_reduction[:,index,:] = \
-                    p_config["parallel_structure"]["compartments"][compartment]["transmissibility_reduction"].as_random_distribution()()
+            if "transmissibility_reduction" in compartment:
+                transmissibility_reduction[:,index,:] = compartment["transmissibility_reduction"].as_random_distribution()()
             else:
                 transmissibility_reduction[:,index,:] = 0
 
-        for transition in range(n_parallel_transitions):
-            transition_rate[:,transition,:] = \
-                p_config["parallel_structure"]["transitions"][transition]["rate"].as_random_distribution()()
-            from_raw = p_config["parallel_structure"]["transitions"][transition]["from"].get()
-            transition_from[transition] = compartments_dict[from_raw]
-            to_raw = p_config["parallel_structure"]["transitions"][transition]["to"].get()
-            transition_to[transition] = compartments_dict[to_raw]
+        for transition in range(p.n_parallel_transitions):
+            transition_rate[:,transition,:] = p.transition_map[transition]["rate"].as_random_distribution()()
+            from_raw =p.transition_map[transition]["from"].get()
+            transition_from[transition] = p.compartments_dict[from_raw]
+            to_raw = p.transition_map[transition]["to"].get()
+            transition_to[transition] = p.compartments_dict[to_raw]
 
     # Fix me, values have misleading names
     return (
@@ -416,10 +435,10 @@ def parameters_quick_draw(p_config, nt_inter, nnodes):
         beta,
         sigma,
         gamma,
-        n_parallel_compartments,
+        p.n_parallel_compartments,
         susceptibility_reduction,
         transmissibility_reduction,
-        n_parallel_transitions,
+        p.n_parallel_transitions,
         transition_rate,
         transition_from,
         transition_to
