@@ -319,8 +319,97 @@ def test_resume_simple():
 
 
 
+def test_resume_change_date():
+    config.clear()
+    config.read(user=False)
+    config.set_file('data/config.yml')
+    scenario = 'Scenario1'
+    sim_id2write = 100
+    nsim = 1
+    interactive = False
+    write_csv = False
+    write_parquet = True
+    index = 1
+    run_id = 'test'
+    prefix = ''
+    stoch_traj_flag = True
 
+    spatial_config = config["spatial_setup"]
+    spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
+    s = setup.Setup(
+        setup_name=config["name"].get() + "_" + str(scenario),
+        spatial_setup=setup.SpatialSetup(
+            setup_name=spatial_config["setup_name"].get(),
+            geodata_file=spatial_base_path / spatial_config["geodata"].get(),
+            mobility_file=spatial_base_path / spatial_config["mobility"].get(),
+            popnodes_key=spatial_config["popnodes"].get(),
+            nodenames_key=spatial_config["nodenames"].get()
+        ),
+        nsim=nsim,
+        npi_scenario=scenario,
+        npi_config=config["interventions"]["settings"][scenario],
+        parameters_config=config["seir"]["parameters"],
+        seeding_config=config["seeding"],
+        ti=config["start_date"].as_date(),
+        tf=config["end_date"].as_date(),
+        interactive=interactive,
+        write_csv=write_csv,
+        write_parquet=write_parquet,
+        dt=config["dt"].as_number(),
+        first_sim_index = index,
+        in_run_id = run_id,
+        in_prefix = prefix,
+        out_run_id = run_id,
+        out_prefix = prefix
+    )
+    seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
 
+    config.clear()
+    config.read(user=False)
+    config.set_file('data/config_resume.yml')
+    scenario = 'None'
+    nsim = 1
+    interactive = False
+    write_csv = False
+    write_parquet = True
+    index = 1
+    run_id = 'test'
+    prefix = ''
+    stoch_traj_flag = True
+
+    spatial_config = config["spatial_setup"]
+    spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
+    s = setup.Setup(
+        setup_name=config["name"].get() + "_" + str(scenario),
+        spatial_setup=setup.SpatialSetup(
+            setup_name=spatial_config["setup_name"].get(),
+            geodata_file=spatial_base_path / spatial_config["geodata"].get(),
+            mobility_file=spatial_base_path / spatial_config["mobility"].get(),
+            popnodes_key=spatial_config["popnodes"].get(),
+            nodenames_key=spatial_config["nodenames"].get()
+        ),
+        nsim=nsim,
+        npi_scenario=scenario,
+        npi_config=config["interventions"]["settings"][scenario],
+        seeding_config=config["seeding"],
+        parameters_config=config["seir"]["parameters"],
+        ti=config["start_date"].as_date(),
+        tf=config["end_date"].as_date(),
+        interactive=interactive,
+        write_csv=write_csv,
+        write_parquet=write_parquet,
+        dt=config["dt"].as_number(),
+        first_sim_index = index,
+        in_run_id = run_id,
+        in_prefix = prefix,
+        out_run_id = run_id,
+        out_prefix = prefix
+    )
+
+    seir.onerun_SEIR_loadID(sim_id2write=sim_id2write+1, s=s, sim_id2load=sim_id2write)
+    npis_new = pq.read_table(file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id2write, 'snpi',"parquet")).to_pandas()
+    print(npis_new["end_date"])
+    assert((npis_new["end_date"] == '2020-05-16').all())
 
 
 
