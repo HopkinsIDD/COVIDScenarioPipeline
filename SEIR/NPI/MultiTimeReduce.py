@@ -52,7 +52,7 @@ class MultiTimeReduce(NPIBase):
                                        index = self.geoids)
 
         if (loaded_df is not None) and self.name in loaded_df['npi_name'].values:
-            self.__createFromDf(loaded_df)
+            self.__createFromDf(loaded_df, npi_config)
         else:
             self.__createFromConfig(npi_config)
 
@@ -119,7 +119,7 @@ class MultiTimeReduce(NPIBase):
         self.dist = npi_config["value"].as_random_distribution()
         self.parameters["npi_name"] = self.name
         self.parameters["parameter"] = self.param_name
-        
+
         for grp_config in npi_config['groups']:
             if grp_config["affected_geoids"].get() == "all":
                 affected_geoids_grp = self.geoids
@@ -140,13 +140,41 @@ class MultiTimeReduce(NPIBase):
                 self.parameters.at[geoid, "end_date"] = end_dates
                 self.parameters.at[geoid, "reduction"]= self.dist(size=1)
 
-    def __createFromDf(self, loaded_df):
+    def __createFromDf(self, loaded_df, npi_config):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
         self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']].copy()
-        self.parameters["start_date"] = [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["start_date"]]
-        self.parameters["end_date"] =   [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["end_date"]]
-        self.affected_geoids = set(self.parameters.index)
+        # self.parameters["start_date"] = [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["start_date"]]
+        # self.parameters["end_date"] =   [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["end_date"]]
+        # self.affected_geoids = set(self.parameters.index)
+        affected_geoids_grp = []
+        for grp_config in npi_config['groups']:
+            if grp_config["affected_geoids"].get() == "all":
+                affected_geoids_grp += self.geoids
+            else:
+                affected_geoids_grp += [str(n.get()) for n in grp_config["affected_geoids"]]
+        self.affected_geoids = set(affected_geoids_grp)
+        if len(self.affected_geoids) != len(affected_geoids_grp):
+            raise ValueError(f"In NPI {self.name}, some geoids belong to several groups. This is unsupported.")
+
+        for grp_config in npi_config['groups']:
+            if grp_config["affected_geoids"].get() == "all":
+                affected_geoids_grp = self.geoids
+            else:
+                affected_geoids_grp = [str(n.get()) for n in grp_config["affected_geoids"]]
+            # Create reduction
+            start_dates = []
+            end_dates = []
+            if grp_config["periods"].exists():
+                for period in grp_config["periods"]:
+                   start_dates = start_dates + [period["start_date"].as_date()]
+                   end_dates = end_dates + [period["end_date"].as_date()]
+            else:
+                start_dates = [self.start_date]
+                end_dates = [self.end_date]
+            for geoid in affected_geoids_grp:
+                self.parameters.at[geoid, "start_date"] = start_dates
+                self.parameters.at[geoid, "end_date"] = end_dates
         self.param_name = self.parameters["parameter"].unique()[0]          # [0] to convert ndarray to str
 
     def getReduction(self, param, default=0.0):
