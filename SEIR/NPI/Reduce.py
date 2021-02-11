@@ -119,10 +119,8 @@ class Reduce(NPIBase):
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
         self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']].copy()
 
-        self.parameters["start_date"] = npi_config["period_start_date"].as_date()  \
-            if npi_config["period_start_date"].exists() else self.start_date
-        self.parameters["end_date"] = npi_config["period_end_date"].as_date() \
-            if npi_config["period_end_date"].exists() else self.end_date
+        self.parameters["start_date"] = npi_config["period_start_date"].as_date()
+        self.parameters["end_date"] = npi_config["period_end_date"].as_date()
         
         #if npi_config["period_start_date"].exists():
         #    self.parameters["start_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["start_date"]]
