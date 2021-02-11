@@ -407,7 +407,7 @@ def test_resume_change_date():
     )
 
     seir.onerun_SEIR_loadID(sim_id2write=sim_id2write+1, s=s, sim_id2load=sim_id2write)
-    npis_new = pq.read_table(file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id2write, 'snpi',"parquet")).to_pandas()
+    npis_new = pq.read_table(file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id2write+1, 'snpi',"parquet")).to_pandas()
     print(npis_new["end_date"])
     assert((npis_new["end_date"] == '2020-05-16').all())
 
