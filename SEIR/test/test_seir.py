@@ -2,6 +2,7 @@ import numpy as np
 import os
 import pytest
 import warnings
+import shutil
 
 
 import pathlib
@@ -208,7 +209,7 @@ def test_steps_SEIR_no_spread():
         assert states[seir.cumI,:,1,:].max() == 0
 
 
-def test_resume_simple():
+def test_contuation_resume():
     config.clear()
     config.read(user=False)
     config.set_file('data/config.yml')
@@ -260,8 +261,8 @@ def test_resume_simple():
 
     config.clear()
     config.read(user=False)
-    config.set_file('data/config_resume.yml')
-    scenario = 'None'
+    config.set_file('data/config_continuation_resume.yml')
+    scenario = 'Scenario1'
     sim_id2write = 100
     nsim = 1
     interactive = False
@@ -308,18 +309,17 @@ def test_resume_simple():
     states_new = states_new[states_new["time"] == '2020-03-15'].reset_index(drop=True)
     assert((states_old[states_old['comp'] != 'diffI'] == states_new[states_new['comp'] != 'diffI']).all().all())
 
-    npis_new = pq.read_table(file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id2write, 'snpi',"parquet")).to_pandas()
-    assert((npis_new["end_date"] == '2020-05-16').all())
-
     seir.onerun_SEIR_loadID(sim_id2write=sim_id2write+1, s=s, sim_id2load=sim_id2write)
     states_new = pq.read_table(
           file_paths.create_file_name(s.in_run_id,s.in_prefix, sim_id2write+1, 'seir',"parquet"),
         ).to_pandas()
     states_new = states_new[states_new["time"] == '2020-03-15'].reset_index(drop=True)
+    for path in ["model_output/seir","model_output/snpi","model_output/spar"]:
+        shutil.rmtree(path)
 
 
 
-def test_resume_change_date():
+def test_inference_resume():
     config.clear()
     config.read(user=False)
     config.set_file('data/config.yml')
@@ -363,11 +363,12 @@ def test_resume_change_date():
         out_prefix = prefix
     )
     seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
+    npis_old = pq.read_table(file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id2write, 'snpi',"parquet")).to_pandas()
 
     config.clear()
     config.read(user=False)
-    config.set_file('data/config_resume.yml')
-    scenario = 'None'
+    config.set_file('data/config_inference_resume.yml')
+    scenario = 'Scenario1'
     nsim = 1
     interactive = False
     write_csv = False
@@ -408,8 +409,18 @@ def test_resume_change_date():
 
     seir.onerun_SEIR_loadID(sim_id2write=sim_id2write+1, s=s, sim_id2load=sim_id2write)
     npis_new = pq.read_table(file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id2write+1, 'snpi',"parquet")).to_pandas()
-    print(npis_new["end_date"])
+
+    print(npis_new["npi_name"])
+    assert(npis_old["npi_name"].isin(['None', 'Wuhan', 'KansasCity']).all())
+    assert(npis_new["npi_name"].isin(['None', 'Wuhan', 'KansasCity', 'BrandNew']).all())
+    # assert((['None', 'Wuhan', 'KansasCity']).isin(npis_old["npi_name"]).all())
+    # assert((['None', 'Wuhan', 'KansasCity', 'BrandNew']).isin(npis_new["npi_name"]).all())
+    assert((npis_old["start_date"] == '2020-04-01').all())
+    assert((npis_old["end_date"] == '2020-05-15').all())
+    assert((npis_new["start_date"] == '2020-04-02').all())
     assert((npis_new["end_date"] == '2020-05-16').all())
+    for path in ["model_output/seir","model_output/snpi","model_output/spar"]:
+        shutil.rmtree(path)
 
 
-
+    ## Clean up after ourselves
