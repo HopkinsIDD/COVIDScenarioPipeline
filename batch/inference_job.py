@@ -69,6 +69,8 @@ def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, output
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
 
+    if restart_from_run_id is None:
+        restart_from_run_id = run_id
     handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date)
 
     job_queues = get_job_queues(job_queue_prefix)
@@ -229,10 +231,7 @@ class BatchJobHandler(object):
             cur_env_vars.append({"name": "COVID_RUN_INDEX", "value": f"{self.run_id}"})
             if self.restart_from_s3_bucket:
                 cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from_s3_bucket})
-                if self.restart_from_run_id:
-                    cur_env_vars.append({"name": "COVID_OLD_RUN_INDEX", "value": f"{self.restart_from_run_id}"})
-                else:
-                    cur_env_vars.append({"name": "COVID_OLD_RUN_INDEX", "value": f"{self.run_id}"})
+                cur_env_vars.append({"name": "COVID_OLD_RUN_INDEX", "value": f"{self.restart_from_run_id}"})
             cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block0"})
 
             cur_job_queue = job_queues[ctr % len(job_queues)]
@@ -295,6 +294,10 @@ class BatchJobHandler(object):
             s3_cp_run_script = f"aws s3 cp {copy_script_path} $PWD/run-covid-pipeline"
             cp_command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
 
+            run_id_restart = self.run_id
+            if not (self.restart_from_s3_bucket is None):
+                print(f"Restarting from run id is {self.restart_from_run_id}")
+        print(f"Run id is {self.run_id}")
             print(f"Launching {cur_job_name}...")
             copy_job = batch_client.submit_job(
                 jobName=f"{cur_job_name}_copy",
@@ -308,7 +311,9 @@ class BatchJobHandler(object):
                 },
                 retryStrategy = {'attempts': 3})
 
+        print(f"Resuming from run id is {self.restart_from_run_id} located in {self.restart_from_s3_bucket}")
         print(f"Final output will be: {results_path}/model_output/")
+        print(f"Run id is {self.run_id}")
 
 
 if __name__ == '__main__':
