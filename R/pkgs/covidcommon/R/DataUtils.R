@@ -80,6 +80,12 @@ get_islandareas_data <- function() {
   nyt_data <- dplyr::rename(nyt_data, Update=date, source=state, FIPS=fips, Confirmed=cases, Deaths=deaths) # Rename columns
   nyt_data <- dplyr::mutate(nyt_data, FIPS=paste0(FIPS,"000"), source=plyr::revalue(source, ISLAND_AREAS, warn_missing=FALSE))
 
+  validation_date <- Sys.getenv("VALIDATION_DATE")
+  if ( validation_date != '' ) {
+    print(paste("(DataUtils.R) Limiting NYT territories data to:", validation_date, sep=" "))
+    nyt_data <- dplyr::filter(nyt_data, Update < validation_date)
+  }
+
   return(nyt_data)
 }
 
