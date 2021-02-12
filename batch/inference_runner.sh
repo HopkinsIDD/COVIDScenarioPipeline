@@ -71,6 +71,8 @@ if [ $python_install_ret -ne 0 ]; then
 	error_handler "Error code returned from running `python setup.py install`: $python_install_ret"
 fi
 
+## Remove trailing slashes
+export S3_LAST_JOB_OUTPUT=$(echo $S3_LAST_JOB_OUTPUT | sed 's/\/$//')
 DVC_OUTPUTS_ARRAY=($DVC_OUTPUTS)
 if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 	for type in "hosp" "spar" "snpi" "hnpi" "hpar" "seir"
