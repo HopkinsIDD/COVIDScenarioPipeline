@@ -75,22 +75,22 @@ DVC_OUTPUTS_ARRAY=($DVC_OUTPUTS)
 if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 	for type in "hosp" "spar" "snpi" "hnpi" "hpar" "seir"
 	do
-		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/final/',$COVID_SLOT_INDEX,'$type','parquet'))")
+		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_OLD_RUN_INDEX','$COVID_PREFIX/$COVID_OLD_RUN_INDEX/chimeric/final/',$COVID_SLOT_INDEX,'$type','parquet'))")
 		aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$FILENAME $FILENAME
 	done
 	for type in "seed"
 	do
-		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/final/',$COVID_SLOT_INDEX,'$type','csv'))")
+		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_OLD_RUN_INDEX','$COVID_PREFIX/$COVID_OLD_RUN_INDEX/chimeric/final/',$COVID_SLOT_INDEX,'$type','csv'))")
 		aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$FILENAME $FILENAME
 	done
 	for type in "seed"
 	do
-		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/final/',$COVID_SLOT_INDEX,'$type','csv'))")
+		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_OLD_RUN_INDEX','$COVID_PREFIX/$COVID_OLD_RUN_INDEX/global/final/',$COVID_SLOT_INDEX,'$type','csv'))")
 		aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$FILENAME $FILENAME
 	done
 	for type in "hosp" "spar" "snpi" "hnpi" "hpar" "seir"
 	do
-		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/final/',$COVID_SLOT_INDEX,'$type','parquet'))")
+		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_OLD_RUN_INDEX','$COVID_PREFIX/$COVID_OLD_RUN_INDEX/global/final/',$COVID_SLOT_INDEX,'$type','parquet'))")
 		aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$FILENAME $FILENAME
 	done
 	ls -ltr model_output
