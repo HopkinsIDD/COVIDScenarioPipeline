@@ -37,7 +37,9 @@ from SEIR import file_paths
               help="The number of CPUs to request for running jobs")
 @click.option("-m", "--memory", "memory", type=click.IntRange(min=1000, max=6000), default=4000, show_default=True,
               help="The amount of RAM in megabytes needed per CPU running simulations")
-@click.option("-r", "--restart-from", "restart_from", type=str, default=None,
+@click.option("-r", "--restart-from-s3-bucket", "restart_from_s3_bucket", type=str, default=None,
+              help="The location of an S3 run to use as the initial to the first block of the current run")
+@click.option("-r", "--restart-from-run-id", "restart_from_run_id", type=str, default=None,
               help="The location of an S3 run to use as the initial to the first block of the current run")
 @click.option("--stochastic/--non-stochastic", "--stochastic/--non-stochastic", "stochastic", envvar="COVID_STOCHASTIC", type=bool, default=True,
               help="Flag determining whether to run stochastic simulations or not")
@@ -45,7 +47,7 @@ from SEIR import file_paths
               help="Maximum number of interventions to allow in a stacked intervention")
 @click.option("--validation-end-date","--validation-end-date", "last_validation_date", envvar="VALIDATION_DATE", type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()),
               help="Last date to pull for ground truth data")
-def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from, stochastic, max_stacked_interventions, last_validation_date):
+def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
 
     config = None
     with open(config_file) as f:
@@ -67,7 +69,7 @@ def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, output
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
 
-    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from, stochastic, max_stacked_interventions, last_validation_date)
+    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date)
 
     job_queues = get_job_queues(job_queue_prefix)
     scenarios = config['interventions']['scenarios']
@@ -133,7 +135,7 @@ def get_job_queues(job_queue_prefix):
 
 
 class BatchJobHandler(object):
-    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from, stochastic, max_stacked_interventions, last_validation_date):
+    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
         self.run_id = run_id
         self.num_jobs = num_jobs
         self.sims_per_job = sims_per_job
@@ -143,7 +145,8 @@ class BatchJobHandler(object):
         self.batch_job_definition = batch_job_definition
         self.vcpus = vcpus
         self.memory = memory
-        self.restart_from = restart_from
+        self.restart_from_s3_bucket = restart_from_s3_bucket
+        self.restart_from_run_id = restart_from_run_id
         self.stochastic = stochastic
         self.max_stacked_interventions = max_stacked_interventions
         self.last_validation_date = last_validation_date
@@ -224,8 +227,12 @@ class BatchJobHandler(object):
             cur_env_vars.append({"name": "COVID_PREFIX", "value": f"{config['name']}/{s}/{d}"})
             cur_env_vars.append({"name": "COVID_BLOCK_INDEX", "value": "1"})
             cur_env_vars.append({"name": "COVID_RUN_INDEX", "value": f"{self.run_id}"})
-            if self.restart_from:
+            if self.restart_from_s3_bucket:
                 cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from})
+                if self.restart_from_run_id:
+                    cur_env_vars.append({"name": "COVID_OLD_RUN_INDEX", "value": f"{self.restart_from_run_id}"})
+                else:
+                    cur_env_vars.append({"name": "COVID_OLD_RUN_INDEX", "value": f"{self.run_id}"})
             cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block0"})
 
             cur_job_queue = job_queues[ctr % len(job_queues)]
@@ -251,9 +258,10 @@ class BatchJobHandler(object):
                 cur_env_vars.append({"name": "COVID_PREFIX", "value": f"{config['name']}/{s}/{d}"})
                 cur_env_vars.append({"name": "COVID_BLOCK_INDEX", "value": f"{block_idx+1}"})
                 cur_env_vars.append({"name": "COVID_RUN_INDEX", "value": f"{self.run_id}"})
+                cur_env_vars.append({"name": "COVID_OLD_RUN_INDEX", "value": f"{self.run_id}"})
                 cur_env_vars.append({
                     "name": "S3_LAST_JOB_OUTPUT",
-                    "value": f"{results_path}/{last_job['jobName']}"
+                    "value": f"{results_path}/"
                 })
                 cur_env_vars.append({
                     "name": "JOB_NAME",
