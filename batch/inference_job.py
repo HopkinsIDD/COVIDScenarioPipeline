@@ -295,9 +295,6 @@ class BatchJobHandler(object):
             cp_command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
 
             run_id_restart = self.run_id
-            if not (self.restart_from_s3_bucket is None):
-                print(f"Restarting from run id is {self.restart_from_run_id}")
-        print(f"Run id is {self.run_id}")
             print(f"Launching {cur_job_name}...")
             copy_job = batch_client.submit_job(
                 jobName=f"{cur_job_name}_copy",
