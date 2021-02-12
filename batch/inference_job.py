@@ -229,7 +229,7 @@ class BatchJobHandler(object):
             cur_env_vars.append({"name": "COVID_PREFIX", "value": f"{config['name']}/{s}/{d}"})
             cur_env_vars.append({"name": "COVID_BLOCK_INDEX", "value": "1"})
             cur_env_vars.append({"name": "COVID_RUN_INDEX", "value": f"{self.run_id}"})
-            if self.restart_from_s3_bucket:
+            if not (self.restart_from_s3_bucket is None):
                 cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from_s3_bucket})
                 cur_env_vars.append({"name": "COVID_OLD_RUN_INDEX", "value": f"{self.restart_from_run_id}"})
             cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block0"})
@@ -311,7 +311,8 @@ class BatchJobHandler(object):
                 },
                 retryStrategy = {'attempts': 3})
 
-        print(f"Resuming from run id is {self.restart_from_run_id} located in {self.restart_from_s3_bucket}")
+        if not (self.restart_from_s3_bucket is None):
+            print(f"Resuming from run id is {self.restart_from_run_id} located in {self.restart_from_s3_bucket}")
         print(f"Final output will be: {results_path}/model_output/")
         print(f"Run id is {self.run_id}")
 
