@@ -78,6 +78,8 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_OLD_RUN_INDEX','$COVID_PREFIX/$COVID_OLD_RUN_INDEX/chimeric/final/',$COVID_SLOT_INDEX,'$type','parquet'))")
 		aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$FILENAME $FILENAME
 		if [ -f $FILENAME ]; then
+			echo "Copy successful"
+		else
 			echo "Could not copy file of type $type ($FILENAME)"
 			exit 2
 		fi
@@ -87,6 +89,8 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_OLD_RUN_INDEX','$COVID_PREFIX/$COVID_OLD_RUN_INDEX/chimeric/final/',$COVID_SLOT_INDEX,'$type','csv'))")
 		aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$FILENAME $FILENAME
 		if [ -f $FILENAME ]; then
+			echo "Copy successful"
+		else
 			echo "Could not copy file of type $type ($FILENAME)"
 			exit 2
 		fi
@@ -96,6 +100,8 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_OLD_RUN_INDEX','$COVID_PREFIX/$COVID_OLD_RUN_INDEX/global/final/',$COVID_SLOT_INDEX,'$type','csv'))")
 		aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$FILENAME $FILENAME
 		if [ -f $FILENAME ]; then
+			echo "Copy successful"
+		else
 			echo "Could not copy file of type $type ($FILENAME)"
 			exit 2
 		fi
@@ -105,6 +111,8 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_OLD_RUN_INDEX','$COVID_PREFIX/$COVID_OLD_RUN_INDEX/global/final/',$COVID_SLOT_INDEX,'$type','parquet'))")
 		aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$FILENAME $FILENAME
 		if [ -f $FILENAME ]; then
+			echo "Copy successful"
+		else
 			echo "Could not copy file of type $type ($FILENAME)"
 			exit 2
 		fi
