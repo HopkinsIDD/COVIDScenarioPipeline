@@ -81,7 +81,7 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 			echo "Copy successful"
 		else
 			echo "Could not copy file of type $type ($FILENAME)"
-			exit 2
+			# exit 2
 		fi
 	done
 	for type in "seed"
@@ -92,7 +92,7 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 			echo "Copy successful"
 		else
 			echo "Could not copy file of type $type ($FILENAME)"
-			exit 2
+			# exit 2
 		fi
 	done
 	for type in "seed"
