@@ -228,7 +228,7 @@ class BatchJobHandler(object):
             cur_env_vars.append({"name": "COVID_BLOCK_INDEX", "value": "1"})
             cur_env_vars.append({"name": "COVID_RUN_INDEX", "value": f"{self.run_id}"})
             if self.restart_from_s3_bucket:
-                cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from})
+                cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from_s3_bucket})
                 if self.restart_from_run_id:
                     cur_env_vars.append({"name": "COVID_OLD_RUN_INDEX", "value": f"{self.restart_from_run_id}"})
                 else:
