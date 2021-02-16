@@ -225,7 +225,8 @@ for(scenario in scenarios) {
           hnpi = arrow::read_parquet(first_global_files[['hnpi_filename']]),
           hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,source,outcome,sep='_'))
         )
-      }
+      },
+      is_resume = opt$is_resume
     )
 
 
