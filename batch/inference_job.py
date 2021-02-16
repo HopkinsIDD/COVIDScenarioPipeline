@@ -232,6 +232,7 @@ class BatchJobHandler(object):
             if not (self.restart_from_s3_bucket is None):
                 cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from_s3_bucket})
                 cur_env_vars.append({"name": "COVID_OLD_RUN_INDEX", "value": f"{self.restart_from_run_id}"})
+                cur_env_vars.append({"name": "COVID_IS_RESUME", "value": f"TRUE"})
             cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block0"})
 
             cur_job_queue = job_queues[ctr % len(job_queues)]
