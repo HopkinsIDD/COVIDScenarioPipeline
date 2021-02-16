@@ -286,7 +286,7 @@ class BatchJobHandler(object):
             # Prepare and launch the num_jobs via AWS Batch.
             cp_env_vars = [
                 {"name": "S3_RESULTS_PATH", "value": results_path},
-                {"name": "S3_LAST_JOB_OUTPUT", "value": f"{results_path}/{last_job['jobName']}"},
+                {"name": "S3_LAST_JOB_OUTPUT", "value": f"{results_path}"},
                 {"name": "NSLOT", "value": str(self.num_jobs)},
             ]
 
