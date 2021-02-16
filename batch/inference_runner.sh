@@ -80,7 +80,7 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 		export PARQUET_TYPES="seed spar snpi seir hpar hnpi hosp"
 	else
 		export RESUME_RUN_INDEX=$COVID_RUN_INDEX
-		export PARQUET_TYPES="seed spar snpi seir spar hnpi hosp llik"
+		export PARQUET_TYPES="seed spar snpi seir hpar hnpi hosp llik"
 	fi
 
 	for filetype in $PARQUET_TYPES
