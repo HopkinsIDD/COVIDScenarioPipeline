@@ -92,7 +92,7 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 		fi
 		for liketype in "global" "chimeric"
 		do
-			export OUT_FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/$liketype/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX-1,'$type','$extension'))")
+			export OUT_FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/$liketype/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX-1,'$filetype','$extension'))")
 			if [ $COVID_BLOCK_INDEX -eq 1 ]; then
 				export IN_FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$RESUME_RUN_INDEX','$COVID_PREFIX/$RESUME_RUN_INDEX/$liketype/final/',$COVID_SLOT_INDEX,'$filetype','$extension'))")
 			else
@@ -100,9 +100,9 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 			fi
 			aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$IN_FILENAME $OUT_FILENAME
 			if [ -f $OUT_FILENAME ]; then
-				echo "Copy successful"
+				echo "Copy successful for file of type $filetype ($IN_FILENAME -> $OUT_FILENAME)"
 			else
-				echo "Could not copy file of type $type ($IN_FILENAME -> $OUT_FILENAME)"
+				echo "Could not Copy file of type $filetype ($IN_FILENAME -> $OUT_FILENAME)"
 				if [ $liktype -eq "global" ]; then
 					exit 2
 				fi
