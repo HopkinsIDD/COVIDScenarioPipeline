@@ -85,7 +85,7 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 
 	for filetype in $PARQUET_TYPES
 	do
-		if [ $liketype == "seed" ]; then
+		if [ $filetype == "seed" ]; then
 			export extension="csv"
 		else
 			export extension="parquet"
