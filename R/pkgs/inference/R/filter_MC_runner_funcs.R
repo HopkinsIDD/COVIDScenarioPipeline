@@ -34,7 +34,8 @@ aggregate_and_calc_loc_likelihoods <- function(
   geodata,
   snpi=NULL,
   hnpi=NULL,
-  hpar=NULL) {
+  hpar=NULL
+) {
 
   ##Holds the likelihoods for all locations
   likelihood_data <- list()
@@ -390,7 +391,8 @@ initialize_mcmc_first_block <- function(
   global_prefix,
   chimeric_prefix,
   python_reticulate,
-  likelihood_calculation_function
+  likelihood_calculation_function,
+  is_resume = FALSE
 ) {
 
   ## Only works on these files:
@@ -400,10 +402,10 @@ initialize_mcmc_first_block <- function(
   global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions)
   chimeric_files <- create_filename_list(run_id, chimeric_prefix, block - 1, types, extensions)
 
+  global_check <- sapply(global_files, file.exists)
+  chimeric_check <- sapply(chimeric_files, file.exists)
   ## If this isn't the first block, all of the files should definitely exist
   if (block > 1) {
-    global_check <- sapply(global_files, file.exists)
-    chimeric_check <- sapply(chimeric_files, file.exists)
 
     if (any(!global_check)) {
       stop(paste(
@@ -428,8 +430,9 @@ initialize_mcmc_first_block <- function(
     return(TRUE)
   }
 
-  global_check <- sapply(global_files, file.exists)
-  chimeric_check <- sapply(chimeric_files, file.exists)
+  if ((is_resume) && (!all(global_check[names(global_check) != "llik"]))) {
+    stop("For a resume, all global files must be present")
+  }
 
   if (any(global_check)) {
     warning(paste(
