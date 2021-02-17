@@ -226,7 +226,7 @@ for(scenario in scenarios) {
           hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,source,outcome,sep='_'))
         )
       },
-      is_resume = opt$is_resume
+      is_resume = opt[['is-resume']]
     )
 
 
