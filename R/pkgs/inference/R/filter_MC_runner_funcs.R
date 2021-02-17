@@ -397,6 +397,7 @@ initialize_mcmc_first_block <- function(
 
   ## Only works on these files:
   types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar","llik")
+  non_llik_types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar")
   extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
 
   global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions)
@@ -430,8 +431,14 @@ initialize_mcmc_first_block <- function(
     return(TRUE)
   }
 
-  if ((is_resume) && (!all(global_check[names(global_check) != "llik"]))) {
-    stop("For a resume, all global files must be present")
+  if ((is_resume) && (!all(global_check[non_llik_types]))) {
+    stop(paste(
+      "For a resume, all global files must be present.",
+      "Found the following files:",
+      paste(names(global_check)[which(global_check)], collapse = ", "),
+      "\nWas expecting the following files:",
+      paste(names(global_check[non_llik_types]), collapse = ", ")
+    ))
   }
 
   if (any(global_check)) {
