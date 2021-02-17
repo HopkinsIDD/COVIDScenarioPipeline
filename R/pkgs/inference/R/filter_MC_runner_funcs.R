@@ -431,6 +431,10 @@ initialize_mcmc_first_block <- function(
     return(TRUE)
   }
 
+  print("TEST")
+  print(paste("is_resume", is_resume))
+  print(paste("global_check", global_check))
+  print(paste("names(global_check)", names(global_check)))
   if ((is_resume) && (!all(global_check[non_llik_types]))) {
     stop(paste(
       "For a resume, all global files must be present.",
