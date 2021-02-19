@@ -185,10 +185,10 @@ class Parameters:
             compartments_dict = {k : v for v,k in enumerate(compartments_map)}
             if not "transitions" in parameters_config["parallel_structure"]:
                 raise ValueError(f"A config specifying a parallel structure should assign transitions to that structure")
-            transitions_map = parameters_config["parallel_structure"]["transitions"].get()
-            n_parallel_transitions = len(transitions_map)
+            transitions_map = parameters_config["parallel_structure"]["transitions"]
+            n_parallel_transitions = len(transitions_map.get())
             self.transition_map =  transitions_map
-        
+
         self.n_parallel_transitions = n_parallel_transitions
         self.compartments_dict = compartments_dict
         self.n_parallel_compartments = n_parallel_compartments
@@ -390,7 +390,7 @@ def npi_load(fname, extension):
 # The other parameters sigma, gamma, and R0s are required.
 def parameters_quick_draw(p, nt_inter, nnodes):
     alpha = np.full((nt_inter, nnodes), p.alpha_val)
-    
+
     sigma = np.full((nt_inter, nnodes), p.sigma_val)
 
     #gamma = p_config["gamma"].as_random_distribution()() * n_Icomp
@@ -405,11 +405,11 @@ def parameters_quick_draw(p, nt_inter, nnodes):
     transition_rate = np.zeros((nt_inter, p.n_parallel_transitions, nnodes), dtype = 'float64')
     transition_from = np.zeros((p.n_parallel_transitions), dtype = 'int32')
     transition_to = np.zeros((p.n_parallel_transitions), dtype = 'int32')
-    
+
     if p.n_parallel_compartments > 1.5:
     #if"parallel_structure" in p_config:
         #for index, compartment in enumerate(p_config["parallel_structure"]["compartments"]):
-        for index, compartment in p.compartments_dict.items():
+        for compartment, index in p.compartments_dict.items():
             #if "susceptibility_reduction" in p_config["parallel_structure"]["compartments"][compartment]:
             if "susceptibility_reduction" in compartment:
                 susceptibility_reduction[:,index,:] = compartment["susceptibility_reduction"].as_random_distribution()()
