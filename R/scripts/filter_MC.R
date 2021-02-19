@@ -209,15 +209,20 @@ for(scenario in scenarios) {
       global_block_prefix,
       chimeric_block_prefix,
       py,
-      function(x){
+      function(sim_hosp){
+        sim_hosp <- dplyr::filter(sim_hosp,sim_hosp$time >= min(obs$date),sim_hosp$time <= max(obs$date))
+        lhs <- unique(sim_hosp[[obs_nodename]])
+        rhs <- unique(names(data_stats))
+        all_locations <- rhs[rhs %in% lhs]
+        
         inference::aggregate_and_calc_loc_likelihoods(
-          modeled_outcome = dplyr::filter(x,x$time >= min(obs$date),x$time <= max(obs$date)),
-          all_locations = unique(names(data_stats)),
+          all_locations = all_locations, # technically different
+          modeled_outcome = sim_hosp,
           obs_nodename = obs_nodename,
           config = config,
           obs = obs,
           ground_truth_data = data_stats,
-          hosp_file = first_global_files[['hosp_filename']],
+          hosp_file = first_global_files[['llik_filename']],
           hierarchical_stats = hierarchical_stats,
           defined_priors = defined_priors,
           geodata = geodata,
@@ -297,7 +302,7 @@ for(scenario in scenarios) {
       }
 
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_global_files[['hosp_filename']]))(this_global_files[['hosp_filename']]) %>%
-        filter(time <= max(obs$date))
+        dplyr::filter(time >= min(obs$date),time <= max(obs$date))
 
 
 

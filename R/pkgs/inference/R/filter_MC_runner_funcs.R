@@ -396,8 +396,8 @@ initialize_mcmc_first_block <- function(
 ) {
 
   ## Only works on these files:
-  types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar","llik")
-  non_llik_types <- paste(c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar"),"filename",sep='_')
+  types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik")
+  non_llik_types <- paste(c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar"), "filename", sep = "_")
   extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
 
   global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions)
@@ -431,10 +431,6 @@ initialize_mcmc_first_block <- function(
     return(TRUE)
   }
 
-  print("TEST")
-  print(paste("is_resume", is_resume))
-  print(paste("global_check", global_check))
-  print(paste("names(global_check)", names(global_check)))
   if ((is_resume) && (!all(global_check[non_llik_types]))) {
     stop(paste(
       "For a resume, all global files must be present.",
@@ -483,22 +479,28 @@ initialize_mcmc_first_block <- function(
   }
 
   ## seir, snpi, spar
-  if (any(c("seir_filename", "snpi_filename", "spar_filename") %in% global_file_names)) {
-    if (!all(c("seir_filename", "snpi_filename", "spar_filename") %in% global_file_names)) {
-      stop("Some but not all SEIR outputs found.  Please specify all SEIR outputs by hand, or none")
+  if ("seir_filename" %in% global_file_names) {
+    
+    if (all(c("snpi_filename", "spar_filename") %in% global_file_names)) {
+      python_reticulate$onerun_SEIR(block - 1, python_reticulate$s)
+    } else {
+      print("Found SEIR input, but not output. Using input to generate output")
+      python_reticulate$onerun_SEIR_loadID(block - 1, python_reticulate$s, block - 1)
     }
-
-    python_reticulate$onerun_SEIR(block - 1, python_reticulate$s)
+  } else {
+    stop("Some but not all SEIR input files found.  Please specify either no SEIR files, all SEIR files, or all SEIR inputs by hand.")
   }
 
   ## hpar
-  if (any(c("hosp_filename", "hnpi_filename", "hpar_filename") %in% global_file_names)) {
-    if (!all(c("hosp_filename", "hnpi_filename", "hpar_filename") %in% global_file_names)) {
-      stop("Some but not all Outcomes outputs found.  Please specify all Outcomes outputs by hand, or none")
+  if ("hosp_filename" %in% global_file_names) {
+    if (all(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
+      python_reticulate$onerun_OUTCOMES(block - 1)
+    } else {
+      print("Found OUTCOMES input, but not output. Using input to generate output")
+      python_reticulate$onerun_OUTCOMES_loadID(block - 1)
     }
-    ## Not sure this will work at all
-    python_reticulate$onerun_SEIR(block - 1, python_reticulate$s)
-    python_reticulate$onerun_OUTCOMES(block - 1)
+  } else {
+    stop("Some but not all Outcomes input files found.  Please specify either all Outcomes files, no Outcomes files, or all Outcomes input files by hand.")
   }
 
   ## llik
