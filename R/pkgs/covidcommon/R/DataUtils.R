@@ -35,9 +35,10 @@ download_USAFacts_data <- function(filename, url, value_col_name, incl_unassigne
       usafacts_data <- dplyr::bind_rows(assigned, unassigned)
   }
   col_names <- names(usafacts_data)
-  date_cols <- col_names[grepl("^\\d+/\\d+/\\d+$", col_names)]
+  date_cols <- col_names[grepl("^\\d+[-/]\\d+[-/]\\d+$", col_names)]
+  date_func <- ifelse(any(grepl("^\\d\\d\\d\\d",col_names)),lubridate::ymd, lubridate::mdy)
   usafacts_data <- tidyr::pivot_longer(usafacts_data, date_cols, names_to="Update", values_to=value_col_name)
-  usafacts_data <- dplyr::mutate(usafacts_data, Update=lubridate::mdy(Update), FIPS=sprintf("%05d", FIPS))
+  usafacts_data <- dplyr::mutate(usafacts_data, Update=date_func(Update), FIPS=sprintf("%05d", FIPS))
 
   validation_date <- Sys.getenv("VALIDATION_DATE")
   if ( validation_date != '' ) {

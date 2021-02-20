@@ -479,28 +479,37 @@ initialize_mcmc_first_block <- function(
   }
 
   ## seir, snpi, spar
-  if ("seir_filename" %in% global_file_names) {
-    
-    if (all(c("snpi_filename", "spar_filename") %in% global_file_names)) {
+  if (any(c("snpi_filename", "spar_filename") %in% global_file_names)) {
+    if (!all(c("snpi_filename", "spar_filename") %in% global_file_names)) {
+      stop("Provided some SEIR input, but not all")
+    }
+    if ("seir_filename" %in% global_file_names) {
       python_reticulate$onerun_SEIR(block - 1, python_reticulate$s)
     } else {
-      print("Found SEIR input, but not output. Using input to generate output")
-      python_reticulate$onerun_SEIR_loadID(block - 1, python_reticulate$s, block - 1)
+      stop("Provided SEIR output, but not SEIR input")
     }
   } else {
-    stop("Some but not all SEIR input files found.  Please specify either no SEIR files, all SEIR files, or all SEIR inputs by hand.")
+    if ("seir_filename" %in% global_file_names) {
+      warning("SEIR input provided, but output not found. This is unstable for stochastic runs")
+      python_reticulate$onerun_SEIR_loadID(block - 1, python_reticulate$s, block - 1)
+    }
   }
 
   ## hpar
-  if ("hosp_filename" %in% global_file_names) {
-    if (all(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
+  if (any(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
+    if (!all(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
+      stop("Provided some Outcomes input, but not all")
+    }
+    if ("hosp_filename" %in% global_file_names) {
       python_reticulate$onerun_OUTCOMES(block - 1)
     } else {
-      print("Found OUTCOMES input, but not output. Using input to generate output")
-      python_reticulate$onerun_OUTCOMES_loadID(block - 1)
+      stop("Provided Outcomes output, but not Outcomes input")
     }
   } else {
-    stop("Some but not all Outcomes input files found.  Please specify either all Outcomes files, no Outcomes files, or all Outcomes input files by hand.")
+    if ("hosp_filename" %in% global_file_names) {
+      warning("Outcomes input provided, but output not found. This is unstable for stochastic runs")
+      python_reticulate$onerun_OUTCOMES_loadID(block - 1)
+    }
   }
 
   ## llik
