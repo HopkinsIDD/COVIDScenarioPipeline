@@ -24,7 +24,7 @@ except ModuleNotFoundError as e:
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
-global_debug_print = True
+global_debug_print = False
 
 def onerun_SEIR(sim_id, s, stoch_traj_flag = True, debug_print = global_debug_print):
     scipy.random.seed()
