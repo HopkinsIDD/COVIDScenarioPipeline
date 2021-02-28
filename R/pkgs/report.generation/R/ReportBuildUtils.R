@@ -906,9 +906,10 @@ plot_model_vs_obs <- function(state_hosp_totals,
                               sim_start_date,
                               sim_end_date,
                               week=FALSE,
-                              hosp=FALSE
-                              ) {
-
+                              hosp=FALSE,
+                              tendency="mean"
+) {
+  
   state_hosp_totals <-
     state_hosp_totals %>%
     dplyr::filter(pdeath == pdeath_filter) %>%
@@ -918,7 +919,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
     dplyr::filter(between(date, as.Date(sim_start_date), as.Date(sim_end_date)))
   
   jhu_obs_dat <- jhu_obs_dat %>%
-    dplyr::select(-geoid, -USPS, -name, -pop) %>%
+    dplyr::select(source, date, incidI, incidDeath) %>%
     dplyr::filter(between(date, as.Date(sim_start_date), as.Date(sim_end_date))) %>%
     dplyr::group_by(source, date) %>%
     dplyr::summarise_all(sum, na.rm=TRUE) %>% 
@@ -930,14 +931,16 @@ plot_model_vs_obs <- function(state_hosp_totals,
     state_hosp_summary <-
       state_hosp_totals %>%
       dplyr::group_by(date, scenario_name) %>%
-      dplyr::summarize(ci_lower_incid_hosp = quantile(NhospCurr, ci.L),
-                       ci_upper_incid_hosp = quantile(NhospCurr, ci.U),
-                       mean_incid_hosp= mean(NhospCurr),
-                       median_incid_hosp = median(NhospCurr))
+      dplyr::summarize(lo = quantile(NhospCurr, ci.L),
+                       hi = quantile(NhospCurr, ci.U),
+                       mean= mean(NhospCurr),
+                       median = median(NhospCurr))%>%
+      dplyr::rename(est=!!as.symbol(tendency))
+    
     incid_hosp_plot <-
       ggplot(state_hosp_summary, aes(x = date)) +
-      geom_line(aes(y = mean_incid_hosp, color = scenario_name)) +
-      geom_ribbon(aes(ymin=ci_lower_incid_hosp, ymax=ci_upper_incid_hosp, fill = scenario_name), linetype = 0, alpha=0.2) +
+      geom_line(aes(y = est, color = scenario_name)) +
+      geom_ribbon(aes(ymin=lo, ymax=hi, fill = scenario_name), linetype = 0, alpha=0.2) +
       geom_point(data = jhu_obs_dat %>% filter(date < max(date)), aes(x = date, y = currhosp), color = obs_data_col) +
       #ylab("Incident Cases") +
       #theme(legend.position = "bottom") +
@@ -954,14 +957,16 @@ plot_model_vs_obs <- function(state_hosp_totals,
             legend.title = element_blank()) +
       guides(color = guide_legend(nrow = 2, override.aes = list(alpha=1)),
              fill = FALSE) +
-      coord_cartesian(ylim = c(0, 2.5*max(jhu_obs_dat$currhosp)))
+      coord_cartesian(ylim = c(0, 1.5*max(jhu_obs_dat$currhosp)))
   }
   
   if(week){
     jhu_obs_dat <- jhu_obs_dat %>%
       dplyr::group_by(date=lubridate::ceiling_date(date, "weeks")) %>%
       dplyr::summarize(NincidConfirmed=sum(NincidConfirmed),
-                       NincidDeathsObs=sum(NincidDeathsObs))
+                       NincidDeathsObs=sum(NincidDeathsObs))%>%
+      ungroup() %>%
+      dplyr::filter(date!=max(date))
   }
   
   state_inf_summary <-
@@ -971,20 +976,24 @@ plot_model_vs_obs <- function(state_hosp_totals,
                          NincidCase=sum(NincidCase))
       else(.)}%>%
     dplyr::group_by(date, scenario_name) %>%
-    dplyr::summarize(ci_lower_incid_inf = quantile(NincidInf, ci.L),
-                     ci_upper_incid_inf = quantile(NincidInf, ci.U),
-                     mean_incid_inf = mean(NincidInf),
-                     median_incid_inf = median(NincidInf),
-                     ci_lower_incid_cas = quantile(NincidCase, ci.L),
-                     ci_upper_incid_cas = quantile(NincidCase, ci.U),
-                     mean_incid_cas = mean(NincidCase),
-                     median_incid_cas = median(NincidCase)) 
+    dplyr::summarize(
+      # ci_lower_incid_inf = quantile(NincidInf, ci.L),
+      #                ci_upper_incid_inf = quantile(NincidInf, ci.U),
+      #                mean_incid_inf = mean(NincidInf),
+      #                median_incid_inf = median(NincidInf),
+      lo = quantile(NincidCase, ci.L),
+      hi = quantile(NincidCase, ci.U),
+      mean = mean(NincidCase),
+      median = median(NincidCase)) %>%
+    dplyr::group_by(scenario_name) %>%
+    dplyr::filter(date!=max(date))%>%
+    dplyr::rename(est=!!as.symbol(tendency))
   
   ### Incidence of infections plot
   incid_infections_plot <-
     ggplot(state_inf_summary, aes(x = date)) +
-    geom_line(aes(y = mean_incid_cas, color = scenario_name)) +
-    geom_ribbon(aes(ymin=ci_lower_incid_cas, ymax=ci_upper_incid_cas, fill = scenario_name), linetype = 0, alpha=0.2) +
+    geom_line(aes(y = est, color = scenario_name)) +
+    geom_ribbon(aes(ymin=lo, ymax=hi, fill = scenario_name), linetype = 0, alpha=0.2) +
     geom_point(data = jhu_obs_dat %>% filter(date < max(date)), aes(x = date, y = NincidConfirmed), color = obs_data_col) +
     #ylab("Incident Cases") +
     #theme(legend.position = "bottom") +
@@ -1001,7 +1010,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
           legend.title = element_blank()) +
     guides(color = guide_legend(nrow = 2, override.aes = list(alpha=1)),
            fill = FALSE) +
-    coord_cartesian(ylim = c(0, 2.5*max(jhu_obs_dat$NincidConfirmed)))
+    coord_cartesian(ylim = c(0, 1.5*max(jhu_obs_dat$NincidConfirmed)))
   
   state_death_summary <-
     state_hosp_totals %>%
@@ -1009,14 +1018,18 @@ plot_model_vs_obs <- function(state_hosp_totals,
         dplyr::summarize(NincidDeath=sum(NincidDeath))
       else(.)}%>%
     dplyr::group_by(date, scenario_name) %>%
-    dplyr::summarize(ci_lower_incid_death = quantile(NincidDeath, ci.L),
-                     ci_upper_incid_death = quantile(NincidDeath, ci.U),
-                     mean_incid_death = mean(NincidDeath),
-                     median_incid_death = median(NincidDeath))
+    dplyr::summarize(lo = quantile(NincidDeath, ci.L),
+                     hi = quantile(NincidDeath, ci.U),
+                     mean = mean(NincidDeath),
+                     median = median(NincidDeath)) %>%
+    dplyr::group_by(scenario_name) %>%
+    dplyr::filter(date!=max(date)) %>%
+    dplyr::rename(est=!!as.symbol(tendency))
+  
   incid_deaths_plot <-
     ggplot(state_death_summary, aes(x = date)) +
-    geom_line(aes(y = mean_incid_death, color = scenario_name)) +
-    geom_ribbon(aes(ymin=ci_lower_incid_death, ymax=ci_upper_incid_death, fill = scenario_name), linetype = 0, alpha=0.2) +
+    geom_line(aes(y = est, color = scenario_name)) +
+    geom_ribbon(aes(ymin=lo, ymax=hi, fill = scenario_name), linetype = 0, alpha=0.2) +
     geom_point(data = jhu_obs_dat %>% filter(date<max(date)), aes(x = date, y = NincidDeathsObs), color = obs_data_col) +
     #ylab("Incident Cases") +
     #theme(legend.position = "bottom") +
@@ -1033,7 +1046,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
           legend.title = element_blank()) +
     guides(color = guide_legend(nrow = 2, override.aes = list(alpha=1)),
            fill = FALSE) +
-    coord_cartesian(ylim = c(0, 2.5*max(jhu_obs_dat$NincidDeathsObs)))
+    coord_cartesian(ylim = c(0, 1.5*max(jhu_obs_dat$NincidDeathsObs)))
   
   if(hosp){
     output <- list(incid_infections_plot, incid_deaths_plot, incid_hosp_plot)
