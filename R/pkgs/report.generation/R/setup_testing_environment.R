@@ -1,3 +1,4 @@
+#' @name setup_testing_environment
 #' @export
 setup_testing_environment <- function(cf = "config.yml"){
   params = list(config_file = cf)
