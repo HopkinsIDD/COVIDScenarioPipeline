@@ -57,8 +57,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     incl_geoids,
-                                    pre_process=list(partitions=function(x) {x},
-                                                     data=function(x) {x}),
+                                    pre_process=function(x) {x},
                                     post_process=function(x) {x},
                                     inference=TRUE,
                                     ...
@@ -140,8 +139,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
                                     model_output = 'hpar',
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
-                                    pre_process=list(partitions=function(x) {x},
-                                                     data=function(x) {x}),
+                                    pre_process=function(x){x},
                                     incl_geoids,
                                     ...
 ) {
@@ -208,8 +206,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
 load_spar_sims_filtered <- function(outcome_dir,
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
-                                    pre_process=list(partitions=function(x) {x},
-                                                     data=function(x) {x}),
+                                    pre_process=function(x) {x},
                                     ...
 ) {
   
@@ -278,8 +275,7 @@ load_spar_sims_filtered <- function(outcome_dir,
 load_snpi_sims_filtered <- function(outcome_dir,
                                     partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
-                                    pre_process=list(partitions=function(x) {x},
-                                                     data=function(x) {x}),
+                                    pre_process=function(x) {x},
                                     incl_geoids,
                                     ...
 ) {
