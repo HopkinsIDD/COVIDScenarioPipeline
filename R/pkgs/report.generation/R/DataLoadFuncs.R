@@ -54,7 +54,7 @@ read_file_of_type <- function(extension,...){
 ##'@export
 load_hosp_sims_filtered <- function(outcome_dir,
                                     model_output = 'hosp',
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     incl_geoids,
                                     pre_process=list(partitions=function(x) {x},
@@ -87,7 +87,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
   }
   
   hosp<-hosp %>%
-    mutate(sim_num=as.numeric(str_remove(sim_num, '\\..+$')), 
+    mutate(sim_num=as.numeric(str_remove(filename, '\\..+$')), 
            time=as.Date(time)) 
   
   # fnames <- hosp$.data$files %>% 
@@ -138,7 +138,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
 ##'@export
 load_hpar_sims_filtered <- function(outcome_dir,
                                     model_output = 'hpar',
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
@@ -156,7 +156,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
     dplyr::filter(geoid %in% incl_geoids)  %>%
     pre_process(...) %>%
     collect() %>%
-    dplyr::mutate(sim_num=as.numeric(str_remove(sim_num, '\\..+$'))) 
+    dplyr::mutate(sim_num=as.numeric(str_remove(filename, '\\..+$'))) 
   
   
   # fnames <- hpar$.data$files %>% 
@@ -206,7 +206,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
 ##'
 ##'@export
 load_spar_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
@@ -222,7 +222,7 @@ load_spar_sims_filtered <- function(outcome_dir,
     dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
     pre_process(...) %>%
     collect() %>%
-    dplyr::mutate(sim_num=as.numeric(str_remove(sim_num, '\\..+$'))) 
+    dplyr::mutate(sim_num=as.numeric(str_remove(filename, '\\..+$'))) 
   
   # fnames <- spar$.data$files %>% 
   #   stringr::str_split("\\/") %>% 
@@ -276,7 +276,7 @@ load_spar_sims_filtered <- function(outcome_dir,
 ##'
 ##'@export
 load_snpi_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
@@ -294,7 +294,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
     dplyr::filter(geoid %in% incl_geoids)  %>%
     pre_process(...)%>%
     collect() %>%
-    dplyr::mutate(sim_num=as.numeric(str_remove(sim_num, '\\..+$'))) 
+    dplyr::mutate(sim_num=as.numeric(str_remove(filename, '\\..+$'))) 
   
   # fnames <- snpi$.data$files %>% 
   #   stringr::str_split("\\/") %>% 
