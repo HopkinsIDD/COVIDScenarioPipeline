@@ -2386,3 +2386,132 @@ plot_county_outcomes <- function(county_dat,
   
   return(plot_rc)
 }
+
+##' Forecast estimates compared to groundtruth and reichlab
+##'
+##' @param usa_facts df with groundtruth columns "incidI", "incidDeath" or "hosps"
+##' @param county_dat df with incident cases, hospitalizations, and deaths
+##' @param forecast_start last date of groundtruth
+##' @param scenarios vector of scenarios to include
+##' @param geodat geodata file with geoid and name columns
+##' @param reichlab df with reichlab estimates from covidHubUtils::load_latest_forecast()
+##' @param var name of variable in country_dat to plot
+##' @param truth_source label for groundtruth
+##' @param color_vals colors for scenarios and reichlab estimate
+##' @param xmin_date start date for plot
+##' @param tendency mean or median
+##' @param pi_lo lower limit to interval
+##' @param pi_hi upper limit to interval
+##'
+##' @export
+##'
+##'
+
+forecast_plot<-function(usa_facts=NULL,
+                        county_dat=res_state,
+                        forecast_start=projection_start,
+                        scenarios=forecast,
+                        reichlab=NULL,
+                        var="NincidCase",
+                        pi_lo=0.025,
+                        pi_hi=0.975,
+                        truth_source="JHU CSSE",
+                        color_vals=scn_colors,
+                        xmin_date=min_date,
+                        tendency="mean"){
+  
+  forecast_start<-as.Date(forecast_start)
+  truth_var<-if_else(str_detect(var, "ase"), "incidI",
+                     if_else(str_detect(var, "eath"), "incidDeath",
+                             if_else(str_detect(var, "osp"), "hosps", NULL)))
+  
+  county_dat<-county_dat%>%
+      filter(scenario %in% scenarios)
+  
+  if(is.null(reichlab)){
+    color_vals <- c("black", color_vals[1:length(forecast)-1])
+    scen_levels<-c(truth_source, unique(county_dat$scenario_name))
+  } else {
+    color_vals <- c("black", color_vals[1:length(forecast)-1], max(color_vals))
+    scen_levels<-c(truth_source, unique(county_dat$scenario_name), "COVID-19 Forecast Hub")
+  }
+  
+  if(is.null(usa_facts)){
+    county_dat<-county_dat%>%
+      mutate(scenario=scenario_name) %>%
+      group_by(time=lubridate::ceiling_date(time, "weeks"), sim_num, scenario) %>%
+      summarize(est=sum(!!as.symbol(var)))%>%
+      group_by(time, scenario) %>%
+      summarize(lo=quantile(est, pi_lo),
+                hi=quantile(est, pi_hi),
+                mean=mean(est),
+                median=median(est)) %>%
+      mutate(truth_var=NA_real_) %>%
+      group_by(scenario) %>%
+      filter(time!=max(time))%>%
+      rename(est=!!as.symbol(tendency))
+   
+    } else{
+
+        usa_facts<-usa_facts %>%
+          dplyr::filter(date <= forecast_start) %>%
+          group_by(time=lubridate::ceiling_date(date, "weeks")) %>%
+          summarize(truth_var=sum(!!as.symbol(truth_var))) %>%
+          filter(time!=max(time)|
+                   (as.numeric(as.Date(forecast_start)-time)==6)) %>%
+          mutate(scenario=truth_source)
+        
+         county_dat<-county_dat %>%
+           mutate(scenario=scenario_name) %>%
+           group_by(time=lubridate::ceiling_date(time, "weeks"), sim_num, scenario) %>%
+           summarize(est=sum(!!as.symbol(var))) %>%
+           group_by(time, scenario) %>%
+           summarize(lo=quantile(est, pi_lo),
+                     hi=quantile(est, pi_hi),
+                     mean=mean(est),
+                     median=median(est)) %>%
+           filter(time>=max(usa_facts$time)) %>%
+           group_by(scenario) %>%
+           filter(time!=max(time)) %>%
+           rename(est=!!as.symbol(tendency))%>%
+           bind_rows(usa_facts, .)
+        
+    }
+  
+  if(!is.null(reichlab)){
+    reichlab_var<-if_else(str_detect(var, "ase"), "case", "death")
+    
+    county_dat<-reichlab %>%
+      filter(quantile %in% c(pi_lo, 0.5, pi_hi) &
+               str_detect(target_variable, paste("inc", reichlab_var))) %>%
+    mutate(N=as.numeric(horizon),
+           quantile=case_when(quantile==0.5~"est",
+                              quantile==pi_lo~"lo",
+                              quantile==pi_hi~"hi"),
+           time=lubridate::ceiling_date(forecast_date, "weeks")+7*(N-1),
+           scenario="COVID-19 Forecast Hub") %>%
+      dplyr::select(N, time, scenario, quantile, value) %>%
+      pivot_wider(names_from=quantile, values_from=value) %>%
+      dplyr::select(time, scenario, lo, hi, est) %>%
+      bind_rows(county_dat)
+  }
+
+  
+  
+  plot_dat<-county_dat %>%
+    mutate(scenario=factor(scenario, levels=scen_levels)) %>%
+    arrange(scenario, time) %>%
+    ggplot(aes(x=time))+
+    geom_line(aes(y=truth_var, col=scenario))+
+    geom_line(aes(y=est, col=scenario), linetype="dashed")+
+    geom_point(aes(y=est, col=scenario), linetype="dashed")+
+    geom_ribbon(aes(ymin=lo, ymax=hi, fill=scenario), alpha=0.1)+
+    theme_bw()+
+    xlab("")+
+    scale_color_manual(values=color_vals)+
+    scale_fill_manual(values=color_vals)+
+    coord_cartesian(ylim = c(0, 1.5*max(county_dat$est[!is.na(county_dat$est) & county_dat$time > xmin_date])))
+  
+  return(plot_dat)
+  
+}
