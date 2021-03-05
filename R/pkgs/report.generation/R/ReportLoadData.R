@@ -746,7 +746,7 @@ load_r_sims_filtered <- function(outcome_dir,
   
 }
 
-##' Convenience function for loading daily Rt and total effectiveness estimates 
+##' Convenience function for loading daily Rt and total effectiveness estimates by geoid
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param pdeath_filter string that indicates which pdeath(s) to import from outcome_dir
@@ -754,7 +754,7 @@ load_r_sims_filtered <- function(outcome_dir,
 ##' @param mtr logical to determine if non-contiguous interventions were applied - default TRUE
 ##' @param n_periods maximum number of non-contiguous periods for any geoid/intervention
 ##' 
-##' @return a combined data frame of daily Rt and total effectiveness estimates per geoid/sim 
+##' @return a combined data frame of daily Rt and total effectiveness estimates per geoid
 ##' 
 ##'
 ##'
@@ -809,7 +809,8 @@ load_r_daily_sims_filtered <- function(outcome_dir,
       mutate(reduction=1-reduction)%>%
       summarize(reduction=prod(reduction),
                 r0=unique(r0)) %>%
-      mutate(rt=reduction*r0)
+      mutate(rt=reduction*r0,
+             reduction=1-reduction)
   }
   
   rc<-bind_rows(rc) %>%
