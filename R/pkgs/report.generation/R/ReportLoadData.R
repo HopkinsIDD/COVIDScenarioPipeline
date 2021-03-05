@@ -803,7 +803,7 @@ load_r_daily_sims_filtered <- function(outcome_dir,
     rc[[i]]<-npi %>%
       filter(geoid == incl_geoids[i])%>%
       left_join(geoiddate)%>%
-      mutate(end_date=if_else(start_date>time | end_date<time, NA_Date_, end_date))%>%
+      mutate(geoid=if_else(start_date>time | end_date<time, NA_character_, geoid))%>%
       drop_na() %>%
       group_by(geoid, sim_num, time, pdeath, scenario, location) %>%
       mutate(reduction=1-reduction)%>%
