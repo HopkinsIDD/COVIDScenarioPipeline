@@ -65,13 +65,6 @@ test_that("Simulation loading works", {
         )
     }, "object 'NA' not found")
     
-    expect_equal({
-        ncol(load_snpi_sims_filtered(
-            outcome_dir = 'a_b',
-            incl_geoids = included_geoids
-        ))
-    }, 13
-    )
     
     # expect_error({
     #     load_snpi_sims_filtered(

@@ -58,13 +58,13 @@ test_that("Simulation loading works", {
     expect_equal(
         (load_hosp_sims_filtered(
             outcome_dir = "a_b", 
-            partitions = c("location", "scenario", "pdeath", "date", "lik_type", "is_final"),
+            partitions = c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_id"),
             incl_geoids = included_geoids,
             inference=FALSE
         ))$sim_num, (
             load_hosp_sims_filtered(
             outcome_dir = "a_b", 
-            partitions = c("location", "scens", "death_rate", "date", "likelihood", "final"),
+            partitions = c("location", "scens", "death_rate", "date", "likelihood", "final", "sim_id"),
             incl_geoids = included_geoids,
             inference=FALSE
         ))$sim_num
@@ -84,22 +84,6 @@ test_that("Simulation loading works", {
     # )
     # )
     
-    expect_equal({
-        ncol(load_hosp_sims_filtered(
-            outcome_dir = 'a_b',
-            incl_geoids = included_geoids
-        ))
-    }, 18
-    )
-    
-    expect_equal({
-        ncol(load_hosp_sims_filtered(
-            outcome_dir = 'a_c',
-            incl_geoids = included_geoids,
-            inference=FALSE
-        ))
-    }, 15
-    )
     # expect_error({
     #     load_hosp_sims_filtered(
     #         outcome_dir = 'a_b',
