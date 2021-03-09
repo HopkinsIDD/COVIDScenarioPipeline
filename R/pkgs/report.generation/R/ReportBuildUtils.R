@@ -1711,6 +1711,7 @@ plot_rt_ts <- function(county_dat=NULL,
                        scenario_levels,
                        scenario_labels,
                        geodat=geodata,
+                       incl_geoids,
                        susceptible=TRUE,
                        pi_lo=0.025,
                        pi_hi=0.975,
@@ -1718,9 +1719,6 @@ plot_rt_ts <- function(county_dat=NULL,
 ){
   require(tidyverse)
   if(is.null(county_dat) & susceptible){stop("county_dat is missing")}
-  
-  incl_geoids <- geodat %>%
-    pull(geoid)
   
   geodat <- geodat %>%
     rename(pop=starts_with("pop"))
@@ -1742,7 +1740,8 @@ plot_rt_ts <- function(county_dat=NULL,
     } else {
       rc<- r_dat%>%
         dplyr::group_by(scenario, date=time) %>%
-        dplyr::mutate(weight=1/n())
+        left_join(geodat) %>%
+        dplyr::mutate(weight=pop/sum(pop))
     }
   
   rc<-rc %>%
@@ -1772,9 +1771,9 @@ plot_rt_ts <- function(county_dat=NULL,
     geom_hline(yintercept = 1, col="black", alpha=0.6) +
     scale_y_continuous(trans="log1p", breaks=c(0, 0.5, 1, 1.5, 2, 4, 8)) +
     scale_x_date(breaks="1 month", date_labels="%b")+
-    scale_color_manual("Scenario",
+    scale_color_manual("Based on",
                        values = c(scenario_colors, "red")) +
-    scale_fill_manual("Scenario",
+    scale_fill_manual("Based on",
                       values = c(scenario_colors, "red")) +
     theme_bw() +
     ylab("Effective reproduction number (Rt)")+
