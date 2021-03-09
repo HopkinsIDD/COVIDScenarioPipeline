@@ -54,29 +54,6 @@ class TestSpatialSetup:
                                 popnodes_key="population",
                                 nodenames_key="geoid")
 
-
-def test_Setup_set_filter():
-    ss = setup.SpatialSetup(setup_name=TEST_SETUP_NAME,
-                            geodata_file=f"{DATA_DIR}/geodata.csv",
-                            mobility_file=f"{DATA_DIR}/mobility.txt",
-                            popnodes_key="population",
-                            nodenames_key="geoid")
-
-    s = setup.Setup(setup_name="test_set_filter_name",
-                        spatial_setup=ss,
-                        nsim=1,
-                        npi_scenario="test_set_filter_scenario",
-                        npi_config=confuse.Configuration("test"),
-                        ti=datetime.date(2020, 1, 31),
-                        tf=datetime.date(2020, 12, 31),
-                        interactive=True,
-                        write_csv=False,
-                        dt=0.25)
-
-    # filter has bad dimensions
-    with pytest.raises(ValueError):
-        s.set_filter(np.zeros((1,1)))
-
 def test_parameters_quick_draw():
     config.set_file(f"{DATA_DIR}/parameters_only.yml")
 
@@ -87,7 +64,18 @@ def test_parameters_quick_draw():
     npi = pd.DataFrame(0.0, index=date_range,
                             columns=range(nnodes))
 
-    alpha, beta, sigma, gamma = setup.parameters_quick_draw(config, nt_inter, nnodes)
+    alpha,\
+    beta,\
+    sigma,\
+    gamma,\
+    n_parallel_compartments,\
+    susceptibility_reduction,\
+    transmissibility_reduction,\
+    n_parallel_transitions,\
+    transition_rate,\
+    transition_from,\
+    transition_to = \
+        setup.parameters_quick_draw(config, nt_inter, nnodes)
 
     assert alpha.shape == (nt_inter, nnodes)
     assert (alpha == 0.5).all()

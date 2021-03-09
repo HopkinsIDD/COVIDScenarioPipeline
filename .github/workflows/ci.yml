@@ -30,11 +30,12 @@ jobs:
         run: /home/app/python_venv/bin/python setup.py install
         shell: bash
       - name: Install local R packages
-        run: /home/app/python_venv/bin/python setup.py install
+        run: Rscript local_install.R
         shell: bash
       - name: Run pytest SEIR
         run: |
-          Rscript local_install.R
+          cd SEIR/test
+          /home/app/python_venv/bin/pytest
         shell: bash
       - name: Run pytest Outcomes
         run: |
@@ -62,7 +63,7 @@ jobs:
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
       - name: Run integration tests
-        env: 
+        env:
           CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
         run: |
           git lfs pull
@@ -70,4 +71,3 @@ jobs:
           cd test
           /home/app/python_venv/bin/pytest run_tests.py
         shell: bash
-
