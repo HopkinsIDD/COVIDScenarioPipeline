@@ -35,7 +35,7 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
   
   hosp_pre_process <- function(x) {
     x %>%
-      dplyr::select(geoid, scenario, pdeath, location, time, !!varname)
+      dplyr::select(geoid, scenario, pdeath, location, time, filename, !!varname)
   }
   ##filter to munge the data at the scenario level
   if (!is.null(incl_geoids)) {
@@ -113,7 +113,7 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
   
   hosp_pre_process <- function(x) {
     x %>%
-      dplyr::select(geoid, scenario, location, pdeath, time, sim_id, incidI, incidD, incidICU, incidH, incidVent) 
+      dplyr::select(geoid, scenario, location, pdeath, time, filename, incidI, incidD, incidICU, incidH, incidVent) 
   }
   ##filter to munge the data at the scenario level
   if (!is.null(incl_geoids)) {
@@ -638,7 +638,7 @@ load_hosp_geounit_relative_to_threshold <- function(outcome_dir,
                                       incl_geoids=incl_geoids,
                                       inference=inference,
                                       pre_process=function(x){x%>%
-                                          select(geoid, time, pdeath, scenario, ends_with("curr"))})
+                                          select(geoid, time, pdeath, scenario, filename, ends_with("curr"))})
   
   county_dat<-county_dat %>% 
     dplyr::left_join(geodat) %>%
