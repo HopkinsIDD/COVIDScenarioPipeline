@@ -10,6 +10,7 @@
 # name
 #
 # spatial_setup:
+#   us_model: <TRUE or FALSE> [Defaults to TRUE if not specified]
 #   base_path: <path to directory>
 #   geodata: <path to file>
 #   nodenames: <string>
@@ -92,6 +93,7 @@ library(magrittr)
 library(data.table)
 library(parallel)
 library(stringr)
+library(doParallel)
 
 option_list = list(
 
@@ -177,10 +179,29 @@ if (cmd == "all") {
   message(paste("Invalid cmd argument:", cmd, "did not match any of the named args in", paste( p_death, collapse = ", "), "\n"))
   quit("yes", status = 1)
 }
+is_international <- config$spatial_setup$us_model
+if(is.null(is_international)){
+  is_international <- FALSE
+}
 
 ## Running age-adjusted script
 if(run_age_adjust){
-
+  # Specified geoparams or not (data for US model is included in CSP and does not need to be specified)
+  if (is.null(config$spatial_setup$geoid_params_file)){
+    if(is_international) stop("International models require spatial_setup::geoid_params_file specified in the config")
+    config$spatial_setup$geoid_params_file <- paste(opt$p,"sample_data","geoid-params.csv",sep='/')
+  }
+  if (is.null(config$spatial_setup$geoid_len)){
+    if(is_international) stop("International models require spatial_setup::geoid_len specified in the config")
+    config$spatial_setup$geoid_len <- 5
+  }
+  
+  # Throw some warnings and errors.
+  print(paste0("Using ", config$spatial_setup$geoid_params_file, " for geounit-specific outcomes."))
+  if (!file.exists(config$spatial_setup$geoid_params_file)){
+      stop(paste0("ERROR: ", config$spatial_setup$geoid_params_file, " does not exist."))
+  }
+  
   # read in probability file
   # NOTE(jwills): this file would ideally live inside of the hospitalization package as an .Rdata object
   prob_dat <- list()

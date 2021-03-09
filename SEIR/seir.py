@@ -24,8 +24,9 @@ except ModuleNotFoundError as e:
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
+global_debug_print = True
 
-def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
+def onerun_SEIR(sim_id, s, stoch_traj_flag = True, debug_print = global_debug_print):
     scipy.random.seed()
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
@@ -36,12 +37,39 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
     p_draw = setup.parameters_quick_draw(config["seir"]["parameters"], len(s.t_inter), s.nnodes)
+
+    if(debug_print):
+        print("Parameters without interventions")
+        for parameter in p_draw:
+            try:
+                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+            except:
+                print(f"""    value {parameter}""")
+
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
-    states = steps_SEIR_nb(*parameters, y0,
-                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices, 
-                           mobility_data, s.dynfilter, stoch_traj_flag)
+    if(debug_print):
+        print("Parameters with interventions")
+        for parameter in parameters:
+            try:
+                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+            except:
+                print(f"""    value {parameter}""")
+
+    states = steps_SEIR_nb(
+        *parameters,
+        y0,
+        seeding,
+        s.dt,
+        s.t_inter,
+        s.nnodes,
+        s.popnodes,
+        mobility_geoid_indices,
+        mobility_data_indices,
+        mobility_data,
+        stoch_traj_flag
+    )
+    print(f"""FINISHED""")
 
     postprocess_and_write(sim_id, s, states, p_draw, npi, seeding)
 
@@ -51,22 +79,32 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
     # Tidyup data for  R, to save it:
     if (s.write_csv or s.write_parquet):
         # Write output to .snpi.*, .spar.*, and .seir.* files
-        a = states.copy()[:, :, ::int(1 / s.dt)]
+        a = states.copy()[:, :, :, ::int(1 / s.dt)]
+        a = np.moveaxis(a, 2, 3)
         a = np.moveaxis(a, 1, 2)
         a = np.moveaxis(a, 0, 1)
         b = np.diff(a, axis=0)
-        difI = np.zeros((s.t_span + 1, s.nnodes))
+        difI = np.zeros((s.t_span + 1, p_draw[4], s.nnodes))
         difI[1:, :] = b[:, cumI, :]
-        na = np.zeros((s.t_span + 1, ncomp + 1, s.nnodes))
+        na = np.zeros((s.t_span + 1, ncomp + 1, p_draw[4], s.nnodes))
         na[:, :-1, :] = a
         na[:, -1, :] = difI
-        m, n, r = na.shape
-        out_arr = np.column_stack((np.tile(np.arange(n),
-                                           m), na.reshape(n * m, -1)))
+        m, n, i, r = na.shape
+        # r : number of nodes
+        # i : number of vaccination states
+        # n : number of compartments
+        # m : number of times
+
+        #FIX ME: No clue if this is right or not
+        # c_index = np.tile(np.arange(n),m*i)
+        # pc_index = np.moveaxis(np.tile(np.arange(i),(m,n,1)),1,2).reshape(m*n*i)
+        c_index = np.moveaxis(np.tile(np.arange(n),(m,i,1)),1,2).reshape(m*n*i)
+        pc_index = np.tile(np.arange(i),(m,n,1)).reshape(m*n*i)
+        out_arr = np.column_stack((c_index, pc_index, na.reshape(m * n * i, -1)))
         out_df = pd.DataFrame(
             out_arr,
-            columns=['comp'] + s.spatset.nodenames,
-            index=pd.date_range(s.ti, s.tf, freq='D').repeat(ncomp + 1))
+            columns=['comp','p_comp'] + s.spatset.nodenames,
+            index=pd.date_range(s.ti, s.tf, freq='D').repeat((ncomp+1)*p_draw[4]))
         out_df['comp'].replace(S, 'S', inplace=True)
         out_df['comp'].replace(E, 'E', inplace=True)
         out_df['comp'].replace(I1, 'I1', inplace=True)
@@ -110,10 +148,10 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
               pa_df,
               file_paths.create_file_name(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "seir","parquet")
             )
-    
+
     return out_df
 
-def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
+def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True, debug_print = global_debug_print):
     if (s.write_parquet and s.write_csv):
         print("Confused between reading .csv or parquet. Assuming input file is .parquet")
     if s.write_parquet:
@@ -145,7 +183,7 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
-    
+
     p_draw = setup.parameters_load(
         file_paths.create_file_name_without_extension(
             s.in_run_id, # Not sure about this one
@@ -157,13 +195,40 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
         len(s.t_inter),
         s.nnodes
     )
-    
+
     parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
-    states = steps_SEIR_nb(*parameters, y0,
-                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices, 
-                           mobility_data, s.dynfilter, stoch_traj_flag)
+    if(debug_print):
+        print("Parameters without interventions")
+        for parameter in p_draw:
+            try:
+                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+            except:
+                print(f"""    value {parameter}""")
+
+    parameters = setup.parameters_reduce(p_draw, npi, s.dt)
+
+    if(debug_print):
+        print("Parameters with interventions")
+        for parameter in parameters:
+            try:
+                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+            except:
+                print(f"""    value {parameter}""")
+
+    states = steps_SEIR_nb(
+        *parameters,
+        y0,
+        seeding,
+        s.dt,
+        s.t_inter,
+        s.nnodes,
+        s.popnodes,
+        mobility_geoid_indices,
+        mobility_data_indices,
+        mobility_data,
+        stoch_traj_flag
+    )
 
     out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding)
 
@@ -183,4 +248,3 @@ def run_parallel(s, *, n_jobs=1):
     print(f"""
 >> {s.nsim} simulations completed in {time.monotonic()-start:.1f} seconds
 """)
-

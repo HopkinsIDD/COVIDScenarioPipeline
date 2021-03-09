@@ -7,6 +7,8 @@ test_that("get_groundtruth_from_source works", {
   usaf_cty <- get_groundtruth_from_source(source = "usafacts", scale = "US county", variables = c("Confirmed", "incidI"))
   csse_cty <- get_groundtruth_from_source(source = "csse", scale = "US county")
   csse_comp <- get_groundtruth_from_source(source = "csse", scale = "complete")
+  csse_st_all <- get_groundtruth_from_source(source = "csse", scale = "US state", incl_unass = TRUE)
+  csse_st_ctyonly <- get_groundtruth_from_source(source = "csse", scale = "US state", incl_unass = FALSE)
   fake <- get_groundtruth_from_source(source = "fakesource")
 
   expect_null(fake)
@@ -46,6 +48,10 @@ test_that("get_groundtruth_from_source works", {
   expect_false(is.infinite(max(csse_cty$Deaths)))
   expect_false(is.infinite(max(csse_comp$Confirmed)))
   expect_false(is.infinite(max(csse_comp$Deaths)))
+
+  # Including unassigned data adds more cases and deaths than not including it
+  expect_true(sum(csse_st_all$incidI) >= sum(csse_st_ctyonly$incidI))
+  expect_false(sum(csse_st_ctyonly$incidDeath) > sum(csse_st_all$incidDeath))
 
  
 })

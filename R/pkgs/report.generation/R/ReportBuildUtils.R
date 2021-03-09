@@ -309,7 +309,6 @@ plot_hist_incidHosp_state <- function(hosp_state_totals,
 }
 
 
-
 ##'
 ##' Plot map showing infections per 10K on a specific date for one scenario
 ##'
@@ -422,58 +421,6 @@ plot_geounit_map <- function(cum_inf_geounit_dates,
           axis.ticks.y = element_blank())
   return(rc)
 }   
-
-
-
-# #### This function isn't working quite right
-# ##'
-# ##' Plot modeling assumption parameter distributions
-# ##'
-# ##' @param name parameter name
-# ##' @param config config file
-# ##' @return plot of distribution of peak timing across simulations by county
-# ##'
-# ##' @export
-# ##'
-# plot_model_parameter_distributions <- function(name, config){
-#   dist_plot_config <- config$report$plot_settings$parameters_to_display
-#   local_config <- dist_plot_config[[name]]
-#   value <- config[[local_config$type]][['parameters']][[name]]
-#   if((length(value) > 1) & ("distribution" %in% names(value))){
-#     if(value$distribution == 'uniform' ){
-#       value <- runif(1e5,covidcommon::as_evaled_expression(value$low) , covidcommon::as_evaled_expression(value$high))
-#     }
-#   } else {
-#     value <- covidcommon::as_evaled_expression(value)
-#   }
-#   if('transform' %in% names(dist_plot_config[[name]]) ){
-#     if(dist_plot_config[[name]][['transform']] == 'invert'){
-#       value = 1 / value
-#     }
-#   }
-#   rval <- NaN
-#   if(local_config$distribution == "lnormal"){
-#     rval <- (rlnorm(1e5,meanlog= value[1], sdlog = value[2]))
-#   }
-#   if(local_config$distribution == "exp"){
-#     rval <- rexp(1e5,rate=value)
-#   }
-#   if(local_config$distribution == "gamma"){
-#     all_compartments <<- unique(report.generation::load_scenario_sims_filtered('mid-west-coast-AZ-NV_CaliforniaMild/',pre_process=function(x){return(x[x$time==x$time[1], ])})$comp)
-#     number_compartments <<- sum(grepl("I[[:digit:]]+",all_compartments))
-#     if(length(value)==1){
-#       value[2] <- 1/value[1]
-#     }
-#     rval <- rgamma(1e5,shape=value/number_compartments,scale=number_compartments)
-#   }
-#   if('xlim' %in% names(local_config)){
-#     plt <- plot(density(rval),main = local_config$formal_name, xlab = local_config$xlab, bty='n', xlim=as.numeric(local_config$xlim))
-#   } else {
-#     plt <- plot(density(rval),main = local_config$formal_name, xlab = local_config$xlab, bty='n')
-#   }
-#   return(plt)
-# }
-
 
 
 ##'
@@ -627,7 +574,6 @@ make_scn_state_table_withVent <- function(current_scenario,
       flextable::merge_v(j=1, part="body")
       
   }
-  
 }
 
 
@@ -875,7 +821,6 @@ plot_event_time_by_geoid <- function(hosp_county_peaks,
   return(rc)
 
 }
-
 
 
 ##'

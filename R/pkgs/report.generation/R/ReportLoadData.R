@@ -29,6 +29,10 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
                                        inference=TRUE)
 {
   warning("This function loads infection or case data from hospitalization outputs. Only one IFR scenario is needed to load these data for a given set of model outputs because infection counts will be the same across IFR scenarios.")
+
+  if (is.null(scenario_labels)) {
+    warning("You have not specified scenario labels for this function. You may encounter future errors.")
+  }
   
   display_dates <- as.Date(display_dates)
   max_date <- max(display_dates)
@@ -76,9 +80,9 @@ load_cum_inf_geounit_dates <- function(outcome_dir,
 }
 
 
-
 ##' Convenience function to load cumulative geounit hosp outcomes at a specific date for the given scenario
 ##'
+##' TODO : FIX ME
 ##' @param scn_dirs paste(config$name, config$interventions$scenarios, sep = "_") character vector of scenario directory names
 ##' @param scenario_labels config$report$formatting$scenario_labels character vector of scenario labels
 ##' @param pdeath_filter character string that filenames should match
@@ -107,6 +111,9 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
                                        inference=TRUE)
 {
   warning("This function loads infection data from hospitalization outputs. Only one IFR scenario is needed to load these data for a given set of model outputs because infection counts will be the same across IFR scenarios.")
+  if (is.null(scenario_labels)) {
+    warning("You have not specified scenario labels for this function. You may encounter future errors.")
+  }
   
   display_dates <- as.Date(display_dates)
   max_date <- max(display_dates)
@@ -120,7 +127,7 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
     hosp_post_process <- function(x) {
       x %>%
         dplyr::mutate(time=as.Date(time))%>%
-        dplyr::filter(!is.na(time) & geoid %in% incl_geoids, time <= max_date) %>%
+        dplyr::filter(!is.na(time), geoid %in% incl_geoids, time <= max_date) %>%
         dplyr::group_by(geoid, sim_num, scenario, location, pdeath) %>%
         dplyr::summarize(NincidDeath = sum(incidD),
                          NincidInf = sum(incidI),
@@ -311,8 +318,6 @@ load_hosp_county <- function(outcome_dir,
   return(rc)
   
 }
-
-
 ##' Convenience function to load the slice for each geoid where the value of an outcome exceeds a given threshold
 ##'
 ##' @param threshold A named numeric vector.  This function will pull the first time slice that meets or exceeds all thresholds
@@ -322,7 +327,6 @@ load_hosp_county <- function(outcome_dir,
 ##' @param variable character string of variable to which to compare threshold
 ##' @param end_date simulation end date character string
 ##' @param incl_geoids optional character vector of geoids that are included in the report, if not included, all geoids will be used
-##' 
 ##' @return a data frame with columns
 ##'         - scenario_name
 ##'         - sim_num
@@ -343,9 +347,17 @@ load_hosp_geounit_threshold <- function(threshold,
                                         outcome_dir, 
                                         inference=TRUE
 ){
+    if (is.null(scenario_labels)) {
+      warning("You have not specified scenario labels for this function. You may encounter future errors.")
+    }
+    # TODO : FIX VARIABLE NAMES
+    # if (!variable %in% c("incidI", "incidH",  "hosp_curr", "incidICU", "icu_curr", "incidVent", "vent_curr", "incidD")) {
+    #   warning("You have specified a variable name that may not be supported in the current output. You may encounter future errors")
+    # }
+
     if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
     catch_all_threshold <- Inf
-    if(sum(names(threshold) == "") > 0){
+    if (sum(names(threshold) == "") > 0) {
       catch_all_threshold <- threshold[names(threshold) == ""]
     }
 
@@ -392,12 +404,12 @@ load_hosp_geounit_threshold <- function(threshold,
 ##'
 ##' @param filename geodata.csv filename
 ##' @param geoid_len length of geoid character string
-##' @param geoid_pad what to pad the geoid character string with 
+##' @param geoid_pad what to pad the geoid character string with
 ##' @param to_lower whether to make all column names lowercase
 ##' @param names whether to add a name column to each geoid (US only)
 ##' 
 ##' @return a data frame with columns
-##'         - 
+##'         -
 ##' @export
 ### all of the peak times for each sim and each county so we can make a figure for when things peak
 load_geodata_file <- function(filename,
@@ -406,17 +418,20 @@ load_geodata_file <- function(filename,
                               to_lower = FALSE,
                               names = FALSE
 ) {
+  # TODO : FIX ME (either use library or remove entirely and use namespaces)
   require(tigris)
   if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
   geodata <- readr::read_csv(filename)
 
-  if(to_lower){
+  if (to_lower) {
     names(geodata) <- tolower(names(geodata))
   }
-  if(!('geoid' %in% names(geodata))){stop(paste(filename,"does not have a column named geoid"))}
+  if (!("geoid" %in% names(geodata))) {
+    stop(paste(filename, "does not have a column named geoid"))
+  }
 
-  if(geoid_len > 0){
-    geodata$geoid <- stringr::str_pad(geodata$geoid,geoid_len, pad = geoid_pad)
+  if (geoid_len > 0) {
+    geodata$geoid <- stringr::str_pad(geodata$geoid, geoid_len, pad = geoid_pad)
   }
   
   if(names) {
@@ -437,28 +452,34 @@ load_geodata_file <- function(filename,
 ##'
 ##' @param filename shapefile name
 ##' @param geoid_len length of geoid character string
-##' @param geoid_pad what to pad the geoid character string with 
+##' @param geoid_pad what to pad the geoid character string with
 ##' @param to_lower whether to make all column names lowercase
-##' 
+##'
 ##' @return a data frame with columns
-##'         - 
+##'         -
 ##' @export
 load_shape_file<- function(filename,
                            geoid_len = 0,
                            geoid_pad = "0",
                            to_lower = FALSE
 ) {
-  if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
+  if (!file.exists(filename)) {
+    stop(paste(filename, "does not exist in", getwd()))
+  }
   shp <- suppressMessages(sf::st_read(filename, quiet = TRUE))
 
-  if(to_lower){
+  if (to_lower) {
     names(shp) <- tolower(names(shp))
   }
-  if(!('geoid' %in% names(shp))){stop(paste(filename,"does not have a column named geoid"))}
-  if(geoid_len > 0){
+  if (!("geoid" %in% names(shp))) {
+    stop(paste(filename, "does not have a column named geoid"))
+  }
+  if (geoid_len > 0) {
 
-    if(is.na(geoid_pad) | nchar(geoid_pad)>1){stop(paste("Invalid geoid_pad value. Please provide a character or numeric value"))}
-    shp$geoid <- stringr::str_pad(shp$geoid,geoid_len, pad = geoid_pad)
+    if (is.na(geoid_pad) | nchar(geoid_pad) > 1) {
+      stop(paste("Invalid geoid_pad value. Please provide a character or numeric value"))
+    }
+    shp$geoid <- stringr::str_pad(shp$geoid, geoid_len, pad = geoid_pad)
   }
   return(shp)
 }
@@ -469,23 +490,23 @@ load_shape_file<- function(filename,
 ##' @param jhu_data_dir data directory
 ##' @param countries character vector of countries
 ##' @param states character vector of states (state abbreviations is US-only)
-##' 
+##'
 ##' @return a data frame with columns
 ##'         - date
 ##'         - NcumulConfirmed
 ##'         - NcumulDeathsObs
 ##'         - NincidConfirmed
 ##'         - NincidDeathsObs
-##'         
+##'
 ##' @export
 load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
                                      countries = c("US"),
                                      states) {
 
   require(magrittr)
-  
-  us_data_only = (countries == c("US"))
-  if(us_data_only) {
+
+  us_data_only <- (countries == c("US"))
+  if (us_data_only) {
     message("For US data, consider using load_usafacts_for_report() instead of load_jhu_csse_for_report().")
   }
 
@@ -501,12 +522,12 @@ load_jhu_csse_for_report <- function(jhu_data_dir = "JHU_CSSE_Data",
 
   jhu_dat <- dplyr::full_join(jhu_cases, jhu_deaths)
 
-  if(us_data_only)
-  {
-    jhu_dat <- jhu_dat %>% dplyr::mutate(Province_State=state_abb)
+  if (us_data_only) {
+    #' @importFrom magrittr %>%
+    jhu_dat <- jhu_dat %>% dplyr::mutate(Province_State = state_abb)
   }
 
-  jhu_dat <- 
+  jhu_dat <-
     jhu_dat %>%
     dplyr::mutate(date = as.Date(Update)) %>%
     dplyr::filter(Country_Region %in% countries) %>%
@@ -618,9 +639,11 @@ load_hosp_geounit_relative_to_threshold <- function(outcome_dir,
                                                     ){
   
 
-  if(sum(names(threshold) == "") > 1){stop("You provided more than one catch all threshold")}
-    catch_all_threshold <- Inf
-  if(sum(names(threshold) == "") > 0){
+  if (sum(names(threshold) == "") > 1) {
+    stop("You provided more than one catch all threshold")
+  }
+  catch_all_threshold <- Inf
+  if (sum(names(threshold) == "") > 0) {
     catch_all_threshold <- threshold[names(threshold) == ""]
   }  
   if(length(pdeath_filter) > 1) {stop("You provided more than one pdeath value")}
@@ -671,7 +694,7 @@ load_hosp_geounit_relative_to_threshold <- function(outcome_dir,
   county_dat %>%
     dplyr::left_join(data.frame(geoid = names(threshold), threshold_value = threshold), by = c("geoid")) %>%
     dplyr::rename(pltVar = !!variable) %>%
-    dplyr::mutate(prop_needed = pltVar/threshold_value) %>%
+    dplyr::mutate(prop_needed = pltVar / threshold_value) %>%
     dplyr::mutate(log_prop_needed = log(prop_needed)) %>%
     dplyr::mutate(log_prop_needed = ifelse(pltVar == 0, 
                                            floor(min(log_prop_needed[which(is.finite(log_prop_needed))])),

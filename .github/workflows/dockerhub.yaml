@@ -17,6 +17,7 @@ on:
       - 'R/pkgs/**'
       - '.Rprofile'
       - 'packrat/**'
+      - '.github/workflows/dockerhub*'
 
 name: Deploy to DockerHub
 
@@ -29,6 +30,19 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    -
+      name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+    -
+      name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        Username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
     - name: Generate Tags
       id: tags
       env:
@@ -39,38 +53,35 @@ jobs:
         echo "::set-output name=reftag::${IMAGE_TAG_REF##*/}-r$IMAGE_TAG_RUN"
 
     - name: Build Push Master
-      uses: docker/build-push-action@v1
+      uses: docker/build-push-action@v2
       if: contains( github.ref, 'master') || contains( github.base_ref, 'master' )
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: hopkinsidd/covidscenariopipeline
-        tags: latest,latest-master,${{steps.tags.outputs.shashort}},${{steps.tags.outputs.reftag}},${{ github.sha }}
+        push: true
+        tags: |
+          hopkinsidd/covidscenariopipeline:latest
+          hopkinsidd/covidscenariopipeline:latest-master
+          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.shashort}}
+          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.reftag}}
+          hopkinsidd/covidscenariopipeline:${{ github.sha }}
 
     - name: Build Push Dev
-      uses: docker/build-push-action@v1
+      uses: docker/build-push-action@v2
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: hopkinsidd/covidscenariopipeline
-        tags: latest-dev,${{steps.tags.outputs.shashort}},${{steps.tags.outputs.reftag}},${{ github.sha }}
+        push: true
+        tags: |
+          hopkinsidd/covidscenariopipeline:latest-dev
+          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.shashort}}
+          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.reftag}}
+          hopkinsidd/covidscenariopipeline:${{ github.sha }}
       if: contains( github.ref , 'dev') || contains( github.base_ref, 'dev' )
 
-
-    - name: Build Push Dataseed
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: hopkinsidd/covidscenariopipeline
-        tags: latest-dataseed,${{steps.tags.outputs.shashort}},${{steps.tags.outputs.reftag}},${{ github.sha }}
-      if: contains( github.ref , 'dataseed') || contains( github.base_ref, 'dataseed' )
-
     - name: Build Push Inference
-      uses: docker/build-push-action@v1
+      uses: docker/build-push-action@v2
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: hopkinsidd/covidscenariopipeline
-        tags: latest-inference,${{steps.tags.outputs.shashort}},${{steps.tags.outputs.reftag}},${{ github.sha }}
+        push: true
+        tags: |
+          hopkinsidd/covidscenariopipeline:latest-inference
+          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.shashort}}
+          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.reftag}}
+          hopkinsidd/covidscenariopipeline:${{ github.sha }}
       if: contains( github.ref , 'inference') || contains( github.base_ref, 'inference' )
