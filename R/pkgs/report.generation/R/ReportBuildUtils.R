@@ -1899,21 +1899,17 @@ plot_scn_outcomes_ratio<-function(hosp_state_totals,
 
 ##'
 ##' Function makes a summary table for each county
-##'
-##' @param current_scenario scenario to summarize
+##' 
 ##' @param county_dat contains the relevant hospital data
 ##' @param start_date summarization period start
 ##' @param end_date summarization period end
 ##' @param pi_low low side of the prediction interval
 ##' @param pi_high high side of the prediction interval
 ##' @param pdeath_filter if summarizing results for one pdeath only; leave NA to show all 
-##' @param pdeath_labels to label pdeath
-##' @param pdeath_levels to order pdeaths
 ##' 
 ##' @export
 ##'
-make_scn_county_table_withVent <- function(current_scenario,
-                                           county_dat, 
+make_scn_county_table_withVent <- function(county_dat, 
                                            pi_lo = 0.025, 
                                            pi_hi = 0.975, 
                                            geodat=geodata,
@@ -1933,9 +1929,9 @@ make_scn_county_table_withVent <- function(current_scenario,
     dplyr::mutate(name=factor(name, levels=sort(geodat$name)))
   
   county_tab <- county_dat %>% 
-    dplyr::filter(!is.na(time) & scenario==current_scenario) %>% 
+    dplyr::filter(!is.na(time)) %>% 
     dplyr::filter(time >= start_date, time <= end_date) %>% 
-    dplyr::group_by(pdeath, sim_num, name) %>%
+    dplyr::group_by(pdeath, sim_num, name, scenario_name) %>%
     dplyr::summarize(TotalIncidCase = sum(NincidCase, na.rm = TRUE),
                      TotalIncidHosp = sum(NincidHosp, na.rm = TRUE),
                      TotalIncidICU = sum(NincidICU, na.rm = TRUE),
@@ -1950,7 +1946,7 @@ make_scn_county_table_withVent <- function(current_scenario,
                      maxICUCap = max(NICUCurr, na.rm=TRUE),
                      maxVentCap = max(NVentCurr, na.rm=TRUE)) %>%
     dplyr::ungroup() %>%
-    dplyr::group_by(pdeath, name) %>% 
+    dplyr::group_by(pdeath, name, scenario_name) %>% 
     dplyr::summarize(nIncidCase_final = mean(TotalIncidCase),
                     nIncidCase_lo = quantile(TotalIncidCase, pi_lo),
                     nIncidCase_hi = quantile(TotalIncidCase, pi_hi),
@@ -2036,45 +2032,17 @@ make_scn_county_table_withVent <- function(current_scenario,
     unite("VentPeakAdmin", pIncidVent:pIncidVent_CI, sep="\n")
   
   county_tab <- county_tab[order(colnames(county_tab))] %>%
-    dplyr::select(name, pdeath, starts_with("Case"), starts_with("Hosp"), starts_with("ICU"), starts_with("Vent"), starts_with("Death"))
+    dplyr::select(name, scenario_name, pdeath, starts_with("Case"), starts_with("Hosp"), starts_with("ICU"), starts_with("Vent"), starts_with("Death"))
   
   if(!is.na(pdeath_filter)){
-    newnames <- c(NA_character_, "Daily average","Total", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Daily average", "Total")
+    newnames <- c(NA_character_, NA_character_, "Daily average","Total", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Daily average", "Total")
     
     county_tab %>%
       dplyr::arrange(name) %>%
       dplyr::filter(pdeath == pdeath_filter) %>%
       dplyr::select(-pdeath) %>%
       flextable::flextable() %>%
-      flextable::set_header_labels(name = "County", CaseAvg = "CONFIRMED CASES", CaseIncid = "CONFIRMED CASES", HospIncid = "HOSPITALIZATIONS", # pdeath= "IFR", 
-                                   HospPeakAdmin = "HOSPITALIZATIONS", HospPeakMax = "HOSPITALIZATIONS", ICUIncid = "ICU", 
-                                   ICUPeakAdmin = "ICU", ICUPeakMax = "ICU", VentIncid = "VENTILATIONS", VentPeakAdmin = "VENTILATIONS",
-                                   VentPeakMax = "VENTILATIONS", DeathAvg = "DEATHS", DeathIncid = "DEATHS") %>%
-      flextable::merge_at(i = 1, j = 2:3, part = "header") %>%
-      flextable::merge_at(i = 1, j = 4:6, part = "header") %>%
-      flextable::merge_at(i = 1, j = 7:9, part = "header") %>%
-      flextable::merge_at(i = 1, j = 10:12, part = "header") %>%
-      flextable::merge_at(i = 1, j = 13:14, part = "header") %>%
-      flextable::add_header_row(values = c(newnames), top = FALSE) %>%
-      #flextable::merge_v(j = 1) %>%
-      flextable::autofit() %>%
-      #flextable::border(i=seq(3, 174, by = 3), border.bottom=officer::fp_border(color="black")) %>%
-      flextable::border(j=c(1,3,6,9,12), border.right = officer::fp_border(color="grey", style = "solid", width=0.5)) %>%
-      flextable::align(align="center", part = "all") %>%
-      flextable::bold(part="header")%>%
-      flextable::bold(j=1, part="body")
-  } else {
-    newnames <- c(NA_character_,NA_character_,"Daily average", "Total", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily
-                peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Daily average", "Total")
-    
-    county_tab %>%
-      dplyr::mutate(pdeath = factor(pdeath, 
-                             levels=pdeath_levels,
-                             labels=pdeath_labels)) %>%
-      dplyr::arrange(name, desc(pdeath)) %>%
-      flextable::flextable() %>%
-      flextable::set_header_labels(name = "County", pdeath = "IFR", CaseAvg = "CONFIRMED CASES", 
-                                   CaseIncid = "CONFIRMED CASES", HospIncid = "HOSPITALIZATIONS", 
+      flextable::set_header_labels(name = "County", scenario_name = "Scenario", CaseAvg = "CONFIRMED CASES", CaseIncid = "CONFIRMED CASES", HospIncid = "HOSPITALIZATIONS", # pdeath= "IFR", 
                                    HospPeakAdmin = "HOSPITALIZATIONS", HospPeakMax = "HOSPITALIZATIONS", ICUIncid = "ICU", 
                                    ICUPeakAdmin = "ICU", ICUPeakMax = "ICU", VentIncid = "VENTILATIONS", VentPeakAdmin = "VENTILATIONS",
                                    VentPeakMax = "VENTILATIONS", DeathAvg = "DEATHS", DeathIncid = "DEATHS") %>%
@@ -2084,13 +2052,41 @@ make_scn_county_table_withVent <- function(current_scenario,
       flextable::merge_at(i = 1, j = 11:13, part = "header") %>%
       flextable::merge_at(i = 1, j = 14:15, part = "header") %>%
       flextable::add_header_row(values = c(newnames), top = FALSE) %>%
-      flextable::merge_v(j = 1) %>%
+      #flextable::merge_v(j = 1) %>%
       flextable::autofit() %>%
-      flextable::border(i=seq(3, 174, by = 3), border.bottom=officer::fp_border(color="grey", width=0.5)) %>%
-      flextable::border(j=c(2,4,7,10,13), border.right = officer::fp_border(color="grey", style = "solid", width=0.5)) %>%
+      #flextable::border(i=seq(3, 174, by = 3), border.bottom=officer::fp_border(color="black")) %>%
+      flextable::border(j=c(1,2,4,7,10,13,15), border.right = officer::fp_border(color="grey", style = "solid", width=0.5)) %>%
       flextable::align(align="center", part = "all") %>%
       flextable::bold(part="header")%>%
-      flextable::bold(j=c(1,2), part="body")
+      flextable::bold(j=1, part="body")
+  } else {
+    newnames <- c(NA_character_,NA_character_, NA_character_,"Daily average", "Total", "Total", "Daily peak admissions", "Daily peak capacity", "Total", "Daily
+                peak admissions", "Daily peak capacity", "Total", "Daily peak admissions", "Daily peak capacity", "Daily average", "Total")
+    
+    county_tab %>%
+      dplyr::mutate(pdeath = factor(pdeath, 
+                             levels=pdeath_levels,
+                             labels=pdeath_labels)) %>%
+      dplyr::arrange(name, desc(pdeath)) %>%
+      flextable::flextable() %>%
+      flextable::set_header_labels(name = "County", scenario_name="Scenario", pdeath = "IFR", CaseAvg = "CONFIRMED CASES", 
+                                   CaseIncid = "CONFIRMED CASES", HospIncid = "HOSPITALIZATIONS", 
+                                   HospPeakAdmin = "HOSPITALIZATIONS", HospPeakMax = "HOSPITALIZATIONS", ICUIncid = "ICU", 
+                                   ICUPeakAdmin = "ICU", ICUPeakMax = "ICU", VentIncid = "VENTILATIONS", VentPeakAdmin = "VENTILATIONS",
+                                   VentPeakMax = "VENTILATIONS", DeathAvg = "DEATHS", DeathIncid = "DEATHS") %>%
+      flextable::merge_at(i = 1, j = 4:5, part = "header") %>%
+      flextable::merge_at(i = 1, j = 6:8, part = "header") %>%
+      flextable::merge_at(i = 1, j = 9:11, part = "header") %>%
+      flextable::merge_at(i = 1, j = 12:14, part = "header") %>%
+      flextable::merge_at(i = 1, j = 15:16, part = "header") %>%
+      flextable::add_header_row(values = c(newnames), top = FALSE) %>%
+      #flextable::merge_v(j = 1) %>%
+      flextable::autofit() %>%
+      #flextable::border(i=seq(3, 174, by = 3), border.bottom=officer::fp_border(color="grey", width=0.5)) %>%
+      flextable::border(j=c(1,2,3,5,8,11,14,16), border.right = officer::fp_border(color="grey", style = "solid", width=0.5)) %>%
+      flextable::align(align="center", part = "all") %>%
+      flextable::bold(part="header")%>%
+      flextable::bold(j=c(1,2,3), part="body")
   }
   
 }
