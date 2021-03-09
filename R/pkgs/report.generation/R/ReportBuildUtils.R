@@ -2420,6 +2420,7 @@ forecast_plot<-function(usa_facts=NULL,
                         xmin_date=min_date,
                         tendency="mean"){
   
+  if(!any(scenarios %in% unique(county_dat$scenario))){stop("None of the specified scenarios exist in county_dat.")}
   forecast_start<-as.Date(forecast_start)
   truth_var<-if_else(str_detect(var, "ase"), "incidI",
                      if_else(str_detect(var, "eath"), "incidDeath",
@@ -2429,10 +2430,10 @@ forecast_plot<-function(usa_facts=NULL,
       filter(scenario %in% scenarios)
   
   if(is.null(reichlab)){
-    color_vals <- c("black", color_vals[1:length(forecast)-1])
+    color_vals <- c("black", color_vals[1:length(forecast)])
     scen_levels<-c(truth_source, unique(county_dat$scenario_name))
   } else {
-    color_vals <- c("black", color_vals[1:length(forecast)-1], max(color_vals))
+    color_vals <- c("black", color_vals[1:length(forecast)], max(color_vals))
     scen_levels<-c(truth_source, unique(county_dat$scenario_name), "COVID-19 Forecast Hub")
   }
   
@@ -2496,6 +2497,16 @@ forecast_plot<-function(usa_facts=NULL,
       bind_rows(county_dat)
   }
 
+  if(is.null(usa_facts)){
+    ymax <- max(
+      county_dat %>% filter(time > xmin_date) %>% filter(est==max(est)) %>% pull(est) %>% unique()
+    )
+  } else {
+    ymax <- max(
+      usa_facts %>% filter(time > xmin_date) %>% filter(truth_var==max(truth_var)) %>% pull(truth_var) %>% unique(),
+      county_dat %>% filter(time > xmin_date) %>% filter(est==max(est)) %>% pull(est) %>% unique()
+    )
+  }
   
   
   plot_dat<-county_dat %>%
@@ -2510,7 +2521,7 @@ forecast_plot<-function(usa_facts=NULL,
     xlab("")+
     scale_color_manual(values=color_vals)+
     scale_fill_manual(values=color_vals)+
-    coord_cartesian(ylim = c(0, 1.5*max(county_dat$est[!is.na(county_dat$est) & county_dat$time > xmin_date])))
+    coord_cartesian(ylim = c(0, 1.2*ymax))
   
   return(plot_dat)
   
