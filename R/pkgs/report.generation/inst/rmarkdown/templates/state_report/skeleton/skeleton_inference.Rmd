@@ -15,6 +15,8 @@ params:
   pdeath_default: "high"
   pdeath_default_label: "1% IFR"
   projection_start: "YYYY/MM/DD" # Initial date of projetion, the system's date is used if none is specified 
+  npi_label: "[NONE]"  # OPTIONAL: should match number of intervention categories (see npi_names). Example: ["Baseline", "School Lockdown", "Lockdown", "Post Lockdown"]
+  npi_trimmer: "[[A-Z]].+\\_" #used by str_remove to group the same types of interventions when intervention periods vary by geoid (i.e. if there are affected geoids in config$interventions$settings). Ignore if intervention periods do not vary by geoid.
 ---
 
 Prepared by [Johns Hopkins ID Dynamics](https://iddynamics.jhsph.edu/) Working Group  
@@ -38,6 +40,15 @@ knitr::opts_knit$set(eval.after = 'fig.cap') ##Allows us to set a variable to fi
 
 options(scipen=999)
 
+install_packages <- c("egg", "gt")
+
+lapply(install_packages, 
+       FUN = function(x){
+         if(!require(x, character.only = TRUE)) {
+           install.packages(x, dependencies = TRUE) 
+           }
+         }
+       )
 #Preamble
 library(tidyverse)
 library(covidcommon)
@@ -45,18 +56,20 @@ library(report.generation)
 library(covidImportation)
 library(doParallel)
 library(cowplot)
-library(egg)
-# library(gt)
+ library(egg)
+ library(gt)
 library(purrr)
 
 
-if (params$state_usps=="[STATE USPS]") {stop("Must define a target state by USPS code.")}
+#if (params$state_usps=="[STATE USPS]") {stop("Must define a target state by USPS code.")}
 
 ```
 
 ```{r  load_config}
 runs_dir<-params$runs_dir
 reportStateUSPS <- params$state_usps 
+npi_trimmer<-params$npi_trimmer
+npi_label<-ifelse(params$npi_label=="[NONE]", NA, params$npi_label)
 projection_start <- ifelse(params$projection_start=="YYYY/MM/DD", as.character(Sys.Date()), params$projection_start)
 pdeath_default<-params$pdeath_default
 pdeath_default_label<-params$pdeath_default_label
@@ -66,8 +79,7 @@ config <- covidcommon:::load_config(params$config_file)
 geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
                              geoid_len=5,
                              names = TRUE) %>%
-  rename(pop=starts_with("pop")) 
-
+  rename(pop=starts_with("pop"))
 included_geoids <- (geodata %>% filter(USPS==reportStateUSPS))$geoid
 
 ```
@@ -91,13 +103,15 @@ infect_period <- c(1/(eval(parse(text=config$seir$parameters$gamma$high))),
                    1/(eval(parse(text=config$seir$parameters$gamma$low))))
 R0_range <- c(config$seir$parameters$R0s$low, config$seir$parameters$R0s$high)
 modeled_states <- state.abb[which(state.abb %in% config$spatial_setup$modeled_states)]
-case_report_rate<-config$outcomes$settings[[1]]$incidC$probability$value$mean
 
 display_dates<-config$report$formatting$display_dates
 scn_colors<-config$report$formatting$scenario_colors
 scn_labels <- config$report$formatting$scenario_labels
 scn_levels<- config$interventions$scenarios
 
+npi_names<- names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="value"))]) %>%
+  str_remove(npi_trimmer) %>%
+  unique() # NOTE: this assumes all interventions have inference, if the projections for some geoids do NOT have inference, then you will need to modify the input to the Rt/effectiveness plots
 ```
 
 We compared `r nscenarios` intervention scenarios for model simulations from `r print_pretty_date(sim_start_date)` through `r print_pretty_date(sim_end_date)`:
@@ -126,8 +140,7 @@ tab_counter <- 1
 res_state <- load_hosp_county(runs_dir, 
                               scenario_levels = scn_levels,
                               scenario_labels = scn_labels,
-                              incl_geoids = included_geoids, 
-                              inference=FALSE)
+                              incl_geoids = included_geoids)
 
 ```
 
@@ -136,8 +149,7 @@ res_state <- load_hosp_county(runs_dir,
 state_hosp_totals<-load_hosp_geocombined_totals(runs_dir, 
                                                 scenario_levels = scn_levels, 
                                                 scenario_labels = scn_labels,
-                                                incl_geoids = included_geoids,
-                                                inference=FALSE)
+                                                incl_geoids = included_geoids)
 
 ```
 
@@ -148,8 +160,7 @@ cum_inf_dates <- load_cum_inf_geounit_dates(outcome_dir=runs_dir,
                                             scenario_levels=scn_levels,
                                             scenario_labels=scn_labels,
                                             incl_geoids=included_geoids,
-                                            pdeath_filter=pdeath_default,
-                                            inference=FALSE)
+                                            pdeath_filter=pdeath_default)
 
 
 ```
@@ -158,6 +169,12 @@ cum_inf_dates <- load_cum_inf_geounit_dates(outcome_dir=runs_dir,
 ## load case data 
 usaf_dat <- load_USAFacts_for_report(incl_geoids = included_geoids,
                                      aggregate=FALSE)
+```
+
+```{r load_r}
+inference_r <-load_r_sims_filtered(outcome_dir=runs_dir,
+                                   incl_geoids = included_geoids)
+
 ```
 
 ## Key Findings 
@@ -169,21 +186,37 @@ compare_plts<-plot_model_vs_obs(jhu_obs_dat=usaf_dat,
                                 sim_end_date=sim_end_date,
                                 pdeath_filter=pdeath_default,
                                 week=TRUE, #aggregate to week? 
-                                hosp=FALSE #is there a colname "currhosp" in jhu_obs_dat?
-                                ) 
+                                hosp=FALSE) #is there hosp data with colname "currhosp"?
 
 compare_plts[[1]] <- compare_plts[[1]] + ylab("Weekly Incident Cases")
 compare_plts[[2]] <- compare_plts[[2]] + ylab("Weekly Incident Deaths")
 
 ggpubr::ggarrange(plotlist=compare_plts, ncol=1)
 
-cap<- paste0("**Fig. ", fig_counter, "** Calibration of estimated incident cases and deaths to reported data from USA Facts. Here, modeled cases are calculated as a percent of modeled infection that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for each scenario at ",pdeath_default_label," assumptions. We assumed a reporting rate of ",case_report_rate*100,"% to estimate cases. Note that USA Facts data were reported as daily cumulative cases and deaths. In this figure, daily cumulative case and death counts were differenced and then aggregated by week. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")
+cap<- paste0("**Fig. ", fig_counter, "** Calibration of estimated incident cases and deaths to reported data from USA Facts. Here, modeled cases are calculated as a percent of modeled infection that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for each scenario at ",pdeath_default_label," assumptions. Note that USA Facts data were reported as daily cumulative cases and deaths. In this figure, daily cumulative case and death counts were differenced and then aggregated by week. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")
 
      fig_counter<-fig_counter+1
 ``` 
 
+```{r Rt, fig.cap=cap, fig.height=6, fig.width=10}
+
+plot_rt_ts(county_dat=res_state, 
+           truth_dat = usaf_dat,
+           r_dat = inference_r,
+           scenario_colors=scn_colors, 
+           scenario_labels=scn_labels,
+           scenario_levels=scn_levels,
+           start_date = sim_start_date,
+           end_date = sim_end_date,
+           included_geoids = included_geoids)
+
+cap<-paste0("**Fig. ", fig_counter, "** The effective reproduction number (Rt) and 95% intervals over time based on model outputs and cases as reported in USA Facts. The model Rt estimates reflect the population-adjusted average effectiveness of intervention periods and the decreasing pool of susceptibles from the cumulative number of infections across counties at ", pdeath_default_label, " assumptions. We assume that infection provides complete immunity. Rt estimates for reported cases were calculated with the R0 package.")
+
+fig_counter<-fig_counter+1
+
+```
+
 ```{r, include=FALSE}
-# Must have at least two scenarios
 n_periods <- length(display_dates) - 1
 
 plot_comparison <- list()
@@ -250,7 +283,7 @@ legend<-get_legend(plot_comparison[[1]]+theme(legend.position="bottom",
 
 plot_grid(plot_time, legend, nrow=2, rel_heights = c(1,0.1))
 
-cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the ',scn_labels[1] ,' scenario with 95% prediction intervals. Estimates are shown across ', n_periods,' time periods at ',pdeath_default_label,' assumptions and assumed ',case_report_rate*100,'% of infections are reported as cases.')
+cap<-paste0("**Fig. ", fig_counter, '** The mean ratio of summarized outcomes in each scenario relative to the ',scn_labels[1] ,' scenario with 95% prediction intervals. Estimates are shown across ', n_periods,' time periods at ',pdeath_default_label,' assumptions.')
 
 fig_counter<-fig_counter+1
 ```
@@ -348,8 +381,7 @@ fig_counter <- fig_counter+1
 #                                                                 variable = "NICUCurr",
 #                                                                 end_date = sim_end_date,
 #                                                                 incl_geoids = included_geoids,
-#                                                                 pdeath_filter=pdeath_default,
-#                                                                 inference=FALSE)
+#                                                                 pdeath_filter=pdeath_default)
 # 
 # 
 # hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(outcome_dir=runs_dir,
@@ -358,8 +390,7 @@ fig_counter <- fig_counter+1
 #                                                                  scenario_levels=scn_levels,
 #                                                                  scenario_labels =scn_labels,
 #                                                                  end_date = sim_end_date,
-#                                                                  pdeath_filter=pdeath_default,
-#                                                                  inference=FALSE)
+#                                                                  pdeath_filter=pdeath_default)
 ```
 
 ```{r plot_hosp_threshold_comp, fig.cap = cap, fig.height = 9}
@@ -447,15 +478,14 @@ fig_counter <- fig_counter+1
 [UNCOMMENT THIS IF THE BEDDATA EXISTS]
 
 ```{r threshold}
-# thresholddat<-load_hosp_geounit_threshold(threshold=beddata_icu,
-#                                           variable="NICUCurr",
+# thresholddat<-load_hosp_geounit_threshold(threshold=beddata_icu, 
+#                                           variable="NICUCurr", 
 #                                           end_date=sim_end_date,
-#                                           pdeath_filter=pdeath_default,
-#                                           incl_geoids=included_geoids,
+#                                           pdeath_filter=pdeath_default, 
+#                                           incl_geoids=included_geoids, 
 #                                           outcome_dir=runs_dir,
 #                                           scenario_labels = scn_labels,
-#                                           scenario_levels = scn_levels,
-#                                           inference=FALSE)
+#                                           scenario_levels = scn_levels)
 
 ```
 
@@ -522,7 +552,7 @@ Our model and report make the following key assumptions:
 ```
 
 ```{r, child=reference_chunk("poisson_seeding.Rmd")}
-``` 
+``` -->
 
 #### SEIR Model
 

@@ -5,8 +5,8 @@ output:
     theme: journal
     fig_caption: true
 params: 
-  config_file: config_inference_ca_counties_high_report.yml # add sanity: with run ("country" or "state"), country (e.g. "US"),  state (if run=="state"), and inference (T/F)
-  runs_folder: runs_sample # folder name with output folders hosp, hpar, snpi, spar
+  config_file: config_inference_ca_counties_med_forecast.yml # add sanity: with run ("country" or "state"), country (e.g. "US"),  state (if run=="state"), and inference (T/F)
+  runs_folder: runs_20200817 # folder name with output folders hosp, hpar, snpi, spar
   pi_lo: 0.05
   pi_hi: 0.95
   hosp_eval: FALSE # do we want to compare with hospitalization data? currently only enabled for CA 
@@ -52,7 +52,7 @@ geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$sp
 # Config must have (alternatively could pull from other sections of config/set params)
 #     run: country or state
 #     country: US (other not yet suppported)
-#     death_rate_levels: ['high', 'med', 'low'] 
+#     pdeath_levels: ['high', 'med', 'low'] 
 #     state: CA     (if run==country)   
 #     npi_trimmer:"[[A-Z]]+\\_"       pattern for str_remove to trim intervention names down to common groups. ONLY IF INTERVENTIONS VARY BY GEOID OVER TIME 
 #     Config may have:
@@ -61,9 +61,10 @@ geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$sp
 
 run <- as.character(config$sanity$run) # either state, states/region or country
 country<-config$sanity$country
-death_rate_levels <- config$sanity$death_rate_levels
+pdeath_levels <- config$sanity$pdeath_levels
 infer <- exists("filtering", where = config) ## is there inference in the runs?
 npi_trimmer<- config$sanity$npi_trimmer
+current_scn <- config$interventions$scenarios[1]
 
 if(is.null(config$sanity$fit_date)){
   fit_date<-lubridate::ymd(Sys.Date()-1)
@@ -90,7 +91,7 @@ npi_label <- NA
 geo_names <- tigris::fips_codes %>%
   filter(state %in% {if(run=="state") config$sanity$state else(c(config$spatial_setup$modeled_states))})%>%
   unite(col="geoid", ends_with("_code"), sep="") %>%
-  select(geoid, name=county, USPS=state) %>%
+  dplyr::select(geoid, name=county, USPS=state) %>%
   mutate(name=str_remove(name, " County"),
          geoid=case_when(str_detect(geoid, "^72") ~ "72000",
                          str_detect(geoid, "^66") ~ "66000",
@@ -99,6 +100,8 @@ geo_names <- tigris::fips_codes %>%
                          TRUE ~ geoid)) %>%
   {if(run=="country") distinct(.,geoid, USPS) else(.)}%>%
   filter(geoid %in% geodata$geoid) 
+
+included_geoids <- geo_names$geoid 
 
 geo_names <- geo_names %>%
   {if(run=="state")
@@ -121,7 +124,7 @@ seir <- config$seir$parameters
 
 seir <- tibble(value = unlist(seir), names = names(unlist(seir))) %>%
     separate(names, into = c("names", "val"), sep = "\\.") %>%
-    select(names, val, value) %>%
+    dplyr::select(names, val, value) %>%
     unite(value, val:value, sep=": ", na.rm=TRUE) %>%
     group_by(names) %>%
     summarise_all(funs(paste0(.,collapse='\n'))) %>%
@@ -129,7 +132,7 @@ seir <- tibble(value = unlist(seir), names = names(unlist(seir))) %>%
     mutate(section= "SEIR") 
 
 seir%>%
-    select(Section = section, Parameters = names, Value = value) %>%
+    dplyr::select(Section = section, Parameters = names, Value = value) %>%
     flextable::flextable() %>%
     flextable::merge_v(j="Section") %>%
     flextable::autofit() %>%
@@ -143,29 +146,30 @@ tab_counter <- tab_counter+1
 
 ```{r}
 
-hpar<- arrow::open_dataset(paste0(params$runs_folder,"/hpar/"), 
-                               partitioning = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")) %>%
-  select(geoid, outcome, value, death_rate) %>%
-  collect() 
+hpar<- load_hpar_sims_filtered(params$runs_folder,
+                               incl_geoids = included_geoids) 
+
+hpar<-hpar%>%
+  filter(scenario == unique(hpar$scenario)[1])
 
 hpar%>%
   {if(run=="state") right_join(.,geo_names)
     else(left_join(.,geo_names))} %>%
   # {if(run=="state") filter(., geoid %in% geo_names$geoid) 
   #   else(filter(., USPS %in% geo_names$USPS))} %>%
-    mutate(death_rate=factor(death_rate, levels=death_rate_levels))%>%
-    group_by(outcome, death_rate)%>%
+    mutate(pdeath=factor(pdeath, levels=pdeath_levels))%>%
+    group_by(outcome, pdeath)%>%
     summarize(value_lo=quantile(value,params$pi_lo, na.rm=TRUE),
               value_hi=quantile(value,params$pi_hi, na.rm=TRUE),
               value=mean(value, na.rm=TRUE)) %>%
-    select(outcome, death_rate, value, value_lo, value_hi) %>%
+    dplyr::select(outcome, pdeath, value, value_lo, value_hi) %>%
     mutate_if(is.numeric, function(x) round(x*100,2))%>%
     mutate(value_hi=str_replace(value_hi, '$', '\\)'),
            value_lo=str_replace(value_lo, '^', '\\(')) %>%
     unite(col=ci, value_lo:value_hi, sep="-") %>%
     flextable::flextable()%>%
     flextable::autofit()%>%
-    flextable::set_header_labels(outcome="Outcome", death_rate="IFR", value="Probability", ci=paste0((params$pi_hi-params$pi_lo)*100, "% PI")) %>%
+    flextable::set_header_labels(outcome="Outcome", pdeath="IFR", value="Probability", ci=paste0((params$pi_hi-params$pi_lo)*100, "% PI")) %>%
     flextable::merge_v(j=1) %>%
     flextable::theme_vanilla()
 ```
@@ -175,17 +179,17 @@ hpar%>%
 hpar%>%
   {if(run=="state") right_join(.,geo_names)
     else(left_join(.,geo_names))} %>%
-    group_by(outcome, death_rate, !!as.symbol(geogroup))%>%
+    group_by(outcome, pdeath, !!as.symbol(geogroup))%>%
     summarize(value_lo=quantile(value,params$pi_lo),
               value_hi=quantile(value,params$pi_hi),
               value=mean(value)) %>%
     {if(run=="state") left_join(., geo_names)
         else(rename(., name=USPS))} %>%
-    mutate(death_rate=factor(death_rate, levels=death_rate_levels)) %>%
+    mutate(pdeath=factor(pdeath, levels=pdeath_levels)) %>%
     ggplot(aes(x=value, y=name, col=outcome)) +
     geom_point(position=position_dodge(0.75))+
     geom_linerange(aes(xmin=value_lo, xmax=value_hi), position=position_dodge(0.75),alpha=0.6)+
-    facet_wrap(~death_rate)+
+    facet_wrap(~pdeath)+
     theme_bw()+
     scale_x_sqrt() +
   theme(strip.text=element_text(face="bold", size=10))+
@@ -198,44 +202,23 @@ fig_counter<-fig_counter+1
   
 ```{r r_load, eval=infer}
 #if run==country, then state_r0 is equivalent country_r0 and county_r0 is equivalent to state_r0
-inference_r <- arrow::open_dataset(paste0(params$runs_folder,"/spar/"), 
-                    partitioning = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")) %>%
-    collect() %>%             
-    filter(parameter=="R0") %>%
-    group_by(scenario)%>%
-    mutate(sim_num = order(sim_id),
-           parameter="r0") %>%
-    rename(state_r0 = value) %>%
-    select(sim_num, scenario, death_rate, state_r0, parameter)
-
-snpi<- arrow::open_dataset(paste0(params$runs_folder,"/snpi/"), 
-                                   partitioning = c("location", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")) %>%
-   collect() %>%
-   left_join(geo_names)%>% 
-   group_by(geoid, npi_name, scenario)%>%
-   mutate(sim_num = order(sim_id)) %>%
-   group_by(sim_num, scenario, !!as.symbol(geogroup), npi_name, 
-            parameter, start_date, end_date, death_rate) %>%
-   summarize(reduction=mean(reduction))
+inference_r <- load_r_sims_filtered(params$runs_folder, 
+                                    incl_geoids=included_geoids,
+                                    npi_trimmer = npi_trimmer)
 
 inference_r <- inference_r %>%
-  right_join(snpi)%>%
-  filter(npi_name=="local_variance") %>%
-  mutate(county_r0 = state_r0*(1-reduction)) %>% # county_r0 ought to be renamed to "geogroup_r0"
-  select(!!as.symbol(geogroup), sim_num, county_r0, scenario) %>%
-  left_join(inference_r %>% right_join(snpi)%>%filter(npi_name %in% npi_names)) %>%
-  mutate(r_eff = if_else(npi_name=="local_variance",
-                         county_r0,
-                         county_r0*(1-reduction))) %>%
+  filter(scenario==unique(inference_r$scenario)[1])
+
+inference_r <- inference_r %>%
   group_by(!!as.symbol(geogroup), npi_name) %>%
-  summarize(r = mean(r_eff, na.rm=TRUE), 
-            rq1 = quantile(r_eff, 0.25, na.rm=TRUE), 
-            rq3 = quantile(r_eff, 0.75, na.rm=TRUE),
+  summarize(rq1 = quantile(r, 0.25, na.rm=TRUE), 
+            rq3 = quantile(r, 0.75, na.rm=TRUE),
+            r = mean(r, na.rm=TRUE), 
             reduc = mean(reduction, na.rm=TRUE), 
             reducq1 = quantile(reduction, 0.25, na.rm=TRUE), 
             reducq3 = quantile(reduction, 0.75, na.rm=TRUE)) %>%
   {if(affected_geoids) mutate(., npi_name=str_remove(npi_name, npi_trimmer))
-    else(left_join(.))} %>%
+    else(.)} %>%
   left_join(geo_names)
   
 if(affected_geoids){
@@ -243,18 +226,17 @@ if(affected_geoids){
     str_remove(npi_trimmer) %>%
     unique()
 }
-remove(snpi)
 ```
 
 ```{r reproductive_num, fig.height = 10, eval=infer, fig.cap=cap}
 # if run==country, then state Rt is the mean Rt (each county weighted equally)
 # 
 cap<-paste0("**Fig.", fig_counter, "**: Estimated reproduction number at baseline and during previous interventions")
-  
+
 plot_r_num <- function(inference_dat, 
                        npiselection = npi_names,
-                       npilabel = NA, 
-                       periodcolors = c("chartreuse3", "brown2", "turquoise4", "black", "magenta3"),
+                       npilabel = npi_label, 
+                       periodcolors = c("chartreuse3", "brown2", "turquoise4", "black", "magenta3", "grey", "green", "goldenrod3", "red", "orange"),
                        distribution_low = NA, # if you want to show the assumed distribution for a particular intervention only then specify values/colors 
                         distribution_high = NA, 
                         distribution_colors = NA,
@@ -335,12 +317,12 @@ fig_counter <- fig_counter+1
 
 ```{r effectiveness, fig.height = 10, eval=infer, fig.cap=cap}
 plot_r_num(inference_r, 
-          npiselection=npi_names[2:4],
+          npiselection=npi_names[-1],
           effectiveness=TRUE, 
           # distribution_low=0.2,#if you want to show the assumed distribution for a particular intervention
           # distribution_high=0.9,
           # distribution_colors="black",
-          npilabel=npi_label[2:4])
+          npilabel=NA)
 
 cap<- paste0("**Fig. ", fig_counter, "**: Estimated effectiveness of NPIs.") #Shaded area reflects range of parameter values explored for the [insert] period.
 
@@ -383,20 +365,22 @@ if(params$hosp_eval){#comparison of hospital occupancy is currently only for "st
 ```{r model_res_load}
 
 res_state<-list() # loop works for larger datasets (e.g. USA)
-for(i in 1:length(death_rate_levels)){
+for(i in 1:length(pdeath_levels)){
   res_state[[i]] <- arrow::open_dataset(paste0(params$runs_folder,"/hosp/"),
-                                partitioning = c("geoid", "scenario", "death_rate", "date", "lik_type", "is_final", "sim_id")) %>%
-    select(time, geoid, scenario, death_rate, sim_id, incidD, incidC, incidH, incidI, hosp_curr)%>%
-    filter(death_rate==death_rate_levels[i]) %>%
+                                partitioning = c("geoid", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_id")) %>%
+    filter(is_final=="final",
+           lik_type=="global") %>%
+    dplyr::select(time, geoid, scenario, pdeath, sim_id, incidD, incidC, incidH, incidI, hosp_curr)%>%
+    filter(pdeath==pdeath_levels[i]) %>%
     filter(time<fit_date)%>%
     collect() %>%
-    group_by(geoid, death_rate, sim_id, scenario) %>%
+    group_by(geoid, pdeath, sim_id, scenario) %>%
     mutate(cumDeaths=cumsum(incidD),
            cumHosp=cumsum(incidH),
            cumInf=cumsum(incidI),
            cumCase=cumsum(incidC)) %>%
     left_join(geo_names) %>%
-    group_by(!!as.symbol(geogroup), sim_id, scenario, time, death_rate) %>%
+    group_by(!!as.symbol(geogroup), sim_id, scenario, time, pdeath) %>%
     summarize(currHosp=sum(hosp_curr),
               incidD=sum(incidD),
               incidC=sum(incidC),
@@ -404,7 +388,7 @@ for(i in 1:length(death_rate_levels)){
               cumInf=sum(cumInf),
               cumHosp=sum(cumHosp),
               cumCase=sum(cumCase)) %>%
-    group_by(!!as.symbol(geogroup), time, death_rate)%>%
+    group_by(!!as.symbol(geogroup), time, pdeath, scenario)%>%
     summarize(cumDeaths_5pct=quantile(cumDeaths,probs=params$pi_lo),
               cumDeaths_95pct=quantile(cumDeaths,probs=params$pi_hi),
               incidD_5pct=quantile(incidD,probs=params$pi_lo),
@@ -422,23 +406,25 @@ for(i in 1:length(death_rate_levels)){
               cumCase=mean(cumCase))%>%
   mutate(time=as.Date(time))
 
-  if(i==length(death_rate_levels)){
+  if(i==length(pdeath_levels)){
     res_state<- bind_rows(res_state)%>%
-      mutate(death_rate=factor(death_rate, levels=death_rate_levels))%>%
+      mutate(pdeath=factor(pdeath, levels=pdeath_levels))%>%
       {if(run=="state") left_join(., geo_names) %>% mutate(., name=factor(name, levels=levels(geo_names$name)))
         else(mutate(., USPS=factor(USPS, levels=levels(geo_names$USPS))))}
   }
 
 }
 
+res_state<-res_state%>%
+  filter(scenario==unique(res_state$scenario)[1])
 ```
 
 `r paste0("**Tab.", tab_counter, "**: Model fit metrics to USA Facts data")`
 ```{r mod_metrics, fig.cap=cap}
 
 deaths<-res_state%>%
-  group_by(death_rate, time)%>%
-  select(starts_with("cumDeaths")) %>%
+  group_by(pdeath, time)%>%
+  dplyr::select(starts_with("cumDeaths")) %>%
   summarize_if(is.numeric,sum)%>%
   inner_join(truth_dat%>%
                group_by(time=date)%>%
@@ -458,8 +444,8 @@ deaths<-res_state%>%
 
 
 deaths_I <- res_state %>% 
-  group_by(death_rate, week=lubridate::floor_date(time,unit="week", week_start=1))%>%
-  select(starts_with("incidD"))%>%
+  group_by(pdeath, week=lubridate::floor_date(time,unit="week", week_start=1))%>%
+  dplyr::select(starts_with("incidD"))%>%
   summarize_if(is.numeric,sum)%>%
   inner_join(truth_dat%>%
                group_by(week=lubridate::floor_date(date,unit="week", week_start=1))%>%
@@ -478,8 +464,8 @@ deaths_I <- res_state %>%
   mutate(Comparison = "Estimated vs Reported Incident Deaths")
 
 infects<- res_state %>% 
-  group_by(death_rate, week=lubridate::floor_date(time,unit="week", week_start=1))%>%
-  select(starts_with("incidC"))%>%
+  group_by(pdeath, week=lubridate::floor_date(time,unit="week", week_start=1))%>%
+  dplyr::select(starts_with("incidC"))%>%
   summarize_if(is.numeric,sum)%>%
   inner_join(truth_dat%>%
                group_by(week=lubridate::floor_date(date,unit="week", week_start=1))%>%
@@ -499,8 +485,8 @@ infects<- res_state %>%
 
 if(params$hosp_eval){
 hosp<- res_state%>% 
-  group_by(death_rate, time) %>%
-  select(starts_with("currHosp"))%>%
+  group_by(pdeath, time) %>%
+  dplyr::select(starts_with("currHosp"))%>%
   summarize_if(is.numeric, sum)%>%
   inner_join(truth_dat%>%
              group_by(time=date)%>%
@@ -520,10 +506,10 @@ hosp<- res_state%>%
 
 {if(params$hosp_eval) bind_rows(deaths, deaths_I, hosp, infects) 
   else(bind_rows(deaths, deaths_I, infects))} %>%
-  mutate(death_rate = str_to_title(death_rate)) %>%
-  select(Comparison, death_rate, mae, relative, within) %>%
+  mutate(pdeath = str_to_title(pdeath)) %>%
+  dplyr::select(Comparison, pdeath, mae, relative, within) %>%
   flextable::flextable()%>%
-  flextable::set_header_labels(Comparison="Comparison", death_rate="Death Rate", mae="Mean Absolute Error", relative="Relative Absolute Error\n sum(abs(est-report)/report)/n()", within=paste0("Prop. of points within ", round((params$pi_hi-params$pi_lo)*100), "% PI")) %>%
+  flextable::set_header_labels(Comparison="Comparison", pdeath="Death Rate", mae="Mean Absolute Error", relative="Relative Absolute Error\n sum(abs(est-report)/report)/n()", within=paste0("Prop. of points within ", round((params$pi_hi-params$pi_lo)*100), "% PI")) %>%
   flextable::merge_v(j = "Comparison") %>%
   flextable::autofit() %>%
   flextable::theme_vanilla()
@@ -540,13 +526,13 @@ cap<-paste0("**Fig.", fig_counter, "**: Modeled deaths vs. most recently reporte
 map1<-res_state%>%
   filter(time==max(truth_dat$date))%>%
   inner_join(truth_dat%>%rename(time=date)) %>% 
-  ggplot(aes(x=Deaths, y=cumDeaths, col=death_rate, label = {if(run=="state") name else(USPS)})) +
+  ggplot(aes(x=Deaths, y=cumDeaths, col=pdeath, label = {if(run=="state") name else(USPS)})) +
   ggrepel::geom_text_repel(segment.size = 0.2, alpha = 0.55) +
   geom_point() +
   scale_y_sqrt()+
   scale_x_sqrt()+
   geom_abline()+
-  facet_wrap(~death_rate, nrow = 1) +
+  facet_wrap(~pdeath, nrow = 1) +
   theme_bw() +
   theme(legend.position = "none",
         strip.text=element_text(face="bold", size=10))+
@@ -566,9 +552,9 @@ cap<-paste0("**Fig.", fig_counter, "**: Modeled vs most recently reported deaths
 res_state%>%
   filter(time==max(truth_dat$date))%>%
   inner_join(truth_dat%>%rename(time=date)) %>%
-  select(time, !!as.symbol(geogroup), cumDeaths, Deaths, death_rate)%>%
+  dplyr::select(time, !!as.symbol(geogroup), cumDeaths, Deaths, pdeath)%>%
   rename(observed=Deaths, modeled=cumDeaths)%>%
-  pivot_longer(c(-time, -!!as.symbol(geogroup), -death_rate),
+  pivot_longer(c(-time, -!!as.symbol(geogroup), -pdeath),
                names_to="source", values_to = "deaths") %>%
   {if(run=="state") left_join(.,geo_names) %>% mutate(., name=factor(name, levels=levels(geo_names$name))) 
     else(.)} %>%
@@ -576,7 +562,7 @@ res_state%>%
   geom_bar(stat="identity",position=position_dodge()) +
   coord_flip() +
   scale_y_sqrt()+
-  facet_wrap(~ death_rate) +
+  facet_wrap(~ pdeath) +
   xlab({if(run=="state") 'Counties' else('State')}) + 
   theme_bw()+
   theme(strip.text=element_text(face="bold", size=10))
@@ -596,7 +582,7 @@ mapdat <-res_state%>%
          Deaths=Deaths+1, # to avoid inf or NA
          cumDeaths=cumDeaths+1,
          death_ratio=cumDeaths/Deaths)%>%
-  select(fips,full, death_ratio, death_rate, cfr_report, cfr_model, Deaths, Confirmed, cumDeaths) 
+  dplyr::select(fips,full, death_ratio, pdeath, cfr_report, cfr_model, Deaths, Confirmed, cumDeaths) 
 
 if(country!="US"){
 shp@data$id = rownames(shp@data)
@@ -609,24 +595,24 @@ mapdat <- inner_join(shp.points, shp@data, by = "id") %>%
   full_join(mapdat) %>%
   filter(str_detect(group, ".1$")) 
 
-for(i in 1:length((mapdat%>%filter(is.na(death_rate))%>%distinct(NAME))$NAME)){
+for(i in 1:length((mapdat%>%filter(is.na(pdeath))%>%distinct(NAME))$NAME)){
  temp <- mapdat%>%
-    filter(is.na(death_rate))
+    filter(is.na(pdeath))
   
 mapdat <- temp%>%
-   mutate(death_rate="low") %>%
+   mutate(pdeath="low") %>%
    bind_rows(mapdat)
 mapdat <- temp%>%
-   mutate(death_rate="med") %>%
+   mutate(pdeath="med") %>%
    bind_rows(mapdat)
 mapdat <- temp%>%
-   mutate(death_rate="high") %>%
+   mutate(pdeath="high") %>%
    bind_rows(mapdat)
 }
 
 mapdat<- mapdat%>%
-  filter(!is.na(death_rate)) %>%
-  mutate(death_rate=factor(death_rate, levels=death_rate_levels))
+  filter(!is.na(pdeath)) %>%
+  mutate(pdeath=factor(pdeath, levels=pdeath_levels))
 }
 ```
 
@@ -636,7 +622,7 @@ cap<-paste0("**Fig.", fig_counter, "**: Ratio of estimated to most recently repo
 if(country=="US"){
   usmap::plot_usmap(data=mapdat, values="death_ratio", include=unique(geo_names$USPS))+
     scale_fill_gradient2(trans="log10",midpoint = 0, low="blue",high="red", limits=c(1/60,60),name="mod/obs")+
-    facet_wrap(~death_rate, nrow=1)+
+    facet_wrap(~pdeath, nrow=1)+
     theme(legend.position="bottom",
           strip.text=element_text(face="bold", size=10))
 } else {
@@ -644,7 +630,7 @@ mapdat %>%
   ggplot(aes(x=long, y= lat, group=group, fill=death_ratio)) + 
   geom_polygon() + 
   geom_path() +
-  facet_wrap(~death_rate, nrow =1) +
+  facet_wrap(~pdeath, nrow =1) +
   scale_fill_gradient2(trans="log10",midpoint = 0, low="blue",high="red", limits=c(1/60,60),name="mod/obs") +
   theme_void() +
   coord_fixed(1.5)+
@@ -660,21 +646,21 @@ cap<- paste0("**Fig.", fig_counter, "**: Estimated and observed CFR from cumulat
 if(country=="US"){
   mapdat%>%
     pivot_longer(names_to="type",cols=c(cfr_report, cfr_model))%>%
-    filter(type=="cfr_model" | (type=="cfr_report" & death_rate=="med")) %>%
+    filter(type=="cfr_model" | (type=="cfr_report" & pdeath=="med")) %>%
     usmap::plot_usmap(data=., values="value", include=unique(geo_names$USPS))+
     scale_fill_gradient(name="CFR", low="#ffeda0",high="#f03b20") +
-    facet_grid(type~death_rate)+
+    facet_grid(type~pdeath)+
     theme(legend.position="bottom",
           strip.text=element_text(face="bold", size=10))
 
 } else {
   mapdat %>% 
   pivot_longer(names_to="type",cols=c(cfr_report, cfr_model)) %>%
-  filter(type=="cfr_model" | (type=="cfr_report" & death_rate=="med")) %>%
+  filter(type=="cfr_model" | (type=="cfr_report" & pdeath=="med")) %>%
   ggplot(aes(x=long, y= lat, group=group, fill=value)) + 
   geom_polygon() + 
   geom_path() +
- facet_grid(type~death_rate)+
+ facet_grid(type~pdeath)+
   scale_fill_gradient(name="CFR", low="#ffeda0",high="#f03b20") +
   theme_void() +
   coord_fixed(1.5)+
@@ -691,14 +677,14 @@ cap<-paste0("**Fig.", fig_counter, "**: Modeled vs reported deaths over time")
 
 res_state%>%
   inner_join(truth_dat%>%rename(time=date))%>%
-  group_by(death_rate,time)%>%
-  select(Deaths, starts_with("cumDeaths"))%>%
+  group_by(pdeath,time)%>%
+  dplyr::select(Deaths, starts_with("cumDeaths"))%>%
   summarize_if(is.numeric, sum)%>%
   ggplot(aes(x=time, y=cumDeaths, ymin=cumDeaths_5pct, ymax=cumDeaths_95pct)) +
   geom_line(col="red")+
   geom_ribbon(alpha=.1, fill = "red")+
   geom_point(aes(y=Deaths)) +
-  facet_wrap(~death_rate, ncol=3)+
+  facet_wrap(~pdeath, ncol=3)+
   scale_y_sqrt()+
   theme_bw()+
   ylab("deaths")+
@@ -713,7 +699,7 @@ res_state%>%
 cap<-paste0("**Fig.", fig_counter, "**: Mean absolute error for deaths", if_else(run=="country", " by state.", " by county."))
 
 mae_deaths <- res_state %>%
-    group_by(death_rate, !!as.symbol(geogroup)) %>%
+    group_by(pdeath, !!as.symbol(geogroup)) %>%
     inner_join(truth_dat%>%rename(time=date)) %>%
     mutate(error = abs(cumDeaths-Deaths),
            cumDeaths = cumDeaths+1,
@@ -724,7 +710,7 @@ mae_deaths <- res_state %>%
            r_error = abs(cumDeaths-Deaths)/Deaths,
            within = if_else(Deaths>cumDeaths_95pct |
                             Deaths<cumDeaths_5pct, 0, 1)) %>%
-    {if(run=="state") group_by(.,death_rate, !!as.symbol(geogroup), name) else(.)} %>%
+    {if(run=="state") group_by(.,pdeath, !!as.symbol(geogroup), name) else(.)} %>%
     filter(!is.na(error)) %>%
     summarize(mae = sum(error, na.rm=TRUE)/n(),
               relative = sum(r_error, na.rm=TRUE)/n(),
@@ -734,7 +720,7 @@ mae_deaths %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=mae, y=group)) +
     geom_col()+
-    facet_wrap(~ death_rate)+
+    facet_wrap(~ pdeath)+
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -753,7 +739,7 @@ cap<- paste0("**Fig.", fig_counter, "**: Relative mean absolute error for deaths
 mae_deaths %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=relative, y=group)) +
-    geom_point(aes(col=death_rate), position=position_dodge(0.7)) + 
+    geom_point(aes(col=pdeath), position=position_dodge(0.7)) + 
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -775,7 +761,7 @@ cap<-paste0("**Fig.", fig_counter, "**: Proportion of confirmed deaths outside t
 mae_deaths %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=1-within, y=group)) +
-    geom_point(aes(col=death_rate), position=position_dodge(0.7)) +
+    geom_point(aes(col=pdeath), position=position_dodge(0.7)) +
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -794,21 +780,21 @@ fig_counter <- fig_counter+1
 cap<- paste0("**Fig.", fig_counter, "**: Modeled vs reported deaths over time in the four", {if(run=="state") " counties" else(" states")} ," with the largest MAE by death rate.")
 ## Comparison of cumulative curves by key states
 key_group <- mae_deaths %>%
-  group_by(death_rate) %>%
+  group_by(pdeath) %>%
   top_n(4, mae) %>%
   mutate(mae = round(mae, 2)) %>%
   {if(run=="state") unite(., "group_mae", name:mae, sep=": ", remove = FALSE) else(unite(., group_mae, !!as.symbol(geogroup):mae, sep=": ", remove = FALSE))}
 
 res_state %>%
-  left_join(key_group, by = c(geogroup, "death_rate")) %>%
+  left_join(key_group, by = c(geogroup, "pdeath")) %>%
   filter(!is.na(group_mae)) %>%
-  group_by(death_rate,!!as.symbol(geogroup))%>%
+  group_by(pdeath,!!as.symbol(geogroup))%>%
   inner_join(truth_dat%>%rename(time=date), by = c("time", geogroup))%>%
   ggplot(aes(x=time, y=cumDeaths, ymin=cumDeaths_5pct, ymax=cumDeaths_95pct)) +
   geom_line(color = "red")+
   geom_ribbon(alpha=.1, fill = "red")+
   geom_point(aes(y=Deaths), col="black") +
-  facet_wrap(~ death_rate+group_mae, nrow=3)+
+  facet_wrap(~ pdeath+group_mae, nrow=3)+
   scale_y_sqrt() +
   theme_bw() + 
   theme(legend.position = "bottom") +
@@ -829,15 +815,15 @@ cap<-paste0("**Fig.", fig_counter, "**: Modeled vs reported incident deaths (agg
 
 res_state%>%
   inner_join(truth_dat%>%rename(time=date))%>%
-  group_by(death_rate, time=lubridate::floor_date(time, unit="weeks"))%>%
-  select(starts_with("incidD")) %>%
+  group_by(pdeath, time=lubridate::floor_date(time, unit="weeks"))%>%
+  dplyr::select(starts_with("incidD")) %>%
   summarize_if(is.numeric, sum)%>%
   filter(time!=max(time))%>%
   ggplot(aes(x=time, y=incidD, ymin=incidD_5pct, ymax=incidD_95pct)) +
   geom_line(col="red")+
   geom_ribbon(alpha=.1, fill = "red")+
   geom_point(aes(y=incidDeath)) +
-  facet_wrap(~death_rate, ncol=3)+
+  facet_wrap(~pdeath, ncol=3)+
   scale_y_sqrt()+
   theme_bw()+
   ylab("deaths")
@@ -852,9 +838,9 @@ cap<-paste0("**Fig.", fig_counter, "**: Mean absolute error for incident deaths 
 
 mae_deaths_i <- res_state %>%
   inner_join(truth_dat%>%rename(time=date)) %>%
-  {if(run=="state") group_by(., death_rate, !!as.symbol(geogroup), time=lubridate::floor_date(time, unit="weeks"), name)
-    else(group_by(., death_rate, !!as.symbol(geogroup), time=lubridate::floor_date(time, unit="weeks")))} %>%
-  select(starts_with("incidD")) %>%
+  {if(run=="state") group_by(., pdeath, !!as.symbol(geogroup), time=lubridate::floor_date(time, unit="weeks"), name)
+    else(group_by(., pdeath, !!as.symbol(geogroup), time=lubridate::floor_date(time, unit="weeks")))} %>%
+  dplyr::select(starts_with("incidD")) %>%
   summarize_if(is.numeric, sum)%>%
   mutate(error = abs(incidD-incidDeath),
          incidD = incidD+1,
@@ -866,8 +852,8 @@ mae_deaths_i <- res_state %>%
          within = if_else(incidDeath>incidD_95pct |
                           incidDeath<incidD_5pct, 0, 1)) %>%
   filter(!is.na(error)) %>%
-  {if(run=="state") group_by(., death_rate, !!as.symbol(geogroup), name)
-    else(group_by(.,death_rate, !!as.symbol(geogroup)))} %>%
+  {if(run=="state") group_by(., pdeath, !!as.symbol(geogroup), name)
+    else(group_by(.,pdeath, !!as.symbol(geogroup)))} %>%
   summarize(mae = sum(error, na.rm=TRUE)/n(),
             relative = sum(r_error, na.rm=TRUE)/n(),
             within = sum(within, na.rm=TRUE)/n())
@@ -876,7 +862,7 @@ mae_deaths_i %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=mae, y=group)) +
     geom_col()+
-    facet_wrap(~ death_rate)+
+    facet_wrap(~ pdeath)+
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -895,7 +881,7 @@ cap<- paste0("**Fig.", fig_counter, "**: Relative mean absolute error for incide
 mae_deaths_i %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=relative, y=group)) +
-    geom_point(aes(col=death_rate), position=position_dodge(0.7)) + 
+    geom_point(aes(col=pdeath), position=position_dodge(0.7)) + 
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -917,7 +903,7 @@ cap<-paste0("**Fig.", fig_counter, "**: Proportion of confirmed deaths (aggregat
 mae_deaths_i %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=1-within, y=group)) +
-    geom_point(aes(col=death_rate), position=position_dodge(0.7)) +
+    geom_point(aes(col=pdeath), position=position_dodge(0.7)) +
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -936,25 +922,25 @@ fig_counter <- fig_counter+1
 cap<- paste0("**Fig.", fig_counter, "**: Modeled vs reported incident deaths (aggregated by week) over time in the four", {if(run=="state") " counties" else(" states")} ," with the largest MAE by death rate.")
 ## Comparison of cumulative curves by key states
 key_group <- mae_deaths %>%
-  group_by(death_rate) %>%
+  group_by(pdeath) %>%
   top_n(4, mae) %>%
   mutate(mae = round(mae, 2)) %>%
   {if(run=="state") unite(., "group_mae", name:mae, sep=": ", remove = TRUE) else(unite(., group_mae, !!as.symbol(geogroup):mae, sep=": ", remove = FALSE))}
 
 res_state %>%
-  left_join(key_group, by = c(geogroup, "death_rate")) %>%
+  left_join(key_group, by = c(geogroup, "pdeath")) %>%
   filter(!is.na(group_mae)) %>%
   inner_join(truth_dat%>%rename(time=date), by = c("time", geogroup))%>%
-  group_by(death_rate, !!as.symbol(geogroup), time=lubridate::floor_date(time, unit="weeks"), group_mae)%>%
-  select(starts_with("incidD")) %>%
+  group_by(pdeath, !!as.symbol(geogroup), time=lubridate::floor_date(time, unit="weeks"), group_mae)%>%
+  dplyr::select(starts_with("incidD")) %>%
   summarize_if(is.numeric, sum)%>%
-  group_by(death_rate,!!as.symbol(geogroup))%>%
+  group_by(pdeath,!!as.symbol(geogroup))%>%
   filter(time!=max(time))%>%
   ggplot(aes(x=time, y=incidD, ymin=incidD_5pct, ymax=incidD_95pct)) +
   geom_line(color = "red")+
   geom_ribbon(alpha=.1, fill = "red")+
   geom_point(aes(y=incidDeath), col="black") +
-  facet_wrap(~ death_rate+group_mae, nrow=3)+
+  facet_wrap(~ pdeath+group_mae, nrow=3)+
   scale_y_sqrt() +
   theme_bw() + 
   theme(legend.position = "bottom") +
@@ -975,13 +961,13 @@ cap<-paste0("**Fig.", fig_counter, "**: Estimated versus reported occupied hospi
 res_state%>%filter(time==max(truth_dat$date))%>%
   inner_join(truth_dat%>%rename(time=date)) %>%
   {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
-  ggplot(aes(x=hosp, y=currHosp, col=death_rate, label=group)) +
+  ggplot(aes(x=hosp, y=currHosp, col=pdeath, label=group)) +
   ggrepel::geom_text_repel(segment.size = 0.2, alpha = 0.75, segment.alpha=0.5) +
   geom_point()+
   scale_y_sqrt()+
   scale_x_sqrt()+
   geom_abline()+
-  facet_wrap(~death_rate, nrow=1) +
+  facet_wrap(~pdeath, nrow=1) +
   theme_bw() +
   theme(legend.position = "none",
         strip.text=element_text(face="bold", size=10)) +
@@ -998,14 +984,14 @@ cap<-paste0("**Fig.", fig_counter, "**: Estimated vs reported occupied hospital 
 
 res_state%>%
   inner_join(truth_dat%>%rename(time=date))%>%
-  group_by(time, death_rate)%>%
-  select(starts_with("currHosp"), hosp) %>%
+  group_by(time, pdeath)%>%
+  dplyr::select(starts_with("currHosp"), hosp) %>%
   summarize_if(is.numeric, sum)%>%
   ggplot(aes(x=time, y=currHosp, ymin=currHosp_5pct, ymax=currHosp_95pct)) +
   geom_line(color = "red")+
   geom_ribbon(alpha=.1,fill = "red")+
   geom_point(aes(y=hosp)) +
-  facet_wrap(~death_rate, nrow=1)+
+  facet_wrap(~pdeath, nrow=1)+
   theme_bw()+
   scale_y_sqrt()+
   ylab("occupied hospital beds")
@@ -1017,7 +1003,7 @@ fig_counter <- fig_counter+1
 ```{r, fig.height=10, fig.width=10, fig.cap=cap, eval=params$hosp_eval}
 
 mae_hosp <- res_state %>%
-    group_by(death_rate, !!as.symbol(geogroup)) %>%
+    group_by(pdeath, !!as.symbol(geogroup)) %>%
     inner_join(truth_dat%>%rename(time=date)) %>%
     mutate(error = abs(currHosp-hosp),
            hosp=hosp+1,
@@ -1027,7 +1013,7 @@ mae_hosp <- res_state %>%
            r_error = abs(currHosp-hosp)/hosp,
            within = if_else(hosp>currHosp_95pct |
                             hosp<currHosp_5pct, 0, 1)) %>%
-    {if(run=="state") group_by(.,death_rate, !!as.symbol(geogroup), name) else(.)} %>%
+    {if(run=="state") group_by(.,pdeath, !!as.symbol(geogroup), name) else(.)} %>%
     filter(!is.na(error)) %>%
     summarize(mae = sum(error, na.rm=TRUE)/n(),
               relative = sum(r_error, na.rm=TRUE)/n(),
@@ -1037,7 +1023,7 @@ mae_hosp %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=mae, y=group)) +
     geom_col()+
-    facet_wrap(~ death_rate)+
+    facet_wrap(~ pdeath)+
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -1055,8 +1041,8 @@ mae_hosp %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=relative, y=group)) +
     #geom_col()+
-    geom_point(aes(col=death_rate), position=position_dodge(0.7)) + 
-    #facet_wrap(~ death_rate)+
+    geom_point(aes(col=pdeath), position=position_dodge(0.7)) + 
+    #facet_wrap(~ pdeath)+
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -1078,7 +1064,7 @@ cap<-paste0("**Fig.", fig_counter, "**: Proportion of occupied hospital beds out
 mae_hosp %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=1-within, y=group)) +
-    geom_point(aes(col=death_rate), position=position_dodge(0.7)) +
+    geom_point(aes(col=pdeath), position=position_dodge(0.7)) +
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -1096,21 +1082,21 @@ fig_counter <- fig_counter+1
 cap<-paste0("**Fig.", fig_counter, "**: Estimated vs reported occupied hospital beds over time in the four", {if(run=="state") " by county" else(" by state")}," with the largest MAE by death rate")
 
 key_group <- mae_hosp %>%
-  group_by(death_rate) %>%
+  group_by(pdeath) %>%
   top_n(4, mae) %>%
   mutate(mae = round(mae, 2)) %>%
   {if(run=="state") unite(., "group_mae", name:mae, sep=": ", remove = TRUE) else(unite(., group_mae, !!as.symbol(geogroup):mae, sep=": ", remove = FALSE))}
 
 res_state %>%
-  left_join(key_group, by = c(geogroup, "death_rate")) %>%
+  left_join(key_group, by = c(geogroup, "pdeath")) %>%
   filter(!is.na(group_mae)) %>%
-  group_by(death_rate,!!as.symbol(geogroup))%>%
+  group_by(pdeath,!!as.symbol(geogroup))%>%
   inner_join(truth_dat%>%rename(time=date), by = c("time", geogroup))%>%
   ggplot(aes(x=time, y=currHosp, ymin=currHosp_5pct, ymax=currHosp_95pct)) +
   geom_line(color = "red")+
   geom_ribbon(alpha=.1, fill = "red")+
   geom_point(aes(y=hosp), col="black") +
-  facet_wrap(~ death_rate+group_mae, nrow=3)+
+  facet_wrap(~ pdeath+group_mae, nrow=3)+
   scale_y_sqrt() +
   theme_bw() + 
   theme(legend.position = "bottom") +
@@ -1128,18 +1114,18 @@ cap<-paste0("**Fig.", fig_counter, "**: Estimated and confirmed cases over time 
 ##Compare to confirmed cases at a national level
 usa_sum <-res_state%>%
   inner_join(truth_dat%>%rename(time=date))%>%
-  group_by(death_rate, time=lubridate::floor_date(time, unit="week", week_start=1)) %>%
-  select(starts_with("incidC"), incidI) %>%
+  group_by(pdeath, time=lubridate::floor_date(time, unit="week", week_start=1)) %>%
+  dplyr::select(starts_with("incidC"), incidI) %>%
   summarize_if(is.numeric, sum)%>%
-  group_by(death_rate)%>%
+  group_by(pdeath)%>%
   arrange(time)%>%
   ungroup()%>%
-  mutate(death_rate=factor(death_rate, levels=c("high", "med", "low")))%>%
+  mutate(pdeath=factor(pdeath, levels=c("high", "med", "low")))%>%
   filter(time!=max(time))
 
-usa_sum%>%ggplot(aes(x=time, y= incidC, ymin= incidC_5pct, ymax= incidC_95pct, linetype=death_rate))+
+usa_sum%>%ggplot(aes(x=time, y= incidC, ymin= incidC_5pct, ymax= incidC_95pct, linetype=pdeath))+
   geom_line(col = "red ")+
-  geom_ribbon(alpha=.1, aes(fill = death_rate)) +
+  geom_ribbon(alpha=.1, aes(fill = pdeath)) +
   geom_point(aes(y=incidI), color="black")+
   ylab("approximate cases") + 
   theme(legend.title = element_text("death rate"))+
@@ -1155,9 +1141,9 @@ cap<-paste0("**Fig.", fig_counter, "**: Mean absolute error comparing estimated 
 
 mae_infect <-res_state %>%
     inner_join(truth_dat%>%rename(time=date)) %>%
-    group_by(death_rate, !!as.symbol(geogroup), time=lubridate::floor_date(time, unit="week", week_start=1)) %>%
-  {if(run=="state") group_by(.,death_rate, !!as.symbol(geogroup), name, time) else(.)} %>%
-    select(incidI, starts_with("incidC")) %>%
+    group_by(pdeath, !!as.symbol(geogroup), time=lubridate::floor_date(time, unit="week", week_start=1)) %>%
+  {if(run=="state") group_by(.,pdeath, !!as.symbol(geogroup), name, time) else(.)} %>%
+    dplyr::select(incidI, starts_with("incidC")) %>%
   summarize_if(is.numeric, sum)%>%
     mutate(error=abs(incidC-incidI), 
            incidC=incidC+1,
@@ -1167,7 +1153,7 @@ mae_infect <-res_state %>%
            within = if_else(incidI>incidC_95pct |
                             incidI<incidC_5pct, 0, 1),
            relative = abs(incidC-incidI)/incidI) %>%
-  {if(run=="state") group_by(., death_rate, !!as.symbol(geogroup), name) else(.)} %>%
+  {if(run=="state") group_by(., pdeath, !!as.symbol(geogroup), name) else(.)} %>%
   filter(!is.na(error)) %>%
   summarize(mae = sum(error)/n(),
             relative = sum(relative)/n(),
@@ -1177,7 +1163,7 @@ mae_infect %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=mae, y=group)) +
     geom_col()+
-    facet_wrap(~ death_rate)+
+    facet_wrap(~ pdeath)+
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -1195,8 +1181,8 @@ cap<-paste0("**Fig.", fig_counter, "**: Relative mean absolute error comparing e
 mae_infect %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=relative, y=group)) +
-    geom_point(aes(col=death_rate), position=position_dodge(0.7))+
-    #facet_wrap(~ death_rate)+
+    geom_point(aes(col=pdeath), position=position_dodge(0.7))+
+    #facet_wrap(~ pdeath)+
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -1216,8 +1202,8 @@ cap<-paste0("**Fig.", fig_counter, "**: Proportion of confirmed cases outside th
 mae_infect %>%
     {if(run=="state") rename(., group=name) else(rename(.,group=!!as.symbol(geogroup)))} %>%
     ggplot(aes(x=1-within, y=group)) +
-    geom_point(aes(col=death_rate), position=position_dodge(0.7))+
-    #facet_wrap(~ death_rate)+
+    geom_point(aes(col=pdeath), position=position_dodge(0.7))+
+    #facet_wrap(~ pdeath)+
     theme_bw() + 
     ylab({if(run=="state") "county" else("state")}) +
     theme(axis.text.x = element_text(angle=45,hjust=1),
@@ -1235,25 +1221,25 @@ fig_counter<-fig_counter+1
 cap<-paste0("**Fig.", fig_counter, "**: Estimated vs confirmed cases over time in the four", {if(run=="state") " counties" else(" states")}," with the largest MAE by death rate")
 
 key_group <- mae_infect %>%
-  group_by(death_rate) %>%
+  group_by(pdeath) %>%
   top_n(4, mae) %>%
   mutate(mae = round(mae, 2)) %>%
   {if(run=="state") unite(., "group_mae", name:mae, sep=": ", remove = TRUE) else(unite(., group_mae, !!as.symbol(geogroup):mae, sep=": ", remove = FALSE))}
 
 res_state %>%
-  left_join(key_group, by = c(geogroup, "death_rate")) %>%
+  left_join(key_group, by = c(geogroup, "pdeath")) %>%
   filter(!is.na(group_mae)) %>%
   inner_join(truth_dat%>%rename(time=date))%>%
-  group_by(death_rate, group_mae, time=lubridate::floor_date(time, unit="week", week_start=1))%>%
-  select(incidI, starts_with("incidC")) %>%
+  group_by(pdeath, group_mae, time=lubridate::floor_date(time, unit="week", week_start=1))%>%
+  dplyr::select(incidI, starts_with("incidC")) %>%
   summarize_if(is.numeric, sum)%>%
-  group_by(death_rate, group_mae)%>%
+  group_by(pdeath, group_mae)%>%
   filter(time!=max(time))%>%
   ggplot(aes(x=time, y=incidC, ymin=incidC_5pct, ymax=incidC_95pct))+
   geom_line(color = "red")+
   geom_ribbon(alpha=0.1, fill="red") +
   geom_point(aes(y=incidI), color="black")+
-  facet_wrap(~death_rate+group_mae, nrow=3) +
+  facet_wrap(~pdeath+group_mae, nrow=3) +
   scale_y_sqrt()+
   theme_bw()+
   theme(legend.position = "bottom")+
@@ -1268,10 +1254,10 @@ fig_counter<-fig_counter+1
 
 ```{r, fig.cap=cap}
 cap<-paste0("**Fig.", fig_counter, "**: Ratio of cumulative deaths to infections by death rate")
-# Assumes default death_rate level for config is "high"
+# Assumes default pdeath level for config is "high"
 res_state%>% 
   mutate(death_inf_ratio = cumDeaths/cumInf)%>%
-  ggplot(aes(x=time, y=death_inf_ratio, color=death_rate)) +
+  ggplot(aes(x=time, y=death_inf_ratio, color=pdeath)) +
     geom_point(alpha=.02) +
     geom_hline(yintercept=config$outcomes$settings[[1]]$incidD$probability$value$value, col="firebrick2")+
   geom_hline(yintercept=config$outcomes$settings[[1]]$incidD$probability$value$value/2, col="seagreen3")+
@@ -1287,7 +1273,7 @@ cap<-paste0("**Fig.", fig_counter, "**: Ratio of cumulative hospitalizations to 
 
 res_state%>% 
   mutate(hosp_inf_ratio = cumHosp/cumInf)%>%
-  ggplot(aes(x=time, y=hosp_inf_ratio, color=death_rate)) +
+  ggplot(aes(x=time, y=hosp_inf_ratio, color=pdeath)) +
     geom_point(alpha=.02) +
     geom_hline(yintercept=config$outcomes$settings[[1]]$incidH$probability$value$value, col="firebrick2")+
   geom_hline(yintercept=config$outcomes$settings[[1]]$incidH$probability$value$value/2, col="seagreen3")+
@@ -1304,7 +1290,7 @@ cap<-paste0("**Fig.", fig_counter, "**: Ratio of cumulative deaths to hospitaliz
   
 res_state%>% 
   mutate(death_hosp_ratio = cumDeaths/cumHosp)%>%
-  ggplot(aes(x=time, y=death_hosp_ratio, color=death_rate)) +
+  ggplot(aes(x=time, y=death_hosp_ratio, color=pdeath)) +
     geom_point(alpha=.015) +
     geom_hline(yintercept=config$outcomes$settings[[1]]$incidD$probability$value$value/config$outcomes$settings[[1]]$incidH$probability$value$value) +
   theme_bw()
@@ -1321,7 +1307,7 @@ res_state%>%
   mutate(lead_death=lead(cumDeaths,3)) %>%
   ungroup() %>%
   mutate(death_hosp_ratio = lead_death/cumHosp)%>%
-  ggplot(aes(x=time, y=death_hosp_ratio, color=death_rate)) +
+  ggplot(aes(x=time, y=death_hosp_ratio, color=pdeath)) +
     geom_point(alpha=.015) +
     geom_hline(yintercept=config$outcomes$settings[[1]]$incidD$probability$value$value/config$outcomes$setting[[1]]$incidH$probability$value$value)+
   theme_bw()
@@ -1343,7 +1329,7 @@ res_state %>%
   geom_line(color = "red")+
   geom_ribbon(alpha=.1, fill = "red")+
   geom_point(aes(y=Deaths), col="black") +
-  facet_grid({if(run=="state") name else(USPS)} ~ death_rate, scales = "free")+
+  facet_grid({if(run=="state") name else(USPS)} ~ pdeath, scales = "free")+
   #geom_text(data = label, label = "mae") +
   #scale_y_sqrt() +
   theme_bw() + 
@@ -1361,16 +1347,16 @@ res_state %>%
   left_join(mae_infect) %>%
    # {if(run=="state") unite(., "name_mae", name:mae, sep=": ", remove = TRUE) else(unite(., "name_mae", !!as.symbol(geogroup):mae, sep=": ", remove = FALSE))} %>%
   inner_join(truth_dat%>%rename(time=date))%>%
-{if(run=="state") group_by(.,death_rate, time=lubridate::floor_date(time, unit="week", week_start=1), group=name) else(group_by(.,death_rate, time=lubridate::floor_date(time, unit="week", week_start=1), group=USPS))}%>%
-  select(starts_with("incidD")) %>%
+{if(run=="state") group_by(.,pdeath, time=lubridate::floor_date(time, unit="week", week_start=1), group=name) else(group_by(.,pdeath, time=lubridate::floor_date(time, unit="week", week_start=1), group=USPS))}%>%
+  dplyr::select(starts_with("incidD")) %>%
   summarize_if(is.numeric, sum)%>%
-  group_by(death_rate, group) %>%
+  group_by(pdeath, group) %>%
   filter(time!=max(time))%>%
   ggplot(aes(x=time, y=incidD, ymin=incidD_5pct, ymax=incidD_95pct))+
   geom_line(color= "red")+
   geom_ribbon(alpha=0.1, fill="red") +
   geom_point(aes(y=incidDeath), color="black")+
-  facet_grid(group ~ death_rate, scales = "free")+
+  facet_grid(group ~ pdeath, scales = "free")+
   #scale_y_sqrt()+
   theme_bw()+
   theme(legend.position = "bottom")+
@@ -1386,13 +1372,13 @@ res_state %>%
   left_join(mae_hosp) %>%
    # {if(run=="state") unite(., "name_mae", name:mae, sep=": ", remove = TRUE) else(unite(., "name_mae", !!as.symbol(geogroup):mae, sep=": ", remove = FALSE))} %>%
   inner_join(truth_dat%>%rename(time=date))%>%
-  {if(run=="state") group_by(., death_rate, name) else(group_by(., death_rate, USPS))} %>%
+  {if(run=="state") group_by(., pdeath, name) else(group_by(., pdeath, USPS))} %>%
   filter(time!=max(time))%>%
   ggplot(aes(x=time, y=currHosp, ymin=currHosp_5pct, ymax=currHosp_95pct))+
   geom_line(color= "red")+
   geom_ribbon(alpha=0.1, fill="red") +
   geom_point(aes(y=hosp), color="black")+
-  facet_grid({if(run=="state") name else(USPS)} ~ death_rate, scales = "free")+
+  facet_grid({if(run=="state") name else(USPS)} ~ pdeath, scales = "free")+
   #scale_y_sqrt()+
   theme_bw()+
   theme(legend.position = "bottom")+
@@ -1408,16 +1394,16 @@ res_state %>%
   left_join(mae_infect) %>%
    # {if(run=="state") unite(., "name_mae", name:mae, sep=": ", remove = TRUE) else(unite(., "name_mae", !!as.symbol(geogroup):mae, sep=": ", remove = FALSE))} %>%
   inner_join(truth_dat%>%rename(time=date))%>%
-{if(run=="state") group_by(.,death_rate, time=lubridate::floor_date(time, unit="week", week_start=1), group=name) else(group_by(.,death_rate, time=lubridate::floor_date(time, unit="week", week_start=1), group=USPS))}%>%
-  select(incidI, starts_with("incidC")) %>%
+{if(run=="state") group_by(.,pdeath, time=lubridate::floor_date(time, unit="week", week_start=1), group=name) else(group_by(.,pdeath, time=lubridate::floor_date(time, unit="week", week_start=1), group=USPS))}%>%
+  dplyr::select(incidI, starts_with("incidC")) %>%
   summarize_if(is.numeric, sum)%>%
-  group_by(death_rate, group)%>%
+  group_by(pdeath, group)%>%
   filter(time!=max(time))%>%
   ggplot(aes(x=time, y=incidC, ymin=incidC_5pct, ymax=incidC_95pct))+
   geom_line(color= "red")+
   geom_ribbon(alpha=0.1, fill="red") +
   geom_point(aes(y=incidI), color="black")+
-  facet_grid(group~ death_rate, scales = "free")+
+  facet_grid(group~ pdeath, scales = "free")+
   #scale_y_sqrt()+
   theme_bw()+
   theme(legend.position = "bottom")+

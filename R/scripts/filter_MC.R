@@ -59,7 +59,7 @@ if(!('lambda_file' %in% names(config$seeding))) {
 state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
 
 
-##Load infromationon geographic locations from geodata file.
+##Load information on geographic locations from geodata file.
 suppressMessages(geodata <- report.generation::load_geodata_file(
   paste(
     config$spatial_setup$base_path,
@@ -70,7 +70,7 @@ suppressMessages(geodata <- report.generation::load_geodata_file(
 obs_nodename <- config$spatial_setup$nodenames
 
 ##Load simulations per slot from config if not defined on command line
-##command options take precendence
+##command options take precedence
 if(is.na(opt$simulations_per_slot)){
   opt$simulations_per_slot <- config$filtering$simulations_per_slot
 }
@@ -179,31 +179,31 @@ for(scenario in scenarios) {
     # Data -------------------------------------------------------------------------
     # Load
 
-    slot_prefix <- covidcommon::create_prefix(config$name,scenario,deathrate,opt$run_id,sep='/',trailing_separator='/')
+    slot_prefix <- covidcommon::create_prefix(config$name,scenario,deathrate,opt$run_id,sep='/',trailing_separator='/') # makes prefix of the form name/scenario/deathrate/run_id
 
-    gf_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','final',sep='/',trailing_separator='/')
-    ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/')
-    gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/')
+    gf_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','final',sep='/',trailing_separator='/') # makes prefix of the form name/scenario/deathrate/run_id/global/final
+    ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/') # makes prefix of the form name/scenario/deathrate/run_id/chimeric/intermediate
+    gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/') # makes prefix of the form name/scenario/deathrate/run_id/global/intermediate
+
+    chimeric_block_prefix <- covidcommon::create_prefix(prefix=ci_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')  # makes prefix of the form name/scenario/deathrate/run_id/chimeric/intermediate/slot
+    chimeric_local_prefix <- covidcommon::create_prefix(prefix=chimeric_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.') # makes prefix of the form name/scenario/deathrate/run_id/chimeric/intermediate/slot.block
+
+    global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.') # makes prefix of the form name/scenario/deathrate/run_id/global/intermediate/slot
+    global_local_prefix <- covidcommon::create_prefix(prefix=global_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.') #makes prefix of the form name/scenario/deathrate/run_id/global/intermediate/slot.block
 
 
-    chimeric_block_prefix <- covidcommon::create_prefix(prefix=ci_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
-    chimeric_local_prefix <- covidcommon::create_prefix(prefix=chimeric_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
-
-    global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
-    global_local_prefix <- covidcommon::create_prefix(prefix=global_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
-
-
+    ### Set up initial conditions
+    
+    
     ## pass prefix to python and use
     reticulate::py_run_string(paste0("deathrate = '", deathrate, "'"))
-    reticulate::py_run_string(paste0("prefix = '", global_block_prefix, "'"))
+    reticulate::py_run_string(paste0("prefix = '", global_block_prefix, "'")) # files will be saved in global/intermediate/slot....
     reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
+    first_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block - 1) # makes file names of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1).run_ID.variable.ext
+    first_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block - 1) # makes file names of the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.(block-1).run_ID.variable.ext
 
-
-    first_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block - 1)
-    first_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block - 1)
-
-    inference::initialize_mcmc_first_block(
+    inference::initialize_mcmc_first_block( # Functions within this function save variables to files of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1),runID.variable.ext and also copied into the /chimeric/ version, which are referenced by first_global_files and first_chimeric_files
       opt$run_id,
       opt$this_block,
       global_block_prefix,
@@ -237,7 +237,8 @@ for(scenario in scenarios) {
 
     ## So far no acceptances have occurred
     current_index <- 0
-### Load initial files
+    
+### Load initial files (were created within function initialize_mcmc_first_block)
     suppressMessages(initial_seeding <- readr::read_csv(first_chimeric_files[['seed_filename']], col_types=readr::cols(place=readr::col_character())))
     initial_seeding$amount <- as.integer(round(initial_seeding$amount))
     initial_snpi <- arrow::read_parquet(first_chimeric_files[['snpi_filename']])
@@ -255,19 +256,25 @@ for(scenario in scenarios) {
 ### current means proposed
 ### initial means accepted/current
 
+    startTimeCount=Sys.time()
+    
 #####Loop over simulations in this block
+    
    for( this_index in seq_len(opt$simulations_per_slot)) {
-      print(paste("Running simulation", this_index))
+      
+     print(paste("Running simulation", this_index))
+     
+     startTimeCountEach=Sys.time()
 
       ## Create filenames
-      this_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
-      this_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_local_prefix, this_index)
-
+      this_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index) # makes file names of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.block.iter.run_ID.variable.ext
+      this_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_local_prefix, this_index) # makes file names of the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.block.iter.run_ID.variable.ext
+ 
       ## Setup python
-      reticulate::py_run_string(paste0("prefix = '", global_local_prefix, "'"))
+      reticulate::py_run_string(paste0("prefix = '", global_local_prefix, "'")) # files will be saved in global/intermediate/slot.block....
       reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
-      ## Do perturbations from accepted
+      ## Do perturbations from accepted parameters to get proposed parameters
       proposed_seeding <- inference::perturb_seeding(
         initial_seeding,
         config$seeding$perturbation_sd,
@@ -281,20 +288,22 @@ for(scenario in scenarios) {
       proposed_hpar <- inference::perturb_hpar(initial_hpar, config$outcomes$settings[[deathrate]])
 
       ## Write files that need to be written for other code to read
+      # writes to file  of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.block.iter.run_ID.variable.ext
       write.csv(proposed_seeding,this_global_files[['seed_filename']])
       arrow::write_parquet(proposed_snpi,this_global_files[['snpi_filename']])
       arrow::write_parquet(proposed_hnpi,this_global_files[['hnpi_filename']])
       arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
       arrow::write_parquet(proposed_hpar,this_global_files[['hpar_filename']])
 
-      ## Run SEIR
-      err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
+      ## Run SEIR model
+      err <- py$onerun_SEIR_loadID(this_index, py$s, this_index) # This fx is in seir.py, and it calls a set-up fx in seir.py which then calls the SEIR model in steps_source.py. Reads parameters from ..., saves output to ... 
       err <- ifelse(err == 1,0,1)
       if(err != 0){
         stop("SEIR failed to run")
       }
 
-      err <- py$onerun_OUTCOMES_loadID(this_index)
+      # Run outcomes model
+      err <- py$onerun_OUTCOMES_loadID(this_index) # This fx is in seir.py, and it calls the outcomes models in outcomes.py
       print(err)
       err <- ifelse(err == 1,0,1)
       if(err != 0){
@@ -304,12 +313,11 @@ for(scenario in scenarios) {
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_global_files[['hosp_filename']]))(this_global_files[['hosp_filename']]) %>%
         dplyr::filter(time >= min(obs$date),time <= max(obs$date))
 
-
-
       lhs <- unique(sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
 
+      # Compare model output to data and calculate likelihood
       proposed_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
         all_locations = all_locations,
         modeled_outcome = sim_hosp,
@@ -340,16 +348,20 @@ for(scenario in scenarios) {
       ## For logging
       print(paste("Current likelihood",global_likelihood,"Proposed likelihood",proposed_likelihood))
 
+      # Global likelihood acceptance or rejection decision
+      
       if(inference::iterateAccept(global_likelihood, proposed_likelihood)){
         print("****ACCEPT****")
-        current_index <- this_index
-        global_likelihood <- proposed_likelihood
-        global_likelihood_data <- proposed_likelihood_data
+        current_index <- this_index #IMPORTANT: This is the index of the most recent globally accepted parameters
+        global_likelihood <- proposed_likelihood #This carries forward to next iteration as current global likelihood
+        global_likelihood_data <- proposed_likelihood_data #This carries forward to next iteration as current global likelihood
       } else {
         print("****REJECT****")
       }
-      arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
+      arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']]) # prints to file of the form llik/name/scenario/deathrate/run_id/global/intermediate/slot.block.iter.run_ID.llik.ext
 
+      # GeoID-specific likelihood acceptance or rejection decisions (one round)
+      
       seeding_npis_list <- inference::accept_reject_new_seeding_npis(
         seeding_orig = initial_seeding,
         seeding_prop = proposed_seeding,
@@ -362,40 +374,61 @@ for(scenario in scenarios) {
         orig_lls = chimeric_likelihood_data,
         prop_lls = proposed_likelihood_data
       )
+      
+      # Update accepted parameters to start next simulation
       initial_seeding <- seeding_npis_list$seeding
       initial_snpi <- seeding_npis_list$snpi
       initial_hnpi <- seeding_npis_list$hnpi
       initial_hpar <- seeding_npis_list$hpar
       chimeric_likelihood_data <- seeding_npis_list$ll
-      arrow::write_parquet(chimeric_likelihood_data, this_chimeric_files[['llik_filename']])
+      arrow::write_parquet(chimeric_likelihood_data, this_chimeric_files[['llik_filename']]) # to file of the form llik/name/scenario/deathrate/run_id/chimeric/intermediate/slot.block.iter.run_id.llik.parquet
+      
+      ## Write accepted parameters to file
+      # writes to fileof the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.block.iter.run_ID.variable.ext
+      write.csv(initial_seeding,this_chimeric_files[['seed_filename']])
+      arrow::write_parquet(initial_snpi,this_chimeric_files[['snpi_filename']])
+      arrow::write_parquet(initial_hnpi,this_chimeric_files[['hnpi_filename']])
+      arrow::write_parquet(initial_spar,this_chimeric_files[['spar_filename']])
+      arrow::write_parquet(initial_hpar,this_chimeric_files[['hpar_filename']])
 
       print(paste("Current index is ",current_index))
       # print(proposed_likelihood_data)
       # print(chimeric_likelihood_data)
 
-      ###Memory managment
+      ###Memory management
       rm(proposed_snpi)
       rm(proposed_hnpi)
       rm(proposed_hpar)
       rm(proposed_seeding)
-    }
+      
+      endTimeCountEach=Sys.time()-startTimeCountEach
+      print(paste("Time to run this MCMC iterations is ",endTimeCountEach))
+   }
+    
+    endTimeCount=Sys.time()-startTimeCount
+    print(paste("Time to run all MCMC iterations is ",endTimeCount))
 
-#####Do MCMC end copy. Fail if unsucessfull
+#####Do MCMC end copy. Fail if unsuccessful
+    
+      # moves the most recently globally accepted parameter values from global/intermediate file to global/final  
       cpy_res <- inference::perform_MCMC_step_copies(current_index,
                                                      opt$this_slot,
                                                      opt$this_block,
                                                      opt$run_id,
-                                                     global_local_prefix,
-                                                     gf_prefix,
-                                                     global_block_prefix)
+                                                     global_local_prefix, #global/intermediate/slot.block
+                                                     gf_prefix, #global/final
+                                                     global_block_prefix) ##global/intermediate/slot
 
       if(!prod(unlist(cpy_res))) {stop("File copy failed:", paste(unlist(cpy_res),paste(names(cpy_res),"|")))}
 
 
 #####Write currently accepted files to disk
-    last_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, opt$simulations_per_slot)
-    output_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block)
-    output_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block)
+      
+    last_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, opt$simulations_per_slot) #files of the form variables/name/scenario/deathrate/run_id/global/intermediate/slot.block.iter.run_id.variable.parquet
+    output_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block) #files of the form variables/name/scenario/deathrate/run_id/chimeric/intermediate/slot.block.run_id.variable.parquet
+    output_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block) #files of the form variables/name/scenario/deathrate/run_id/global/intermediate/slot.block.run_id.variable.parquet
+    
+    # save current chimeric parameter values (just slot.block, no iter)
     readr::write_csv(initial_seeding,output_chimeric_files[['seed_filename']])
     arrow::write_parquet(initial_snpi,output_chimeric_files[['snpi_filename']])
     arrow::write_parquet(initial_hnpi,output_chimeric_files[['hnpi_filename']])

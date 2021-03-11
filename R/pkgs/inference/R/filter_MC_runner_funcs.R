@@ -216,7 +216,7 @@ perform_MCMC_step_copies <- function(current_index,
 
   rc <- list()
 
-  if(current_index != 0){
+  if(current_index != 0){ #move files from global/intermediate/slot.block.run to global/final/slot
     rc$seed_gf <- file.copy(
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seed','csv'),
       covidcommon::create_file_name(run_id,gf_prefix,slot,'seed','csv'),
@@ -264,7 +264,7 @@ perform_MCMC_step_copies <- function(current_index,
       covidcommon::create_file_name(run_id,gf_prefix,slot,'hpar','parquet'),
 	    overwrite = TRUE
     )
-
+    #move files from global/intermediate/slot.block.run to global/intermediate/slot
     rc$seed_block <- file.copy(
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seed','csv'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'seed','csv')
@@ -306,7 +306,7 @@ perform_MCMC_step_copies <- function(current_index,
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'hpar','parquet'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'hpar','parquet')
     )
-  } else {
+  } else { #move files from global/intermediate/slot.(block-1) to global/intermediate/slot.(block-1)
     rc$seed_prevblk <- file.copy(
       covidcommon::create_file_name(run_id,global_block_prefix,block - 1 ,'seed','csv'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'seed','csv')
@@ -378,7 +378,7 @@ create_filename_list <- function(
 
 ##'@name initialize_mcmc_first_block
 ##'@title initialize_mcmc_first_block
-##'@param slot what is the current slot numbe
+##'@param slot what is the current slot number
 ##'@param block what is the current block
 ##'@param run_id what is the id of this run
 ##'@param global_prefix the prefix to use for global files
@@ -400,8 +400,8 @@ initialize_mcmc_first_block <- function(
   non_llik_types <- paste(c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar"), "filename", sep = "_")
   extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
 
-  global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions)
-  chimeric_files <- create_filename_list(run_id, chimeric_prefix, block - 1, types, extensions)
+  global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1).run_ID.variable.ext
+  chimeric_files <- create_filename_list(run_id, chimeric_prefix, block - 1, types, extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.(block-1).run_ID.variable.ext
 
   global_check <- sapply(global_files, file.exists)
   chimeric_check <- sapply(chimeric_files, file.exists)
@@ -479,6 +479,7 @@ initialize_mcmc_first_block <- function(
   }
 
   ## seir, snpi, spar
+  # These functions save variables to files of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1),runID.variable.ext
   if (any(c("snpi_filename", "spar_filename") %in% global_file_names)) {
     if (!all(c("snpi_filename", "spar_filename") %in% global_file_names)) {
       stop("Provided some SEIR input, but not all")
@@ -522,10 +523,10 @@ initialize_mcmc_first_block <- function(
 
   ## Refactor me later:
   global_likelihood_data <- likelihood_calculation_function(hosp_data)
-  arrow::write_parquet(global_likelihood_data, global_files[["llik_filename"]])
+  arrow::write_parquet(global_likelihood_data, global_files[["llik_filename"]]) # save global likelihood data to file of the form llik/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1).run_ID.llik.ext
 
   for (type in names(chimeric_files)) {
-    file.copy(global_files[[type]], chimeric_files[[type]], overwrite = TRUE)
+    file.copy(global_files[[type]], chimeric_files[[type]], overwrite = TRUE) # copy files that were in global directory into chimeric directory
   }
   return()
 }

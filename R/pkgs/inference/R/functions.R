@@ -466,7 +466,7 @@ perturb_hpar <- function(hpar, intervention_settings) {
 
   return(hpar)
 }
-##' Function to go through to accept or reject seedings in a block manner based
+##' Function to go through to accept or reject proposed parameters for each geoid based
 ##' on a geoid specific likelihood.
 ##'
 ##'
