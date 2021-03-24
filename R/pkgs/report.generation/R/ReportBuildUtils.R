@@ -330,7 +330,7 @@ plot_geounit_attack_rate_map <- function (cum_inf_geounit_dates,
                                           shp,
                                           varlabel = "Infections",
                                           scenariolabel = config$report$formatting$scenario_labels[1],
-                                          popnodes = config$spatial_setup$popnodes,
+                                          popnodes = "pop",
                                           display_date,
                                           viridis_palette = "plasma") {
 
@@ -388,7 +388,7 @@ plot_geounit_map <- function(cum_inf_geounit_dates,
                              shp, 
                              legend_name = "Value per 10K",
                              scenariolabel = config$report$formatting$scenario_labels[1], 
-                             popnodes = config$spatial_setup$popnodes, 
+                             popnodes = "pop", 
                              display_date,
                              clims = NULL){
   
@@ -2057,7 +2057,7 @@ calcR0 <- function(USAfacts,
                    by_geoid=FALSE, 
                    min.date=NULL, 
                    max.date=NULL,
-                   pop_col = config$spatial_setup$popnodes){
+                   pop_col = "pop"){
   
   if(is.null(max.date)){
     max.date <- max(USAfacts$date)-7

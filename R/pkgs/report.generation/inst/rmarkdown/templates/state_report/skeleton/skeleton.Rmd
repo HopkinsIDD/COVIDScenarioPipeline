@@ -418,24 +418,21 @@ ARmap1 <- plot_geounit_attack_rate_map(cum_inf_dates,
                                        shp,
                                        scenariolabel = scn_labels[1],
                                        display_date = display_dates[1],
-                                       viridis_palette = "plasma",
-                                       popnodes = config$spatial_setup$popnodes)
+                                       viridis_palette = "plasma")
 
 ARmap2 <- plot_geounit_attack_rate_map(cum_inf_dates,
                                        geodata,
                                        shp,
                                        scenariolabel = scn_labels[1],
                                        display_date = display_dates[2],
-                                       viridis_palette = "viridis",
-                                       popnodes = config$spatial_setup$popnodes)
+                                       viridis_palette = "viridis")
 
 ARmap3 <- plot_geounit_attack_rate_map(cum_inf_dates,
                                        geodata,
                                        shp,
                                        scenariolabel = scn_labels[1],
                                        display_date = display_dates[3],
-                                       viridis_palette = "cividis",
-                                       popnodes = config$spatial_setup$popnodes)
+                                       viridis_palette = "cividis")
 
 cowplot::plot_grid(ARmap1, ARmap2, ARmap3, ncol=3)
 
