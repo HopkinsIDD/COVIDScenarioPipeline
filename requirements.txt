@@ -63,7 +63,7 @@ pyproj==2.5.0
 pytest==5.4.1
 python-dateutil==2.8.0
 pytz==2019.3
-PyYAML==5.3.1
+PyYAML==5.4
 requests==2.23.0
 rpy2==3.2.6
 ruamel.yaml==0.16.10
