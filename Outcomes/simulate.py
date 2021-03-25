@@ -111,17 +111,8 @@ def simulate(config_file, in_run_id, in_prefix, out_run_id, out_prefix, scenario
           """)
         
         if (config["outcomes"]["method"].get() == 'delayframe'):
-            outcomes.run_delayframe_outcomes(config,
-                                             in_run_id,
-                                             in_prefix,
-                                             index,
-                                             out_run_id,
-                                             out_prefix,
-                                             index,
-                                             scenario_outcomes,
-                                             nsim,
-                                             jobs,
-                                             stoch_traj_flag)
+            outcomes.run_delayframe_outcomes(config, index, in_run_id, in_prefix, index, out_run_id, out_prefix,
+                                             scenario_outcomes, nsim, jobs, stoch_traj_flag)
 
         else:
             raise ValueError(f"Only method 'delayframe' is supported at the moment.")
