@@ -1,5 +1,4 @@
 ## Preamble ---------------------------------------------------------------------
-suppressMessages(library(tidyverse))
 suppressMessages(library(readr))
 suppressMessages(library(covidcommon))
 suppressMessages(library(report.generation))
@@ -10,8 +9,7 @@ suppressMessages(library(xts))
 suppressMessages(library(reticulate))
 suppressMessages(library(truncnorm))
 suppressMessages(library(parallel))
-# suppressMessages(library(flock))
-options(warn=1)
+options(warn = 1)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
@@ -23,6 +21,8 @@ option_list = list(
   optparse::make_option(c("-i", "--this_slot"), action="store", default=Sys.getenv("COVID_SLOT_INDEX", 1), type='integer', help = "id of this slot"),
   optparse::make_option(c("-b", "--this_block"), action="store", default=Sys.getenv("COVID_BLOCK_INDEX",1), type='integer', help = "id of this block"),
   optparse::make_option(c("-t", "--stoch_traj_flag"), action="store", default=Sys.getenv("COVID_STOCHASTIC",TRUE), type='logical', help = "Stochastic SEIR and outcomes trajectories if true"),
+  optparse::make_option(c("--ground_truth_start"), action = "store", default = Sys.getenv("COVID_GT_START", ""), type = "character", help = "First date to include groundtruth for"),
+  optparse::make_option(c("--ground_truth_end"), action = "store", default = Sys.getenv("COVID_GT_END", ""), type = "character", help = "Last date to include groundtruth for"),
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
   optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
   optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable"),
@@ -71,7 +71,7 @@ obs_nodename <- config$spatial_setup$nodenames
 
 ##Load simulations per slot from config if not defined on command line
 ##command options take precendence
-if(is.na(opt$simulations_per_slot)){
+if (is.na(opt$simulations_per_slot)) {
   opt$simulations_per_slot <- config$filtering$simulations_per_slot
 }
 print(paste("Running",opt$simulations_per_slot,"simulations"))
@@ -129,14 +129,33 @@ if(is.null(config$filtering$gt_source)){
 
 gt_scale <- ifelse(state_level, "US state", "US county")
 fips_codes_ <- geodata[[obs_nodename]]
-gt_end_date <- ifelse(is.null(config$end_date_groundtruth), config$end_date, config$end_date_groundtruth)
+
+gt_start_date <- lubridate::ymd(config$start_date)
+if (opt$ground_truth_start != "") {
+  gt_start_date <- lubridate::ymd(opt$ground_truth_start)
+} else if (!is.null(config$start_date_groundtruth)) {
+  gt_start_date <- lubridate::ymd(config$start_date_groundtruth)
+}
+if (gt_start_date < lubridate::ymd(config$start_date)) {
+  gt_start_date <- lubridate::ymd(config$start_date)
+}
+
+gt_end_date <- lubridate::ymd(config$end_date)
+if (opt$ground_truth_end != "") {
+  gt_end_date <- lubridate::ymd(opt$ground_truth_end)
+} else if (!is.null(config$end_date_groundtruth)) {
+  gt_end_date <- lubridate::ymd(config$end_date_groundtruth)
+}
+if (gt_end_date > lubridate::ymd(config$end_date)) {
+  gt_end_date <- lubridate::ymd(config$end_date)
+}
 
 
 obs <- inference::get_ground_truth(
           data_path = data_path,
           fips_codes = fips_codes_,
           fips_column_name = obs_nodename,
-          start_date = config$start_date,
+          start_date = gt_start_date,
           end_date = gt_end_date,
           gt_source = gt_source,
           gt_scale = gt_scale
@@ -214,7 +233,7 @@ for(scenario in scenarios) {
         lhs <- unique(sim_hosp[[obs_nodename]])
         rhs <- unique(names(data_stats))
         all_locations <- rhs[rhs %in% lhs]
-        
+
         inference::aggregate_and_calc_loc_likelihoods(
           all_locations = all_locations, # technically different
           modeled_outcome = sim_hosp,
@@ -271,7 +290,7 @@ for(scenario in scenarios) {
       proposed_seeding <- inference::perturb_seeding(
         initial_seeding,
         config$seeding$perturbation_sd,
-        c(lubridate::ymd(c(config$start_date,gt_end_date))))
+        c(gt_start_date, gt_end_date))
       proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
       proposed_hnpi <- inference::perturb_hnpi(initial_hnpi, config$interventions$settings)
       proposed_spar <- initial_spar
