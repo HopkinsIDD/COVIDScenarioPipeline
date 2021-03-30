@@ -322,7 +322,7 @@ perturb_seeding <- function(seeding,sd,date_bounds) {
     dplyr::mutate(date = date+round(rnorm(1,0,sd))) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(
-      amount=round(pmax(rnorm(length(amount),amount,1),0)),
+      amount=ifelse( sd < 0.1, amount, round(pmax(rnorm(length(amount),amount,1),0))),
       date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
     )
 
