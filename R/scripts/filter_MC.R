@@ -47,7 +47,7 @@ config = covidcommon::load_config(opt$config)
 if(!('perturbation_sd' %in% names(config$seeding))) {
   stop("The key seeding::perturbation_sd is required in the config file.")
 }
-if(config$seeding$method != 'FolderDraw'){
+if(!(config$seeding$method %in% c('FolderDraw','InitialConditionsFolderDraw'))){
   stop("This filtration method requires the seeding method 'FolderDraw'")
 }
 if(!('lambda_file' %in% names(config$seeding))) {
