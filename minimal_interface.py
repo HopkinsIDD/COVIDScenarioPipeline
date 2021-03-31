@@ -1,70 +1,36 @@
 #!/usr/bin/env python
 
 ##
-# @file
-# @brief Runs hospitalization model
-#
-# @details
-#
-# ## Configuration Items
-#
-# ```yaml
-# name: <string>
-# start_date: <date>
-# end_date: <date>
-# dt: float
-# dynfilter_path: <path to file> optional. Will not do filter step if not present
-# nsimulations: <integer> overridden by the -n/--nsim script parameter
-# spatial_setup:
-#   setup_name: <string>
-#   base_path: <path to directory>
-#   geodata: <path to file>
-#   mobility: <path to file>
-#   nodenames: <string>
-#   popnodes: <string>
-#
-# seir:
-#   parameters
-#     alpha: <float>
-#     sigma: <float>
-#     gamma: <random distribution>
-#     R0s: <random distribution>
-#
-# interventions:
-#   scenarios:
-#     - <scenario 1 name>
-#     - <scenario 2 name>
-#     - ...
-#   settings:
-#     <scenario 1 name>:
-#       template: choose one - "Reduce", ReduceR0", "Stacked"
-#       ...
-#     <scenario 2 name>:
-#       template: choose one - "Reduce", "ReduceR0", "Stacked"
-#       ...
-#
-# seeding:
-#   method: choose one - "PoissonDistributed", "FolderDraw"
+# mininimal_interface.py defines handlers to the CSP epidemic module (SEIR) and the pipeline outcomes module (Outcomes)
+# so they can be used from R for inference.
+# R folks needs to define start a python, and set some variable as follow
+# ```R`
+# reticulate::use_python(Sys.which(opt$python),require=TRUE)
+# reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
+# reticulate::py_run_string(paste0("run_id = '", opt$run_id, "'"))
+# reticulate::import_from_path("SEIR", path=opt$pipepath)
+# reticulate::import_from_path("Outcomes", path=opt$pipepath)
+# reticulate::py_run_string(paste0("index = ", 1))
+# reticulate::py_run_string(paste0("stoch_traj_flag = True"))
+# reticulate::py_run_string(paste0("scenario = '", scenario, "'"))   # NPI Scenario
+# reticulate::py_run_string(paste0("deathrate = '", deathrate, "'")) # Outcome Scenario
+# reticulate::py_run_string(paste0("prefix = '", global_block_prefix, "'"))
+# reticulate::py_run_file(paste(opt$pipepath, "minimal_interface.py", sep = '/'))
 # ```
+# This populate the namespace with four functions, with return value 1 if the
+# function terminated.
+# err < - py$onerun_SEIR_loadID(this_index, py$s, this_index)
+# err <- py$onerun_OUTCOMES_loadID(this_index)  # err is one if the function
 #
-# ### interventions::scenarios::settings::<scenario name>
-#
-# If {template} is ReduceR0
-# ```yaml
-import multiprocessing
+
 import pathlib
-import time
-
-import click
-
 from SEIR import seir, setup, file_paths
 from SEIR.utils import config
-from SEIR.profile import profile_options
 from Outcomes import outcomes
 
-config.set_file(config_path)
 
-# config.set_file('config.yml')
+
+config.set_file(config_path)
 
 spatial_config = config["spatial_setup"]
 spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
