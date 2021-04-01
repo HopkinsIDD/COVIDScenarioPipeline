@@ -80,13 +80,11 @@ print(f"""
 
 setup_name = s.setup_name
 print(scenario, deathrate, index, run_id, prefix)
-onerun_OUTCOMES_loadID = lambda index: outcomes.onerun_delayframe_outcomes_load_hpar(config,
-                                                                                     run_id, prefix, int(index), # input
-                                                                                     run_id, prefix, int(index), # output
+onerun_OUTCOMES_loadID = lambda index: outcomes.onerun_delayframe_outcomes_load_hpar(config, int(index), run_id, prefix,
+                                                                                     int(index), run_id, prefix,
                                                                                      deathrate, stoch_traj_flag)
-onerun_OUTCOMES = lambda index: outcomes.run_delayframe_outcomes(config,
-                                                                 run_id, prefix, int(index), # input
-                                                                 run_id, prefix, int(index), # output
-                                                                 deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+onerun_OUTCOMES = lambda index: outcomes.run_delayframe_outcomes(config, int(index), run_id, prefix, int(index), run_id,
+                                                                 prefix, deathrate, nsim=1, n_jobs=1,
+                                                                 stoch_traj_flag=stoch_traj_flag)
 onerun_SEIR_loadID = lambda sim_id2write, s, sim_id2load: seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load), stoch_traj_flag)
 onerun_SEIR = lambda sim_id2write, s: seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
