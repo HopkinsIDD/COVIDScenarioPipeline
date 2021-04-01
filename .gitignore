@@ -60,3 +60,4 @@ packrat/lib*/
 build/
 dist/
 SEIR.egg-info/
+.Rproj.user

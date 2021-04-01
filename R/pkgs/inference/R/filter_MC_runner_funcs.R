@@ -3,19 +3,19 @@
 
 ##'Function that performs aggregation and calculates likelihood data across all given locations.
 ##'
-##' @param all_locations all of the locoations to calculate likelihood for
+##' @param all_locations all of the locations to calculate likelihood for
 ##' @param modeled_outcome  the hospital data for the simulations
-##' @param obs_nodename the name of the column containg locations.
-##' @param config the full configuraiton setup
+##' @param obs_nodename the name of the column containing locations.
+##' @param config the full configuration setup
 ##' @param obs the full observed data
 ##' @param ground_truth_data the data we are going to compare to aggregated to the right statistic
 ##' @param hosp_file the filename of the hosp file being used (unclear if needed in scope)
 ##' @param hierarchical_stats the hierarchical stats to use
 ##' @param defined_priors information on defined priors.
 ##' @param geodata the geographics data to help with hierarchies
-##' @param snpi the file with the npi information for seir
-##' @param hnpi the file with the npi information for outcomes
-##' @param hpar data frame of hospitalization parameters
+##' @param snpi the file with the npi information for seir, only used for heirarchical likelihoods
+##' @param hnpi the file with the npi information for outcomes, only used for heirarchical likelihoods
+##' @param hpar data frame of hospitalization parameters, only used for heirarchical likelihoods
 ##'
 ##' @return a data frame of likelihood data.
 ##'
@@ -81,7 +81,10 @@ aggregate_and_calc_loc_likelihoods <- function(
     likelihood_data[[location]] <- dplyr::tibble(
       ll = this_location_log_likelihood,
       filename = hosp_file,
-      geoid = location
+      geoid = location,
+      accept = 0, # acceptance decision (0/1) . Will be updated later when accept/reject decisions made
+      accept_avg = 0, # running average acceptance decision
+      accept_prob = 0 # probability of acceptance of proposal
     )
     names(likelihood_data)[names(likelihood_data) == 'geoid'] <- obs_nodename
   }
@@ -89,7 +92,7 @@ aggregate_and_calc_loc_likelihoods <- function(
   #' @importFrom magrittr %>%
   likelihood_data <- likelihood_data %>% do.call(what = rbind)
 
-  ##Update  liklihood data based on hierarchical_stats
+  ##Update  likelihood data based on hierarchical_stats
   for (stat in names(hierarchical_stats)) {
 
     if (hierarchical_stats[[stat]]$module %in% c("seir_interventions", "seir")) {
@@ -131,14 +134,14 @@ aggregate_and_calc_loc_likelihoods <- function(
 
 
     ##probably a more efficient what to do this, but unclear...
-    likelihood_data <- dplyr::left_join(likelihood_data, ll_adjs) %>%
+    likelihood_data <- dplyr::left_join(likelihood_data, ll_adjs,by=obs_nodename) %>%
       tidyr::replace_na(list(likadj = 0)) %>% ##avoid unmatched location problems
       dplyr::mutate(ll = ll + likadj) %>%
       dplyr::select(-likadj)
   }
 
 
-  ##Update lieklihoods based on priors
+  ##Update likelihoods based on priors
   for (prior in names(defined_priors)) {
     if (defined_priors[[prior]]$module %in% c("seir_interventions", "seir")) {
       #' @importFrom magrittr %>%
@@ -177,12 +180,13 @@ aggregate_and_calc_loc_likelihoods <- function(
     }
 
     ##probably a more efficient what to do this, but unclear...
-    likelihood_data<- dplyr::left_join(likelihood_data, ll_adjs) %>%
+    likelihood_data<- dplyr::left_join(likelihood_data, ll_adjs,by=obs_nodename) %>%
       dplyr::mutate(ll = ll + likadj) %>%
       dplyr::select(-likadj)
   }
 
-
+  #print("from inside aggregate_and_calc_log_likelihood: column names of likelihood dataframe")
+  #print(colnames(likelihood_data))
 
   return(likelihood_data)
 }
@@ -359,8 +363,8 @@ create_filename_list <- function(
   run_id,
   prefix,
   index,
-  types = c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik"),
-  extensions = c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
+  types = c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik","lcov"),
+  extensions = c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
 ) {
   if(length(types) != length(extensions)){
     stop("Please specify the same number of types and extensions.  Given",length(types),"and",length(extensions))
@@ -396,9 +400,9 @@ initialize_mcmc_first_block <- function(
 ) {
 
   ## Only works on these files:
-  types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik")
+  types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik","lcov")
   non_llik_types <- paste(c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar"), "filename", sep = "_")
-  extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
+  extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
 
   global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1).run_ID.variable.ext
   chimeric_files <- create_filename_list(run_id, chimeric_prefix, block - 1, types, extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.(block-1).run_ID.variable.ext
@@ -458,7 +462,7 @@ initialize_mcmc_first_block <- function(
     ))
   }
 
-  global_file_names <- names(global_files[!global_check])
+  global_file_names <- names(global_files[!global_check]) # names are of the form "variable_filename", only files that DONT already exist will be in this list
 
   ## seed
   if ("seed_filename" %in% global_file_names) {
@@ -524,6 +528,9 @@ initialize_mcmc_first_block <- function(
   ## Refactor me later:
   global_likelihood_data <- likelihood_calculation_function(hosp_data)
   arrow::write_parquet(global_likelihood_data, global_files[["llik_filename"]]) # save global likelihood data to file of the form llik/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1).run_ID.llik.ext
+  
+  #print("from inside initialize_mcmc_first_block: column names of likelihood dataframe")
+  #print(colnames(global_likelihood_data))
 
   for (type in names(chimeric_files)) {
     file.copy(global_files[[type]], chimeric_files[[type]], overwrite = TRUE) # copy files that were in global directory into chimeric directory
