@@ -1539,7 +1539,9 @@ make_sparkline_tab_intervention_effect <- function(r_dat,
 ##' @param hosp whether hospitalization data is included in truth_dat with varname currhosp
 ##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
 ##' @param filter_val desired value of variable
-##' @param geodat df with location names
+##' @param fig_labs names for the labels of the figures that will show incidence cases, deaths, and hospitalizations
+##' @param pi_lo lower limit to interval
+##' @param pi_hi upper limit to interval
 ##' 
 ##' @return plot comparing observed and modeled estimates by geoid
 ##' 
@@ -1683,6 +1685,166 @@ plot_truth_by_county <- function(truth_dat,
   
   return(plot_rc)
 }
+
+
+##' Time series comparing reported and estimated cases and deaths in each
+##' geoid by pdeath or scenario; possible to show hospitalization data
+##' 
+##' @param truth_dat df with date, geoid, incidI, incidDeath; hosps if adding
+##' hospitalization data
+##' @param model_dat df with model estimates 
+##' @param hosp whether hospitalization data is included in truth_dat with varname currhosp
+##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
+##' @param filter_val desired value of variable
+##' @param geodat df with location names
+##' @param fig_labs names for the labels of the figures that will show incidence cases, deaths, and hospitalizations
+##' @param pi_lo lower limit to interval
+##' @param pi_hi upper limit to interval
+##' 
+##' @return plot comparing observed and modeled estimates by geoid
+##' 
+##'
+##'
+##'@export
+##'
+plot_truth_by_location <- function(truth_dat,
+                                model_dat,
+                                hosp=FALSE, 
+                                filter_by,
+                                filter_val,
+                                start_date,
+                                end_date,
+                                geodat=geodata,
+                                fig_labs=c("Incident Cases", "Incident Deaths"),
+                                pi_lo=0.025,
+                                pi_hi=0.975
+){
+  
+  start_dat<-as.Date(start_date)
+  end_date<-as.Date(end_date)
+  if(filter_by!="pdeath" & filter_by!="scenario") stop("You can only filter by 'pdeath' or 'scenario'")
+  
+  group_var<-if_else(filter_by=="pdeath", "scenario_name", "pdeath")
+  
+  model_dat<-model_dat%>%
+    dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
+    dplyr::group_by(geoid, name, !!as.symbol(group_var), sim_num, time=lubridate::ceiling_date(time, unit="week"))%>%
+    dplyr::summarize(NincidCase=sum(NincidCase, na.rm=TRUE),
+                     NincidDeath=sum(NincidDeath, na.rm=TRUE),
+                     NincidHosp=sum(NincidHosp, na.rm=TRUE)) %>%
+    dplyr::group_by(geoid) %>%
+    dplyr::filter(time<max(time))
+  
+  if(hosp){
+    
+    if(length(fig_labs)!=3){
+      fig_labs <- c("Incident Cases", "Incident Deaths", "Incident Hospitalizations")
+    }
+    truth_dat <- truth_dat %>%
+      dplyr::group_by(geoid, name, time=lubridate::ceiling_date(date, unit="week")) %>%
+      dplyr::summarize(incidI=sum(incidI, na.rm=TRUE),
+                       incidDeath=sum(incidDeath, na.rm=TRUE),
+                       incidH=sum(incidH, na.rm=TRUE)) %>%
+      dplyr::group_by(geoid)%>%
+      dplyr::filter(time<max(time))
+    
+    rc <- bind_rows(truth_dat%>%
+                      dplyr::mutate(confirmed=incidI,
+                                    type=fig_labs[1]),
+                    truth_dat%>%
+                      dplyr::mutate(confirmed=incidDeath,
+                                    type=fig_labs[2]),
+                    truth_dat%>%
+                      dplyr::mutate(confirmed=incidH,
+                                    type=fig_labs[3])) %>%
+      dplyr::select(-starts_with("incid")) %>%
+      dplyr::right_join(
+        bind_rows(model_dat %>%
+                    group_by(time, geoid, name, !!as.symbol(group_var))%>%     
+                    summarize(low=quantile(NincidCase,pi_lo),
+                              high=quantile(NincidCase,pi_hi),
+                              est=mean(NincidCase),
+                              type=fig_labs[1]),
+                  model_dat %>%
+                    group_by(time, geoid, name, !!as.symbol(group_var))%>%  
+                    summarize(low=quantile(NincidDeath,pi_lo),
+                              high=quantile(NincidDeath,pi_hi),
+                              est=mean(NincidDeath),
+                              type=fig_labs[2]),
+                  model_dat %>%
+                    group_by(time, geoid, name, !!as.symbol(group_var))%>%  
+                    summarize(low=quantile(NincidHosp,pi_lo),
+                              high=quantile(NincidHosp,pi_hi),
+                              est=mean(NincidHosp),
+                              type=fig_labs[3]))) %>%
+      ungroup() %>%
+      dplyr::mutate(type = factor(type, levels = fig_labs[3:1]),
+                    confirmed=if_else(confirmed==0, NA_real_, confirmed))
+  } else{
+    
+    truth_dat <- truth_dat %>%
+      dplyr::group_by(geoid, name, time=lubridate::ceiling_date(date, unit="week")) %>%
+      dplyr::summarize(incidI=sum(incidI),
+                       incidDeath=sum(incidDeath)) %>%
+      dplyr::filter(time<max(time))
+    
+    rc <- dplyr::bind_rows(truth_dat%>%
+                             mutate(confirmed=incidI,
+                                    type=fig_labs[1]),
+                           truth_dat%>%
+                             mutate(confirmed=incidDeath,
+                                    type=fig_labs[2])) %>%
+      dplyr::select(-starts_with("incid")) %>%
+      dplyr::right_join(
+        dplyr::bind_rows(model_dat %>%
+                           group_by(time, geoid, name, !!as.symbol(group_var))%>%     
+                           summarize(low=quantile(NincidCase,pi_lo),
+                                     high=quantile(NincidCase,pi_hi),
+                                     est=mean(NincidCase),
+                                     type=fig_labs[1]),
+                         model_dat %>%
+                           group_by(time, geoid, name, !!as.symbol(group_var))%>%
+                           summarize(low=quantile(NincidDeath,pi_lo),
+                                     high=quantile(NincidDeath,pi_hi),
+                                     est=mean(NincidDeath),
+                                     type=fig_labs[2]))) %>%
+      ungroup() %>%
+      dplyr::mutate(type = factor(type, levels = fig_labs),
+                    confirmed=if_else(confirmed==0, NA_real_, confirmed))
+  }
+  
+  plot_rc<-list()
+  
+  for(i in 1:length(unique(as.character(rc$type)))){
+    plot_rc[[i]]<-rc %>%
+      filter(type==unique(as.character(rc$type))[i]) %>%
+      dplyr::group_by(!!as.symbol(group_var), geoid, name)%>%
+      dplyr::filter(time<max(time))%>%
+      dplyr::ungroup()%>%
+      dplyr::filter(time>as.Date(start_date), time<as.Date(end_date))%>%
+      dplyr::left_join(geodat)%>%
+      ggplot(aes(x=time)) +
+      geom_line(aes(y=est, color=!!as.symbol(group_var))) +
+      geom_ribbon(alpha=0.1, aes(fill=!!as.symbol(group_var), ymin=low, ymax=high))+
+      geom_point(aes(y=confirmed), color="black") +
+      theme_bw()+
+      theme(panel.grid = element_blank(),
+            legend.title=element_blank(),
+            legend.position="bottom",
+            strip.background.x = element_blank(),
+            strip.background.y=element_rect(fill="white"),
+            strip.text.y =element_text(face="bold"))+
+      ylab("Counts (log scale)")+
+      xlab("Time (weeks)")+ 
+      facet_grid(rows=vars(name), scales="free") +
+      scale_y_sqrt()+
+      labs(subtitle = unique(as.character(rc$type))[i])
+  }
+  
+  return(plot_rc)
+}
+
+
 
 ##' Time series comparing Rt estimates by scenario over time
 ##' @param county_dat df with geoid, sim_num, cum_inf, scenario, and time columns
@@ -2382,6 +2544,412 @@ plot_county_outcomes <- function(county_dat,
       xlab("Time")+
       scale_x_date(limits = c(start_date, end_date)) +
       labs(subtitle = rc_type[i])
+  }
+  
+  return(plot_rc)
+}
+
+##' Plot intermediate likelihood over time for each geoID
+##' 
+##' @param llik_interm df with geoid, name, ll, lik_type, scenario, pdeath, iter_num
+##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
+##' @param filter_val desired value of variable
+##' @param burn_in number of iterations to discard at the beginning
+##' 
+##' @return plot of proposed and accepted log likelihood values by geoid
+##' 
+##'
+##'
+##'@export
+##'
+plot_llik_by_location <- function(llik_interm,
+                               filter_by = "pdeath",
+                               filter_val = "med",
+                               burn_in = 0
+){
+  
+  if(filter_by!="pdeath" & filter_by!="scenario") stop("You can only filter by 'pdeath' or 'scenario'")
+  group_var<-if_else(filter_by=="pdeath", "scenario", "pdeath")
+  
+  llik_interm <-llik_interm %>%
+    dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
+    dplyr::filter(iter_num >= burn_in)%>%
+    drop_na() # for now, because don't know what it means to have no iteration number
+  
+  rc <- llik_interm
+  
+  group_names <- unique(rc[group_var]) #names of groups which will form columns of grid plot
+  
+  plot_rc<-list()
+  
+  for(i in 1:length(group_names)){
+    print(i)
+    plot_rc[[i]]<-rc %>%
+      filter(!!as.symbol(group_var)==group_names[i]) %>%
+      ggplot(aes(x=iter_num)) +
+      geom_line(aes(y=ll, color=lik_type)) +
+      theme_bw()+
+      theme(panel.grid = element_blank(),
+            legend.title=element_blank(),
+            legend.position="bottom",
+            strip.background.x = element_blank(),
+            strip.background.y=element_rect(fill="white"),
+            strip.text.y =element_text(face="bold"))+
+      ylab("Log Likelihood")+
+      xlab("Iterations")+ 
+      facet_grid(rows=vars(name), scales="free") +
+      #scale_y_sqrt()+
+      labs(subtitle = group_names[i])
+  }
+  
+  return(plot_rc)
+}
+
+##' Plot intermediate likelihood, combined over time for each geoid
+##' 
+##' @param llik_interm df with geoid, name, ll, lik_type, scenario, pdeath, iter_num
+##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
+##' @param filter_val desired value of variable
+##' @param burn_in number of iterations to discard at the beginning
+##' 
+##' @return plot of proposed and accepted log likelihood values for entire nation
+##' 
+##'
+##'
+##'@export
+##'
+plot_llik_total <- function(llik_interm,
+                            filter_by = "pdeath",
+                            filter_val = "med",
+                            burn_in = 0
+){
+  
+  if(filter_by!="pdeath" & filter_by!="scenario") stop("You can only filter by 'pdeath' or 'scenario'")
+  group_var<-if_else(filter_by=="pdeath", "scenario", "pdeath")
+  
+  llik_interm <-llik_interm %>%
+    dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
+    dplyr::filter(iter_num >= burn_in)%>%
+    drop_na() # for now, because don't know what it means to have no iteration number
+  
+  rc <- llik_interm
+  
+  group_names <- unique(rc[group_var]) #names of groups which will form columns of grid plot
+  
+  plot_rc<-list()
+  
+  for(i in 1:length(group_names)){
+    print(i)
+    plot_rc[[i]]<-rc %>%
+      filter(!!as.symbol(group_var)==group_names[i]) %>%
+      dplyr::group_by(lik_type,iter_num) %>%
+      dplyr::summarize(ll=sum(ll, na.rm=TRUE))%>% #add log likelihoods for all geoids together at each timepoint
+      ggplot(aes(x=iter_num)) +
+      geom_line(aes(y=ll, color=lik_type)) +
+      theme_bw()+
+      ylab("Log Likelihood")+
+      xlab("Iterations")+ 
+      #scale_y_sqrt()+
+      labs(subtitle = group_names[i])
+  }
+  
+  return(plot_rc)
+}
+
+##' Plot acceptance rate over time for each geoID and combined global
+##' 
+##' @param llik_interm df with geoid, name, ll, lik_type, scenario, pdeath, iter_num
+##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
+##' @param filter_val desired value of variable
+##' @param burn_in number of iterations to discard at the beginning
+##' 
+##' @return plot of chimeric and global acceptance rate by geoid
+##' 
+##'
+##'
+##'@export
+##'
+plot_accept_by_location <- function(llik_interm,
+                                 filter_by = "pdeath",
+                                 filter_val = "med",
+                                 burn_in = 0
+){
+  
+  if(filter_by!="pdeath" & filter_by!="scenario") stop("You can only filter by 'pdeath' or 'scenario'")
+  group_var<-if_else(filter_by=="pdeath", "scenario", "pdeath")
+  
+  llik_interm <-llik_interm %>%
+    dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
+    dplyr::filter(iter_num >= burn_in)%>%
+    drop_na() # for now, because don't know what it means to have no iteration number
+  
+  rc <- llik_interm
+  
+  group_names <- unique(rc[group_var]) #names of groups which will form columns of grid plot
+  
+  plot_rc<-list()
+  
+  for(i in 1:length(group_names)){
+    print(i)
+    plot_rc[[i]]<-rc %>%
+      filter(!!as.symbol(group_var)==group_names[i]) %>%
+      ggplot(aes(x=iter_num)) +
+      geom_line(aes(y=accept_avg, color=lik_type)) +
+      theme_bw()+
+      theme(panel.grid = element_blank(),
+            legend.title=element_blank(),
+            legend.position="bottom",
+            strip.background.x = element_blank(),
+            strip.background.y=element_rect(fill="white"),
+            strip.text.y =element_text(face="bold"))+
+      ylab("Average acceptance rate")+
+      xlab("Iterations")+ 
+      facet_grid(rows=vars(name), scales="fixed") +
+      #scale_y_sqrt()+
+      labs(subtitle = group_names[i])
+  }
+  
+  return(plot_rc)
+}
+
+##' Plot rolling mean acceptance rate over time for each geoID and combined global
+##' 
+##' @param llik_interm df with geoid, name, ll, lik_type, scenario, pdeath, iter_num
+##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
+##' @param filter_val desired value of variable
+##' @param burn_in number of iterations to discard at the beginning
+##' 
+##' @return plot of chimeric and global acceptance rate by geoid
+##' 
+##'
+##'
+##'@export
+##'
+plot_accept_by_location_rolling <- function(llik_interm,
+                                         filter_by = "pdeath",
+                                         filter_val = "med",
+                                         roll_period = 10,
+                                         burn_in = 0
+){
+  
+  if(filter_by!="pdeath" & filter_by!="scenario") stop("You can only filter by 'pdeath' or 'scenario'")
+  group_var<-if_else(filter_by=="pdeath", "scenario", "pdeath")
+  
+  llik_interm <-llik_interm %>%
+    dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
+    dplyr::filter(iter_num >= burn_in)%>%
+    drop_na() # for now, because don't know what it means to have no iteration number
+  
+  rc <- llik_interm
+  
+  group_names <- unique(rc[group_var]) #names of groups which will form columns of grid plot
+  
+  plot_rc<-list()
+  
+  for(i in 1:length(group_names)){
+    print(i)
+    plot_rc[[i]]<-rc %>%
+      filter(!!as.symbol(group_var)==group_names[i]) %>%
+      dplyr::group_by(lik_type,geoid) %>%
+      dplyr::mutate(accept_avg_roll=rollmean(accept, roll_period,fill=NA,align="right"))%>% #add log likelihoods for all geoids together at each timepoint
+      ggplot(aes(x=iter_num)) +
+      geom_line(aes(y=accept_avg_roll, color=lik_type)) +
+      theme_bw()+
+      theme(panel.grid = element_blank(),
+            legend.title=element_blank(),
+            legend.position="bottom",
+            strip.background.x = element_blank(),
+            strip.background.y=element_rect(fill="white"),
+            strip.text.y =element_text(face="bold"))+
+      ylab("Rolling mean acceptance rate")+
+      xlab("Iterations")+ 
+      facet_grid(rows=vars(name), scales="fixed") +
+      #scale_y_sqrt()+
+      labs(subtitle = group_names[i])
+  }
+  
+  return(plot_rc)
+}
+
+##' Plot cumulative # of acceptances over MCMC iterations for each geoID and combined global
+##' 
+##' @param llik_interm df with geoid, name, ll, lik_type, scenario, pdeath, iter_num
+##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
+##' @param filter_val desired value of variable
+##' @param burn_in number of iterations to discard at the beginning
+##' 
+##' @return plot of chimeric and global acceptance rate by geoid
+##' 
+##'
+##'
+##'@export
+##'
+plot_accept_by_location_cumul <- function(llik_interm,
+                                       filter_by = "pdeath",
+                                       filter_val = "med",
+                                       roll_period = 10,
+                                       burn_in = 0
+){
+  
+  if(filter_by!="pdeath" & filter_by!="scenario") stop("You can only filter by 'pdeath' or 'scenario'")
+  group_var<-if_else(filter_by=="pdeath", "scenario", "pdeath")
+  
+  llik_interm <-llik_interm %>%
+    dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
+    dplyr::filter(iter_num >= burn_in)%>%
+    drop_na() # for now, because don't know what it means to have no iteration number
+  
+  rc <- llik_interm
+  
+  group_names <- unique(rc[group_var]) #names of groups which will form columns of grid plot
+  
+  plot_rc<-list()
+  
+  for(i in 1:length(group_names)){
+    print(i)
+    plot_rc[[i]]<-rc %>%
+      filter(!!as.symbol(group_var)==group_names[i]) %>%
+      dplyr::group_by(lik_type,geoid) %>%
+      dplyr::mutate(accept_cumul=cumsum(accept))%>% #add up all previous acceptances
+      ggplot(aes(x=iter_num)) +
+      geom_line(aes(y=accept_cumul, color=lik_type)) +
+      theme_bw()+
+      theme(panel.grid = element_blank(),
+            legend.title=element_blank(),
+            legend.position="bottom",
+            strip.background.x = element_blank(),
+            strip.background.y=element_rect(fill="white"),
+            strip.text.y =element_text(face="bold"))+
+      ylab("Cumulative acceptances")+
+      xlab("Iterations")+ 
+      facet_grid(rows=vars(name), scales="fixed") +
+      #scale_y_sqrt()+
+      labs(subtitle = group_names[i])
+  }
+  
+  return(plot_rc)
+}
+
+
+##' Plot intermediate snpi over time for each geoID
+##' 
+##' @param truth_dat df with date, geoid, incidI, incidDeath; hosps if adding
+##' hospitalization data
+##' @param model_dat df with model estimates 
+##' @param hosp whether hospitalization data is included in truth_dat with varname currhosp
+##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
+##' @param filter_val desired value of variable
+##' @param geodat df with location names
+##' 
+##' @return plot comparing observed and modeled estimates by geoid
+##' 
+##'
+##'
+##'@export
+##'
+plot_snpi_by_location <- function(snpi_interm,
+                               pdeath_filter,
+                               scenario_filter,
+                               snpi_filter = c('local_variance','lockdown_partial'), #will find any NPI containing these phrases
+                               fig_labs=c("Local variance in R0","Partial lockdown")
+){
+  
+  snpi_filter_edit <- paste(snpi_filter,collapse="|")
+  
+  snpi_interm <-snpi_interm %>%
+    dplyr::filter(pdeath==pdeath_filter)%>%
+    dplyr::filter(scenario==scenario_filter)%>%
+    #dplyr::filter(grepl(snpi_filter_edit,npi_name))%>% # find npi_names that contain these phrases in them
+    drop_na() # for now, because don't know what it means to have on iteration number
+  
+  rc <- snpi_interm
+  
+  #rc$type = rc$npi_name # need this for columns of plot grid, for now it isn't used
+  
+  plot_rc<-list()
+  
+  #for(i in 1:length(unique(as.character(rc$type)))){
+  for(i in 1:length(snpi_filter)){  
+    print(i)
+    plot_rc[[i]]<-rc %>%
+      dplyr::filter(grepl(snpi_filter[i],npi_name))%>%
+      #dplyr::filter(USPS == 'MA')%>%
+      ggplot(aes(x=iter_num)) +
+      geom_line(aes(y=reduction, color=lik_type)) +
+      theme_bw()+
+      theme(panel.grid = element_blank(),
+            legend.title=element_blank(),
+            legend.position="top",
+            strip.background.x = element_blank(),
+            strip.background.y=element_rect(fill="white"),
+            strip.text.y =element_text(face="bold"))+
+      ylab("Reduction in R0")+
+      xlab("Iterations")+ 
+      facet_grid(rows=vars(name), scales="fixed") +
+      #scale_y_sqrt()+
+      labs(subtitle = snpi_filter[i])
+  }
+  
+  return(plot_rc)
+}
+
+##' Plot intermediate hnpi over time for each geoID
+##' 
+##' @param truth_dat df with date, geoid, incidI, incidDeath; hosps if adding
+##' hospitalization data
+##' @param model_dat df with model estimates 
+##' @param hosp whether hospitalization data is included in truth_dat with varname currhosp
+##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
+##' @param filter_val desired value of variable
+##' @param geodat df with location names
+##' 
+##' @return plot comparing observed and modeled estimates by geoid
+##' 
+##'
+##'
+##'@export
+##'
+plot_hnpi_by_location <- function(hnpi_interm,
+                                  pdeath_filter,
+                                  scenario_filter,
+                                  hnpi_filter = c('local_variance','lockdown_partial'), #will find any NPI containing these phrases
+                                  fig_labs=c("Local variance in R0","Partial lockdown")
+){
+  
+  hnpi_filter_edit <- paste(hnpi_filter,collapse="|")
+  
+  hnpi_interm <-hnpi_interm %>%
+    dplyr::filter(pdeath==pdeath_filter)%>%
+    dplyr::filter(scenario==scenario_filter)%>%
+    #dplyr::filter(grepl(hnpi_filter_edit,npi_name))%>% # find npi_names that contain these phrases in them
+    drop_na() # for now, because don't know what it means to have on iteration number
+  
+  rc <- hnpi_interm
+  
+  #rc$type = rc$npi_name # need this for columns of plot grid, for now it isn't used
+  
+  plot_rc<-list()
+  
+  #for(i in 1:length(unique(as.character(rc$type)))){
+  for(i in 1:length(hnpi_filter)){  
+    print(i)
+    plot_rc[[i]]<-rc %>%
+      dplyr::filter(grepl(hnpi_filter[i],npi_name))%>%
+      #dplyr::filter(USPS == 'MA')%>%
+      ggplot(aes(x=iter_num)) +
+      geom_line(aes(y=reduction, color=lik_type)) +
+      theme_bw()+
+      theme(panel.grid = element_blank(),
+            legend.title=element_blank(),
+            legend.position="top",
+            strip.background.x = element_blank(),
+            strip.background.y=element_rect(fill="white"),
+            strip.text.y =element_text(face="bold"))+
+      ylab("Reduction in R0")+
+      xlab("Iterations")+ 
+      facet_grid(rows=vars(name), scales="fixed") +
+      #scale_y_sqrt()+
+      labs(subtitle = hnpi_filter[i])
   }
   
   return(plot_rc)
