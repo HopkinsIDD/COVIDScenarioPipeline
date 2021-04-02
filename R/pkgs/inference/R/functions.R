@@ -388,7 +388,7 @@ perturb_hnpi <- function(hnpi, intervention_settings) {
   ##Loop over all interventions
   for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
 
-    ##Only perform perturbations on interventions where it is specified ot do so.
+    ##Only perform perturbations on interventions where it is specified to do so.
 
     if ('perturbation' %in% names(intervention_settings[[intervention]])){
 

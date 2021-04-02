@@ -2574,7 +2574,7 @@ plot_llik_by_location <- function(llik_interm,
   llik_interm <-llik_interm %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
     dplyr::filter(iter_num >= burn_in)%>%
-    drop_na() # for now, because don't know what it means to have no iteration number
+    drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- llik_interm
   
@@ -2630,7 +2630,7 @@ plot_llik_total <- function(llik_interm,
   llik_interm <-llik_interm %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
     dplyr::filter(iter_num >= burn_in)%>%
-    drop_na() # for now, because don't know what it means to have no iteration number
+    drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- llik_interm
   
@@ -2681,7 +2681,7 @@ plot_accept_by_location <- function(llik_interm,
   llik_interm <-llik_interm %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
     dplyr::filter(iter_num >= burn_in)%>%
-    drop_na() # for now, because don't know what it means to have no iteration number
+    drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- llik_interm
   
@@ -2738,7 +2738,7 @@ plot_accept_by_location_rolling <- function(llik_interm,
   llik_interm <-llik_interm %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
     dplyr::filter(iter_num >= burn_in)%>%
-    drop_na() # for now, because don't know what it means to have no iteration number
+    drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- llik_interm
   
@@ -2797,7 +2797,7 @@ plot_accept_by_location_cumul <- function(llik_interm,
   llik_interm <-llik_interm %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
     dplyr::filter(iter_num >= burn_in)%>%
-    drop_na() # for now, because don't know what it means to have no iteration number
+    drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- llik_interm
   
@@ -2831,6 +2831,128 @@ plot_accept_by_location_cumul <- function(llik_interm,
 }
 
 
+##' Plot intermediate spar over time for each geoID
+##' 
+##' @param spar_interm df with value, parameter, lik_type, scenario, pdeath, iter_num
+##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
+##' @param filter_val desired value of variable
+##' @param burn_in number of iterations to discard before plotting
+##' 
+##' @return plot comparing observed and modeled estimates by geoid
+##' 
+##'
+##'
+##'@export
+##'
+plot_spars <- function(spar_interm,
+                       filter_by = "pdeath",
+                       filter_val = "med",
+                       burn_in = 0#,
+                       #spar_filter = c('local_variance','lockdown_partial'), #will find any parameters containing these phrases
+                       #fig_labs=c("Local variance in R0","Partial lockdown")
+){
+  
+  
+  if(filter_by!="pdeath" & filter_by!="scenario") stop("You can only filter by 'pdeath' or 'scenario'")
+  group_var<-if_else(filter_by=="pdeath", "scenario", "pdeath")
+  
+  #spar_filter_edit <- paste(snpi_filter,collapse="|")
+  
+  spar_interm <-spar_interm %>%
+    dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
+    dplyr::filter(iter_num >= burn_in)%>%
+    drop_na(iter_num) # for now, because don't know what it means to have no iteration number
+  
+  rc <- spar_interm
+  
+  group_names <- unique(rc[group_var]) #names of groups which will form columns of grid plot
+  
+  plot_rc<-list()
+  
+  #for(i in 1:length(unique(as.character(rc$type)))){
+  for(i in 1:length(group_names)){ 
+    print(i)
+    plot_rc[[i]]<-rc %>%
+      filter(!!as.symbol(group_var)==group_names[i]) %>%
+      #dplyr::filter(USPS == 'MA')%>%
+      ggplot(aes(x=iter_num)) +
+      geom_line(aes(y=value, color=lik_type)) +
+      theme_bw()+
+      theme(panel.grid = element_blank(),
+            legend.title=element_blank(),
+            legend.position="top",
+            strip.background.x = element_blank(),
+            strip.background.y=element_rect(fill="white"),
+            strip.text.y =element_text(face="bold"))+
+      ylab("Value")+
+      xlab("Iterations")+ 
+      facet_grid(rows=vars(parameter), scales="free") +
+      #scale_y_sqrt()+
+      labs(subtitle = group_names[i])
+  }
+  
+  return(plot_rc)
+}
+
+
+##' Plot intermediate hpar over time for each geoID
+##' 
+##' @param hpar_interm df with value, parameter, lik_type, scenario, pdeath, iter_num
+##' @param partitions used by open_dataset 
+##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param incl_geoids character vector of geoids that are included in the report
+##' 
+##' @return plot comparing observed and modeled estimates by geoid
+##' 
+##'
+##'
+##'@export
+##'
+plot_hpar_by_location <- function(hpar_interm,
+                                  pdeath_filter,
+                                  scenario_filter,
+                                  hpar_filter = c('incidC_probability','incidD_probability'), #will find any parameters containing these phrases
+                                  fig_labs=c("Case detection probability","Death probability")
+){
+  
+  
+  hpar_filter_edit <- paste(hpar_filter,collapse="|")
+  
+  hpar_interm <-hpar_interm %>%
+    dplyr::filter(pdeath==pdeath_filter)%>%
+    dplyr::filter(scenario==scenario_filter)%>%
+    unite(outcome_quantity,c("outcome","quantity"), sep="_")%>% #make a new parameter that combines the outcome+quantity variables
+    drop_na(iter_num) # for now, because don't know what it means to have no iteration number
+  
+  rc <- hpar_interm
+  
+  plot_rc<-list()
+  
+  for(i in 1:length(hpar_filter)){  
+    print(i)
+    plot_rc[[i]]<-rc %>%
+      dplyr::filter(grepl(hpar_filter[i],outcome_quantity))%>%
+      #dplyr::filter(USPS == 'MA')%>%
+      ggplot(aes(x=iter_num)) +
+      geom_line(aes(y=value, color=lik_type)) +
+      theme_bw()+
+      theme(panel.grid = element_blank(),
+            legend.title=element_blank(),
+            legend.position="top",
+            strip.background.x = element_blank(),
+            strip.background.y=element_rect(fill="white"),
+            strip.text.y =element_text(face="bold"))+
+      ylab("Value")+
+      xlab("Iterations")+ 
+      facet_grid(rows=vars(name), scales="fixed") +
+      #scale_y_sqrt()+
+      labs(subtitle = hpar_filter[i])
+  }
+  
+  return(plot_rc)
+}
+
+
 ##' Plot intermediate snpi over time for each geoID
 ##' 
 ##' @param truth_dat df with date, geoid, incidI, incidDeath; hosps if adding
@@ -2854,21 +2976,15 @@ plot_snpi_by_location <- function(snpi_interm,
                                fig_labs=c("Local variance in R0","Partial lockdown")
 ){
   
-  snpi_filter_edit <- paste(snpi_filter,collapse="|")
-  
   snpi_interm <-snpi_interm %>%
     dplyr::filter(pdeath==pdeath_filter)%>%
     dplyr::filter(scenario==scenario_filter)%>%
-    #dplyr::filter(grepl(snpi_filter_edit,npi_name))%>% # find npi_names that contain these phrases in them
-    drop_na() # for now, because don't know what it means to have on iteration number
+    drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- snpi_interm
   
-  #rc$type = rc$npi_name # need this for columns of plot grid, for now it isn't used
-  
   plot_rc<-list()
   
-  #for(i in 1:length(unique(as.character(rc$type)))){
   for(i in 1:length(snpi_filter)){  
     print(i)
     plot_rc[[i]]<-rc %>%
@@ -2892,6 +3008,8 @@ plot_snpi_by_location <- function(snpi_interm,
   
   return(plot_rc)
 }
+
+
 
 ##' Plot intermediate hnpi over time for each geoID
 ##' 
@@ -2922,7 +3040,7 @@ plot_hnpi_by_location <- function(hnpi_interm,
     dplyr::filter(pdeath==pdeath_filter)%>%
     dplyr::filter(scenario==scenario_filter)%>%
     #dplyr::filter(grepl(hnpi_filter_edit,npi_name))%>% # find npi_names that contain these phrases in them
-    drop_na() # for now, because don't know what it means to have on iteration number
+    drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- hnpi_interm
   
