@@ -1,12 +1,12 @@
 ---
 title: "R Notebook"
 params:
-  config_file: config_statelevel_2020.yml
+  config_file: config_statelevel_2020_incidCchange.yml
   continue_on_error: yes
   hosp_eval: no
   pi_hi: 0.95
   pi_lo: 0.05
-  runs_folder: model_output_2020_500 # directory with model output (i.e. with subdirs: hosp, snpi, spar)
+  runs_folder: model_output_2020_incidCchange # directory with model output (i.e. with subdirs: hosp, snpi, spar)
   pdeath_default: "med"
   states: ["AZ","CA","DC", "IL","MA","MI","NY","WA"]
 output:
@@ -107,26 +107,6 @@ sim_end_date <- config$end_date
 
 # Generate state or county level output
 
-```{r}
-# 
-# # Load in basic information on geoIDs of interest
-# 
-# geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
-#                              geoid_len=5,
-#                              names=TRUE)  %>%
-#   dplyr::filter(USPS==reportStateUSPS) %>%
-#   mutate(name=str_to_title(name)) %>%
-#   rename(pop=starts_with("pop"))
-# 
-# included_geoids <- (geodata %>% filter(USPS==reportStateUSPS))$geoid
-# 
-# # Only works if loading in county data
-# # county<-geodata%>%
-# #   filter(name==params$county) %>%
-# #   pull(geoid)
-# 
-# state_name<-state.name[state.abb==reportStateUSPS]
-```
 
 ```{r}
 
@@ -836,28 +816,82 @@ fig_counter<-fig_counter+1
 
 # Load final values of intervention parameters
 # 
-# hnpi_final<- load_hnpi_sims_filtered(outcome_dir=runs_folder, 
-#                                      pre_process=function(x){x}, 
-#                                      pdeath_filter=pdeath_default, 
-#                                      incl_geoids=included_geoids_all) %>%
-#   dplyr::select(sim_num, scenario, pdeath, geoid, npi_name, start_date, end_date, reduction) # need to fix sim_num parsing
+hnpi_final<- load_hnpi_sims_filtered(outcome_dir=runs_folder,
+                                     pre_process=function(x){x},
+                                     pdeath_filter=pdeath_default,
+                                     incl_geoids=included_geoids_all) %>%
+  dplyr::select(sim_num, scenario, pdeath, geoid, npi_name, start_date, end_date, reduction) # need to fix sim_num parsing
 ```
 
 
 ```{r}
-# # Load final values of intervention parameters
-# hnpi_interm<- load_hnpi_sims_filtered_interm(outcome_dir=runs_folder, 
-#                                              pre_process=function(x){x}, 
-#                                              pdeath_filter=pdeath_default, 
-#                                              incl_geoids=included_geoids_all) %>%
-#   #dplyr::select(sim_num, scenario, pdeath, geoid, npi_name, start_date, end_date, reduction) # need to fix sim_num parsing
-#   dplyr::select(c(-location,-date))
-# 
-# hnpi_interm  <- geodata_all %>%
-#   left_join(hnpi_interm)
-# 
-# hnpi_interm_some <-hnpi_interm %>% dplyr::filter(USPS %in% states)
+# Load final values of intervention parameters
+hnpi_interm<- load_hnpi_sims_filtered_interm(outcome_dir=runs_folder,
+                                             pre_process=function(x){x},
+                                             pdeath_filter=pdeath_default,
+                                             incl_geoids=included_geoids_all) %>%
+  #dplyr::select(sim_num, scenario, pdeath, geoid, npi_name, start_date, end_date, reduction) # need to fix sim_num parsing
+  dplyr::select(c(-location,-date))
+
+hnpi_interm  <- geodata_all %>%
+  left_join(hnpi_interm)
+
+hnpi_interm_some <-hnpi_interm %>% dplyr::filter(USPS %in% states)
 ```
+
+```{r mcmc_hnpi_plot, include=FALSE}
+this_hnpi_filter <-c('june_incidC_shift')
+this_fig_labs <- c("Reduction in incidC during first half of 2020")
+
+hnpi_plot <- plot_hnpi_by_location(hnpi_interm_some,
+                                   pdeath_filter = pdeath_default,
+                                   scenario_filter = 'inference',
+                                   hnpi_filter = this_hnpi_filter,
+                                   fig_labs=this_fig_labs
+)
+
+hnpi_plot_list <- list() 
+
+# for first column of plots, keep y axis and remove strip label
+hnpi_plot_list[[1]] <- ggplot_gtable(ggplot_build(hnpi_plot[[1]]+theme(legend.position="none",
+                                                                       #strip.text.y = element_blank(),
+                                                                       #strip.background.y = element_blank()
+                                                                       strip.text = element_text(size=10, face="bold")
+)))
+
+# for last column of plots, remove y axis and keep strip label
+snpi_plot_list[[length(this_hnpi_filter)]] <- ggplot_gtable(ggplot_build(hnpi_plot[[length(this_hnpi_filter)]]+theme(legend.position="none",
+                                                                                                                     strip.text = element_text(size=10, face="bold"),
+                                                                                                                     axis.title.y = element_blank())))
+
+# for all other column of plots, remove y axis and remove strip label
+
+if (length(this_hnpi_filter)>2){
+  for (i in 2:(length(this_hnpi_filter)-1)){
+    print(i)
+    hnpi_plot_list[[i]] <- ggplot_gtable(ggplot_build(hnpi_plot[[i]]+theme(legend.position="none",
+                                                                           #strip.background.y = element_blank(),
+                                                                           #strip.text.y = element_blank(),
+                                                                           strip.text = element_text(size=10, face="bold"),
+                                                                           axis.title.y = element_blank())))
+  }
+}
+
+
+plot_hnpi_grid <-gridExtra::grid.arrange(grobs = hnpi_plot_list, ncol=max(3,length(this_hnpi_filter)), nrow=1)
+legend<-get_legend(hnpi_plot[[1]]+theme(legend.position="top"))
+```
+
+
+```{r hnpi_plot, fig.height=10, fig.width=10, fig.cap=cap}
+cowplot::plot_grid(plot_hnpi_grid, legend, nrow=2, rel_heights = c(1, 0.01))
+
+cap<- paste0("**Fig. ", fig_counter, "** Inferred paramter values by MCMC step for each GeoID.'Global' values are the proposed parameters at each step, and 'Chimeric' values are the parameters accepted at the GeoID-level in the chimeric likelihood  **")
+
+fig_counter<-fig_counter+1
+
+``` 
+
 
 ## Look at correlations between different fit parameter values, for each state
 
