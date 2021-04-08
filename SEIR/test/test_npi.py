@@ -5,7 +5,7 @@ import os
 import pytest
 import confuse
 
-from SEIR.NPI import ReduceR0, Reduce
+from SEIR.NPI import ReduceR0, Reduce, ReduceIntervention
 
 from ..utils import config
 
@@ -177,5 +177,46 @@ class TestInterventionsReduce:
                                     npi_config = config["bad_end_date"],
                                     geoids = ["10001","2020","40"])
 
+    def test_ReduceIntervention_0_value(self):
+        config.set_file(f"{DATA_DIR}/test_ReduceIntervention_trivial.yml")
+        global_config = config["month_global"]
+        baseline_config = global_config["interventions"]["settings"]["baseline_daterange"]
+        npi_config = config["trivial_reduction"]
+        test_result_baseline = Reduce(global_config = global_config, npi_config = baseline_config, geoids = ["10001", "2020", "40"])
+        test_result_reduced = ReduceIntervention(global_config = global_config, npi_config = npi_config, geoids = ["10001", "2020", "40"])
+        reduction_baseline = test_result_baseline.getReduction("r0")
+        reduction_reduced = test_result_reduced.getReduction("r0")
+
+        assert((reduction_baseline == reduction_reduced).all().all())
+
+    def test_ReduceIntervention_1_value(self):
+        config.set_file(f"{DATA_DIR}/test_ReduceIntervention_trivial.yml")
+        global_config = config["month_global"]
+        baseline_config = global_config["interventions"]["settings"]["baseline_daterange"]
+        npi_config = config["full_reduction"]
+        test_result_baseline = Reduce(global_config = global_config, npi_config = baseline_config, geoids = ["10001", "2020", "40"])
+        test_result_reduced = ReduceIntervention(global_config = global_config, npi_config = npi_config, geoids = ["10001", "2020", "40"])
+        reduction_baseline = test_result_baseline.getReduction("r0")
+        reduction_reduced = test_result_reduced.getReduction("r0")
+
+        relevant_dates = pd.date_range(npi_config["period_start_date"].get(), npi_config["period_end_date"].get())
+        relevant_baseline = reduction_baseline.loc[:,relevant_dates]
+        relevant_reduced = reduction_reduced.loc[:,relevant_dates]
+        assert(((1 - (1 - relevant_baseline) * 0) == relevant_reduced).all().all())
+
+    def test_ReduceIntervention_partial_value(self):
+        config.set_file(f"{DATA_DIR}/test_ReduceIntervention_trivial.yml")
+        global_config = config["month_global"]
+        baseline_config = global_config["interventions"]["settings"]["baseline_daterange"]
+        npi_config = config["partial_reduction"]
+        test_result_baseline = Reduce(global_config = global_config, npi_config = baseline_config, geoids = ["10001", "2020", "40"])
+        test_result_reduced = ReduceIntervention(global_config = global_config, npi_config = npi_config, geoids = ["10001", "2020", "40"])
+        reduction_baseline = test_result_baseline.getReduction("r0")
+        reduction_reduced = test_result_reduced.getReduction("r0")
+
+        relevant_dates = pd.date_range(npi_config["period_start_date"].get(), npi_config["period_end_date"].get())
+        relevant_baseline = reduction_baseline.loc[:,relevant_dates]
+        relevant_reduced = reduction_reduced.loc[:,relevant_dates]
+        assert(((1 - (1 - relevant_baseline) * 0.9) == relevant_reduced).all().all())
 
 # TODO Stacked Tests
