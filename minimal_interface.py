@@ -61,6 +61,7 @@ from SEIR import seir, setup, file_paths
 from SEIR.utils import config
 from SEIR.profile import profile_options
 from Outcomes import outcomes
+import numpy as np
 
 config.set_file(config_path)
 
@@ -75,6 +76,12 @@ nsim = 10
 interactive = False
 write_csv = False
 write_parquet = True
+try:
+    rng_seed
+except NameError:
+    rng_seed = None
+
+np.random.seed(rng_seed)
 
 
 
