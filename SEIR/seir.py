@@ -8,9 +8,11 @@ import scipy
 import tqdm.contrib.concurrent
 
 from . import NPI, setup, file_paths
-from .utils import config
+from .utils import config, Timer
 import pyarrow.parquet as pq
 import pyarrow as pa
+import logging
+logger = logging.getLogger(__name__)
 
 try:
     # ignore DeprecationWarning inside numba
@@ -29,14 +31,18 @@ global_debug_print = False
 def onerun_SEIR(sim_id, s, stoch_traj_flag = True, debug_print = global_debug_print):
     scipy.random.seed()
 
-    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
+    with Timer('onerun_SEIR.NPI'):
+        npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    y0, seeding = setup.seeding_draw(s, sim_id)
+    with Timer('onerun_SEIR.seeding'):
+        y0, seeding = setup.seeding_draw(s, sim_id)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
-    p_draw = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
+    
+    with Timer('onerun_SEIR.pdraw'):
+        p_draw = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
 
     if(debug_print):
         print("Parameters without interventions")
@@ -45,8 +51,9 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True, debug_print = global_debug_pr
                 print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
             except:
                 print(f"""    value {parameter}""")
-
-    parameters = setup.parameters_reduce(p_draw, npi, s.dt)
+    
+    with Timer('onerun_SEIR.reduce'):
+        parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
     if(debug_print):
         print("Parameters with interventions")
@@ -55,23 +62,23 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True, debug_print = global_debug_pr
                 print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
             except:
                 print(f"""    value {parameter}""")
-
-    states = steps_SEIR_nb(
-        *parameters,
-        y0,
-        seeding,
-        s.dt,
-        s.t_inter,
-        s.nnodes,
-        s.popnodes,
-        mobility_geoid_indices,
-        mobility_data_indices,
-        mobility_data,
-        stoch_traj_flag
-    )
+    with Timer('onerun_SEIR.compute'):
+        states = steps_SEIR_nb(
+            *parameters,
+            y0,
+            seeding,
+            s.dt,
+            s.t_inter,
+            s.nnodes,
+            s.popnodes,
+            mobility_geoid_indices,
+            mobility_data_indices,
+            mobility_data,
+            stoch_traj_flag
+        )
     print(f"""FINISHED""")
-
-    postprocess_and_write(sim_id, s, states, p_draw, npi, seeding)
+    with Timer('onerun_SEIR.postprocess'):
+        postprocess_and_write(sim_id, s, states, p_draw, npi, seeding)
 
     return 1
 
@@ -163,74 +170,77 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True, deb
 
     scipy.random.seed()
 
-    npi = NPI.NPIBase.execute(
-        npi_config=s.npi_config,
-        global_config=config,
-        geoids=s.spatset.nodenames,
-        loaded_df = setup.npi_load(
-            file_paths.create_file_name_without_extension(
-                s.in_run_id, # Not sure about this one
-                s.in_prefix, # Not sure about this one
-                sim_id2load + s.first_sim_index - 1,
-                "snpi"
-            ),
-            extension
+    with Timer('onerun_SEIR_loadID.NPI'):
+        npi = NPI.NPIBase.execute(
+            npi_config=s.npi_config,
+            global_config=config,
+            geoids=s.spatset.nodenames,
+            loaded_df = setup.npi_load(
+                file_paths.create_file_name_without_extension(
+                    s.in_run_id, # Not sure about this one
+                    s.in_prefix, # Not sure about this one
+                    sim_id2load + s.first_sim_index - 1,
+                    "snpi"
+                ),
+                extension
+            )
         )
-    )
-
-    y0, seeding = setup.seeding_load(s, sim_id2load)
+    with Timer('onerun_SEIR_loadID.seeding'):
+        y0, seeding = setup.seeding_load(s, sim_id2load)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
+    with Timer('onerun_SEIR_loadID.pdraw'):
+        p_draw = setup.parameters_load(
+            file_paths.create_file_name_without_extension(
+                s.in_run_id, # Not sure about this one
+                s.in_prefix, # Not sure about this one
+                sim_id2load + s.first_sim_index - 1,
+                "spar"
+            ),
+            extension,
+            len(s.t_inter),
+            s.nnodes
+        )
+    with Timer('onerun_SEIR_loadID.reduce'):
+        parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
-    p_draw = setup.parameters_load(
-        file_paths.create_file_name_without_extension(
-            s.in_run_id, # Not sure about this one
-            s.in_prefix, # Not sure about this one
-            sim_id2load + s.first_sim_index - 1,
-            "spar"
-        ),
-        extension,
-        len(s.t_inter),
-        s.nnodes
-    )
+        if(debug_print):
+            print("Parameters without interventions")
+            for parameter in p_draw:
+                try:
+                    print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+                except:
+                    print(f"""    value {parameter}""")
 
-    parameters = setup.parameters_reduce(p_draw, npi, s.dt)
+        parameters = setup.parameters_reduce(p_draw, npi, s.dt)
 
-    if(debug_print):
-        print("Parameters without interventions")
-        for parameter in p_draw:
-            try:
-                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
-            except:
-                print(f"""    value {parameter}""")
+        if(debug_print):
+            print("Parameters with interventions")
+            for parameter in parameters:
+                try:
+                    print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+                except:
+                    print(f"""    value {parameter}""")
 
-    parameters = setup.parameters_reduce(p_draw, npi, s.dt)
+    with Timer('onerun_SEIR_loadID.compute'):
+        states = steps_SEIR_nb(
+            *parameters,
+            y0,
+            seeding,
+            s.dt,
+            s.t_inter,
+            s.nnodes,
+            s.popnodes,
+            mobility_geoid_indices,
+            mobility_data_indices,
+            mobility_data,
+            stoch_traj_flag
+        )
 
-    if(debug_print):
-        print("Parameters with interventions")
-        for parameter in parameters:
-            try:
-                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
-            except:
-                print(f"""    value {parameter}""")
-
-    states = steps_SEIR_nb(
-        *parameters,
-        y0,
-        seeding,
-        s.dt,
-        s.t_inter,
-        s.nnodes,
-        s.popnodes,
-        mobility_geoid_indices,
-        mobility_data_indices,
-        mobility_data,
-        stoch_traj_flag
-    )
-
-    out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding)
+    with Timer('onerun_SEIR_loadID.postprocess'):
+        out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding)
 
     return 1#out_df
 
