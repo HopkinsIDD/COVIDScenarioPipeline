@@ -56,7 +56,8 @@ library(parallel)
 library(doParallel)
 cl <- parallel::makeCluster(opt$j)
 doParallel::registerDoParallel(cl)
-print(list(scenarios=scenarios,deathrates=deathrates,slots=seq_len(opt$slots)))
+toprint <- list(scenarios=scenarios,deathrates=deathrates,slots=seq_len(opt$slots))
+cat(paste(names(toprint),  toprint, sep = " : ", collapse = "\n"), "\n")
 foreach(scenario = scenarios) %:%
 foreach(deathrate = deathrates) %:%
 foreach(slot = seq_len(opt$slots)) %dopar% {
