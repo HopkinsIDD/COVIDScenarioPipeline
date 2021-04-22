@@ -26,9 +26,7 @@ except ModuleNotFoundError as e:
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
-global_debug_print = False
-
-def onerun_SEIR(sim_id, s, stoch_traj_flag = True, debug_print = global_debug_print):
+def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
     scipy.random.seed()
 
     with Timer('onerun_SEIR.NPI'):
@@ -42,26 +40,14 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True, debug_print = global_debug_pr
     mobility_data = s.mobility.data
     
     with Timer('onerun_SEIR.pdraw'):
-        p_draw = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
-
-    if(debug_print):
-        print("Parameters without interventions")
-        for parameter in p_draw:
-            try:
-                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
-            except:
-                print(f"""    value {parameter}""")
+        p_draw = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)        
+        
     
     with Timer('onerun_SEIR.reduce'):
         parameters = setup.parameters_reduce(p_draw, npi, s.dt)
-
-    if(debug_print):
-        print("Parameters with interventions")
-        for parameter in parameters:
-            try:
-                print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
-            except:
-                print(f"""    value {parameter}""")
+        log_debug_parameters(p_draw, "Parameters without interventions")
+        log_debug_parameters(parameters, "Parameters with interventions")
+            
     with Timer('onerun_SEIR.compute'):
         states = steps_SEIR_nb(
             *parameters,
@@ -76,11 +62,20 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True, debug_print = global_debug_pr
             mobility_data,
             stoch_traj_flag
         )
-    print(f"""FINISHED""")
+
     with Timer('onerun_SEIR.postprocess'):
         postprocess_and_write(sim_id, s, states, p_draw, npi, seeding)
 
     return 1
+
+def log_debug_parameters(params, prefix):
+    if logging.getLogger().isEnabledFor(logging.DEBUG):
+        logging.debug(prefix)
+        for parameter in params:
+            try:
+                logging.debug(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+            except:
+                logging.debug(f"""    value {parameter}""")
 
 def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
     # Tidyup data for  R, to save it:
@@ -158,7 +153,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
 
     return out_df
 
-def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True, debug_print = global_debug_print):
+def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
     if (s.write_parquet and s.write_csv):
         print("Confused between reading .csv or parquet. Assuming input file is .parquet")
     if s.write_parquet:
@@ -205,24 +200,8 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True, deb
         )
     with Timer('onerun_SEIR_loadID.reduce'):
         parameters = setup.parameters_reduce(p_draw, npi, s.dt)
-
-        if(debug_print):
-            print("Parameters without interventions")
-            for parameter in p_draw:
-                try:
-                    print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
-                except:
-                    print(f"""    value {parameter}""")
-
-        parameters = setup.parameters_reduce(p_draw, npi, s.dt)
-
-        if(debug_print):
-            print("Parameters with interventions")
-            for parameter in parameters:
-                try:
-                    print(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
-                except:
-                    print(f"""    value {parameter}""")
+        log_debug_parameters(p_draw, "Parameters without interventions")
+        log_debug_parameters(parameters, "Parameters with interventions")
 
     with Timer('onerun_SEIR_loadID.compute'):
         states = steps_SEIR_nb(
@@ -242,7 +221,7 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True, deb
     with Timer('onerun_SEIR_loadID.postprocess'):
         out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding)
 
-    return 1#out_df
+    return True
 
 def run_parallel(s, *, n_jobs=1):
     start = time.monotonic()
@@ -255,6 +234,4 @@ def run_parallel(s, *, n_jobs=1):
         tqdm.contrib.concurrent.process_map(onerun_SEIR, sim_ids, itertools.repeat(s),
                                             max_workers=n_jobs)
 
-    print(f"""
->> {s.nsim} simulations completed in {time.monotonic()-start:.1f} seconds
-""")
+    logging.info(f""">> {s.nsim} simulations completed in {time.monotonic()-start:.1f} seconds""")
