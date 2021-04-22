@@ -58,7 +58,7 @@ import time
 import click
 
 from SEIR import seir, setup, file_paths
-from SEIR.utils import config
+from SEIR.utils import config, Timer
 from SEIR.profile import profile_options
 from Outcomes import outcomes
 import numpy as np
@@ -83,6 +83,8 @@ except NameError:
 
 np.random.seed(rng_seed)
 
+
+### Profile configuration
 import cProfile
 import pstats
 from functools import wraps
@@ -138,6 +140,16 @@ def profile(output_file=None, sort_by='cumulative', lines_to_print=None, strip_d
 
     return inner
 
+### Logger configuration
+import logging
+import os
+logging.basicConfig(level=os.environ.get('LOGLEVEL', 'INFO').upper())
+logger = logging.getLogger()
+handler = logging.StreamHandler()
+# '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
+formatter = logging.Formatter("%(asctime)s [%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s")
+
+handler.setFormatter(formatter)
 
 s = setup.Setup(
     setup_name=config["name"].get() + "_" + str(scenario),
@@ -177,25 +189,28 @@ print(f"""
 setup_name = s.setup_name
 print(scenario, deathrate, index, run_id, prefix)
 
-@profile(sort_by='cumulative', strip_dirs=True)
+#@profile(sort_by='cumulative', strip_dirs=True)
 def onerun_OUTCOMES_loadID(index):
+    with Timer('onerun_OUTCOMES_loadID'):
+        outcomes.onerun_delayframe_outcomes_load_hpar(config,
+                                                        run_id, prefix, int(index), # input
+                                                        run_id, prefix, int(index), # output
+                                                        deathrate, stoch_traj_flag)
 
-    outcomes.onerun_delayframe_outcomes_load_hpar(config,
-                                                    run_id, prefix, int(index), # input
-                                                    run_id, prefix, int(index), # output
-                                                    deathrate, stoch_traj_flag)
-
-@profile(sort_by='cumulative', strip_dirs=True)                                                   
+#@profile(sort_by='cumulative', strip_dirs=True)                                                   
 def onerun_OUTCOMES(index):
-    outcomes.run_delayframe_outcomes(config,
-                                        run_id, prefix, int(index), # input
-                                        run_id, prefix, int(index), # output
-                                        deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+    with Timer('onerun_OUTCOMES'):
+        outcomes.run_delayframe_outcomes(config,
+                                            run_id, prefix, int(index), # input
+                                            run_id, prefix, int(index), # output
+                                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
 
-@profile(sort_by='cumulative', strip_dirs=True)
+#@profile(sort_by='cumulative', strip_dirs=True)
 def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
-    seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load), stoch_traj_flag)
+    with Timer('onerun_SEIR_loadID'):
+        seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load), stoch_traj_flag)
 
-@profile(sort_by='cumulative', strip_dirs=True)
+#@profile(sort_by='cumulative', strip_dirs=True)
 def onerun_SEIR(sim_id2write, s):
-    seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
+    with Timer('onerun_SEIR'):
+        seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
