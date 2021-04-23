@@ -182,6 +182,7 @@ def onerun_OUTCOMES_loadID(index):
                                                         run_id, prefix, int(index), # input
                                                         run_id, prefix, int(index), # output
                                                         deathrate, stoch_traj_flag)
+    return 1
 
 #@profile()                                                   
 def onerun_OUTCOMES(index):
@@ -190,13 +191,16 @@ def onerun_OUTCOMES(index):
                                             run_id, prefix, int(index), # input
                                             run_id, prefix, int(index), # output
                                             deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+    return 1
 
 #@profile()
 def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
     with Timer('onerun_SEIR_loadID'):
         seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load), stoch_traj_flag)
+    return 1
 
 #@profile()
 def onerun_SEIR(sim_id2write, s):
     with Timer('onerun_SEIR'):
         seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
+    return 1
