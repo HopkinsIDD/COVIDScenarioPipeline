@@ -32,7 +32,7 @@ option_list = list(
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)
 
-cat(paste(names(opt), opt, sep = " : ", collapse = "\n"), "\n")  # readable print
+covidcommon::prettyprint_optlist(opt)
 
 reticulate::use_python(Sys.which(opt$python),require=TRUE)
 ## Block loads the config file and geodata
