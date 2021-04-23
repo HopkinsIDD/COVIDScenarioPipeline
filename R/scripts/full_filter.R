@@ -1,4 +1,5 @@
 suppressMessages(library(parallel))
+options(readr.num_columns = 0)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
