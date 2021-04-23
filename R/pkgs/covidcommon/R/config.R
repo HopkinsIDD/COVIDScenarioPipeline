@@ -125,12 +125,12 @@ as_density_distribution <- function(obj) {
   }
 }
 
-##'
-##' Print a list of options such that it does not take the whole screen.
-##'
-##'@param listlike the list to evaluate
-##' Display name : value \n for all elements.
-##'
+#' @name prettyprint_optlist
+#' @description Print a list of options such that it does not take the whole screen
+#' Display `name : value` \n for all elements.
+#' @param optlist the list of options to print (should be a named list of printable things)
+#'
+#' @export
 prettyprint_optlist <- function(optlist){
   cat(paste(
     names(optlist), 
