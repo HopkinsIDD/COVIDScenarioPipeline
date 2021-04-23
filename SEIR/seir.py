@@ -215,8 +215,7 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
             mobility_geoid_indices,
             mobility_data_indices,
             mobility_data,
-            stoch_traj_flag
-        )
+            stoch_traj_flag)
 
     with Timer('onerun_SEIR_loadID.postprocess'):
         out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding)
