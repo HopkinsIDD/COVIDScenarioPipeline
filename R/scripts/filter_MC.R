@@ -1,6 +1,6 @@
 ## Preamble ---------------------------------------------------------------------
 suppressMessages(library(readr))
-suppressMessages(library(covidcommon))
+suppressWarnings(suppressMessages(library(covidcommon)))
 suppressMessages(library(report.generation))
 suppressMessages(library(stringr))
 suppressMessages(library(foreach))
@@ -10,6 +10,7 @@ suppressMessages(library(reticulate))
 suppressMessages(library(truncnorm))
 suppressMessages(library(parallel))
 options(warn = 1)
+options(readr.num_columns = 0)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
