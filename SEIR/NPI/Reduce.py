@@ -35,12 +35,11 @@ class Reduce(NPIBase):
         ### for param in PARALLEL_TRANS_PARAMS:
             ### for transition in range(n_parallel_transitions):
                 ### self.all_parameters += [param + " " + str(transition)]
-###
+                
         self.geoids = geoids
 
         self.npi = pd.DataFrame(0.0, index=self.geoids,
                                 columns=pd.date_range(self.start_date, self.end_date))
-
         self.parameters = pd.DataFrame(0.0, index=self.geoids,
                                        columns=["npi_name","start_date","end_date","parameter","reduction"])
 
@@ -53,11 +52,13 @@ class Reduce(NPIBase):
         if self.parameters["start_date"].min() < self.start_date or self.parameters["end_date"].max() > self.end_date:
             raise ValueError(f"""{self.name} : at least one period start or end date is not between global dates""")
 
-        for index in self.parameters.index:
-            period_range = pd.date_range(self.parameters["start_date"][index], self.parameters["end_date"][index])
-
+        #for index in self.parameters.index:
+        #    period_range = pd.date_range(self.parameters["start_date"][index], self.parameters["end_date"][index])
             ## This the line that does the work
-            self.npi.loc[index, period_range] = np.tile(self.parameters["reduction"][index], (len(period_range), 1)).T
+        #    self.npi_old.loc[index, period_range] = np.tile(self.parameters["reduction"][index], (len(period_range), 1)).T
+
+        period_range = pd.date_range(self.parameters["start_date"].iloc[0], self.parameters["end_date"].iloc[0])
+        self.npi.loc[self.parameters.index, period_range] = np.tile(self.parameters["reduction"][:], (len(period_range), 1)).T
 
         self.__checkErrors()
 
@@ -80,9 +81,6 @@ class Reduce(NPIBase):
 
         ### if self.param_name not in REDUCE_PARAMS:
         ###     raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
-
-
-
 
         # Validate
         if (self.npi == 0).all(axis=None):
