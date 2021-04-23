@@ -450,7 +450,6 @@ get_CSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_cas
 ##' @importFrom magrittr %>%
 ##' @importFrom stringr str_replace str_length str_pad fixed
 ##' @importFrom tibble as_tibble
-##' @importFrom globaltoolboxlite get_iso get_iso2_from_ISO3
 ##' @importFrom tidyselect everything
 ##'
 download_CSSE_global_data <- function(filename, url, value_col_name){
@@ -467,9 +466,9 @@ download_CSSE_global_data <- function(filename, url, value_col_name){
                   Latitude = Lat,
                   Longitude = Long)
 
-  csse_data <- dplyr::mutate(csse_data, iso3 = globaltoolboxlite::get_iso(Country_Region))
+  csse_data <- dplyr::mutate(csse_data, iso3 = suppressWarnings(suppressMessages(globaltoolboxlite::get_iso(Country_Region))))
   csse_data <- dplyr::mutate(csse_data,
-      iso2 = globaltoolboxlite::get_iso2_from_ISO3(iso3),
+      iso2 = suppressWarnings(suppressMessages(globaltoolboxlite::get_iso2_from_ISO3(iso3))),
       UID = ifelse(!is.na(Province_State), paste0(iso3, "-", Province_State), iso3))
   csse_data <- dplyr::select(csse_data, UID, Province_State:Longitude, iso2, iso3, tidyselect::everything())
 
