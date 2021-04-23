@@ -124,3 +124,17 @@ as_density_distribution <- function(obj) {
       stop("unknown distribution")
   }
 }
+
+##'
+##' Print a list of options such that it does not take the whole screen.
+##'
+##'@param listlike the list to evaluate
+##' Display name : value \n for all elements.
+##'
+prettyprint_optlist <- function(optlist){
+  cat(paste(
+    names(optlist), 
+    optlist, 
+    sep=" : ", 
+    collapse = "\n"), collapse = "\n")
+}

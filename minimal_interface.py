@@ -72,7 +72,7 @@ spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 scenario = scenario
 deathrate = deathrate
 stoch_traj_flag= stoch_traj_flag # Truthy: stochastic simulation, Falsy: determnistic mean of the binomial draws
-nsim = 10
+nsim = 1
 interactive = False
 write_csv = False
 write_parquet = True
@@ -124,16 +124,6 @@ def profile(output_file=None, sort_by='cumulative', lines_to_print=None, strip_d
             retval = func(*args, **kwargs)
             pr.disable()
             pr.dump_stats(_output_file)
-
-            #with open(_output_file, 'w') as f:
-            #    ps = pstats.Stats(pr, stream=f)
-            #    if strip_dirs:
-            #        ps.strip_dirs()
-            #    if isinstance(sort_by, (tuple, list)):
-            #        ps.sort_stats(*sort_by)
-            #    else:
-            #        ps.sort_stats(sort_by)
-            #    ps.print_stats(lines_to_print)
             return retval
 
         return wrapper
@@ -143,7 +133,7 @@ def profile(output_file=None, sort_by='cumulative', lines_to_print=None, strip_d
 ### Logger configuration
 import logging
 import os
-logging.basicConfig(level=os.environ.get('LOGLEVEL', 'INFO').upper())
+logging.basicConfig(level=os.environ.get('COVID_LOGLEVEL', 'INFO').upper())
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 # '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
@@ -179,38 +169,38 @@ s = setup.Setup(
 )
 
 print(f"""
->> Running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** SEIR and Outcomes modules
->> Scenario: {scenario}
->> Starting {s.nsim} model runs beginning from {s.first_sim_index}
->> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}
->> writing to folder : {s.datadir}{s.setup_name}
-    """)
+>> Running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** SEIR and Outcomes modules;
+>> Setup {s.setup_name}; ti: {s.ti}; tf: {s.tf}; Scenario SEIR: {scenario}; Scenario Outcomes: {deathrate};
+>> index: {s.first_sim_index}; run_id: {run_id}, prefix: {prefix};""")
 
 setup_name = s.setup_name
-print(scenario, deathrate, index, run_id, prefix)
 
-#@profile(sort_by='cumulative', strip_dirs=True)
+#@profile()
 def onerun_OUTCOMES_loadID(index):
     with Timer('onerun_OUTCOMES_loadID'):
         outcomes.onerun_delayframe_outcomes_load_hpar(config,
                                                         run_id, prefix, int(index), # input
                                                         run_id, prefix, int(index), # output
                                                         deathrate, stoch_traj_flag)
+    return 1
 
-#@profile(sort_by='cumulative', strip_dirs=True)                                                   
+#@profile()                                                   
 def onerun_OUTCOMES(index):
     with Timer('onerun_OUTCOMES'):
         outcomes.run_delayframe_outcomes(config,
                                             run_id, prefix, int(index), # input
                                             run_id, prefix, int(index), # output
                                             deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+    return 1
 
-#@profile(sort_by='cumulative', strip_dirs=True)
+#@profile()
 def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
     with Timer('onerun_SEIR_loadID'):
         seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load), stoch_traj_flag)
+    return 1
 
-#@profile(sort_by='cumulative', strip_dirs=True)
+#@profile()
 def onerun_SEIR(sim_id2write, s):
     with Timer('onerun_SEIR'):
         seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
+    return 1
