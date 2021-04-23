@@ -41,6 +41,8 @@ class MultiTimeReduce(NPIBase):
 
         self.npi = pd.DataFrame(0.0, index=self.geoids,
                                 columns=pd.date_range(self.start_date, self.end_date))
+        #self.npi_old = pd.DataFrame(0.0, index=self.geoids,
+        #                        columns=pd.date_range(self.start_date, self.end_date))
 
         self.parameters = pd.DataFrame(data = {
                                                   "npi_name": [""] * len(self.geoids),
@@ -62,11 +64,20 @@ class MultiTimeReduce(NPIBase):
         if too_early or too_late:
             raise ValueError("at least one period start or end date is not between global dates")
 
-        for index in self.parameters.index:
-            for sub_index in range(len(self.parameters["start_date"][index])):
-                period_range = pd.date_range(self.parameters["start_date"][index][sub_index], self.parameters["end_date"][index][sub_index])
-                ## This the line that does the work
-                self.npi.loc[index, period_range] = np.tile(self.parameters["reduction"][index], (len(period_range), 1)).T
+        
+        for grp_config in npi_config['groups']:
+            affected_geoids_grp = self.__get_affected_geoids_grp(grp_config)
+            for sub_index in range(len(self.parameters["start_date"][affected_geoids_grp[0]])):
+                period_range = pd.date_range(self.parameters["start_date"][affected_geoids_grp[0]][sub_index], self.parameters["end_date"][affected_geoids_grp[0]][sub_index])
+                self.npi.loc[affected_geoids_grp, period_range] = np.tile(self.parameters["reduction"][affected_geoids_grp], (len(period_range), 1)).T
+
+
+        #for index in self.parameters.index:
+        #    for sub_index in range(len(self.parameters["start_date"][index])):
+        #        period_range = pd.date_range(self.parameters["start_date"][index][sub_index], self.parameters["end_date"][index][sub_index])
+        #        ## This the line that does the work
+        #        self.npi_old.loc[index, period_range] = np.tile(self.parameters["reduction"][index], (len(period_range), 1)).T
+        #print(f'{self.name}, : {(self.npi_old == self.npi).all().all()}')
 
         self.__checkErrors()
 
@@ -100,31 +111,16 @@ class MultiTimeReduce(NPIBase):
     def __createFromConfig(self, npi_config):
         # Get name of the parameter to reduce
         self.param_name = npi_config["parameter"].as_str().lower()
-        # Optional config field "affected_geoids"
-        # If values of "affected_geoids" is "all" or unspecified, run on all geoids.
-        # Otherwise, run only on geoids specified.
-        affected_geoids_grp = []
-        # Find all affected geoids in all groups:
-        for grp_config in npi_config['groups']:
-            if grp_config["affected_geoids"].get() == "all":
-                affected_geoids_grp += self.geoids
-            else:
-                affected_geoids_grp += [str(n.get()) for n in grp_config["affected_geoids"]]
 
-        self.affected_geoids = set(affected_geoids_grp)
-        if len(self.affected_geoids) != len(affected_geoids_grp):
-            raise ValueError(f"In NPI {self.name}, some geoids belong to several groups. This is unsupported.")
-
+        self.affected_geoids = self.__get_affected_geoids(npi_config)
+        
         self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids)]
         self.dist = npi_config["value"].as_random_distribution()
         self.parameters["npi_name"] = self.name
         self.parameters["parameter"] = self.param_name
 
         for grp_config in npi_config['groups']:
-            if grp_config["affected_geoids"].get() == "all":
-                affected_geoids_grp = self.geoids
-            else:
-                affected_geoids_grp = [str(n.get()) for n in grp_config["affected_geoids"]]
+            affected_geoids_grp = self.__get_affected_geoids_grp(grp_config)
             # Create reduction
             start_dates = []
             end_dates = []
@@ -140,6 +136,14 @@ class MultiTimeReduce(NPIBase):
                 self.parameters.at[geoid, "end_date"] = end_dates
                 self.parameters.at[geoid, "reduction"]= self.dist(size=1)
 
+    def __get_affected_geoids_grp(self, grp_config):
+        if grp_config["affected_geoids"].get() == "all":
+            affected_geoids_grp = self.geoids
+        else:
+            affected_geoids_grp = [str(n.get()) for n in grp_config["affected_geoids"]]
+        return affected_geoids_grp
+
+
     def __createFromDf(self, loaded_df, npi_config):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
@@ -147,21 +151,12 @@ class MultiTimeReduce(NPIBase):
         # self.parameters["start_date"] = [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["start_date"]]
         # self.parameters["end_date"] =   [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["end_date"]]
         # self.affected_geoids = set(self.parameters.index)
-        affected_geoids_grp = []
-        for grp_config in npi_config['groups']:
-            if grp_config["affected_geoids"].get() == "all":
-                affected_geoids_grp += self.geoids
-            else:
-                affected_geoids_grp += [str(n.get()) for n in grp_config["affected_geoids"]]
-        self.affected_geoids = set(affected_geoids_grp)
-        if len(self.affected_geoids) != len(affected_geoids_grp):
-            raise ValueError(f"In NPI {self.name}, some geoids belong to several groups. This is unsupported.")
+        
+        self.affected_geoids = self.__get_affected_geoids(npi_config)
 
-        for grp_config in npi_config['groups']:
-            if grp_config["affected_geoids"].get() == "all":
-                affected_geoids_grp = self.geoids
-            else:
-                affected_geoids_grp = [str(n.get()) for n in grp_config["affected_geoids"]]
+        for grp_config in npi_config['groups']: 
+            affected_geoids_grp = self.__get_affected_geoids_grp(grp_config)
+
             # Create reduction
             start_dates = []
             end_dates = []
@@ -176,6 +171,21 @@ class MultiTimeReduce(NPIBase):
                 self.parameters.at[geoid, "start_date"] = start_dates
                 self.parameters.at[geoid, "end_date"] = end_dates
         self.param_name = self.parameters["parameter"].unique()[0]          # [0] to convert ndarray to str
+
+    def __get_affected_geoids(self, npi_config):
+        # Optional config field "affected_geoids"
+        # If values of "affected_geoids" is "all" or unspecified, run on all geoids.
+        # Otherwise, run only on geoids specified.
+        affected_geoids_grp = []
+        for grp_config in npi_config['groups']:
+            if grp_config["affected_geoids"].get() == "all":
+                affected_geoids_grp += self.geoids
+            else:
+                affected_geoids_grp += [str(n.get()) for n in grp_config["affected_geoids"]]
+        affected_geoids = set(affected_geoids_grp)
+        if len(affected_geoids) != len(affected_geoids_grp):
+            raise ValueError(f"In NPI {self.name}, some geoids belong to several groups. This is unsupported.")
+        return affected_geoids
 
     def getReduction(self, param, default=0.0):
         "Return the reduction for this param, `default` if no reduction defined"
