@@ -1,3 +1,4 @@
+
 suppressMessages(library(parallel))
 
 option_list = list(
@@ -56,8 +57,7 @@ library(parallel)
 library(doParallel)
 cl <- parallel::makeCluster(opt$j)
 doParallel::registerDoParallel(cl)
-toprint <- list(scenarios=scenarios,deathrates=deathrates,slots=seq_len(opt$slots))
-cat(paste(names(toprint),  toprint, sep = " : ", collapse = "\n"), "\n")
+covidcommon::prettyprint_optlist(list(scenarios=scenarios,deathrates=deathrates,slots=seq_len(opt$slots)))
 foreach(scenario = scenarios) %:%
 foreach(deathrate = deathrates) %:%
 foreach(slot = seq_len(opt$slots)) %dopar% {
