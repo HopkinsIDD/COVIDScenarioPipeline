@@ -41,8 +41,6 @@ class MultiTimeReduce(NPIBase):
 
         self.npi = pd.DataFrame(0.0, index=self.geoids,
                                 columns=pd.date_range(self.start_date, self.end_date))
-        #self.npi_old = pd.DataFrame(0.0, index=self.geoids,
-        #                        columns=pd.date_range(self.start_date, self.end_date))
 
         self.parameters = pd.DataFrame(data = {
                                                   "npi_name": [""] * len(self.geoids),
