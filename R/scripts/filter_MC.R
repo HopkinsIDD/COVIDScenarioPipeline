@@ -1,6 +1,6 @@
 ## Preamble ---------------------------------------------------------------------
 suppressMessages(library(readr))
-suppressMessages(library(covidcommon))
+suppressWarnings(library(covidcommon))
 suppressMessages(library(report.generation))
 suppressMessages(library(stringr))
 suppressMessages(library(foreach))
