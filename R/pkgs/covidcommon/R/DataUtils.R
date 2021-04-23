@@ -9,13 +9,6 @@
 ##' @param incl_unassigned Includes data unassigned to counties (default is FALSE)
 ##' @return data frame
 ##' @importFrom magrittr %>%
-##' @importFrom tidyselect all_of
-##' @importFrom readr read_csv
-##' @importFrom stringr str_to_lower
-##' @importFrom dplyr select filter bind_rows mutate left_join distinct rename
-##' @importFrom cdlTools fips
-##' @importFrom tidyr pivot_longer
-##' @importFrom lubridate ymd
 ##'
 download_USAFacts_data <- function(filename, url, value_col_name, incl_unassigned = FALSE){
 
@@ -271,7 +264,6 @@ aggregate_counties_to_state <- function(df, state_fips){
 ##' @param incl_unassigned Includes data unassigned to counties (default is FALSE)
 ##' @return the case and deaths data frame
 ##'
-##' @importFrom dplyr rename group_modify group_by full_join select
 ##'
 ##' @export
 ##'
@@ -443,14 +435,7 @@ get_CSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_cas
 ##' @param url URL to CSV on CSSE website
 ##' @return data frame
 ##'
-##' @importFrom dplyr select rename filter mutate distinct
-##' @importFrom lubridate mdy
-##' @importFrom readr read_csv col_character
-##' @importFrom tidyr pivot_longer
 ##' @importFrom magrittr %>%
-##' @importFrom stringr str_replace str_length str_pad fixed
-##' @importFrom tibble as_tibble
-##' @importFrom tidyselect everything
 ##'
 download_CSSE_global_data <- function(filename, url, value_col_name){
 
@@ -518,7 +503,6 @@ download_CSSE_global_data <- function(filename, url, value_col_name){
 ##'
 ##' @return the case and deaths data frame
 ##'
-##' @importFrom dplyr rename group_modify group_by full_join select arrange bind_rows mutate
 ##'
 ##' @export
 ##'
@@ -577,13 +561,7 @@ get_CSSE_global_data <- function(case_data_filename = "data/case_data/jhucsse_ca
 ##' @param url URL to CSV on Reich Lab website
 ##' @return data frame
 ##'
-##' @importFrom dplyr select rename mutate filter
-##' @importFrom lubridate mdy
-##' @importFrom readr read_csv col_character
 ##' @importFrom magrittr %>%
-##' @importFrom stringr str_pad str_sub str_length
-##' @importFrom tibble as_tibble
-##' @importFrom cdlTools fips
 ##'
 download_reichlab_data <- function(filename, url, value_col_name){
 
@@ -631,7 +609,6 @@ download_reichlab_data <- function(filename, url, value_col_name){
 ##'
 ##' @return the case and deaths data frame
 ##'
-##' @importFrom dplyr full_join select filter arrange
 ##'
 ##' @export
 ##'
@@ -684,7 +661,6 @@ get_reichlab_st_data <- function(cum_case_filename = "data/case_data/rlab_cum_ca
 ##'
 ##' @return the case and deaths data frame
 ##'
-##' @importFrom dplyr full_join select filter arrange
 ##'
 ##' @export
 ##'
@@ -728,10 +704,7 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 ##' @param variables vector that may include one or more of the following variable names: Confirmed, Deaths, incidI, incidDeath, (hhsCMU source only: incidH_confirmed, incidH_all, hospCurr_confirmed, hospCurr_all)
 ##' @return data frame
 ##'
-##' @importFrom dplyr select mutate filter group_by summarise_if bind_rows
 ##' @importFrom magrittr %>%
-##' @importFrom stringr str_sub
-##' @importFrom tidyselect everything
 ##'
 ##' @export
 ##'
