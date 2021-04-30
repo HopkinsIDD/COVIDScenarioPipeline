@@ -44,9 +44,23 @@ if(opt$config == ""){
 }
 config = covidcommon::load_config(opt$config)
 
-if(!('perturbation_sd' %in% names(config$seeding))) {
-  stop("The key seeding::perturbation_sd is required in the config file.")
+if(('perturbation_sd' %in% names(config$seeding))) {
+  if(('date_sd' %in% names(config$seeding))) {
+    stop("Both the key seeding::perturbation_sd and the key seeding::date_sd are present in the config file, but only one allowed.")
+  }
+  config$seeding$date_sd <- config$seeding$perturbation_sd
 }
+if (!('date_sd' %in% names(config$seeding))) {
+  stop("Neither the key seeding::perturbation_sd nor the key seeding::date_sd are present in the config file, but one is required.")
+}
+if (!('amount_sd' %in% names(config$seeding))) {
+  config$seeding$amount_sd <- 1
+}
+
+if(!(config$seeding$method %in% c('FolderDraw','InitialConditionsFolderDraw'))){
+  stop("This filtration method requires the seeding method 'FolderDraw'")
+}
+
 if(!(config$seeding$method %in% c('FolderDraw','InitialConditionsFolderDraw'))){
   stop("This filtration method requires the seeding method 'FolderDraw'")
 }
@@ -257,8 +271,11 @@ for(scenario in scenarios) {
     ## So far no acceptances have occurred
     current_index <- 0
 ### Load initial files
-    suppressMessages(initial_seeding <- readr::read_csv(first_chimeric_files[['seed_filename']], col_types=readr::cols(place=readr::col_character())))
-    initial_seeding$amount <- as.integer(round(initial_seeding$amount))
+    seeding_col_types <- NULL
+    suppressMessages(initial_seeding <- readr::read_csv(first_chimeric_files[['seed_filename']], col_types=seeding_col_types))
+    if (opt$stoch_traj_flag) {
+      initial_seeding$amount <- as.integer(round(initial_seeding$amount))
+    }
     initial_snpi <- arrow::read_parquet(first_chimeric_files[['snpi_filename']])
     initial_hnpi <- arrow::read_parquet(first_chimeric_files[['hnpi_filename']])
     initial_spar <- arrow::read_parquet(first_chimeric_files[['spar_filename']])
@@ -288,9 +305,12 @@ for(scenario in scenarios) {
 
       ## Do perturbations from accepted
       proposed_seeding <- inference::perturb_seeding(
-        initial_seeding,
-        config$seeding$perturbation_sd,
-        c(gt_start_date, gt_end_date))
+        seeding = initial_seeding,
+        date_sd = config$seeding$date_sd,
+        date_bounds = c(gt_start_date, gt_end_date),
+        amount_sd = config$seeding$amount_sd,
+        continuous = !(opt$stoch_traj_flag)
+      )
       proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
       proposed_hnpi <- inference::perturb_hnpi(initial_hnpi, config$interventions$settings)
       proposed_spar <- initial_spar
