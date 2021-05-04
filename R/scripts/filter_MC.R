@@ -1,6 +1,6 @@
 ## Preamble ---------------------------------------------------------------------
 suppressMessages(library(readr))
-suppressMessages(library(covidcommon))
+suppressWarnings(suppressMessages(library(covidcommon)))
 suppressMessages(library(report.generation))
 suppressMessages(library(stringr))
 suppressMessages(library(foreach))
@@ -10,6 +10,7 @@ suppressMessages(library(reticulate))
 suppressMessages(library(truncnorm))
 suppressMessages(library(parallel))
 options(warn = 1)
+options(readr.num_columns = 0)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
@@ -32,7 +33,7 @@ option_list = list(
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)
 
-print(opt)
+covidcommon::prettyprint_optlist(opt)
 
 reticulate::use_python(Sys.which(opt$python),require=TRUE)
 ## Block loads the config file and geodata
@@ -195,8 +196,8 @@ required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 ## python configuration for minimal_interface.py
 reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
 reticulate::py_run_string(paste0("run_id = '", opt$run_id, "'"))
-reticulate::import_from_path("SEIR", path=opt$pipepath)
-reticulate::import_from_path("Outcomes", path=opt$pipepath)
+#reticulate::import_from_path("SEIR", path=opt$pipepath)
+#reticulate::import_from_path("Outcomes", path=opt$pipepath)
 reticulate::py_run_string(paste0("index = ", 1))
 if(opt$stoch_traj_flag) {
   reticulate::py_run_string(paste0("stoch_traj_flag = True"))

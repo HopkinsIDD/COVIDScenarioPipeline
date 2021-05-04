@@ -10,6 +10,8 @@ import copy
 
 from .utils import config
 from . import file_paths
+import logging
+logger = logging.getLogger(__name__)
 
 
 # Number of components
@@ -639,9 +641,9 @@ def parameters_load(fname, extension, nt_inter, nnodes):
         transmissibility_reduction[:,compartment,:] = \
             float(pars[pars['parameter'] == (str(compartment) + ' transmissibility reduction')].value)
     for transition in range(n_parallel_transitions):
-        print(f""" all parameters are : { pars }""")
-        print(f""" expected name is : { (str(transition) + " " + "transition rate") }""")
-        print(f""" appropriate parameters are : { pars[pars['parameter'] == (str(transition) + " " + "transition rate")] }""")
+        logging.debug(f""" all parameters are : { pars }""")
+        logging.debug(f""" expected name is : { (str(transition) + " " + "transition rate") }""")
+        logging.debug(f""" appropriate parameters are : { pars[pars['parameter'] == (str(transition) + " " + "transition rate")] }""")
         transition_rate[:,transition,:] = \
             float(pars[pars['parameter'] == (str(transition) + " " + "transition rate")].value)
         transition_from[transition] = \
