@@ -54,7 +54,7 @@ def run_delayframe_outcomes(config, in_sim_id, in_run_id, in_prefix,out_sim_id, 
     return 1
 
 
-def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, stoch_traj_flag = True):
+def onerun_delayframe_outcomes_load_hpar(config, in_sim_id, in_run_id, in_prefix, out_sim_id, out_run_id, out_prefix,  scenario_outcomes, stoch_traj_flag = True):
     
     parameters, npi_config = read_parameters_from_config(config, in_run_id, in_prefix, [in_sim_id], scenario_outcomes)
 
