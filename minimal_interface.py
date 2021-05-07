@@ -107,6 +107,7 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter("%(asctime)s [%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s")
 
 handler.setFormatter(formatter)
+print()
 
 s = setup.Setup(
     setup_name=config["name"].get() + "_" + str(scenario),
@@ -146,8 +147,8 @@ setup_name = s.setup_name
 def onerun_OUTCOMES_loadID(index):
     with Timer('onerun_OUTCOMES_loadID'):
         outcomes.onerun_delayframe_outcomes_load_hpar(config,
-                                                        run_id, prefix, int(index), # input
-                                                        run_id, prefix, int(index), # output
+                                                        int(index), run_id, prefix, # input
+                                                        int(index), run_id, prefix,  # output
                                                         deathrate, stoch_traj_flag)
     return 1
 
@@ -155,8 +156,8 @@ def onerun_OUTCOMES_loadID(index):
 def onerun_OUTCOMES(index):
     with Timer('onerun_OUTCOMES'):
         outcomes.run_delayframe_outcomes(config,
-                                            run_id, prefix, int(index), # input
-                                            run_id, prefix, int(index), # output
+                                            int(index), run_id, prefix, # input
+                                            int(index), run_id, prefix, # output
                                             deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
     return 1
 
