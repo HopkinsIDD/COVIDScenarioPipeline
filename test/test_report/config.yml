@@ -65,8 +65,7 @@ interventions:
     - Scenario1
   settings:
     None:
-      template: Reduce
-      parameter: r0
+      template: ReduceR0
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
       value:
@@ -87,74 +86,20 @@ interventions:
         - None
         
 outcomes:
-  method: delayframe
+  method: delayframe        
   param_from_file: FALSE
   scenarios:
     - low
     - med
+    - high
   settings:
     low:
-      incidH:
-        source: incidI
-        probability:
-          value:
-            distribution: fixed
-            value: .035
-        delay:
-          value:
-            distribution: fixed
-            value: 7
-        duration:
-          value:
-            distribution: fixed
-            value: 7
-          name: hosp_curr
-      incidD:
-        source: incidI
-        probability:
-          value:
-            distribution: fixed
-            value: .005
-        delay:
-          value:
-            distribution: fixed
-            value: 20
-      incidICU:
-        source: incidH
-        probability: 
-          value:
-            distribution: fixed
-            value: 0.167
-        delay:
-          value:
-            distribution: fixed
-            value: 3
-        duration:
-          value:
-            distribution: fixed
-            value: 8
-          name: icu_curr
-      incidVent:
-        source: incidICU
-        probability: 
-          value:
-            distribution: fixed
-            value: 0.463
-        delay:
-          value:
-            distribution: fixed
-            value: 1
-        duration:
-          value:
-            distribution: fixed
-            value: 7
-          name: vent_curr
       incidC:
         source: incidI
         probability:
           value:
             distribution: truncnorm
-            mean: .1
+            mean: .05
             sd: .1
             a: 0
             b: 1
@@ -168,68 +113,69 @@ outcomes:
           value:
             distribution: fixed
             value: 7
+      incidH:
+        source: incidI
+        probability:
+          value:
+            distribution: uniform
+            low: .1
+            high: .3
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+        duration:
+          value:
+            distribution: fixed
+            value: 12
+          name: hosp_curr
+      incidICU:
+        source: incidH
+        probability:
+          value:
+            distribution: fixed
+            value: 0.32  
+        delay:
+          value:
+            distribution: fixed
+            value: 3
+        duration:
+          value:
+            distribution: fixed
+            value: 8
+          name: icu_curr
+      incidVent:
+        source: incidICU
+        probability:
+          value:
+            distribution: fixed
+            value: 0.47
+        delay:
+          value:
+            distribution: fixed
+            value: 1
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: vent_curr
+      incidD:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: 0.0025
+        delay:
+          value:
+            distribution: fixed
+            value: 20
     med:
-      incidH:
-        source: incidI
-        probability:
-          value:
-            distribution: fixed
-            value: .035
-        delay:
-          value:
-            distribution: fixed
-            value: 7
-        duration:
-          value:
-            distribution: fixed
-            value: 7
-          name: hosp_curr
-      incidD:
-        source: incidI
-        probability:
-          value:
-            distribution: fixed
-            value: .005
-        delay:
-          value:
-            distribution: fixed
-            value: 20
-      incidICU:
-        source: incidH
-        probability: 
-          value:
-            distribution: fixed
-            value: 0.167
-        delay:
-          value:
-            distribution: fixed
-            value: 3
-        duration:
-          value:
-            distribution: fixed
-            value: 8
-          name: icu_curr
-      incidVent:
-        source: incidICU
-        probability: 
-          value:
-            distribution: fixed
-            value: 0.463
-        delay:
-          value:
-            distribution: fixed
-            value: 1
-        duration:
-          value:
-            distribution: fixed
-            value: 7
-          name: vent_curr
       incidC:
         source: incidI
         probability:
           value:
             distribution: truncnorm
-            mean: .1
+            mean: .05
             sd: .1
             a: 0
             b: 1
@@ -243,6 +189,138 @@ outcomes:
           value:
             distribution: fixed
             value: 7
+      incidH:
+        source: incidI
+        probability:
+          value:
+            distribution: uniform
+            low: .1
+            high: .3
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+        duration:
+          value:
+            distribution: fixed
+            value: 12
+          name: hosp_curr
+      incidICU:
+        source: incidH
+        probability:
+          value:
+            distribution: fixed
+            value: 0.32  
+        delay:
+          value:
+            distribution: fixed
+            value: 3
+        duration:
+          value:
+            distribution: fixed
+            value: 8
+          name: icu_curr
+      incidVent:
+        source: incidICU
+        probability:
+          value:
+            distribution: fixed
+            value: 0.47
+        delay:
+          value:
+            distribution: fixed
+            value: 1
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: vent_curr
+      incidD:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: 0.005
+        delay:
+          value:
+            distribution: fixed
+            value: 20
+    high:
+      incidC:
+        source: incidI
+        probability:
+          value:
+            distribution: truncnorm
+            mean: .05
+            sd: .1
+            a: 0
+            b: 1
+          perturbation:
+            distribution: truncnorm
+            mean: 0
+            sd: .1
+            a: -1
+            b: 1
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+      incidH:
+        source: incidI
+        probability:
+          value:
+            distribution: uniform
+            low: .1
+            high: .3
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+        duration:
+          value:
+            distribution: fixed
+            value: 12
+          name: hosp_curr
+      incidICU:
+        source: incidH
+        probability:
+          value:
+            distribution: fixed
+            value: 0.32  
+        delay:
+          value:
+            distribution: fixed
+            value: 3
+        duration:
+          value:
+            distribution: fixed
+            value: 8
+          name: icu_curr
+      incidVent:
+        source: incidICU
+        probability:
+          value:
+            distribution: fixed
+            value: 0.47
+        delay:
+          value:
+            distribution: fixed
+            value: 1
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: vent_curr
+      incidD:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: 0.01
+        delay:
+          value:
+            distribution: fixed
+            value: 20   
 
 report:
   state_usps: HI
