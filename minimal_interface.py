@@ -141,7 +141,6 @@ print(f"""
 >> index: {s.first_sim_index}; run_id: {run_id}, prefix: {prefix};""")
 
 setup_name = s.setup_name
-<<<<<<< HEAD
 
 #@profile()
 def onerun_OUTCOMES_loadID(index):
