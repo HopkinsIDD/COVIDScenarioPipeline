@@ -41,8 +41,6 @@ class ReduceIntervention(NPIBase):
         self.param_name = []
         self.reductions = {}
         self.reduction_params = collections.deque()
-        self.reduction_cap_exceeded = False
-        self.reduction_number = 0
 
         # the confuse library's config resolution mechanism makes slicing the configuration object expensive; instead,
         # just preload all settings
@@ -56,9 +54,9 @@ class ReduceIntervention(NPIBase):
         scenario_npi_config = confuse.RootView([settings])
         scenario_npi_config.key = scenario
 
-        sub_npi = NPIBase.execute(npi_config=scenario_npi_config, global_config=global_config, geoids=geoids,
+        self.sub_npi = NPIBase.execute(npi_config=scenario_npi_config, global_config=global_config, geoids=geoids,
                                   loaded_df=loaded_df)
-        new_params = sub_npi.param_name # either a list (if stacked) or a string
+        new_params = self.sub_npi.param_name # either a list (if stacked) or a string
         new_params= [new_params] if isinstance(new_params, str) else new_params # convert to list
         # Add each parameter at first encounter
         for new_p in new_params:
@@ -77,7 +75,7 @@ class ReduceIntervention(NPIBase):
                 print(f"""{self.name} : param is {param}""")
 
         for param in self.param_name:
-            reduction = sub_npi.getReduction(param, default=0.0)
+            reduction = self.sub_npi.getReduction(param, default=0.0)
             if re.match("^transition_rate [1234567890]+$",param):
                 self.reductions[param] += reduction
             else:
@@ -87,17 +85,22 @@ class ReduceIntervention(NPIBase):
         # serialized as a giant dataframe to parquet. move this writing to be incremental, but need to
         # verify there are no downstream consumers of the dataframe. in the meantime, limit the amount
         # of data we'll pin in memory
-        self.reduction_params.append(sub_npi.getReductionToWrite())
-        self.reduction_number += len(self.reduction_params)
+        self.reduction_params.append(self.sub_npi.getReductionToWrite())
 
         for index in self.parameters.index:
             for param in self.param_name:
                 period_range = pd.date_range(self.parameters["start_date"][index], self.parameters["end_date"][index])
 
                 ## This the line that does the work
+                # print(f"""PRE REDUCTION : {index},{np.min(period_range)}, {np.max(period_range)}""")
+                # print(f"""   : Reducing intervention from {(self.reductions[param].loc[index, period_range].values).shape} values (mean {np.mean(self.reductions[param].loc[index, period_range].values)}) by {self.parameters["reduction"][index]}""")
+                # print(f"""   : Overall {(self.reductions[param].loc[index, :].values).shape} values (mean {np.mean(self.reductions[param].loc[index, :].values)})""")
                 self.reductions[param].loc[index, period_range] *= (1 - self.parameters["reduction"][index])
                     # np.tile(self.parameters["reduction"][index], (len(period_range), 1)).T * \
                     # self.reductions[param].loc[index, period_range]
+                # print(f"""POST REDUCTION : {index},{np.min(period_range)}, {np.max(period_range)}""")
+                # print(f"""   : Reducing intervention from {(self.reductions[param].loc[index, period_range].values).shape} values (mean {np.mean(self.reductions[param].loc[index, period_range].values)}) by {self.parameters["reduction"][index]}""")
+                # print(f"""   : Overall {(self.reductions[param].loc[index, :].values).shape} values (mean {np.mean(self.reductions[param].loc[index, :].values)})""")
 
         for param in self.param_name:
             if not re.match("^transition_rate \d+$",param):
@@ -139,10 +142,6 @@ class ReduceIntervention(NPIBase):
         return self.reductions.get(param, default)
 
     def getReductionToWrite(self):
-        if self.reduction_cap_exceeded:
-            warnings.warn(f"""Not writing reduction metadata (*.snpi.*) as memory buffer cap exceeded {self.reduction_number}""")
-            raise RuntimeError("error : Not writing reduction metadata (*.snpi.*) as memory buffer cap exceeded. Try setting `export COVID_MAX_STACK_SIZE=[BIGNUMBER]`")
-            #return pd.DataFrame({"error": ["No reduction metadata as memory buffer cap exceeded"]})
         return pd.concat(self.reduction_params, ignore_index=True)
 
     def __createFromDf(self, loaded_df, npi_config):
