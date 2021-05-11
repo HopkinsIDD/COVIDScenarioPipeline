@@ -14,8 +14,6 @@ option_list = list(
   optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable")
 )
 
-Sys.setenv("COVID_STOCHASTIC"=FALSE) # run deterministically
-
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)
 

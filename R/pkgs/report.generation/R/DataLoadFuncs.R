@@ -54,7 +54,7 @@ read_file_of_type <- function(extension,...){
 ##'@export
 load_hosp_sims_filtered <- function(outcome_dir,
                                     model_output = 'hosp',
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
                                     pdeath_filter=c("high", "med", "low"),
                                     incl_geoids,
                                     pre_process=list(partitions=function(x) {x},
@@ -138,7 +138,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
 ##'@export
 load_hpar_sims_filtered <- function(outcome_dir,
                                     model_output = 'hpar',
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
@@ -211,7 +211,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
 ##'
 ##'@export
 load_hpar_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -227,8 +227,8 @@ load_hpar_sims_filtered_interm <- function(outcome_dir,
     collect()
   
   hpar<-hpar %>%
-    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",date,'.hpar.parquet'))) %>% # remove date component
-    tidyr::separate(sim_num,c('job_num','slot_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
+    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",runID,'.hpar.parquet'))) %>% # remove runID component
+    tidyr::separate(sim_num,c('slot_num','block_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
   
   message("Finished loading intermediate Outcome parameters.")
   
@@ -258,7 +258,7 @@ load_hpar_sims_filtered_interm <- function(outcome_dir,
 ##'
 ##'@export
 load_spar_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
@@ -328,7 +328,7 @@ load_spar_sims_filtered <- function(outcome_dir,
 ##'
 ##'@export
 load_spar_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -344,8 +344,8 @@ load_spar_sims_filtered_interm <- function(outcome_dir,
     collect()
   
   spar<-spar %>%
-    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",date,'.spar.parquet'))) %>% # remove date component
-    tidyr::separate(sim_num,c('job_num','slot_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
+    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",runID,'.spar.parquet'))) %>% # remove runID component
+    tidyr::separate(sim_num,c('slot_num','block_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
   
   message("Finished loading intermediate SEIR parameters.")
   
@@ -381,7 +381,7 @@ load_spar_sims_filtered_interm <- function(outcome_dir,
 ##'
 ##'@export
 load_snpi_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
@@ -454,7 +454,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
 ##'
 ##'@export
 load_snpi_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -470,8 +470,8 @@ load_snpi_sims_filtered_interm <- function(outcome_dir,
     collect()
   
   snpi<-snpi %>%
-    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",date,'.snpi.parquet'))) %>% # remove date component
-    tidyr::separate(sim_num,c('job_num','slot_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
+    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",runID,'.snpi.parquet'))) %>% # remove runID component
+    tidyr::separate(sim_num,c('slot_num','block_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
   
   message("Finished loading intermediate SNPI  parameters.")
   
@@ -506,7 +506,7 @@ load_snpi_sims_filtered_interm <- function(outcome_dir,
 ##'
 ##'@export
 load_hnpi_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
@@ -579,7 +579,7 @@ load_hnpi_sims_filtered <- function(outcome_dir,
 ##'
 ##'@export
 load_hnpi_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -595,8 +595,8 @@ load_hnpi_sims_filtered_interm <- function(outcome_dir,
     collect()
   
   hnpi<-hnpi %>%
-    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",date,'.hnpi.parquet'))) %>% # remove date component
-    tidyr::separate(sim_num,c('job_num','slot_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
+    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",runID,'.hnpi.parquet'))) %>% # remove runID component
+    tidyr::separate(sim_num,c('slot_num','block_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
   
   message("Finished loading intermediate hnpi parameters.")
   
@@ -630,7 +630,7 @@ load_hnpi_sims_filtered_interm <- function(outcome_dir,
 ##'
 ##'@export
 load_llik_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
                                     pdeath_filter=c("high", "med", "low"),
                                     incl_geoids,
                                     ...
@@ -681,7 +681,7 @@ load_llik_sims_filtered <- function(outcome_dir,
 ##'
 ##'@export
 load_llik_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "sim_num"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -698,8 +698,8 @@ load_llik_sims_filtered_interm <- function(outcome_dir,
     collect()
   
   llik<-llik %>%
-    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",date,'.llik.parquet'))) %>% # remove date component
-    tidyr::separate(sim_num,c('job_num','slot_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) # split string
+    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",runID,'.llik.parquet'))) %>% # remove runID component
+    tidyr::separate(sim_num,c('slot_num','block_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) # split string
   
   message("Finished loading intermediate log likelihoods.")
   
