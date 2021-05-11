@@ -27,7 +27,7 @@ S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 global_debug_print = False
 
 def onerun_SEIR(sim_id, s, stoch_traj_flag = True, debug_print = global_debug_print):
-    scipy.random.seed()
+    scipy.random.seed(1)
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 

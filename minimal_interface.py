@@ -70,8 +70,8 @@ spatial_config = config["spatial_setup"]
 spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 scenario = scenario
 deathrate = deathrate
-stoch_traj_flag= stoch_traj_flag # Truthy: stochastic simulation, Falsy: determnistic mean of the binomial draws
-nsim = 10
+stoch_traj_flag= stoch_traj_flag # Truthy: stochastic simulation, Falsy: deterministic mean of the binomial draws
+nsim = 1
 interactive = False
 write_csv = False
 write_parquet = True
@@ -110,11 +110,11 @@ print(f"""
 >> Scenario: {scenario}
 >> Starting {s.nsim} model runs beginning from {s.first_sim_index}
 >> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}
->> writing to folder : {s.datadir}{s.setup_name}
+>> writing to folder : {s.datadir}
     """)
 
 setup_name = s.setup_name
-print(scenario, deathrate, index, run_id, prefix)
+#print(scenario, deathrate, index, run_id, prefix)
 onerun_OUTCOMES_loadID = lambda index: outcomes.onerun_delayframe_outcomes_load_hpar(config,
                                                                                      run_id, prefix, int(index), # input
                                                                                      run_id, prefix, int(index), # output

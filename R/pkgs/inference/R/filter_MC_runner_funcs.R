@@ -197,19 +197,19 @@ aggregate_and_calc_loc_likelihoods <- function(
 ##' Function that performs the necessary file copies the end of an MCMC iteration of
 ##' filter_MC.
 ##'
-##'@param current_index the current indec in the run
-##'@param slot what is the current slot numbe
+##'@param current_index the current index in the run
+##'@param slot what is the current slot number
 ##'@param block what is the current block
 ##'@param run_id what is the id of this run
 ##'@param global_local_prefix the prefix to be put on both global and local runs.
 ##'@param gf_prefix the prefix for the directory containing the current globally accepted files.
 ##'@param global_block_prefix prefix that describes this block.
 ##'
-##'@return TRUE if this succeded.
+##'@return TRUE if this succeeded.
 ##'
 ##'@export
 ##'
-perform_MCMC_step_copies <- function(current_index,
+perform_MCMC_step_copies_global <- function(current_index,
   slot,
   block,
   run_id,
@@ -243,6 +243,12 @@ perform_MCMC_step_copies <- function(current_index,
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'llik','parquet'),
       covidcommon::create_file_name(run_id,gf_prefix,slot,'llik','parquet'),
 	    overwrite = TRUE
+    )
+    
+    rc$lcov_gf <- file.copy(
+      covidcommon::create_file_name(run_id,global_local_prefix,current_index,'lcov','parquet'),
+      covidcommon::create_file_name(run_id,gf_prefix,slot,'lcov','parquet'),
+      overwrite = TRUE
     )
 
     rc$snpi_gf <- file.copy(
@@ -289,6 +295,11 @@ perform_MCMC_step_copies <- function(current_index,
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'llik','parquet'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'llik','parquet')
     )
+    
+    rc$lcov_block <- file.copy(
+      covidcommon::create_file_name(run_id,global_local_prefix,current_index,'lcov','parquet'),
+      covidcommon::create_file_name(run_id,global_block_prefix,block,'lcov','parquet')
+    )
 
     rc$snpi_block <- file.copy(
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'snpi','parquet'),
@@ -310,7 +321,7 @@ perform_MCMC_step_copies <- function(current_index,
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'hpar','parquet'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'hpar','parquet')
     )
-  } else { #move files from global/intermediate/slot.(block-1) to global/intermediate/slot.(block-1)
+  } else { #move files from global/intermediate/slot.(block-1) to global/intermediate/slot.block
     rc$seed_prevblk <- file.copy(
       covidcommon::create_file_name(run_id,global_block_prefix,block - 1 ,'seed','csv'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'seed','csv')
@@ -329,6 +340,11 @@ perform_MCMC_step_copies <- function(current_index,
     rc$llik_prevblk <- file.copy(
       covidcommon::create_file_name(run_id,global_block_prefix,block - 1,'llik','parquet'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'llik','parquet')
+    )
+    
+    rc$lcov_prevblk <- file.copy(
+      covidcommon::create_file_name(run_id,global_block_prefix,block - 1,'lcov','parquet'),
+      covidcommon::create_file_name(run_id,global_block_prefix,block,'lcov','parquet')
     )
 
     rc$snpi_prvblk <-file.copy(
@@ -355,6 +371,189 @@ perform_MCMC_step_copies <- function(current_index,
 
   return(rc)
 
+}
+
+##'
+##' Function that performs the necessary file copies the end of an MCMC iteration of
+##' filter_MC.
+##'
+##'@param current_index the current index in the run
+##'@param slot what is the current slot number
+##'@param block what is the current block
+##'@param run_id what is the id of this run
+##'@param chimeric_local_prefix the prefix to be put on both chimeric and local runs.
+##'@param cf_prefix the prefix for the directory containing the current chimericly accepted files.
+##'@param chimeric_block_prefix prefix that describes this block.
+##'
+##'@return TRUE if this succeeded.
+##'
+##'@export
+##'
+perform_MCMC_step_copies_chimeric <- function(current_index,
+                                            slot,
+                                            block,
+                                            run_id,
+                                            chimeric_local_prefix,
+                                            cf_prefix,
+                                            chimeric_block_prefix) {
+  
+  
+  rc <- list()
+  
+  if(current_index != 0){ #move files from chimeric/intermediate/slot.block.run to chimeric/final/slot
+    rc$seed_gf <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'seed','csv'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'seed','csv'),
+      overwrite = TRUE
+    )
+    
+    # No chimeric SEIR or HOSP files
+    
+    # rc$seir_gf <- file.copy(
+    #   covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'seir','parquet'),
+    #   covidcommon::create_file_name(run_id,cf_prefix,slot,'seir','parquet'),
+    #   overwrite = TRUE
+    # )
+    # 
+    # rc$hosp_gf <- file.copy(
+    #   covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hosp','parquet'),
+    #   covidcommon::create_file_name(run_id,cf_prefix,slot,'hosp','parquet'),
+    #   overwrite = TRUE
+    # )
+    
+    rc$llik_gf <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'llik','parquet'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'llik','parquet'),
+      overwrite = TRUE
+    )
+    
+    rc$lcov_gf <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'lcov','parquet'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'lcov','parquet'),
+      overwrite = TRUE
+    )
+    
+    rc$snpi_gf <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'snpi','parquet'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'snpi','parquet'),
+      overwrite = TRUE
+    )
+    
+    rc$hnpi_gf <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hnpi','parquet'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'hnpi','parquet'),
+      overwrite = TRUE
+    )
+    
+    rc$spar_gf <-file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'spar','parquet'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'spar','parquet'),
+      overwrite = TRUE
+    )
+    
+    rc$hpar_gf <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hpar','parquet'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'hpar','parquet'),
+      overwrite = TRUE
+    )
+    #move files from chimeric/intermediate/slot.block.run to chimeric/intermediate/slot
+    rc$seed_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'seed','csv'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seed','csv')
+    )
+    
+    # no chimeric SEIR or HOSP files
+    
+    # rc$seir_block <- file.copy(
+    #   covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'seir','parquet'),
+    #   covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seir','parquet')
+    # )
+    # 
+    # rc$hosp_block <- file.copy(
+    #   covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hosp','parquet'),
+    #   covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hosp','parquet')
+    # )
+    
+    rc$llik_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'llik','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'llik','parquet')
+    )
+    
+    rc$lcov_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'lcov','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'lcov','parquet')
+    )
+    
+    rc$snpi_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'snpi','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'snpi','parquet')
+    )
+    
+    rc$hnpi_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hnpi','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hnpi','parquet')
+    )
+    
+    rc$spar_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'spar','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'spar','parquet')
+    )
+    
+    
+    rc$hpar_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hpar','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hpar','parquet')
+    )
+  } else { #move files from chimeric/intermediate/slot.(block-1) to chimeric/intermediate/slot.block
+    rc$seed_prevblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1 ,'seed','csv'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seed','csv')
+    )
+    
+    rc$seir_prevblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1 ,'seir','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seir','parquet')
+    )
+    
+    rc$hosp_prevblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1 ,'hosp','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hosp','parquet')
+    )
+    
+    rc$llik_prevblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'llik','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'llik','parquet')
+    )
+    
+    rc$lcov_prevblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'lcov','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'lcov','parquet')
+    )
+    
+    rc$snpi_prvblk <-file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'snpi','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'snpi','parquet')
+    )
+    
+    rc$hnpi_prvblk <-file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'hnpi','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hnpi','parquet')
+    )
+    
+    rc$spar_prvblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'spar','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'spar','parquet')
+    )
+    
+    rc$hpar_prvblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'hpar','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hpar','parquet')
+    )
+  }
+  
+  
+  return(rc)
+  
 }
 
 ## Create a list with a filename of each type/extension.  A convenience function for consistency in file names

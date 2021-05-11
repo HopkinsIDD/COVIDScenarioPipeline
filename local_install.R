@@ -11,7 +11,7 @@ install.packages(list.files(pkg.dir,full.names=TRUE),type='source',repos=NULL)
 
 # to run within a local instance of R studio
 
-#install.packages(list.files("./R/pkgs/",full.names=TRUE),type='source',repos=NULL) #install from COVIDScenarioPipeline Github repo. Might need to run twice since packages are interdependent and might not be installed in correct order
+#install.packages(list.files("./R/pkgs/",full.names=TRUE),type='source',repos=NULL) #install from files. Run from COVIDScenarioPipeline folder. Might need to run twice since packages are interdependent and might not be installed in correct order
 # devtools::install_github("HopkinsIDD/globaltoolboxlite") #install the covidimportation package from a separate Github repo
 # devtools::install_github("HopkinsIDD/covidImportation")
 #

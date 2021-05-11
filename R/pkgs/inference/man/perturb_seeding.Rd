@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{perturb_seeding}
 \alias{perturb_seeding}
-\title{Fuction perturbs a seeding file based on a normal
+\title{Function perturbs a seeding file based on a normal
 proposal on the start date and
 a poisson on the number of cases.}
 \usage{
@@ -11,13 +11,13 @@ perturb_seeding(seeding, sd, date_bounds)
 \arguments{
 \item{seeding}{the original seeding}
 
-\item{sd}{the standard deviation of the posson}
+\item{sd}{the standard deviation of the poisson}
 }
 \value{
-a pertubed data frame
+a perturbed data frame
 }
 \description{
-Fuction perturbs a seeding file based on a normal
+Function perturbs a seeding file based on a normal
 proposal on the start date and
 a poisson on the number of cases.
 }

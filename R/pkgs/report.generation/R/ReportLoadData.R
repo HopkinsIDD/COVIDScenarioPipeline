@@ -190,13 +190,13 @@ load_hosp_geocombined_totals <- function(outcome_dir,
   
   hosp_post_process <- function(x) {
     x %>%
-      dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
+      dplyr::group_by(geoid, pdeath, scenario, runID, sim_num, location) %>%
       dplyr::arrange(time) %>%
       dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
       dplyr::mutate(cum_death=cumsum(incidD)) %>%
       dplyr::mutate(cum_case=cumsum(incidC)) %>%
       dplyr::mutate(cum_inf=cumsum(incidI)) %>%
-      dplyr::group_by(pdeath, scenario, time, sim_num) %>%
+      dplyr::group_by(pdeath, scenario, time, runID, sim_num) %>%
       dplyr::summarize(NhospCurr=sum(hosp_curr),
                        NICUCurr=sum(icu_curr),
                        NincidDeath=sum(incidD),
@@ -279,7 +279,7 @@ load_hosp_county <- function(outcome_dir,
   
   hosp_post_process <- function(x) {
     x %>%
-      dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
+      dplyr::group_by(geoid, pdeath, scenario, runID, sim_num, location) %>%
       dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
       dplyr::mutate(cum_death=cumsum(incidD)) %>%
       dplyr::mutate(cum_case=cumsum(incidC)) %>%
@@ -786,7 +786,7 @@ load_r_daily_sims_filtered <- function(outcome_dir,
                                   pre_process=function(x) {x %>% dplyr::filter(parameter=="R0")}, 
                                   pdeath_filter=pdeath_filter,
                                   ...) %>%
-    dplyr::select(r0=value, location, scenario, pdeath, date, sim_num)
+    dplyr::select(r0=value, location, scenario, pdeath, runID, sim_num)
   
   snpi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
                                  pre_process=function(x) {x %>% dplyr::filter(parameter=="r0")}, 
@@ -798,12 +798,12 @@ load_r_daily_sims_filtered <- function(outcome_dir,
   if(mtr){
     npi <- snpi %>%
       left_join(spar) %>% 
-      dplyr::select(-date) %>%
+      dplyr::select(-runID) %>%
       mtr_estimates(n_periods=n_periods)
   } else {
     npi <- snpi %>%
       left_join(spar) %>% 
-      dplyr::select(-date) %>%
+      dplyr::select(-runID) %>%
       mutate(start_date=lubridate::ymd(start_date),
              end_date=lubridate::ymd(end_date))
   }
@@ -857,7 +857,7 @@ load_npi_sims_filtered <- function(outcome_dir,
                                 pdeath_filter=pdeath_filter, 
                                 incl_geoids=incl_geoids,
                                 ...) %>%
-    dplyr::select(-parameter, -date)
+    dplyr::select(-parameter, -runID)
   
   warning("Finished loading")
   
