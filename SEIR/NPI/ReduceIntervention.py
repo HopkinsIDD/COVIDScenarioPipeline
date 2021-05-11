@@ -65,7 +65,7 @@ class ReduceIntervention(NPIBase):
                 if re.match("^transition_rate [1234567890]+$",new_p):
                     self.reductions[new_p] = 0
                 else:
-                    self.reductions[new_p] = 1
+                    self.reductions[new_p] = 0
 
         # self.scenario_start_date = scenario_npi_config.start_date.as_date()
         # self.scenario_end_date = scenario_npi_config.end_date.as_date()
@@ -75,11 +75,12 @@ class ReduceIntervention(NPIBase):
                 print(f"""{self.name} : param is {param}""")
 
         for param in self.param_name:
+            print(param)
             reduction = self.sub_npi.getReduction(param, default=0.0)
             if re.match("^transition_rate [1234567890]+$",param):
-                self.reductions[param] += reduction
+                self.reductions[param] = reduction.copy()
             else:
-                self.reductions[param] *= (1 - reduction)
+                self.reductions[param] = reduction.copy()
 
         # FIXME: getReductionToWrite() returns a concat'd set of stacked scenario params, which is
         # serialized as a giant dataframe to parquet. move this writing to be incremental, but need to
@@ -90,21 +91,8 @@ class ReduceIntervention(NPIBase):
         for index in self.parameters.index:
             for param in self.param_name:
                 period_range = pd.date_range(self.parameters["start_date"][index], self.parameters["end_date"][index])
-
-                ## This the line that does the work
-                # print(f"""PRE REDUCTION : {index},{np.min(period_range)}, {np.max(period_range)}""")
-                # print(f"""   : Reducing intervention from {(self.reductions[param].loc[index, period_range].values).shape} values (mean {np.mean(self.reductions[param].loc[index, period_range].values)}) by {self.parameters["reduction"][index]}""")
-                # print(f"""   : Overall {(self.reductions[param].loc[index, :].values).shape} values (mean {np.mean(self.reductions[param].loc[index, :].values)})""")
+                print(param)
                 self.reductions[param].loc[index, period_range] *= (1 - self.parameters["reduction"][index])
-                    # np.tile(self.parameters["reduction"][index], (len(period_range), 1)).T * \
-                    # self.reductions[param].loc[index, period_range]
-                # print(f"""POST REDUCTION : {index},{np.min(period_range)}, {np.max(period_range)}""")
-                # print(f"""   : Reducing intervention from {(self.reductions[param].loc[index, period_range].values).shape} values (mean {np.mean(self.reductions[param].loc[index, period_range].values)}) by {self.parameters["reduction"][index]}""")
-                # print(f"""   : Overall {(self.reductions[param].loc[index, :].values).shape} values (mean {np.mean(self.reductions[param].loc[index, :].values)})""")
-
-        for param in self.param_name:
-            if not re.match("^transition_rate \d+$",param):
-                self.reductions[param] = 1 - self.reductions[param]
 
         self.__checkErrors()
 
