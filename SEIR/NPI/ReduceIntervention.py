@@ -14,7 +14,7 @@ debug_print = False
 
 "Cap on # of reduction metadata entries to store in memory"
 
-REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE",350))
+REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE",5000))
 
 
 class ReduceIntervention(NPIBase):
@@ -90,7 +90,6 @@ class ReduceIntervention(NPIBase):
         for index in self.parameters.index:
             for param in self.param_name:
                 period_range = pd.date_range(self.parameters["start_date"][index], self.parameters["end_date"][index])
-                print(param)
                 self.reductions[param].loc[index, period_range] *= (1 - self.parameters["reduction"][index])
 
         self.__checkErrors()
