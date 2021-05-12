@@ -310,19 +310,21 @@ compute_totals <- function(sim_hosp) {
 ##' a poisson on the number of cases.
 ##'
 ##' @param seeding the original seeding
-##' @param sd the standard deviation of the poisson
-##'
+##' @param date_sd the standard deviation parameter of the normal distribution used to perturb date
+##' @param amount_sd the standard deviation parameter of the normal distribution used to perturb amount
+##' @param continuous Whether the seeding is passed to a continuous model or not
 ##'
 ##' @return a perturbed data frame
 ##'
 ##' @export
-perturb_seeding <- function(seeding,sd,date_bounds) {
+perturb_seeding <- function(seeding, date_sd, date_bounds, amount_sd = 1, continuous = FALSE) {
+  round_func <- ifelse(continuous, function(x){return(x)}, round)
   seeding <- seeding %>%
     dplyr::group_by(place) %>%
-    dplyr::mutate(date = date+round(rnorm(1,0,sd))) %>%
+    dplyr::mutate(date = date + round(rnorm(1,0,date_sd))) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(
-      amount=round(pmax(rnorm(length(amount),amount,1),0)),
+      amount = round_func(pmax(rnorm(length(amount),amount, amount_sd),0)),
       date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
     )
 

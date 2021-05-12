@@ -81,6 +81,12 @@ get_islandareas_data <- function() {
   nyt_data <- dplyr::rename(nyt_data, Update=date, source=state, FIPS=fips, Confirmed=cases, Deaths=deaths) # Rename columns
   nyt_data <- dplyr::mutate(nyt_data, FIPS=paste0(FIPS,"000"), source=plyr::revalue(source, ISLAND_AREAS, warn_missing=FALSE))
 
+  validation_date <- Sys.getenv("VALIDATION_DATE")
+  if ( validation_date != '' ) {
+    print(paste("(DataUtils.R) Limiting NYT territories data to:", validation_date, sep=" "))
+    nyt_data <- dplyr::filter(nyt_data, Update < validation_date)
+  }
+
   return(nyt_data)
 }
 
@@ -258,7 +264,6 @@ aggregate_counties_to_state <- function(df, state_fips){
 ##' @param incl_unassigned Includes data unassigned to counties (default is FALSE)
 ##' @return the case and deaths data frame
 ##'
-##' @importFrom dplyr rename group_modify group_by full_join select
 ##'
 ##' @export
 ##'
@@ -317,22 +322,27 @@ download_CSSE_US_data <- function(filename, url, value_col_name, incl_unassigned
   message(paste("Downloading", url, "to", filename))
   download.file(url, filename, "auto")
 
-  csse_data <- readr::read_csv(filename, col_types = list("FIPS" = col_character())) %>%
+  csse_data <- readr::read_csv(filename, col_types = list("FIPS" = readr::col_character())) %>%
     tibble::as_tibble()
   if (incl_unassigned){
     csse_data <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
                   !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
                   !is.na(FIPS))
   } else{
-    csse_data <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
+    csse_data2 <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
                     !grepl("unassigned", Admin2, ignore.case = TRUE) & ## probable cases
                     !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
                     !is.na(FIPS))
+    ## include unassigned PR cases & deaths because they are being aggregated to territory level in get_CSSE_US_data
+    pr_unassigned <- dplyr::filter(csse_data, grepl("unassigned", Admin2, ignore.case = TRUE) &
+                        Province_State == "Puerto Rico")
+    csse_data <- dplyr::bind_rows(csse_data2, pr_unassigned)
   }
+
   csse_data <- tidyr::pivot_longer(csse_data, cols=dplyr::contains("/"), names_to="Update", values_to=value_col_name) %>%
     dplyr::mutate(Update=as.Date(lubridate::mdy(Update)),
                   FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
-                  FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0")),
+                  FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0", side = "left")),
                   FIPS = ifelse(stringr::str_sub(FIPS, 1, 3)=="900", paste0(stringr::str_sub(FIPS, 4, 5), "000"), FIPS) ## clean FIPS codes for unassigned data
 
                   ) %>%
@@ -387,9 +397,9 @@ get_CSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_cas
   csse_us_case <- download_CSSE_US_data(case_data_filename, CSSE_US_CASE_DATA_URL, "Confirmed", incl_unassigned)
   csse_us_death <- download_CSSE_US_data(death_data_filename, CSSE_US_DEATH_DATA_URL, "Deaths", incl_unassigned)
 
-  csse_us_data <- dplyr::full_join(csse_us_case, csse_us_death)
-  csse_us_data <- dplyr::select(csse_us_data, Update, source, FIPS, Confirmed, Deaths)
-  csse_us_data <- dplyr::arrange(csse_us_data, source, FIPS, Update)
+  csse_us_data <- dplyr::full_join(csse_us_case, csse_us_death) %>%
+    dplyr::select(Update, source, FIPS, Confirmed, Deaths) %>%
+    dplyr::arrange(source, FIPS, Update)
 
   # Create columns incidI and incidDeath
   csse_us_data <- dplyr::group_modify(
@@ -405,8 +415,8 @@ get_CSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_cas
   )
 
   # Fix incidence counts that go negative and NA values or missing dates
-  csse_us_data <- fix_negative_counts(csse_us_data, "Confirmed", "incidI")
-  csse_us_data <- fix_negative_counts(csse_us_data, "Deaths", "incidDeath")
+  csse_us_data <- fix_negative_counts(csse_us_data, "Confirmed", "incidI") %>%
+    fix_negative_counts("Deaths", "incidDeath")
 
   # Aggregate county-level data for Puerto Rico
   csse_us_data <- aggregate_counties_to_state(csse_us_data, "72")
@@ -425,15 +435,7 @@ get_CSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_cas
 ##' @param url URL to CSV on CSSE website
 ##' @return data frame
 ##'
-##' @importFrom dplyr select rename filter mutate distinct
-##' @importFrom lubridate mdy
-##' @importFrom readr read_csv col_character
-##' @importFrom tidyr pivot_longer
 ##' @importFrom magrittr %>%
-##' @importFrom stringr str_replace str_length str_pad fixed
-##' @importFrom tibble as_tibble
-##' @importFrom globaltoolboxlite get_iso get_iso2_from_ISO3
-##' @importFrom tidyselect everything
 ##'
 download_CSSE_global_data <- function(filename, url, value_col_name){
 
@@ -449,9 +451,9 @@ download_CSSE_global_data <- function(filename, url, value_col_name){
                   Latitude = Lat,
                   Longitude = Long)
 
-  csse_data <- dplyr::mutate(csse_data, iso3 = globaltoolboxlite::get_iso(Country_Region))
+  csse_data <- dplyr::mutate(csse_data, iso3 = suppressWarnings(suppressMessages(globaltoolboxlite::get_iso(Country_Region))))
   csse_data <- dplyr::mutate(csse_data,
-      iso2 = globaltoolboxlite::get_iso2_from_ISO3(iso3),
+      iso2 = suppressWarnings(suppressMessages(globaltoolboxlite::get_iso2_from_ISO3(iso3))),
       UID = ifelse(!is.na(Province_State), paste0(iso3, "-", Province_State), iso3))
   csse_data <- dplyr::select(csse_data, UID, Province_State:Longitude, iso2, iso3, tidyselect::everything())
 
@@ -501,7 +503,6 @@ download_CSSE_global_data <- function(filename, url, value_col_name){
 ##'
 ##' @return the case and deaths data frame
 ##'
-##' @importFrom dplyr rename group_modify group_by full_join select arrange bind_rows mutate
 ##'
 ##' @export
 ##'
@@ -560,13 +561,7 @@ get_CSSE_global_data <- function(case_data_filename = "data/case_data/jhucsse_ca
 ##' @param url URL to CSV on Reich Lab website
 ##' @return data frame
 ##'
-##' @importFrom dplyr select rename mutate filter
-##' @importFrom lubridate mdy
-##' @importFrom readr read_csv col_character
 ##' @importFrom magrittr %>%
-##' @importFrom stringr str_pad str_sub str_length
-##' @importFrom tibble as_tibble
-##' @importFrom cdlTools fips
 ##'
 download_reichlab_data <- function(filename, url, value_col_name){
 
@@ -574,7 +569,7 @@ download_reichlab_data <- function(filename, url, value_col_name){
   message(paste("Downloading", url, "to", filename))
   download.file(url, filename, "auto")
 
-  reichlab_data <- readr::read_csv(filename, col_types = list("location" = col_character()))
+  reichlab_data <- readr::read_csv(filename, col_types = list("location" = readr::col_character()))
   reichlab_data <- tibble::as_tibble(reichlab_data)
   reichlab_data <- dplyr::mutate(reichlab_data, Update = as.Date(date),
                   source = cdlTools::fips(stringr::str_sub(location, 1, 2), to = "Abbreviation"),
@@ -614,7 +609,6 @@ download_reichlab_data <- function(filename, url, value_col_name){
 ##'
 ##' @return the case and deaths data frame
 ##'
-##' @importFrom dplyr full_join select filter arrange
 ##'
 ##' @export
 ##'
@@ -667,7 +661,6 @@ get_reichlab_st_data <- function(cum_case_filename = "data/case_data/rlab_cum_ca
 ##'
 ##' @return the case and deaths data frame
 ##'
-##' @importFrom dplyr full_join select filter arrange
 ##'
 ##' @export
 ##'
@@ -711,10 +704,7 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 ##' @param variables vector that may include one or more of the following variable names: Confirmed, Deaths, incidI, incidDeath, (hhsCMU source only: incidH_confirmed, incidH_all, hospCurr_confirmed, hospCurr_all)
 ##' @return data frame
 ##'
-##' @importFrom dplyr select mutate filter group_by summarise_if bind_rows
 ##' @importFrom magrittr %>%
-##' @importFrom stringr str_sub
-##'
 ##'
 ##' @export
 ##'

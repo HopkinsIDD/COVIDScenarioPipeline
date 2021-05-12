@@ -10,6 +10,8 @@ import copy
 
 from .utils import config
 from . import file_paths
+import logging
+logger = logging.getLogger(__name__)
 
 
 # Number of components
@@ -201,6 +203,46 @@ class Parameters:
         self.R0s_dist = parameters_config["R0s"].as_random_distribution()
 
 
+def build_smart_setup(config, npi_scenario = 'inference', nsim = 1, index = 1, run_id = '', prefix=''):
+    """ 
+        a setup class where most choices are made for you already, for test or development.
+        Do not rely on this.
+    """
+    interactive = False
+    write_csv = False
+    write_parquet = True
+    stoch_traj_flag = True
+
+    spatial_config = config["spatial_setup"]
+    spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
+    s = Setup(
+        setup_name=config["name"].get() + "_" + str(npi_scenario),
+        spatial_setup=setup.SpatialSetup(
+            setup_name=spatial_config["setup_name"].get(),
+            geodata_file=spatial_base_path / spatial_config["geodata"].get(),
+            mobility_file=spatial_base_path / spatial_config["mobility"].get(),
+            popnodes_key=spatial_config["popnodes"].get(),
+            nodenames_key=spatial_config["nodenames"].get()
+        ),
+        nsim=nsim,
+        npi_scenario=npi_scenario,
+        npi_config=config["interventions"]["settings"][npi_scenario],
+        seeding_config=config["seeding"],
+        parameters_config=config["seir"]["parameters"],
+        ti=config["start_date"].as_date(),
+        tf=config["end_date"].as_date(),
+        interactive=interactive,
+        write_csv=write_csv,
+        write_parquet=write_parquet,
+        dt=config["dt"].as_number(),
+        first_sim_index = index,
+        in_run_id = run_id,
+        in_prefix = prefix,
+        out_run_id = run_id,
+        out_prefix = prefix
+    )
+    return s
+
 
 def seeding_draw(s, sim_id):
     importation = np.zeros((s.t_span+1, s.nnodes))
@@ -342,6 +384,7 @@ def seeding_load(s, sim_id):
                 y0[S, 0, pl_idx] = s.popnodes[pl_idx]
             else:
                 raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
+    
     elif (method == 'InitialConditionsFolderDraw'):
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         states = pq.read_table(
@@ -598,9 +641,9 @@ def parameters_load(fname, extension, nt_inter, nnodes):
         transmissibility_reduction[:,compartment,:] = \
             float(pars[pars['parameter'] == (str(compartment) + ' transmissibility reduction')].value)
     for transition in range(n_parallel_transitions):
-        print(f""" all parameters are : { pars }""")
-        print(f""" expected name is : { (str(transition) + " " + "transition rate") }""")
-        print(f""" appropriate parameters are : { pars[pars['parameter'] == (str(transition) + " " + "transition rate")] }""")
+        logging.debug(f""" all parameters are : { pars }""")
+        logging.debug(f""" expected name is : { (str(transition) + " " + "transition rate") }""")
+        logging.debug(f""" appropriate parameters are : { pars[pars['parameter'] == (str(transition) + " " + "transition rate")] }""")
         transition_rate[:,transition,:] = \
             float(pars[pars['parameter'] == (str(transition) + " " + "transition rate")].value)
         transition_from[transition] = \

@@ -8,13 +8,16 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from SEIR.utils import config
+from SEIR.utils import config, Timer
 import SEIR.NPI as NPI
 import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
 from SEIR import file_paths
 from SEIR.setup import _parameter_reduce, npi_load
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, nsim = 1, n_jobs=1, stoch_traj_flag = True):
@@ -51,6 +54,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id,
 
 
 def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, stoch_traj_flag = True):
+    
     parameters, npi_config = read_parameters_from_config(config, in_run_id, in_prefix, [in_sim_id], scenario_outcomes)
 
     loaded_values = pyarrow.parquet.read_table(file_paths.create_file_name(
@@ -62,18 +66,19 @@ def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id
     )).to_pandas()
 
     if npi_config is not None:
-        diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
-        npi = NPI.NPIBase.execute(
-            npi_config=npi_config[0],
-            global_config=npi_config[1],
-            geoids=places,
-            loaded_df = npi_load(
-                file_paths.create_file_name_without_extension(
-                    in_run_id,
-                    in_prefix, 
-                    in_sim_id,
-                    "hnpi"),'parquet')
-        )
+        with Timer('onerun_delayframe_outcomes_load_hpar.NPI'):
+            diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
+            npi = NPI.NPIBase.execute(
+                npi_config=npi_config[0],
+                global_config=npi_config[1],
+                geoids=places,
+                loaded_df = npi_load(
+                    file_paths.create_file_name_without_extension(
+                        in_run_id,
+                        in_prefix, 
+                        in_sim_id,
+                        "hnpi"),'parquet')
+            )
     else:
         npi = None
 
@@ -194,13 +199,15 @@ def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_
 
     # Compute outcomes
     #outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag, npi)
-    outcomes, hpar = compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag, npi)
+    with Timer('onerun_delayframe_outcomes.compute'):
+        outcomes, hpar = compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag, npi)
 
-    # Write output
-    write_outcome_sim(outcomes, out_run_id, out_prefix, out_sim_id)
-    write_outcome_hpar(hpar, out_run_id, out_prefix, out_sim_id)
-    #if npi is not None:
-    write_outcome_hnpi(npi, out_run_id, out_prefix, out_sim_id)
+    with Timer('onerun_delayframe_outcomes.postprocess'):
+        # Write output
+        write_outcome_sim(outcomes, out_run_id, out_prefix, out_sim_id)
+        write_outcome_hpar(hpar, out_run_id, out_prefix, out_sim_id)
+        #if npi is not None:
+        write_outcome_hnpi(npi, out_run_id, out_prefix, out_sim_id)
 
 
 
