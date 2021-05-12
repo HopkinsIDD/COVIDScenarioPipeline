@@ -179,12 +179,14 @@ class Parameters:
         n_parallel_compartments = 1
         n_parallel_transitions = 0
         compartments_dict = {}
+        self.compartments_map = {}
+        self.transition_map = {}
         if "parallel_structure" in parameters_config:
             if not "compartments" in parameters_config["parallel_structure"]:
                 raise ValueError(f"A config specifying a parallel structure should assign compartments to that structure")
-            compartments_map = parameters_config["parallel_structure"]["compartments"].get()
-            n_parallel_compartments = len(compartments_map)
-            compartments_dict = {k : v for v,k in enumerate(compartments_map)}
+            self.compartments_map = parameters_config["parallel_structure"]["compartments"]
+            n_parallel_compartments = len(self.compartments_map.get())
+            compartments_dict = {k : v for v,k in enumerate(self.compartments_map.get())}
             if not "transitions" in parameters_config["parallel_structure"]:
                 raise ValueError(f"A config specifying a parallel structure should assign transitions to that structure")
             transitions_map = parameters_config["parallel_structure"]["transitions"]
@@ -449,19 +451,20 @@ def parameters_quick_draw(p, nt_inter, nnodes):
     transition_from = np.zeros((p.n_parallel_transitions), dtype = 'int32')
     transition_to = np.zeros((p.n_parallel_transitions), dtype = 'int32')
 
+    ## JK : why 1.5?
     if p.n_parallel_compartments > 1.5:
     #if"parallel_structure" in p_config:
         #for index, compartment in enumerate(p_config["parallel_structure"]["compartments"]):
         for compartment, index in p.compartments_dict.items():
             #if "susceptibility_reduction" in p_config["parallel_structure"]["compartments"][compartment]:
-            if "susceptibility_reduction" in compartment:
-                susceptibility_reduction[:,index,:] = compartment["susceptibility_reduction"].as_random_distribution()()
+            if "susceptibility_reduction" in p.compartments_map[compartment]:
+                susceptibility_reduction[:,index,:] = p.compartments_map[compartment]["susceptibility_reduction"].as_random_distribution()()
             else:
-                susceptibility_reduction[:,index,:] = 0
-            if "transmissibility_reduction" in compartment:
-                transmissibility_reduction[:,index,:] = compartment["transmissibility_reduction"].as_random_distribution()()
+                raise ValueError(f"Susceptibility Reduction not found for compartment {compartment} in config {p.compartments_map}")
+            if "transmissibility_reduction" in p.compartments_map[compartment]:
+                transmissibility_reduction[:,index,:] = p.compartments_map[compartment]["transmissibility_reduction"].as_random_distribution()()
             else:
-                transmissibility_reduction[:,index,:] = 0
+                raise ValueError(f"Transmissibility Reduction not found for compartment {compartment} in config {p.compartments_map}")
 
         for transition in range(p.n_parallel_transitions):
             transition_rate[:,transition,:] = p.transition_map[transition]["rate"].as_random_distribution()()
