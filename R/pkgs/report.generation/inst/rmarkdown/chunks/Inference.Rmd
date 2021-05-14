@@ -13,7 +13,7 @@ The framework allows for the use of aggregates of the observation and simulated 
 
 ```{r table, echo=FALSE, message=FALSE, warning=FALSE}
 filter_data_dict <- c("deaths" = "deaths",
-                      "hosp" = "hospitalizations")
+                      "confirmed" = "cases")
 
 filter_stat_names <- purrr::map_chr(config$filtering$statistics, ~.[["name"]])
 filter_stat_aggr <- purrr::map_chr(filter_stat_names, ~strsplit(., "_")[[1]][1])

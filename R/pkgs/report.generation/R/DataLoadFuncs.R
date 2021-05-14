@@ -1,191 +1,282 @@
-#' Return a function to read files of a specific type (or automatically detected type based on extension)
-#' @param extension The file extension to read files of
-#' @param ... Arguments to pass to the reading function
-#' @return A function which will read files with that extension.
-#'  - We use readr::read_csv for csv files
-#'  - We use arrow::read_parquet for parquet files
-#'  - We use a function that detects the extension and calls this function if the auto extension is specified.
-read_file_of_type <- function(extension,...){
-  if(extension == 'csv'){
-    return(function(x){suppressWarnings(readr::read_csv(x,,col_types = cols(
-        .default = col_double(),
-        time=col_date(),
-        uid=col_character(),
-        comp=col_character(),
-        geoid=col_character()
-      )))})
-  }
-  if(extension == 'parquet'){
-    return(function(x){
-      tmp <- arrow::read_parquet(x) 
-      if("POSIXct" %in% class(tmp$time)){
-        tmp$time <- lubridate::as_date(tz="GMT",tmp$time)
-      }
-      tmp
-    })
-  }
-  if(extension == 'auto'){
-    return(function(filename){
-      extension <- gsub("[^.]*\\.","",filename)
-      if(extension == 'auto'){stop("read_file_of_type cannot read files with file extension '.auto'")}
-      read_file_of_type(extension)(filename)
-    })
-  }
-  if(extension == 'shp'){
-    return(sf::st_read)
-  }
-  stop(paste("read_file_of_type cannot read files of type",extension))
-}
 
-
-
-##' Function designed to allow generic filtering and summarization
-##' of simulations before merging them together when loading outputs
-##' from the infection genertion modeling pipeline.
+##' Wrapper function for loading multiple hospitalization outcomes with open_dataset
 ##' 
-##' @param scenario_dir the subdirectory containing this scenario
-##' @param post_process function that does processing to sims before loading 
-##' @param post_process function that does processing after 
-##' @param geoid_len in defined, this we want to make geoids all the same length
-##' @param padding_char character to add to the front of geoids if fixed length
-##' @param ... additional parameters to pass to pre and/or post process
-##' 
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param model_output folder with hosp outcomes
+##' @param partitions used by open_dataset 
+##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param incl_geoids character vector of geoids that are included in the report
+##' @param pre_process function that does processing before collection
+##' @param post_process function that does processing after collection
 ##' 
 ##' @return a combined data frame of all hospital simulations with filters applied pre merge.
 ##' 
-##' 
-##' @author Justin Lessler
-##' 
-##' @export
-load_scenario_sims_filtered <- function(scenario_dir, 
-                                        num_files = NA,
-                                        post_process = function(x) {x},
-                                        pre_process = function(x){x},
-                                        geoid_len = 0,
-                                        padding_char = "0",
-                                        file_extension = 'auto',
-                                        ...) {
-  
-  require(tidyverse)
-  require(foreach)
-  
-  if (is.na(num_files)) {
-    files <- dir(sprintf("model_output/%s", scenario_dir), full.names = TRUE)
-  } else {
-    files <- c()
-    for (scenario in scenario_dir) {
-      all_files <- dir(sprintf("model_output/%s", scenario), full.names = TRUE)
-      if (length(all_files) == num_files) {
-        files <- c(files, all_files) 
-      } else if (num_files < length(all_files)) {
-        warning(paste0("You are only reading in ", num_files, " out of ", length(all_files), " files in ", scenario,
-                       ". Check the num_files argument if this is unexpected.\n"))
-        files <- c(files, all_files[seq_len(num_files)])
-      } else {
-        stop(paste0("There were ", length(all_files), " files in ", scenario, " but num_files is ", num_files, "."))
-      }
-    }
-  }
-  if (length(files) == 0) {
-    stop(paste0("There were no files in ",getwd(), "/", sprintf("model_output/%s", scenario_dir)))
-  }
-
-  read_file <- read_file_of_type(file_extension)
-  
-  if (geoid_len > 0) {
-    padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width =geoid_len,pad=padding_char))}
-  } else {
-    padfn <- function(x) {x}
-  }
-  
-  rc <- foreach(i = 1:length(files)) %dopar% {
-    require(tidyverse)
-    
-    read_file(files[i]) %>%
-      pre_process(...) %>%
-      pivot_longer(cols=c(-time, -comp), names_to = "geoid", values_to="N") %>% 
-      padfn %>%
-      post_process(...) %>%
-      mutate(sim_num = i)
-  }
-  
-  rc <- dplyr::bind_rows(rc)
-  return(rc)
-}
-
-
-##' Function loads multiple hospital simulations into a combined data frame
-##' with pre and post filters
-##' 
-##' @param scenario_dir the subdirectory containing this scenario
-##' @param name_filter string that indicates which pdeath level to import (from the hosp filename) 
-##' @param post_process function that does processing after 
-##' @param geoid_len in defined, this we want to make geoids all the same length
-##' @param padding_char character to add to the front of geoids if fixed length
-##' @param ... additional parameters to post process function
-##' 
-##' @return a combined data frame of all hospital simulations with filters applied pre merge.
-##' 
-##' @author Justin Lessler
 ##'
 ##'
 ##'@export
-load_hosp_sims_filtered <- function(scenario_dir = 'model_output/hosp',
-                                    name_filter,
-                                    num_files = NA,
+load_hosp_sims_filtered <- function(outcome_dir,
+                                    model_output = 'hosp',
+                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
+                                    pdeath_filter=c("high", "med", "low"),
+                                    incl_geoids,
+                                    pre_process=function(x) {x},
                                     post_process=function(x) {x},
-                                    geoid_len = 0,
-                                    padding_char = "0",
-                                    file_extension = 'auto',
-                                    ...,
-                                    legacy=TRUE) {
+                                    inference=TRUE,
+                                    ...
+) {
   
   require(tidyverse)
-  require(foreach)
   
-
-  if(legacy){name_filter = paste0("/",name_filter,"/")}
-  files <- list.files(sprintf("%s", scenario_dir),full.names = TRUE, recursive=TRUE)
-  warning(files[1])
-  for(filter in name_filter){
-    files <- files[grepl(filter,files)]
-  }
-  if(length(files) == 0){stop(
-    paste0("There were no files in ",getwd(),"/", scenario_dir," matching name filter |",name_filter,"|")
-  )}
-
-  if(is.null(num_files) | is.na(num_files) ){
-    num_files <- length(files)
-  }
-  if ( num_files <= length(files) ){
-    files <- files[seq_len(num_files)]
-    warning(paste("You are only reading in", num_files, "files. Check the num_files argument if this is unexpected."))
-  }
-
-
-  if (geoid_len > 0) {
-    padfn <- function(x) {x%>% dplyr::mutate(geoid = str_pad(geoid,width=geoid_len,pad=padding_char))}
+  if(inference){
+    hosp<-arrow::open_dataset(file.path(outcome_dir,model_output), 
+                            partitioning = partitions) %>%
+      dplyr::filter(!!as.symbol(partitions[5])=="global",
+                    !!as.symbol(partitions[6])=="final") %>%
+      dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
+      dplyr::filter(geoid %in% incl_geoids) %>%
+      pre_process(...)%>%
+      collect()
   } else {
-    padfn <- function(x) {x}
+    if(length(partitions)==7){partitions <- partitions[-5:-6]}
+    
+    hosp<-arrow::open_dataset(file.path(outcome_dir,model_output), 
+                            partitioning = partitions) %>%
+      dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
+      dplyr::filter(geoid %in% incl_geoids) %>%
+      pre_process(...)%>%
+      collect()
   }
-
-  read_file <- read_file_of_type(file_extension)
   
-  rc<- foreach (i = 1:length(files)) %dopar% {
-    require(tidyverse)
-    file <- files[i]
-
+  hosp<-hosp %>%
+    mutate(sim_num=as.numeric(str_extract(max(partitions), "^\\d+")),
+           time=as.Date(time)) 
   
-    read_file(files[i]) %>%
-      padfn %>%
-      mutate(sim_num = i) %>%
+  # fnames <- hosp$.data$files %>% 
+  #   stringr::str_split("\\/") %>% 
+  #   dplyr::tibble() %>% 
+  #   tidyr::unnest_wider(., col=`.`)
+  # 
+  # fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
+  # 
+  # colnames(fnames) <- c(partitions, "sim_num")
+  # 
+  # fnames <- fnames %>%
+  #   pre_process$partitions() %>%
+  #   pull(sim_num)
+  # 
+  # hosp<-hosp %>%
+  #   pre_process$partitions() %>%
+  #   pre_process$data() %>%
+  #   collect() %>%
+  #   group_by(geoid, time, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
+  #   mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$')), 
+  #          time=as.Date(time)) %>%
+  #   dplyr::ungroup()
+  
+  if(nrow(hosp)==0){stop("Nothing was loaded, confirm filtering values are correct.")}
+  
+  hosp <- hosp %>%
       post_process(...) 
-  }
   
-  rc<- dplyr::bind_rows(rc)
-  
-  warning("Finished loading")
-  return(rc)
+  message("Finished loading")
+  return(hosp)
   
 }
 
+##' Wrapper function for loading hpar files with open_dataset
+##' 
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param model_output folder with hpar outcomes
+##' @param partitions used by open_dataset 
+##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param pre_process function that does processing before collection
+##' @param incl_geoids character vector of geoids that are included in the report
+##' 
+##' @return a combined data frame of all hpar simulations with filters applied pre merge.
+##' 
+##'
+##'
+##'@export
+load_hpar_sims_filtered <- function(outcome_dir,
+                                    model_output = 'hpar',
+                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
+                                    pdeath_filter=c("high", "med", "low"),
+                                    pre_process=function(x){x},
+                                    incl_geoids,
+                                    ...
+) {
+  
+  require(tidyverse)
+  
+  hpar<-arrow::open_dataset(file.path(outcome_dir,model_output), 
+                          partitioning = partitions) %>%
+    dplyr::filter(!!as.symbol(partitions[5])=="global",
+                  !!as.symbol(partitions[6])=="final") %>%
+    dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
+    dplyr::filter(geoid %in% incl_geoids)  %>%
+    pre_process(...) %>%
+    collect() %>%
+    mutate(sim_num=as.numeric(str_extract(max(partitions), "^\\d+")))
+  
+  
+  # fnames <- hpar$.data$files %>% 
+  #   stringr::str_split("\\/") %>% 
+  #   dplyr::tibble() %>% 
+  #   tidyr::unnest_wider(., col=`.`)
+  # 
+  # fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
+  # 
+  # colnames(fnames) <- c(partitions, "sim_num")
+  # 
+  # fnames <- fnames %>%
+  #   pre_process$partitions() %>%
+  #   pull(sim_num)
+  # 
+  # hpar<-hpar %>%
+  #   pre_process$partitions() %>%
+  #   pre_process$data() %>%
+  #   collect() %>%
+  #   group_by(quantity, outcome, geoid, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
+  #   mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$'))) %>%
+  #   dplyr::ungroup()
+  
+  message("Finished loading")
+  return(hpar)
+  
+}
+
+##' Wrapper function for loading spar files with open_dataset
+##' 
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param partitions used by open_dataset 
+##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param pre_process function that does processing before collection
+##' 
+##' @return a combined data frame of all R simulations with filters applied pre merge.
+##'        - parameter
+##'        - value
+##'        - location 
+##'        - scenario
+##'        - pdeath
+##'        - date
+##'        - lik_type
+##'        - is_final
+##'        - sim_num
+##'
+##'
+##'@export
+load_spar_sims_filtered <- function(outcome_dir,
+                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
+                                    pdeath_filter=c("high", "med", "low"),
+                                    pre_process=function(x) {x},
+                                    ...
+) {
+  
+  require(tidyverse)
+  
+  spar <- arrow::open_dataset(file.path(outcome_dir,'spar'), 
+                              partitioning = partitions) %>%
+    dplyr::filter(!!as.symbol(partitions[5])=="global",
+                  !!as.symbol(partitions[6])=="final") %>%
+    dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
+    pre_process(...) %>%
+    collect() %>%
+    mutate(sim_num=as.numeric(str_extract(max(partitions), "^\\d+")))
+  
+  # fnames <- spar$.data$files %>% 
+  #   stringr::str_split("\\/") %>% 
+  #   dplyr::tibble() %>% 
+  #   tidyr::unnest_wider(., col=`.`)
+  # 
+  # fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
+  # 
+  # colnames(fnames) <- c(partitions, "sim_num")
+  # 
+  # fnames <- fnames %>%
+  #   pre_process$partitions() %>%
+  #   pull(sim_num)
+  # 
+  # spar<-spar %>%
+  #   pre_process$partitions() %>%
+  #   pre_process$data() %>%
+  #   collect() %>%
+  #   group_by(parameter, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
+  #   mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$'))) %>%
+  #   dplyr::ungroup()
+  
+  message("Finished loading.")
+  return(spar)
+  
+}
+
+##' Wrapper function for loading spar files with open_dataset
+##' 
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param partitions used by open_dataset 
+##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param pre_process function that does processing before collection
+##' @param incl_geoids character vector of geoids that are included in the report
+##' 
+##' @return a combined data frame of all R simulations with filters applied pre merge.
+##'        - geoid
+##'        - start_date
+##'        - end_date
+##'        - npi_name
+##'        - parameter
+##'        - reduction
+##'        - location 
+##'        - scenario
+##'        - pdeath
+##'        - date
+##'        - lik_type
+##'        - is_final
+##'        - sim_num
+##'
+##'
+##'@export
+load_snpi_sims_filtered <- function(outcome_dir,
+                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
+                                    pdeath_filter=c("high", "med", "low"),
+                                    pre_process=function(x) {x},
+                                    incl_geoids,
+                                    ...
+) {
+  
+  require(tidyverse)
+  
+  snpi<- arrow::open_dataset(file.path(outcome_dir,'snpi'), 
+                             partitioning = partitions) %>%
+    dplyr::filter(!!as.symbol(partitions[5])=="global",
+                  !!as.symbol(partitions[6])=="final") %>%
+    dplyr::filter(!!as.symbol(partitions[3]) %in% pdeath_filter) %>%
+    dplyr::filter(geoid %in% incl_geoids)  %>%
+    pre_process(...)%>%
+    collect() %>%
+    mutate(sim_num=as.numeric(str_extract(max(partitions), "^\\d+")))
+  
+  # fnames <- snpi$.data$files %>% 
+  #   stringr::str_split("\\/") %>% 
+  #   dplyr::tibble() %>% 
+  #   tidyr::unnest_wider(., col=`.`)
+  # 
+  # fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
+  # 
+  # colnames(fnames) <- c(partitions, "sim_num")
+  # 
+  # fnames <- fnames %>%
+  #   pre_process$partitions() %>%
+  #   pull(sim_num)
+  # 
+  # snpi<-snpi %>%
+  #   pre_process$partitions() %>%
+  #   pre_process$data() %>%
+  #   collect() %>%
+  #   group_by(geoid, npi_name, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
+  #   mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$'))) %>%
+  #   dplyr::ungroup()
+  
+  message("Finished loading.")
+  
+  return(snpi)
+  
+}
