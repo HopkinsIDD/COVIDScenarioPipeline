@@ -34,7 +34,8 @@ aggregate_and_calc_loc_likelihoods <- function(
   geodata,
   snpi=NULL,
   hnpi=NULL,
-  hpar=NULL) {
+  hpar=NULL
+) {
 
   ##Holds the likelihoods for all locations
   likelihood_data <- list()
@@ -390,20 +391,22 @@ initialize_mcmc_first_block <- function(
   global_prefix,
   chimeric_prefix,
   python_reticulate,
-  likelihood_calculation_function
+  likelihood_calculation_function,
+  is_resume = FALSE
 ) {
 
   ## Only works on these files:
-  types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar","llik")
+  types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik")
+  non_llik_types <- paste(c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar"), "filename", sep = "_")
   extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
 
   global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions)
   chimeric_files <- create_filename_list(run_id, chimeric_prefix, block - 1, types, extensions)
 
+  global_check <- sapply(global_files, file.exists)
+  chimeric_check <- sapply(chimeric_files, file.exists)
   ## If this isn't the first block, all of the files should definitely exist
   if (block > 1) {
-    global_check <- sapply(global_files, file.exists)
-    chimeric_check <- sapply(chimeric_files, file.exists)
 
     if (any(!global_check)) {
       stop(paste(
@@ -428,8 +431,15 @@ initialize_mcmc_first_block <- function(
     return(TRUE)
   }
 
-  global_check <- sapply(global_files, file.exists)
-  chimeric_check <- sapply(chimeric_files, file.exists)
+  if ((is_resume) && (!all(global_check[non_llik_types]))) {
+    stop(paste(
+      "For a resume, all global files must be present.",
+      "Found the following files:",
+      paste(names(global_check)[which(global_check)], collapse = ", "),
+      "\nWas expecting the following files:",
+      paste(names(global_check[non_llik_types]), collapse = ", ")
+    ))
+  }
 
   if (any(global_check)) {
     warning(paste(
@@ -469,22 +479,37 @@ initialize_mcmc_first_block <- function(
   }
 
   ## seir, snpi, spar
-  if (any(c("seir_filename", "snpi_filename", "spar_filename") %in% global_file_names)) {
-    if (!all(c("seir_filename", "snpi_filename", "spar_filename") %in% global_file_names)) {
-      stop("Some but not all SEIR outputs found.  Please specify all SEIR outputs by hand, or none")
+  if (any(c("snpi_filename", "spar_filename") %in% global_file_names)) {
+    if (!all(c("snpi_filename", "spar_filename") %in% global_file_names)) {
+      stop("Provided some SEIR input, but not all")
     }
-
-    python_reticulate$onerun_SEIR(block - 1, python_reticulate$s)
+    if ("seir_filename" %in% global_file_names) {
+      python_reticulate$onerun_SEIR(block - 1, python_reticulate$s)
+    } else {
+      stop("Provided SEIR output, but not SEIR input")
+    }
+  } else {
+    if ("seir_filename" %in% global_file_names) {
+      warning("SEIR input provided, but output not found. This is unstable for stochastic runs")
+      python_reticulate$onerun_SEIR_loadID(block - 1, python_reticulate$s, block - 1)
+    }
   }
 
   ## hpar
-  if (any(c("hosp_filename", "hnpi_filename", "hpar_filename") %in% global_file_names)) {
-    if (!all(c("hosp_filename", "hnpi_filename", "hpar_filename") %in% global_file_names)) {
-      stop("Some but not all Outcomes outputs found.  Please specify all Outcomes outputs by hand, or none")
+  if (any(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
+    if (!all(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
+      stop("Provided some Outcomes input, but not all")
     }
-    ## Not sure this will work at all
-    python_reticulate$onerun_SEIR(block - 1, python_reticulate$s)
-    python_reticulate$onerun_OUTCOMES(block - 1)
+    if ("hosp_filename" %in% global_file_names) {
+      python_reticulate$onerun_OUTCOMES(block - 1)
+    } else {
+      stop("Provided Outcomes output, but not Outcomes input")
+    }
+  } else {
+    if ("hosp_filename" %in% global_file_names) {
+      warning("Outcomes input provided, but output not found. This is unstable for stochastic runs")
+      python_reticulate$onerun_OUTCOMES_loadID(block - 1)
+    }
   }
 
   ## llik

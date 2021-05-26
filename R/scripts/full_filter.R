@@ -1,4 +1,8 @@
 suppressMessages(library(parallel))
+suppressMessages(library(foreach))
+suppressMessages(library(parallel))
+suppressMessages(library(doParallel))
+options(readr.num_columns = 0)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
@@ -51,12 +55,9 @@ if(is.na(opt$slots)) {
   opt$slots <- config$nsimulations
 }
 
-library(foreach)
-library(parallel)
-library(doParallel)
 cl <- parallel::makeCluster(opt$j)
 doParallel::registerDoParallel(cl)
-print(list(scenarios=scenarios,deathrates=deathrates,slots=seq_len(opt$slots)))
+covidcommon::prettyprint_optlist(list(scenarios=scenarios,deathrates=deathrates,slots=seq_len(opt$slots)))
 foreach(scenario = scenarios) %:%
 foreach(deathrate = deathrates) %:%
 foreach(slot = seq_len(opt$slots)) %dopar% {

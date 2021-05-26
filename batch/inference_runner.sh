@@ -71,27 +71,43 @@ if [ $python_install_ret -ne 0 ]; then
 	error_handler "Error code returned from running `python setup.py install`: $python_install_ret"
 fi
 
+## Remove trailing slashes
+export S3_LAST_JOB_OUTPUT=$(echo $S3_LAST_JOB_OUTPUT | sed 's/\/$//')
 DVC_OUTPUTS_ARRAY=($DVC_OUTPUTS)
 if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
-	for type in "hosp" "llik" "spar" "snpi" "hnpi" "hpar" "seir"
+	if [ $COVID_BLOCK_INDEX -eq 1 ]; then
+		export RESUME_RUN_INDEX=$COVID_OLD_RUN_INDEX
+		export PARQUET_TYPES="seed spar snpi seir hpar hnpi hosp"
+	else
+		export RESUME_RUN_INDEX=$COVID_RUN_INDEX
+		export PARQUET_TYPES="seed spar snpi seir hpar hnpi hosp llik"
+	fi
+
+	for filetype in $PARQUET_TYPES
 	do
-		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX-1,'$type','parquet'))")
-		aws s3 cp --quiet $S3_RESULTS_PATH/$FILENAME $FILENAME
-	done
-	for type in "seed"
-	do
-		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX-1,'$type','csv'))")
-		aws s3 cp --quiet $S3_RESULTS_PATH/$FILENAME $FILENAME
-	done
-	for type in "seed"
-	do
-		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX-1,'$type','csv'))")
-		aws s3 cp --quiet $S3_RESULTS_PATH/$FILENAME $FILENAME
-	done
-	for type in "hosp" "llik" "spar" "snpi" "hnpi" "hpar" "seir"
-	do
-		export FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX-1,'$type','parquet'))")
-		aws s3 cp --quiet $S3_RESULTS_PATH/$FILENAME $FILENAME
+		if [ $filetype == "seed" ]; then
+			export extension="csv"
+		else
+			export extension="parquet"
+		fi
+		for liketype in "global" "chimeric"
+		do
+			export OUT_FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/$liketype/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX-1,'$filetype','$extension'))")
+			if [ $COVID_BLOCK_INDEX -eq 1 ]; then
+				export IN_FILENAME=$(python -c "from SEIR import file_paths; print(file_paths.create_file_name('$RESUME_RUN_INDEX','$COVID_PREFIX/$RESUME_RUN_INDEX/$liketype/final/',$COVID_SLOT_INDEX,'$filetype','$extension'))")
+			else
+				export IN_FILENAME=$OUT_FILENAME
+			fi
+			aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$IN_FILENAME $OUT_FILENAME
+			if [ -f $OUT_FILENAME ]; then
+				echo "Copy successful for file of type $filetype ($IN_FILENAME -> $OUT_FILENAME)"
+			else
+				echo "Could not Copy file of type $filetype ($IN_FILENAME -> $OUT_FILENAME)"
+				if [ $liktype -eq "global" ]; then
+					exit 2
+				fi
+			fi
+		done
 	done
 	ls -ltr model_output
 fi

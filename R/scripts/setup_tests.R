@@ -425,8 +425,8 @@ for (test in tests) {
   ## python configuration for minimal_interface.py
   reticulate::py_run_string(paste0("config_path = '", config_file_out_generation,"'"))
   reticulate::py_run_string(paste0("run_id = '", test$runid, "'"))
-  reticulate::import_from_path("SEIR", path=opt$pipepath)
-  reticulate::import_from_path("Outcomes", path=opt$pipepath)
+  #reticulate::import_from_path("SEIR", path=opt$pipepath)
+  #reticulate::import_from_path("Outcomes", path=opt$pipepath)
   reticulate::py_run_string(paste0("index = ", 1))
   reticulate::py_run_string(paste0("scenario = '", "test", "'"))
   reticulate::py_run_string(paste0("stoch_traj_flag = ", 1))
