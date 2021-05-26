@@ -1,7 +1,6 @@
 ## Preamble ---------------------------------------------------------------------
-suppressMessages(library(tidyverse))
 suppressMessages(library(readr))
-suppressMessages(library(covidcommon))
+suppressWarnings(suppressMessages(library(covidcommon)))
 suppressMessages(library(report.generation))
 suppressMessages(library(stringr))
 suppressMessages(library(foreach))
@@ -10,8 +9,8 @@ suppressMessages(library(xts))
 suppressMessages(library(reticulate))
 suppressMessages(library(truncnorm))
 suppressMessages(library(parallel))
-# suppressMessages(library(flock))
-options(warn=1)
+options(warn = 1)
+options(readr.num_columns = 0)
 
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
@@ -23,15 +22,18 @@ option_list = list(
   optparse::make_option(c("-i", "--this_slot"), action="store", default=Sys.getenv("COVID_SLOT_INDEX", 1), type='integer', help = "id of this slot"),
   optparse::make_option(c("-b", "--this_block"), action="store", default=Sys.getenv("COVID_BLOCK_INDEX",1), type='integer', help = "id of this block"),
   optparse::make_option(c("-t", "--stoch_traj_flag"), action="store", default=Sys.getenv("COVID_STOCHASTIC",TRUE), type='logical', help = "Stochastic SEIR and outcomes trajectories if true"),
+  optparse::make_option(c("--ground_truth_start"), action = "store", default = Sys.getenv("COVID_GT_START", ""), type = "character", help = "First date to include groundtruth for"),
+  optparse::make_option(c("--ground_truth_end"), action = "store", default = Sys.getenv("COVID_GT_END", ""), type = "character", help = "Last date to include groundtruth for"),
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
   optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
-  optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable")
+  optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable"),
+  optparse::make_option(c("-R", "--is-resume"), action="store", default=Sys.getenv("COVID_IS_RESUME",FALSE), type = 'logical', help = "Is this run a resume")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)
 
-print(opt)
+covidcommon::prettyprint_optlist(opt)
 
 reticulate::use_python(Sys.which(opt$python),require=TRUE)
 ## Block loads the config file and geodata
@@ -43,15 +45,29 @@ if(opt$config == ""){
 }
 config = covidcommon::load_config(opt$config)
 
-if(!('perturbation_sd' %in% names(config$seeding))) {
-  stop("The key seeding::perturbation_sd is required in the config file.")
+if(('perturbation_sd' %in% names(config$seeding))) {
+  if(('date_sd' %in% names(config$seeding))) {
+    stop("Both the key seeding::perturbation_sd and the key seeding::date_sd are present in the config file, but only one allowed.")
+  }
+  config$seeding$date_sd <- config$seeding$perturbation_sd
 }
-if(config$seeding$method != 'FolderDraw'){
+if (!('date_sd' %in% names(config$seeding))) {
+  stop("Neither the key seeding::perturbation_sd nor the key seeding::date_sd are present in the config file, but one is required.")
+}
+if (!('amount_sd' %in% names(config$seeding))) {
+  config$seeding$amount_sd <- 1
+}
+
+if(!(config$seeding$method %in% c('FolderDraw','InitialConditionsFolderDraw'))){
   stop("This filtration method requires the seeding method 'FolderDraw'")
 }
-if(!('lambda_file' %in% names(config$seeding))) {
-  stop("Despite being a folder draw method, filtration method requires the seeding to provide a lambda_file argument.")
+
+if(!(config$seeding$method %in% c('FolderDraw','InitialConditionsFolderDraw'))){
+  stop("This filtration method requires the seeding method 'FolderDraw'")
 }
+#if(!('lambda_file' %in% names(config$seeding))) {
+#  stop("Despite being a folder draw method, filtration method requires the seeding to provide a lambda_file argument.")
+#}
 
 
 # Aggregation to state level if in config
@@ -70,7 +86,7 @@ obs_nodename <- config$spatial_setup$nodenames
 
 ##Load simulations per slot from config if not defined on command line
 ##command options take precendence
-if(is.na(opt$simulations_per_slot)){
+if (is.na(opt$simulations_per_slot)) {
   opt$simulations_per_slot <- config$filtering$simulations_per_slot
 }
 print(paste("Running",opt$simulations_per_slot,"simulations"))
@@ -128,14 +144,33 @@ if(is.null(config$filtering$gt_source)){
 
 gt_scale <- ifelse(state_level, "US state", "US county")
 fips_codes_ <- geodata[[obs_nodename]]
-gt_end_date <- ifelse(is.null(config$end_date_groundtruth), config$end_date, config$end_date_groundtruth)
+
+gt_start_date <- lubridate::ymd(config$start_date)
+if (opt$ground_truth_start != "") {
+  gt_start_date <- lubridate::ymd(opt$ground_truth_start)
+} else if (!is.null(config$start_date_groundtruth)) {
+  gt_start_date <- lubridate::ymd(config$start_date_groundtruth)
+}
+if (gt_start_date < lubridate::ymd(config$start_date)) {
+  gt_start_date <- lubridate::ymd(config$start_date)
+}
+
+gt_end_date <- lubridate::ymd(config$end_date)
+if (opt$ground_truth_end != "") {
+  gt_end_date <- lubridate::ymd(opt$ground_truth_end)
+} else if (!is.null(config$end_date_groundtruth)) {
+  gt_end_date <- lubridate::ymd(config$end_date_groundtruth)
+}
+if (gt_end_date > lubridate::ymd(config$end_date)) {
+  gt_end_date <- lubridate::ymd(config$end_date)
+}
 
 
 obs <- inference::get_ground_truth(
           data_path = data_path,
           fips_codes = fips_codes_,
           fips_column_name = obs_nodename,
-          start_date = config$start_date,
+          start_date = gt_start_date,
           end_date = gt_end_date,
           gt_source = gt_source,
           gt_scale = gt_scale
@@ -161,8 +196,8 @@ required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 ## python configuration for minimal_interface.py
 reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
 reticulate::py_run_string(paste0("run_id = '", opt$run_id, "'"))
-reticulate::import_from_path("SEIR", path=opt$pipepath)
-reticulate::import_from_path("Outcomes", path=opt$pipepath)
+#reticulate::import_from_path("SEIR", path=opt$pipepath)
+#reticulate::import_from_path("Outcomes", path=opt$pipepath)
 reticulate::py_run_string(paste0("index = ", 1))
 if(opt$stoch_traj_flag) {
   reticulate::py_run_string(paste0("stoch_traj_flag = True"))
@@ -208,15 +243,20 @@ for(scenario in scenarios) {
       global_block_prefix,
       chimeric_block_prefix,
       py,
-      function(x){
+      function(sim_hosp){
+        sim_hosp <- dplyr::filter(sim_hosp,sim_hosp$time >= min(obs$date),sim_hosp$time <= max(obs$date))
+        lhs <- unique(sim_hosp[[obs_nodename]])
+        rhs <- unique(names(data_stats))
+        all_locations <- rhs[rhs %in% lhs]
+
         inference::aggregate_and_calc_loc_likelihoods(
-          modeled_outcome = dplyr::filter(x,x$time >= min(obs$date),x$time <= max(obs$date)),
-          all_locations = unique(names(data_stats)),
+          all_locations = all_locations, # technically different
+          modeled_outcome = sim_hosp,
           obs_nodename = obs_nodename,
           config = config,
           obs = obs,
           ground_truth_data = data_stats,
-          hosp_file = first_global_files[['hosp_filename']],
+          hosp_file = first_global_files[['llik_filename']],
           hierarchical_stats = hierarchical_stats,
           defined_priors = defined_priors,
           geodata = geodata,
@@ -224,15 +264,19 @@ for(scenario in scenarios) {
           hnpi = arrow::read_parquet(first_global_files[['hnpi_filename']]),
           hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,source,outcome,sep='_'))
         )
-      }
+      },
+      is_resume = opt[['is-resume']]
     )
 
 
     ## So far no acceptances have occurred
     current_index <- 0
 ### Load initial files
-    suppressMessages(initial_seeding <- readr::read_csv(first_chimeric_files[['seed_filename']], col_types=readr::cols(place=readr::col_character())))
-    initial_seeding$amount <- as.integer(round(initial_seeding$amount))
+    seeding_col_types <- NULL
+    suppressMessages(initial_seeding <- readr::read_csv(first_chimeric_files[['seed_filename']], col_types=seeding_col_types))
+    if (opt$stoch_traj_flag) {
+      initial_seeding$amount <- as.integer(round(initial_seeding$amount))
+    }
     initial_snpi <- arrow::read_parquet(first_chimeric_files[['snpi_filename']])
     initial_hnpi <- arrow::read_parquet(first_chimeric_files[['hnpi_filename']])
     initial_spar <- arrow::read_parquet(first_chimeric_files[['spar_filename']])
@@ -262,9 +306,12 @@ for(scenario in scenarios) {
 
       ## Do perturbations from accepted
       proposed_seeding <- inference::perturb_seeding(
-        initial_seeding,
-        config$seeding$perturbation_sd,
-        c(lubridate::ymd(c(config$start_date,gt_end_date))))
+        seeding = initial_seeding,
+        date_sd = config$seeding$date_sd,
+        date_bounds = c(gt_start_date, gt_end_date),
+        amount_sd = config$seeding$amount_sd,
+        continuous = !(opt$stoch_traj_flag)
+      )
       proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
       proposed_hnpi <- inference::perturb_hnpi(initial_hnpi, config$interventions$settings)
       proposed_spar <- initial_spar
@@ -295,7 +342,7 @@ for(scenario in scenarios) {
       }
 
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_global_files[['hosp_filename']]))(this_global_files[['hosp_filename']]) %>%
-        filter(time <= max(obs$date))
+        dplyr::filter(time >= min(obs$date),time <= max(obs$date))
 
 
 

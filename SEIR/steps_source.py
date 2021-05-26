@@ -28,7 +28,7 @@ debug_print = False
     "int32[:]," # parallel_compartments
     "int32[:]," # parallel_compartments
     ## Non-parameters
-    "float64[:,:]," # compartments x nodes
+    "float64[:,:,:]," # compartments x nodes
     "float64[:,:]," # times x nodes
     "float64,"
     "float64[:]," # times
@@ -64,7 +64,7 @@ def steps_SEIR_nb(
         stoch_traj_flag
 ):
     y = np.zeros((ncomp, n_parallel_compartments, nnodes))
-    y[:,0,:] = y0
+    y = np.copy(y0)
     states = np.zeros((ncomp, n_parallel_compartments, nnodes, len(t_inter)))
     susceptibility_ratio = 1 - susceptibility_ratio
 
@@ -86,6 +86,7 @@ def steps_SEIR_nb(
           ].sum() / popnodes[node]
 
     for it, t in enumerate(t_inter):
+        states[:, :, :, it] = y
         if (it % int(1 / dt) == 0):
             y[E][0] = y[E][0] + seeding[int(t)]
             y[S][0] = y[S][0] - seeding[int(t)]
@@ -183,7 +184,7 @@ def steps_SEIR_nb(
             y[:-1,from_compartment,:] -= vaccinatedCases[:-1,from_compartment,:]
             y[:-1,to_compartment,:] += vaccinatedCases[:-1,from_compartment,:]
 
-        states[:, :, :, it] = y
+        
         if debug_print:
             print("Y extremes:")
             print(y.min())

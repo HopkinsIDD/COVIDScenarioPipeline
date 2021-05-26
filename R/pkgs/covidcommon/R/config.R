@@ -17,34 +17,36 @@ config <- NA
 ##'
 ##'Returns a map of configuration loaded from the config YAML
 ##'@param fname Load configuration from fname (optional, otherwise loads from CONFIG_PATH env var)
-##'@examples 
+##'@examples
 ##'config$parameters_seir$gamma
 ##'
 ##'@export
 load_config <- function(fname) {
-  require(yaml)
 
   if (missing(fname)) {
-    fname <- Sys.getenv("CONFIG_PATH")
+    fname <- Sys.getenv("CONFIG_PATH", stop("covidcommon::load_config requires a filename, but no filename was provided"))
   }
-  if (!missing(fname)) {
-    
-    if(!file.exists(fname)){
-      stop(paste("Could not find file:", fname))
-    } else{
-      handlers <- list(map=function(x) { class(x) <- "config"; return(x) })
-      return(tryCatch(yaml.load_file(fname, handlers=handlers), error = function(e) { stop(paste("The config", fname, "has an error. Run `yaml::read_yaml(", fname, ")` to identify the line where the error exists.")) }))
-    } 
 
-    
-  } else {
-    return(NA)
-  }
+  handlers <- list(
+    map = function(x) {
+      class(x) <- "config"
+      return(x)
+    }
+  )
+
+  tryCatch({
+    return(yaml::yaml.load_file(fname, handlers = handlers))
+  }, error = function(e) {
+    if (file.exists(fname)) {
+      stop(paste("error from yaml::read_yaml", e$message))
+    }
+    stop(paste("Could not find file:", fname))
+  })
 }
 
 ##'
 ##'Evaluates an expression, returning a numeric value
-##'@examples 
+##'@examples
 ##'as_evaled_expression(c("2+2", "9*9")) -> (4, 81)
 ##'
 ##'@param l the object (scalar or vector) to evaluate
@@ -71,7 +73,7 @@ as_evaled_expression <- function(l) {
 
 ##'
 ##'Evaluates an expression, returning a numeric value
-##'@examples 
+##'@examples
 ##'as_evaled_expression("2+2") -> 4
 ##'
 ##'@param obj the string to evaluate
@@ -123,4 +125,18 @@ as_density_distribution <- function(obj) {
   } else {
       stop("unknown distribution")
   }
+}
+
+#' @name prettyprint_optlist
+#' @description Print a list of options such that it does not take the whole screen
+#' Display `name : value` \n for all elements.
+#' @param optlist the list of options to print (should be a named list of printable things)
+#'
+#' @export
+prettyprint_optlist <- function(optlist){
+  cat(paste(
+    names(optlist),
+    optlist,
+    sep=" : ",
+    collapse = "\n"), collapse = "\n")
 }

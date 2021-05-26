@@ -35,29 +35,30 @@ class Reduce(NPIBase):
         ### for param in PARALLEL_TRANS_PARAMS:
             ### for transition in range(n_parallel_transitions):
                 ### self.all_parameters += [param + " " + str(transition)]
-###
+                
         self.geoids = geoids
 
         self.npi = pd.DataFrame(0.0, index=self.geoids,
                                 columns=pd.date_range(self.start_date, self.end_date))
-
         self.parameters = pd.DataFrame(0.0, index=self.geoids,
                                        columns=["npi_name","start_date","end_date","parameter","reduction"])
 
-        if loaded_df is None:
-            self.__createFromConfig(npi_config)
+        if (loaded_df is not None) and self.name in loaded_df['npi_name'].values:
+            self.__createFromDf(loaded_df, npi_config)
         else:
-            self.__createFromDf(loaded_df)
+            self.__createFromConfig(npi_config)
 
         # if parameters are exceeding global start/end dates, index of parameter df will be out of range so check first
         if self.parameters["start_date"].min() < self.start_date or self.parameters["end_date"].max() > self.end_date:
             raise ValueError(f"""{self.name} : at least one period start or end date is not between global dates""")
 
-        for index in self.parameters.index:
-            period_range = pd.date_range(self.parameters["start_date"][index], self.parameters["end_date"][index])
-
+        #for index in self.parameters.index:
+        #    period_range = pd.date_range(self.parameters["start_date"][index], self.parameters["end_date"][index])
             ## This the line that does the work
-            self.npi.loc[index, period_range] = np.tile(self.parameters["reduction"][index], (len(period_range), 1)).T
+        #    self.npi_old.loc[index, period_range] = np.tile(self.parameters["reduction"][index], (len(period_range), 1)).T
+
+        period_range = pd.date_range(self.parameters["start_date"].iloc[0], self.parameters["end_date"].iloc[0])
+        self.npi.loc[self.parameters.index, period_range] = np.tile(self.parameters["reduction"][:], (len(period_range), 1)).T
 
         self.__checkErrors()
 
@@ -80,9 +81,6 @@ class Reduce(NPIBase):
 
         ### if self.param_name not in REDUCE_PARAMS:
         ###     raise ValueError(f"Invalid parameter name: {self.param_name}. Must be one of {REDUCE_PARAMS}")
-
-
-
 
         # Validate
         if (self.npi == 0).all(axis=None):
@@ -114,12 +112,25 @@ class Reduce(NPIBase):
         self.parameters["parameter"] = self.param_name
         self.parameters["reduction"] = self.dist(size=self.parameters.shape[0])
 
-    def __createFromDf(self, loaded_df):
+    def __createFromDf(self, loaded_df, npi_config):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
         self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']].copy()
-        self.parameters["start_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["start_date"]]
-        self.parameters["end_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["end_date"]]
+
+        self.parameters["start_date"] = npi_config["period_start_date"].as_date()  \
+            if npi_config["period_start_date"].exists() else self.start_date
+        self.parameters["end_date"] = npi_config["period_end_date"].as_date() \
+            if npi_config["period_end_date"].exists() else self.end_date
+        ## This is more legible to me, but if we change it here, we should change it in __createFromConfig as well
+        #if npi_config["period_start_date"].exists():
+        #    self.parameters["start_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["start_date"]]
+        #else:
+        #    self.parameters["start_date"] = self.start_date
+        #if npi_config["period_end_date"].exists():
+        #    self.parameters["end_date"] = [datetime.date.fromisoformat(date) for date in self.parameters["end_date"]]
+        #else:
+        #    self.parameters["start_date"] = self.end_date
+
         self.affected_geoids = set(self.parameters.index)
         self.param_name = self.parameters["parameter"].unique()[0]  # [0] to convert ndarray to str
 

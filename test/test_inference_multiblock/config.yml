@@ -190,7 +190,7 @@ filtering:
       transform: none
     local_conf:
       name: probability_incidI_incidC
-      module: hospitalization
+      module: outcomes_parameters
       geo_group_col: USPS
       transform: logit
   priors:

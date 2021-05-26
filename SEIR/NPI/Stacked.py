@@ -15,7 +15,7 @@ debug_print = False
 
 "Cap on # of reduction metadata entries to store in memory"
 
-REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE",350))
+REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE",5000))
 
 
 class Stacked(NPIBase):
@@ -123,5 +123,6 @@ class Stacked(NPIBase):
     def getReductionToWrite(self):
         if self.reduction_cap_exceeded:
             warnings.warn(f"""Not writing reduction metadata (*.snpi.*) as memory buffer cap exceeded {self.reduction_number}""")
-            return pd.DataFrame({"error": ["No reduction metadata as memory buffer cap exceeded"]})
+            raise RuntimeError("error : Not writing reduction metadata (*.snpi.*) as memory buffer cap exceeded. Try setting `export COVID_MAX_STACK_SIZE=[BIGNUMBER]`")
+            #return pd.DataFrame({"error": ["No reduction metadata as memory buffer cap exceeded"]})
         return pd.concat(self.reduction_params, ignore_index=True)
