@@ -75,7 +75,7 @@ def test_parameters_quick_draw():
     transition_rate,\
     transition_from,\
     transition_to = \
-        setup.parameters_quick_draw(config, nt_inter, nnodes)
+        setup.parameters_quick_draw(setup.Parameters(config), nt_inter, nnodes)
 
     assert alpha.shape == (nt_inter, nnodes)
     assert (alpha == 0.5).all()

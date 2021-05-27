@@ -425,8 +425,8 @@ for (test in tests) {
   ## python configuration for minimal_interface.py
   reticulate::py_run_string(paste0("config_path = '", config_file_out_generation,"'"))
   reticulate::py_run_string(paste0("run_id = '", test$runid, "'"))
-  reticulate::import_from_path("SEIR", path=opt$pipepath)
-  reticulate::import_from_path("Outcomes", path=opt$pipepath)
+  #reticulate::import_from_path("SEIR", path=opt$pipepath)
+  #reticulate::import_from_path("Outcomes", path=opt$pipepath)
   reticulate::py_run_string(paste0("index = ", 1))
   reticulate::py_run_string(paste0("scenario = '", "test", "'"))
   reticulate::py_run_string(paste0("stoch_traj_flag = ", 1))
@@ -437,7 +437,7 @@ for (test in tests) {
   
   py$onerun_SEIR(0, py$s)
   py$onerun_SEIR_loadID(0, py$s, 0)
-  py$onerun_HOSP(0)
+  py$onerun_OUTCOMES(0)
   
   for (i in 1:opt$n_slots) {
     slot_prefix <- covidcommon::create_prefix(config$name, test$scenario, "med",test$runid,sep='/',trailing_separator='/')

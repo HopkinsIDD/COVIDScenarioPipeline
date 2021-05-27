@@ -103,6 +103,12 @@ outcomes:
             sd: .1
             a: 0
             b: 1
+          perturbation:
+            distribution: truncnorm
+            mean: 0
+            sd: .1
+            a: -1
+            b: 1
         delay:
           value:
             distribution: fixed
@@ -173,6 +179,12 @@ outcomes:
             sd: .1
             a: 0
             b: 1
+          perturbation:
+            distribution: truncnorm
+            mean: 0
+            sd: .1
+            a: -1
+            b: 1
         delay:
           value:
             distribution: fixed
@@ -242,6 +254,12 @@ outcomes:
             mean: .05
             sd: .1
             a: 0
+            b: 1
+          perturbation:
+            distribution: truncnorm
+            mean: 0
+            sd: .1
+            a: -1
             b: 1
         delay:
           value:

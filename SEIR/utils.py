@@ -1,11 +1,13 @@
 import datetime
 import functools
 import numbers
-
+import time
 import confuse
 import numpy as np
 import scipy.stats
 import sympy.parsing.sympy_parser
+import logging
+logger = logging.getLogger(__name__)
 
 config = confuse.Configuration("COVIDScenarioPipeline", read=False)
 
@@ -22,6 +24,16 @@ def add_method(cls):
         return func
     return decorator
 
+### A little timer class
+class Timer(object):
+    def __init__(self, name):
+        self.name = name
+    def __enter__(self):
+        logging.debug(f'[{self.name}] started')
+        self.tstart = time.time()
+    def __exit__(self, type, value, traceback):
+        logging.info(f'[{self.name}] completed in {time.time() - self.tstart} s')
+
 
 class ISO8601Date(confuse.Template):
     def convert(self, value, view):
@@ -31,6 +43,8 @@ class ISO8601Date(confuse.Template):
             return datetime.datetime.strptime(value, "%Y-%m-%d").date()
         else:
             self.fail("must be a date object or ISO8601 date", True)
+
+    
 
 
 @add_method(confuse.ConfigView)
