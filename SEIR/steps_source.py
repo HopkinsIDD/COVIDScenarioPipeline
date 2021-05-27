@@ -28,7 +28,7 @@ debug_print = False
     "int32[:]," # parallel_compartments
     "int32[:]," # parallel_compartments
     ## Non-parameters
-    "float64[:,:]," # compartments x nodes
+    "float64[:,:,:]," # compartments x nodes
     "float64[:,:]," # times x nodes
     "float64,"
     "float64[:]," # times
@@ -64,7 +64,7 @@ def steps_SEIR_nb(
         stoch_traj_flag
 ):
     y = np.zeros((ncomp, n_parallel_compartments, nnodes))
-    y[:,0,:] = y0
+    y = np.copy(y0)
     states = np.zeros((ncomp, n_parallel_compartments, nnodes, len(t_inter)))
     susceptibility_ratio = 1 - susceptibility_ratio
 
@@ -86,6 +86,7 @@ def steps_SEIR_nb(
           ].sum() / popnodes[node]
 
     for it, t in enumerate(t_inter):
+        states[:, :, :, it] = y
         if (it % int(1 / dt) == 0):
             y[E][0] = y[E][0] + seeding[int(t)]
             y[S][0] = y[S][0] - seeding[int(t)]
@@ -119,7 +120,7 @@ def steps_SEIR_nb(
             p_infect = 1 - np.exp(-dt * sigma[it][i])
             p_recover = 1 - np.exp(-dt * gamma[it][i])
 
-                ## Fix this:
+            ## Fix this:
             for p_compartment in range(n_parallel_compartments):
                 exposure_probability = susceptibility_ratio[it][p_compartment][i] * p_expose
                 if(debug_mode):
@@ -142,13 +143,7 @@ def steps_SEIR_nb(
                     incident3Cases[p_compartment][i] = y[I2][p_compartment][i] * p_recover
                     recoveredCases[p_compartment][i] = y[I3][p_compartment][i] * p_recover
 
-        if debug_print:
-            print("Movement")
-            print("  exposed [", exposeCases.min(), ", ", exposeCases.max(), "]")
-            print("  incident [", incidentCases.min(), ", ", incidentCases.max(), "]")
-            print("  incident2 [", incident2Cases.min(), ", ", incident2Cases.max(), "]")
-            print("  incident3 [", incident3Cases.min(), ", ", incident3Cases.max(), "]")
-            print("  recovered [", recoveredCases.min(), ", ", recoveredCases.max(), "]")
+
 
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases
@@ -164,7 +159,7 @@ def steps_SEIR_nb(
                 for transition in range(n_parallel_transitions):
                     from_compartment = transition_from[transition]
                     n = y[comp][from_compartment][i]
-                    p = transition_rate[it][transition][i]
+                    p = 1 - np.exp(-dt * transition_rate[it][transition][i])
                     if debug_mode:
                         if (np.isnan(p)) or (p > 1) or (p < 0):
                             raise ValueError("TRANSITION RATE OUT OF BOUNDS")
@@ -174,13 +169,22 @@ def steps_SEIR_nb(
                     else:
                         vaccinatedCases[comp][transition][i] = \
                             n * p
+        if debug_print:
+            print("Movement")
+            print("  exposed [", exposeCases.min(), ", ", exposeCases.max(), "]")
+            print("  incident [", incidentCases.min(), ", ", incidentCases.max(), "]")
+            print("  incident2 [", incident2Cases.min(), ", ", incident2Cases.max(), "]")
+            print("  incident3 [", incident3Cases.min(), ", ", incident3Cases.max(), "]")
+            print("  recovered [", recoveredCases.min(), ", ", recoveredCases.max(), "]")
+            print("  vaccinated [",vaccinatedCases.min(),", ",vaccinatedCases.max())
+
         for transition in range(n_parallel_transitions):
             from_compartment = transition_from[transition]
             to_compartment = transition_to[transition]
             y[:-1,from_compartment,:] -= vaccinatedCases[:-1,from_compartment,:]
             y[:-1,to_compartment,:] += vaccinatedCases[:-1,from_compartment,:]
 
-        states[:, :, :, it] = y
+        
         if debug_print:
             print("Y extremes:")
             print(y.min())

@@ -8,7 +8,7 @@ test_that("create_filename_list produces a file of each type",{
     gsub(".*[.]","",create_filename_list("run_id","prefix",1,"type","extension")[['type_filename']])
   },"extension")
   expect_true({
-    all(grepl(c("run_id","prefix","type","extension"),create_filename_list("run_id","prefix",1,"type","extension")[['type_filename']]))
+    all(sapply(c("run_id","prefix","type","extension"),function(x){grepl(x,create_filename_list("run_id","prefix",1,"type","extension")[['type_filename']])}))
   },"extension")
 
   expect_error({

@@ -12,7 +12,7 @@
 ##' @param na.rm Remove Nas?
 ##' @return NULL
 #' @export
-periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k, aggregator, na.rm = F) {
+periodAggregate <- function(data, dates, end_date = NULL, period_unit_function, period_unit_validator, aggregator, na.rm = F) {
   if (na.rm) {
     dates <- dates[!is.na(data)]
     data <- data[!is.na(data)]
@@ -25,12 +25,19 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
     dates <- dates[dates <= end_date]
   }
 
+  tmp <- data.frame(date = dates, value = data)
 
-  xtsobj <- xts::as.xts(zoo::zoo(data, dates))
-  stats <- xts::period.apply(xtsobj,
-                             xts::endpoints(xtsobj, on = period_unit, k = period_k),
-                             aggregator)
-  return(stats)
+  for (this_unit in seq_len(length(period_unit_function))) {
+    tmp[[paste("time_unit", this_unit, sep = "_")]] <- period_unit_function[[this_unit]](dates)
+  }
+  tmp <- tmp %>%
+    tidyr::unite("time_unit", names(tmp)[grepl("time_unit_", names(tmp))]) %>%
+    dplyr::group_by(time_unit) %>%
+    dplyr::summarize(first_date = min(date), value = aggregator(value), valid = period_unit_validator(date,time_unit)) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(first_date) %>%
+    dplyr::filter(valid)
+  return(matrix(tmp$value, ncol = 1, dimnames = list(as.character(tmp$first_date))))
 }
 
 
@@ -42,13 +49,64 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit, period_k,
 ##' @param stat_list List with specifications of statistics to compute
 ##' @return NULL
 #' @export
-getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
+getStats <- function(df, time_col, var_col, end_date = NULL, stat_list, debug_mode = FALSE) {
   rc <- list()
   for (stat in names(stat_list)) {
     s <- stat_list[[stat]]
     aggregator <- match.fun(s$aggregator)
     ## Get the time period over whith to apply aggregation
     period_info <- strsplit(s$period, " ")[[1]]
+    if (period_info[2] == "weeks") {
+      period_unit_function <- c(lubridate::epiweek, lubridate::epiyear)
+    } else if (period_info[2] == "days") {
+      period_unit_function <- c(lubridate::day, lubridate::month, lubridate::year)
+    } else if (period_info[2] == "months") {
+      period_unit_function <- c(lubridate::month, lubridate::year)
+    } else {
+      stop(paste(period_info[2], "as an aggregation unit is not supported right now"))
+    }
+
+    if (period_info[1] != 1) {
+      stop(paste(period_info[1], period_info[2], "as an aggregation unit is not supported right now"))
+    }
+
+
+    period_unit_validator <- function(dates, units, local_period_unit_function = period_unit_function) {
+      first_date <- min(dates)
+      last_date <- min(dates) + (length(unique(dates))-1)
+      return(all(c(
+        local_period_unit_function[[1]](first_date) != local_period_unit_function[[1]](first_date - 1)
+      , local_period_unit_function[[1]](last_date) != local_period_unit_function[[1]](last_date + 1)
+      )))
+    }
+
+    if (s$period == "1 weeks") {
+      period_unit_validator <- function(dates, units) {
+        return(length(unique(dates)) == 7)
+      }
+    } else if (s$period == "1 days") {
+      period_unit_validator <- function(dates, units) {
+        return(TRUE)
+      }
+    }
+    if (debug_mode) {
+      period_unit_validator <- function(dates, units, local_period_unit_function = period_unit_function) {
+        first_date <- min(dates)
+        last_date <- min(dates) + (length(unique(dates)) - 1)
+        return(
+          any(sapply(local_period_unit_function, function(x) {
+            x(last_date) != x(last_date + 1)
+          }))
+          && any(sapply(local_period_unit_function, function(x) {
+            x(first_date) != x(first_date - 1)
+          }))
+          && all(sapply(local_period_unit_function, function(x) {
+            x(first_date) == x(last_date)
+          }))
+          && all(first_date:last_date == dates)
+        )
+      }
+    }
 
     if (!all(c(time_col, s[[var_col]]) %in% names(df))) {
       stop(paste0(
@@ -64,8 +122,8 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list) {
     res <- inference::periodAggregate(df[[s[[var_col]]]],
                                       df[[time_col]],
                                       end_date,
-                                      period_info[2],
-                                      period_info[1],
+                                      period_unit_function,
+                                      period_unit_validator,
                                       aggregator,
                                       na.rm = s$remove_na)
     rc[[stat]] <- res %>%
@@ -252,19 +310,21 @@ compute_totals <- function(sim_hosp) {
 ##' a poisson on the number of cases.
 ##'
 ##' @param seeding the original seeding
-##' @param sd the standard deviation of the posson
-##'
+##' @param date_sd the standard deviation parameter of the normal distribution used to perturb date
+##' @param amount_sd the standard deviation parameter of the normal distribution used to perturb amount
+##' @param continuous Whether the seeding is passed to a continuous model or not
 ##'
 ##' @return a pertubed data frame
 ##'
 ##' @export
-perturb_seeding <- function(seeding,sd,date_bounds) {
+perturb_seeding <- function(seeding, date_sd, date_bounds, amount_sd = 1, continuous = FALSE) {
+  round_func <- ifelse(continuous, function(x){return(x)}, round)
   seeding <- seeding %>%
     dplyr::group_by(place) %>%
-    dplyr::mutate(date = date+round(rnorm(1,0,sd))) %>%
+    dplyr::mutate(date = date + round(rnorm(1,0,date_sd))) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(
-      amount=round(pmax(rnorm(length(amount),amount,1),0)),
+      amount = round_func(pmax(rnorm(length(amount),amount, amount_sd),0)),
       date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
     )
 
@@ -474,9 +534,9 @@ accept_reject_new_seeding_npis <- function(
 ##' @return boolean whether to accept the likelihood
 ##' @export
 iterateAccept <- function(ll_ref, ll_new) {
-    if (length(ll_ref) != 1 | length(ll_new) !=1) {
-        stop("Iterate accept currently on works with single row data frames")
-    }
+  if (length(ll_ref) != 1 | length(ll_new) !=1) {
+    stop("Iterate accept currently on works with single row data frames")
+  }
 
 
   ll_ratio <- exp(min(c(0, ll_new - ll_ref)))
