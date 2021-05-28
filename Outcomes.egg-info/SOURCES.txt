@@ -22,6 +22,7 @@ SEIR/steps_source.py
 SEIR/utils.py
 SEIR/NPI/MultiTimeReduce.py
 SEIR/NPI/Reduce.py
+SEIR/NPI/ReduceIntervention.py
 SEIR/NPI/ReduceR0.py
 SEIR/NPI/Stacked.py
 SEIR/NPI/__init__.py

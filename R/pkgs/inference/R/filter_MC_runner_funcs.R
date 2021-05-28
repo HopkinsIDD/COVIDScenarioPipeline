@@ -151,7 +151,7 @@ aggregate_and_calc_loc_likelihoods <- function(
           defined_priors[[prior]]$likelihood$dist,
           defined_priors[[prior]]$likelihood$param
         )) %>%
-        select(geoid, likadj)
+        dplyr::select(geoid, likadj)
 
     } else if (defined_priors[[prior]]$module == "outcomes_interventions") {
       #' @importFrom magrittr %>%
@@ -161,7 +161,7 @@ aggregate_and_calc_loc_likelihoods <- function(
           defined_priors[[prior]]$likelihood$dist,
           defined_priors[[prior]]$likelihood$param
         )) %>%
-        select(geoid, likadj)
+        dplyr::select(geoid, likadj)
 
     }  else if (defined_priors[[prior]]$module %in% c("outcomes_parameters", "hospitalization")) {
 

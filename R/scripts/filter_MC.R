@@ -35,10 +35,6 @@ opt = optparse::parse_args(parser)
 
 covidcommon::prettyprint_optlist(opt)
 
-#Temporary
-print("setting random number seed")
-set.seed(1)
-
 # Parameters for adaptive method. Un-comment to run adaptive MCMC, otherwise no adaptation will occur. 
 # Adaptive MCMC alters standard deviation of perturbation in response to the (chimeric) time-averaged acceptance rate
 adapt <- list(on=F)
@@ -219,6 +215,11 @@ if(opt$stoch_traj_flag) {
   reticulate::py_run_string(paste0("stoch_traj_flag = False"))
 }
 
+#Temporary
+print("Setting random number seed")
+set.seed(1) # set within R
+reticulate::py_run_string(paste0("rng_seed = ", 1)) #set within Python
+
 # Scenario loop -----
 
 for(scenario in scenarios) {
@@ -359,20 +360,18 @@ for(scenario in scenarios) {
         amount_sd = config$seeding$amount_sd,
         continuous = !(opt$stoch_traj_flag)
       )
-      proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
-      proposed_hnpi <- inference::perturb_hnpi(initial_hnpi, config$interventions$settings)
+
+      # Old perturbation method, directly from config
+      #proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
+      #proposed_hnpi <- inference::perturb_hnpi(initial_hnpi, config$interventions$settings)
       proposed_spar <- initial_spar
       if(!deathrate %in% names(config$outcomes$settings)){
         stop(paste("Deathrate",deathrate,"does not appear in outcomes::settings in the config"))
       }
       proposed_hpar <- inference::perturb_hpar(initial_hpar, config$outcomes$settings[[deathrate]])
-
-      # Old perturbation method, directly from config
-      #proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
-      #proposed_hnpi <- inference::perturb_hnpi(initial_hnpi, config$interventions$settings)
       
       # New perturbation method, from parameter file instead
-      print("NOTE: Perturbations are being read from files instead of configs after 1st iteration in each slot")
+      print("NOTE: Perturbations are being read from files instead of configs after 1st iteration in each slot for snpi and hnpi")
       proposed_snpi <- inference::perturb_snpi_from_file(initial_snpi, config$interventions$settings, chimeric_likelihood_data, adapt)
       proposed_hnpi <- inference::perturb_hnpi_from_file(initial_hnpi, config$interventions$settings, chimeric_likelihood_data, adapt)
       

@@ -1676,8 +1676,8 @@ plot_truth_by_county <- function(truth_dat,
             strip.background.x = element_blank(),
             strip.background.y=element_rect(fill="white"),
             strip.text.y =element_text(face="bold"))+
-      ylab("Counts (log scale)")+
-      xlab("Time (weeks)")+ 
+      ylab("Counts")+
+      xlab("Date (week)")+ 
       facet_grid(rows=vars(name), scales="free") +
       scale_y_sqrt()+
       labs(subtitle = unique(as.character(rc$type))[i])
@@ -1834,8 +1834,8 @@ plot_truth_by_location <- function(truth_dat,
             strip.background.x = element_blank(),
             strip.background.y=element_rect(fill="white"),
             strip.text.y =element_text(face="bold"))+
-      ylab("Counts (log scale)")+
-      xlab("Time (weeks)")+ 
+      ylab("Counts")+
+      xlab("Date (week)")+ 
       facet_grid(rows=vars(name), scales="free") +
       scale_y_sqrt()+
       labs(subtitle = unique(as.character(rc$type))[i])
@@ -2946,7 +2946,7 @@ plot_hpar_by_location <- function(hpar_interm,
       xlab("Iterations")+ 
       facet_grid(rows=vars(name), scales="fixed") +
       #scale_y_sqrt()+
-      labs(subtitle = hpar_filter[i])
+      labs(subtitle = fig_labs[i])
   }
   
   return(plot_rc)
@@ -3003,7 +3003,7 @@ plot_snpi_by_location <- function(snpi_interm,
       xlab("Iterations")+ 
       facet_grid(rows=vars(name), scales="fixed") +
       #scale_y_sqrt()+
-      labs(subtitle = snpi_filter[i])
+      labs(subtitle = fig_labs[i])
   }
   
   return(plot_rc)
@@ -3030,8 +3030,8 @@ plot_snpi_by_location <- function(snpi_interm,
 plot_hnpi_by_location <- function(hnpi_interm,
                                   pdeath_filter,
                                   scenario_filter,
-                                  hnpi_filter = c('local_variance','lockdown_partial'), #will find any NPI containing these phrases
-                                  fig_labs=c("Local variance in R0","Partial lockdown")
+                                  hnpi_filter = c('incidC_shift'), #will find any NPI containing these phrases
+                                  fig_labs=c("Shift in case detection rate")
 ){
   
   hnpi_filter_edit <- paste(hnpi_filter,collapse="|")
@@ -3063,11 +3063,11 @@ plot_hnpi_by_location <- function(hnpi_interm,
             strip.background.x = element_blank(),
             strip.background.y=element_rect(fill="white"),
             strip.text.y =element_text(face="bold"))+
-      ylab("Reduction in R0")+
+      ylab("Reduction in parameter")+
       xlab("Iterations")+ 
       facet_grid(rows=vars(name), scales="fixed") +
       #scale_y_sqrt()+
-      labs(subtitle = hnpi_filter[i])
+      labs(subtitle = fig_labs[i])
   }
   
   return(plot_rc)
