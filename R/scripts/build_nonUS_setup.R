@@ -13,7 +13,7 @@
 #   mobility: <path to file relative to base_path> optional; default is 'mobility.csv'
 #   geodata: <path to file relative to base_path> optional; default is 'geodata.csv'
 #   popnodes: <string> optional; default is 'pop'
-# 
+#
 #
 # ## Input Data
 #
@@ -31,7 +31,7 @@ library(dplyr)
 library(tidyr)
 
 option_list = list(
-  optparse::make_option(c("-c", "--config"), action="store", default="config.yml", type='character', help="path to the config file"),
+  optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
   optparse::make_option(c("-w", "--wide_form"), action="store",default=FALSE,type='logical',help="Whether to generate the old wide format mobility or the new long format"),
   optparse::make_option(c("-n", "--population"), action="store",default="population_data.csv",type='character',help="Name of the popultion data file"),
   optparse::make_option(c("-m", "--mobility"), action="store",default="mobility_data.csv",type='character',help="Name of the mobility data file")
@@ -49,7 +49,7 @@ filterADMIN0 <- config$spatial_setup$modeled_states
 dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 
 # Read in needed data
-commute_data <- readr::read_csv(file.path(config$spatial_setup$base_path, "geodata", opt$mobility)) %>% 
+commute_data <- readr::read_csv(file.path(config$spatial_setup$base_path, "geodata", opt$mobility)) %>%
   mutate(OGEOID = as.character(OGEOID),
          DGEOID = as.character(DGEOID))
 census_data <- readr::read_csv(file.path(config$spatial_setup$base_path, "geodata", opt$population)) %>%
@@ -85,8 +85,8 @@ t_commute_table <- tibble::tibble(
   FLOW = commute_data$FLOW
 )
 
-rc <- padding_table %>% 
-  dplyr::bind_rows(commute_data) %>% 
+rc <- padding_table %>%
+  dplyr::bind_rows(commute_data) %>%
   dplyr::bind_rows(t_commute_table)
 
 # Make wide if specified
@@ -95,14 +95,20 @@ if(opt$w){
 }
 
 
+print(rc)
 if(opt$w){
   if(!isTRUE(all(rc$OGEOID == census_data$GEOID))){
     stop("There was a problem generating the mobility matrix")
   }
   write.table(file = file.path(outdir,'mobility.txt'), as.matrix(rc[,-1]), row.names=FALSE, col.names = FALSE, sep = " ")
 } else {
-  names(rc) <- c("ori","dest","amount")
-  rc <- rc[rc$ori != rc$dest,]
+  names(rc) <- c("ori", "dest", "amount")
+
+  tmp_rc <- rc[rc$ori != rc$dest, ]
+  if (nrow(tmp_rc) > 0) {
+    rc <- tmp_rc
+  }
+  print(rc)
   write.csv(file = file.path(outdir,'mobility.csv'), rc, row.names=FALSE)
 }
 
@@ -116,5 +122,3 @@ print("Commute Data Check (up to 6 rows)")
 print(head(commute_data))
 
 print(paste0("mobility.csv/.txt and geodata.csv saved to: ", outdir))
-
-

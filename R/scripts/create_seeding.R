@@ -100,10 +100,10 @@ if(is_US_run){
   state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
   if(state_level){
     gt_scale <- "US state"
-    cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = TRUE) 
+    cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = TRUE)
   } else{
     gt_scale <- "US county"
-    cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale) 
+    cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale)
   }
   cases_deaths <- cases_deaths %>%
     mutate(FIPS = stringr::str_pad(FIPS, width = 5, side="right", pad="0"))
@@ -129,7 +129,19 @@ if(!(all(required_column_names %in% names(cases_deaths)))){
 all_times <- lubridate::ymd(config$start_date) +
   seq_len(lubridate::ymd(config$end_date) - lubridate::ymd(config$start_date))
 
-geodata <- report.generation:::load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),5,'0',TRUE)
+if ("geoid_len" %in% names(config$spatial_setup)) {
+  geodata <- report.generation:::load_geodata_file(
+    file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
+    config$spatial_setup$geoid_len,
+    "0",
+    TRUE
+  )
+} else {
+  geodata <- report.generation:::load_geodata_file(
+    file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
+    to_lower = TRUE
+  )
+}
 
 all_geoids <- geodata[[config$spatial_setup$nodenames]]
 
