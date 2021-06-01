@@ -55,8 +55,12 @@ reportStateUSPS <- params$state_usps
 
 ## Block loads the config file and geodata
 config <- covidcommon:::load_config(params$config_file)
+geoid_len <- 0
+if  ("geoid_len" %in% names(config$spatial_setup)) {
+  geoid_len <- config$spatial_setup$geoid_len
+}
 geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
-                             geoid_len=5)
+                             geoid_len = geoid_len)
 included_geoids <- (geodata %>% filter(USPS==reportStateUSPS))$geoid
 
 scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
@@ -67,7 +71,7 @@ scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
 ## Load shapefile
 shp <- load_shape_file(filename = file.path(config$spatial_setup$base_path, config$spatial_setup$shapefile_name),
                        to_lower = TRUE,
-                       geoid_len = 5)
+                       geoid_len = geoid_len)
 ```
 
 ```{r config_vals}
@@ -104,7 +108,7 @@ cum_inf_dates <- load_cum_inf_geounit_dates(scn_dirs,
                                            scenariolabels = config$report$formatting$scenario_labels,
                                            name_filter= config$hospitalization$parameters$p_death_names[1], ## includes only one pdeath because interest is only in infections here
                                            incl_geoids = included_geoids,
-                                           geoid_len = 5,
+                                           geoid_len = geoid_len,
                                            file_extension="auto") %>%
     mutate(pdeath=config$hospitalization$parameters$p_death[1]) 
 
@@ -123,7 +127,7 @@ for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
                                                scenariolabels = config$report$formatting$scenario_labels,
                                                name_filter= config$hospitalization$parameters$p_death_names[i],
                                                incl_geoids = included_geoids,
-                                               geoid_len = 5,
+                                               geoid_len = geoid_len,
                                                file_extension="auto") %>%
         mutate(pdeath=config$hospitalization$parameters$p_death[i])
 }
@@ -165,7 +169,7 @@ registerDoSEQ()
 ##                                             end_date = config$end_date,
 ##                                             incl_geoids = included_geoids,
 ##                                             scenario_labels = config$report$formatting$scenario_labels,
-##                                             geoid_len = 5)
+##                                             geoid_len = geoid_len)
 ## doParallel::stopImplicitCluster()
 ## registerDoSEQ()
 ```
@@ -182,7 +186,7 @@ registerDoSEQ()
 ##                                             end_date = config$end_date,
 ##                                             incl_geoids = included_geoids,
 ##                                             scenario_labels = config$report$formatting$scenario_labels,
-##                                             geoid_len = 5)
+##                                             geoid_len = geoid_len)
 ## doParallel::stopImplicitCluster()
 ## registerDoSEQ()
 ```

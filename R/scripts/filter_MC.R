@@ -75,13 +75,23 @@ state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spati
 
 
 ##Load infromationon geographic locations from geodata file.
-suppressMessages(geodata <- report.generation::load_geodata_file(
-  paste(
-    config$spatial_setup$base_path,
-    config$spatial_setup$geodata, sep = "/"
-  ),
-  geoid_len=5 #Is this hardcode a good idea.
-))
+geodata <- NULL
+if ("geoid_len" %in% names(config$spatial_setup)) {
+  suppressMessages(geodata <- report.generation::load_geodata_file(
+    paste(
+      config$spatial_setup$base_path,
+      config$spatial_setup$geodata, sep = "/"
+    ),
+    geoid_len = config$spatial_setup$geoid_len
+  ))
+} else {
+  suppressMessages(geodata <- report.generation::load_geodata_file(
+    paste(
+      config$spatial_setup$base_path,
+      config$spatial_setup$geodata, sep = "/"
+    )
+  ))
+}
 obs_nodename <- config$spatial_setup$nodenames
 
 ##Load simulations per slot from config if not defined on command line
