@@ -1,0 +1,80 @@
+seir:
+  parameters:
+    alpha: 0.5
+    sigma: 1 / 5.2
+    gamma:
+      distribution: uniform
+      low: 1 / 6
+      high: 1 / 2.6
+    R0s:
+      distribution: uniform
+      low: 2
+      high: 3
+    theta_1:
+      distribution: ???
+      low: ???
+      high: ???
+    theta_2:
+      distribution: ???
+      low: ???
+      high: ???
+    nu_1:
+      distribution: ???
+      low: ???
+      high: ???
+    nu_2:
+      distribution: ???
+      low: ???
+      high: ???
+    chi_0:
+      distribution: ???
+      low: ???
+      high: ???
+    chi_1:
+      distribution: ???
+      low: ???
+      high: ???
+    rho:
+      distribution: ???
+      low: ???
+      high: ???
+  compartments:
+    infection_stage: ["S", "E", "I1", "I2", "I3", "R"]
+    vaccination_stage: ["0dose", "1dose", "2dose"]
+    variant_type: ["var0", "var1"]
+  transitions:
+    - source: ["S", ["0dose", "1dose", "2dose"], "var0"]
+      destination: ["E", ["0dose", "1dose", "2dose"], ["var0","var1"]]
+      proportional_to: ["source", [["E", "I1", "I2", "I3"], ["0dose", "1dose", "2dose"], ["var0", "var1"]]]
+      proportion_exponent: [[1,1,1], ["alpha",1,1]]
+      rate: ["R0s * gamma", ["1", "theta_1", "theta_2"], ["chi_0", "chi_1"]]
+    - source: ["E", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      destination: ["I1", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["sigma", 1, 1]
+    - source: ["I1", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      destination: ["I2", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["3 * gamma", 1, 1]
+    - source: ["I2", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      destination: ["I3", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["3 * gamma", 1, 1]
+    - source: ["I3", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      destination: ["R", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["3 * gamma", 1, 1]
+    - source: [["S", "E", "I1", "I2", "I3", "R"], "0dose", ["var0", "var1"]]
+      destination: [["S", "E", "I1", "I2", "I3", "R"], "1dose", ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["nu_1", 1, 1]
+    - source: [["S", "E", "I1", "I2", "I3", "R"], "1dose", ["var0", "var1"]]
+      destination: [["S", "E", "I1", "I2", "I3", "R"], "2dose", ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["nu_2", 1, 1]
