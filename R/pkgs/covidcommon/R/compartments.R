@@ -293,11 +293,13 @@ parse_transition_name <- function(seir_config, single_transition_config) {
       }
     )
     all_data[[i]] <- tibble::tibble(
-      !!!setNames(source_compartment, paste("source", names(compartment_names), sep = ".")),
-      !!!setNames(destination_compartment, paste("destination", names(compartment_names), sep = ".")),
-      rate = paste(rate, collapse = " * "),
-      proportional_to = list(proportional_to),
-      proportion_exponent = list(proportion_exponent)
+      source = format_source(setNames(source_compartment, paste("source", names(compartment_names), sep = "."))),
+      destination = format_destination(
+        setNames(destination_compartment, paste("destination", names(compartment_names), sep = "."))
+      ),
+      rate = paste(format_rate(rate), collapse = " * "),
+      proportional_to = paste(format_proportional_to(proportional_to), collapse = "*"),
+      proportion_exponent = paste(format_proportion_exponent(proportion_exponent), collapse = "*")
     )
 
   }
@@ -339,39 +341,45 @@ format_proportion_exponent <- function(proportion_exponent) {
   return(rc)
 }
 
+format_source <- function(source) {
+  return(paste(source, collapse = "_"))
+}
+
+format_destination <- function(destination) {
+  return(paste(destination, collapse = "_"))
+}
+
 format_rate <- function(rate) {
-  rc <- rate
+  rc <- paste(rate, collapse = " * ")
   rc <- sapply(rc, gsub, pattern = "([^_])[* 1]*$", replacement = "\\1")
-  rc <- sapply(rc, gsub, pattern = "([^_])[*] 1 [*]([^_])", replacement = "\\1\\2")
+  rc <- unname(sapply(rc, gsub, pattern = "([^_ ]) *[*] *1 *[*] *([^ _])", replacement = "\\1 * \\2"))
   return(rc)
 }
 
 plot_graph <- function(config) {
   node_df <- parse_compartment_names(config$seir)
-  node_df$name <- apply(node_df, 1, paste, collapse = "_")
+  node_df$name <- apply(node_df, 1, format_source)
   edge_df <- parse_all_transitions(config$seir)
-  edge_df$from <- apply(edge_df[, grepl("^source.", names(edge_df))], 1, paste, collapse = "_")
-  edge_df$to <- apply(edge_df[, grepl("^destination.", names(edge_df))], 1, paste, collapse = "_")
+  edge_df$from <- edge_df$source # apply(edge_df[, grepl("^source", names(edge_df))], 1, paste, collapse = "_")
+  edge_df$to <- edge_df$destination # apply(edge_df[, grepl("^destination", names(edge_df))], 1, paste, collapse = "_")
   g <- tidygraph::tbl_graph(node_df, edge_df)
-  g %>%
+  plt <- g %>%
     ggraph::ggraph() +
     ggraph::geom_node_label(ggplot2::aes(label = name), size = 4 / ggplot2::.pt) +
     ggraph::geom_edge_link(
       ggplot2::aes(
         label = paste0(
-          format_rate(rate), "*", "\n",
+          rate, "*", "\n",
           mapply(
             pt = proportional_to,
             pe = proportion_exponent,
             function(pt, pe) {
-              fpe <- format_proportion_exponent(pe)
-              fpt <- format_proportional_to(pt)
               paste(
-                "(", fpt, ")",
+                "(", pt, ")",
                 sapply(
-                  fpe,
+                  pe,
                   function(x) {
-                    ifelse(identical(x,"1"), "", paste("^", "(", x, ")" ))
+                    ifelse(identical(x, "1"), "", paste("^", "(", x, ")"))
                   }
                 ),
                 collapse = "*\n"
@@ -384,13 +392,5 @@ plot_graph <- function(config) {
       arrow = grid::arrow()
     )
 
-  node_data <- parse_compartment_names(config$seir)
-  node_df <- DiagrammeR::create_node_df(n = length(node_data), label = node_data)
-  edge_data <- parse_all_transitions(config$seir$transitions)
-  edge_df <- DiagrammeR::create_edge_df(
-    from = node_df$id[sapply(edge_data$source, function(x){which(x == node_df$label)})],
-    to =  node_df$id[sapply(edge_data$destination, function(x){which(x == node_df$label)})],
-    label = paste(edge_data$rate, "*", "(", edge_data$proportional_to, ")", "^", "(", edge_data$proportion_exponent, ")")
-  )
-  g <- DiagrammeR::create_graph(nodes_df = node_df, edges_df = edge_df, directed = TRUE)
+  return(plt)
 }
