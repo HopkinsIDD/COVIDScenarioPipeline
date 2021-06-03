@@ -289,64 +289,23 @@ class Compartments:
                 new_transition_config["proportional_to"][p_idx] = new_transition_config["source"]
 
         temp_array = np.zeros(problem_dimension)
-        source_type = "U" + str(reduce(
-            lambda a,b: a + 1 + b,
-            map(lambda b : max([len(y) for y in as_list(b)]), single_transition_config["source"]),
-            0
-        ))
+
         new_transition_config["source"] = np.zeros(problem_dimension, dtype = object) # JK : I hate this
-
-        destination_type = "U" + str(reduce(
-            lambda a,b: a + 1 + b,
-            map(lambda b : max([len(y) for y in as_list(b)]), single_transition_config["destination"]),
-            0
-        ))
         new_transition_config["destination"] = np.zeros(problem_dimension, dtype = object)
-
-        rate_type = "U" + str(reduce(
-            lambda a,b: a + 1 + b,
-            map(lambda b : max([len(str(y)) for y in as_list(b)]), single_transition_config["rate"]),
-            0
-        ))
         new_transition_config["rate"] = np.zeros(problem_dimension, dtype = object)
 
         proportion_dimension = problem_dimension.copy()
         proportion_dimension.append(proportion_size)
-        proportional_to_type = "U" + str(reduce(
-            lambda a,b: max(a,b),
-            map(
-                lambda x : reduce(
-                    lambda a,b: a + 1 + b,
-                    map(
-                        lambda x : max([len(str(y)) for y in as_list(x)]),
-                        x
-                    ),
-                    0
-                ),
-                single_transition_config["proportional_to"]
-            )
-        ) * proportion_size)
 
         new_transition_config["proportional_to"] = np.zeros(
             proportion_dimension,
             dtype = object
         )
+        new_transition_config["proportion_exponent"] = np.zeros(
+            proportion_dimension,
+            dtype = object
+        )
 
-        proportion_exponent_type = "U" + str(reduce(
-            lambda a,b: max(a,b),
-            map(
-                lambda x : reduce(
-                    lambda a,b: a + 1 + b,
-                    map(
-                        lambda x : max([len(str(y)) for y in as_list(x)]),
-                        x
-                    ),
-                    0
-                ),
-                single_transition_config["proportion_exponent"]
-            )
-        ))
-        new_transition_config["proportion_exponent"] = np.zeros(proportion_dimension, dtype = object)
 
         it = np.nditer(temp_array, flags=['multi_index'])
         for x in it:
