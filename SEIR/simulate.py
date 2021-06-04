@@ -184,6 +184,7 @@ def simulate(config_file, in_run_id, out_run_id, scenarios, nsim, jobs, interact
                         npi_config=config["interventions"]["settings"][scenario],
                         seeding_config=config["seeding"],
                         parameters_config=config["seir"]["parameters"],
+                        compartments_config = config["seir"],
                         ti=config["start_date"].as_date(),
                         tf=config["end_date"].as_date(),
                         interactive=interactive,

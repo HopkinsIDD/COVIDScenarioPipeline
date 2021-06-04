@@ -18,17 +18,19 @@ class Compartments:
     # Minimal object to be easily picklable for // runs
     def __init__(self, seir_config = None, compartments_file = None, transitions_file = None):
 
-        times_set = 0
+        self.times_set = 0
 
         ## Something like this is needed for check script:
         # self.parameters = Parameters(seir_config["parameters"])
 
         if (not compartments_file is None) and (not transitions_file is None):
             self.fromFile(compartments_file, transitions_file)
-            times_set += 1
-        if times_set == 0:
+            self.times_set += 1
+        if (self.times_set == 0) and ("compartments" in seir_config.keys()):
             self.constructFromConfig(seir_config)
-            times_set += 1
+            self.times_set += 1
+
+        
 
 
         return
