@@ -10,7 +10,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import filecmp
 
-from SEIR import setup, seir, NPI, file_paths
+from SEIR import compartments, seir, NPI, file_paths
 
 from ..utils import config
 
@@ -22,8 +22,8 @@ def test_check_transitions_parquet_creation():
     config.set_file(f"{DATA_DIR}/config_compartmental_model_format.yml")
     original_compartments_file = f"{DATA_DIR}/parsed_compartment_compartments.parquet"
     original_transitions_file = f"{DATA_DIR}/parsed_compartment_transitions.parquet"
-    lhs = setup.Compartments(seir_config = config["seir"])
-    rhs = setup.Compartments(
+    lhs = compartments.Compartments(seir_config = config["seir"])
+    rhs = compartments.Compartments(
         seir_config = config["seir"],
         compartments_file = original_compartments_file,
         transitions_file = original_transitions_file
@@ -44,11 +44,11 @@ def test_check_transitions_parquet_creation():
 
 def test_check_transitions_parquet_loading():
     config.set_file(f"{DATA_DIR}/config_compartmental_model_format.yml")
-    lhs = setup.Compartments(seir_config = config["seir"])
+    lhs = compartments.Compartments(seir_config = config["seir"])
     temp_compartments_file = f"{DATA_DIR}/parsed_compartment_compartments.test.parquet"
     temp_transitions_file = f"{DATA_DIR}/parsed_compartment_transitions.test.parquet"
     lhs.toFile(compartments_file = temp_compartments_file, transitions_file = temp_transitions_file)
-    rhs = setup.Compartments(
+    rhs = compartments.Compartments(
         seir_config = config["seir"],
         compartments_file = temp_compartments_file,
         transitions_file = temp_transitions_file
