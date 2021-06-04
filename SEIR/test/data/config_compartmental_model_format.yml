@@ -1,43 +1,54 @@
 seir:
   parameters:
-    alpha: 0.5
-    sigma: 1 / 5.2
+    alpha:
+      value:
+        distribution: fixed
+        value: .99
+    sigma:
+      value:
+        distribution: fixed
+        value: 1 / 5.2
     gamma:
-      distribution: uniform
-      low: 1 / 6
-      high: 1 / 2.6
+      value:
+        distribution: uniform
+        low: 1 / 6
+        high: 1 / 2.6
     R0s:
-      distribution: uniform
-      low: 2
-      high: 3
+      value:
+        distribution: uniform
+        low: 2
+        high: 3
     theta_1:
-      distribution: ???
-      low: ???
-      high: ???
+      value:
+        distribution: fixed
+        value: .1
     theta_2:
-      distribution: ???
-      low: ???
-      high: ???
+      value:
+        distribution: fixed
+        value: .2
     nu_1:
-      distribution: ???
-      low: ???
-      high: ???
+      npi_type : "addative"
+      value:
+        distribution: fixed
+        value: .3
     nu_2:
-      distribution: ???
-      low: ???
-      high: ???
+      npi_type : "addative"
+      value:
+        distribution: fixed
+        value: .4
     chi_0:
-      distribution: ???
-      low: ???
-      high: ???
+      value:
+        distribution: fixed
+        value: .5
     chi_1:
-      distribution: ???
-      low: ???
-      high: ???
+      value:
+        distribution: fixed
+        value: .6
     rho:
-      distribution: ???
-      low: ???
-      high: ???
+      npi_type : "multiplicative"
+      value:
+        distribution: fixed
+        value: 7
   compartments:
     infection_stage: ["S", "E", "I1", "I2", "I3", "R"]
     vaccination_stage: ["0dose", "1dose", "2dose"]
