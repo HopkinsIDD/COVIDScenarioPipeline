@@ -18,7 +18,7 @@ REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE",5000))
 
 
 class ReduceIntervention(NPIBase):
-    def __init__(self, *, npi_config, global_config, geoids, loaded_df=None):
+    def __init__(self, *, npi_config, global_config, geoids, loaded_df=None, pnames_overlap_operation_sum = []):
         super().__init__(name=npi_config.name)
 
         self.start_date = global_config["start_date"].as_date()
@@ -62,7 +62,7 @@ class ReduceIntervention(NPIBase):
         for new_p in new_params:
             if new_p not in self.param_name:
                 self.param_name.append(new_p)
-                if re.match("^transition_rate [1234567890]+$",new_p):
+                if  new_p in pnames_overlap_operation_sum: #re.match("^transition_rate [1234567890]+$",new_p):
                     self.reductions[new_p] = 0
                 else:
                     self.reductions[new_p] = 0
@@ -76,7 +76,7 @@ class ReduceIntervention(NPIBase):
 
         for param in self.param_name:
             reduction = self.sub_npi.getReduction(param, default=0.0)
-            if re.match("^transition_rate [1234567890]+$",param):
+            if param in pnames_overlap_operation_sum: #re.match("^transition_rate [1234567890]+$",param):
                 self.reductions[param] = reduction.copy()
             else:
                 self.reductions[param] = reduction.copy()
