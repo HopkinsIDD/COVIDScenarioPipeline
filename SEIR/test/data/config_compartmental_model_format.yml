@@ -27,12 +27,12 @@ seir:
         distribution: fixed
         value: .2
     nu_1:
-      npi_type : "addative"
+      intervention_overlap_operation : "sum"
       value:
         distribution: fixed
         value: .3
     nu_2:
-      npi_type : "addative"
+      intervention_overlap_operation : "sum"
       value:
         distribution: fixed
         value: .4
@@ -45,7 +45,7 @@ seir:
         distribution: fixed
         value: .6
     rho:
-      npi_type : "multiplicative"
+      intervention_overlap_operation : "prod"
       value:
         distribution: fixed
         value: 7
