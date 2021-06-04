@@ -29,20 +29,15 @@ def test_check_transitions_parquet_creation():
         transitions_file = original_transitions_file
     )
 
+    assert(lhs.times_set == 1)
+    assert(rhs.times_set == 1)
     # assert(lhs.parameters == rhs.parameters) ## parameters objects do not have an == operator
     assert((lhs.compartments == rhs.compartments).all().all())
-    # print(lhs.transitions.source)
-    # print(rhs.transitions.source)
     assert((lhs.transitions == rhs.transitions).all().all())
     assert(lhs == rhs)
 
-    temp_compartments_file = f"{DATA_DIR}/parsed_compartment_compartments.test.parquet"
-    temp_transitions_file = f"{DATA_DIR}/parsed_compartment_transitions.test.parquet"
-    lhs.toFile(compartments_file = temp_compartments_file, transitions_file = temp_transitions_file)
-    assert(filecmp.cmp(temp_compartments_file, original_compartments_file))
-    assert(filecmp.cmp(temp_transitions_file, original_transitions_file))
 
-def test_check_transitions_parquet_loading():
+def test_check_transitions_parquet_writing_and_loading():
     config.set_file(f"{DATA_DIR}/config_compartmental_model_format.yml")
     lhs = compartments.Compartments(seir_config = config["seir"])
     temp_compartments_file = f"{DATA_DIR}/parsed_compartment_compartments.test.parquet"
@@ -54,6 +49,8 @@ def test_check_transitions_parquet_loading():
         transitions_file = temp_transitions_file
     )
 
+    assert(lhs.times_set == 1)
+    assert(rhs.times_set == 1)
     assert((lhs.compartments == rhs.compartments).all().all())
     assert((lhs.transitions == rhs.transitions).all().all())
     assert(lhs == rhs)

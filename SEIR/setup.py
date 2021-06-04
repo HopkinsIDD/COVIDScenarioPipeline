@@ -10,9 +10,11 @@ import copy
 
 from .utils import config
 from . import file_paths
+from . import compartments
 from functools import reduce
 import logging
 logger = logging.getLogger(__name__)
+
 
 
 # Number of components
@@ -103,6 +105,7 @@ class Setup:
                  npi_config={},
                  seeding_config={},
                  parameters_config={},
+                 compartments_config={},
                  interactive=True,
                  write_csv=False,
                  write_parquet=False,
@@ -125,6 +128,7 @@ class Setup:
         self.npi_config = npi_config
         self.seeding_config = seeding_config
         self.parameters_config = parameters_config
+        self.compartments_config = compartments_config
         self.interactive = interactive
         self.write_csv = write_csv
         self.write_parquet = write_parquet
@@ -154,6 +158,7 @@ class Setup:
         self.build_setup()
 
         self.params = Parameters(self.parameters_config)
+        self.compartments = compartments.Compartments(self.compartments_config)
 
         if (self.write_csv or self.write_parquet):
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
