@@ -18,6 +18,8 @@ DATA_DIR = os.path.dirname(__file__) + "/data"
 
 
 def test_parameters_from_config_plus_read_write():
+    config.clear()
+    config.read(user=False)
     config.set_file(f"{DATA_DIR}/config_compartmental_model_format.yml")
     lhs = Parameters.Parameters(seir_config = config["seir"])
     nt_inter = 10
