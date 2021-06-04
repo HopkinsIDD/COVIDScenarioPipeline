@@ -860,14 +860,14 @@ def parameters_reduce(p_draw, npi, dt):
     )
 
 # Helper function
-def _parameter_reduce(parameter, modification, dt, method="multiplicative"):
+def _parameter_reduce(parameter, modification, dt, method="prod"):
     if isinstance(modification, pd.DataFrame):
         modification = modification.T
         modification.index = pd.to_datetime(modification.index.astype(str))
         modification = modification.resample(str(dt * 24) + 'H').ffill().to_numpy()
-    if method == "multiplicative":
+    if method == "prod":
         return parameter * (1 - modification)
-    elif method == "addative":
+    elif method == "sum":
         return parameter + modification
 
 

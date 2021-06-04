@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 ## - Should have centralized functions to write parameters
 
 class Parameters():
-    # Mnimal object to be easily picklable for // runs
+    # Minimal object to be easily picklable for // runs
     def __init__(self, seir_config: confuse.ConfigView):
         self.pconfig = seir_config["parameters"]
 
@@ -26,22 +26,31 @@ class Parameters():
         if self.npar != len(set([name.lower() for name in self.pnames])):
             raise ValueError('Parameters of the SEIR model have the same name (remember that case is not sufficient!)')
         self.pdata = {}
+        self.pnames2pindex = {}
+        self.intervention_overlap_operation = {'sum': [], 'prod': []}
 
         # Attributes of dictionary
         for idx, pn in enumerate(self.pnames):
+            self.pnames2pindex[pn] = idx
             self.pdata[pn] = {}
             self.pdata[pn]['idx'] = idx
             self.pdata[pn]['dist'] = self.pconfig[pn]['value'].as_random_distribution()
-            if self.pconfig[pn]['npi_type'].exists():
-                self.pdata[pn]['npi_type'] = self.pconfig[pn]["npi_type"].as_str()
+            if self.pconfig[pn]['intervention_overlap_operation'].exists():
+                self.pdata[pn]['intervention_overlap_operation'] = self.pconfig[pn][
+                    "intervention_overlap_operation"].as_str()
             else:
-                self.pdata[pn]['npi_type'] = 'multiplicative'
-                logging.debug(f"No 'npi_type' for parameter {pn}, assuming multiplicative NPIs")
+                self.pdata[pn]['intervention_overlap_operation'] = 'prod'
+                logging.debug(f"No 'intervention_overlap_operation' for parameter {pn}, assuming multiplicative NPIs")
+
+            self.intervention_overlap_operation[self.pdata[pn]['intervention_overlap_operation']].append(pn.lower())
+
+    def get_pnames2pindex(self) -> dict:
+        return self.pnames2pindex
 
     def parameters_quick_draw(self, nt_inter: int, nnodes: int) -> ndarray:
         """
         Returns all parameter in an array. These are drawn based on the seir::parameters section of the config, passed in as p_config.
-        :param nt_inter: numpber of time interval
+        :param nt_inter: number of time interval
         :param nnodes: number of spatial nodes
         :return:  array of shape (nparam, nt_inter, nnodes) with all parameters for all nodes and all time (same value)
         """
@@ -112,8 +121,8 @@ class Parameters():
 
         for idx, pn in enumerate(self.pnames):
             p_reduced[idx] = SEIR.setup._parameter_reduce(parameter=p_draw[idx],
-                                                          modification=npi.getReduction(pn),
+                                                          modification=npi.getReduction(pn.lower()),
                                                           dt=dt,
-                                                          method=self.pdata[pn]['npi_type'])
+                                                          method=self.pdata[pn]['intervention_overlap_operation'])
 
         return p_reduced
