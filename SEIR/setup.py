@@ -212,18 +212,30 @@ def get_list_dimension(thing):
         return len(thing)
     return 1
 
-def list_access_element(thing, idx, dimension = None):
+def list_access_element(thing, idx, dimension = None, encapsulate_as_list = False):
     if not dimension is None:
         if dimension == 1:
-            return thing
+            rc = as_list(thing)
+        if dimension != 1:
+            rc = as_list(list_access_element(thing, idx, None))
     if type(thing) == list:
-        return thing[idx]
-    return thing
+        rc = thing[idx]
+    else:
+        rc = thing
+    if encapsulate_as_list:
+        return as_list(rc)
+    else:
+        return rc
 
 def as_list(thing):
     if type(thing) == list:
         return(thing)
     return([thing])
+
+def list_recursive_convert_to_string(thing):
+    if type(thing) == list:
+        return([list_recursive_convert_to_string(x) for x in thing])
+    return(str(thing))
 
 
 class Compartments:
@@ -232,6 +244,9 @@ class Compartments:
 
         times_set = 0
 
+        ## Something like this is needed for check script:
+        # self.parameters = Parameters(seir_config["parameters"])
+
         if (not compartments_file is None) and (not transitions_file is None):
             self.fromFile(compartments_file, transitions_file)
             times_set += 1
@@ -239,9 +254,13 @@ class Compartments:
             self.constructFromConfig(seir_config)
             times_set += 1
 
-        self.parameters = Parameters(seir_config["parameters"])
 
         return
+    def __eq__(self, other):
+        return(
+            (self.transitions == other.transitions).all().all() and
+            (self.compartments == other.compartments).all().all()
+        )
 
     def parse_compartments(self, seir_config):
         compartment_config = seir_config["compartments"]
@@ -274,11 +293,11 @@ class Compartments:
     def check_transition_elements(self, single_transition_config, problem_dimension):
         return True
 
-    def access_original_config_by_multi_index(self, config_piece, index, dimension = None):
+    def access_original_config_by_multi_index(self, config_piece, index, dimension = None, encapsulate_as_list = False):
         if dimension is None:
             dimension = [None for i in index]
         tmp = zip(index, range(len(index)), dimension)
-        tmp = [list_access_element(config_piece[x[1]], x[0], x[2]) for x in tmp]
+        tmp = [list_access_element(config_piece[x[1]], x[0], x[2], encapsulate_as_list) for x in tmp]
         return(tmp)
 
     def expand_transition_elements(self, single_transition_config, problem_dimension):
@@ -290,49 +309,50 @@ class Compartments:
 
         temp_array = np.zeros(problem_dimension)
 
-        new_transition_config["source"] = np.zeros(problem_dimension, dtype = object) # JK : I hate this
+        new_transition_config["source"] = np.zeros(problem_dimension, dtype = object)
         new_transition_config["destination"] = np.zeros(problem_dimension, dtype = object)
         new_transition_config["rate"] = np.zeros(problem_dimension, dtype = object)
 
-        proportion_dimension = problem_dimension.copy()
-        proportion_dimension.append(proportion_size)
-
         new_transition_config["proportional_to"] = np.zeros(
-            proportion_dimension,
+            problem_dimension,
             dtype = object
         )
         new_transition_config["proportion_exponent"] = np.zeros(
-            proportion_dimension,
+            problem_dimension,
             dtype = object
         )
 
 
         it = np.nditer(temp_array, flags=['multi_index'])
         for x in it:
-            new_transition_config["source"][it.multi_index] = \
+            new_transition_config["source"][it.multi_index] = list_recursive_convert_to_string(
                 self.access_original_config_by_multi_index(single_transition_config["source"], it.multi_index)
+            )
 
-            new_transition_config["destination"][it.multi_index] = \
+            new_transition_config["destination"][it.multi_index] = list_recursive_convert_to_string(
                 self.access_original_config_by_multi_index(single_transition_config["destination"], it.multi_index)
+            )
 
-            new_transition_config["rate"][it.multi_index] = \
+            new_transition_config["rate"][it.multi_index] = list_recursive_convert_to_string(
                 self.access_original_config_by_multi_index(single_transition_config["rate"], it.multi_index)
+            )
 
-            new_transition_config["proportional_to"][it.multi_index] = [
+            new_transition_config["proportional_to"][it.multi_index] = as_list(list_recursive_convert_to_string([
                 self.access_original_config_by_multi_index(
                     single_transition_config["proportional_to"][p_idx],
                     it.multi_index,
-                    proportion_dimension
+                    problem_dimension,
+                    True
                 ) for p_idx in range(proportion_size)
-            ]
+            ]))
 
-            new_transition_config["proportion_exponent"][it.multi_index] = [
+            new_transition_config["proportion_exponent"][it.multi_index] = list_recursive_convert_to_string([
                 self.access_original_config_by_multi_index(
                     single_transition_config["proportion_exponent"][p_idx],
                     it.multi_index,
-                    proportion_dimension
+                    problem_dimension
                 ) for p_idx in range(proportion_size)
-            ]
+            ])
 
         return new_transition_config
 
@@ -403,12 +423,12 @@ class Compartments:
         )]
         return(rc)
 
-    def unformat_proportional_to(self, proportional_to_column, compartment_dimension):
-        rc = [x.split("*", maxsplit = compartment_dimension - 1) for x in proportional_to_column]
-        for row in rc:
-            row = [x.split("_") for x in row]
-            for elem in row:
-                elem = [x.split("+") for x in elem]
+    def unformat_proportional_to(self, proportional_to_column):
+        rc = [x.split("*") for x in proportional_to_column]
+        for row in range(len(rc)):
+            rc[row] = [x.split("_") for x in rc[row]]
+            for elem in range(len(rc[row])):
+                rc[row][elem] = [x.split("+") for x in as_list(rc[row][elem])]
         return(rc)
 
     def format_proportion_exponent(self, proportion_exponent_column):
@@ -428,9 +448,12 @@ class Compartments:
         return(rc)
 
     def unformat_proportion_exponent(self, proportion_exponent_column, compartment_dimension):
-        rc = [x.split("%*%", maxsplit = compartment_dimension - 1) for x in proportion_exponent_column]
-        for row in rc:
-            row = [x.split("*") for x in row]
+        rc = [x.split("%*%") for x in proportion_exponent_column]
+        for row in range(len(rc)):
+            rc[row] = [x.split("*", maxsplit = compartment_dimension - 1) for x in rc[row]]
+            for elem in rc[row]:
+                while(len(elem) < compartment_dimension):
+                    elem.append(1)
         return(rc)
 
     def parse_single_transition(self, seir_config, single_transition_config):
@@ -482,13 +505,15 @@ class Compartments:
         self.compartments = pq.read_table(compartments_file).to_pandas()
         self.transitions = pq.read_table(transitions_file).to_pandas()
         compartment_dimension = self.compartments.shape[1] - 1
-        print(compartment_dimension)
         self.transitions["source"] = self.unformat_source(self.transitions["source"])
         self.transitions["destination"] = self.unformat_destination(self.transitions["destination"])
         self.transitions["rate"] = self.unformat_rate(self.transitions["rate"], compartment_dimension)
-        self.transitions["proportional_to"] = self.unformat_proportional_to(self.transitions["proportional_to"], compartment_dimension)
-        self.transitions["proportion_exponent"] = self.unformat_proportion_exponent(self.transitions["proportion_exponent"], compartment_dimension)
-        print(self.transitions)
+        self.transitions["proportional_to"] = self.unformat_proportional_to(self.transitions["proportional_to"])
+        self.transitions["proportion_exponent"] = self.unformat_proportion_exponent(
+            self.transitions["proportion_exponent"],
+            compartment_dimension
+        )
+
         return
 
     def constructFromConfig(self, seir_config):
