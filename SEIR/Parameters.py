@@ -18,31 +18,106 @@ logger = logging.getLogger(__name__)
 
 class Parameters():
     # Minimal object to be easily picklable for // runs
-    def __init__(self, seir_config: confuse.ConfigView):
+    def __init__(self, seir_config: confuse.ConfigView, config_version: str = 'old'):
         self.pconfig = seir_config["parameters"]
-
-        self.pnames = self.pconfig.keys()
+        self.pnames = []
         self.npar = len(self.pnames)
-        if self.npar != len(set([name.lower() for name in self.pnames])):
-            raise ValueError('Parameters of the SEIR model have the same name (remember that case is not sufficient!)')
+
         self.pdata = {}
         self.pnames2pindex = {}
         self.intervention_overlap_operation = {'sum': [], 'prod': []}
 
-        # Attributes of dictionary
-        for idx, pn in enumerate(self.pnames):
-            self.pnames2pindex[pn] = idx
-            self.pdata[pn] = {}
-            self.pdata[pn]['idx'] = idx
-            self.pdata[pn]['dist'] = self.pconfig[pn]['value'].as_random_distribution()
-            if self.pconfig[pn]['intervention_overlap_operation'].exists():
-                self.pdata[pn]['intervention_overlap_operation'] = self.pconfig[pn][
-                    "intervention_overlap_operation"].as_str()
-            else:
-                self.pdata[pn]['intervention_overlap_operation'] = 'prod'
-                logging.debug(f"No 'intervention_overlap_operation' for parameter {pn}, assuming multiplicative NPIs")
+        if config_version == 'new':
+            self.pnames = self.pconfig.keys()
+            self.npar = len(self.pnames)
+            if self.npar != len(set([name.lower() for name in self.pnames])):
+                raise ValueError(
+                    'Parameters of the SEIR model have the same name (remember that case is not sufficient!)')
 
-            self.intervention_overlap_operation[self.pdata[pn]['intervention_overlap_operation']].append(pn.lower())
+            # Attributes of dictionary
+            for idx, pn in enumerate(self.pnames):
+                self.pnames2pindex[pn] = idx
+                self.pdata[pn] = {}
+                self.pdata[pn]['idx'] = idx
+                self.pdata[pn]['dist'] = self.pconfig[pn]['value'].as_random_distribution()
+                if self.pconfig[pn]['intervention_overlap_operation'].exists():
+                    self.pdata[pn]['intervention_overlap_operation'] = self.pconfig[pn][
+                        "intervention_overlap_operation"].as_str()
+                else:
+                    self.pdata[pn]['intervention_overlap_operation'] = 'prod'
+                    logging.debug(
+                        f"No 'intervention_overlap_operation' for parameter {pn}, assuming multiplicative NPIs")
+                self.intervention_overlap_operation[self.pdata[pn]['intervention_overlap_operation']].append(pn.lower())
+
+        elif config_version == 'old':
+            n_parallel_compartments = 1
+            n_parallel_transitions = 0
+            compartments_dict = {}
+            compartments_map = {}
+            transition_map = {}
+            if "parallel_structure" in self.pconfig:
+                if "compartments" not in self.pconfig["parallel_structure"]:
+                    raise ValueError(
+                        f"A config specifying a parallel structure should assign compartments to that structure")
+                compartments_map = self.pconfig["parallel_structure"]["compartments"]
+                n_parallel_compartments = len(compartments_map.get())
+                compartments_dict = {k: v for v, k in enumerate(compartments_map.get())}
+                if not "transitions" in self.pconfig["parallel_structure"]:
+                    raise ValueError(
+                        f"A config specifying a parallel structure should assign transitions to that structure")
+                transitions_map = self.pconfig["parallel_structure"]["transitions"]
+                n_parallel_transitions = len(transitions_map.get())
+                transition_map = transitions_map
+
+            alpha_val = 1.0
+            if "alpha" in self.pconfig:
+                alpha_val = self.pconfig["alpha"].as_evaled_expression()
+            sigma_val = self.pconfig["sigma"].as_evaled_expression()
+            gamma_dist = self.pconfig["gamma"].as_random_distribution()
+            R0s_dist = self.pconfig["R0s"].as_random_distribution()
+
+            ### Do some conversions
+            # Convert numbers to distribution like object that can be called
+            alpha_dist = lambda: alpha_val
+            sigma_dist = lambda: sigma_val
+
+            p_dists = {'alpha': alpha_dist,
+                       'sigma': sigma_dist,
+                       'gamma': gamma_dist,
+                       'R0s': R0s_dist}
+            for key in p_dists:
+                self.intervention_overlap_operation['prod'].append(key.lower())
+
+            if n_parallel_compartments > 1.5:
+                for compartment, index in compartments_dict.items():
+                    if "susceptibility_reduction" in compartments_map[compartment]:
+                        pn = f"susceptibility_reduction {index}"
+                        p_dists[pn] = compartments_map[compartment]["susceptibility_reduction"].as_random_distribution()
+                        self.intervention_overlap_operation['prod'].append(pn.lower())
+                    else:
+                        raise ValueError(f"Susceptibility Reduction not found for comp {compartment}")
+                    if "transmissibility_reduction" in compartments_map[compartment]:
+                        pn = f"transmissibility_reduction {index}"
+                        p_dists[pn] = compartments_map[compartment][
+                            "transmissibility_reduction"].as_random_distribution()
+                        self.intervention_overlap_operation['prod'].append(pn.lower())
+                    else:
+                        raise ValueError(f"Transmissibility Reduction not found for comp {compartment}")
+                for transition in range(n_parallel_transitions):
+                    pn = f"transition_rate {transition}"
+                    p_dists[pn] = transition_map[transition]["rate"].as_random_distribution()
+                    self.intervention_overlap_operation['sum'].append(pn.lower())
+
+            ### Build the new structure
+            for idx, pn in enumerate(p_dists):
+                self.pnames2pindex[pn] = idx
+                self.pdata[pn] = {}
+                self.pdata[pn]['idx'] = idx
+                self.pdata[pn]['dist'] = p_dists[pn]
+        logging.debug(f"We have {self.npar} parameter: {self.pnames}")
+        logging.debug(f"Data to sample is: {self.pdata}")
+        logging.debug(f"Index in arrays are: {self.pnames2pindex}")
+        logging.debug(f"NPI overlap operation is {self.intervention_overlap_operation} ")
 
     def get_pnames2pindex(self) -> dict:
         return self.pnames2pindex
