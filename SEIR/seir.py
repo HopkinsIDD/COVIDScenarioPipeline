@@ -30,11 +30,15 @@ except ModuleNotFoundError as e:
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 
-def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
+
+def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
     scipy.random.seed()
 
     with Timer('onerun_SEIR.NPI'):
-        npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
+        npi = NPI.NPIBase.execute(npi_config=s.npi_config,
+                                  global_config=config,
+                                  geoids=s.spatset.nodenames,
+                                  pnames_overlap_operation_sum=s.params.intervention_overlap_operation['sum'])
 
     with Timer('onerun_SEIR.seeding'):
         y0, seeding = setup.seeding_draw(s, sim_id)
@@ -44,11 +48,10 @@ def onerun_SEIR(sim_id, s, stoch_traj_flag = True):
     mobility_data = s.mobility.data
     
     with Timer('onerun_SEIR.pdraw'):
-        p_draw = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)        
-        
-    
+        p_draw = s.params.parameters_quick_draw(len(s.t_inter), s.nnodes)
+
     with Timer('onerun_SEIR.reduce'):
-        parameters = setup.parameters_reduce(p_draw, npi, s.dt)
+        parameters = s.params.parameters_reduce(p_draw, npi, s.dt)
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
             
@@ -125,7 +128,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
                 file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "snpi"),
                 "csv"
             )
-            setup.parameters_write(
+            s.params.parameters_write(
                 p_draw,
                 file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "spar"),
                 "csv"
@@ -142,7 +145,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
                 "parquet"
             )
 
-            setup.parameters_write(
+            s.params.parameters_write(
                 p_draw,
                 file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "spar"),
                 "parquet"
@@ -191,19 +194,19 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
     with Timer('onerun_SEIR_loadID.pdraw'):
-        p_draw = setup.parameters_load(
+        p_draw = s.params.parameters_load(
             file_paths.create_file_name_without_extension(
                 s.in_run_id, # Not sure about this one
                 s.in_prefix, # Not sure about this one
                 sim_id2load + s.first_sim_index - 1,
                 "spar"
             ),
-            extension,
             len(s.t_inter),
-            s.nnodes
+            s.nnodes,
+            extension
         )
     with Timer('onerun_SEIR_loadID.reduce'):
-        parameters = setup.parameters_reduce(p_draw, npi, s.dt)
+        parameters = s.params.parameters_reduce(p_draw, npi, s.dt)
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
 

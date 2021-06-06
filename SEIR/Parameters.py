@@ -12,14 +12,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-## TODO:
-## - NPI: provide map of reduction composition type
-## - Should have centralized functions to write parameters
-
 class Parameters():
     # Minimal object to be easily picklable for // runs
-    def __init__(self, seir_config: confuse.ConfigView, config_version: str = 'old'):
-        self.pconfig = seir_config["parameters"]
+    def __init__(self, parameter_config: confuse.ConfigView, config_version: str = 'old'):
+        self.pconfig = parameter_config#["parameters"]
         self.pnames = []
         self.npar = len(self.pnames)
 
