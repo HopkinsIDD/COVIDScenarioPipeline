@@ -23,7 +23,7 @@ class Parameters():
         self.pnames2pindex = {}
         self.intervention_overlap_operation = {'sum': [], 'prod': []}
 
-        if config_version == 'new':
+        if config_version == 'v2':
             self.pnames = self.pconfig.keys()
             self.npar = len(self.pnames)
             if self.npar != len(set([name.lower() for name in self.pnames])):
@@ -106,10 +106,12 @@ class Parameters():
 
             ### Build the new structure
             for idx, pn in enumerate(p_dists):
+                self.pnames.append(pn)
                 self.pnames2pindex[pn] = idx
                 self.pdata[pn] = {}
                 self.pdata[pn]['idx'] = idx
                 self.pdata[pn]['dist'] = p_dists[pn]
+            self.npar = len(self.pnames)
         logging.debug(f"We have {self.npar} parameter: {self.pnames}")
         logging.debug(f"Data to sample is: {self.pdata}")
         logging.debug(f"Index in arrays are: {self.pnames2pindex}")
