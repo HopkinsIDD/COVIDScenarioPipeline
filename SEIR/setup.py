@@ -170,7 +170,7 @@ class Setup:
         if config_version != 'old' and config_version != 'v2':
             raise ValueError(f"Configuration version unknown: {config_version}. "
                              f"Should be either non-specified (default: 'old'), or set to 'old' or 'v2'.")
-        
+
         self.params = Parameters.Parameters(self.parameters_config, config_version=config_version)
         self.compartments = compartments.Compartments(self.compartments_config)
 
