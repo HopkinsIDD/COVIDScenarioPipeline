@@ -29,8 +29,8 @@ class Compartments:
         if (self.times_set == 0) and ("compartments" in seir_config.keys()):
             self.constructFromConfig(seir_config)
             self.times_set += 1
-
-        
+        if self.times_set == 0:
+            self.defaultConstruct(seir_config)
 
 
         return
@@ -39,6 +39,68 @@ class Compartments:
             (self.transitions == other.transitions).all().all() and
             (self.compartments == other.compartments).all().all()
         )
+
+    def defaultConstruct(self, seir_config):
+        use_parallel = False
+        if "parallel_structure" in seir_config.keys():
+            use_parallel = True
+        n_parallel_compartments = 1
+        if use_parallel:
+            n_parallel_compartments = len(seir_config["parallel_structure"]["compartments"].get())
+        self.compartments = pd.DataFrame({'key':1, "SEIR_compartment":["S","E","I1","I2","I3","R"]})
+        if "parallel_structure" in seir_config.keys():
+            self.compartments = pd.merge(
+                self.compartments,
+                pd.DataFrame({'key':1, "parallel_compartment":seir_compartment["parallel_compartment"].keys()})
+            )
+        self.compartments = self.compartments.drop(["key"], axis = 1)
+        self.compartments["name"] = self.compartments.apply(
+            lambda x: reduce(lambda a,b: a + "_" + b, x),
+            axis = 1
+        )
+
+        if not use_parallel:
+            transitions = [
+                {
+                    "source": ["S"],
+                    "destination": ["E"],
+                    "rate": "R0s / gamma",
+                    "proportional_to": [["S"], [[["E", "I1", "I2", "I3"]]]],
+                    "proportion_exponent": [["1"], ["alpha"]]
+                },
+                {
+                    "source": [["E"]],
+                    "destination": [["I1"]],
+                    "rate": [["sigma"]],
+                    "proportional_to": [[["E"]]],
+                    "proportion_exponent": [[["1"]]]
+                },
+                {
+                    "source": [["I1"]],
+                    "destination": [["I2"]],
+                    "rate": [["3 * gamma"]],
+                    "proportional_to": [[["I1"]]],
+                    "proportion_exponent": [[["1"]]]
+                },
+                {
+                    "source": [["I2"]],
+                    "destination": [["I3"]],
+                    "rate": [["3 * gamma"]],
+                    "proportional_to": [[["I3"]]],
+                    "proportion_exponent": [[["1"]]]
+                },
+                {
+                    "source": [["I3"]],
+                    "destination": [["R"]],
+                    "rate": [["3 * gamma"]],
+                    "proportional_to": [[["R"]]],
+                    "proportion_exponent": [[["1"]]]
+                }
+            ]
+        else :
+            raise ValueError("This is not currently implemented")
+
+        self.transitions = self.parse_transitions({"transitions": transitions}, True)
 
     def parse_compartments(self, seir_config):
         compartment_config = seir_config["compartments"]
@@ -56,9 +118,9 @@ class Compartments:
         )
         self.compartments = compartment_frame
 
-    def parse_transitions(self, seir_config):
+    def parse_transitions(self, seir_config, fake_config = False):
         rc = reduce(
-            lambda a, b: a.append(self.parse_single_transition(seir_config, b)),
+            lambda a, b: a.append(self.parse_single_transition(seir_config, b, fake_config)),
             seir_config["transitions"],
             pd.DataFrame()
         )
@@ -74,6 +136,7 @@ class Compartments:
     def access_original_config_by_multi_index(self, config_piece, index, dimension = None, encapsulate_as_list = False):
         if dimension is None:
             dimension = [None for i in index]
+        tmp = zip(index, range(len(index)), dimension)
         tmp = zip(index, range(len(index)), dimension)
         tmp = [list_access_element(config_piece[x[1]], x[0], x[2], encapsulate_as_list) for x in tmp]
         return(tmp)
@@ -124,6 +187,11 @@ class Compartments:
                 ) for p_idx in range(proportion_size)
             ]))
 
+            self.access_original_config_by_multi_index(
+                single_transition_config["proportion_exponent"][0],
+                it.multi_index,
+                problem_dimension
+            )
             new_transition_config["proportion_exponent"][it.multi_index] = list_recursive_convert_to_string([
                 self.access_original_config_by_multi_index(
                     single_transition_config["proportion_exponent"][p_idx],
@@ -234,9 +302,10 @@ class Compartments:
                     elem.append(1)
         return(rc)
 
-    def parse_single_transition(self, seir_config, single_transition_config):
+    def parse_single_transition(self, seir_config, single_transition_config, fake_config = False):
         ## This method relies on having run parse_compartments
-        single_transition_config = single_transition_config.get()
+        if not fake_config:
+            single_transition_config = single_transition_config.get()
         self.check_transition_element(single_transition_config["source"])
         self.check_transition_element(single_transition_config["destination"])
         source_dimension = [get_list_dimension(x) for x in single_transition_config["source"]]
@@ -296,7 +365,7 @@ class Compartments:
 
     def constructFromConfig(self, seir_config):
         self.parse_compartments(seir_config)
-        self.transitions = self.parse_transitions(seir_config)
+        self.transitions = self.parse_transitions(seir_config, False)
 
 def get_list_dimension(thing):
     if type(thing) == list:
