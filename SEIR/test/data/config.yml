@@ -18,6 +18,9 @@ seeding:
   seeding_file_type: seed
   folder_path: importation/minimal/
 
+initial_conditions:
+  method: Default
+
 seir:
   parameters:
     alpha: 0.5
