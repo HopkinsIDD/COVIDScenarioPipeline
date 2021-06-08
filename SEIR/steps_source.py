@@ -7,21 +7,22 @@ cc.verbose = True
 debug_mode = False
 debug_print = False
 
-seeding_source_index, \
-    seeding_destination_index, \
-    seeding_spatial_node_index, \
-    seeding_value_index = \
+seeding_source_col, \
+    seeding_destination_col, \
+    seeding_spatial_node_col, \
+    seeding_value_col = \
     np.arange(4)
 
-transition_source_index, \
-    transition_destination_index, \
-    transition_proportion_start_index, \
-    transition_proportion_stop_index, \
-    transition_rate_index = \
+transition_source_col, \
+    transition_destination_col, \
+    transition_rate_col,\
+    transition_proportion_start_col, \
+    transition_proportion_stop_col = \
     np.arange(5)
 
-proportion_compartment_index = 0
-proportion_exponent_index = 1
+proportion_compartment_col = 0
+proportion_sum_starts_col = 0
+proportion_exponent_col = 1
 @cc.export(
     ## name
     "steps_SEIR_nb",
@@ -36,7 +37,8 @@ proportion_exponent_index = 1
     "float64," ## dt
     ## Transitions
     "int64[:, :]," ## Transitions [ ntransitions x [source, destination, proportion_start, proportion_stop, rate] ]
-    "int64[:, :]," ## transition_proportions [ ntransitions x [compartment, exponent] ]
+    "int64[:, :]," ## proportions_info [ [sum_start, exponent] x ntransition_proportions ]
+    "int64[:]," ## transition_sum_compartments [ ntransition_proportion_sums ]
     ## Initial Conditions
     "float64[:,:]," ## initial_conditions [ ncompartments x nspatial_nodes ]
     ## Seeding
@@ -57,15 +59,16 @@ def steps_SEIR_nb(
         parameters, #4
         dt, #5
         transitions, #6
-        transition_proportions, #7
-        initial_conditions, #8
-        seeding_instance_time_start_indices, #9
-        seeding_instance_data, #10
-        mobility_data, #11
-        mobility_row_indices, #12
-        mobility_data_indices, #13
-        population, #14
-        stochastic_p #15
+        proportion_info, #7
+        transition_sum_compartments, #8
+        initial_conditions, #9
+        seeding_instance_time_start_indices, #10
+        seeding_instance_data, #11
+        mobility_data, #12
+        mobility_row_indices, #13
+        mobility_data_indices, #14
+        population, #15
+        stochastic_p #16
 ):
     ## Declarations
     states = np.zeros((len(times), ncompartments, nspatial_nodes))
@@ -96,49 +99,56 @@ def steps_SEIR_nb(
                 seeding_instance_time_start_indices[time_index],
                 seeding_instance_time_start_indices[time_index+1]
         ):
-            # seeding_instance_data[seeding_value_index][seeding_instance_idx] = min(
-            #     seeding_instance_data[seeding_value_index][seeding_instance_idx],
+            # seeding_instance_data[seeding_value_col][seeding_instance_idx] = min(
+            #     seeding_instance_data[seeding_value_col][seeding_instance_idx],
             #     states_next[
-            #         seeding_instance_data[seeding_source_index][seeding_instance_idx]][
-            #             seeding_instance_data[seeding_spatial_node_index][seeding_instance_idx]]
+            #         seeding_instance_data[seeding_source_col][seeding_instance_idx]][
+            #             seeding_instance_data[seeding_spatial_node_col][seeding_instance_idx]]
             # )
             states_next[
-                seeding_instance_data[seeding_source_index][seeding_instance_idx]][
-                    seeding_instance_data[seeding_spatial_node_index][seeding_instance_idx]] -= \
-                        seeding_instance_data[seeding_value_index][seeding_instance_idx]
+                seeding_instance_data[seeding_source_col][seeding_instance_idx]][
+                    seeding_instance_data[seeding_spatial_node_col][seeding_instance_idx]] -= \
+                        seeding_instance_data[seeding_value_col][seeding_instance_idx]
             states_next[
-                seeding_instance_data[seeding_destination_index][seeding_instance_idx]][
-                    seeding_instance_data[seeding_spatial_node_index][seeding_instance_idx]] += \
-                        seeding_instance_data[seeding_value_index][seeding_instance_idx]
+                seeding_instance_data[seeding_destination_col][seeding_instance_idx]][
+                    seeding_instance_data[seeding_spatial_node_col][seeding_instance_idx]] += \
+                        seeding_instance_data[seeding_value_col][seeding_instance_idx]
 
         for transition_index in range(ntransitions):
             total_rate = 1
             first_proportion = True
             for proportion_index in range(
-                    transitions[transition_proportion_start_index][transition_index],
-                    transitions[transition_proportion_stop_index][transition_index]
+                    transitions[transition_proportion_start_col][transition_index],
+                    transitions[transition_proportion_stop_col][transition_index]
             ):
-                relevant_number_in_comp = states_current[
-                    transition_proportions[proportion_compartment_index][proportion_index]
-                ]
+                relevant_number_in_comp = np.zeros((nspatial_nodes))
+                relevant_exponent = np.ones((nspatial_nodes))
+                for proportion_sum_index in range(
+                        proportion_info[proportion_sum_starts_col][proportion_index],
+                        proportion_info[proportion_sum_starts_col][proportion_index+1]
+                ):
+                    relevant_number_in_comp += states_current[
+                        transition_sum_compartments[proportion_info[proportion_sum_starts_col][proportion_index]]
+                    ]
+                    relevant_exponent *= parameters[
+                        proportion_info[proportion_exponent_col][proportion_sum_index]
+                    ][time_index]
                 if first_proportion:
                     first_proportion = False
-                    source_number = relevant_number_in_comp ** \
-                        parameters[transition_proportions[proportion_exponent_index][proportion_index]][time_index]
+                    source_number = relevant_number_in_comp ** relevant_exponent
                 else:
                     for spatial_node in range(nspatial_nodes):
                         proportion_keep_compartment = 1 - percent_day_away * percent_who_move[spatial_node]
                         proportion_change_compartment = percent_day_away * mobility_data[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] / population[spatial_node]
                         rate_keep_compartment =   proportion_keep_compartment * \
-                            relevant_number_in_comp[spatial_node] ** \
-                            parameters[transition_proportions[proportion_exponent_index][proportion_index]][time_index][spatial_node] / \
+                            relevant_number_in_comp[spatial_node] ** relevant_exponent[spatial_node] / \
                             population[spatial_node] * \
-                            parameters[transitions[transition_rate_index][transition_index]][time_index][spatial_node]
+                            parameters[transitions[transition_rate_col][transition_index]][time_index][spatial_node]
                         rate_change_compartment = proportion_keep_compartment * \
                             relevant_number_in_comp[spatial_node] ** \
-                            parameters[transition_proportions[proportion_exponent_index][proportion_index]][time_index][mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] / \
+                            relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] / \
                             population[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] * \
-                            parameters[transition_proportions[proportion_exponent_index][proportion_index]][time_index][mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]
+                            relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]
                         total_rate *= (rate_keep_compartment + rate_change_compartment.sum())
 
             compound_adjusted_rate[spatial_node] = 1.0 - np.exp(-dt * total_rate)
@@ -157,8 +167,8 @@ def steps_SEIR_nb(
 #            #     states_next[transitions[transition_source_index][transition_index]]
 #            # )
 #
-            states_next[transitions[transition_source_index][transition_index]] -= number_move
-            states_next[transitions[transition_destination_index][transition_index]] += number_move
+            states_next[transitions[transition_source_col][transition_index]] -= number_move
+            states_next[transitions[transition_destination_col][transition_index]] += number_move
 
         states[time_index, :,:] = states_next
         states_current = states_next
