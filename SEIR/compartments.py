@@ -48,11 +48,13 @@ class Compartments:
         if use_parallel:
             n_parallel_compartments = len(seir_config["parallel_structure"]["compartments"].get())
         self.compartments = pd.DataFrame({'key':1, "SEIR_compartment":["S","E","I1","I2","I3","R"]})
+        parallel_frame = pd.DataFrame({'key':1, "parallel_compartment":["0dose"]})
         if "parallel_structure" in seir_config.keys():
-            self.compartments = pd.merge(
-                self.compartments,
-                pd.DataFrame({'key':1, "parallel_compartment":seir_compartment["parallel_compartment"].keys()})
-            )
+            parallel_frame = pd.DataFrame({'key':1, "parallel_compartment":seir_compartment["parallel_compartment"].keys()})
+        self.compartments = pd.merge(
+            self.compartments,
+            parallel_frame
+        )
         self.compartments = self.compartments.drop(["key"], axis = 1)
         self.compartments["name"] = self.compartments.apply(
             lambda x: reduce(lambda a,b: a + "_" + b, x),
@@ -62,39 +64,39 @@ class Compartments:
         if not use_parallel:
             transitions = [
                 {
-                    "source": ["S"],
-                    "destination": ["E"],
-                    "rate": "R0s / gamma",
-                    "proportional_to": [["S"], [[["E", "I1", "I2", "I3"]]]],
-                    "proportion_exponent": [["1"], ["alpha"]]
+                    "source": ["S", "0dose"],
+                    "destination": ["E", "0dose"],
+                    "rate": ["R0s / gamma",1],
+                    "proportional_to": [["S", "0dose"], [[["E", "I1", "I2", "I3"]], "0dose"]],
+                    "proportion_exponent": [["1", "1"], ["alpha", "1"]]
                 },
                 {
-                    "source": [["E"]],
-                    "destination": [["I1"]],
-                    "rate": [["sigma"]],
-                    "proportional_to": [[["E"]]],
-                    "proportion_exponent": [[["1"]]]
+                    "source": [["E"], ["0dose"]],
+                    "destination": [["I1"], ["0dose"]],
+                    "rate": ["sigma",1],
+                    "proportional_to": [[["E"], ["0dose"]]],
+                    "proportion_exponent": [["1","1"]]
                 },
                 {
-                    "source": [["I1"]],
-                    "destination": [["I2"]],
-                    "rate": [["3 * gamma"]],
-                    "proportional_to": [[["I1"]]],
-                    "proportion_exponent": [[["1"]]]
+                    "source": [["I1"], ["0dose"]],
+                    "destination": [["I2"], ["0dose"]],
+                    "rate": ["3 * gamma",1],
+                    "proportional_to": [[["I1"], ["0dose"]]],
+                    "proportion_exponent": [["1","1"]]
                 },
                 {
-                    "source": [["I2"]],
-                    "destination": [["I3"]],
-                    "rate": [["3 * gamma"]],
-                    "proportional_to": [[["I3"]]],
-                    "proportion_exponent": [[["1"]]]
+                    "source": [["I2"], ["0dose"]],
+                    "destination": [["I3"], ["0dose"]],
+                    "rate": ["3 * gamma",1],
+                    "proportional_to": [[["I2"], ["0dose"]]],
+                    "proportion_exponent": [["1","1"]]
                 },
                 {
-                    "source": [["I3"]],
-                    "destination": [["R"]],
-                    "rate": [["3 * gamma"]],
-                    "proportional_to": [[["R"]]],
-                    "proportion_exponent": [[["1"]]]
+                    "source": [["I3"], ["0dose"]],
+                    "destination": [["R"], ["0dose"]],
+                    "rate": ["3 * gamma",1],
+                    "proportional_to": [[["I3"], ["0dose"]]],
+                    "proportion_exponent": [["1","1"]]
                 }
             ]
         else :
@@ -136,7 +138,8 @@ class Compartments:
     def access_original_config_by_multi_index(self, config_piece, index, dimension = None, encapsulate_as_list = False):
         if dimension is None:
             dimension = [None for i in index]
-        tmp = zip(index, range(len(index)), dimension)
+        tmp = [y for y in zip(index, range(len(index)), dimension)]
+
         tmp = zip(index, range(len(index)), dimension)
         tmp = [list_access_element(config_piece[x[1]], x[0], x[2], encapsulate_as_list) for x in tmp]
         return(tmp)
