@@ -41,12 +41,13 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
                                   pnames_overlap_operation_sum=s.params.intervention_overlap_operation['sum'])
 
     with Timer('onerun_SEIR.seeding'):
-        y0, seeding = setup.seeding_draw(s, sim_id)
+        y0 = s.get_y0(sim_id)
+        seeding = s.get_seeding(sim_id)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
-    
+
     with Timer('onerun_SEIR.pdraw'):
         p_draw = s.params.parameters_quick_draw(len(s.t_inter), s.nnodes)
 
@@ -54,7 +55,7 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
         parameters = s.params.parameters_reduce(p_draw, npi, s.dt)
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
-            
+
     with Timer('onerun_SEIR.compute'):
         states = steps_SEIR_nb(
             *parameters,
