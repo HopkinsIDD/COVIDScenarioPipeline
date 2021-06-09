@@ -10,7 +10,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import filecmp
 
-from SEIR import setup, seir, NPI, file_paths, Parameters
+from SEIR import setup, seir, NPI, file_paths, parameters
 
 from ..utils import config
 
@@ -22,18 +22,18 @@ def test_parameters_from_config_plus_read_write():
     config.read(user=False)
     config.set_file(f"{DATA_DIR}/config_compartmental_model_format.yml")
 
-    lhs = Parameters.Parameters(parameter_config=config["seir"]["parameters"], config_version='v2')
+    lhs = parameters.Parameters(parameter_config=config["seir"]["parameters"], config_version='v2')
     nt_inter = 10
     nnodes = 5
 
-    p = Parameters.Parameters(parameter_config=config["seir"]["parameters"], config_version='v2')
+    p = parameters.Parameters(parameter_config=config["seir"]["parameters"], config_version='v2')
     p_draw = p.parameters_quick_draw(nt_inter=10, nnodes=5)
     # test shape
     assert (p_draw.shape == (len(config["seir"]["parameters"].keys()), nt_inter, nnodes))
 
     p.parameters_write(p_draw=p_draw, fname='test_pwrite')
 
-    rhs = Parameters.Parameters(parameter_config=config["seir"]["parameters"], config_version='v2')
+    rhs = parameters.Parameters(parameter_config=config["seir"]["parameters"], config_version='v2')
     p_load = rhs.parameters_load(fname='test_pwrite', nt_inter=nt_inter, nnodes=nnodes)
 
     assert ((p_draw == p_load).all())
@@ -49,7 +49,7 @@ def test_parameters_quick_draw_old():
     npi = pd.DataFrame(0.0, index=date_range,
                        columns=range(nnodes))
 
-    params = Parameters.Parameters(parameter_config=config, config_version='old')
+    params = parameters.Parameters(parameter_config=config, config_version='old')
 
     ### Check that the object is well constructed:
     print(params.pnames)
