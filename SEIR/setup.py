@@ -145,7 +145,7 @@ class Setup:
 
         self.parameters = Parameters.Parameters(parameter_config=self.parameters_config,
                                                 config_version=config_version)
-        self.SeedingAndIC = SeedingAndIC.SeedingAndIC(seeding_config=self.seeding_config,
+        self.seedingAndIC = SeedingAndIC.SeedingAndIC(seeding_config=self.seeding_config,
                                                       initial_conditions_config=self.initial_conditions_config)
         self.compartments = compartments.Compartments(self.compartments_config)
 
