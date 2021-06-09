@@ -41,7 +41,7 @@ def test_constant_population():
                         write_csv=False,
                         dt=0.25)
 
-    initial_conditions = s.seedingAndIC.get_y0(0)
+    initial_conditions = s.seedingAndIC.draw_ic(sim_id=0, setup=s)
     seeding_data = np.zeros((4,0), dtype = 'int')
     seeding_starts = np.zeros((len(s.t_inter)+ 1), dtype = 'int')
     ## This function needs to be written, but even when it is, it won't work with this config
