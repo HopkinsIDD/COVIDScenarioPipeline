@@ -89,7 +89,7 @@ def test_constant_population():
 
     seeding = np.zeros((len(s.t_inter), s.nnodes))
 
-    y0 = np.zeros((setup.ncomp, s.params.n_parallel_compartments, s.nnodes))
+    y0 = np.zeros((setup.ncomp, s.parameters.n_parallel_compartments, s.nnodes))
     y0[setup.S, 0, :] = s.popnodes
 
     mobility_geoid_indices = s.mobility.indices
@@ -98,7 +98,7 @@ def test_constant_population():
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    parameters = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
+    parameters = setup.parameters_quick_draw(s.parameters, len(s.t_inter), s.nnodes)
     parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     states = seir.steps_SEIR_nb(*parameters, y0,
@@ -141,7 +141,7 @@ def test_steps_SEIR_nb_simple_spread():
     seeding = np.zeros((len(s.t_inter), s.nnodes))
     seeding[:,0] = 100
 
-    y0 = np.zeros((setup.ncomp, s.params.n_parallel_compartments, s.nnodes))
+    y0 = np.zeros((setup.ncomp, s.parameters.n_parallel_compartments, s.nnodes))
     y0[setup.S, 0, :] = s.popnodes
 
     mobility_geoid_indices = s.mobility.indices
@@ -150,7 +150,7 @@ def test_steps_SEIR_nb_simple_spread():
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    parameters = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
+    parameters = setup.parameters_quick_draw(s.parameters, len(s.t_inter), s.nnodes)
     parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     for i in range(100):
@@ -186,7 +186,7 @@ def test_steps_SEIR_no_spread():
     seeding = np.zeros((len(s.t_inter), s.nnodes))
     seeding[:,0] = 100
 
-    y0 = np.zeros((setup.ncomp, s.params.n_parallel_compartments, s.nnodes))
+    y0 = np.zeros((setup.ncomp, s.parameters.n_parallel_compartments, s.nnodes))
     y0[setup.S, 0, :] = s.popnodes
 
     mobility_geoid_indices = s.mobility.indices
@@ -195,7 +195,7 @@ def test_steps_SEIR_no_spread():
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    parameters = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
+    parameters = setup.parameters_quick_draw(s.parameters, len(s.t_inter), s.nnodes)
     parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     for i in range(100):
