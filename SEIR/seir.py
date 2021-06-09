@@ -38,7 +38,7 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
         npi = NPI.NPIBase.execute(npi_config=s.npi_config,
                                   global_config=config,
                                   geoids=s.spatset.nodenames,
-                                  pnames_overlap_operation_sum=s.params.intervention_overlap_operation['sum'])
+                                  pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation['sum'])
 
     with Timer('onerun_SEIR.seeding'):
         y0 = s.get_y0(sim_id)
@@ -49,10 +49,10 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
     mobility_data = s.mobility.data
 
     with Timer('onerun_SEIR.pdraw'):
-        p_draw = s.params.parameters_quick_draw(len(s.t_inter), s.nnodes)
+        p_draw = s.parameters.parameters_quick_draw(len(s.t_inter), s.nnodes)
 
     with Timer('onerun_SEIR.reduce'):
-        parameters = s.params.parameters_reduce(p_draw, npi, s.dt)
+        parameters = s.parameters.parameters_reduce(p_draw, npi, s.dt)
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
 
@@ -129,7 +129,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
                 file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "snpi"),
                 "csv"
             )
-            s.params.parameters_write(
+            s.parameters.parameters_write(
                 p_draw,
                 file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "spar"),
                 "csv"
@@ -146,7 +146,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
                 "parquet"
             )
 
-            s.params.parameters_write(
+            s.parameters.parameters_write(
                 p_draw,
                 file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "spar"),
                 "parquet"
@@ -195,7 +195,7 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
     with Timer('onerun_SEIR_loadID.pdraw'):
-        p_draw = s.params.parameters_load(
+        p_draw = s.parameters.parameters_load(
             file_paths.create_file_name_without_extension(
                 s.in_run_id, # Not sure about this one
                 s.in_prefix, # Not sure about this one
@@ -207,7 +207,7 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
             extension
         )
     with Timer('onerun_SEIR_loadID.reduce'):
-        parameters = s.params.parameters_reduce(p_draw, npi, s.dt)
+        parameters = s.parameters.parameters_reduce(p_draw, npi, s.dt)
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
 

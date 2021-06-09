@@ -66,8 +66,8 @@ def test_parameters_quick_draw_old():
     R0s = p_array[params.pnames2pindex['R0s']]
     sigma = p_array[params.pnames2pindex['sigma']]
     gamma = p_array[params.pnames2pindex['gamma']]
-    # susceptibility_reduction = p_array[params.pnames2pindex['']]
-    # transmissibility_reduction = p_array[params.pnames2pindex['alpha']]
+    # susceptibility_reduction = p_array[parameters.pnames2pindex['']]
+    # transmissibility_reduction = p_array[parameters.pnames2pindex['alpha']]
 
     assert alpha.shape == (nt_inter, nnodes)
     assert (alpha == 0.5).all()

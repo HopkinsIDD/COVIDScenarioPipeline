@@ -8,6 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import copy
 from . import Parameters
+from . import SeedingAndIC
 from .utils import config
 from . import file_paths
 from . import compartments
@@ -22,6 +23,147 @@ ncomp = 7
 n_Icomp = 3
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
 all_compartments = ("S", "E", "I1", "I2", "I3", "R", "cumI")  # beware, order is important here
+
+
+def build_smart_setup(config, npi_scenario='inference', nsim=1, index=1, run_id='', prefix=''):
+    """
+        a setup class where most choices are made for you already, for test or development.
+        Do not rely on this.
+    """
+    interactive = False
+    write_csv = False
+    write_parquet = True
+    stoch_traj_flag = True
+
+    spatial_config = config["spatial_setup"]
+    spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
+    s = Setup(
+        setup_name=config["name"].get() + "_" + str(npi_scenario),
+        spatial_setup=setup.SpatialSetup(
+            setup_name=spatial_config["setup_name"].get(),
+            geodata_file=spatial_base_path / spatial_config["geodata"].get(),
+            mobility_file=spatial_base_path / spatial_config["mobility"].get(),
+            popnodes_key=spatial_config["popnodes"].get(),
+            nodenames_key=spatial_config["nodenames"].get()
+        ),
+        nsim=nsim,
+        npi_scenario=npi_scenario,
+        npi_config=config["interventions"]["settings"][npi_scenario],
+        seeding_config=config["seeding"],
+        initial_conditions_config=config["initial_conditions"],
+        parameters_config=config["seir"]["parameters"],
+        ti=config["start_date"].as_date(),
+        tf=config["end_date"].as_date(),
+        interactive=interactive,
+        write_csv=write_csv,
+        write_parquet=write_parquet,
+        dt=config["dt"].as_number(),
+        first_sim_index=index,
+        in_run_id=run_id,
+        in_prefix=prefix,
+        out_run_id=run_id,
+        out_prefix=prefix
+    )
+    return s
+
+
+
+class Setup:
+    """
+        This class hold a setup model setup.
+    """
+
+    def __init__(self, *,
+                 setup_name,
+                 spatial_setup,
+                 nsim,
+                 ti,  # time to start
+                 tf,  # time to finish
+                 npi_scenario=None,
+                 config_version='old',
+                 npi_config={},
+                 seeding_config={},
+                 initial_conditions_config={},
+                 parameters_config={},
+                 compartments_config={},
+                 interactive=True,
+                 write_csv=False,
+                 write_parquet=False,
+                 dt=1 / 6,  # step size, in days
+                 nbetas=None,  # # of betas, which are rates of infection
+                 first_sim_index=1,
+                 in_run_id=None,
+                 in_prefix=None,
+                 out_run_id=None,
+                 out_prefix=None
+                 ):
+        self.setup_name = setup_name
+        self.nsim = nsim
+        self.dt = dt
+        self.ti = ti
+        self.tf = tf
+        if self.tf <= self.ti:
+            raise ValueError("tf (time to finish) is less than or equal to ti (time to start)")
+        self.npi_scenario = npi_scenario
+        self.npi_scenario = npi_scenario
+        self.npi_config = npi_config
+        self.seeding_config = seeding_config
+        self.initial_conditions_config = initial_conditions_config
+        self.parameters_config = parameters_config
+        self.compartments_config = compartments_config
+        self.interactive = interactive
+        self.write_csv = write_csv
+        self.write_parquet = write_parquet
+        self.first_sim_index = first_sim_index
+
+        if in_run_id is None:
+            in_run_id = file_paths.run_id()
+        self.in_run_id = in_run_id
+
+        if out_run_id is None:
+            out_run_id = file_paths.run_id()
+        self.out_run_id = out_run_id
+
+        if in_prefix is None:
+            in_prefix = f'model_output/{setup_name}/{in_run_id}/'
+        self.in_prefix = in_prefix
+        if out_prefix is None:
+            out_prefix = f'model_output/{setup_name}/{npi_scenario}/{out_run_id}/'
+        self.out_prefix = out_prefix
+
+        if nbetas is None:
+            nbetas = nsim
+        self.nbetas = nbetas
+
+        self.spatset = spatial_setup
+
+        self.build_setup()
+
+        if config_version != 'old' and config_version != 'v2':
+            raise ValueError(f"Configuration version unknown: {config_version}. "
+                             f"Should be either non-specified (default: 'old'), or set to 'old' or 'v2'.")
+
+        self.parameters = Parameters.Parameters(parameter_config=self.parameters_config,
+                                                config_version=config_version)
+        self.SeedingAndIC = SeedingAndIC.SeedingAndIC(seeding_config=self.seeding_config,
+                                                      initial_conditions_config=self.initial_conditions_config)
+        self.compartments = compartments.Compartments(self.compartments_config)
+
+        if self.write_csv or self.write_parquet:
+            self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            self.datadir = file_paths.create_dir_name(self.out_run_id, self.out_prefix, 'seir')
+            os.makedirs(self.datadir, exist_ok=True)
+            self.paramdir = file_paths.create_dir_name(self.out_run_id, self.out_prefix, 'spar')
+            os.makedirs(self.paramdir, exist_ok=True)
+            self.npidir = file_paths.create_dir_name(self.out_run_id, self.out_prefix, 'snpi')
+            os.makedirs(self.npidir, exist_ok=True)
+
+    def build_setup(self):
+        self.t_span = (self.tf - self.ti).days
+        self.t_inter = np.arange(0, self.t_span + 0.0001, self.dt)
+        self.nnodes = self.spatset.nnodes
+        self.popnodes = self.spatset.popnodes
+        self.mobility = self.spatset.mobility
 
 
 class SpatialSetup:
@@ -99,454 +241,6 @@ class SpatialSetup:
                 f'The following rows in the mobility data exceed the source node populations in geodata:{errmsg}')
 
 
-class Setup:
-    """
-        This class hold a setup model setup.
-    """
-
-    def __init__(self, *,
-                 setup_name,
-                 spatial_setup,
-                 nsim,
-                 ti,  # time to start
-                 tf,  # time to finish
-                 npi_scenario=None,
-                 config_version='old',
-                 npi_config={},
-                 seeding_config={},
-                 initial_conditions_config={},
-                 parameters_config={},
-                 compartments_config={},
-                 interactive=True,
-                 write_csv=False,
-                 write_parquet=False,
-                 dt=1 / 6,  # step size, in days
-                 nbetas=None,  # # of betas, which are rates of infection
-                 first_sim_index=1,
-                 in_run_id=None,
-                 in_prefix=None,
-                 out_run_id=None,
-                 out_prefix=None
-                 ):
-        self.setup_name = setup_name
-        self.nsim = nsim
-        self.dt = dt
-        self.ti = ti
-        self.tf = tf
-        if self.tf <= self.ti:
-            raise ValueError("tf (time to finish) is less than or equal to ti (time to start)")
-        self.npi_scenario = npi_scenario
-        self.npi_config = npi_config
-        self.seeding_config = seeding_config
-        self.initial_conditions_config = initial_conditions_config
-        self.parameters_config = parameters_config
-        self.compartments_config = compartments_config
-        self.interactive = interactive
-        self.write_csv = write_csv
-        self.write_parquet = write_parquet
-        self.first_sim_index = first_sim_index
-
-        if in_run_id is None:
-            in_run_id = file_paths.run_id()
-        self.in_run_id = in_run_id
-
-        if out_run_id is None:
-            out_run_id = file_paths.run_id()
-        self.out_run_id = out_run_id
-
-        if in_prefix is None:
-            in_prefix = f'model_output/{setup_name}/{in_run_id}/'
-        self.in_prefix = in_prefix
-        if out_prefix is None:
-            out_prefix = f'model_output/{setup_name}/{npi_scenario}/{out_run_id}/'
-        self.out_prefix = out_prefix
-
-        if nbetas is None:
-            nbetas = nsim
-        self.nbetas = nbetas
-
-        self.spatset = spatial_setup
-
-        self.build_setup()
-
-        if config_version != 'old' and config_version != 'v2':
-            raise ValueError(f"Configuration version unknown: {config_version}. "
-                             f"Should be either non-specified (default: 'old'), or set to 'old' or 'v2'.")
-
-        self.params = Parameters.Parameters(self.parameters_config, config_version=config_version)
-        self.compartments = compartments.Compartments(self.compartments_config)
-
-        if (self.write_csv or self.write_parquet):
-            self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-            self.datadir = file_paths.create_dir_name(self.out_run_id, self.out_prefix, 'seir')
-            os.makedirs(self.datadir, exist_ok=True)
-            self.paramdir = file_paths.create_dir_name(self.out_run_id, self.out_prefix, 'spar')
-            os.makedirs(self.paramdir, exist_ok=True)
-            self.npidir = file_paths.create_dir_name(self.out_run_id, self.out_prefix, 'snpi')
-            os.makedirs(self.npidir, exist_ok=True)
-
-    def build_setup(self):
-        self.t_span = (self.tf - self.ti).days
-        self.t_inter = np.arange(0, self.t_span + 0.0001, self.dt)
-        self.nnodes = self.spatset.nnodes
-        self.popnodes = self.spatset.popnodes
-        self.mobility = self.spatset.mobility
-
-    def get_y0(self, sim_id):
-        y0 = np.zeros((self.compartments.compartments.shape[0], self.nnodes))
-
-        method = "Default"
-        if "method" in self.initial_conditions_config.keys():
-            method = self.initial_conditions_config["method"].as_str()
-
-        if method == "Default":
-            ## JK : This could be specified in the config
-            y0[0, :] = self.popnodes
-        elif (method == 'SetInitialConditions'):
-            states = pd.read_csv(s.seeding_config["states_file"].as_str(), converters={'place': lambda x: str(x)})
-            if (states.empty):
-                raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
-
-            y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
-
-            for pl_idx, pl in enumerate(s.spatset.nodenames):
-                if pl in list(states['place']):
-                    states_pl = states[states['place'] == pl]
-                    y0[S][0][pl_idx] = float(states_pl[states_pl['comp'] == 'S']['amount'])
-                    y0[E][0][pl_idx] = float(states_pl[states_pl['comp'] == 'E']['amount'])
-                    y0[I1][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I1']['amount'])
-                    y0[I2][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I2']['amount'])
-                    y0[I3][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I3']['amount'])
-                    y0[R][0][pl_idx] = float(states_pl[states_pl['comp'] == 'R']['amount'])
-                    y0[cumI][0][pl_idx] = y0[I1][0][pl_idx] + y0[I2][0][pl_idx] + y0[I3][0][pl_idx] + y0[R][0][pl_idx]
-                elif s.seeding_config["ignore_missing"].get():
-                    print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                    y0[S, 0, pl_idx] = s.popnodes[pl_idx]
-                else:
-                    raise ValueError(
-                        f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-
-        elif (method == 'InitialConditionsFolderDraw'):
-            sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
-            states = pq.read_table(
-                file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id + s.first_sim_index - 1,
-                                            s.seeding_config["initial_file_type"], "parquet"),
-            ).to_pandas()
-            states = states[states["time"] == str(s.ti)]
-
-            # if(states['p_comp'].max() > 0):
-            #    raise ValueError(f"We do not currently support initial conditions with parallel compartments")
-            if (states.empty):
-                raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
-
-            y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
-
-            for comp_id, compartment in enumerate(all_compartments):
-                states_compartment = states[states['comp'] == compartment]
-                for pl_idx, pl in enumerate(s.spatset.nodenames):
-                    if pl in states.columns:
-                        for p_comp_id in range(s.params.n_parallel_compartments):
-                            y0[comp_id, p_comp_id, pl_idx] = float(
-                                states_compartment[states_compartment['p_comp'] == p_comp_id][pl])
-                    elif s.seeding_config["ignore_missing"].get():
-                        print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                        y0[S, 0, pl_idx] = s.popnodes[pl_idx]
-                    else:
-                        raise ValueError(
-                            f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-
-        else:
-            raise NotImplementedError(f"unknown initial conditions method [got: {method}]")
-
-        return y0
-
-    def get_seeding(self, sim_id):
-
-        print(self.seeding_config)
-        print(self.initial_conditions_config)
-        method = self.seeding_config["method"].as_str()
-        if (method == 'NegativeBinomialDistributed'):
-            seeding = pd.read_csv(self.seeding_config["lambda_file"].as_str(),
-                                  converters={'place': lambda x: str(x)},
-                                  parse_dates=['date'])
-
-            dupes = seeding[seeding.duplicated(['place', 'date'])].index + 1
-            if not dupes.empty:
-                raise ValueError(f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file.")
-
-            for _, row in seeding.iterrows():
-                if row['place'] not in self.spatset.nodenames:
-                    raise ValueError(
-                        f"Invalid place '{row['place']}' in row {_ + 1} of seeding::lambda_file. Not found in geodata.")
-
-                importation[(row['date'].date() - self.ti).days][self.spatset.nodenames.index(row['place'])] = \
-                    np.random.negative_binomial(n=5, p=5 / (row['amount'] + 5))
-
-        if (method == 'PoissonDistributed'):
-            seeding = pd.read_csv(self.seeding_config["lambda_file"].as_str(),
-                                  converters={'place': lambda x: str(x)},
-                                  parse_dates=['date'])
-
-            dupes = seeding[seeding.duplicated(['place', 'date'])].index + 1
-            if not dupes.empty:
-                raise ValueError(f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file.")
-
-            for _, row in seeding.iterrows():
-                if row['place'] not in self.spatset.nodenames:
-                    raise ValueError(
-                        f"Invalid place '{row['place']}' in row {_ + 1} of seeding::lambda_file. Not found in geodata.")
-
-                importation[(row['date'].date() - self.ti).days][self.spatset.nodenames.index(row['place'])] = \
-                    np.random.poisson(row['amount'])
-
-        elif (method == 'FolderDraw'):
-            sim_id_str = str(sim_id + self.first_sim_index - 1).zfill(9)
-            seeding = pd.read_csv(
-                file_paths.create_file_name(self.in_run_id, self.in_prefix, sim_id + self.first_sim_index - 1,
-                                            self.seeding_config["seeding_file_type"], "csv"),
-                converters={'place': lambda x: str(x)},
-                parse_dates=['date']
-            )
-            for _, row in seeding.iterrows():
-                importation[(row['date'].date() - self.ti).days][self.spatset.nodenames.index(row['place'])] = row['amount']
-        else:
-            raise NotImplementedError(f"unknown seeding method [got: {method}]")
-
-        importation_starts = np.zeros((self.t_span + 1))
-        importation_data = np.zeros(len(["source_compartment", "destination_compartment", "spatial_node", "value"]), seeding.shape[0])
-        print(importation.shape)
-
-        return seeding_data, seeding_starts
-
-
-
-def build_smart_setup(config, npi_scenario='inference', nsim=1, index=1, run_id='', prefix=''):
-    """
-        a setup class where most choices are made for you already, for test or development.
-        Do not rely on this.
-    """
-    interactive = False
-    write_csv = False
-    write_parquet = True
-    stoch_traj_flag = True
-
-    spatial_config = config["spatial_setup"]
-    spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
-    s = Setup(
-        setup_name=config["name"].get() + "_" + str(npi_scenario),
-        spatial_setup=setup.SpatialSetup(
-            setup_name=spatial_config["setup_name"].get(),
-            geodata_file=spatial_base_path / spatial_config["geodata"].get(),
-            mobility_file=spatial_base_path / spatial_config["mobility"].get(),
-            popnodes_key=spatial_config["popnodes"].get(),
-            nodenames_key=spatial_config["nodenames"].get()
-        ),
-        nsim=nsim,
-        npi_scenario=npi_scenario,
-        npi_config=config["interventions"]["settings"][npi_scenario],
-        seeding_config=config["seeding"],
-        initial_conditions_config=config["initial_conditions"],
-        parameters_config=config["seir"]["parameters"],
-        ti=config["start_date"].as_date(),
-        tf=config["end_date"].as_date(),
-        interactive=interactive,
-        write_csv=write_csv,
-        write_parquet=write_parquet,
-        dt=config["dt"].as_number(),
-        first_sim_index=index,
-        in_run_id=run_id,
-        in_prefix=prefix,
-        out_run_id=run_id,
-        out_prefix=prefix
-    )
-    return s
-
-
-def seeding_draw(s, sim_id):
-    importation = np.zeros((s.t_span + 1, s.nnodes))
-    y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
-    y0[S, 0, :] = s.popnodes
-
-    method = s.seeding_config["method"].as_str()
-    if (method == 'NegativeBinomialDistributed'):
-        seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
-                              converters={'place': lambda x: str(x)},
-                              parse_dates=['date'])
-
-        dupes = seeding[seeding.duplicated(['place', 'date'])].index + 1
-        if not dupes.empty:
-            raise ValueError(f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file.")
-
-        for _, row in seeding.iterrows():
-            if row['place'] not in s.spatset.nodenames:
-                raise ValueError(
-                    f"Invalid place '{row['place']}' in row {_ + 1} of seeding::lambda_file. Not found in geodata.")
-
-            importation[(row['date'].date() - s.ti).days][s.spatset.nodenames.index(row['place'])] = \
-                np.random.negative_binomial(n=5, p=5 / (row['amount'] + 5))
-
-    if (method == 'PoissonDistributed'):
-        seeding = pd.read_csv(s.seeding_config["lambda_file"].as_str(),
-                              converters={'place': lambda x: str(x)},
-                              parse_dates=['date'])
-
-        dupes = seeding[seeding.duplicated(['place', 'date'])].index + 1
-        if not dupes.empty:
-            raise ValueError(f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file.")
-
-        for _, row in seeding.iterrows():
-            if row['place'] not in s.spatset.nodenames:
-                raise ValueError(
-                    f"Invalid place '{row['place']}' in row {_ + 1} of seeding::lambda_file. Not found in geodata.")
-
-            importation[(row['date'].date() - s.ti).days][s.spatset.nodenames.index(row['place'])] = \
-                np.random.poisson(row['amount'])
-
-    elif (method == 'FolderDraw'):
-        sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
-        seeding = pd.read_csv(
-            file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id + s.first_sim_index - 1,
-                                        s.seeding_config["seeding_file_type"], "csv"),
-            converters={'place': lambda x: str(x)},
-            parse_dates=['date']
-        )
-        for _, row in seeding.iterrows():
-            importation[(row['date'].date() - s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
-
-    elif (method == 'SetInitialConditions'):
-        states = pd.read_csv(s.seeding_config["states_file"].as_str(), converters={'place': lambda x: str(x)})
-        if (states.empty):
-            raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
-
-        y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
-
-        for pl_idx, pl in enumerate(s.spatset.nodenames):
-            if pl in list(states['place']):
-                states_pl = states[states['place'] == pl]
-                y0[S][0][pl_idx] = float(states_pl[states_pl['comp'] == 'S']['amount'])
-                y0[E][0][pl_idx] = float(states_pl[states_pl['comp'] == 'E']['amount'])
-                y0[I1][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I1']['amount'])
-                y0[I2][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I2']['amount'])
-                y0[I3][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I3']['amount'])
-                y0[R][0][pl_idx] = float(states_pl[states_pl['comp'] == 'R']['amount'])
-                y0[cumI][0][pl_idx] = y0[I1][0][pl_idx] + y0[I2][0][pl_idx] + y0[I3][0][pl_idx] + y0[R][0][pl_idx]
-            elif s.seeding_config["ignore_missing"].get():
-                print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                y0[S, 0, pl_idx] = s.popnodes[pl_idx]
-            else:
-                raise ValueError(
-                    f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-
-    elif (method == 'InitialConditionsFolderDraw'):
-        sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
-        states = pq.read_table(
-            file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id + s.first_sim_index - 1,
-                                        s.seeding_config["initial_file_type"], "parquet"),
-        ).to_pandas()
-        states = states[states["time"] == str(s.ti)]
-
-        # if(states['p_comp'].max() > 0):
-        #    raise ValueError(f"We do not currently support initial conditions with parallel compartments")
-        if (states.empty):
-            raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
-
-        y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
-
-        for comp_id, compartment in enumerate(all_compartments):
-            states_compartment = states[states['comp'] == compartment]
-            for pl_idx, pl in enumerate(s.spatset.nodenames):
-                if pl in states.columns:
-                    for p_comp_id in range(s.params.n_parallel_compartments):
-                        y0[comp_id, p_comp_id, pl_idx] = float(
-                            states_compartment[states_compartment['p_comp'] == p_comp_id][pl])
-                elif s.seeding_config["ignore_missing"].get():
-                    print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                    y0[S, 0, pl_idx] = s.popnodes[pl_idx]
-                else:
-                    raise ValueError(
-                        f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-
-    else:
-        raise NotImplementedError(f"unknown seeding method [got: {method}]")
-
-    return y0, importation
-
-
-def seeding_load(s, sim_id):
-    importation = np.zeros((len(self.t_inter) + 1, s.nnodes))
-    y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
-    y0[S, 0, :] = s.popnodes
-
-    method = s.seeding_config["method"].as_str()
-    if (method == 'FolderDraw'):
-        sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
-        seeding = pd.read_csv(
-            file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id + s.first_sim_index - 1,
-                                        s.seeding_config["seeding_file_type"], "csv"),
-            converters={'place': lambda x: str(x)},
-            parse_dates=['date']
-        )
-        for _, row in seeding.iterrows():
-            importation[(row['date'].date() - s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
-
-    elif (method == 'SetInitialConditions'):
-        states = pd.read_csv(s.seeding_config["states_file"].as_str(), converters={'place': lambda x: str(x)})
-        if (states.empty):
-            raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
-
-        y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
-
-        for pl_idx, pl in enumerate(s.spatset.nodenames):
-            if pl in list(states['place']):
-                states_pl = states[states['place'] == pl]
-                y0[S][0][pl_idx] = float(states_pl[states_pl['comp'] == 'S']['amount'])
-                y0[E][0][pl_idx] = float(states_pl[states_pl['comp'] == 'E']['amount'])
-                y0[I1][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I1']['amount'])
-                y0[I2][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I2']['amount'])
-                y0[I3][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I3']['amount'])
-                y0[R][0][pl_idx] = float(states_pl[states_pl['comp'] == 'R']['amount'])
-                y0[cumI][0][pl_idx] = y0[I1][0][pl_idx] + y0[I2][0][pl_idx] + y0[I3][0][pl_idx] + y0[R][0][pl_idx]
-            elif s.seeding_config["ignore_missing"].get():
-                print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                y0[S, 0, pl_idx] = s.popnodes[pl_idx]
-            else:
-                raise ValueError(
-                    f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-
-    elif (method == 'InitialConditionsFolderDraw'):
-        sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
-        states = pq.read_table(
-            file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id + s.first_sim_index - 1,
-                                        s.seeding_config["initial_file_type"], "parquet"),
-        ).to_pandas()
-        states = states[states["time"] == str(s.ti)]
-
-        if (states.empty):
-            raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
-
-        y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
-
-        for comp_id, compartment in enumerate(all_compartments):
-            states_compartment = states[states['comp'] == compartment]
-            for pl_idx, pl in enumerate(s.spatset.nodenames):
-                if pl in states.columns:
-                    for p_comp_id in range(s.params.n_parallel_compartments):
-                        y0[comp_id, p_comp_id, pl_idx] = float(
-                            states_compartment[states_compartment['p_comp'] == p_comp_id][pl])
-                elif s.seeding_config["ignore_missing"].get():
-                    print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                    y0[S, 0, pl_idx] = s.popnodes[pl_idx]
-                else:
-                    raise ValueError(
-                        f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-
-    else:
-        raise NotImplementedError(
-            f"Seeding method in inference run must be FolderDraw, SetInitialConditions, or InitialConditionsFolderDraw [got: {method}]")
-
-    return y0, importation
-
-
 def npi_load(fname, extension):
     # Quite ugly and should be in class NPI
     if extension == "csv":
@@ -568,8 +262,3 @@ def _parameter_reduce(parameter, modification, dt, method="prod"):
         return parameter * (1 - modification)
     elif method == "sum":
         return parameter + modification
-
-
-# Write seeding used to file
-def seeding_write(seeding, fname, extension):
-    raise NotImplementedError(f"It is not yet possible to write the seeding to a file")
