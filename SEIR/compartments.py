@@ -370,6 +370,195 @@ class Compartments:
         self.parse_compartments(seir_config)
         self.transitions = self.parse_transitions(seir_config, False)
 
+    def get_transition_array(self, parameters, parameter_names):
+        transition_array = np.zeros((self.transitions.shape[1], self.transitions.shape[0]), dtype = 'int')
+        for cit, colname in enumerate(("source", "destination")):
+            for it, elem in enumerate(self.transitions[colname]):
+                elem = reduce(lambda a,b: a + "_" + b, elem)
+                rc = -1
+                for compartment in range(self.compartments.shape[0]):
+                    if self.compartments["name"][compartment] == elem:
+                        rc = compartment
+                transition_array[it, cit] = rc
+
+        unique_strings = []
+        for x in self.transitions["proportion_exponent"]:
+            for y in x:
+                candidate = reduce(lambda a,b: a + "*" + b, y)
+                candidate = candidate.replace(" ","")
+                candidate = candidate.replace("*1","")
+                if not candidate in unique_strings:
+                    unique_strings.append(candidate)
+
+        for x in self.transitions["rate"]:
+            candidate = reduce(lambda a,b: a + "*" + b, x)
+            candidate = candidate.replace(" ","")
+            candidate = candidate.replace("*1","")
+            if not candidate in unique_strings:
+                unique_strings.append(candidate)
+
+        assert(reduce(lambda a,b : a and b, [(x.find("(") == -1) for x in unique_strings]))
+        assert(reduce(lambda a,b : a and b, [(x.find(")") == -1) for x in unique_strings]))
+        assert(reduce(lambda a,b : a and b, [(x.find("%") == -1) for x in unique_strings]))
+
+
+        parsed_parameters = self.parse_parameter_strings_to_numpy_arrays(parameters, parameter_names, unique_strings)
+        print(parsed_parameters)
+        print(unique_strings)
+
+        for it, elem in enumerate(self.transitions['rate']):
+                candidate = reduce(lambda a,b: a + "*" + b, elem)
+                candidate = candidate.replace(" ","")
+                candidate = candidate.replace("*1","")
+                if not candidate in unique_strings:
+                    raise ValueError("Something went wrong")
+                rc = [it for it,x in enumerate(unique_strings) if x == candidate][0]
+                transition_array[it,2] = rc
+
+        current_proportion_start = 0
+        for it, elem in enumerate(self.transitions['proportional_to']):
+            transition_array[it,3] = current_proportion_start
+            transition_array[it,4] = current_proportion_start + len(elem)
+            current_proportion_start += len(elem)
+
+        proportion_info = np.zeros((2, transition_array[:,4].max()), dtype = 'int')
+        current_proportion_sum_start = 0
+        current_proportion_sum_it = 0
+        for it, elem in enumerate(self.transitions['proportional_to']):
+            for it2, elem2 in enumerate(elem):
+                elem_tmp = []
+                for ity, y in enumerate(elem2):
+                    for itz, z in enumerate(y):
+                        while(len(elem_tmp) <= itz):
+                            elem_tmp.append([])
+                        while(len(elem_tmp[itz]) <= ity):
+                             elem_tmp[itz].append([])
+                        elem_tmp[itz][ity] = z
+                for ity, y in enumerate(elem_tmp):
+                    while(len(y) < len(elem_tmp[0])):
+                        elem_tmp[ity].append(elem_tmp[0][len(y)])
+                elem_tmp = [reduce(lambda a,b : a + "_" + b, y) for y in elem_tmp]
+                for it3, elem3 in enumerate(elem_tmp):
+                    rc = -1
+                    for compartment in range(self.compartments.shape[0]):
+                        if self.compartments["name"][compartment] == elem3:
+                            rc = compartment
+                proportion_info[0][current_proportion_sum_it] = current_proportion_sum_start
+                current_proportion_sum_it += 1
+                current_proportion_sum_start += len(elem_tmp)
+        proportion_compartment_index = 0
+        for it, elem in enumerate(self.transitions['proportion_exponent']):
+            for y in elem:
+                candidate = reduce(lambda a,b: a + "*" + b, y)
+                candidate = candidate.replace(" ","")
+                candidate = candidate.replace("*1","")
+                if not candidate in unique_strings:
+                    raise ValueError("Something went wrong")
+                rc = [it for it,x in enumerate(unique_strings) if x == candidate][0]
+                proportion_info[1][proportion_compartment_index] = rc
+                proportion_compartment_index += 1
+
+        assert(proportion_compartment_index == current_proportion_sum_it)
+
+        proportion_array = np.zeros((current_proportion_sum_start), dtype = 'int')
+
+        proportion_index = 0
+        for it, elem in enumerate(self.transitions['proportional_to']):
+            for it2, elem2 in enumerate(elem):
+                elem_tmp = []
+                for ity, y in enumerate(elem2):
+                    for itz, z in enumerate(y):
+                        while(len(elem_tmp) <= itz):
+                            elem_tmp.append([])
+                        while(len(elem_tmp[itz]) <= ity):
+                             elem_tmp[itz].append([])
+                        elem_tmp[itz][ity] = z
+                for ity, y in enumerate(elem_tmp):
+                    while(len(y) < len(elem_tmp[0])):
+                        elem_tmp[ity].append(elem_tmp[0][len(y)])
+                elem_tmp = [reduce(lambda a,b : a + "_" + b, y) for y in elem_tmp]
+                for it3, elem3 in enumerate(elem_tmp):
+                    rc = -1
+                    for compartment in range(self.compartments.shape[0]):
+                        if self.compartments["name"][compartment] == elem3:
+                            rc = compartment
+                    proportion_array[proportion_index] = rc
+                    proportion_index += 1
+
+
+
+        ## This will need to be reworked to deal with the summing bit
+        ## There will be changes needed in the steps_source too
+        ## They are doable though
+        for it, elem in enumerate(self.transitions['proportional_to']):
+            elem = [y for y in map(
+                lambda x : reduce(
+                    lambda a,b : str(a) + "_" + str(b),
+                    map(
+                        lambda x: reduce(
+                            lambda a,b: str(a) + "+" + str(b),
+                            as_list(x)
+                        ),
+                        x
+                    )
+                ),
+                elem
+            )]
+            for it2, elem2 in enumerate(elem):
+
+                rc = -1
+                for compartment in range(self.compartments.shape[0]):
+                    if self.compartments["name"][compartment] == elem2:
+                        rc = compartment
+                proportion_array[it]
+
+            return parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info
+
+    def parse_parameter_strings_to_numpy_arrays(
+            self,
+            parameters,
+            parameter_names,
+            string_list,
+            operator_reduce_lambdas = {
+                "*": lambda a,b: a * b,
+                "/": lambda a,b: a / b,
+                "+": lambda a,b: a + b,
+                "-": lambda a,b: a - b,
+                "^": lambda a,b: a ** b
+            },
+            operators = ["^", "*", "/", "+", "-"]
+    ):
+        print(string_list)
+        print(operators)
+        split_strings = [x.split(operators[0]) for x in string_list]
+        rc_size = [len(string_list)]
+        for x in parameters.shape[1:]:
+            rc_size.append(x)
+        rc = np.zeros(rc_size, dtype = 'float64')
+        for sit, string in enumerate(split_strings):
+            tmp_rc_size = [len(string)]
+            for x in parameters.shape[1:]:
+                tmp_rc_size.append(x)
+            tmp_rc = np.zeros(tmp_rc_size, dtype = 'float64')
+            is_numeric = [x.isnumeric() for x in string]
+            is_parameter = [x in parameter_names for x in string]
+            is_resolvable = [x[0] or x[1] for x in zip(is_numeric, is_parameter)]
+            is_totally_resolvable = reduce(lambda a,b: a and b, is_resolvable)
+            if not is_totally_resolvable:
+                not_resolvable_indices = [it for it,x in enumerate(is_resolvable) if not x]
+
+                tmp_rc[not_resolvable_indices] = self.parse_parameter_strings_to_numpy_arrays(parameters, parameter_names, [string[not is_resolvable]], operator_reduce_lambdas, operators[1:])
+            print(tmp_rc.shape)
+            for numeric_index in [x for x in range(len(is_numeric)) if is_numeric[x]]:
+                tmp_rc[numeric_index] = parameters[0] * 0 + float(string[numeric_index])
+            for parameter_index in [x for x in range(len(is_parameter)) if is_parameter[x]]:
+                print(parameter_names)
+                parameter_name_index = [it for it,x in enumerate(parameter_names) if x == string[parameter_index]]
+                tmp_rc[parameter_index] = parameters[parameter_name_index]
+            rc[sit] = reduce(operator_reduce_lambdas[operators[0]], tmp_rc)
+        return(rc)
+
+
 def get_list_dimension(thing):
     if type(thing) == list:
         return len(thing)
