@@ -47,8 +47,8 @@ class Compartments:
         n_parallel_compartments = 1
         if use_parallel:
             n_parallel_compartments = len(seir_config["parallel_structure"]["compartments"].get())
-        self.compartments = pd.DataFrame({'key':1, "SEIR_compartment":["S","E","I1","I2","I3","R"]})
-        parallel_frame = pd.DataFrame({'key':1, "parallel_compartment":["0dose"]})
+        self.compartments = pd.DataFrame({'key':1, "infection_stage":["S","E","I1","I2","I3","R"]})
+        parallel_frame = pd.DataFrame({'key':1, "vaccination_stage":["0dose"]})
         if "parallel_structure" in seir_config.keys():
             parallel_frame = pd.DataFrame({'key':1, "parallel_compartment":seir_compartment["parallel_compartment"].keys()})
         self.compartments = pd.merge(
