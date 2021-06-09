@@ -56,6 +56,8 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
 
+   
+
     with Timer('onerun_SEIR.compute'):
         states = steps_SEIR_nb(
             *parameters,
