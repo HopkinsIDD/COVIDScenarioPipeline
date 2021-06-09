@@ -24,14 +24,13 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
     cmp_grp_names = [col for col in setup.compartments.compartments.columns if col != 'name']
     seeding_dict: nb.typed.Dict = nb.typed.Dict.empty(
         key_type=nb.types.unicode_type,
-        value_type=nb.types.float64[:],
+        value_type=nb.types.int64[:],
     )
-    seeding_dict['seeding_sources'] = np.zeros(len(amounts))
-    seeding_dict['seeding_destinations'] = np.zeros(len(amounts))
-    seeding_dict['seeding_places'] = np.zeros(len(amounts))
-    seeding_dict['seeding_amounts'] = np.zeros(len(amounts))
-
-    nb_seed_perday = np.zeros(setup.t_span)
+    seeding_dict['seeding_sources'] = np.zeros(len(amounts), dtype=np.int64)
+    seeding_dict['seeding_destinations'] = np.zeros(len(amounts), dtype=np.int64)
+    seeding_dict['seeding_places'] = np.zeros(len(amounts), dtype=np.int64)
+    seeding_dict['seeding_amounts'] = np.zeros(len(amounts), dtype=np.int64)
+    nb_seed_perday = np.zeros(setup.t_span, dtype=np.int64)
 
     for idx, (row_index, row) in enumerate(df.iterrows()):
         if row['place'] not in setup.spatset.nodenames:
@@ -43,10 +42,10 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
 
         source_dict = {grp_name: row[f'source_{grp_name}'] for grp_name in cmp_grp_names}
         destination_dict = {grp_name: row[f'destination_{grp_name}'] for grp_name in cmp_grp_names}
-        seeding_dict['seeding_sources'] = setup.compartments.get_comp_idx(source_dict)
-        seeding_dict['seeding_destinations'] = setup.compartments.get_comp_idx(destination_dict)
-        seeding_dict['seeding_places'] = setup.spatset.nodenames.index(row['place'])
-        seeding_dict['seeding_amounts'] = amounts[idx]
+        seeding_dict['seeding_sources'][idx] = setup.compartments.get_comp_idx(source_dict)
+        seeding_dict['seeding_destinations'][idx] = setup.compartments.get_comp_idx(destination_dict)
+        seeding_dict['seeding_places'][idx] = setup.spatset.nodenames.index(row['place'])
+        seeding_dict['seeding_amounts'][idx] = amounts[idx]
 
     seeding_dict['day_start_idx'] = np.cumsum(nb_seed_perday)
     return seeding_dict
