@@ -7,8 +7,8 @@ import scipy.sparse
 import pyarrow as pa
 import pyarrow.parquet as pq
 import copy
-from . import Parameters
-from . import SeedingAndIC
+from . import parameters
+from . import seeding_ic
 from .utils import config
 from . import file_paths
 from . import compartments
@@ -143,9 +143,9 @@ class Setup:
             raise ValueError(f"Configuration version unknown: {config_version}. "
                              f"Should be either non-specified (default: 'old'), or set to 'old' or 'v2'.")
 
-        self.parameters = Parameters.Parameters(parameter_config=self.parameters_config,
+        self.parameters = parameters.Parameters(parameter_config=self.parameters_config,
                                                 config_version=config_version)
-        self.seedingAndIC = SeedingAndIC.SeedingAndIC(seeding_config=self.seeding_config,
+        self.seedingAndIC = seeding_ic.SeedingAndIC(seeding_config=self.seeding_config,
                                                       initial_conditions_config=self.initial_conditions_config)
         self.compartments = compartments.Compartments(self.compartments_config)
 

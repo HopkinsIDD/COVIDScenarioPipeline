@@ -4,7 +4,6 @@ import pytest
 import warnings
 import shutil
 
-
 import pathlib
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -14,7 +13,6 @@ from SEIR import setup, seir, NPI, file_paths
 from ..utils import config
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
-
 
 
 def test_check_values():
@@ -27,16 +25,16 @@ def test_check_values():
                             nodenames_key="geoid")
 
     s = setup.Setup(setup_name="test_values",
-                        spatial_setup=ss,
-                        nsim=1,
-                        npi_scenario="None",
-                        npi_config=config["interventions"]["settings"]["None"],
-                        parameters_config=config["seir"]["parameters"],
-                        ti=config["start_date"].as_date(),
-                        tf=config["end_date"].as_date(),
-                        interactive=True,
-                        write_csv=False,
-                        dt=0.25)
+                    spatial_setup=ss,
+                    nsim=1,
+                    npi_scenario="None",
+                    npi_config=config["interventions"]["settings"]["None"],
+                    parameters_config=config["seir"]["parameters"],
+                    ti=config["start_date"].as_date(),
+                    tf=config["end_date"].as_date(),
+                    interactive=True,
+                    write_csv=False,
+                    dt=0.25)
 
     with warnings.catch_warnings(record=True) as w:
 
@@ -45,25 +43,25 @@ def test_check_values():
         if np.all(seeding == 0):
             warnings.warn("provided seeding has only value 0", UserWarning)
 
-        seeding[0,0] = 1
+        seeding[0, 0] = 1
 
         if np.all(seeding == 0):
             warnings.warn("provided seeding has only value 0", UserWarning)
 
-        if(np.all(s.mobility.data < 1)):
+        if (np.all(s.mobility.data < 1)):
             warnings.warn("highest mobility value is less than 1", UserWarning)
 
         s.mobility.data[0] = 0.8
         s.mobility.data[1] = 0.5
 
-        if(np.all(s.mobility.data < 1)):
+        if (np.all(s.mobility.data < 1)):
             warnings.warn("highest mobility value is less than 1", UserWarning)
 
-        assert(len(w) == 2)
-        assert(issubclass(w[0].category, UserWarning))
-        assert(issubclass(w[1].category, UserWarning))
-        assert("seeding" in str(w[0].message))
-        assert("mobility" in str(w[1].message))
+        assert (len(w) == 2)
+        assert (issubclass(w[0].category, UserWarning))
+        assert (issubclass(w[1].category, UserWarning))
+        assert ("seeding" in str(w[0].message))
+        assert ("mobility" in str(w[1].message))
 
 
 def test_constant_population():
@@ -76,21 +74,21 @@ def test_constant_population():
                             nodenames_key="geoid")
 
     s = setup.Setup(setup_name="test_seir",
-                        spatial_setup=ss,
-                        nsim=1,
-                        npi_scenario="None",
-                        npi_config=config["interventions"]["settings"]["None"],
-                        parameters_config=config["seir"]["parameters"],
-                        ti=config["start_date"].as_date(),
-                        tf=config["end_date"].as_date(),
-                        interactive=True,
-                        write_csv=False,
-                        dt=0.25)
+                    spatial_setup=ss,
+                    nsim=1,
+                    npi_scenario="None",
+                    npi_config=config["interventions"]["settings"]["None"],
+                    parameters_config=config["seir"]["parameters"],
+                    ti=config["start_date"].as_date(),
+                    tf=config["end_date"].as_date(),
+                    interactive=True,
+                    write_csv=False,
+                    dt=0.25)
 
     seeding = np.zeros((len(s.t_inter), s.nnodes))
 
-    y0 = np.zeros((setup.ncomp, s.parameters.n_parallel_compartments, s.nnodes))
-    y0[setup.S, 0, :] = s.popnodes
+    y0 = np.zeros((s.compartments.get_ncomp(), s.nnodes))
+    y0[0, :] = s.popnodes
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -98,13 +96,13 @@ def test_constant_population():
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    parameters = setup.parameters_quick_draw(s.parameters, len(s.t_inter), s.nnodes)
-    parameters = setup.parameters_reduce(parameters, npi, s.dt)
+    params = s.parameters.parameters_quick_draw(s.t_span, s.nnodes)
+    params = s.parameters.parameters_reduce(params, npi, s.dt)
 
-    states = seir.steps_SEIR_nb(*parameters, y0,
-                       seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                       mobility_geoid_indices, mobility_data_indices,
-                       mobility_data, True)
+    states = seir.steps_SEIR_nb(*params, y0,
+                                seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                                mobility_geoid_indices, mobility_data_indices,
+                                mobility_data, True)
 
     completepop = s.popnodes.sum()
     origpop = s.popnodes
@@ -112,9 +110,9 @@ def test_constant_population():
         totalpop = 0
         for i in range(s.nnodes):
             totalpop += states[:5, :, i, it].sum()
-            #Sum of S, E, I#, R for the geoid that is 'i'
-            assert(origpop[i] == states[:5, :, i, it].sum())
-        assert(completepop == totalpop)
+            # Sum of S, E, I#, R for the geoid that is 'i'
+            assert (origpop[i] == states[:5, :, i, it].sum())
+        assert (completepop == totalpop)
 
 
 def test_steps_SEIR_nb_simple_spread():
@@ -127,22 +125,22 @@ def test_steps_SEIR_nb_simple_spread():
                             nodenames_key="geoid")
 
     s = setup.Setup(setup_name="test_seir",
-                        spatial_setup=ss,
-                        nsim=1,
-                        npi_scenario="None",
-                        npi_config=config["interventions"]["settings"]["None"],
-                        parameters_config=config["seir"]["parameters"],
-                        ti=config["start_date"].as_date(),
-                        tf=config["end_date"].as_date(),
-                        interactive=True,
-                        write_csv=False,
-                        dt=0.25)
+                    spatial_setup=ss,
+                    nsim=1,
+                    npi_scenario="None",
+                    npi_config=config["interventions"]["settings"]["None"],
+                    parameters_config=config["seir"]["parameters"],
+                    ti=config["start_date"].as_date(),
+                    tf=config["end_date"].as_date(),
+                    interactive=True,
+                    write_csv=False,
+                    dt=0.25)
 
     seeding = np.zeros((len(s.t_inter), s.nnodes))
-    seeding[:,0] = 100
+    seeding[:, 0] = 100
 
-    y0 = np.zeros((setup.ncomp, s.parameters.n_parallel_compartments, s.nnodes))
-    y0[setup.S, 0, :] = s.popnodes
+    y0 = np.zeros((s.compartments.get_ncomp(), s.nnodes))
+    y0[0, :] = s.popnodes
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -150,17 +148,17 @@ def test_steps_SEIR_nb_simple_spread():
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    parameters = setup.parameters_quick_draw(s.parameters, len(s.t_inter), s.nnodes)
-    parameters = setup.parameters_reduce(parameters, npi, s.dt)
+    params = s.parameters.parameters_quick_draw(s.t_span, s.nnodes)
+    params = s.parameters.parameters_reduce(params, npi, s.dt)
 
     for i in range(100):
-        states = seir.steps_SEIR_nb(*parameters, y0,
-                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices,
-                           mobility_data,True)
-
+        states = seir.steps_SEIR_nb(*params, y0,
+                                    seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                                    mobility_geoid_indices, mobility_data_indices,
+                                    mobility_data, True)
 
         assert states[seir.cumI, :, 1, :].max() > 0
+
 
 def test_steps_SEIR_no_spread():
     config.set_file(f"{DATA_DIR}/config.yml")
@@ -172,22 +170,22 @@ def test_steps_SEIR_no_spread():
                             nodenames_key="geoid")
 
     s = setup.Setup(setup_name="test_seir",
-                        spatial_setup=ss,
-                        nsim=1,
-                        npi_scenario="None",
-                        npi_config=config["interventions"]["settings"]["None"],
-                        parameters_config=config["seir"]["parameters"],
-                        ti=config["start_date"].as_date(),
-                        tf=config["end_date"].as_date(),
-                        interactive=True,
-                        write_csv=False,
-                        dt=0.25)
+                    spatial_setup=ss,
+                    nsim=1,
+                    npi_scenario="None",
+                    npi_config=config["interventions"]["settings"]["None"],
+                    parameters_config=config["seir"]["parameters"],
+                    ti=config["start_date"].as_date(),
+                    tf=config["end_date"].as_date(),
+                    interactive=True,
+                    write_csv=False,
+                    dt=0.25)
 
     seeding = np.zeros((len(s.t_inter), s.nnodes))
-    seeding[:,0] = 100
+    seeding[:, 0] = 100
 
-    y0 = np.zeros((setup.ncomp, s.parameters.n_parallel_compartments, s.nnodes))
-    y0[setup.S, 0, :] = s.popnodes
+    y0 = np.zeros((s.compartments.get_ncomp(), s.nnodes))
+    y0[0, :] = s.popnodes
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -195,18 +193,17 @@ def test_steps_SEIR_no_spread():
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    parameters = setup.parameters_quick_draw(s.parameters, len(s.t_inter), s.nnodes)
-    parameters = setup.parameters_reduce(parameters, npi, s.dt)
+    parameters = s.parameters.parameters_quick_draw(s.t_span, s.nnodes)
+    parameters = s.parameters.parameters_reduce(parameters, npi, s.dt)
 
     for i in range(100):
         states = seir.steps_SEIR_nb(*parameters, y0,
-                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices,
-                           mobility_data, True)
+                                    seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                                    mobility_geoid_indices, mobility_data_indices,
+                                    mobility_data, True)
 
-
-        assert states[seir.cumI,:,1,:].max().shape == ()
-        assert states[seir.cumI,:,1,:].max() == 0
+        assert states[seir.cumI, :, 1, :].max().shape == ()
+        assert states[seir.cumI, :, 1, :].max() == 0
 
 
 def test_contuation_resume():
@@ -246,17 +243,17 @@ def test_contuation_resume():
         write_csv=write_csv,
         write_parquet=write_parquet,
         dt=config["dt"].as_number(),
-        first_sim_index = index,
-        in_run_id = run_id,
-        in_prefix = prefix,
-        out_run_id = run_id,
-        out_prefix = prefix
+        first_sim_index=index,
+        in_run_id=run_id,
+        in_prefix=prefix,
+        out_run_id=run_id,
+        out_prefix=prefix
     )
     seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
 
     states_old = pq.read_table(
-          file_paths.create_file_name(s.in_run_id,s.in_prefix, 100,'seir',"parquet"),
-        ).to_pandas()
+        file_paths.create_file_name(s.in_run_id, s.in_prefix, 100, 'seir', "parquet"),
+    ).to_pandas()
     states_old = states_old[states_old["time"] == '2020-03-15'].reset_index(drop=True)
 
     config.clear()
@@ -295,28 +292,27 @@ def test_contuation_resume():
         write_csv=write_csv,
         write_parquet=write_parquet,
         dt=config["dt"].as_number(),
-        first_sim_index = index,
-        in_run_id = run_id,
-        in_prefix = prefix,
-        out_run_id = run_id,
-        out_prefix = prefix
+        first_sim_index=index,
+        in_run_id=run_id,
+        in_prefix=prefix,
+        out_run_id=run_id,
+        out_prefix=prefix
     )
     seir.onerun_SEIR(sim_id2write, s, stoch_traj_flag)
 
     states_new = pq.read_table(
-          file_paths.create_file_name(s.in_run_id,s.in_prefix, sim_id2write, 'seir',"parquet"),
-        ).to_pandas()
+        file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id2write, 'seir', "parquet"),
+    ).to_pandas()
     states_new = states_new[states_new["time"] == '2020-03-15'].reset_index(drop=True)
-    assert((states_old[states_old['comp'] != 'diffI'] == states_new[states_new['comp'] != 'diffI']).all().all())
+    assert ((states_old[states_old['comp'] != 'diffI'] == states_new[states_new['comp'] != 'diffI']).all().all())
 
-    seir.onerun_SEIR_loadID(sim_id2write=sim_id2write+1, s=s, sim_id2load=sim_id2write)
+    seir.onerun_SEIR_loadID(sim_id2write=sim_id2write + 1, s=s, sim_id2load=sim_id2write)
     states_new = pq.read_table(
-          file_paths.create_file_name(s.in_run_id,s.in_prefix, sim_id2write+1, 'seir',"parquet"),
-        ).to_pandas()
+        file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id2write + 1, 'seir', "parquet"),
+    ).to_pandas()
     states_new = states_new[states_new["time"] == '2020-03-15'].reset_index(drop=True)
-    for path in ["model_output/seir","model_output/snpi","model_output/spar"]:
+    for path in ["model_output/seir", "model_output/snpi", "model_output/spar"]:
         shutil.rmtree(path)
-
 
 
 def test_inference_resume():
@@ -356,14 +352,15 @@ def test_inference_resume():
         write_csv=write_csv,
         write_parquet=write_parquet,
         dt=config["dt"].as_number(),
-        first_sim_index = index,
-        in_run_id = run_id,
-        in_prefix = prefix,
-        out_run_id = run_id,
-        out_prefix = prefix
+        first_sim_index=index,
+        in_run_id=run_id,
+        in_prefix=prefix,
+        out_run_id=run_id,
+        out_prefix=prefix
     )
     seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
-    npis_old = pq.read_table(file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id2write, 'snpi',"parquet")).to_pandas()
+    npis_old = pq.read_table(
+        file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id2write, 'snpi', "parquet")).to_pandas()
 
     config.clear()
     config.read(user=False)
@@ -400,27 +397,27 @@ def test_inference_resume():
         write_csv=write_csv,
         write_parquet=write_parquet,
         dt=config["dt"].as_number(),
-        first_sim_index = index,
-        in_run_id = run_id,
-        in_prefix = prefix,
-        out_run_id = run_id,
-        out_prefix = prefix
+        first_sim_index=index,
+        in_run_id=run_id,
+        in_prefix=prefix,
+        out_run_id=run_id,
+        out_prefix=prefix
     )
 
-    seir.onerun_SEIR_loadID(sim_id2write=sim_id2write+1, s=s, sim_id2load=sim_id2write)
-    npis_new = pq.read_table(file_paths.create_file_name(s.in_run_id,s.in_prefix,sim_id2write+1, 'snpi',"parquet")).to_pandas()
+    seir.onerun_SEIR_loadID(sim_id2write=sim_id2write + 1, s=s, sim_id2load=sim_id2write)
+    npis_new = pq.read_table(
+        file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id2write + 1, 'snpi', "parquet")).to_pandas()
 
     print(npis_new["npi_name"])
-    assert(npis_old["npi_name"].isin(['None', 'Wuhan', 'KansasCity']).all())
-    assert(npis_new["npi_name"].isin(['None', 'Wuhan', 'KansasCity', 'BrandNew']).all())
+    assert (npis_old["npi_name"].isin(['None', 'Wuhan', 'KansasCity']).all())
+    assert (npis_new["npi_name"].isin(['None', 'Wuhan', 'KansasCity', 'BrandNew']).all())
     # assert((['None', 'Wuhan', 'KansasCity']).isin(npis_old["npi_name"]).all())
     # assert((['None', 'Wuhan', 'KansasCity', 'BrandNew']).isin(npis_new["npi_name"]).all())
-    assert((npis_old["start_date"] == '2020-04-01').all())
-    assert((npis_old["end_date"] == '2020-05-15').all())
-    assert((npis_new["start_date"] == '2020-04-02').all())
-    assert((npis_new["end_date"] == '2020-05-16').all())
-    for path in ["model_output/seir","model_output/snpi","model_output/spar"]:
+    assert ((npis_old["start_date"] == '2020-04-01').all())
+    assert ((npis_old["end_date"] == '2020-05-15').all())
+    assert ((npis_new["start_date"] == '2020-04-02').all())
+    assert ((npis_new["end_date"] == '2020-05-16').all())
+    for path in ["model_output/seir", "model_output/snpi", "model_output/spar"]:
         shutil.rmtree(path)
-
 
     ## Clean up after ourselves

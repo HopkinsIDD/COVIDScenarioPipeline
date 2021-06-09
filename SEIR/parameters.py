@@ -111,6 +111,10 @@ class Parameters:
                 self.pdata[pn] = {}
                 self.pdata[pn]['idx'] = idx
                 self.pdata[pn]['dist'] = p_dists[pn]
+                if 'transition_rate' not in pn:
+                    self.pdata[pn]['intervention_overlap_operation'] = 'prod'
+                else:
+                    self.pdata[pn]['intervention_overlap_operation'] = 'sum'
             self.npar = len(self.pnames)
         logging.debug(f"We have {self.npar} parameter: {self.pnames}")
         logging.debug(f"Data to sample is: {self.pdata}")
