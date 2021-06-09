@@ -41,8 +41,8 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
                                   pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation['sum'])
 
     with Timer('onerun_SEIR.seeding'):
-        y0 = s.get_y0(sim_id)
-        seeding = s.get_seeding(sim_id)
+        y0 = s.seedingAndIC.get_y0(sim_id)
+        seeding = s.seedingAndIC.get_seeding(sim_id)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -189,7 +189,8 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
             )
         )
     with Timer('onerun_SEIR_loadID.seeding'):
-        y0, seeding = setup.seeding_load(s, sim_id2load)
+        y0 = setup.seedingAndIC.y0_load(s, sim_id2load)
+        seeding = setup.seedingAndIC.seeding_load(s, sim_id2load)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
