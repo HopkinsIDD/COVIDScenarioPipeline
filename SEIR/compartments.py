@@ -366,6 +366,13 @@ class Compartments:
 
         return
 
+    def get_comp_idx(self, comp_dict: dict) -> int:
+        mask = pd.concat([self.compartments[k].isin(v) for k, v in comp_dict.items()], axis=1).all(axis=1)
+        comp_idx = self.compartments[mask].index
+        if len(comp_idx) != 1:
+            raise ValueError(f"The provided dictionary does not allow to isolate a compartiment: {comp_dict} isolate {self.compartments[mask]}")
+        return comp_idx
+
     def constructFromConfig(self, seir_config):
         self.parse_compartments(seir_config)
         self.transitions = self.parse_transitions(seir_config, False)
