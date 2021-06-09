@@ -21,7 +21,7 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
     if not df['date'].is_monotonic_increasing:
         raise ValueError('_DataFrame2NumbaDict got an unsorted dataframe, exposing itself to non-sense')
 
-    cmp_grp_names = [[col for col in setup.compartments.compartments.columns if col != 'name']]
+    cmp_grp_names = [col for col in setup.compartments.compartments.columns if col != 'name']
     seeding_dict: nb.typed.Dict = nb.typed.Dict.empty(
         key_type=nb.types.unicode_type,
         value_type=nb.types.float64[:],
@@ -145,7 +145,7 @@ class SeedingAndIC:
 
         return _DataFrame2NumbaDict(df=seeding,amounts=amounts, setup=setup)
 
-    def seeding_load(self, sim_id):
+    def seeding_load(self, sim_id: int, setup) -> nb.typed.Dict:
         importation = np.zeros((len(self.t_inter) + 1, s.nnodes))
         y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
         y0[S, 0, :] = s.popnodes
