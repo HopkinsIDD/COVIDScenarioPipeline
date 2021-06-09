@@ -17,26 +17,27 @@ class SeedingAndIC:
         self.seeding_config = seeding_config
         self.initial_conditions_config = initial_conditions_config
 
-    def draw_ic(self, sim_id: int, compartments: compartments.Compartments, setup) -> np.ndarray:
+    def draw_ic(self, sim_id: int, setup) -> np.ndarray:
         method = "Default"
         if "method" in self.initial_conditions_config.keys():
             method = self.initial_conditions_config["method"].as_str()
 
         if method == "Default":
             ## JK : This could be specified in the config
-            y0 = np.zeros((compartments.compartments.shape[0], setup.nnodes))
+            y0 = np.zeros((setup.compartments.compartments.shape[0], setup.nnodes))
             y0[0, :] = setup.popnodes
         elif method == 'SetInitialConditions':
             # TODO: this format should allow not complete configurations
+            #       - Does not support the new way of doing compartiment indexing
             logger.critical("Untested method SetInitialConditions !!! Please report this messsage.")
             ic_df = pd.read_csv(self.seeding_config["states_file"].as_str(), converters={'place': lambda x: str(x)})
             if ic_df.empty:
                 raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
-            y0 = np.zeros((compartments.compartments.shape[0], setup.nnodes))
+            y0 = np.zeros((setup.compartments.compartments.shape[0], setup.nnodes))
             for pl_idx, pl in enumerate(setup.spatset.nodenames):  #
                 if pl in list(ic_df['place']):
                     states_pl = ic_df[ic_df['place'] == pl]
-                    for comp_idx, comp_name in compartments.compartments['name'].iteritems():
+                    for comp_idx, comp_name in setup.compartments.compartments['name'].iteritems():
                         y0[comp_idx, pl_idx] = float(states_pl[states_pl['comp'] == comp_name]['amount'])
                 elif self.seeding_config["ignore_missing"].get():
                     print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
@@ -55,8 +56,8 @@ class SeedingAndIC:
             if ic_df.empty:
                 raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
 
-            y0 = np.zeros((compartments.compartments.shape[0], setup.nnodes))
-            for comp_idx, comp_name in compartments.compartments['name'].iteritems():
+            y0 = np.zeros((setup.compartments.compartments.shape[0], setup.nnodes))
+            for comp_idx, comp_name in setup.compartments.compartments['name'].iteritems():
                 ic_df_compartment = ic_df[ic_df['comp'] == comp_name]
                 for pl_idx, pl in enumerate(setup.spatset.nodenames):
                     if pl in ic_df.columns:
@@ -78,7 +79,7 @@ class SeedingAndIC:
             value_type=nb.types.float64[:],
         )
 
-        nb_seed_perday = np.zeros(setup.ndays)
+        nb_seed_perday = np.zeros(setup.t_span)
 
         method = self.seeding_config["method"].as_str()
         if method == 'NegativeBinomialDistributed':
@@ -90,6 +91,10 @@ class SeedingAndIC:
             if not dupes.empty:
                 raise ValueError(f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file.")
 
+            source_columns = [col for col in seeding if col.startswith('source_')]
+            destination_columns = [col for col in seeding if col.startswith('destination_')]
+            cmp_grp_names = [[col for col in setup.compartments.compartments.columns if col != 'name']]
+
             seeding['seeding_source_col'] = np.zeros(len(seeding))
             seeding['seeding_destination_col'] = np.zeros(len(seeding))
             seeding['seeding_place_col'] = np.zeros(len(seeding))
@@ -99,15 +104,17 @@ class SeedingAndIC:
                 if row['place'] not in setup.spatset.nodenames:
                     raise ValueError(
                         f"Invalid place '{row['place']}' in row {_ + 1} of seeding::lambda_file. Not found in geodata.")
-                if row['source'] not in setup.compart
 
-                nb_seed_perday[(row['date'].date() - setup.ti).days] = nb_seed_perday[(row['date'].date() - setup.ti).days] + 1
-                seeding['seeding_sources'] =
-                seeding['seeding_destinations'] =
+                # for grp_name in cmp_grp_names:
+
+                nb_seed_perday[(row['date'].date() - setup.ti).days] = nb_seed_perday[
+                                                                           (row['date'].date() - setup.ti).days] + 1
+                # seeding['seeding_sources'] =
+                # seeding['seeding_destinations'] =
                 seeding['seeding_places'] = setup.spatset.nodenames.index(row['place'])
                 seeding['seeding_amounts'] = np.random.negative_binomial(n=5, p=5 / (row['amount'] + 5))
-                #importation[(row['date'].date() - setup.ti).days][setup.spatset.nodenames.index(row['place'])] = \
-                    #np.random.negative_binomial(n=5, p=5 / (row['amount'] + 5))
+                # importation[(row['date'].date() - setup.ti).days][setup.spatset.nodenames.index(row['place'])] = \
+                # np.random.negative_binomial(n=5, p=5 / (row['amount'] + 5))
 
         if method == 'PoissonDistributed':
             seeding = pd.read_csv(self.seeding_config["lambda_file"].as_str(),
@@ -134,18 +141,18 @@ class SeedingAndIC:
                 converters={'place': lambda x: str(x)},
                 parse_dates=['date']
             )
+            importation = np.zeros((1000, 2000))  # FIX for sytax
             for _, row in seeding.iterrows():
                 importation[(row['date'].date() - setup.ti).days][setup.spatset.nodenames.index(row['place'])] = row[
                     'amount']
         else:
             raise NotImplementedError(f"unknown seeding method [got: {method}]")
 
-        importation_starts = np.zeros((setup.t_span + 1))
-        importation_data = np.zeros(len(["source_compartment", "destination_compartment", "spatial_node", "value"]),
-                                    seeding.shape[0])
+        seeding_starts = np.zeros((setup.t_span + 1))
+        seeding_data = np.zeros((len(["source_compartment", "destination_compartment", "spatial_node", "value"]),
+                                setup.nnodes))
 
-
-    seeding['day_start_idx'] = np.cumsum(nb_seed_perday)
+        # seeding['day_start_idx'] = np.cumsum(nb_seed_perday)
 
         return seeding_data, seeding_starts
 
