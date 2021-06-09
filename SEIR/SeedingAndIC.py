@@ -2,6 +2,8 @@ import pathlib
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
+
+import SEIR.compartments
 from . import file_paths
 import confuse
 import logging
@@ -74,6 +76,8 @@ class SeedingAndIC:
         return y0
 
     def draw_seeding(self, sim_id: int, setup) -> nb.typed.Dict:
+        cmp_grp_names = [[col for col in setup.compartments.compartments.columns if col != 'name']]
+
         seeding = nb.typed.Dict.empty(
             key_type=nb.types.unicode_type,
             value_type=nb.types.float64[:],
@@ -91,30 +95,26 @@ class SeedingAndIC:
             if not dupes.empty:
                 raise ValueError(f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file.")
 
-            source_columns = [col for col in seeding if col.startswith('source_')]
-            destination_columns = [col for col in seeding if col.startswith('destination_')]
-            cmp_grp_names = [[col for col in setup.compartments.compartments.columns if col != 'name']]
-
             seeding['seeding_source_col'] = np.zeros(len(seeding))
             seeding['seeding_destination_col'] = np.zeros(len(seeding))
             seeding['seeding_place_col'] = np.zeros(len(seeding))
             seeding['seeding_amount_col'] = np.zeros(len(seeding))
 
+            # Sorting by date is very important here for the seeding format necessary !
             for _, row in seeding.sort_values(by='date', axis='index').iterrows():
                 if row['place'] not in setup.spatset.nodenames:
                     raise ValueError(
                         f"Invalid place '{row['place']}' in row {_ + 1} of seeding::lambda_file. Not found in geodata.")
 
-                # for grp_name in cmp_grp_names:
-
                 nb_seed_perday[(row['date'].date() - setup.ti).days] = nb_seed_perday[
                                                                            (row['date'].date() - setup.ti).days] + 1
-                # seeding['seeding_sources'] =
-                # seeding['seeding_destinations'] =
+
+                source_dict = {grp_name: row[f'source_{grp_name}'] for grp_name in cmp_grp_names}
+                destination_dict = {grp_name: row[f'destination_{grp_name}'] for grp_name in cmp_grp_names}
+                seeding['seeding_sources'] = setup.compartment.get_comp_idx(source_dict)
+                seeding['seeding_destinations'] = setup.compartment.get_comp_idx(destination_dict)
                 seeding['seeding_places'] = setup.spatset.nodenames.index(row['place'])
                 seeding['seeding_amounts'] = np.random.negative_binomial(n=5, p=5 / (row['amount'] + 5))
-                # importation[(row['date'].date() - setup.ti).days][setup.spatset.nodenames.index(row['place'])] = \
-                # np.random.negative_binomial(n=5, p=5 / (row['amount'] + 5))
 
         if method == 'PoissonDistributed':
             seeding = pd.read_csv(self.seeding_config["lambda_file"].as_str(),
@@ -125,36 +125,54 @@ class SeedingAndIC:
             if not dupes.empty:
                 raise ValueError(f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file.")
 
-            for _, row in seeding.iterrows():
+            seeding['seeding_source_col'] = np.zeros(len(seeding))
+            seeding['seeding_destination_col'] = np.zeros(len(seeding))
+            seeding['seeding_place_col'] = np.zeros(len(seeding))
+            seeding['seeding_amount_col'] = np.zeros(len(seeding))
+
+            # Sorting by date is very important here for the seeding format necessary !
+            for _, row in seeding.sort_values(by='date', axis='index').iterrows():
                 if row['place'] not in setup.spatset.nodenames:
                     raise ValueError(
                         f"Invalid place '{row['place']}' in row {_ + 1} of seeding::lambda_file. Not found in geodata.")
 
-                importation[(row['date'].date() - setup.ti).days][setup.spatset.nodenames.index(row['place'])] = \
-                    np.random.poisson(row['amount'])
+                nb_seed_perday[(row['date'].date() - setup.ti).days] = nb_seed_perday[
+                                                                           (row['date'].date() - setup.ti).days] + 1
+
+                source_dict = {grp_name: row[f'source_{grp_name}'] for grp_name in cmp_grp_names}
+                destination_dict = {grp_name: row[f'destination_{grp_name}'] for grp_name in cmp_grp_names}
+                seeding['seeding_sources'] = setup.compartment.get_comp_idx(source_dict)
+                seeding['seeding_destinations'] = setup.compartment.get_comp_idx(destination_dict)
+                seeding['seeding_places'] = setup.spatset.nodenames.index(row['place'])
+                seeding['seeding_amounts'] = np.random.poisson(row['amount'])
 
         elif method == 'FolderDraw':
-            sim_id_str = str(sim_id + setup.first_sim_index - 1).zfill(9)
             seeding = pd.read_csv(
                 file_paths.create_file_name(setup.in_run_id, setup.in_prefix, sim_id + setup.first_sim_index - 1,
                                             setup.seeding_config["seeding_file_type"], "csv"),
                 converters={'place': lambda x: str(x)},
                 parse_dates=['date']
             )
-            importation = np.zeros((1000, 2000))  # FIX for sytax
-            for _, row in seeding.iterrows():
-                importation[(row['date'].date() - setup.ti).days][setup.spatset.nodenames.index(row['place'])] = row[
-                    'amount']
+            seeding['seeding_source_col'] = np.zeros(len(seeding))
+            seeding['seeding_destination_col'] = np.zeros(len(seeding))
+            seeding['seeding_place_col'] = np.zeros(len(seeding))
+            seeding['seeding_amount_col'] = np.zeros(len(seeding))
+
+            for _, row in seeding.sort_values(by='date', axis='index').iterrows():
+                nb_seed_perday[(row['date'].date() - setup.ti).days] = nb_seed_perday[
+                                                                           (row['date'].date() - setup.ti).days] + 1
+
+                source_dict = {grp_name: row[f'source_{grp_name}'] for grp_name in cmp_grp_names}
+                destination_dict = {grp_name: row[f'destination_{grp_name}'] for grp_name in cmp_grp_names}
+                seeding['seeding_sources'] = setup.compartment.get_comp_idx(source_dict)
+                seeding['seeding_destinations'] = setup.compartment.get_comp_idx(destination_dict)
+                seeding['seeding_places'] = setup.spatset.nodenames.index(row['place'])
+                seeding['seeding_amounts'] = row['amount']
         else:
             raise NotImplementedError(f"unknown seeding method [got: {method}]")
 
-        seeding_starts = np.zeros((setup.t_span + 1))
-        seeding_data = np.zeros((len(["source_compartment", "destination_compartment", "spatial_node", "value"]),
-                                setup.nnodes))
+        return seeding
 
-        # seeding['day_start_idx'] = np.cumsum(nb_seed_perday)
-
-        return seeding_data, seeding_starts
 
     def seeding_load(self, sim_id):
         importation = np.zeros((len(self.t_inter) + 1, s.nnodes))
