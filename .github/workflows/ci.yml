@@ -29,7 +29,7 @@ jobs:
         shell: bash
       - name: Install SEIR and Outcomes packages
         run: |
-          /home/app/python_venv/bin/ pip install numba==0.53.1
+          /home/app/python_venv/bin/pip install numba==0.53.1
           /home/app/python_venv/bin/python setup.py install
         shell: bash
       - name: Install local R packages
