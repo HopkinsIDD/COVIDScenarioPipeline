@@ -46,10 +46,7 @@ proportion_exponent_col = 1
     ## Initial Conditions
     "float64[:,:],"  ## initial_conditions [ ncompartments x nspatial_nodes ]
     ## Seeding
-    "types.DictType("
-        "types.unicode_type,"  # seeding keys: 'seeding_amounts', 'seeding_places', 'seeding_destinations', 'seeding_sources'
-        "int64[:]"
-    "),"
+    "DictType(unicode_type, int64[:]),"  # seeding keys: 'seeding_amounts', 'seeding_places', 'seeding_destinations', 'seeding_sources'
     ## Mobility
     "float64[:],"  # mobility_data [ nmobility_instances ]
     "int32[:],"  # mobility_row_indices [ nspatial_nodes ]
@@ -100,24 +97,25 @@ def steps_SEIR_nb(
     number_move = np.zeros((nspatial_nodes))
 
     for time_index, time in enumerate(times):
-        for seeding_instance_idx in range(
-                seeding_data['day_start_idx'][time_index],
-                seeding_data['day_start_idx'][time_index + 1]
-        ):
+        #for seeding_instance_idx in range(
+        #        seeding_data['day_start_idx'][time_index],
+        #        seeding_data['day_start_idx'][time_index + 1]
+        #):
             # seeding_instance_data[seeding_value_col][seeding_instance_idx] = min(
             #     seeding_instance_data[seeding_value_col][seeding_instance_idx],
             #     states_next[
             #         seeding_instance_data[seeding_source_col][seeding_instance_idx]][
             #             seeding_instance_data[seeding_spatial_node_col][seeding_instance_idx]]
             # )
-            states_next[
-                seeding_data['seeding_sources'][seeding_instance_idx]][
-                seeding_data['seeding_places'][seeding_instance_idx]] -= \
-                seeding_data['seeding_amounts'][seeding_instance_idx]
-            states_next[
-                seeding_data['seeding_destinations'][seeding_instance_idx]][
-                seeding_data['seeding_places'][seeding_instance_idx]] += \
-                seeding_data['seeding_amounts'][seeding_instance_idx]
+        print(seeding_data[u'seed'])
+         #   states_next[
+         #       seeding_data['seeding_sources'][seeding_instance_idx]][
+         #       seeding_data['seeding_places'][seeding_instance_idx]] -= \
+         #       seeding_data['seeding_amounts'][seeding_instance_idx]
+         #   states_next[
+         #       seeding_data['seeding_destinations'][seeding_instance_idx]][
+         #       seeding_data['seeding_places'][seeding_instance_idx]] += \
+         #       seeding_data['seeding_amounts'][seeding_instance_idx]
 
         for transition_index in range(ntransitions):
             total_rate = 1

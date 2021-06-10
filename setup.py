@@ -2,12 +2,14 @@ import setuptools
 
 from SEIR.steps_source import cc as steps_cc
 
+steps_cc.compile()
+
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
 setuptools.setup(
     name="SEIR",
-    version="0.1",
+    version="0.2",
     author="Joseph Lemaitre",
     author_email="jo.lemaitresamra@gmail.com",
     description="SEIR simulation",

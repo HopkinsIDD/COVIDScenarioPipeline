@@ -7,8 +7,8 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from . import NPI, setup, file_paths
-from .utils import config, Timer
+from SEIR import NPI, setup, file_paths
+from SEIR.utils import config, Timer
 import pyarrow.parquet as pq
 import pyarrow as pa
 import logging
