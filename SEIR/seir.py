@@ -12,11 +12,12 @@ from SEIR.utils import config, Timer
 import pyarrow.parquet as pq
 import pyarrow as pa
 import logging
+
 logger = logging.getLogger(__name__)
 
 # The compiled module may be known as steps or SEIR.steps depending on virtual_env vs conda
 try:
-    with warnings.catch_warnings() as w: # ignore DeprecationWarning inside numba
+    with warnings.catch_warnings() as w:  # ignore DeprecationWarning inside numba
         warnings.simplefilter("ignore")
         from steps import steps_SEIR_nb
 except ModuleNotFoundError as e:
@@ -41,8 +42,8 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
                                   pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation['sum'])
 
     with Timer('onerun_SEIR.seeding'):
-        y0 = s.seedingAndIC.draw_ic(sim_id, setup=s)
-        seeding = s.seedingAndIC.draw_seeding(sim_id, setup=s)
+        initial_conditions = s.seedingAndIC.draw_ic(sim_id, setup=s)
+        seeding_data = s.seedingAndIC.draw_seeding(sim_id, setup=s)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -56,36 +57,44 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
 
-   
+    with Timer('onerun_SEIR.compartments'):
+        parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info = \
+            s.compartments.get_transition_array(parameters, s.parameters.pnames)
 
     with Timer('onerun_SEIR.compute'):
         states = steps_SEIR_nb(
-            *parameters,
-            y0,
-            seeding,
-            s.dt,
-            s.t_inter,
+            s.compartments.compartments.shape[0],
             s.nnodes,
-            s.popnodes,
+            s.t_inter,
+            parsed_parameters,
+            s.dt,
+            transition_array,
+            proportion_array,
+            proportion_info,
+            initial_conditions,
+            seeding_data,
+            mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
-            mobility_data,
-            stoch_traj_flag
-        )
+            s.popnodes,
+            stoch_traj_flag)
 
     with Timer('onerun_SEIR.postprocess'):
-        postprocess_and_write(sim_id, s, states, p_draw, npi, seeding)
+        postprocess_and_write(sim_id, s, states, p_draw, npi, seeding_data)
 
     return 1
+
 
 def log_debug_parameters(params, prefix):
     if logging.getLogger().isEnabledFor(logging.DEBUG):
         logging.debug(prefix)
         for parameter in params:
             try:
-                logging.debug(f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
+                logging.debug(
+                    f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]""")
             except:
                 logging.debug(f"""    value {parameter}""")
+
 
 def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
     # Tidyup data for  R, to save it:
@@ -107,16 +116,16 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
         # n : number of compartments
         # m : number of times
 
-        #FIX ME: No clue if this is right or not
+        # FIX ME: No clue if this is right or not
         # c_index = np.tile(np.arange(n),m*i)
         # pc_index = np.moveaxis(np.tile(np.arange(i),(m,n,1)),1,2).reshape(m*n*i)
-        c_index = np.moveaxis(np.tile(np.arange(n),(m,i,1)),1,2).reshape(m*n*i)
-        pc_index = np.tile(np.arange(i),(m,n,1)).reshape(m*n*i)
+        c_index = np.moveaxis(np.tile(np.arange(n), (m, i, 1)), 1, 2).reshape(m * n * i)
+        pc_index = np.tile(np.arange(i), (m, n, 1)).reshape(m * n * i)
         out_arr = np.column_stack((c_index, pc_index, na.reshape(m * n * i, -1)))
         out_df = pd.DataFrame(
             out_arr,
-            columns=['comp','p_comp'] + s.spatset.nodenames,
-            index=pd.date_range(s.ti, s.tf, freq='D').repeat((ncomp+1)*p_draw[4]))
+            columns=['comp', 'p_comp'] + s.spatset.nodenames,
+            index=pd.date_range(s.ti, s.tf, freq='D').repeat((ncomp + 1) * p_draw[4]))
         out_df['comp'].replace(S, 'S', inplace=True)
         out_df['comp'].replace(E, 'E', inplace=True)
         out_df['comp'].replace(I1, 'I1', inplace=True)
@@ -128,42 +137,48 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         if s.write_csv:
             npi.writeReductions(
-                file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "snpi"),
+                file_paths.create_file_name_without_extension(s.out_run_id, s.out_prefix,
+                                                              sim_id + s.first_sim_index - 1, "snpi"),
                 "csv"
             )
             s.parameters.parameters_write(
                 p_draw,
-                file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "spar"),
+                file_paths.create_file_name_without_extension(s.out_run_id, s.out_prefix,
+                                                              sim_id + s.first_sim_index - 1, "spar"),
                 "csv"
             )
 
             out_df.to_csv(
-                file_paths.create_file_name(s.out_run_id,s.prefix,sim_id + s.out_first_sim_index - 1, "seir","csv"),
+                file_paths.create_file_name(s.out_run_id, s.prefix, sim_id + s.out_first_sim_index - 1, "seir", "csv"),
                 index='time',
                 index_label='time')
 
         if s.write_parquet:
             npi.writeReductions(
-                file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "snpi"),
+                file_paths.create_file_name_without_extension(s.out_run_id, s.out_prefix,
+                                                              sim_id + s.first_sim_index - 1, "snpi"),
                 "parquet"
             )
 
             s.parameters.parameters_write(
                 p_draw,
-                file_paths.create_file_name_without_extension(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "spar"),
+                file_paths.create_file_name_without_extension(s.out_run_id, s.out_prefix,
+                                                              sim_id + s.first_sim_index - 1, "spar"),
                 "parquet"
             )
 
             out_df['time'] = out_df.index
-            pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
+            pa_df = pa.Table.from_pandas(out_df, preserve_index=False)
             pa.parquet.write_table(
-              pa_df,
-              file_paths.create_file_name(s.out_run_id,s.out_prefix,sim_id + s.first_sim_index - 1, "seir","parquet")
+                pa_df,
+                file_paths.create_file_name(s.out_run_id, s.out_prefix, sim_id + s.first_sim_index - 1, "seir",
+                                            "parquet")
             )
 
     return out_df
 
-def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
+
+def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag=True):
     if (s.write_parquet and s.write_csv):
         print("Confused between reading .csv or parquet. Assuming input file is .parquet")
     if s.write_parquet:
@@ -180,10 +195,10 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
             npi_config=s.npi_config,
             global_config=config,
             geoids=s.spatset.nodenames,
-            loaded_df = setup.npi_load(
+            loaded_df=setup.npi_load(
                 file_paths.create_file_name_without_extension(
-                    s.in_run_id, # Not sure about this one
-                    s.in_prefix, # Not sure about this one
+                    s.in_run_id,  # Not sure about this one
+                    s.in_prefix,  # Not sure about this one
                     sim_id2load + s.first_sim_index - 1,
                     "snpi"
                 ),
@@ -191,8 +206,8 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
             )
         )
     with Timer('onerun_SEIR_loadID.seeding'):
-        y0 = setup.seedingAndIC.y0_load(s, sim_id2load)
-        seeding = setup.seedingAndIC.seeding_load(s, sim_id2load)
+        initial_conditions = setup.seedingAndIC.y0_load(s, sim_id2load)
+        seeding_data = setup.seedingAndIC.seeding_load(s, sim_id2load)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -200,8 +215,8 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
     with Timer('onerun_SEIR_loadID.pdraw'):
         p_draw = s.parameters.parameters_load(
             file_paths.create_file_name_without_extension(
-                s.in_run_id, # Not sure about this one
-                s.in_prefix, # Not sure about this one
+                s.in_run_id,  # Not sure about this one
+                s.in_prefix,  # Not sure about this one
                 sim_id2load + s.first_sim_index - 1,
                 "spar"
             ),
@@ -214,34 +229,43 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag = True):
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
 
-    with Timer('onerun_SEIR_loadID.compute'):
+    with Timer('onerun_SEIR.compartments'):
+        parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info = \
+            s.compartments.get_transition_array(parameters, s.parameters.pnames)
+
+    with Timer('onerun_SEIR.compute'):
         states = steps_SEIR_nb(
-            *parameters,
-            y0,
-            seeding,
-            s.dt,
-            s.t_inter,
+            s.compartments.compartments.shape[0],
             s.nnodes,
-            s.popnodes,
+            s.t_inter,
+            parsed_parameters,
+            s.dt,
+            transition_array,
+            proportion_array,
+            proportion_info,
+            initial_conditions,
+            seeding_data,
+            mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
-            mobility_data,
+            s.popnodes,
             stoch_traj_flag)
 
     with Timer('onerun_SEIR_loadID.postprocess'):
-        out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding)
+        out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding_data)
 
     return 1
+
 
 def run_parallel(s, *, n_jobs=1):
     start = time.monotonic()
     sim_ids = np.arange(1, s.nsim + 1)
 
-    if n_jobs == 1:          # run single process for debugging/profiling purposes
+    if n_jobs == 1:  # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
             onerun_SEIR(sim_id, s)
     else:
         tqdm.contrib.concurrent.process_map(onerun_SEIR, sim_ids, itertools.repeat(s),
                                             max_workers=n_jobs)
 
-    logging.info(f""">> {s.nsim} simulations completed in {time.monotonic()-start:.1f} seconds""")
+    logging.info(f""">> {s.nsim} simulations completed in {time.monotonic() - start:.1f} seconds""")
