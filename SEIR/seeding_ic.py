@@ -30,7 +30,7 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
     seeding_dict['seeding_destinations'] = np.zeros(len(amounts), dtype=np.int64)
     seeding_dict['seeding_places'] = np.zeros(len(amounts), dtype=np.int64)
     seeding_dict['seeding_amounts'] = np.zeros(len(amounts), dtype=np.int64)
-    nb_seed_perday = np.zeros(setup.t_span, dtype=np.int64)
+    nb_seed_perday = np.zeros(setup.t_span+1, dtype=np.int64)
 
     for idx, (row_index, row) in enumerate(df.iterrows()):
         if row['place'] not in setup.spatset.nodenames:
@@ -113,7 +113,10 @@ class SeedingAndIC:
         return y0
 
     def draw_seeding(self, sim_id: int, setup) -> nb.typed.Dict:
-        method = self.seeding_config["method"].as_str()
+        method = 'NoSeeding'
+        if "method" in self.seeding_config.keys():
+            method = self.seeding_config["method"].as_str()
+
         if method == 'NegativeBinomialDistributed' or method == 'PoissonDistributed':
             seeding = pd.read_csv(self.seeding_config["lambda_file"].as_str(),
                                   converters={'place': lambda x: str(x)},
@@ -128,6 +131,9 @@ class SeedingAndIC:
                 converters={'place': lambda x: str(x)},
                 parse_dates=['date']
             )
+        elif method=='NoSeeding':
+            seeding = pd.DataFrame(columns=['date', 'place'])
+            return _DataFrame2NumbaDict(df=seeding,amounts=[], setup=setup)
         else:
             raise NotImplementedError(f"unknown seeding method [got: {method}]")
 
