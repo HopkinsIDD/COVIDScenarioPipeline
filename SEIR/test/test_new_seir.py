@@ -4,7 +4,6 @@ import pytest
 import warnings
 import shutil
 
-
 import pathlib
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -17,7 +16,6 @@ from ..utils import config
 DATA_DIR = os.path.dirname(__file__) + "/data"
 
 
-
 def test_constant_population():
     config.set_file(f"{DATA_DIR}/config.yml")
 
@@ -28,22 +26,21 @@ def test_constant_population():
                             nodenames_key="geoid")
 
     s = setup.Setup(setup_name="test_seir",
-                        spatial_setup=ss,
-                        nsim=1,
-                        npi_scenario="None",
-                        npi_config=config["interventions"]["settings"]["None"],
-                        parameters_config=config["seir"]["parameters"],
-                        seeding_config=config["seeding"],
-                        initial_conditions_config=config["initial_conditions"],
-                        ti=config["start_date"].as_date(),
-                        tf=config["end_date"].as_date(),
-                        interactive=True,
-                        write_csv=False,
-                        dt=0.25)
+                    spatial_setup=ss,
+                    nsim=1,
+                    npi_scenario="None",
+                    npi_config=config["interventions"]["settings"]["None"],
+                    parameters_config=config["seir"]["parameters"],
+                    seeding_config={},
+                    initial_conditions_config=config["initial_conditions"],
+                    ti=config["start_date"].as_date(),
+                    tf=config["end_date"].as_date(),
+                    interactive=True,
+                    write_csv=False,
+                    dt=0.25)
 
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=0, setup=s)
-    seeding_data = np.zeros((4,0), dtype = 'int')
-    seeding_starts = np.zeros((len(s.t_inter)+ 1), dtype = 'int')
+    seeding_data = s.seedingAndIC.draw_seeding(sim_id=0, setup=s)
     ## This function needs to be written, but even when it is, it won't work with this config
     ## Because the seeding isn't working
     ## The seeding is all done manually
@@ -57,43 +54,45 @@ def test_constant_population():
 
     # parameters = setup.parameters_quick_draw(s.parameters, len(s.t_inter), s.nnodes)
     # parameters = setup.parameters_reduce(parameters, npi, s.dt)
-    parameters = s.parameters.parameters_quick_draw(nt_inter = len(s.t_inter), nnodes = s.nnodes)
+    parameters = s.parameters.parameters_quick_draw(nt_inter=len(s.t_inter), nnodes=s.nnodes)
     parameter_names = [x for x in s.parameters.pnames]
-
 
     parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info = \
         s.compartments.get_transition_array(parameters, parameter_names)
 
-    assert(type(s.compartments.compartments.shape[0]) == int)
-    assert(type(s.nnodes) == int)
-    assert(len(s.t_inter) > 1)
-    assert(parsed_parameters.shape == (5, len(s.t_inter), s.nnodes))
-    assert(type(s.dt) == float)
-    assert(transition_array.shape == (5, 5))
-    assert(type(transition_array[0][0]) == np.int64)
-    assert(proportion_array.shape == (9,))
-    assert(type(proportion_array[0]) == np.int64)
-    assert(proportion_info.shape == (2,6))
-    assert(type(proportion_info[0][0]) == np.int64)
-    assert(initial_conditions.shape == (s.compartments.compartments.shape[0], s.nnodes))
-    assert(type(initial_conditions[0][0]) == np.float64)
-    assert(len(seeding_starts) == (len(s.t_inter)+1))
-    assert(type(seeding_starts[0]) == np.int64)
-    assert(len(seeding_data.shape) == 2)
-    assert(seeding_data.shape[0] == 4)
-    if seeding_data.shape[1] > 0:
-        assert(type(seeding_data[0][0]) == np.int64)
-    # else:
-    #     assert(np.dtype(seeding_data) == np.int64)
-    assert(len(mobility_data) > 0)
-    assert(type(mobility_data[0]) == np.float64)
-    assert(len(mobility_geoid_indices) == s.nnodes)
-    assert(type(mobility_geoid_indices[0]) == np.int32)
-    assert(len(mobility_data_indices) == s.nnodes + 1)
-    assert(type(mobility_data_indices[0]) == np.int32)
-    assert(len(s.popnodes) == s.nnodes)
-    assert(type(s.popnodes[0]) == np.int64)
+    assert (type(s.compartments.compartments.shape[0]) == int)
+    assert (type(s.nnodes) == int)
+    assert (len(s.t_inter) > 1)
+    assert (parsed_parameters.shape == (5, len(s.t_inter), s.nnodes))
+    assert (type(s.dt) == float)
+    assert (transition_array.shape == (5, 5))
+    assert (type(transition_array[0][0]) == np.int64)
+    assert (proportion_array.shape == (9,))
+    assert (type(proportion_array[0]) == np.int64)
+    assert (proportion_info.shape == (2, 6))
+    assert (type(proportion_info[0][0]) == np.int64)
+    assert (initial_conditions.shape == (s.compartments.compartments.shape[0], s.nnodes))
+    assert (type(initial_conditions[0][0]) == np.float64)
+    # Test of empty seeding:
+    assert len(seeding_data.keys()) == 5
+    keys_ref = ['seeding_sources', 'seeding_destinations', 'seeding_places', 'seeding_amounts', 'day_start_idx']
+    for key, item in seeding_data.items():
+        assert key in keys_ref
+        if key == 'day_start_idx':
+            assert (item == np.zeros(s.t_span+1)).all()
+        else:
+            assert item.size == 0# == np.array([], dtype=np.int64)
+        assert item.dtype == np.int64
 
+
+    assert (len(mobility_data) > 0)
+    assert (type(mobility_data[0]) == np.float64)
+    assert (len(mobility_geoid_indices) == s.nnodes)
+    assert (type(mobility_geoid_indices[0]) == np.int32)
+    assert (len(mobility_data_indices) == s.nnodes + 1)
+    assert (type(mobility_data_indices[0]) == np.int32)
+    assert (len(s.popnodes) == s.nnodes)
+    assert (type(s.popnodes[0]) == np.int64)
 
     # print(s.compartments.transitions["proportional_to"])
     # print(s.compartments.compartments)
@@ -102,18 +101,15 @@ def test_constant_population():
     print(proportion_array)
     print(proportion_info)
 
-
     states = seir.steps_SEIR_nb(
-        s.compartments.compartments.shape[0], s.nnodes, s.t_inter, #1 #2 #3
-        parsed_parameters, s.dt, #4 #5
-        transition_array, proportion_array, proportion_info, # transitions #6 #7
-        initial_conditions, # initial_conditions #8
-        seeding_starts, seeding_data, #seeding #9 #10
+        s.compartments.compartments.shape[0], s.nnodes, s.t_inter,  # 1 #2 #3
+        parsed_parameters, s.dt,  # 4 #5
+        transition_array, proportion_array, proportion_info,  # transitions #6 #7
+        initial_conditions,  # initial_conditions #8
+        seeding_data,  # seeding #9
         mobility_data, mobility_geoid_indices, mobility_data_indices,  # mobility  #11 #12 #13
-        s.popnodes, True) #14 #15
+        s.popnodes, True)  # 14 #15
     print("HERE")
-
-
 
     raise ValueError("STOP")
 
@@ -123,10 +119,9 @@ def test_constant_population():
         totalpop = 0
         for i in range(s.nnodes):
             totalpop += states[:5, :, i, it].sum()
-            #Sum of S, E, I#, R for the geoid that is 'i'
-            assert(origpop[i] == states[:5, :, i, it].sum())
-        assert(completepop == totalpop)
-
+            # Sum of S, E, I#, R for the geoid that is 'i'
+            assert (origpop[i] == states[:5, :, i, it].sum())
+        assert (completepop == totalpop)
 
 ### def test_steps_SEIR_nb_simple_spread():
 ###     config.set_file(f"{DATA_DIR}/config.yml")
