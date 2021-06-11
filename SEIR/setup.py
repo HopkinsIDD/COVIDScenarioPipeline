@@ -100,8 +100,8 @@ class Setup:
         self.setup_name = setup_name
         self.nsim = nsim
         self.dt = dt
-        self.ti = ti
-        self.tf = tf
+        self.ti = ti  ## we start at 00:00 on ti
+        self.tf = tf  ## we end on 23:59 on tf
         if self.tf <= self.ti:
             raise ValueError("tf (time to finish) is less than or equal to ti (time to start)")
         self.npi_scenario = npi_scenario
@@ -159,8 +159,8 @@ class Setup:
             os.makedirs(self.npidir, exist_ok=True)
 
     def build_setup(self):
-        self.t_span = (self.tf - self.ti).days
-        self.t_inter = np.arange(0, self.t_span + 0.0001, self.dt)
+        self.n_days = (self.tf - self.ti).days + 1  # because we include s.ti and s.tf
+        self.t_inter = np.arange(0, (self.n_days -1) + 1e-7, self.dt)
         self.nnodes = self.spatset.nnodes
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
