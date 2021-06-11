@@ -96,15 +96,20 @@ def steps_SEIR_nb(
     compound_adjusted_rate = np.zeros((nspatial_nodes))
     number_move = np.zeros((nspatial_nodes))
 
+    print("SEIR.beforeLoop")
+
     for time_index, time in enumerate(times):
         today = int(np.floor(time))
         is_a_new_day = False
         if time % 1 == 0: is_a_new_day = True
         if is_a_new_day:
+            print("SEIR.day", time)
             for seeding_instance_idx in range(
                     seeding_data['day_start_idx'][today],
                     seeding_data['day_start_idx'][today + 1]
             ):
+
+                print("some-seeding")
                 #print(seeding_instance_idx)
                 # seeding_instance_data[seeding_value_col][seeding_instance_idx] = min(
                 #     seeding_instance_data[seeding_value_col][seeding_instance_idx],
@@ -123,6 +128,7 @@ def steps_SEIR_nb(
                     seeding_data['seeding_amounts'][seeding_instance_idx]
 
         for transition_index in range(ntransitions):
+            print("processing tranision", transition_index)
             total_rate = 1
             first_proportion = True
             for proportion_index in range(
@@ -168,7 +174,7 @@ def steps_SEIR_nb(
                                                   mobility_data_indices[spatial_node]:mobility_data_indices[
                                                       spatial_node + 1]]
                         total_rate *= (rate_keep_compartment + rate_change_compartment.sum())
-
+            print("voilà for", transition_index)
             compound_adjusted_rate[spatial_node] = 1.0 - np.exp(-dt * total_rate)
 
             if stochastic_p:

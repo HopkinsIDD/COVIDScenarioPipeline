@@ -79,7 +79,8 @@ def test_constant_population():
     for key, item in seeding_data.items():
         assert key in keys_ref
         if key == 'day_start_idx':
-            assert (item == np.zeros(s.t_span+1)).all()
+            assert (len(item) == s.n_days + 1)
+            assert (item == np.zeros(s.n_days + 1, dtype=np.int64)).all()
         else:
             assert item.size == 0# == np.array([], dtype=np.int64)
         assert item.dtype == np.int64

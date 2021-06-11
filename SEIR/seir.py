@@ -105,9 +105,9 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
         a = np.moveaxis(a, 1, 2)
         a = np.moveaxis(a, 0, 1)
         b = np.diff(a, axis=0)
-        difI = np.zeros((s.t_span + 1, p_draw[4], s.nnodes))
+        difI = np.zeros((s.n_days, p_draw[4], s.nnodes))
         difI[1:, :] = b[:, cumI, :]
-        na = np.zeros((s.t_span + 1, ncomp + 1, p_draw[4], s.nnodes))
+        na = np.zeros((s.n_days, ncomp + 1, p_draw[4], s.nnodes))
         na[:, :-1, :] = a
         na[:, -1, :] = difI
         m, n, i, r = na.shape
