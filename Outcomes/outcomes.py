@@ -367,9 +367,9 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     ],
                     axis=0)
             if npi is not None:
-                delays = _parameter_reduce(delays, npi.getReduction(f"{new_comp}::delay".lower()), 1)
+                delays = _parameter_reduce(delays, npi.getReduction(f"{new_comp}::delay".lower()))
                 delays = np.round(delays).astype(int)
-                probabilities = _parameter_reduce(probabilities, npi.getReduction(f"{new_comp}::probability".lower()), 1)
+                probabilities = _parameter_reduce(probabilities, npi.getReduction(f"{new_comp}::probability".lower()))
 
             df = pd.DataFrame()
             for p_comp in p_comps:
@@ -429,7 +429,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     #plt.savefig('Dbef'+new_comp + '-' + source)
                     #plt.close()
                     #print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
-                    durations = _parameter_reduce(durations, npi.getReduction(f"{new_comp}::duration".lower()), 1)
+                    durations = _parameter_reduce(durations, npi.getReduction(f"{new_comp}::duration".lower()))
                     durations = np.round(durations).astype(int)
                     #plt.imshow(durations)
                     #plt.title(durations.mean())

@@ -186,12 +186,11 @@ class Parameters:
 
         return out_df
 
-    def parameters_reduce(self, p_draw: ndarray, npi: object, dt: float) -> ndarray:
+    def parameters_reduce(self, p_draw: ndarray, npi: object) -> ndarray:
         """
         Params reduced according to the NPI provided.
         :param p_draw: array of shape (nparam, nt_inter, nnodes) from p_draw
         :param npi: NPI object with the reduction
-        :param dt:
         :return: array of shape (nparam, nt_inter, nnodes) with all parameters for all nodes and all time, reduced
         """
         p_reduced = copy.deepcopy(p_draw)
@@ -199,7 +198,6 @@ class Parameters:
         for idx, pn in enumerate(self.pnames):
             p_reduced[idx] = SEIR.setup._parameter_reduce(parameter=p_draw[idx],
                                                           modification=npi.getReduction(pn.lower()),
-                                                          dt=dt,
                                                           method=self.pdata[pn]['intervention_overlap_operation'])
 
         return p_reduced

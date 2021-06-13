@@ -27,6 +27,7 @@ proportion_sum_starts_col = 0
 proportion_exponent_col = 1
 
 
+# noinspection PyRedundantParentheses
 @cc.export(
     ## name
     "steps_SEIR_nb",
@@ -35,7 +36,7 @@ proportion_exponent_col = 1
     ## Dimensions
     "int32,"  ## ncompartments
     "int32,"  ## nspatial_nodes
-    "float64[:],"  ## times [ ntimes ]
+    "int32,"  ## Number of days
     ## Parameters
     "float64[:, :, :],"  ## Parameters [ nparameters x ntimes x nspatial_nodes]
     "float64,"  ## dt
@@ -58,7 +59,7 @@ proportion_exponent_col = 1
 def steps_SEIR_nb(
         ncompartments,  # 1
         nspatial_nodes,  # 2
-        times,  # 3
+        ndays,  # 3
         parameters,  # 4
         dt,  # 5
         transitions,  # 6
@@ -73,7 +74,7 @@ def steps_SEIR_nb(
         stochastic_p  # 15
 ):
     ## Declarations
-    states = np.zeros((len(times), ncompartments, nspatial_nodes))
+    states = np.zeros((ndays, ncompartments, nspatial_nodes))
     states_current = np.zeros((ncompartments, nspatial_nodes))
     states_next = np.zeros((ncompartments, nspatial_nodes))
 
@@ -98,12 +99,12 @@ def steps_SEIR_nb(
 
     print("SEIR.beforeLoop")
 
+    times = np.arange(0, (ndays - 1) + 1e-7, dt)
     for time_index, time in enumerate(times):
         today = int(np.floor(time))
         is_a_new_day = False
         if time % 1 == 0: is_a_new_day = True
         if is_a_new_day:
-            print("SEIR.day", time)
             for seeding_instance_idx in range(
                     seeding_data['day_start_idx'][today],
                     seeding_data['day_start_idx'][today + 1]
@@ -128,7 +129,7 @@ def steps_SEIR_nb(
                     seeding_data['seeding_amounts'][seeding_instance_idx]
 
         for transition_index in range(ntransitions):
-            print("processing tranision", transition_index)
+            #print("processing tranision", transition_index)
             total_rate = 1
             first_proportion = True
             for proportion_index in range(
@@ -146,7 +147,7 @@ def steps_SEIR_nb(
                     ]
                     relevant_exponent *= parameters[
                         proportion_info[proportion_exponent_col][proportion_sum_index]
-                    ][time_index]
+                    ][today]
                 if first_proportion:
                     first_proportion = False
                     source_number = relevant_number_in_comp ** relevant_exponent
@@ -158,23 +159,17 @@ def steps_SEIR_nb(
                                                                            mobility_data_indices[spatial_node + 1]] / \
                                                         population[spatial_node]
                         rate_keep_compartment = proportion_keep_compartment * \
-                                                relevant_number_in_comp[spatial_node] ** relevant_exponent[
-                                                    spatial_node] / \
+                                                relevant_number_in_comp[spatial_node] ** relevant_exponent[spatial_node] / \
                                                 population[spatial_node] * \
-                                                parameters[transitions[transition_rate_col][transition_index]][
-                                                    time_index][spatial_node]
+                                                parameters[transitions[transition_rate_col][transition_index]][today][spatial_node]
+
                         rate_change_compartment = proportion_keep_compartment * \
                                                   relevant_number_in_comp[spatial_node] ** \
-                                                  relevant_exponent[
-                                                  mobility_data_indices[spatial_node]:mobility_data_indices[
-                                                      spatial_node + 1]] / \
-                                                  population[mobility_data_indices[spatial_node]:mobility_data_indices[
-                                                      spatial_node + 1]] * \
-                                                  relevant_exponent[
-                                                  mobility_data_indices[spatial_node]:mobility_data_indices[
-                                                      spatial_node + 1]]
+                                                  relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] / \
+                                                  population[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] * \
+                                                  relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]
                         total_rate *= (rate_keep_compartment + rate_change_compartment.sum())
-            print("voilà for", transition_index)
+            #print("voilà for", transition_index)
             compound_adjusted_rate[spatial_node] = 1.0 - np.exp(-dt * total_rate)
 
             if stochastic_p:
@@ -194,8 +189,10 @@ def steps_SEIR_nb(
             states_next[transitions[transition_source_col][transition_index]] -= number_move
             states_next[transitions[transition_destination_col][transition_index]] += number_move
 
-        states[time_index, :, :] = states_next
         states_current = states_next
+        if is_a_new_day:
+            states[today, :, :] = states_next
+
 
         # if debug_print:
         #     print("State Movements:")

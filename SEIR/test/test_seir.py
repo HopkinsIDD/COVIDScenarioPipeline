@@ -38,7 +38,7 @@ def test_check_values():
 
     with warnings.catch_warnings(record=True) as w:
 
-        seeding = np.zeros((len(s.t_inter), s.nnodes))
+        seeding = np.zeros((s.n_days, s.nnodes))
 
         if np.all(seeding == 0):
             warnings.warn("provided seeding has only value 0", UserWarning)
@@ -99,15 +99,16 @@ def test_constant_population():
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
     params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
-    params = s.parameters.parameters_reduce(params, npi, s.dt)
+    params = s.parameters.parameters_reduce(params, npi)
 
     parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info = \
         s.compartments.get_transition_array(params, s.parameters.pnames)
 
+
     states = seir.steps_SEIR_nb(
         s.compartments.compartments.shape[0],
         s.nnodes,
-        s.t_inter,
+        s.n_days,
         parsed_parameters,
         s.dt,
         transition_array,
@@ -123,7 +124,7 @@ def test_constant_population():
 
     completepop = s.popnodes.sum()
     origpop = s.popnodes
-    for it in range(len(s.t_inter)):
+    for it in range(s.n_days):
         totalpop = 0
         for i in range(s.nnodes):
             totalpop += states[:5, :, i, it].sum()
@@ -153,7 +154,7 @@ def test_steps_SEIR_nb_simple_spread():
                     write_csv=False,
                     dt=0.25)
 
-    seeding = np.zeros((len(s.t_inter), s.nnodes))
+    seeding = np.zeros((s.n_days, s.nnodes))
     seeding[:, 0] = 100
 
     y0 = np.zeros((s.compartments.get_ncomp(), s.nnodes))
@@ -166,13 +167,13 @@ def test_steps_SEIR_nb_simple_spread():
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
     params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
-    params = s.parameters.parameters_reduce(params, npi, s.dt)
+    params = s.parameters.parameters_reduce(params, npi)
 
 
 
     for i in range(100):
         states = seir.steps_SEIR_nb(*params, y0,
-                                    seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                                    seeding, s.dt, s.n_days, s.nnodes, s.popnodes,
                                     mobility_geoid_indices, mobility_data_indices,
                                     mobility_data, True)
 
@@ -200,7 +201,7 @@ def test_steps_SEIR_no_spread():
                     write_csv=False,
                     dt=0.25)
 
-    seeding = np.zeros((len(s.t_inter), s.nnodes))
+    seeding = np.zeros((s.n_days, s.nnodes))
     seeding[:, 0] = 100
 
     y0 = np.zeros((s.compartments.get_ncomp(), s.nnodes))
@@ -213,11 +214,11 @@ def test_steps_SEIR_no_spread():
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
     parameters = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
-    parameters = s.parameters.parameters_reduce(parameters, npi, s.dt)
+    parameters = s.parameters.parameters_reduce(parameters, npi)
 
     for i in range(100):
         states = seir.steps_SEIR_nb(*parameters, y0,
-                                    seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                                    seeding, s.dt, s.n_days, s.nnodes, s.popnodes,
                                     mobility_geoid_indices, mobility_data_indices,
                                     mobility_data, True)
 

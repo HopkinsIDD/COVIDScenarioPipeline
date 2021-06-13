@@ -160,7 +160,7 @@ class Setup:
 
     def build_setup(self):
         self.n_days = (self.tf - self.ti).days + 1  # because we include s.ti and s.tf
-        self.t_inter = np.arange(0, (self.n_days -1) + 1e-7, self.dt)
+        #self.t_inter = np.arange(0, (self.n_days -1) + 1e-7, self.dt)
         self.nnodes = self.spatset.nnodes
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
@@ -253,11 +253,12 @@ def npi_load(fname, extension):
 
 
 # Helper function
-def _parameter_reduce(parameter, modification, dt, method="prod"):
+def _parameter_reduce(parameter, modification, method="prod"):
     if isinstance(modification, pd.DataFrame):
         modification = modification.T
         modification.index = pd.to_datetime(modification.index.astype(str))
-        modification = modification.resample(str(dt * 24) + 'H').ffill().to_numpy()
+        #modification = modification.resample(str(dt * 24) + 'H').ffill().to_numpy()
+        modification.resample('1D').ffill().to_numpy()
     if method == "prod":
         return parameter * (1 - modification)
     elif method == "sum":
