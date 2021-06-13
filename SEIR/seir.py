@@ -50,10 +50,10 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
     mobility_data = s.mobility.data
 
     with Timer('onerun_SEIR.pdraw'):
-        p_draw = s.parameters.parameters_quick_draw(len(s.t_inter), s.nnodes)
+        p_draw = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
 
     with Timer('onerun_SEIR.reduce'):
-        parameters = s.parameters.parameters_reduce(p_draw, npi, s.dt)
+        parameters = s.parameters.parameters_reduce(p_draw, npi)
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
 
@@ -62,10 +62,11 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
             s.compartments.get_transition_array(parameters, s.parameters.pnames)
 
     with Timer('onerun_SEIR.compute'):
+        print(parsed_parameters.shape, s.n_days, proportion_info.shape, proportion_array.shape, transition_array.shape)
         states = steps_SEIR_nb(
             s.compartments.compartments.shape[0],
             s.nnodes,
-            s.t_inter,
+            s.n_days,
             parsed_parameters,
             s.dt,
             transition_array,
@@ -220,12 +221,12 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag=True):
                 sim_id2load + s.first_sim_index - 1,
                 "spar"
             ),
-            len(s.t_inter),
+            s.n_days,
             s.nnodes,
             extension
         )
     with Timer('onerun_SEIR_loadID.reduce'):
-        parameters = s.parameters.parameters_reduce(p_draw, npi, s.dt)
+        parameters = s.parameters.parameters_reduce(p_draw, npi)
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
 
@@ -237,7 +238,7 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag=True):
         states = steps_SEIR_nb(
             s.compartments.compartments.shape[0],
             s.nnodes,
-            s.t_inter,
+            s.n_days,
             parsed_parameters,
             s.dt,
             transition_array,
