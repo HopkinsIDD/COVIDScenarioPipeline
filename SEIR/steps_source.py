@@ -32,7 +32,7 @@ proportion_exponent_col = 1
     ## name
     "steps_SEIR_nb",
     ## Return
-    "float64[:, :, :]("  ## states [ ntimes x ncompartments x nspatial_nodes ]
+    "UniTuple(float64[:, :, :], 2) ("  ## return states and cumlative states, both [ ntimes x ncompartments x nspatial_nodes ]
     ## Dimensions
     "int32,"  ## ncompartments
     "int32,"  ## nspatial_nodes
@@ -75,6 +75,7 @@ def steps_SEIR_nb(
 ):
     ## Declarations
     states = np.zeros((ndays, ncompartments, nspatial_nodes))
+    states_cumulatives = np.zeros((ndays, ncompartments, nspatial_nodes))
     states_current = np.zeros((ncompartments, nspatial_nodes))
     states_next = np.zeros((ncompartments, nspatial_nodes))
 
@@ -188,11 +189,11 @@ def steps_SEIR_nb(
             #
             states_next[transitions[transition_source_col][transition_index]] -= number_move
             states_next[transitions[transition_destination_col][transition_index]] += number_move
+            states_cumulatives[today, transitions[transition_destination_col][transition_index], :] += number_move
 
         states_current = states_next
         if is_a_new_day:
             states[today, :, :] = states_next
-
 
         # if debug_print:
         #     print("State Movements:")
@@ -212,7 +213,7 @@ def steps_SEIR_nb(
         if ((states_current.min() < 0) or (states_current.max() > 10 ** 10)):
             raise ValueError("Overflow error")
 
-    return states
+    return states, states_cumulatives
 
 
 if __name__ == "__main__":
