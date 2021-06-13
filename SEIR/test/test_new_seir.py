@@ -54,7 +54,7 @@ def test_constant_population():
 
     # parameters = setup.parameters_quick_draw(s.parameters, len(s.t_inter), s.nnodes)
     # parameters = setup.parameters_reduce(parameters, npi, s.dt)
-    parameters = s.parameters.parameters_quick_draw(nt_inter=len(s.t_inter), nnodes=s.nnodes)
+    parameters = s.parameters.parameters_quick_draw(nt_inter=s.n_days, nnodes=s.nnodes)
     parameter_names = [x for x in s.parameters.pnames]
 
     parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info = \

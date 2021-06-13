@@ -32,13 +32,13 @@ proportion_exponent_col = 1
     ## name
     "steps_SEIR_nb",
     ## Return
-    "UniTuple(float64[:, :, :], 2) ("  ## return states and cumlative states, both [ ntimes x ncompartments x nspatial_nodes ]
+    "UniTuple(float64[:, :, :], 2) ("  ## return states and cumlative states, both [ ndays x ncompartments x nspatial_nodes ]
     ## Dimensions
     "int32,"  ## ncompartments
     "int32,"  ## nspatial_nodes
     "int32,"  ## Number of days
     ## Parameters
-    "float64[:, :, :],"  ## Parameters [ nparameters x ntimes x nspatial_nodes]
+    "float64[:, :, :],"  ## Parameters [ nparameters x ndays x nspatial_nodes]
     "float64,"  ## dt
     ## Transitions
     "int64[:, :],"  ## Transitions [ ntransitions x [source, destination, proportion_start, proportion_stop, rate] ]

@@ -151,7 +151,7 @@ class SeedingAndIC:
         return _DataFrame2NumbaDict(df=seeding,amounts=amounts, setup=setup)
 
     def seeding_load(self, sim_id: int, setup) -> nb.typed.Dict:
-        importation = np.zeros((len(self.t_inter) + 1, s.nnodes))
+        importation = np.zeros(s.n_days + 1, s.nnodes))
         y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
         y0[S, 0, :] = s.popnodes
 
