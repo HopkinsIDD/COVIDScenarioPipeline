@@ -572,6 +572,11 @@ class Compartments:
             rc[sit] = reduce(operator_reduce_lambdas[operators[0]], tmp_rc)
         return (rc)
 
+    def get_compartments_as_tidydf(self):
+        df = self.compartments.melt(id_vars='name', var_name='meta_compartment', value_name='sub_compartment')
+        df = df.rename(columns={'name': 'concat_compartment'})
+        return df
+
 
 def get_list_dimension(thing):
     if type(thing) == list:
