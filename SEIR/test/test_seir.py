@@ -410,6 +410,7 @@ def test_inference_resume():
         npi_scenario=scenario,
         npi_config=config["interventions"]["settings"][scenario],
         seeding_config=config["seeding"],
+        initial_conditions_config=config["initial_conditions"],
         parameters_config=config["seir"]["parameters"],
         ti=config["start_date"].as_date(),
         tf=config["end_date"].as_date(),

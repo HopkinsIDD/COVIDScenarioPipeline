@@ -69,7 +69,7 @@ class SeedingAndIC:
             # TODO: this format should allow not complete configurations
             #       - Does not support the new way of doing compartiment indexing
             logger.critical("Untested method SetInitialConditions !!! Please report this messsage.")
-            ic_df = pd.read_csv(self.seeding_config["states_file"].as_str(), converters={'place': lambda x: str(x)})
+            ic_df = pd.read_csv(self.initial_conditions_config["states_file"].as_str(), converters={'place': lambda x: str(x)})
             if ic_df.empty:
                 raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
             y0 = np.zeros((setup.compartments.compartments.shape[0], setup.nnodes))
@@ -87,11 +87,13 @@ class SeedingAndIC:
 
         elif method == 'InitialConditionsFolderDraw':
             logger.critical("Untested method SetInitialConditions !!! Please report this messsage.")
-            ic_df = pq.read_table(
-                file_paths.create_file_name(setup.in_run_id, setup.in_prefix, sim_id + setup.first_sim_index - 1,
-                                            setup.seeding_config["initial_file_type"], "parquet"),
-            ).to_pandas()
-            ic_df = ic_df[ic_df["time"] == str(setup.ti)]
+            fp = file_paths.create_file_name(setup.in_run_id, setup.in_prefix, sim_id + setup.first_sim_index - 1,
+                                             self.initial_conditions_config["initial_file_type"], "parquet",
+                                             create_directory=False)
+
+            ic_df = pq.read_table(fp).to_pandas()
+            ic_df = ic_df[(ic_df["date"] == str(setup.ti))]
+            print(ic_df)
             if ic_df.empty:
                 raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
 
@@ -131,9 +133,9 @@ class SeedingAndIC:
                 converters={'place': lambda x: str(x)},
                 parse_dates=['date']
             )
-        elif method=='NoSeeding':
+        elif method == 'NoSeeding':
             seeding = pd.DataFrame(columns=['date', 'place'])
-            return _DataFrame2NumbaDict(df=seeding,amounts=[], setup=setup)
+            return _DataFrame2NumbaDict(df=seeding, amounts=[], setup=setup)
         else:
             raise NotImplementedError(f"unknown seeding method [got: {method}]")
 
@@ -148,82 +150,17 @@ class SeedingAndIC:
         elif method == 'FolderDraw':
             amounts = seeding['amount']
 
-        return _DataFrame2NumbaDict(df=seeding,amounts=amounts, setup=setup)
+        return _DataFrame2NumbaDict(df=seeding, amounts=amounts, setup=setup)
 
-    def seeding_load(self, sim_id: int, setup) -> nb.typed.Dict:
-        importation = np.zeros(s.n_days + 1, s.nnodes))
-        y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
-        y0[S, 0, :] = s.popnodes
-
-        method = s.seeding_config["method"].as_str()
-        if (method == 'FolderDraw'):
-            sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
-            seeding = pd.read_csv(
-                file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id + s.first_sim_index - 1,
-                                            s.seeding_config["seeding_file_type"], "csv"),
-                converters={'place': lambda x: str(x)},
-                parse_dates=['date']
-            )
-            for _, row in seeding.iterrows():
-                importation[(row['date'].date() - s.ti).days][s.spatset.nodenames.index(row['place'])] = row['amount']
-
-        elif (method == 'SetInitialConditions'):
-            states = pd.read_csv(s.seeding_config["states_file"].as_str(), converters={'place': lambda x: str(x)})
-            if (states.empty):
-                raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
-
-            y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
-
-            for pl_idx, pl in enumerate(s.spatset.nodenames):
-                if pl in list(states['place']):
-                    states_pl = states[states['place'] == pl]
-                    y0[S][0][pl_idx] = float(states_pl[states_pl['comp'] == 'S']['amount'])
-                    y0[E][0][pl_idx] = float(states_pl[states_pl['comp'] == 'E']['amount'])
-                    y0[I1][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I1']['amount'])
-                    y0[I2][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I2']['amount'])
-                    y0[I3][0][pl_idx] = float(states_pl[states_pl['comp'] == 'I3']['amount'])
-                    y0[R][0][pl_idx] = float(states_pl[states_pl['comp'] == 'R']['amount'])
-                    y0[cumI][0][pl_idx] = y0[I1][0][pl_idx] + y0[I2][0][pl_idx] + y0[I3][0][pl_idx] + y0[R][0][pl_idx]
-                elif s.seeding_config["ignore_missing"].get():
-                    print(f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                    y0[S, 0, pl_idx] = s.popnodes[pl_idx]
-                else:
-                    raise ValueError(
-                        f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-
-        elif (method == 'InitialConditionsFolderDraw'):
-            sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
-            states = pq.read_table(
-                file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id + s.first_sim_index - 1,
-                                            s.seeding_config["initial_file_type"], "parquet"),
-            ).to_pandas()
-            states = states[states["time"] == str(s.ti)]
-
-            if (states.empty):
-                raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
-
-            y0 = np.zeros((ncomp, s.params.n_parallel_compartments, s.nnodes))
-
-            for comp_id, compartment in enumerate(all_compartments):
-                states_compartment = states[states['comp'] == compartment]
-                for pl_idx, pl in enumerate(s.spatset.nodenames):
-                    if pl in states.columns:
-                        for p_comp_id in range(s.params.n_parallel_compartments):
-                            y0[comp_id, p_comp_id, pl_idx] = float(
-                                states_compartment[states_compartment['p_comp'] == p_comp_id][pl])
-                    elif s.seeding_config["ignore_missing"].get():
-                        print(
-                            f'WARNING: State load does not exist for node {pl}, assuming fully susceptible population')
-                        y0[S, 0, pl_idx] = s.popnodes[pl_idx]
-                    else:
-                        raise ValueError(
-                            f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-
-        else:
+    def load_seeding(self, sim_id: int, setup) -> nb.typed.Dict:
+        method = self.seeding_config["method"].as_str()
+        if method not in ['FolderDraw', 'SetInitialConditions', 'InitialConditionsFolderDraw']:
             raise NotImplementedError(
                 f"Seeding method in inference run must be FolderDraw, SetInitialConditions, or InitialConditionsFolderDraw [got: {method}]")
+        return self.draw_seeding(sim_id=sim_id, setup=setup)
 
-        return y0, importation
+    def load_ic(self, sim_id: int, setup) -> nb.typed.Dict:
+        return self.draw_ic(sim_id=sim_id, setup=setup)
 
     # Write seeding used to file
     def seeding_write(self, seeding, fname, extension):
