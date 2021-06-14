@@ -211,7 +211,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
     prev_df = pd.DataFrame(
         data=states_prev.reshape(s.n_days * s.compartments.get_ncomp(), s.nnodes),
         index=ts_index, columns=s.spatset.nodenames).reset_index()
-    prev_df = pd.merge(left=s.compartments.get_compartments_as_tidydf(), right=prev_df,
+    prev_df = pd.merge(left=s.compartments.get_compartments_explicitDF(), right=prev_df,
                        how='right', on='concat_compartment')
     prev_df.insert(loc=0, column='value_type', value='prevalence')
 
@@ -222,7 +222,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
     incid_df = pd.DataFrame(
         data=states_diff.reshape(s.n_days * s.compartments.get_ncomp(), s.nnodes),
         index=ts_index, columns=s.spatset.nodenames).reset_index()
-    incid_df = pd.merge(left=s.compartments.get_compartments_as_tidydf(), right=incid_df,
+    incid_df = pd.merge(left=s.compartments.get_compartments_explicitDF(), right=incid_df,
                         how='right', on='concat_compartment')
     incid_df.insert(loc=0, column='value_type', value='incidence')
 

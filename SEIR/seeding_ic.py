@@ -90,18 +90,20 @@ class SeedingAndIC:
             fp = file_paths.create_file_name(setup.in_run_id, setup.in_prefix, sim_id + setup.first_sim_index - 1,
                                              self.initial_conditions_config["initial_file_type"], "parquet",
                                              create_directory=False)
-
+            print(fp)
             ic_df = pq.read_table(fp).to_pandas()
-            ic_df = ic_df[(ic_df["date"] == str(setup.ti))]
+            ic_df = ic_df[(ic_df["date"] == str(setup.ti)) & (ic_df["value_type"] == 'prevalence')]
             print(ic_df)
             if ic_df.empty:
                 raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
 
             y0 = np.zeros((setup.compartments.compartments.shape[0], setup.nnodes))
             for comp_idx, comp_name in setup.compartments.compartments['name'].iteritems():
-                ic_df_compartment = ic_df[ic_df['comp'] == comp_name]
+                ic_df_compartment = ic_df[ic_df['concat_compartment'] == comp_name]
                 for pl_idx, pl in enumerate(setup.spatset.nodenames):
                     if pl in ic_df.columns:
+                        print(ic_df_compartment)
+                        ic_df_compartment.to_csv('df.csv')
                         y0[comp_idx, pl_idx] = float(ic_df_compartment[pl])
                     elif setup.seeding_config["ignore_missing"].get():
                         logging.warning(
@@ -153,8 +155,10 @@ class SeedingAndIC:
         return _DataFrame2NumbaDict(df=seeding, amounts=amounts, setup=setup)
 
     def load_seeding(self, sim_id: int, setup) -> nb.typed.Dict:
-        method = self.seeding_config["method"].as_str()
-        if method not in ['FolderDraw', 'SetInitialConditions', 'InitialConditionsFolderDraw']:
+        method = 'NoSeeding'
+        if "method" in self.seeding_config.keys():
+            method = self.seeding_config["method"].as_str()
+        if method not in ['FolderDraw', 'SetInitialConditions', 'InitialConditionsFolderDraw', 'NoSeeding']:
             raise NotImplementedError(
                 f"Seeding method in inference run must be FolderDraw, SetInitialConditions, or InitialConditionsFolderDraw [got: {method}]")
         return self.draw_seeding(sim_id=sim_id, setup=setup)
