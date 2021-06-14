@@ -573,11 +573,11 @@ class Compartments:
         return (rc)
 
     def get_compartments_explicitDF(self):
-        df: pd.DataFrame = self.compartments.copy(deep=True)#.melt(id_vars='name', var_name='meta_compartment', value_name='sub_compartment')
+        df: pd.DataFrame = self.compartments.copy(
+            deep=True)  # .melt(id_vars='name', var_name='meta_compartment', value_name='sub_compartment')
         # add prefix mc to all columns
-        rename_dict = {cn:f"mc_{cn}" for cn in df.columns if cn != 'name'}
+        rename_dict = {cn: f"mc_{cn}" for cn in df.columns}
         df = df.rename(columns=rename_dict)
-        df = df.rename(columns={'name': 'concat_compartment'})
         return df
 
 
