@@ -226,7 +226,7 @@ def test_steps_SEIR_no_spread():
         assert states[seir.cumI, :, 1, :].max() == 0
 
 
-def test_contuation_resume():
+def test_continuation_resume():
     config.clear()
     config.read(user=False)
     config.set_file('data/config.yml')
@@ -257,6 +257,7 @@ def test_contuation_resume():
         npi_config=config["interventions"]["settings"][scenario],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
+        initial_conditions_config=config["initial_conditions"],
         ti=config["start_date"].as_date(),
         tf=config["end_date"].as_date(),
         interactive=interactive,
@@ -274,7 +275,7 @@ def test_contuation_resume():
     states_old = pq.read_table(
         file_paths.create_file_name(s.in_run_id, s.in_prefix, 100, 'seir', "parquet"),
     ).to_pandas()
-    states_old = states_old[states_old["time"] == '2020-03-15'].reset_index(drop=True)
+    states_old = states_old[states_old["date"] == '2020-03-15'].reset_index(drop=True)
 
     config.clear()
     config.read(user=False)
@@ -323,14 +324,14 @@ def test_contuation_resume():
     states_new = pq.read_table(
         file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id2write, 'seir', "parquet"),
     ).to_pandas()
-    states_new = states_new[states_new["time"] == '2020-03-15'].reset_index(drop=True)
-    assert ((states_old[states_old['comp'] != 'diffI'] == states_new[states_new['comp'] != 'diffI']).all().all())
+    states_new = states_new[states_new["date"] == '2020-03-15'].reset_index(drop=True)
+    assert ((states_old == states_new).all().all())
 
     seir.onerun_SEIR_loadID(sim_id2write=sim_id2write + 1, s=s, sim_id2load=sim_id2write)
     states_new = pq.read_table(
         file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id2write + 1, 'seir', "parquet"),
     ).to_pandas()
-    states_new = states_new[states_new["time"] == '2020-03-15'].reset_index(drop=True)
+    states_new = states_new[states_new["date"] == '2020-03-15'].reset_index(drop=True)
     for path in ["model_output/seir", "model_output/snpi", "model_output/spar"]:
         shutil.rmtree(path)
 

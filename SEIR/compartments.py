@@ -572,8 +572,11 @@ class Compartments:
             rc[sit] = reduce(operator_reduce_lambdas[operators[0]], tmp_rc)
         return (rc)
 
-    def get_compartments_as_tidydf(self):
-        df = self.compartments.melt(id_vars='name', var_name='meta_compartment', value_name='sub_compartment')
+    def get_compartments_explicitDF(self):
+        df: pd.DataFrame = self.compartments.copy(deep=True)#.melt(id_vars='name', var_name='meta_compartment', value_name='sub_compartment')
+        # add prefix mc to all columns
+        rename_dict = {cn:f"mc_{cn}" for cn in df.columns if cn != 'name'}
+        df = df.rename(columns=rename_dict)
         df = df.rename(columns={'name': 'concat_compartment'})
         return df
 
