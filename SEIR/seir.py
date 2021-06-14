@@ -126,8 +126,8 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag=True):
             )
         )
     with Timer('onerun_SEIR_loadID.seeding'):
-        initial_conditions = s.seedingAndIC.draw_ic(sim_id2load, setup=s)
-        seeding_data = s.seedingAndIC.seeding_load(sim_id2load, setup=s)
+        initial_conditions = s.seedingAndIC.load_ic(sim_id2load, setup=s)
+        seeding_data = s.seedingAndIC.load_seeding(sim_id2load, setup=s)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
