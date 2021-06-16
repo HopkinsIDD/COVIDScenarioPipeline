@@ -73,24 +73,30 @@ def test_constant_population():
                             popnodes_key="population",
                             nodenames_key="geoid")
 
+    index = 1
+    run_id = 'test'
+    prefix = ''
     s = setup.Setup(setup_name="test_seir",
                     spatial_setup=ss,
                     nsim=1,
                     npi_scenario="None",
                     npi_config=config["interventions"]["settings"]["None"],
                     parameters_config=config["seir"]["parameters"],
+                    seeding_config=config["seeding"],
                     ti=config["start_date"].as_date(),
                     tf=config["end_date"].as_date(),
                     interactive=True,
                     write_csv=False,
+                    first_sim_index=index,
+                    in_run_id=run_id,
+                    in_prefix=prefix,
+                    out_run_id=run_id,
+                    out_prefix=prefix,
                     dt=0.25)
 
-    # seeding = np.zeros((len(s.t_inter), s.nnodes))
+    seeding_data = s.seedingAndIC.draw_seeding(sim_id=100, setup=s)
+    initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
-    # y0 = np.zeros((s.compartments.get_ncomp(), s.nnodes))
-    # y0[0, :] = s.popnodes
-    seeding_data = s.seedingAndIC.draw_seeding(sim_id=0, setup=s)
-    initial_conditions = s.seedingAndIC.draw_ic(sim_id=0, setup=s)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -127,9 +133,8 @@ def test_constant_population():
     for it in range(s.n_days):
         totalpop = 0
         for i in range(s.nnodes):
-            totalpop += states[:5, :, i, it].sum()
-            # Sum of S, E, I#, R for the geoid that is 'i'
-            assert (origpop[i] == states[:5, :, i, it].sum())
+            totalpop += states[0].sum(axis=1)[it,i]
+            assert (origpop[i] == states[0].sum(axis=1)[it,i])
         assert (completepop == totalpop)
 
 

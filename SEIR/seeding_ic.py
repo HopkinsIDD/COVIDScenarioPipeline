@@ -30,7 +30,7 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
     seeding_dict['seeding_destinations'] = np.zeros(len(amounts), dtype=np.int64)
     seeding_dict['seeding_places'] = np.zeros(len(amounts), dtype=np.int64)
     seeding_dict['seeding_amounts'] = np.zeros(len(amounts), dtype=np.int64)
-    nb_seed_perday = np.zeros(setup.n_days + 1, dtype=np.int64)
+    nb_seed_perday = np.zeros(setup.n_days, dtype=np.int64)
 
     for idx, (row_index, row) in enumerate(df.iterrows()):
         if row['place'] not in setup.spatset.nodenames:
@@ -47,7 +47,10 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
         seeding_dict['seeding_places'][idx] = setup.spatset.nodenames.index(row['place'])
         seeding_dict['seeding_amounts'][idx] = amounts[idx]
 
-    seeding_dict['day_start_idx'] = np.cumsum(nb_seed_perday)
+    day_start_idx =np.zeros(setup.n_days + 1, dtype=np.int64)
+    day_start_idx[1:] = np.cumsum(nb_seed_perday)
+    seeding_dict['day_start_idx'] = day_start_idx
+
     return seeding_dict
 
 
