@@ -16,7 +16,6 @@ spatial_setup:
 seeding:
   method: FolderDraw
   seeding_file_type: seed
-  folder_path: importation/minimal/
 
 initial_conditions:
   method: Default
