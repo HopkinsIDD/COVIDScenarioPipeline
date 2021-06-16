@@ -28,9 +28,6 @@ except ModuleNotFoundError as e:
     except ModuleNotFoundError as e:
         raise RuntimeError("Missing compiled module, please run `python setup.py install`") from e
 
-ncomp = 7
-S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
-
 
 def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
     scipy.random.seed()

@@ -17,14 +17,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Number of components
-ncomp = 7
-# Number of infection components
-n_Icomp = 3
-S, E, I1, I2, I3, R, cumI = np.arange(ncomp)
-all_compartments = ("S", "E", "I1", "I2", "I3", "R", "cumI")  # beware, order is important here
-
-
 def build_smart_setup(config, npi_scenario='inference', nsim=1, index=1, run_id='', prefix=''):
     """
         a setup class where most choices are made for you already, for test or development.

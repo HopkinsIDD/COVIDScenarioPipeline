@@ -9,11 +9,6 @@ cc.verbose = True
 debug_mode = False
 debug_print = False
 
-seeding_source_col, \
-seeding_destination_col, \
-seeding_spatial_node_col, \
-seeding_value_col = \
-    np.arange(4)
 
 transition_source_col, \
 transition_destination_col, \
@@ -128,6 +123,13 @@ def steps_SEIR_nb(
                     seeding_data['seeding_destinations'][seeding_instance_idx]][
                     seeding_data['seeding_places'][seeding_instance_idx]] += \
                     seeding_data['seeding_amounts'][seeding_instance_idx]
+
+                # ADD TO cumulative, this is debatable,
+                states_cumulatives[today,
+                    seeding_data['seeding_destinations'][seeding_instance_idx],
+                    seeding_data['seeding_places'][seeding_instance_idx]] += \
+                    seeding_data['seeding_amounts'][seeding_instance_idx]
+
 
         for transition_index in range(ntransitions):
             #print("processing tranision", transition_index)
