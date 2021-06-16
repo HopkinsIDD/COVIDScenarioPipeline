@@ -369,6 +369,12 @@ class Compartments:
         return
 
     def get_comp_idx(self, comp_dict: dict) -> int:
+        """
+        return the index of a compartiment given a filter. The filter has to isolate a compartiment,
+        but it ignore columns that don't exist:
+        :param comp_dict:
+        :return:
+        """
         mask = pd.concat([self.compartments[k] == v for k, v in comp_dict.items()], axis=1).all(axis=1)
         comp_idx = self.compartments[mask].index.values
         if len(comp_idx) != 1:

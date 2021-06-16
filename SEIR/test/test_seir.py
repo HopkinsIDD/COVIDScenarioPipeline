@@ -92,6 +92,7 @@ def test_constant_population():
                     in_prefix=prefix,
                     out_run_id=run_id,
                     out_prefix=prefix,
+
                     dt=0.25)
 
     seeding_data = s.seedingAndIC.draw_seeding(sim_id=100, setup=s)
