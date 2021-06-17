@@ -162,15 +162,21 @@ def steps_SEIR_nb(
                                                                            mobility_data_indices[spatial_node + 1]] / \
                                                         population[spatial_node]
                         rate_keep_compartment = proportion_keep_compartment * \
-                                                relevant_number_in_comp[spatial_node] ** relevant_exponent[spatial_node] / \
+                                                relevant_number_in_comp[spatial_node] ** \
+                                                relevant_exponent[spatial_node] / \
                                                 population[spatial_node] * \
                                                 parameters[transitions[transition_rate_col][transition_index]][today][spatial_node]
 
                         rate_change_compartment = proportion_change_compartment * \
-                                                  relevant_number_in_comp[spatial_node] ** \
+                                                  relevant_number_in_comp[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] ** \
                                                   relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] / \
                                                   population[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] * \
                                                   relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]
+                        print("HERE")
+                        print(proportion_keep_compartment)
+                        print(rate_keep_compartment)
+                        print(proportion_change_compartment)
+                        print(rate_change_compartment)
                         total_rate[spatial_node] *= (rate_keep_compartment + rate_change_compartment.sum())
             #print("voilà for", transition_index)
             compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
@@ -184,9 +190,9 @@ def steps_SEIR_nb(
                 else:
                     number_move = source_number * compound_adjusted_rate
 
-            if number_move.max() > 0:
-                if transition_index == 0:
-                    print(number_move)
+            # if number_move.max() > 0:
+            #     if transition_index == 0:
+            #         print(number_move)
             #            # number_move = min(
             #            #     number_move,
             #            #     states_next[transitions[transition_source_index][transition_index]]
