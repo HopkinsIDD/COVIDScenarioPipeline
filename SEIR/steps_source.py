@@ -166,7 +166,7 @@ def steps_SEIR_nb(
                                                 population[spatial_node] * \
                                                 parameters[transitions[transition_rate_col][transition_index]][today][spatial_node]
 
-                        rate_change_compartment = proportion_keep_compartment * \
+                        rate_change_compartment = proportion_change_compartment * \
                                                   relevant_number_in_comp[spatial_node] ** \
                                                   relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] / \
                                                   population[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] * \
