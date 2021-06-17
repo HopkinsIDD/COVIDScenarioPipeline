@@ -133,7 +133,7 @@ def steps_SEIR_nb(
 
         for transition_index in range(ntransitions):
             #print("processing tranision", transition_index)
-            total_rate = 1
+            total_rate = np.ones((nspatial_nodes))
             first_proportion = True
             for proportion_index in range(
                     transitions[transition_proportion_start_col][transition_index],
@@ -171,9 +171,9 @@ def steps_SEIR_nb(
                                                   relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] / \
                                                   population[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] * \
                                                   relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]
-                        total_rate *= (rate_keep_compartment + rate_change_compartment.sum())
+                        total_rate[spatial_node] *= (rate_keep_compartment + rate_change_compartment.sum())
             #print("voilà for", transition_index)
-            compound_adjusted_rate[spatial_node] = 1.0 - np.exp(-dt * total_rate)
+            compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
 
             if stochastic_p:
                 for spatial_node in range(nspatial_nodes):
@@ -181,9 +181,12 @@ def steps_SEIR_nb(
                         source_number[spatial_node],
                         compound_adjusted_rate[spatial_node]
                     )
-            else:
-                number_move = source_number * compound_adjusted_rate
+                else:
+                    number_move = source_number * compound_adjusted_rate
 
+            if number_move.max() > 0:
+                if transition_index == 0:
+                    print(number_move)
             #            # number_move = min(
             #            #     number_move,
             #            #     states_next[transitions[transition_source_index][transition_index]]
@@ -215,6 +218,8 @@ def steps_SEIR_nb(
         if ((states_current.min() < 0) or (states_current.max() > 10 ** 10)):
             raise ValueError("Overflow error")
 
+    print(states)
+    print(states_cumulatives)
     return states, states_cumulatives
 
 
