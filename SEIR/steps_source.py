@@ -182,17 +182,20 @@ def steps_SEIR_nb(
             compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
 
             if stochastic_p:
+                print("Stochastic")
                 for spatial_node in range(nspatial_nodes):
                     number_move[spatial_node] = np.random.binomial(
                         source_number[spatial_node],
                         compound_adjusted_rate[spatial_node]
                     )
-                else:
-                    number_move = source_number * compound_adjusted_rate
+                print(number_move)
+            else:
+                print("Not stochastic")
+                number_move = source_number * compound_adjusted_rate
 
-            # if number_move.max() > 0:
-            #     if transition_index == 0:
-            #         print(number_move)
+            if number_move.max() > 0:
+                if transition_index == 0:
+                    print(number_move)
             #            # number_move = min(
             #            #     number_move,
             #            #     states_next[transitions[transition_source_index][transition_index]]
