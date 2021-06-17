@@ -439,7 +439,7 @@ class Compartments:
             transition_array[4][it] = current_proportion_start + len(elem)
             current_proportion_start += len(elem)
 
-        proportion_info = np.zeros((2, transition_array[:, 4].max()), dtype='int')
+        proportion_info = np.zeros((3, transition_array[:, 4].max()), dtype='int')
         current_proportion_sum_start = 0
         current_proportion_sum_it = 0
         for it, elem in enumerate(self.transitions['proportional_to']):
@@ -462,6 +462,7 @@ class Compartments:
                         if self.compartments["name"][compartment] == elem3:
                             rc = compartment
                 proportion_info[0][current_proportion_sum_it] = current_proportion_sum_start
+                proportion_info[1][current_proportion_sum_it] = current_proportion_sum_start + len(elem_tmp)
                 current_proportion_sum_it += 1
                 current_proportion_sum_start += len(elem_tmp)
         proportion_compartment_index = 0
@@ -473,7 +474,7 @@ class Compartments:
                 if not candidate in unique_strings:
                     raise ValueError("Something went wrong")
                 rc = [it for it, x in enumerate(unique_strings) if x == candidate][0]
-                proportion_info[1][proportion_compartment_index] = rc
+                proportion_info[2][proportion_compartment_index] = rc
                 proportion_compartment_index += 1
 
         assert (proportion_compartment_index == current_proportion_sum_it)
