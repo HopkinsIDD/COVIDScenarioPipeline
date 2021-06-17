@@ -168,29 +168,39 @@ def steps_SEIR_nb(
                                                 parameters[transitions[transition_rate_col][transition_index]][today][spatial_node]
 
                         rate_change_compartment = proportion_change_compartment * \
-                                                  relevant_number_in_comp[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] ** \
+                                                  relevant_number_in_comp[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]] ** \
                                                   relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] / \
                                                   population[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] * \
                                                   relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]
                         print("HERE")
+                        print(spatial_node)
                         print(proportion_keep_compartment)
                         print(rate_keep_compartment)
                         print(proportion_change_compartment)
                         print(rate_change_compartment)
+                        print("DETAIL")
+
+                        print(proportion_change_compartment)
+                        print(mobility_data)
+                        print(mobility_data_indices)
+                        print(mobility_row_indices)
+                        print(mobility_row_indices[spatial_node])
+                        print(relevant_number_in_comp[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]])
+                        print(relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]])
+                        print(population[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]])
+                        print(relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]])
+                        print("END DETAIL")
                         total_rate[spatial_node] *= (rate_keep_compartment + rate_change_compartment.sum())
             #print("voilà for", transition_index)
             compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
 
             if stochastic_p:
-                print("Stochastic")
                 for spatial_node in range(nspatial_nodes):
                     number_move[spatial_node] = np.random.binomial(
                         source_number[spatial_node],
                         compound_adjusted_rate[spatial_node]
                     )
-                print(number_move)
             else:
-                print("Not stochastic")
                 number_move = source_number * compound_adjusted_rate
 
             if number_move.max() > 0:
