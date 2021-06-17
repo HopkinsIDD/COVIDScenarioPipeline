@@ -150,6 +150,7 @@ def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag=True):
         parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info = \
             s.compartments.get_transition_array(parameters, s.parameters.pnames)
 
+
     with Timer('onerun_SEIR.compute'):
         states = steps_SEIR_nb(
             s.compartments.compartments.shape[0],

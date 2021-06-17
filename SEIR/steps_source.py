@@ -17,7 +17,6 @@ transition_proportion_start_col, \
 transition_proportion_stop_col = \
     np.arange(5)
 
-proportion_compartment_col = 0
 proportion_sum_starts_col = 0
 proportion_exponent_col = 1
 
@@ -36,9 +35,9 @@ proportion_exponent_col = 1
     "float64[:, :, :],"  ## Parameters [ nparameters x ndays x nspatial_nodes]
     "float64,"  ## dt
     ## Transitions
-    "int64[:, :],"  ## Transitions [ ntransitions x [source, destination, proportion_start, proportion_stop, rate] ]
+    "int64[:, :],"  ## transitions [ [source, destination, proportion_start, proportion_stop, rate] x ntransitions ]
     "int64[:, :],"  ## proportions_info [ [sum_start, exponent] x ntransition_proportions ]
-    "int64[:],"  ## transition_sum_compartments [ ntransition_proportion_sums ]
+    "int64[:],"  ## transition_sum_compartments [ ntransition_proportion_sums ] (aka proportion_array)
     ## Initial Conditions
     "float64[:,:],"  ## initial_conditions [ ncompartments x nspatial_nodes ]
     ## Seeding
@@ -74,7 +73,7 @@ def steps_SEIR_nb(
     states_current = np.zeros((ncompartments, nspatial_nodes))
     states_next = np.zeros((ncompartments, nspatial_nodes))
 
-    ntransitions = transitions.shape[0]
+    ntransitions = transitions.shape[1]
 
     ## Setting values
     states_current = np.copy(initial_conditions)
@@ -93,7 +92,7 @@ def steps_SEIR_nb(
     compound_adjusted_rate = np.zeros((nspatial_nodes))
     number_move = np.zeros((nspatial_nodes))
 
-    print("SEIR.beforeLoop")
+    # print("SEIR.beforeLoop")
 
     times = np.arange(0, (ndays - 1) + 1e-7, dt)
     for time_index, time in enumerate(times):
@@ -106,7 +105,7 @@ def steps_SEIR_nb(
                     seeding_data['day_start_idx'][today + 1]
             ):
 
-                print("some-seeding")
+                # print("some-seeding")
                 #print(seeding_instance_idx)
                 # seeding_instance_data[seeding_value_col][seeding_instance_idx] = min(
                 #     seeding_instance_data[seeding_value_col][seeding_instance_idx],
@@ -146,10 +145,10 @@ def steps_SEIR_nb(
                         proportion_info[proportion_sum_starts_col][proportion_index + 1]
                 ):
                     relevant_number_in_comp += states_current[
-                        transition_sum_compartments[proportion_info[proportion_sum_starts_col][proportion_index]]
+                        transition_sum_compartments[proportion_sum_index]
                     ]
                     relevant_exponent *= parameters[
-                        proportion_info[proportion_exponent_col][proportion_sum_index]
+                        proportion_info[proportion_exponent_col][proportion_index]
                     ][today]
                 if first_proportion:
                     first_proportion = False
