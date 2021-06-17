@@ -18,7 +18,8 @@ transition_proportion_stop_col = \
     np.arange(5)
 
 proportion_sum_starts_col = 0
-proportion_exponent_col = 1
+proportion_sum_stops_col = 1
+proportion_exponent_col = 2
 
 
 # noinspection PyRedundantParentheses
@@ -36,7 +37,7 @@ proportion_exponent_col = 1
     "float64,"  ## dt
     ## Transitions
     "int64[:, :],"  ## transitions [ [source, destination, proportion_start, proportion_stop, rate] x ntransitions ]
-    "int64[:, :],"  ## proportions_info [ [sum_start, exponent] x ntransition_proportions ]
+    "int64[:, :],"  ## proportions_info [ [sum_starts, sum_stops, exponent] x ntransition_proportions ]
     "int64[:],"  ## transition_sum_compartments [ ntransition_proportion_sums ] (aka proportion_array)
     ## Initial Conditions
     "float64[:,:],"  ## initial_conditions [ ncompartments x nspatial_nodes ]
@@ -142,7 +143,7 @@ def steps_SEIR_nb(
                 relevant_exponent = np.ones((nspatial_nodes))
                 for proportion_sum_index in range(
                         proportion_info[proportion_sum_starts_col][proportion_index],
-                        proportion_info[proportion_sum_starts_col][proportion_index + 1]
+                        proportion_info[proportion_sum_stops_col][proportion_index]
                 ):
                     relevant_number_in_comp += states_current[
                         transition_sum_compartments[proportion_sum_index]
