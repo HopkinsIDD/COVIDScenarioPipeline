@@ -398,7 +398,7 @@ class Compartments:
                 for compartment in range(self.compartments.shape[0]):
                     if self.compartments["name"][compartment] == elem:
                         rc = compartment
-                transition_array[it, cit] = rc
+                transition_array[cit, it] = rc
 
         unique_strings = []
         for x in self.transitions["proportion_exponent"]:
@@ -431,12 +431,12 @@ class Compartments:
             if not candidate in unique_strings:
                 raise ValueError("Something went wrong")
             rc = [it for it, x in enumerate(unique_strings) if x == candidate][0]
-            transition_array[it, 2] = rc
+            transition_array[2][it] = rc
 
         current_proportion_start = 0
         for it, elem in enumerate(self.transitions['proportional_to']):
-            transition_array[it, 3] = current_proportion_start
-            transition_array[it, 4] = current_proportion_start + len(elem)
+            transition_array[3][it] = current_proportion_start
+            transition_array[4][it] = current_proportion_start + len(elem)
             current_proportion_start += len(elem)
 
         proportion_info = np.zeros((2, transition_array[:, 4].max()), dtype='int')
