@@ -1,9 +1,9 @@
 #' Convenience function to print values for different distributions
 #'
-#' @param ... object specifying parameter distribution
+#' @param ... object specifying parameter distribution; object name should include param
 #' @param space_length number of spaces to add when printing
 #'
-#' @return
+#' @return string with parameter distribution and values
 #' @export
 #'
 #' @examples
@@ -114,9 +114,9 @@ collapse_intervention<- function(dat
         dplyr::add_count(dplyr::across(-USPS)) %>%
         dplyr::mutate(name = dplyr::case_when(category =="local_variance" | USPS %in% c("all", "") ~ name,
                                               n==1 & template=="Reduce" ~ paste0(USPS, "_", name),
-                                              template=="Reduce" ~ paste0(USPS_geo, "_", name),
+                                              template=="Reduce" ~ paste0(geoid, "_", name),
                                               n==1 & template!="ReduceIntervention" ~ paste0(USPS, name),
-                                              template!="ReduceIntervention" ~ paste0(USPS_geo, name),
+                                              template!="ReduceIntervention" ~ paste0(geoid, name),
                                               TRUE ~ name),
                       name = stringr::str_remove(name, "^_"))
 
