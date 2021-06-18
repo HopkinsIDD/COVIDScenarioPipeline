@@ -377,9 +377,15 @@ set_vacc_rates_params <- function(vacc_path,
 
 #' Generate variant interventions
 #'
-#' @param variant_path path to vaccination rates
+#' @param b117_only whether to generate estimates for B117 variant only or both B117 and B1617
+#' @param variant_path_1 path to B117 variant
+#' @param variant_path_2 path to B1617 variant
 #' @param sim_start_date simulation start date
 #' @param sim_end_date simulation end date
+#' @param variant_lb
+#' @param varian_effect change in transmission for variant default is 50% from Davies et al 2021
+#' @param transmission_increase transmission increase in B1617 relative to B117
+#' @param inference logical indicating whether inference will be performed on intervention (default is TRUE); perturbation values are replaced with NA if set to FALSE.
 #' @param v_dist type of distribution for reduction
 #' @param v_mean reduction mean
 #' @param v_sd reduction sd
@@ -397,66 +403,45 @@ set_vacc_rates_params <- function(vacc_path,
 #'
 #' @examples
 #'
-set_variant_params <- function(variant_path,
-                               startdate=as.Date("2021-01-01"),
-                               enddate=Sys.Date()+60,
-                               month_shift=0,
+set_variant_params <- function(b117_only = FALSE,
+                               variant_path,
+                               variant_path_2 = NULL,
+                               sim_start_date,
+                               sim_end_date,
                                variant_lb = 1.4,
                                variant_effect = 1.5,
-                               variant_weekly = TRUE,
+                               month_shift = NULL,
+                               transmission_increase = NULL,
                                inference = TRUE,
                                v_dist="truncnorm",  v_sd = NULL, v_a = 0, v_b = 1,
                                p_dist="truncnorm",
                                p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1
 ){
-    startdate <- as.Date(startdate)
-    enddate <- as.Date(enddate)
-
-    strains <- readr::read_csv(variant_path) %>% # TODO: separate functions (options in function @params) to generate variant data
-        dplyr::mutate(log_prct_b = log(prct_b), log_prct_b_1m = - 0 - log_prct_b)
-
-    strains <- strains %>%
-        dplyr::mutate(logit_prct_b = log(prct_b/(1-prct_b))) %>%
-        dplyr::select(-month_b) %>%
-        dplyr::mutate(month_a = month_a - month_shift) # shift earlier 0 week
 
 
-    mL <- drc::drm(prct_b ~ month_a, data = strains, fct = drc::L.3(), type = "continuous")
+    if(b117_only){
+        variant_data <- generate_variant_b117(variant_path = variant_path,
+                                              sim_start_date = sim_start_date,
+                                              sim_end_date = sim_end_date,
+                                              variant_lb = variant_lb,
+                                              variant_effect= variant_effect,
+                                              month_shift = month_shift)
+    } else{
 
-    # Get impact of strain proportions on R0
-    pred_month <- predict(mL, data.frame(month_a=seq(1,12,1)))
-    pred_month[pred_month>1] <- 1
+        if(is.null(variant_path_2)){stop("You must specify a path for the second variant.")}
 
-    prop_strain_b <- dplyr::tibble(month = 1:12, prop_b = pred_month) %>%
-        dplyr::mutate(R_ratio = 1*(1-prop_b) + variant_effect*(prop_b))
+        variant_data <- generate_multiple_variants(variant_path_1 = variant_path,
+                                                   variant_path_2 = variant_path_2,
+                                                   sim_start_date = sim_start_date,
+                                                   sim_end_date = sim_end_date,
+                                                   variant_lb = variant_lb,
+                                                   variant_effect= variant_effect,
+                                                   transmission_increase = transmission_increase)
+        }
 
-    pred_week <- predict(mL, data.frame(month_a=seq(1,13,.23)))
-    pred_week[pred_week>1] <- 1
-
-    prop_strain_b_week <- dplyr::tibble(prop_b = pred_week) %>%
-        dplyr::mutate(week = 1:nrow(.),
-                      R_ratio = 1*(1-prop_b) + variant_effect*prop_b,
-                      value_sd = 1*(1-prop_b) + variant_lb*prop_b,
-                      value_sd = (R_ratio - value_sd)/1.96)
-
-
-    prop_strain_b_week <- prop_strain_b_week %>%
-        dplyr::mutate(start_date = MMWRweek::MMWRweek2Date(MMWRyear=rep(2021, nrow(.)), MMWRweek=week),
-                      end_date = (start_date+6)) %>%
-        #mutate(month_abb = tolower(month.abb[lubridate::month(start_date)])) %>%
-        dplyr::filter(!(start_date>enddate)) %>%
-        dplyr::rowwise() %>%
-        dplyr::mutate(end_date = min(end_date, enddate)) %>%
-        dplyr::ungroup() %>%
-        dplyr::mutate(param = "ReduceR0")
-
-    max_week <- min(prop_strain_b_week %>% dplyr::filter(prop_b==1) %>% dplyr::pull(week))
-    prop_strain_b_week <- prop_strain_b_week %>%
-        dplyr::filter(week<=max_week) %>%
-        dplyr::mutate(end_date = lubridate::as_date(ifelse(week==max_week, enddate, end_date)))
-
-    variant_data <- prop_strain_b_week %>%
+    variant_data <- variant_data %>%
         dplyr::mutate(type = "transmission",
+                      param = "ReduceR0",
                       category = "variant",
                       name = paste("variantR0adj", paste0("Week", week), sep="_"),
                       template = "ReduceR0",
@@ -652,4 +637,3 @@ bind_interventions <- function(...,
 
     return(dat)
 }
-
