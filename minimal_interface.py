@@ -26,7 +26,7 @@
 import pathlib
 from SEIR import seir, setup, file_paths
 from SEIR.utils import config, Timer
-from SEIR.profile import profile_options
+#from SEIR.profile import profile_options
 from Outcomes import outcomes
 import numpy as np
 
