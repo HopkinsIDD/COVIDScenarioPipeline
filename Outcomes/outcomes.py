@@ -95,32 +95,22 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
     # Either mean of probabilities given or from the file... This speeds up a bit the process.
     # However needs an ordered dict, here we're abusing a bit the spec.
     config_outcomes = config["outcomes"]["settings"][scenario_outcomes]
-    if (config["outcomes"]["param_from_file"].get()):
+    if config["outcomes"]["param_from_file"].get():
         # load a file from the seir model, to know how to filter the provided csv file
-        diffI = pd.read_parquet(file_paths.create_file_name(
-            run_id,
-            prefix,
-            sim_ids[0],
-            'seir',
-            'parquet'
-        ))
-        diffI = diffI[diffI['comp'] == 'diffI']
-        dates = diffI.time
-        diffI.drop(['comp', ], inplace=True, axis=1)
-        places = diffI.drop(['time', 'p_comp'], axis=1).columns
+        diffI, places, dates = read_seir_sim(run_id=run_id,prefix=prefix,sim_id=sim_ids[0])
 
         # Load the actual csv file
         # Load the actual csv file
         branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pa.parquet.read_table(branching_file).to_pandas()
-        if ('relative_probability' not in list(branching_data['quantity'])):
+        if 'relative_probability' not in list(branching_data['quantity']):
             raise ValueError(f"No 'relative_probablity' quantity in {branching_file}, therefor making it useless")
 
         print('Loaded geoids in loaded relative probablity file:', len(branching_data.geoid.unique()), '', end='')
         branching_data = branching_data[branching_data['geoid'].isin(places)]
         print('Intersect with seir simulation: ', len(branching_data.geoid.unique()), 'keeped')
 
-        if (len(branching_data.geoid.unique()) != places.shape[0]):
+        if len(branching_data.geoid.unique()) != places.shape[0]:
             raise ValueError(
                 f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
 
@@ -161,7 +151,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                             f"Using 'param_from_file' for relative probability {parameters[class_name]['source']} -->  {class_name}")
                         # Sort it in case the relative probablity file is misecified
                         rel_probability.geoid = rel_probability.geoid.astype("category")
-                        rel_probability.geoid.cat.set_categories(diffI.drop('time', axis=1).columns, inplace=True)
+                        rel_probability.geoid.cat.set_categories(diffI.drop('date', axis=1).columns, inplace=True)
                         rel_probability = rel_probability.sort_values(["geoid"])
                         parameters[class_name]['rel_probability'] = rel_probability['value'].to_numpy()
                     else:
@@ -228,14 +218,19 @@ def read_seir_sim(run_id, prefix, sim_id):
         'seir',
         'parquet'
     ))
-    diffI = diffI[diffI['comp'] == 'diffI']
-    dates = diffI[diffI['p_comp'] == diffI['p_comp'].unique()[0]].time
-    diffI.drop(['comp'], inplace=True, axis=1)
-    places = diffI.drop(['time', 'p_comp'], axis=1).columns
+
+    diffI = diffI[diffI['value_type'] == 'incidence']
+    diffI.drop(['value_type'], inplace=True, axis=1)
+    dates = diffI['date'].unique()
+    todrop = [c for c in diffI.columns if c[:3] == 'mc_']
+    todrop.append('date')
+    places = diffI.drop(todrop, axis=1).columns
     return diffI, places, dates
 
 
+
 def write_outcome_sim(outcomes, run_id, prefix, sim_id):
+    outcomes['time'] = outcomes['date']
     out_df = pa.Table.from_pandas(outcomes, preserve_index=False)
     pa.parquet.write_table(
         out_df,
@@ -288,8 +283,9 @@ def dataframe_from_array(data, places, dates, comp_name):
     to produce the final output
     """
     df = pd.DataFrame(data.astype(np.double), columns=places, index=dates)
+    df.index.name = 'date'
     df.reset_index(inplace=True)
-    df = pd.melt(df, id_vars='time', value_name=comp_name, var_name='geoid')
+    df = pd.melt(df, id_vars='date', value_name=comp_name, var_name='geoid')
     return df
 
 
@@ -311,17 +307,20 @@ def dataframe_from_array(data, places, dates, comp_name):
 # @dates Index for dates dimension of source_data.  dates should be one day apart a closed interval
 # @loaded_values A numpy array of dimensions place x time with values containing the probabilities
 def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag=True, npi=None):
-    hpar = pd.DataFrame(columns=['geoid', 'p_comp', 'quantity', 'outcome', 'source', 'value'])
+    hpar = pd.DataFrame(columns=['geoid', 'mc_vaccination_stage', 'quantity', 'outcome', 'source', 'value'])
     all_data = {}
-    p_comps = diffI['p_comp'].unique()
+    p_comps = diffI['mc_vaccination_stage'].unique()
     for p_comp in p_comps:
         all_data[p_comp] = {}
-        all_data[p_comp]['incidI'] = diffI[diffI['p_comp'] == p_comp].drop(['time', 'p_comp'],
-                                                                           axis=1).to_numpy()  # .astype(np.int32)
+        incidI = diffI[(diffI['mc_vaccination_stage'] == p_comp) & (diffI['mc_infection_stage'] == 'I1')]
+        incidI = incidI.drop(['date', 'mc_vaccination_stage', 'mc_infection_stage', 'mc_name'], axis=1).to_numpy()
+        all_data[p_comp]['incidI'] = incidI
 
     # We store them as numpy matrices. Dimensions is dates X places
 
-    outcomes = pd.melt(diffI, id_vars=['time', 'p_comp'], value_name='incidI', var_name='geoid')
+    outcomes = pd.melt(diffI[diffI['mc_infection_stage'] == 'I1'].drop(['mc_infection_stage', 'mc_name'], axis=1),
+                       id_vars=['date', 'mc_vaccination_stage'],
+                       value_name='incidI', var_name='geoid')
     for new_comp in parameters:
         if 'source' in parameters[new_comp]:
             # Read the config for this compartment: if a source is specified, we
@@ -335,13 +334,13 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     loaded_values[
                         (loaded_values['quantity'] == 'probability') &
                         (loaded_values['outcome'] == new_comp) &
-                        (loaded_values['p_comp'] == p_comps[0]) &
+                        (loaded_values['mc_vaccination_stage'] == '0dose') &
                         (loaded_values['source'] == source)
                         ]['value'].to_numpy()
                 delays = loaded_values[
                     (loaded_values['quantity'] == 'delay') &
                     (loaded_values['outcome'] == new_comp) &
-                    (loaded_values['p_comp'] == p_comps[0]) &
+                    (loaded_values['mc_vaccination_stage'] == '0dose') &
                     (loaded_values['source'] == source)
                     ]['value'].to_numpy()
             else:
@@ -364,14 +363,14 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                         hpar,
                         pd.DataFrame.from_dict(
                             {'geoid': places,
-                             'p_comp': [p_comp] * len(places),
+                             'mc_vaccination_stage': [p_comp] * len(places),
                              'quantity': ['probability'] * len(places),
                              'outcome': [new_comp] * len(places),
                              'source': [source] * len(places),
                              'value': probabilities[0] * np.ones(len(places))}),
                         pd.DataFrame.from_dict(
                             {'geoid': places,
-                             'p_comp': [p_comp] * len(places),
+                             'mc_vaccination_stage': [p_comp] * len(places),
                              'quantity': ['delay'] * len(places),
                              'outcome': [new_comp] * len(places),
                              'source': [source] * len(places),
@@ -393,7 +392,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                                                                     probabilities)
                 else:
                     all_data[p_comp][new_comp] = all_data[p_comp][source] * (
-                                probabilities * np.ones_like(all_data[p_comp][source]))
+                            probabilities * np.ones_like(all_data[p_comp][source]))
 
                 # Shift to account for the delay
                 ## stoch_delay_flag is whether to use stochastic delays or not
@@ -402,7 +401,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                                                         stoch_delay_flag=stoch_delay_flag)
                 # Produce a dataframe an merge it
                 df_p = dataframe_from_array(all_data[p_comp][new_comp], places, dates, new_comp)
-                df_p['p_comp'] = p_comp
+                df_p['mc_vaccination_stage'] = p_comp
                 df = pd.concat([df, df_p])
             outcomes = pd.merge(outcomes, df)
 
@@ -412,7 +411,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     durations = loaded_values[
                         (loaded_values['quantity'] == 'duration') &
                         (loaded_values['outcome'] == new_comp) &
-                        (loaded_values['p_comp'] == p_comps[0]) &
+                        (loaded_values['mc_vaccination_stage'] == p_comps[0]) &
                         (loaded_values['source'] == source)
                         ]['value'].to_numpy()
                 else:
@@ -426,7 +425,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                             hpar,
                             pd.DataFrame.from_dict(
                                 {'geoid': places,
-                                 'p_comp': [p_comp] * len(places),
+                                 'mc_vaccination_stage': [p_comp] * len(places),
                                  'quantity': ['duration'] * len(places),
                                  'outcome': [new_comp] * len(places),
                                  'source': [source] * len(places),
@@ -462,7 +461,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
 
                     df_p = dataframe_from_array(all_data[p_comp][parameters[new_comp]['duration_name']], places,
                                                 dates, parameters[new_comp]['duration_name'])
-                    df_p['p_comp'] = p_comp
+                    df_p['mc_vaccination_stage'] = p_comp
                     df = pd.concat([df, df_p])
                 outcomes = pd.merge(outcomes, df)
 
