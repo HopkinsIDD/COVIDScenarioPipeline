@@ -204,24 +204,24 @@ def states2Df(s, states):
 
     ts_index = pd.MultiIndex.from_product(
         [pd.date_range(s.ti, s.tf, freq='D'), s.compartments.compartments['name']],
-        names=['date', 'concat_compartment'])
+        names=['date', 'mc_name'])
     # prevalence data, we use multi.index dataframe, sparring us the array manipulation we use to do
     prev_df = pd.DataFrame(
         data=states_prev.reshape(s.n_days * s.compartments.get_ncomp(), s.nnodes),
         index=ts_index, columns=s.spatset.nodenames).reset_index()
     prev_df = pd.merge(left=s.compartments.get_compartments_explicitDF(), right=prev_df,
-                       how='right', on='concat_compartment')
+                       how='right', on='mc_name')
     prev_df.insert(loc=0, column='value_type', value='prevalence')
 
     ts_index = pd.MultiIndex.from_product(
         [pd.date_range(s.ti, s.tf, freq='D'), s.compartments.compartments['name']],
-        names=['date', 'concat_compartment'])
+        names=['date', 'mc_name'])
 
     incid_df = pd.DataFrame(
         data=states_diff.reshape(s.n_days * s.compartments.get_ncomp(), s.nnodes),
         index=ts_index, columns=s.spatset.nodenames).reset_index()
     incid_df = pd.merge(left=s.compartments.get_compartments_explicitDF(), right=incid_df,
-                        how='right', on='concat_compartment')
+                        how='right', on='mc_name')
     incid_df.insert(loc=0, column='value_type', value='incidence')
 
     out_df = pd.concat((incid_df, prev_df), axis=0).set_index('date')
