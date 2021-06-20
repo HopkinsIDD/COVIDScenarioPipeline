@@ -421,8 +421,8 @@ class Compartments:
         assert (reduce(lambda a, b: a and b, [(x.find("%") == -1) for x in unique_strings]))
 
         parsed_parameters = self.parse_parameter_strings_to_numpy_arrays(parameters, parameter_names, unique_strings)
-        print(parsed_parameters)
-        print(unique_strings)
+        #print(parsed_parameters)
+        #print(unique_strings)
 
         for it, elem in enumerate(self.transitions['rate']):
             candidate = reduce(lambda a, b: a + "*" + b, elem)
@@ -545,8 +545,8 @@ class Compartments:
             },
             operators=["^", "*", "/", "+", "-"]
     ):
-        print(string_list)
-        print(operators)
+        #print(string_list)
+        #print(operators)
         split_strings = [x.split(operators[0]) for x in string_list]
         rc_size = [len(string_list)]
         for x in parameters.shape[1:]:
@@ -569,11 +569,11 @@ class Compartments:
                                                                                                                     not is_resolvable]],
                                                                                               operator_reduce_lambdas,
                                                                                               operators[1:])
-            print(tmp_rc.shape)
+            #print(tmp_rc.shape)
             for numeric_index in [x for x in range(len(is_numeric)) if is_numeric[x]]:
                 tmp_rc[numeric_index] = parameters[0] * 0 + float(string[numeric_index])
             for parameter_index in [x for x in range(len(is_parameter)) if is_parameter[x]]:
-                print(parameter_names)
+                #print(parameter_names)
                 parameter_name_index = [it for it, x in enumerate(parameter_names) if x == string[parameter_index]]
                 tmp_rc[parameter_index] = parameters[parameter_name_index]
             rc[sit] = reduce(operator_reduce_lambdas[operators[0]], tmp_rc)

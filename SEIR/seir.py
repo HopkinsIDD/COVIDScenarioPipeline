@@ -59,7 +59,6 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
             s.compartments.get_transition_array(parameters, s.parameters.pnames)
 
     with Timer('onerun_SEIR.compute'):
-        print(parsed_parameters.shape, s.n_days, proportion_info.shape, proportion_array.shape, transition_array.shape)
         states = steps_SEIR_nb(
             s.compartments.compartments.shape[0],
             s.nnodes,
@@ -195,12 +194,12 @@ def states2Df(s, states):
     #
     # Write output to .snpi.*, .spar.*, and .seir.* files
 
-    states_prev, states_cumu = states  # both are [ndays x ncompartments x nspatial_nodes ]
+    states_prev, states_incid = states  # both are [ndays x ncompartments x nspatial_nodes ]
 
     # add line of zero to diff, so we get the real cumulative.
-    states_diff = np.zeros((states_cumu.shape[0] + 1, *states_cumu.shape[1:]))
-    states_diff[1:, :, :] = states_cumu
-    states_diff = np.diff(states_diff, axis=0)
+    #states_diff = np.zeros((states_cumu.shape[0] + 1, *states_cumu.shape[1:]))
+    #states_diff[1:, :, :] = states_cumu
+    #states_diff = np.diff(states_diff, axis=0)
 
     ts_index = pd.MultiIndex.from_product(
         [pd.date_range(s.ti, s.tf, freq='D'), s.compartments.compartments['name']],
@@ -218,7 +217,7 @@ def states2Df(s, states):
         names=['date', 'mc_name'])
 
     incid_df = pd.DataFrame(
-        data=states_diff.reshape(s.n_days * s.compartments.get_ncomp(), s.nnodes),
+        data=states_incid.reshape(s.n_days * s.compartments.get_ncomp(), s.nnodes),
         index=ts_index, columns=s.spatset.nodenames).reset_index()
     incid_df = pd.merge(left=s.compartments.get_compartments_explicitDF(), right=incid_df,
                         how='right', on='mc_name')

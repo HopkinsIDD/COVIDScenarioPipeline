@@ -89,7 +89,6 @@ class SeedingAndIC:
                         f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
 
         elif method == 'InitialConditionsFolderDraw':
-            logger.critical("Untested method SetInitialConditions !!! Please report this messsage.")
             fp = file_paths.create_file_name(setup.in_run_id, setup.in_prefix, sim_id + setup.first_sim_index - 1,
                                              self.initial_conditions_config["initial_file_type"], "parquet",
                                              create_directory=False)
@@ -100,7 +99,7 @@ class SeedingAndIC:
 
             y0 = np.zeros((setup.compartments.compartments.shape[0], setup.nnodes))
             for comp_idx, comp_name in setup.compartments.compartments['name'].iteritems():
-                ic_df_compartment = ic_df[ic_df['concat_compartment'] == comp_name]
+                ic_df_compartment = ic_df[ic_df['mc_name'] == comp_name]
                 for pl_idx, pl in enumerate(setup.spatset.nodenames):
                     if pl in ic_df.columns:
                         y0[comp_idx, pl_idx] = float(ic_df_compartment[pl])
