@@ -148,23 +148,29 @@ def test_steps_SEIR_nb_simple_spread():
                             popnodes_key="population",
                             nodenames_key="geoid")
 
+    index = 1
+    run_id = 'test_SeedOneNode'
+    prefix = ''
     s = setup.Setup(setup_name="test_seir",
                     spatial_setup=ss,
                     nsim=1,
                     npi_scenario="None",
                     npi_config=config["interventions"]["settings"]["None"],
                     parameters_config=config["seir"]["parameters"],
+                    seeding_config=config["seeding"],
                     ti=config["start_date"].as_date(),
                     tf=config["end_date"].as_date(),
                     interactive=True,
                     write_csv=False,
+                    first_sim_index=index,
+                    in_run_id=run_id,
+                    in_prefix=prefix,
+                    out_run_id=run_id,
+                    out_prefix=prefix,
                     dt=0.25)
 
-    seeding = np.zeros((s.n_days, s.nnodes))
-    seeding[:, 0] = 100
-
-    y0 = np.zeros((s.compartments.get_ncomp(), s.nnodes))
-    y0[0, :] = s.popnodes
+    seeding_data = s.seedingAndIC.draw_seeding(sim_id=100, setup=s)
+    initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -175,15 +181,28 @@ def test_steps_SEIR_nb_simple_spread():
     params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
     params = s.parameters.parameters_reduce(params, npi)
 
+    parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info = \
+        s.compartments.get_transition_array(params, s.parameters.pnames)
 
-
-    for i in range(100):
-        states = seir.steps_SEIR_nb(*params, y0,
-                                    seeding, s.dt, s.n_days, s.nnodes, s.popnodes,
-                                    mobility_geoid_indices, mobility_data_indices,
-                                    mobility_data, True)
-
-        assert states[seir.cumI, :, 1, :].max() > 0
+    for i in range(10):
+        states = seir.steps_SEIR_nb(
+            s.compartments.compartments.shape[0],
+            s.nnodes,
+            s.n_days,
+            parsed_parameters,
+            s.dt,
+            transition_array,
+            proportion_info,
+            proportion_array,
+            initial_conditions,
+            seeding_data,
+            mobility_data,
+            mobility_geoid_indices,
+            mobility_data_indices,
+            s.popnodes,
+            True)
+        df = seir.states2Df(s, states)
+        assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R')].loc[str(s.tf), '20002'] > 1
 
 
 def test_steps_SEIR_no_spread():
@@ -195,23 +214,29 @@ def test_steps_SEIR_no_spread():
                             popnodes_key="population",
                             nodenames_key="geoid")
 
+    index = 1
+    run_id = 'test_SeedOneNode'
+    prefix = ''
     s = setup.Setup(setup_name="test_seir",
                     spatial_setup=ss,
                     nsim=1,
                     npi_scenario="None",
                     npi_config=config["interventions"]["settings"]["None"],
                     parameters_config=config["seir"]["parameters"],
+                    seeding_config=config["seeding"],
                     ti=config["start_date"].as_date(),
                     tf=config["end_date"].as_date(),
                     interactive=True,
                     write_csv=False,
+                    first_sim_index=index,
+                    in_run_id=run_id,
+                    in_prefix=prefix,
+                    out_run_id=run_id,
+                    out_prefix=prefix,
                     dt=0.25)
 
-    seeding = np.zeros((s.n_days, s.nnodes))
-    seeding[:, 0] = 100
-
-    y0 = np.zeros((s.compartments.get_ncomp(), s.nnodes))
-    y0[0, :] = s.popnodes
+    seeding_data = s.seedingAndIC.draw_seeding(sim_id=100, setup=s)
+    initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -219,17 +244,32 @@ def test_steps_SEIR_no_spread():
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
-    parameters = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
-    parameters = s.parameters.parameters_reduce(parameters, npi)
+    params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
+    params = s.parameters.parameters_reduce(params, npi)
 
-    for i in range(100):
-        states = seir.steps_SEIR_nb(*parameters, y0,
-                                    seeding, s.dt, s.n_days, s.nnodes, s.popnodes,
-                                    mobility_geoid_indices, mobility_data_indices,
-                                    mobility_data, True)
+    parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info = \
+        s.compartments.get_transition_array(params, s.parameters.pnames)
 
-        assert states[seir.cumI, :, 1, :].max().shape == ()
-        assert states[seir.cumI, :, 1, :].max() == 0
+
+    for i in range(10):
+        states = seir.steps_SEIR_nb(
+            s.compartments.compartments.shape[0],
+            s.nnodes,
+            s.n_days,
+            parsed_parameters,
+            s.dt,
+            transition_array,
+            proportion_info,
+            proportion_array,
+            initial_conditions,
+            seeding_data,
+            mobility_data,
+            mobility_geoid_indices,
+            mobility_data_indices,
+            s.popnodes,
+            True)
+        df = seir.states2Df(s, states)
+        assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R')].loc[str(s.tf), '20002'] == 0.0
 
 
 def test_continuation_resume():

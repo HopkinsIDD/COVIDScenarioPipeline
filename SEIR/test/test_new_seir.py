@@ -69,7 +69,7 @@ def test_constant_population():
     assert (type(transition_array[0][0]) == np.int64)
     assert (proportion_array.shape == (9,))
     assert (type(proportion_array[0]) == np.int64)
-    assert (proportion_info.shape == (2, 6))
+    assert (proportion_info.shape == (3, 6))
     assert (type(proportion_info[0][0]) == np.int64)
     assert (initial_conditions.shape == (s.compartments.compartments.shape[0], s.nnodes))
     assert (type(initial_conditions[0][0]) == np.float64)

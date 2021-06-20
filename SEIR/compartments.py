@@ -582,7 +582,7 @@ class Compartments:
     def get_compartments_explicitDF(self):
         df: pd.DataFrame = self.compartments.copy(
             deep=True)  # .melt(id_vars='name', var_name='meta_compartment', value_name='sub_compartment')
-        # add prefix mc to all columns
+        # add prefix mc to all columns, even name
         rename_dict = {cn: f"mc_{cn}" for cn in df.columns}
         df = df.rename(columns=rename_dict)
         return df
