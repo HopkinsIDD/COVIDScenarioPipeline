@@ -135,8 +135,8 @@ def test_simple():
 def test_multitime():
     _success("test_multitime")
 
-def test_old_hospitalization():
-    _success("test_old_hospitalization")
+#def test_old_hospitalization():
+#    _success("test_old_hospitalization")
 
 def test_importation():
     _success("test_importation")
