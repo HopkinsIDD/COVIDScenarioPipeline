@@ -341,7 +341,8 @@ print_transmission_interventions <- function(dat,
     cat(paste0(
         'interventions:\n',
         '  scenarios:\n',
-        '    - ', scenario, '\n'
+        '    - ', scenario, '\n',
+        '  settings:\n'
     ))
 
     dat <- collapse_intervention(dat) %>%
