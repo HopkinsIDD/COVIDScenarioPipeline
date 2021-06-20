@@ -13,6 +13,7 @@ from .utils import config
 from . import file_paths
 from . import compartments
 from functools import reduce
+import typing
 import logging
 
 logger = logging.getLogger(__name__)
@@ -245,12 +246,12 @@ def npi_load(fname, extension):
 
 
 # Helper function
-def _parameter_reduce(parameter, modification, method="prod"):
+def _parameter_reduce(parameter: np.ndarray, modification: typing.Union[pd.DataFrame, float], method: str = "prod") -> np.ndarray:
     if isinstance(modification, pd.DataFrame):
         modification = modification.T
         modification.index = pd.to_datetime(modification.index.astype(str))
         #modification = modification.resample(str(dt * 24) + 'H').ffill().to_numpy()
-        modification.resample('1D').ffill().to_numpy()
+        modification = modification.resample('1D').ffill().to_numpy()  # Type consistency:
     if method == "prod":
         return parameter * (1 - modification)
     elif method == "sum":
