@@ -157,8 +157,8 @@ def test_report():
     today_str = datetime.date.today().strftime("%Y%m%d")
     assert_file(f"notebooks/Hawaii_{today_str}/Hawaii_{today_str}_report.html")
 
-def test_hosp_age_adjust():
-    _success("test_hosp_age_adjust")
+#def test_hosp_age_adjust():
+#    _success("test_hosp_age_adjust")
 
 def test_hospitalization_branching():
     _success("test_hospitalization_branching")
