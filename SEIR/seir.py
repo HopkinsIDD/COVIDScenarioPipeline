@@ -190,7 +190,7 @@ def run_parallel(s, *, n_jobs=1):
     logging.info(f""">> {s.nsim} simulations completed in {time.monotonic() - start:.1f} seconds""")
 
 
-def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
+def states2Df(s, states):
     # Tidyup data for  R, to save it:
     #
     # Write output to .snpi.*, .spar.*, and .seir.* files
@@ -198,8 +198,8 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
     states_prev, states_cumu = states  # both are [ndays x ncompartments x nspatial_nodes ]
 
     # add line of zero to diff, so we get the real cumulative.
-    states_diff = np.zeros((states_cumu.shape[0]+1,*states_cumu.shape[1:]))
-    states_diff[1:,:,:] = states_cumu
+    states_diff = np.zeros((states_cumu.shape[0] + 1, *states_cumu.shape[1:]))
+    states_diff[1:, :, :] = states_cumu
     states_diff = np.diff(states_diff, axis=0)
 
     ts_index = pd.MultiIndex.from_product(
@@ -224,8 +224,13 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
                         how='right', on='concat_compartment')
     incid_df.insert(loc=0, column='value_type', value='incidence')
 
-    out_df = pd.concat((incid_df, prev_df),axis = 0).set_index('date')
+    out_df = pd.concat((incid_df, prev_df), axis=0).set_index('date')
 
+    return out_df
+
+
+def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
+    out_df = states2Df(s, states)
     if s.write_csv:
         npi.writeReductions(
             file_paths.create_file_name_without_extension(s.out_run_id, s.out_prefix,
