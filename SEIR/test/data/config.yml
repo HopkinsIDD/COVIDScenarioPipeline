@@ -22,7 +22,7 @@ initial_conditions:
 
 seir:
   parameters:
-    alpha: 0.5
+    alpha: 0.9
     sigma: 1 / 5.2
     gamma:
       distribution: uniform
