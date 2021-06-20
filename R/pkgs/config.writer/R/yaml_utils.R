@@ -308,12 +308,13 @@ yaml_stack <- function(dat,
         dplyr::summarize(name = paste0(name, collapse = '", "'))
 
     for(i in 1:nrow(dat)){
-
+        if(dat$category[i]=="local_variance"){next}
         cat(paste0(
             "    ", dat$category[i], ":\n",
             "      template: Stacked\n",
             '      scenarios: ["', dat$name[i], '"]\n'
         ))
+
     }
 
     cat(paste0(
