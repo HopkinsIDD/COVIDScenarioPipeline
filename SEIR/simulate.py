@@ -126,7 +126,7 @@ import click
 
 from SEIR import seir, setup, file_paths
 from SEIR.utils import config
-from SEIR.profile import profile_options
+#from SEIR.profile import profile_options
 
 
 @click.command()
