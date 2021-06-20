@@ -413,7 +413,7 @@ set_variant_params <- function(b117_only = FALSE,
                                month_shift = NULL,
                                transmission_increase = NULL,
                                inference = TRUE,
-                               v_dist="truncnorm",  v_sd = NULL, v_a = 0, v_b = 1,
+                               v_dist="truncnorm",  v_sd = NULL, v_a = -1.5, v_b = 0,
                                p_dist="truncnorm",
                                p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1
 ){
