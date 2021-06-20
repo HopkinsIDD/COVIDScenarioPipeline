@@ -239,8 +239,8 @@ generate_multiple_variants <- function(variant_path_1,
         transmission_increase=0.2
     }
 
-    variant_1 <- readr::read_csv(variant_path_1)
-    variant_2 <- readr::read_csv(variant_path_2)
+    b117 <- readr::read_csv(variant_path_1)
+    b1617 <- readr::read_csv(variant_path_2)
 
     sim_start_date <- as.Date(sim_start_date)
     sim_end_date <- as.Date(sim_end_date)
@@ -270,8 +270,8 @@ generate_multiple_variants <- function(variant_path_1,
         dplyr::filter(!(start_date>sim_end_date)) %>%
         dplyr::filter(date==start_date) %>%
         dplyr::mutate(param = "ReduceR0") %>%
-        dplyr::mutate(R_ratio = variant_b117*(1-variant_prop) + variant_effect*(1+trans_inc)*variant_prop,
-                      sd_variant = variant_b117_lb*(1-variant_prop) + variant_lb*(1+trans_inc)*variant_prop,
+        dplyr::mutate(R_ratio = variant_effect*(1-variant_prop) + variant_effect*(1+trans_inc)*variant_prop,
+                      sd_variant = variant_lb*(1-variant_prop) + variant_lb*(1+trans_inc)*variant_prop,
                       sd_variant = (R_ratio - sd_variant)/1.96) %>%
         dplyr::mutate(variant = "B1617")
 
@@ -293,7 +293,7 @@ generate_multiple_variants <- function(variant_path_1,
         dplyr::group_by(R_ratio) %>%
         dplyr::summarise(start_date = min(start_date),
                          end_date = max(end_date),
-                         sd_variant = mean(sd_variant),
+                         value_sd = mean(sd_variant),
                          week = ifelse(length(week)==1, as.character(week), paste0(min(week), "-", max(week)))) %>%
         dplyr::filter(R_ratio>1)
 }
