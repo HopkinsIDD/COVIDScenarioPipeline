@@ -172,24 +172,6 @@ def steps_SEIR_nb(
                                                   relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] / \
                                                   population[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] * \
                                                   relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]
-                        print("HERE")
-                        print(spatial_node)
-                        print(proportion_keep_compartment)
-                        print(rate_keep_compartment)
-                        print(proportion_change_compartment)
-                        print(rate_change_compartment)
-                        print("DETAIL")
-
-                        print(proportion_change_compartment)
-                        print(mobility_data)
-                        print(mobility_data_indices)
-                        print(mobility_row_indices)
-                        print(mobility_row_indices[spatial_node])
-                        print(relevant_number_in_comp[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]])
-                        print(relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]])
-                        print(population[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]])
-                        print(relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]])
-                        print("END DETAIL")
                         total_rate[spatial_node] *= (rate_keep_compartment + rate_change_compartment.sum())
             #print("voilà for", transition_index)
             compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
@@ -203,9 +185,6 @@ def steps_SEIR_nb(
             else:
                 number_move = source_number * compound_adjusted_rate
 
-            if number_move.max() > 0:
-                if transition_index == 0:
-                    print(number_move)
             #            # number_move = min(
             #            #     number_move,
             #            #     states_next[transitions[transition_source_index][transition_index]]
@@ -237,8 +216,8 @@ def steps_SEIR_nb(
         if ((states_current.min() < 0) or (states_current.max() > 10 ** 10)):
             raise ValueError("Overflow error")
 
-    print(states)
-    print(states_cumulatives)
+    # print(states)
+    # print(states_cumulatives)
     return states, states_cumulatives
 
 
