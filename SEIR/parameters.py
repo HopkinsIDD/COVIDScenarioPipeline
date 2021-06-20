@@ -65,20 +65,17 @@ class Parameters:
                 n_parallel_transitions = len(transitions_map.get())
                 transition_map = transitions_map
 
-            alpha_val = 1.0
+            self.alpha_val = 1.0
             if "alpha" in self.pconfig:
-                alpha_val = self.pconfig["alpha"].as_evaled_expression()
-            sigma_val = self.pconfig["sigma"].as_evaled_expression()
+                self.alpha_val = self.pconfig["alpha"].as_evaled_expression()
+            self.sigma_val = self.pconfig["sigma"].as_evaled_expression()
             gamma_dist = self.pconfig["gamma"].as_random_distribution()
             R0s_dist = self.pconfig["R0s"].as_random_distribution()
 
             ### Do some conversions
             # Convert numbers to distribution like object that can be called
-            alpha_dist = lambda: alpha_val
-            sigma_dist = lambda: sigma_val
-
-            p_dists = {'alpha': alpha_dist,
-                       'sigma': sigma_dist,
+            p_dists = {'alpha': self.picklable_lamda_alpha,
+                       'sigma': self.picklable_lamda_sigma,
                        'gamma': gamma_dist,
                        'R0s': R0s_dist}
             for key in p_dists:
@@ -120,6 +117,14 @@ class Parameters:
         logging.debug(f"Data to sample is: {self.pdata}")
         logging.debug(f"Index in arrays are: {self.pnames2pindex}")
         logging.debug(f"NPI overlap operation is {self.intervention_overlap_operation} ")
+
+    def picklable_lamda_alpha(self):
+        """ These two functions were lambda in __init__ before, it was more elegant. but as the object needs to be pickable,
+        we cannot use second order function, hence these ugly definitions"""
+        return self.alpha_val
+
+    def picklable_lamda_sigma(self):
+        return self.sigma_val
 
     def get_pnames2pindex(self) -> dict:
         return self.pnames2pindex
@@ -202,6 +207,7 @@ class Parameters:
 
         return p_reduced
 
+
 ### DEprecatated code for reference:
 # Returns alpha, beta, sigma, and gamma parameters in a tuple.
 # All parameters are arrays of shape (nt_inter, nnodes).
@@ -215,37 +221,41 @@ def parameters_quick_draw_deprecated(p, nt_inter, nnodes):
 
     sigma = np.full((nt_inter, nnodes), p.sigma_val)
 
-    #gamma = p_config["gamma"].as_random_distribution()() * n_Icomp
+    # gamma = p_config["gamma"].as_random_distribution()() * n_Icomp
     gamma = np.full((nt_inter, nnodes), p.gamma_dist() * n_Icomp)
 
     R0s = p.R0s_dist()
     beta = R0s * gamma / n_Icomp
     beta = np.full((nt_inter, nnodes), beta)
 
-    susceptibility_reduction = np.zeros((nt_inter, p.n_parallel_compartments, nnodes), dtype = 'float64')
-    transmissibility_reduction = np.zeros((nt_inter, p.n_parallel_compartments, nnodes), dtype = 'float64')
-    transition_rate = np.zeros((nt_inter, p.n_parallel_transitions, nnodes), dtype = 'float64')
-    transition_from = np.zeros((p.n_parallel_transitions), dtype = 'int32')
-    transition_to = np.zeros((p.n_parallel_transitions), dtype = 'int32')
+    susceptibility_reduction = np.zeros((nt_inter, p.n_parallel_compartments, nnodes), dtype='float64')
+    transmissibility_reduction = np.zeros((nt_inter, p.n_parallel_compartments, nnodes), dtype='float64')
+    transition_rate = np.zeros((nt_inter, p.n_parallel_transitions, nnodes), dtype='float64')
+    transition_from = np.zeros((p.n_parallel_transitions), dtype='int32')
+    transition_to = np.zeros((p.n_parallel_transitions), dtype='int32')
 
     ## JK : why 1.5?
     if p.n_parallel_compartments > 1.5:
-    #if"parallel_structure" in p_config:
-        #for index, compartment in enumerate(p_config["parallel_structure"]["compartments"]):
+        # if"parallel_structure" in p_config:
+        # for index, compartment in enumerate(p_config["parallel_structure"]["compartments"]):
         for compartment, index in p.compartments_dict.items():
-            #if "susceptibility_reduction" in p_config["parallel_structure"]["compartments"][compartment]:
+            # if "susceptibility_reduction" in p_config["parallel_structure"]["compartments"][compartment]:
             if "susceptibility_reduction" in p.compartments_map[compartment]:
-                susceptibility_reduction[:,index,:] = p.compartments_map[compartment]["susceptibility_reduction"].as_random_distribution()()
+                susceptibility_reduction[:, index, :] = p.compartments_map[compartment][
+                    "susceptibility_reduction"].as_random_distribution()()
             else:
-                raise ValueError(f"Susceptibility Reduction not found for compartment {compartment} in config {p.compartments_map}")
+                raise ValueError(
+                    f"Susceptibility Reduction not found for compartment {compartment} in config {p.compartments_map}")
             if "transmissibility_reduction" in p.compartments_map[compartment]:
-                transmissibility_reduction[:,index,:] = p.compartments_map[compartment]["transmissibility_reduction"].as_random_distribution()()
+                transmissibility_reduction[:, index, :] = p.compartments_map[compartment][
+                    "transmissibility_reduction"].as_random_distribution()()
             else:
-                raise ValueError(f"Transmissibility Reduction not found for compartment {compartment} in config {p.compartments_map}")
+                raise ValueError(
+                    f"Transmissibility Reduction not found for compartment {compartment} in config {p.compartments_map}")
 
         for transition in range(p.n_parallel_transitions):
-            transition_rate[:,transition,:] = p.transition_map[transition]["rate"].as_random_distribution()()
-            from_raw =p.transition_map[transition]["from"].get()
+            transition_rate[:, transition, :] = p.transition_map[transition]["rate"].as_random_distribution()()
+            from_raw = p.transition_map[transition]["from"].get()
             transition_from[transition] = p.compartments_dict[from_raw]
             to_raw = p.transition_map[transition]["to"].get()
             transition_to[transition] = p.compartments_dict[to_raw]
@@ -265,6 +275,7 @@ def parameters_quick_draw_deprecated(p, nt_inter, nnodes):
         transition_to
     )
 
+
 # Returns alpha, beta, sigma, and gamma parameters in a tuple.
 # All parameters are arrays of shape (nt_inter, nnodes).
 # They are returned as a tuple because it is numba-friendly for steps_SEIR_nb().
@@ -272,36 +283,36 @@ def parameters_quick_draw_deprecated(p, nt_inter, nnodes):
 # They are reduced according to the NPI provided.
 def parameters_reduce_deprecated(p_draw, npi, dt):
     alpha, \
-        beta, \
-        sigma, \
-        gamma, \
-        n_parallel_compartments, \
-        susceptibility_reduction, \
-        transmissibility_reduction, \
-        n_parallel_transitions, \
-        transition_rate, \
-        transition_from, \
-        transition_to = copy.deepcopy(p_draw)
+    beta, \
+    sigma, \
+    gamma, \
+    n_parallel_compartments, \
+    susceptibility_reduction, \
+    transmissibility_reduction, \
+    n_parallel_transitions, \
+    transition_rate, \
+    transition_from, \
+    transition_to = copy.deepcopy(p_draw)
 
     alpha = _parameter_reduce(alpha, npi.getReduction("alpha"), dt)
     beta = _parameter_reduce(beta, npi.getReduction("r0"), dt)
     sigma = _parameter_reduce(sigma, npi.getReduction("sigma"), dt)
     gamma = _parameter_reduce(gamma, npi.getReduction("gamma"), dt)
     for compartment in range(n_parallel_compartments):
-        susceptibility_reduction[:,compartment,:] = _parameter_reduce(
-            susceptibility_reduction[:,compartment,:],
+        susceptibility_reduction[:, compartment, :] = _parameter_reduce(
+            susceptibility_reduction[:, compartment, :],
             npi.getReduction("susceptibility_reduction" + " " + str(compartment)),
             dt
         )
-        transmissibility_reduction[:,compartment,:] = _parameter_reduce(
-            transmissibility_reduction[:,compartment,:],
+        transmissibility_reduction[:, compartment, :] = _parameter_reduce(
+            transmissibility_reduction[:, compartment, :],
             npi.getReduction("transmissibility_reduction" + " " + str(compartment)),
             dt
         )
 
     for transition in range(n_parallel_transitions):
-        transition_rate[:,transition,:] = _parameter_reduce(
-            transition_rate[:,transition,:],
+        transition_rate[:, transition, :] = _parameter_reduce(
+            transition_rate[:, transition, :],
             npi.getReduction("transition_rate" + " " + str(transition)),
             dt,
             "addative"
@@ -322,52 +333,51 @@ def parameters_reduce_deprecated(p_draw, npi, dt):
     )
 
 
-
 # Write parameters generated by parameters_quick_draw() to file
 def parameters_write_deprecated(parameters, fname, extension):
     alpha, \
-        beta, \
-        sigma, \
-        gamma, \
-        n_parallel_compartments, \
-        susceptibility_reduction, \
-        transmissibility_reduction, \
-        n_parallel_transitions, \
-        transition_rate, \
-        transition_from, \
-        transition_to = parameters
+    beta, \
+    sigma, \
+    gamma, \
+    n_parallel_compartments, \
+    susceptibility_reduction, \
+    transmissibility_reduction, \
+    n_parallel_transitions, \
+    transition_rate, \
+    transition_from, \
+    transition_to = parameters
 
     out_df = pd.DataFrame([alpha[0][0],
-                            beta[0][0] * n_Icomp / gamma[0][0],
-                            sigma[0][0],
-                            gamma[0][0] / n_Icomp,
-                            n_parallel_compartments,
-                            *[effect for effect in susceptibility_reduction[0,:,0]],
-                            *[reduction for reduction in transmissibility_reduction[0,:,0]],
-                            n_parallel_transitions,
-                            *[rate for rate in transition_rate[0,:,0] ],
-                            *[compartment for compartment in transition_from ],
-                            *[compartment for compartment in transition_to ]
-    ], \
-                            index = ["alpha",
-                                     "R0",
-                                     "sigma",
-                                     "gamma",
-                                     "n_parallel_compartments",
-                                     *[str(x) + " susceptibility reduction" for x in range(n_parallel_compartments)],
-                                     *[str(x) + " transmissibility reduction" for x in range(n_parallel_compartments)],
-                                     "n_parallel_transitions",
-                                     *[str(x) + " transition rate" for x in range(n_parallel_transitions)],
-                                     *[str(x) + " transition from" for x in range(n_parallel_transitions)],
-                                     *[str(x) + " transition to" for x in range(n_parallel_transitions)],
-                            ], columns = ["value"])
+                           beta[0][0] * n_Icomp / gamma[0][0],
+                           sigma[0][0],
+                           gamma[0][0] / n_Icomp,
+                           n_parallel_compartments,
+                           *[effect for effect in susceptibility_reduction[0, :, 0]],
+                           *[reduction for reduction in transmissibility_reduction[0, :, 0]],
+                           n_parallel_transitions,
+                           *[rate for rate in transition_rate[0, :, 0]],
+                           *[compartment for compartment in transition_from],
+                           *[compartment for compartment in transition_to]
+                           ], \
+                          index=["alpha",
+                                 "R0",
+                                 "sigma",
+                                 "gamma",
+                                 "n_parallel_compartments",
+                                 *[str(x) + " susceptibility reduction" for x in range(n_parallel_compartments)],
+                                 *[str(x) + " transmissibility reduction" for x in range(n_parallel_compartments)],
+                                 "n_parallel_transitions",
+                                 *[str(x) + " transition rate" for x in range(n_parallel_transitions)],
+                                 *[str(x) + " transition from" for x in range(n_parallel_transitions)],
+                                 *[str(x) + " transition to" for x in range(n_parallel_transitions)],
+                                 ], columns=["value"])
 
     if extension == "csv":
         out_df.to_csv(f"{fname}.{extension}", index_label="parameter")
     elif extension == "parquet":
         out_df["parameter"] = out_df.index
-        pa_df = pa.Table.from_pandas(out_df, preserve_index = False)
-        pa.parquet.write_table(pa_df,f"{fname}.{extension}")
+        pa_df = pa.Table.from_pandas(out_df, preserve_index=False)
+        pa.parquet.write_table(pa_df, f"{fname}.{extension}")
 
     else:
         raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
@@ -384,41 +394,39 @@ def parameters_load_deprecated(fname, extension, nt_inter, nnodes):
 
     alpha = float(pars[pars['parameter'] == 'alpha'].value)
     gamma = float(pars[pars['parameter'] == 'gamma'].value) * n_Icomp
-    beta =  float(pars[pars['parameter'] == 'R0'].value) * gamma / n_Icomp
+    beta = float(pars[pars['parameter'] == 'R0'].value) * gamma / n_Icomp
     sigma = float(pars[pars['parameter'] == 'sigma'].value)
 
     alpha = np.full((nt_inter, nnodes), alpha)
-    beta =  np.full((nt_inter, nnodes), beta)
+    beta = np.full((nt_inter, nnodes), beta)
     sigma = np.full((nt_inter, nnodes), sigma)
     gamma = np.full((nt_inter, nnodes), gamma)
-
 
     n_parallel_compartments = int(pars[pars['parameter'] == 'n_parallel_compartments'].value)
     n_parallel_transitions = int(pars[pars['parameter'] == 'n_parallel_transitions'].value)
 
-    susceptibility_reduction = np.ones((nt_inter, n_parallel_compartments, nnodes), dtype = 'float64')
-    transmissibility_reduction = np.ones((nt_inter, n_parallel_compartments, nnodes), dtype = 'float64')
-    transition_rate = np.zeros((nt_inter, n_parallel_transitions, nnodes), dtype = 'float64')
-    transition_from = np.zeros((n_parallel_transitions), dtype = 'int32')
-    transition_to = np.zeros((n_parallel_transitions), dtype = 'int32')
+    susceptibility_reduction = np.ones((nt_inter, n_parallel_compartments, nnodes), dtype='float64')
+    transmissibility_reduction = np.ones((nt_inter, n_parallel_compartments, nnodes), dtype='float64')
+    transition_rate = np.zeros((nt_inter, n_parallel_transitions, nnodes), dtype='float64')
+    transition_from = np.zeros((n_parallel_transitions), dtype='int32')
+    transition_to = np.zeros((n_parallel_transitions), dtype='int32')
 
     for compartment in range(n_parallel_compartments):
-        susceptibility_reduction[:,compartment,:] = \
+        susceptibility_reduction[:, compartment, :] = \
             float(pars[pars['parameter'] == (str(compartment) + ' susceptibility reduction')].value)
-        transmissibility_reduction[:,compartment,:] = \
+        transmissibility_reduction[:, compartment, :] = \
             float(pars[pars['parameter'] == (str(compartment) + ' transmissibility reduction')].value)
     for transition in range(n_parallel_transitions):
-        logging.debug(f""" all parameters are : { pars }""")
-        logging.debug(f""" expected name is : { (str(transition) + " " + "transition rate") }""")
-        logging.debug(f""" appropriate parameters are : { pars[pars['parameter'] == (str(transition) + " " + "transition rate")] }""")
-        transition_rate[:,transition,:] = \
+        logging.debug(f""" all parameters are : {pars}""")
+        logging.debug(f""" expected name is : {(str(transition) + " " + "transition rate")}""")
+        logging.debug(
+            f""" appropriate parameters are : {pars[pars['parameter'] == (str(transition) + " " + "transition rate")]}""")
+        transition_rate[:, transition, :] = \
             float(pars[pars['parameter'] == (str(transition) + " " + "transition rate")].value)
         transition_from[transition] = \
             int(pars[pars['parameter'] == (str(transition) + " " + "transition from")].value)
         transition_to[transition] = \
             int(pars[pars['parameter'] == (str(transition) + " " + "transition to")].value)
-
-
 
     return (
         alpha,
@@ -447,15 +455,17 @@ class Parameters_deprecated:
         self.transition_map = {}
         if "parallel_structure" in parameters_config:
             if not "compartments" in parameters_config["parallel_structure"]:
-                raise ValueError(f"A config specifying a parallel structure should assign compartments to that structure")
+                raise ValueError(
+                    f"A config specifying a parallel structure should assign compartments to that structure")
             self.compartments_map = parameters_config["parallel_structure"]["compartments"]
             n_parallel_compartments = len(self.compartments_map.get())
-            compartments_dict = {k : v for v,k in enumerate(self.compartments_map.get())}
+            compartments_dict = {k: v for v, k in enumerate(self.compartments_map.get())}
             if not "transitions" in parameters_config["parallel_structure"]:
-                raise ValueError(f"A config specifying a parallel structure should assign transitions to that structure")
+                raise ValueError(
+                    f"A config specifying a parallel structure should assign transitions to that structure")
             transitions_map = parameters_config["parallel_structure"]["transitions"]
             n_parallel_transitions = len(transitions_map.get())
-            self.transition_map =  transitions_map
+            self.transition_map = transitions_map
 
         self.n_parallel_transitions = n_parallel_transitions
         self.compartments_dict = compartments_dict
@@ -467,4 +477,3 @@ class Parameters_deprecated:
         self.sigma_val = parameters_config["sigma"].as_evaled_expression()
         self.gamma_dist = parameters_config["gamma"].as_random_distribution()
         self.R0s_dist = parameters_config["R0s"].as_random_distribution()
-
