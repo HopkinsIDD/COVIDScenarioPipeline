@@ -86,30 +86,19 @@ collapse_intervention<- function(dat
         dplyr::mutate(end_date=paste0("end_date: ", end_date),
                       start_date=paste0("- start_date: ", start_date)) %>%
         tidyr::unite(col="period", sep="\n              ", start_date:end_date) %>%
-        # dplyr::group_by(dplyr::across(-USPS:-period)) %>%
         dplyr::group_by(dplyr::across(-period)) %>%
         dplyr::summarize(period = paste0(period, collapse="\n            ")) %>%
         dplyr::group_by(dplyr::across(-geoid)) %>%
         dplyr::summarize(geoid = paste0(geoid, collapse='", "')) %>%
-        # dplyr::mutate(name = name,
-        #               period = paste0("            ", period, "\n")) %>%
         dplyr::mutate(period = paste0("            ", period))
 
     reduce <- dat %>%
         dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, starts_with("value_"), starts_with("pert_")) %>%
-        #dplyr::filter(template=="ReduceR0" & type=="transmission") %>%
         dplyr::filter(template %in% c("ReduceR0", "Reduce", "ReduceIntervention")) %>%
         dplyr::mutate(end_date=paste0("period_end_date: ", end_date),
                       start_date=paste0("period_start_date: ", start_date)) %>%
         tidyr::unite(col="period", sep="\n      ", start_date:end_date) %>%
         dplyr::mutate(period = paste0("      ", period, "\n")) %>%
-        # dplyr::ungroup() %>%
-        # dplyr::add_count(dplyr::across(-USPS)) %>%
-        # dplyr::group_by(across(-USPS:-geoid)) %>%
-        # dplyr::summarize(USPS_geo = paste0(unique(geoid), collapse = '-'),
-        #                  geoid = paste0(unique(geoid), collapse='", "'),
-        #                  USPS = paste0(unique(USPS), collapse='-')
-        # ) %>%
         dplyr::ungroup() %>%
         dplyr::add_count(dplyr::across(-USPS)) %>%
         dplyr::mutate(name = dplyr::case_when(category =="local_variance" | USPS %in% c("all", "") ~ name,
@@ -303,6 +292,7 @@ yaml_reduce_template<- function(dat
 #' Print stack interventions at the end of the transmission section
 #'
 #' @param dat dataframe with processed intervention name/periods; see collapsed_interventions.
+#' @param scenario intervention scenario name
 #'
 #' @return
 #' @export
@@ -372,11 +362,14 @@ print_transmission_interventions <- function(dat,
         dplyr::filter(template=="MultiTimeReduce")
 
     npi_names <- mtr %>% dplyr::distinct(name) %>% dplyr::pull()
-    for(i in 1:length(npi_names)){
-        npi <- mtr %>%
-            dplyr::filter(name == npi_names[i])
+    if(nrow(mtr) > 0){
+        for(i in 1:length(npi_names)){
+            npi <- mtr %>%
+                dplyr::filter(name == npi_names[i])
 
-        yaml_mtr_template(npi)
+            yaml_mtr_template(npi)
+        }
+
     }
 
     yaml_stack(dat,
