@@ -70,7 +70,7 @@ def steps_SEIR_nb(
 ):
     ## Declarations
     states = np.zeros((ndays, ncompartments, nspatial_nodes))
-    states_cumulatives = np.zeros((ndays, ncompartments, nspatial_nodes))
+    states_daily_incid = np.zeros((ndays, ncompartments, nspatial_nodes))
     states_current = np.zeros((ncompartments, nspatial_nodes))
     states_next = np.zeros((ncompartments, nspatial_nodes))
 
@@ -106,7 +106,7 @@ def steps_SEIR_nb(
                     seeding_data['day_start_idx'][today + 1]
             ):
 
-                # print("some-seeding")
+                #print("some-seeding", seeding_data['seeding_amounts'][seeding_instance_idx])
                 #print(seeding_instance_idx)
                 # seeding_instance_data[seeding_value_col][seeding_instance_idx] = min(
                 #     seeding_instance_data[seeding_value_col][seeding_instance_idx],
@@ -125,9 +125,9 @@ def steps_SEIR_nb(
                     seeding_data['seeding_amounts'][seeding_instance_idx]
 
                 # ADD TO cumulative, this is debatable,
-                states_cumulatives[today,
-                    seeding_data['seeding_destinations'][seeding_instance_idx],
-                    seeding_data['seeding_places'][seeding_instance_idx]] += \
+                states_daily_incid[today,
+                                   seeding_data['seeding_destinations'][seeding_instance_idx],
+                                   seeding_data['seeding_places'][seeding_instance_idx]] += \
                     seeding_data['seeding_amounts'][seeding_instance_idx]
 
 
@@ -192,7 +192,7 @@ def steps_SEIR_nb(
             #
             states_next[transitions[transition_source_col][transition_index]] -= number_move
             states_next[transitions[transition_destination_col][transition_index]] += number_move
-            states_cumulatives[today, transitions[transition_destination_col][transition_index], :] += number_move
+            states_daily_incid[today, transitions[transition_destination_col][transition_index], :] += number_move
 
         states_current = states_next
         if is_a_new_day:
@@ -217,8 +217,8 @@ def steps_SEIR_nb(
             raise ValueError("Overflow error")
 
     # print(states)
-    # print(states_cumulatives)
-    return states, states_cumulatives
+    # print(states_daily_incid)
+    return states, states_daily_incid
 
 
 if __name__ == "__main__":

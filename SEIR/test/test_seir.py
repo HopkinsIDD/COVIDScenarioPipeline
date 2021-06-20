@@ -140,6 +140,8 @@ def test_constant_population():
 
 
 def test_steps_SEIR_nb_simple_spread():
+    config.clear()
+    config.read(user=False)
     config.set_file(f"{DATA_DIR}/config.yml")
 
     ss = setup.SpatialSetup(setup_name="test_seir",
@@ -201,6 +203,25 @@ def test_steps_SEIR_nb_simple_spread():
             mobility_data_indices,
             s.popnodes,
             True)
+        df = seir.states2Df(s, states)
+        assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R')].loc[str(s.tf), '20002'] > 1
+
+        states = seir.steps_SEIR_nb(
+            s.compartments.compartments.shape[0],
+            s.nnodes,
+            s.n_days,
+            parsed_parameters,
+            s.dt,
+            transition_array,
+            proportion_info,
+            proportion_array,
+            initial_conditions,
+            seeding_data,
+            mobility_data,
+            mobility_geoid_indices,
+            mobility_data_indices,
+            s.popnodes,
+            False)
         df = seir.states2Df(s, states)
         assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R')].loc[str(s.tf), '20002'] > 1
 
@@ -270,6 +291,26 @@ def test_steps_SEIR_no_spread():
             True)
         df = seir.states2Df(s, states)
         assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R')].loc[str(s.tf), '20002'] == 0.0
+
+        states = seir.steps_SEIR_nb(
+            s.compartments.compartments.shape[0],
+            s.nnodes,
+            s.n_days,
+            parsed_parameters,
+            s.dt,
+            transition_array,
+            proportion_info,
+            proportion_array,
+            initial_conditions,
+            seeding_data,
+            mobility_data,
+            mobility_geoid_indices,
+            mobility_data_indices,
+            s.popnodes,
+            False)
+        df = seir.states2Df(s, states)
+        assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R')].loc[str(s.tf), '20002'] == 0.0
+
 
 
 def test_continuation_resume():
@@ -352,6 +393,7 @@ def test_continuation_resume():
         npi_scenario=scenario,
         npi_config=config["interventions"]["settings"][scenario],
         seeding_config=config["seeding"],
+        initial_conditions_config=config["initial_conditions"],
         parameters_config=config["seir"]["parameters"],
         ti=config["start_date"].as_date(),
         tf=config["end_date"].as_date(),
