@@ -190,38 +190,60 @@ load_hosp_geocombined_totals <- function(outcome_dir,
                                          pre_process=function(x) {x},
                                          incl_geoids,
                                          inference=TRUE,
+                                         vacc_compartment=FALSE,
                                          ...
 ) {
   
   require(tidyverse)
   
+  if(vacc_compartment){
     hosp_post_process <- function(x) {
-    x %>%
-      dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
-      dplyr::arrange(time) %>%
-      dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
-      dplyr::mutate(cum_death=cumsum(incidD)) %>%
-      dplyr::mutate(cum_case=cumsum(incidC)) %>%
-      dplyr::mutate(cum_inf=cumsum(incidI)) %>%
-      dplyr::group_by(pdeath, scenario, time, sim_num) %>%
-      dplyr::summarize(NhospCurr=sum(hosp_curr),
-                       NICUCurr=sum(icu_curr),
-                       NincidDeath=sum(incidD),
-                       NincidInf=sum(incidI),
-                       NincidCase=sum(incidC),
-                       NincidICU=sum(incidICU),
-                       NincidHosp=sum(incidH),
-                       NincidVent=sum(incidVent),
-                       NVentCurr=sum(vent_curr),
-                       cum_hosp=sum(cum_hosp),
-                       cum_death=sum(cum_death),
-                       cum_case=sum(cum_case),
-                       cum_inf=sum(cum_inf)) %>%
-      dplyr::mutate(scenario_name = factor(scenario,
-                                           levels = scenario_levels, 
-                                           labels = scenario_labels)) %>%
-        ungroup()
+      x %>%
+        dplyr::group_by(pdeath, scenario, sim_num, location, p_comp, time) %>%
+        dplyr::summarize(NhospCurr=sum(hosp_curr),
+                         NICUCurr=sum(icu_curr),
+                         NincidDeath=sum(incidD),
+                         NincidInf=sum(incidI),
+                         NincidCase=sum(incidC),
+                         NincidICU=sum(incidICU),
+                         NincidHosp=sum(incidH),
+                         NincidVent=sum(incidVent),
+                         NVentCurr=sum(vent_curr)) %>%
+        dplyr::group_by(pdeath, scenario, sim_num, location, p_comp) %>%
+        dplyr::mutate(cum_hosp=cumsum(NincidHosp)) %>%
+        dplyr::mutate(cum_death=cumsum(NincidDeath)) %>%
+        dplyr::mutate(cum_case=cumsum(NincidCase)) %>%
+        dplyr::mutate(cum_inf=cumsum(NincidInf)) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(scenario_name = factor(scenario,
+                                             levels = scenario_levels, 
+                                             labels = scenario_labels)) 
     }
+  } else{
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::group_by(pdeath, scenario, sim_num, location, time) %>%
+        dplyr::summarize(NhospCurr=sum(hosp_curr), 
+                         NICUCurr=sum(icu_curr),       
+                         NincidDeath=sum(incidD),
+                         NincidInf=sum(incidI),
+                         NincidCase=sum(incidC),
+                         NincidICU=sum(incidICU),
+                         NincidHosp=sum(incidH),
+                         NincidVent=sum(incidVent),
+                         NVentCurr=sum(vent_curr)) %>%
+        dplyr::group_by(pdeath, scenario, sim_num, location) %>%
+        dplyr::mutate(cum_hosp=cumsum(NincidHosp)) %>%
+        dplyr::mutate(cum_death=cumsum(NincidDeath)) %>%
+        dplyr::mutate(cum_case=cumsum(NincidCase)) %>%
+        dplyr::mutate(cum_inf=cumsum(NincidInf)) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(scenario_name = factor(scenario,
+                                             levels = scenario_levels, 
+                                             labels = scenario_labels)) 
+    }
+  }
+  
   
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
                                pdeath_filter=pdeath_filter,
@@ -279,32 +301,58 @@ load_hosp_county <- function(outcome_dir,
                              pre_process=function(x) {x},
                              incl_geoids,
                              inference=TRUE,
+                             vacc_compartment = FALSE,
                              ...
 ) {
   
   require(tidyverse)
   
+  if(vacc_compartment){
     hosp_post_process <- function(x) {
-    x %>%
-      dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
-      dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
-      dplyr::mutate(cum_death=cumsum(incidD)) %>%
-      dplyr::mutate(cum_case=cumsum(incidC)) %>%
-      dplyr::mutate(cum_inf=cumsum(incidI)) %>%
-      dplyr::rename(NhospCurr=hosp_curr,
-                    NICUCurr=icu_curr,
-                    NincidDeath=incidD,
-                    NincidInf=incidI,
-                    NincidCase=incidC,
-                    NincidICU=incidICU,
-                    NincidHosp=incidH,
-                    NincidVent=incidVent,
-                    NVentCurr=vent_curr) %>%
-      dplyr::ungroup() %>%
-      dplyr::mutate(scenario_name = factor(scenario,
-                                           levels = scenario_levels, 
-                                           labels = scenario_labels)) 
+      x %>%
+        dplyr::group_by(geoid, pdeath, scenario, sim_num, location, p_comp) %>%
+        dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
+        dplyr::mutate(cum_death=cumsum(incidD)) %>%
+        dplyr::mutate(cum_case=cumsum(incidC)) %>%
+        dplyr::mutate(cum_inf=cumsum(incidI)) %>%
+        dplyr::rename(NhospCurr=hosp_curr,
+                      NICUCurr=icu_curr,
+                      NincidDeath=incidD,
+                      NincidInf=incidI,
+                      NincidCase=incidC,
+                      NincidICU=incidICU,
+                      NincidHosp=incidH,
+                      NincidVent=incidVent,
+                      NVentCurr=vent_curr) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(scenario_name = factor(scenario,
+                                             levels = scenario_levels, 
+                                             labels = scenario_labels)) 
     }
+  } else{
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::group_by(geoid, pdeath, scenario, sim_num, location, time) %>%
+        dplyr::summarize(NhospCurr=sum(hosp_curr), 
+                         NICUCurr=sum(icu_curr),       
+                         NincidDeath=sum(incidD),
+                         NincidInf=sum(incidI),
+                         NincidCase=sum(incidC),
+                         NincidICU=sum(incidICU),
+                         NincidHosp=sum(incidH),
+                         NincidVent=sum(incidVent),
+                         NVentCurr=sum(vent_curr)) %>%
+        dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
+        dplyr::mutate(cum_hosp=cumsum(NincidHosp)) %>%
+        dplyr::mutate(cum_death=cumsum(NincidDeath)) %>%
+        dplyr::mutate(cum_case=cumsum(NincidCase)) %>%
+        dplyr::mutate(cum_inf=cumsum(NincidInf)) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(scenario_name = factor(scenario,
+                                             levels = scenario_levels, 
+                                             labels = scenario_labels)) 
+    }
+  }
   
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
                                pdeath_filter=pdeath_filter,
