@@ -1219,42 +1219,49 @@ make_sparkline_tab_r <- function(r_dat,
   
   intervention_names <- r_dat %>%
     dplyr::filter(scenario==current_scenario,
-                  pdeath==pdeath_filter) %>%
+                  pdeath==pdeath_filter & npi_name %in% npi_levels) %>%
     dplyr::distinct(npi_name, start_date, end_date, geoid) %>%
     dplyr::group_by(geoid) %>%
     dplyr::mutate(end_date=if_else(npi_name=="local_variance",
                                    lead(start_date)-1,
                                    end_date)) 
   
-  r_dat <- r_dat%>%
-    dplyr::filter(scenario==current_scenario,
-                  pdeath==pdeath_filter) %>%
-    dplyr::select(geoid, sim_num, npi_name, reduction, local_r, scenario, start_date, end_date) %>%
-    dplyr::left_join(timeline) %>%
-    dplyr::mutate(reduction=if_else(date<start_date | date>end_date, NA_real_, reduction)) %>% 
-    drop_na() %>%
-    dplyr::mutate(reduction=ifelse(npi_name=="local_variance", 1, 1-reduction)) %>%
-    dplyr::group_by(geoid, sim_num, date, scenario) %>%
-    dplyr::summarize(reduction=prod(reduction),
-                     local_r=unique(local_r)) %>%
-    dplyr::mutate(r=reduction*local_r) %>%
-    dplyr::select(-local_r, -reduction)
-  
-  if(susceptible){
-    r_dat<-county_dat %>%
+  r_dat2 <- list()
+  for(i in 1:length(unique(r_dat$geoid))){
+    r_dat2[[i]] <- r_dat%>%
       dplyr::filter(scenario==current_scenario,
-                    pdeath==pdeath_filter) %>%
-      dplyr::select(geoid, scenario, pdeath, sim_num, cum_inf, date=time) %>%
-      dplyr::right_join(r_dat) %>%
-      dplyr::left_join(geodat) %>%
-      dplyr::mutate(r=r*(1-cum_inf/pop)) 
+                    pdeath==pdeath_filter,
+                    geoid==unique(r_dat$geoid)[i]) %>%
+      dplyr::select(geoid, sim_num, npi_name, reduction, local_r, scenario, start_date, end_date) %>%
+      dplyr::left_join(timeline) %>%
+      dplyr::mutate(reduction=if_else(date<start_date | date>end_date, NA_real_, reduction)) %>% 
+      drop_na() %>%
+      dplyr::mutate(reduction=ifelse(npi_name=="local_variance", 1, 1-reduction)) %>%
+      dplyr::group_by(geoid, sim_num, date, scenario) %>%
+      dplyr::summarize(reduction=prod(reduction),
+                       local_r=unique(local_r)) %>%
+      dplyr::mutate(r=reduction*local_r) %>%
+      dplyr::select(-local_r, -reduction)
+    
+    if(susceptible){
+      r_dat2[[i]]<-county_dat %>%
+        dplyr::filter(scenario==current_scenario,
+                      pdeath==pdeath_filter, 
+                      geoid == unique(r_dat$geoid)[i]) %>%
+        dplyr::select(geoid, scenario, pdeath, sim_num, cum_inf, date=time) %>%
+        dplyr::right_join(r_dat2[[i]]) %>%
+        dplyr::left_join(geodat) %>%
+        dplyr::mutate(r=r*(1-cum_inf/pop)) 
+    }
+    
+    r_dat2[[i]] <- r_dat2[[i]] %>%
+      dplyr::group_by(geoid, name, date) %>%
+      dplyr::summarize(est_lo=quantile(r, pi_lo, na.rm=TRUE),
+                       est_hi=quantile(r, pi_hi, na.rm=TRUE),
+                       estimate=mean(r, na.rm=TRUE))
   }
   
-  r_dat <- r_dat %>%
-    dplyr::group_by(geoid, name, date) %>%
-    dplyr::summarize(est_lo=quantile(r, pi_lo, na.rm=TRUE),
-                     est_hi=quantile(r, pi_hi, na.rm=TRUE),
-                     estimate=mean(r, na.rm=TRUE))
+  r_dat <- bind_rows(r_dat2)
   
   r_dat <- r_dat %>%
     left_join(intervention_names) %>%
@@ -1265,7 +1272,6 @@ make_sparkline_tab_r <- function(r_dat,
                                     Sys.Date(),
                                     start_date+floor((end_date-start_date)/2)))
   
-
   # Create table with summary values
   r_tab<-r_dat%>%
     dplyr::filter(mid_point==date) %>%
