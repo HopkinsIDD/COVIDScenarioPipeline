@@ -80,6 +80,8 @@ npi_recode_scenario_mult <- function(data
 #'
 #' @param intervention_path path to csv with intervention list
 #' @param geodata df with state USPS and geoid from load_geodata_file
+#' @param prevent_overlap whether to allow for interventions to overlap in time and geoid
+#' @param prevent_gaps whether to prevent gaps in interventions (i.e. no interventions)
 #'
 #' @return df with six columns:
 #'         - USPS: state abbreviation
@@ -97,7 +99,9 @@ npi_recode_scenario_mult <- function(data
 #'
 #' npi_dat
 process_npi_shub <- function(intervention_path,
-                             geodata
+                             geodata, 
+                             prevent_overlap = TRUE, 
+                             prevent_gaps = TRUE
 ){
     state_cw <- tigris::fips_codes %>%
         dplyr::distinct(state, state_name) %>%
@@ -122,6 +126,18 @@ process_npi_shub <- function(intervention_path,
         og <- og %>%
             dplyr::mutate(template = "MultiTimeReduce") %>%
             dplyr::select(USPS, geoid, start_date, end_date, name=scenario_mult, template)
+    }
+    
+    if(prevent_overlap){
+        og <- og %>%
+            dplyr::group_by(USPS, geoid) %>% 
+            dplyr::mutate(end_date = dplyr::if_else(end_date >= dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
+    }
+    
+    if(prevent_gaps){
+        og <- og %>%
+            dplyr::group_by(USPS, geoid) %>% 
+            dplyr::mutate(end_date = dplyr::if_else(end_date < dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
     }
 
     return(og)

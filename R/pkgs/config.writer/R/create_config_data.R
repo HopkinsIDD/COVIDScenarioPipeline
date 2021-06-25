@@ -610,7 +610,7 @@ set_incidC_shift <- function(startdate,
 
 }
 
-#' Generate incidC shift intervention
+#' Bind interventions and save 
 #'
 #' @param ... intervention dfs with config params
 #' @param sim_start_date simulation start date
@@ -632,8 +632,77 @@ bind_interventions <- function(...,
 
     if(min(dat$start_date) < sim_start_date) stop("At least one intervention has a start date before the sim_start_date.")
     if(max(dat$end_date) > sim_end_date) stop("At least one intervention has an end date after the sim_end_date.")
+    
+    check <- dat %>%
+        dplyr::group_by(USPS, geoid, type, category) %>% 
+        dplyr::arrange(USPS, geoid, start_date) %>%
+        dplyr::mutate(note = dplyr::case_when(end_date >= dplyr::lead(start_date) ~ "Overlap", 
+                                              dplyr::lead(start_date)-end_date > 1 ~ "Gap", 
+                                              TRUE ~ NA_character_)) %>%
+        dplyr::filter(!is.na(note))
+    
+    if(nrow(check) > 0){
+        
+        if(any(check$note=="Overlap")) warning(paste0("There are ", nrow(check[check$note=="Overlap",]), " interventions of the same category/geoid that overlap in time"))
+        
+        if(any(check$note=="Gap")) warning(paste0("There are ", nrow(check[check$note=="Gap",]), " interventions of the same category/geoid that are discontinuous."))
+    } 
 
     readr::write_csv(dat, file = save_name)
 
+    return(dat)
+}
+
+#' Estimate average reduction in transmission per day per geoid
+#'
+#' @param dat 
+#' @param plot 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+
+daily_mean_reduction <- function(dat, 
+                                 plot = FALSE){
+    
+    dat <- dat %>% 
+        dplyr::filter(type == "transmission") %>% 
+        dplyr::mutate(mean = dplyr::case_when(value_dist == "truncnorm" ~ 
+                                                  truncnorm::etruncnorm(a=value_a, b=value_b, mean=value_mean, sd=value_sd), 
+                                              value_dist == "fixed" ~ 
+                                                  value_mean, 
+                                              value_dist == "uniform" ~ 
+                                                  (value_a+value_b)/2)
+        ) %>%
+        dplyr::select(USPS, geoid, start_date, end_date, mean)
+    
+    timeline <- tidyr::crossing(time = seq(from=min(dat$start_date), to=max(dat$end_date), by = 1),
+                                geoid = unique(dat$geoid))
+    
+    dat <- dat %>% 
+        dplyr::filter(geoid=="all") %>% 
+        dplyr::ungroup() %>% 
+        dplyr::select(-geoid) %>% 
+        tidyr::crossing(geoid=unique(dat$geoid[dat$geoid!="all"])) %>% 
+        dplyr::select(geoid, start_date, end_date, mean) %>% 
+        dplyr::bind_rows(dat %>% dplyr::filter(geoid!="all") %>% dplyr::ungroup() %>% dplyr::select(-USPS)) %>%
+        dplyr::left_join(timeline) %>% 
+        dplyr::filter(time >= start_date & time <= end_date) %>%
+        dplyr::group_by(geoid, time) %>% 
+        dplyr::summarize(mean = prod(1-mean))
+    
+    if(plot){
+        dat<- ggplot2::ggplot(data= dat, ggplot2::aes(x=time, y=mean))+
+            ggplot2::geom_line()+
+            ggplot2::facet_wrap(~geoid)+
+            ggplot2::theme_bw()+
+            ggplot2::ylab("Average reduction")+
+            ggplot2::scale_x_date(date_breaks = "3 months", date_labels = "%b\n%y")+
+            ggplot2::scale_y_continuous(breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2.0))
+        
+    }
+    
     return(dat)
 }
