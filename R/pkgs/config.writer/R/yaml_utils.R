@@ -336,7 +336,7 @@ yaml_stack <- function(dat,
 #'
 
 print_transmission_interventions <- function(dat,
-                               scenario = "Inference"
+                                             scenario = "Inference"
 ){
 
     cat(paste0(
@@ -348,36 +348,54 @@ print_transmission_interventions <- function(dat,
 
     dat <- collapse_intervention(dat) %>%
         dplyr::filter(type == "transmission")
+    
 
-    reduce <- dat %>%
-        dplyr::filter(template != "MultiTimeReduce")
-
-    if(nrow(reduce) > 0 ){
-        for(i in 1:nrow(reduce)){
-
-            yaml_reduce_template(reduce[i,])
-
+    for(i in 1:nrow(dat)){
+        
+        if(i > nrow(dat)) break
+        
+        if(dat$template[i]=="MultiTimeReduce"){
+            dat %>% 
+                dplyr::filter(name == dat$name[i]) %>%
+                yaml_mtr_template(.)
+            
+            dat <- dat %>% 
+                dplyr::filter(name != dat$name[i] | dplyr::row_number() == i)
+        } else{
+            yaml_reduce_template(dat[i,])
         }
+            
+
     }
 
-    mtr <- dat %>%
-        dplyr::filter(template=="MultiTimeReduce")
-
-    npi_names <- mtr %>% dplyr::distinct(name) %>% dplyr::pull()
-    if(nrow(mtr) > 0){
-        for(i in 1:length(npi_names)){
-            npi <- mtr %>%
-                dplyr::filter(name == npi_names[i])
-
-            yaml_mtr_template(npi)
-        }
-
-    }
+    # reduce <- dat %>%
+    #     dplyr::filter(template != "MultiTimeReduce")
+    # 
+    # if(nrow(reduce) > 0 ){
+    #     for(i in 1:nrow(reduce)){
+    # 
+    #         yaml_reduce_template(reduce[i,])
+    # 
+    #     }
+    # }
+    # 
+    # mtr <- dat %>%
+    #     dplyr::filter(template=="MultiTimeReduce")
+    # 
+    # npi_names <- mtr %>% dplyr::distinct(name) %>% dplyr::pull()
+    # if(nrow(mtr) > 0){
+    #     for(i in 1:length(npi_names)){
+    #         npi <- mtr %>%
+    #             dplyr::filter(name == npi_names[i])
+    # 
+    #         yaml_mtr_template(npi)
+    #     }
+    # 
+    # }
 
     yaml_stack(dat,
                scenario)
 }
-
 
 #' Print outcomes section
 #'
