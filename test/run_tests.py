@@ -138,13 +138,13 @@ def test_multitime():
 #def test_old_hospitalization():
 #    _success("test_old_hospitalization")
 
-def test_importation():
-    _success("test_importation")
+#def test_importation():
+    #_success("test_importation")
 
-    assert_file("data/geodata.csv")
-    assert_file("data/mobility.txt")
-    assert_dir("data/shp")
-    assert_dir("model_output/seed")
+    #assert_file("data/geodata.csv")
+    #assert_file("data/mobility.txt")
+    #assert_dir("data/shp")
+    #assert_dir("model_output/seed")
 
 def test_report():
     _success("test_report")
