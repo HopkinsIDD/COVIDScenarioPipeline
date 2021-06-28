@@ -632,7 +632,7 @@ print_seir <- function(sigma_val = 1/5.2,
 
     cat(
         paste0("seir:\n",
-               "  parameters:\n"),
+               "  parameters:\n",
         paste_param_val(R0s_dist, space_length = 6),
         paste_param_val(gamma_dist, space_length = 6),
         paste_param_val(sigma_dist, space_length = 6),
@@ -676,6 +676,7 @@ print_seir <- function(sigma_val = 1/5.2,
                 )
         } else{""},
         "\n"
+        )
     )
 
 }
