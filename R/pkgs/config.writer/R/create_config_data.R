@@ -634,6 +634,7 @@ bind_interventions <- function(...,
     if(max(dat$end_date) > sim_end_date) stop("At least one intervention has an end date after the sim_end_date.")
     
     check <- dat %>%
+        dplyr::filter(category=="NPI") %>% 
         dplyr::group_by(USPS, geoid, type, category) %>% 
         dplyr::arrange(USPS, geoid, start_date) %>%
         dplyr::mutate(note = dplyr::case_when(end_date >= dplyr::lead(start_date) ~ "Overlap", 
@@ -643,9 +644,9 @@ bind_interventions <- function(...,
     
     if(nrow(check) > 0){
         
-        if(any(check$note=="Overlap")) warning(paste0("There are ", nrow(check[check$note=="Overlap",]), " interventions of the same category/geoid that overlap in time"))
+        if(any(check$note=="Overlap")) warning(paste0("There are ", nrow(check[check$note=="Overlap",]), " NPIs of the same category/geoid that overlap in time"))
         
-        if(any(check$note=="Gap")) warning(paste0("There are ", nrow(check[check$note=="Gap",]), " interventions of the same category/geoid that are discontinuous."))
+        if(any(check$note=="Gap")) warning(paste0("There are ", nrow(check[check$note=="Gap",]), " NPIs of the same category/geoid that are discontinuous."))
     } 
 
     readr::write_csv(dat, file = save_name)
