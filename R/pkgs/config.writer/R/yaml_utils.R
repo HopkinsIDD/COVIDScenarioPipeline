@@ -101,7 +101,7 @@ collapse_intervention<- function(dat
         dplyr::mutate(period = paste0("      ", period, "\n")) %>%
         dplyr::ungroup() %>%
         dplyr::add_count(dplyr::across(-USPS)) %>%
-        dplyr::mutate(name = dplyr::case_when(category =="local_variance" | USPS %in% c("all", "") ~ name,
+        dplyr::mutate(name = dplyr::case_when(category =="local_variance" | USPS %in% c("all", "") | is.na(USPS) ~ name,
                                               n==1 & template=="Reduce" ~ paste0(USPS, "_", name),
                                               template=="Reduce" ~ paste0(geoid, "_", name),
                                               n==1 & template!="ReduceIntervention" ~ paste0(USPS, name),
@@ -348,49 +348,49 @@ print_transmission_interventions <- function(dat,
 
     dat <- collapse_intervention(dat) %>%
         dplyr::filter(type == "transmission")
-    
+
 
     for(i in 1:nrow(dat)){
-        
+
         if(i > nrow(dat)) break
-        
+
         if(dat$template[i]=="MultiTimeReduce"){
-            dat %>% 
+            dat %>%
                 dplyr::filter(name == dat$name[i]) %>%
                 yaml_mtr_template(.)
-            
-            dat <- dat %>% 
+
+            dat <- dat %>%
                 dplyr::filter(name != dat$name[i] | dplyr::row_number() == i)
         } else{
             yaml_reduce_template(dat[i,])
         }
-            
+
 
     }
 
     # reduce <- dat %>%
     #     dplyr::filter(template != "MultiTimeReduce")
-    # 
+    #
     # if(nrow(reduce) > 0 ){
     #     for(i in 1:nrow(reduce)){
-    # 
+    #
     #         yaml_reduce_template(reduce[i,])
-    # 
+    #
     #     }
     # }
-    # 
+    #
     # mtr <- dat %>%
     #     dplyr::filter(template=="MultiTimeReduce")
-    # 
+    #
     # npi_names <- mtr %>% dplyr::distinct(name) %>% dplyr::pull()
     # if(nrow(mtr) > 0){
     #     for(i in 1:length(npi_names)){
     #         npi <- mtr %>%
     #             dplyr::filter(name == npi_names[i])
-    # 
+    #
     #         yaml_mtr_template(npi)
     #     }
-    # 
+    #
     # }
 
     yaml_stack(dat,
@@ -610,11 +610,11 @@ print_outcomes <- function(dat=NULL,
 #' @param R0_a minimum value of R0 - required if distribution is not "fixed"
 #' @param R0_b maximum value of R0 - required if distribution is not "fixed"
 #' @param incl_vacc specify whether to include vaccination compartments. If TRUE, must specify dose transmission/susceptibility parameters for each compartment and transition across compartments
-#' @param dose_transmission_dist vector specifying whether transmission in each compartment is fixed or distributional
+#' @param dose_transmission_dist vector specifying whether transmission in each compartment is fixed; distributional is not yet supported
 #' @param dose_transmission_val vector specifying transmission rates per compartment
-#' @param dose_susceptibility_dist vector specifying whether susceptibility in each compartment is fixed or distributional
+#' @param dose_susceptibility_dist vector specifying whether susceptibility in each compartment is fixed; distributional is not yet supported
 #' @param dose_susceptibility_val vector specifying reduction in risk per compartment
-#' @param transitions_dist vector specifying whether transition rate between compartments is fixed or distributional
+#' @param transitions_dist vector specifying whether transition rate between compartments is fixed; distributional is not yet supported
 #' @param transitions_val vector specifying base transition rate between compartments
 #'
 #' @return
@@ -1009,4 +1009,6 @@ print_prior <- function(dat,
         ))
     }
 }
+
+
 
