@@ -5,7 +5,8 @@ Imports:
     tidyverse,
     lubridate,
     tigris,
-    magrittr
+    magrittr,
+    yaml
 Authors@R: 
     person(given = "Juan",
            family = "Dent Hulse",

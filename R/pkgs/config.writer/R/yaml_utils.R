@@ -1010,5 +1010,250 @@ print_prior <- function(dat,
     }
 }
 
+#' Convenience function to generate/save config
+#'
+#' @param intervention_path
+#' @param config_name
+#' @param save_path whether to save it in a specific directory; default NULL saves it in a temporary directory
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+generate_config <- function(intervention_path,
+                            config_name = "config.yml",
+                            save_path = NULL,
+                            header_sim_name = "USA",
+                            header_sim_start_date = "2020-01-01",
+                            header_sim_end_date = "2021-08-07",
+                            header_n_simulations = 300,
+                            header_dt = 0.25,
+                            header_census_year = 2019,
+                            header_base_path = "data",
+                            header_setup_name = "USA",
+                            header_geodata = "geodata.csv",
+                            header_mobility = "mobility.csv",
+                            header_popnodes = "pop2019est",
+                            header_nodenames = "geoid",
+                            header_include_in_report = "include_in_report",
+                            header_state_level = TRUE,
+                            seeding_method = "FolderDraw",
+                            seeding_file_type = "seed",
+                            seeding_folder_path = "importation/minimal/",
+                            seeding_lambda_file = "data/minimal/seeding.csv",
+                            seeding_perturbation_sd = 1,
+                            seir_alpha_val = 0.99,
+                            seir_sigma_val = 1/5.2 ,
+                            seir_gamma_dist = "fixed",
+                            seir_gamma_val = 1/3.83,
+                            seir_gamma_sd = NULL,
+                            seir_gamma_a = 1/4.5,
+                            seir_gamma_b = 1/3,
+                            seir_R0s_dist = "uniform",
+                            seir_R0s_val = 2.3,
+                            seir_R0s_sd = NULL,
+                            seir_R0s_a = 2,
+                            seir_R0s_b = 3,
+                            seir_incl_vacc = TRUE,
+                            seir_dose_transmission_dist = c("fixed", "fixed", "fixed"),
+                            seir_dose_transmission_val = c(0, 0, 0),
+                            seir_dose_susceptibility_dist = c("fixed", "fixed", "fixed"),
+                            seir_dose_susceptibility_val = c(0, 0.75, 0.90),
+                            seir_transitions_dist = c("fixed", "fixed"),
+                            seir_transitions_val = c(0, 0.04),
+                            transmission_scenario = "inference",
+                            outcomes_ifr="med",
+                            outcomes_parquet_file="usa-geoid-params-output_statelevel.parquet",
+                            outcomes_incidH_prob_dist="fixed",
+                            outcomes_incidH_prob_value=0.0175,
+                            outcomes_incidH_delay_dist="fixed",
+                            outcomes_incidH_delay_value=7,
+                            outcomes_incidH_duration_dist="fixed",
+                            outcomes_incidH_duration_value=7,
+                            outcomes_incidD_prob_dist="fixed",
+                            outcomes_incidD_prob_value=0.005,
+                            outcomes_incidD_delay_dist="fixed",
+                            outcomes_incidD_delay_value=20,
+                            outcomes_incidICU_prob_dist="fixed",
+                            outcomes_incidICU_prob_value=0.167,
+                            outcomes_incidICU_delay_dist="fixed",
+                            outcomes_incidICU_delay_value=3,
+                            outcomes_incidICU_duration_dist="fixed",
+                            outcomes_incidICU_duration_value=8,
+                            outcomes_incidVent_prob_dist="fixed",
+                            outcomes_incidVent_prob_value=0.463,
+                            outcomes_incidVent_delay_dist="fixed",
+                            outcomes_incidVent_delay_value=1,
+                            outcomes_incidVent_duration_dist="fixed",
+                            outcomes_incidVent_duration_value=7,
+                            outcomes_incidC_prob_dist="truncnorm",
+                            outcomes_incidC_prob_mean=0.2,
+                            outcomes_incidC_prob_sd=.1,
+                            outcomes_incidC_prob_a=0,
+                            outcomes_incidC_prob_b=1,
+                            outcomes_incidC_prob_dist_pert="truncnorm",
+                            outcomes_incidC_prob_mean_pert=0,
+                            outcomes_incidC_prob_sd_pert=0.05,
+                            outcomes_incidC_prob_a_pert=-1,
+                            outcomes_incidC_prob_b_pert=1,
+                            outcomes_incidC_delay_value=7,
+                            outcomes_incidC_delay_dist="fixed",
+                            filtering_sims_per_slot = 300,
+                            filtering_data_path = "data/us_data.csv",
+                            filtering_gt_source = "csse",
+                            filtering_stat_names = c("sum_deaths", "sum_confirmed"),
+                            filtering_aggregator = "sum",
+                            filtering_period = "1 weeks",
+                            filtering_sim_var = c("incidD", "incidC"),
+                            filtering_data_var = c("death_incid", "confirmed_incid"),
+                            filtering_remove_na = FALSE,
+                            filtering_add_one = c(FALSE, TRUE),
+                            filtering_ll_dist = c("sqrtnorm", "pois"),
+                            filtering_ll_param = .4,
+                            filtering_final_print = FALSE,
+                            hierarchical_npi_name = c("local_variance", "probability_incidI_incidC"),
+                            hierarchical_module = c("seir", "hospitalization"),
+                            hierarchical_geo_group_col = "USPS",
+                            hierarchical_transform = c("none", "logit"),
+                            hierarchical_final_print = FALSE,
+                            prior_npi_name = c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar", "Seas_apr",
+                                               "Seas_may", "Seas_jun", "Seas_jul", "Seas_aug", "Seas_sep",
+                                               "Seas_oct", "Seas_nov", "Seas_dec"),
+                            prior_module = "seir",
+                            prior_dist = "normal",
+                            prior_param_low = NULL,
+                            prior_param_high = 1){
 
+    interventions <- readr::read_csv(intervention_path)
+
+    if(is.null(save_path)){
+        config_name <- file.path(tempdir(), config_name)
+    } else{
+        config_name <- file.path(save_path, config_name)
+        print(paste0("Config saved in ", config_name))
+    }
+
+    sink(config_name)
+
+    print_header(sim_name = header_sim_name,
+                 sim_start_date = header_sim_start_date,
+                 sim_end_date = header_sim_end_date,
+                 n_simulations = header_n_simulations,
+                 dt = header_dt,
+                 census_year = header_census_year,
+                 base_path = header_census_year,
+                 sim_states = unique(interventions$USPS[!interventions$USPS %in% c("", "all") & !is.na(interventions$USPS)]),
+                 setup_name = header_setup_name,
+                 geodata = header_geodata,
+                 mobility = header_mobility,
+                 popnodes = header_popnodes,
+                 nodenames = header_nodenames,
+                 include_in_report = header_include_in_report,
+                 state_level = header_state_level)
+
+    print_seeding(method = seeding_method,
+                  seeding_file_type = seeding_file_type,
+                  folder_path = seeding_folder_path,
+                  lambda_file = seeding_lambda_file ,
+                  perturbation_sd = seeding_perturbation_sd)
+
+    print_seir(alpha_val = seir_alpha_val,
+               sigma_val = seir_sigma_val,
+               gamma_dist = seir_gamma_dist,
+               gamma_val = seir_gamma_val,
+               gamma_sd = seir_gamma_sd,
+               gamma_a = seir_gamma_a,
+               gamma_b = seir_gamma_b,
+               R0s_dist = seir_R0s_dist,
+               R0s_val = seir_R0s_val,
+               R0s_sd = seir_R0s_sd,
+               R0s_a = seir_R0s_a,
+               R0s_b = seir_R0s_b,
+               incl_vacc = seir_incl_vacc,
+               dose_transmission_dist = seir_dose_transmission_dist,
+               dose_transmission_val = seir_dose_transmission_val,
+               dose_susceptibility_dist = seir_dose_susceptibility_dist,
+               dose_susceptibility_val = seir_dose_susceptibility_val,
+               transitions_dist = seir_transitions_dist,
+               transitions_val = seir_transitions_val)
+
+    print_transmission_interventions(dat = interventions,
+                                     scenario = transmission_scenario)
+
+    print_outcomes(dat = interventions,
+                   ifr = outcomes_ifr,
+                   outcomes_parquet_file = outcomes_parquet_file,
+                   incidH_prob_dist= outcomes_incidH_prob_dist,
+                   incidH_prob_value= outcomes_incidH_prob_value,
+                   incidH_delay_dist= outcomes_incidH_delay_dist,
+                   incidH_delay_value= outcomes_incidH_delay_value,
+                   incidH_duration_dist= outcomes_incidH_duration_dist,
+                   incidH_duration_value= outcomes_incidH_duration_value,
+                   incidD_prob_dist= outcomes_incidD_prob_dist,
+                   incidD_prob_value= outcomes_incidD_prob_value,
+                   incidD_delay_dist= outcomes_incidD_delay_dist,
+                   incidD_delay_value= outcomes_incidD_delay_value,
+                   incidICU_prob_dist= outcomes_incidICU_prob_dist,
+                   incidICU_prob_value= outcomes_incidICU_prob_value,
+                   incidICU_delay_dist= outcomes_incidICU_delay_dist,
+                   incidICU_delay_value= outcomes_incidICU_delay_value,
+                   incidICU_duration_dist= outcomes_incidICU_duration_dist,
+                   incidICU_duration_value= outcomes_incidICU_duration_value,
+                   incidVent_prob_dist= outcomes_incidVent_prob_dist,
+                   incidVent_prob_value= outcomes_incidVent_prob_value,
+                   incidVent_delay_dist= outcomes_incidVent_delay_dist,
+                   incidVent_delay_value= outcomes_incidVent_delay_value,
+                   incidVent_duration_dist= outcomes_incidVent_duration_dist,
+                   incidVent_duration_value= outcomes_incidVent_duration_value,
+                   incidC_prob_dist= outcomes_incidC_prob_dist,
+                   incidC_prob_mean= outcomes_incidC_prob_mean,
+                   incidC_prob_sd= outcomes_incidC_prob_sd,
+                   incidC_prob_a= outcomes_incidC_prob_a,
+                   incidC_prob_b= outcomes_incidC_prob_b,
+                   incidC_prob_dist_pert= outcomes_incidC_prob_dist_pert,
+                   incidC_prob_mean_pert= outcomes_incidC_prob_mean_pert,
+                   incidC_prob_sd_pert= outcomes_incidC_prob_sd_pert,
+                   incidC_prob_a_pert = outcomes_incidC_prob_a_pert,
+                   incidC_prob_b_pert= outcomes_incidC_prob_b_pert,
+                   incidC_delay_value= outcomes_incidC_delay_value,
+                   incidC_delay_dist= outcomes_incidC_delay_dist)
+
+    print_filtering(sims_per_slot = filtering_sims_per_slot,
+                    data_path = filtering_data_path,
+                    gt_source = filtering_gt_source,
+                    stat_names = filtering_stat_names,
+                    aggregator = filtering_aggregator,
+                    period = filtering_period,
+                    sim_var = filtering_sim_var,
+                    data_var = filtering_data_var,
+                    remove_na = filtering_remove_na,
+                    add_one = filtering_add_one,
+                    ll_dist = filtering_ll_dist,
+                    ll_param = filtering_ll_param,
+                    final_print = filtering_final_print)
+
+    print_hierarchical(npi_name = hierarchical_npi_name,
+                       module = hierarchical_module,
+                       geo_group_col = hierarchical_geo_group_col,
+                       transform = hierarchical_transform,
+                       final_print = hierarchical_final_print)
+
+    print_prior(dat = interventions,
+                npi_name = prior_npi_name,
+                module = prior_module,
+                dist = prior_dist,
+                param_low = prior_param_low,
+                param_high = prior_param_high)
+
+    sink()
+
+    config <- yaml::read_yaml(config_name)
+
+    if(is.null(save_path)){
+        unlink(config_name)
+    }
+
+    return(config)
+}
 
