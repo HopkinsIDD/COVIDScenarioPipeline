@@ -45,7 +45,7 @@ proportion_exponent_col = 2
     "DictType(unicode_type, int64[:]),"  # seeding keys: 'seeding_amounts', 'seeding_places', 'seeding_destinations', 'seeding_sources'
     ## Mobility
     "float64[:],"  # mobility_data [ nmobility_instances ]
-    "int32[:],"  # mobility_row_indices [ nspatial_nodes ]
+    "int32[:],"  # mobility_row_indices [ nmobility_instances ]
     "int32[:],"  # mobility_data_indices [ nspatial_nodes + 1]
     "int64[:],"  # population [ nspatial_nodes ]
     "boolean"  # stochastic_p
@@ -167,12 +167,25 @@ def steps_SEIR_nb(
                                                 population[spatial_node] * \
                                                 parameters[transitions[transition_rate_col][transition_index]][today][spatial_node]
 
-                        rate_change_compartment = proportion_change_compartment * \
-                                                  relevant_number_in_comp[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]] ** \
-                                                  relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] / \
-                                                  population[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]] * \
-                                                  relevant_exponent[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]
+                        rate_change_compartment = proportion_change_compartment
+                        print("It begins")
+                        print(rate_change_compartment.shape)
+                        print(relevant_number_in_comp[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]].shape)
+                        rate_change_compartment = rate_change_compartment * relevant_number_in_comp[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]]
+                        print("Problem child")
+                        print(mobility_data_indices[spatial_node])
+                        print(mobility_data_indices[spatial_node + 1])
+                        print(relevant_exponent.shape)
+                        print(relevant_exponent)
+                        print(mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]])
+                        print(relevant_exponent[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]].shape)
+                        rate_change_compartment = rate_change_compartment ** relevant_exponent[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]]
+                        print(population[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]].shape)
+                        rate_change_compartment = rate_change_compartment / population[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]]
+                        print(population[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]].shape)
+                        rate_change_compartment = rate_change_compartment * relevant_exponent[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]]
                         total_rate[spatial_node] *= (rate_keep_compartment + rate_change_compartment.sum())
+                        print("It ends")
             #print("voilà for", transition_index)
             compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
 

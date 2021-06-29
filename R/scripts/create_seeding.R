@@ -179,8 +179,16 @@ if ("compartments" %in% names(config[["seir"]])) {
   )
   incident_cases <- cases_deaths[, required_column_names] %>%
     tidyr::pivot_longer(cols = "incidI", names_to = "source_infection_stage", values_to = "value")
-  incident_cases$source_infection_stage <- "E"
-  required_column_names <- c("FIPS", "Update", "value", "source_infection_stage")
+  incident_cases$destination_infection_stage <- "E"
+  incident_cases$source_infection_stage <- "S"
+  required_column_names <- c("FIPS", "Update", "value", "source_infection_stage", "destination_infection_stage")
+
+  if ("parallel_structure" %in% names(config[["seir"]][["parameters"]])) {
+    parallel_compartments <- config[["seir"]][["parameters"]][["parallel_structure"]][["compartments"]]
+    incident_cases[["source_vaccination_stage"]] <- names(parallel_compartments)[[1]]
+    incident_cases[["destination_vaccination_stage"]] <- names(parallel_compartments)[[1]]
+    required_column_names <- c(required_column_names, "source_vaccination_stage", "destination_vaccination_stage")
+  }
 }
 incident_cases <- incident_cases[, required_column_names]
 
