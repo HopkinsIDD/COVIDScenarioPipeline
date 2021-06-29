@@ -3,7 +3,6 @@
 export(bind_interventions)
 export(collapse_intervention)
 export(daily_mean_reduction)
-export(generate_config)
 export(generate_multiple_variants)
 export(generate_variant_b117)
 export(load_geodata_file)
