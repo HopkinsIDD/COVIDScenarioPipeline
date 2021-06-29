@@ -44,16 +44,19 @@ class Compartments:
 
     def defaultConstruct(self, seir_config):
         use_parallel = False
-        if "parallel_structure" in seir_config.keys():
-            use_parallel = True
+        if "parameters" in seir_config.keys():
+            if "parallel_structure" in seir_config["parameters"].keys():
+                use_parallel = True
         n_parallel_compartments = 1
         if use_parallel:
-            n_parallel_compartments = len(seir_config["parallel_structure"]["compartments"].get())
+            n_parallel_compartments = len(seir_config["parameters"]["parallel_structure"]["compartments"].get())
         self.compartments = pd.DataFrame({'key': 1, "infection_stage": ["S", "E", "I1", "I2", "I3", "R"]})
-        parallel_frame = pd.DataFrame({'key': 1, "vaccination_stage": ["0dose"]})
-        if "parallel_structure" in seir_config.keys():
+        parallel_frame = None
+        if use_parallel:
             parallel_frame = pd.DataFrame(
-                {'key': 1, "parallel_compartment": seir_compartment["parallel_compartment"].keys()})
+                {'key': 1, "vaccination_stage": seir_config["parameters"]["parallel_structure"]["compartments"].keys()})
+        else:
+            parallel_frame = pd.DataFrame({'key': 1, "vaccination_stage": ["0dose"]})
         self.compartments = pd.merge(
             self.compartments,
             parallel_frame
@@ -103,7 +106,44 @@ class Compartments:
                 }
             ]
         else:
-            raise ValueError("This is not currently implemented")
+            transitions = [
+                {
+                    "source": ["S", self.compartments["vaccination_stage"]],
+                    "destination": ["E", self.compartments["vaccination_stage"]],
+                    "rate": ["R0s / gamma", 1],
+                    "proportional_to": [["S", self.compartments["vaccination_stage"]], [[["E", "I1", "I2", "I3"]], self.compartments["vaccination_stage"]]],
+                    "proportion_exponent": [["1", "1"], ["alpha", "1"]]
+                },
+                {
+                    "source": [["E"], self.compartments["vaccination_stage"]],
+                    "destination": [["I1"], self.compartments["vaccination_stage"]],
+                    "rate": ["sigma", 1],
+                    "proportional_to": [[["E"], self.compartments["vaccination_stage"]]],
+                    "proportion_exponent": [["1", "1"]]
+                },
+                {
+                    "source": [["I1"], self.compartments["vaccination_stage"]],
+                    "destination": [["I2"], self.compartments["vaccination_stage"]],
+                    "rate": ["3 * gamma", 1],
+                    "proportional_to": [[["I1"], self.compartments["vaccination_stage"]]],
+                    "proportion_exponent": [["1", "1"]]
+                },
+                {
+                    "source": [["I2"], self.compartments["vaccination_stage"]],
+                    "destination": [["I3"], self.compartments["vaccination_stage"]],
+                    "rate": ["3 * gamma", 1],
+                    "proportional_to": [[["I2"], self.compartments["vaccination_stage"]]],
+                    "proportion_exponent": [["1", "1"]]
+                },
+                {
+                    "source": [["I3"], self.compartments["vaccination_stage"]],
+                    "destination": [["R"], self.compartments["vaccination_stage"]],
+                    "rate": ["3 * gamma", 1],
+                    "proportional_to": [[["I3"], self.compartments["vaccination_stage"]]],
+                    "proportion_exponent": [["1", "1"]]
+                }
+            ]
+            # raise Warning("This code doesn't actually work")
 
         self.transitions = self.parse_transitions({"transitions": transitions}, True)
 
@@ -379,7 +419,7 @@ class Compartments:
         comp_idx = self.compartments[mask].index.values
         if len(comp_idx) != 1:
             raise ValueError(
-                f"The provided dictionary does not allow to isolate a compartiment: {comp_dict} isolate {self.compartments[mask]}")
+                f"The provided dictionary does not allow to isolate a compartment: {comp_dict} isolate {self.compartments[mask]} from options {self.compartments}")
         return comp_idx[0]
 
     def get_ncomp(self) -> int:
