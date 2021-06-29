@@ -131,25 +131,28 @@ collapse_intervention<- function(dat
 #'
 
 yaml_mtr_template <- function(dat){
+    template <- unique(dat$template)
+    geoid_all <- any(unique(dat$geoid)=="all")
+    inference <- !any(is.na(dat$pert_dist))
 
-    if(dat$template=="MultiTimeReduce" & dat$geoid=="all"){
+    if(template=="MultiTimeReduce" & geoid_all){
         cat(paste0(
             "    ", dat$name, ":\n",
             "      template: MultiTimeReduce\n",
             "      parameter: ", dat$parameter, "\n",
             "      groups:\n",
-            '        - affected_geoids: "all"\n'
+            '        - affected_geoids: "all"'
         ))
 
         for(j in 1:nrow(dat)){
-            cat(paste0(
+            cat(paste0('\n',
                 '          periods:\n',
                 dat$period[j]
             ))
         }
     }
 
-    if(dat$template=="MultiTimeReduce" & dat$geoid!="all"){
+    if(template=="MultiTimeReduce" & !geoid_all){
         cat(paste0(
             "    ", dat$name[1], ":\n",
             "      template: MultiTimeReduce\n",
@@ -177,7 +180,7 @@ yaml_mtr_template <- function(dat){
         "        b: ",dat$value_b[1]
         ))
 
-    if(!is.na(dat$pert_dist)){
+    if(inference){
         cat(paste0(
             "\n",
             "      perturbation:\n",
