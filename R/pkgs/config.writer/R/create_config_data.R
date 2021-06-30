@@ -158,9 +158,6 @@ set_seasonality_params <- function(sim_start_date=as.Date("2020-03-31"),
 #'
 #' @param sim_start_date simulation start date
 #' @param sim_end_date simulation end date
-#' @param template
-#' @param param
-#' @param affected_geoids
 #' @param v_dist type of distribution for reduction
 #' @param v_mean reduction mean
 #' @param v_sd reduction sd
@@ -184,9 +181,6 @@ set_seasonality_params <- function(sim_start_date=as.Date("2020-03-31"),
 set_localvar_params <- function(sim_start_date=as.Date("2020-03-31"),
                                 sim_end_date=Sys.Date()+60,
                                 inference = TRUE,
-                                template = "ReduceR0",
-                                param = NA_character_,
-                                affected_geoids = "all",
                                 v_dist="truncnorm",
                                 v_mean =  0, v_sd = 0.05, v_a = -1, v_b = 1, # TODO: add check on limits
                                 p_dist="truncnorm",
@@ -194,6 +188,10 @@ set_localvar_params <- function(sim_start_date=as.Date("2020-03-31"),
 ){
     sim_start_date <- as.Date(sim_start_date)
     sim_end_date <- as.Date(sim_end_date)
+    
+    template = "ReduceR0"
+    param = NA_character_
+    affected_geoids = "all"
 
     local_var <- dplyr::tibble(USPS = "",
                                 geoid = "all",
@@ -227,8 +225,8 @@ set_localvar_params <- function(sim_start_date=as.Date("2020-03-31"),
 #' Generate NPI reduction interventions
 #'
 #' @param npi_file output from set_npi_params
-#' @param incl_geoid
-#' @param projection_start_date
+#' @param incl_geoid vector of geoids to include; NULL will generate interventions for all geographies
+#' @param projection_start_date first date without data to fit
 #' @param redux_end_date end date for reduction interventions; default NULL uses sim_end_date in npi_file
 #' @param redux_level reduction to intervention effectiveness
 #' @param v_dist type of distribution for reduction
