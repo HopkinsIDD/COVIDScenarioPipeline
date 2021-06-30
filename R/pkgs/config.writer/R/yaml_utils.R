@@ -922,23 +922,27 @@ print_filtering_statistics <- function(sims_per_slot = 300,
 }
 
 #' Print filtering::hierarchical_stats_geo
-#' @description 
-#' @param npi_name
-#' @param module
-#' @param geo_group_col
-#' @param transform
-#'
-#' @return
+#' @description Specify and print hierarchical settings as part of the filtering section of the configuration file. 
+#' @param npi_name vector of names of the estimated parameters that will be grouped (e.g., the NPI scenario name or a standardized, combined health outcome name like probability_incidI_incidC)
+#' @param module vector of names of the module where this parameter is estimated (important for finding the appropriate files)
+#' @param geo_group_col geodata column name that should be used to group parameter estimation
+#' @param transform type of transform that should be applied to the likelihood: "none" or "logit"
+#' @param final_print whether this is the final section of the config to print an empty space; set to FALSE if running [print_hierarchical()] and/or [print_prior()] 
+#' 
+#' @details 
+#' This function should only be called after [print_hierarchical()]. 
+#' 
+#' The hierarchical settings specified here are used to group the inference of certain parameters together (similar to inference in "hierarchical" or "fixed/group effects" models). For example, users may desire to group all counties in a given state because they are geograhically proximate and impacted by the same statewide policies. The effect should be to make these inferred parameters follow a normal distribution and to observe shrinkage among the variance in these grouped estimates.
 #' @export
 #'
 #' @examples
-#'
+#' print_filtering_hierarchical()
 
-print_hierarchical <- function(npi_name = c("local_variance", "probability_incidI_incidC"),
-                               module = c("seir", "hospitalization"),
-                               geo_group_col = "USPS",
-                               transform = c("none", "logit"),
-                               final_print = FALSE){
+print_filtering_hierarchical <- function(npi_name = c("local_variance", "probability_incidI_incidC"),
+                                         module = c("seir", "hospitalization"),
+                                         geo_group_col = "USPS",
+                                         transform = c("none", "logit"),
+                                         final_print = FALSE){
 
     cat(paste0(
         "  hierarchical_stats_geo:\n"
@@ -973,56 +977,48 @@ print_hierarchical <- function(npi_name = c("local_variance", "probability_incid
     }
 
 }
-#' Create priors
+#' print_filtering_prior
+#' 
+#' @description Set and print prior values for inferred parameters
 #'
-#' @param dat
-#' @param npi_name
-#' @param module
-#' @param dist
-#' @param param_low
-#' @param param_high
-#'
-#' @return
+#' @param npi_name vector of names of NPI scenario or parameter that will have the prior
+#' @param module name of the module where this parameter is estimated: "seir", "outcomes_interventions", "outcomes_parameters" or "hospitalization".
+#' @param dist string or vector of distribution of priors, "normal" or "logit_normal" are supported. If string is provided, then the same distribution is used across all priors.
+#' @param param_mean string or vector of prior means. Defaults to NULL and takes intervention mean for the corresponding NPI scenario from dat. If string is provided, then the same mean value is used across all priors.
+#' @param param_sd string or vector of prior sd. If string is provided, then the same distribution is used across all priors.
+#' @param dat dataframe with intervention names (npi_name) and means (value_mean); required if param_mean is NULL
+#' 
+#' @details 
+#' Specifying prior values for inferred parameters will speed up model convergence
 #' @export
 #'
 #' @examples
-#'
+#' print_filtering_prior()
 
-print_prior <- function(dat,
-                        npi_name = c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar", "Seas_apr",
-                                     "Seas_may", "Seas_jun", "Seas_jul", "Seas_aug", "Seas_sep",
-                                     "Seas_oct", "Seas_nov", "Seas_dec"),
-                        module = "seir",
-                        dist = "normal",
-                        param_low = NULL,
-                        param_high = 1
+print_filtering_prior <- function(npi_name = c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar", "Seas_apr",
+                                               "Seas_may", "Seas_jun", "Seas_jul", "Seas_aug", "Seas_sep",
+                                               "Seas_oct", "Seas_nov", "Seas_dec"),
+                                  module = "seir",
+                                  dist = "normal",
+                                  param_mean = c(0.000, -0.200, -0.133, -0.067, 0.00,  0.067, 0.133,  0.200, 0.133,  0.067,  0.000, -0.067, -0.133),
+                                  param_sd = 1,
+                                  dat=NULL
 ){
+    module <- repeat_string(module, npi_name)
+    dist <- repeat_string(dist, npi_name)
+    param_sd <- repeat_string(param_sd, npi_name)
+    param_mean <- repeat_string(param_mean, npi_name)
 
-    dat <- dat %>%
-        collapse_intervention() %>%
-        dplyr::filter(name %in% npi_name) %>%
-        dplyr::mutate(value_mean = dplyr::if_else(is.na(value_mean), 0, value_mean))
-
-    if(length(module)!=length(npi_name) & length(module)==1){
-        module <- rep(module, length(npi_name))
-    }
-
-    if(length(dist)!=length(npi_name) & length(dist)==1){
-        dist <- rep(dist, length(npi_name))
-    }
-
-
-    if(length(param_high)!=length(npi_name) & length(param_high)==1){
-        param_high <- rep(param_high, length(npi_name))
-    }
-
-    if(length(param_low)!=length(npi_name) & length(param_low)==1){
-        param_low <- rep(param_low, length(npi_name))
-    }
-
-    if(is.null(param_low)){
+    if(is.null(param_mean)){ # TODO: allow to specify priors for some, take NPI means for others
+        if(is.null(dat)) stop("Dataframe with intervention names (npi_name) and means (value_mean) must be provided if param_mean is NULL")
+        
+        dat <- dat %>%
+            collapse_intervention() %>%
+            dplyr::filter(name %in% npi_name) %>%
+            dplyr::mutate(value_mean = dplyr::if_else(is.na(value_mean), 0, value_mean))
+        
         for(i in 1:length(npi_name)){
-            param_low[i] <- dat %>%
+            param_mean[i] <- dat %>%
                 dplyr::filter(name == npi_name[i]) %>%
                 dplyr::pull(value_mean)
 
@@ -1032,7 +1028,7 @@ print_prior <- function(dat,
     cat(paste0(
         "  priors:\n"))
 
-    for(i in 1:nrow(dat)){
+    for(i in 1:length(npi_name)){
         cat(paste0(
             "    ", paste0(npi_name[i], "_prior"),":\n",
             "      name: ", npi_name[i], "\n",
@@ -1040,22 +1036,37 @@ print_prior <- function(dat,
             "      likelihood:\n",
             "        dist: ", dist[i], "\n",
             "        param:\n",
-            "        - ", param_low[i], "\n",
-            "        - ", param_high[i], "\n"
+            "        - ", param_mean[i], "\n",
+            "        - ", param_sd[i], "\n"
         ))
     }
 }
 
+#' Convenience function to repeat string x to match length of vector y
+#'
+#' @param x string
+#' @param y vector
+#'
+#' @return vector of length y with values x
+#' @export
+#'
+#' @examples
+#'
+
+repeat_string <- function(x, 
+                          y){
+    if(length(x)==length(y) | is.null(x)){
+        z <- x
+    } else if(length(x)!=length(y) & length(x)==1){
+        z <- rep(x, length(y))
+    } else {
+            stop(paste0("The prior settings (i.e., module, ll params) must be of length 1 or a vector of equal length as npi_names. "))
+    }
+    
+    return(z)
+}
+
 #' #' Convenience function to generate/save config
-#' #'
-#' #' @param intervention_path
-#' #' @param config_name
-#' #' @param save_path whether to save it in a specific directory; default NULL saves it in a temporary directory
-#' #'
-#' #' @return
-#' #' @export
-#' #'
-#' #' @examples
 #' #'
 #' generate_config <- function(intervention_path,
 #'                             config_name = "config.yml",

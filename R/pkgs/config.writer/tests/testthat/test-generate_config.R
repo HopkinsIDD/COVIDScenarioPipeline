@@ -34,17 +34,18 @@ generate_config <- function(){
                    outcomes_parquet_file="usa-geoid-params-output_statelevel.parquet", 
                    incidC_prob_mean = 0.4)
     
-    print_filtering(sims_per_slot = 1500)
+    print_filtering_statistics(sims_per_slot = 1500)
     
-    print_hierarchical(npi_name = c("local_variance", "probability_incidI_incidC"),
-                       module = c("seir", "hospitalization"),
-                       geo_group_col = "USPS",
-                       transform = c("none", "logit"))
+    print_filtering_hierarchical(npi_name = c("local_variance", "probability_incidI_incidC"),
+                                 module = c("seir", "hospitalization"),
+                                 geo_group_col = "USPS",
+                                 transform = c("none", "logit"))
     
-    print_prior(dat = interventions,
-                npi_name = c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar",
-                             "Seas_may", "Seas_jun", "Seas_jul", "Seas_aug", "Seas_sep",
-                             "Seas_oct", "Seas_nov", "Seas_dec"))
+    print_filtering_prior(dat = interventions,
+                          npi_name = c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar",
+                                       "Seas_may", "Seas_jun", "Seas_jul", "Seas_aug", "Seas_sep",
+                                       "Seas_oct", "Seas_nov", "Seas_dec"), 
+                          param_mean = NULL)
     
     sink()
     
