@@ -43,7 +43,7 @@ a = pd.read_parquet(file_paths.create_file_name(
     'parquet'
 ))
 print(a)
-
+# created by running SEIR test_seir.py (comment line 530 to remove file tree) first
 b = pd.read_parquet('../../SEIR/test/model_output/seir/000000101.test.seir.parquet')
 b['15005'] = 0
 b['15007'] = 0
@@ -74,10 +74,10 @@ pa.parquet.write_table(
 # cp new_test_no_vacc.parquet model_output/seir/000000001.2.seir.parquet
 
 b1d = b.copy(deep=True)
-b1d['mc_vaccination_stage'] = '1dose'
+b1d['mc_vaccination_stage'] = 'first_dose'
 b = pd.concat((b, b1d))
 for i in range(5):
-    b.loc[(b['value_type'] == 'incidence') & (b['date'] == str(date_data)) & (b['mc_vaccination_stage'] == '1dose'), geoid[i]] = diffI[i] * 3
+    b.loc[(b['value_type'] == 'incidence') & (b['date'] == str(date_data)) & (b['mc_vaccination_stage'] == 'first_dose'), geoid[i]] = diffI[i] * 3
 
 pa_df = pa.Table.from_pandas(b, preserve_index=False)
 pa.parquet.write_table(
