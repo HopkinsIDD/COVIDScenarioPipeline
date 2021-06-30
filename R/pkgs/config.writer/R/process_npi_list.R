@@ -16,35 +16,47 @@ NULL
 
 ##' load_geodata_file
 ##' 
-##' Convenience function to load geodata.csv
+##' Convenience function to load the geodata file
 ##'
-##' @param filename geodata.csv filename
+##' @param filename filename of geodata file
 ##' @param geoid_len length of geoid character string
 ##' @param geoid_pad what to pad the geoid character string with
-##' @param to_lower whether to make all column names lowercase
+##' @param state_name whether to add column state with the US state name; defaults to TRUE for forecast or scenario hub runs. 
+##' 
+##' @details 
+##' Currently, the package only supports a geodata object with at least two columns: USPS with the state abbreviation and geoid with the geo IDs of the area. . 
 ##'
-##' @return a data frame with columns for state USPS and county geoid and population
-##'
+##' @return a data frame with columns for state USPS, county geoid and population
+##' @examples 
+##' geodata <- load_geodata_file(filename = system.file("extdata", "geodata_territories_2019_statelevel.csv", package = "config.writer"))
+##' geodata
+##' 
 ##' @export
 
 load_geodata_file <- function(filename,
                               geoid_len = 0,
                               geoid_pad = "0",
-                              to_lower = FALSE
+                              state_name = TRUE
 ) {
 
     if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
     geodata <- readr::read_csv(filename)
 
-    if (to_lower) {
-        names(geodata) <- tolower(names(geodata))
-    }
     if (!("geoid" %in% names(geodata))) {
         stop(paste(filename, "does not have a column named geoid"))
     }
 
     if (geoid_len > 0) {
         geodata$geoid <- stringr::str_pad(geodata$geoid, geoid_len, pad = geoid_pad)
+    }
+    
+    if(state_name) {
+        geodata <- tigris::fips_codes %>%
+            dplyr::distinct(state, state_name) %>%
+            dplyr::rename(USPS = state) %>%
+            dplyr::rename(state = state_name) %>%
+            dplyr::mutate(state = dplyr::recode(state, "U.S. Virgin Islands" = "Virgin Islands")) %>%
+            dplyr::left_join(geodata)
     }
 
     return(geodata)
@@ -58,7 +70,7 @@ load_geodata_file <- function(filename,
 #'
 #' @export
 #'
-#' @examples
+
 npi_recode_scenario <- function(data
                                 ){
 
@@ -81,7 +93,7 @@ npi_recode_scenario <- function(data
 #' @return recoded npi names for use with MultiTimeReduce
 #' @export
 #'
-#' @examples
+
 npi_recode_scenario_mult <- function(data
                                      ){
     data %>%
@@ -111,9 +123,8 @@ npi_recode_scenario_mult <- function(data
 #' @export
 #'
 #' @examples
-#'
-#' geodata <- load_geodata_file(filename = "data/geodata_territories_2019_statelevel.csv")
-#' npi_dat <- process_npi_shub(intervention_path = "data/intervention_tracking/Shelter-in-place-as-of-04302021.csv", geodata)
+#' geodata <- load_geodata_file(filename = system.file("extdata", "geodata_territories_2019_statelevel.csv", package = "config.writer"))
+#' npi_dat <- process_npi_shub(intervention_path = system.file("extdata", "intervention_data.csv", package = "config.writer"), geodata)
 #'
 #' npi_dat
 process_npi_shub <- function(intervention_path,
@@ -121,15 +132,8 @@ process_npi_shub <- function(intervention_path,
                              prevent_overlap = TRUE, 
                              prevent_gaps = TRUE
 ){
-    state_cw <- tigris::fips_codes %>%
-        dplyr::distinct(state, state_name) %>%
-        dplyr::rename(USPS = state) %>%
-        dplyr::rename(state = state_name) %>%
-        dplyr::mutate(state = dplyr::recode(state, "U.S. Virgin Islands" = "Virgin Islands"))
-
     ## read intervention estimates
     og <- readr::read_csv(intervention_path) %>%
-        dplyr::left_join(state_cw, by = c("state"))%>%
         dplyr::left_join(geodata) %>%
         dplyr::filter(GEOID == "all") %>%
         npi_recode_scenario() %>% # recode action variable into scenario
@@ -175,9 +179,12 @@ process_npi_shub <- function(intervention_path,
 #'
 #'
 #' @return
-#' @export
-#'
 #' @examples
+#' 
+#' variant <- generate_variant_b117(variant_path = system.file("extdata", "strain_replace_mmwr.csv", package = "config.writer"))
+#' variant
+#'
+#' @export
 #'
 generate_variant_b117 <- function(variant_path,
                                   sim_start_date=as.Date("2020-03-31"),
@@ -260,6 +267,10 @@ generate_variant_b117 <- function(variant_path,
 #'
 #' @examples
 #'
+#' variant <- generate_multiple_variants(variant_path_1 = system.file("extdata", "B117-fits.csv", package = "config.writer"),
+#'                                       variant_path_2 = system.file("extdata", "B617-fits.csv", package = "config.writer"))
+#' variant
+#' 
 generate_multiple_variants <- function(variant_path_1,
                                        variant_path_2,
                                        sim_start_date=as.Date("2020-03-31"),
