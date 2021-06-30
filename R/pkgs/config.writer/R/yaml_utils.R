@@ -829,8 +829,8 @@ print_seeding <- function(method = "FolderDraw",
 #' @param data_var column where data can be found in data_path file
 #' @param remove_na logical
 #' @param add_one logical, TRUE if evaluating the log likelihood
-#' @param ll_dist distribution of the likelihood
-#' @param ll_param parameter value(s) for the likelihood distribution. These differ by distribution so refer to [inference::logLikStat()]
+#' @param ll_dist distribution of the likelihood: "sqrtnorm" or "pois"
+#' @param ll_param parameter value(s) for the likelihood distribution; not used if ll_dist = "pois". See [inference::logLikStat()]
 #' @param final_print whether this is the final section of the config to print an empty space; set to FALSE if running [print_hierarchical()] and/or [print_prior()] 
 #'
 #' @details 
@@ -1060,7 +1060,7 @@ repeat_string <- function(x,
     } else if(length(x)!=length(y) & length(x)==1){
         z <- rep(x, length(y))
     } else {
-            stop(paste0("The prior settings (i.e., module, ll params) must be of length 1 or a vector of equal length as npi_names. "))
+            stop(paste0("x must be of length 1 or a vector of equal length as y"))
     }
     
     return(z)
