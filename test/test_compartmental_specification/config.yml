@@ -24,49 +24,55 @@ seeding:
 
 seir:
   parameters:
-    sigma: 1 / 5.2
+    alpha:
+      value:
+        distribution: fixed
+        value: .99
+    sigma:
+      value:
+        distribution: fixed
+        value: 1 / 5.2
     gamma:
-      distribution: uniform
-      low: 1 / 6
-      high: 1 / 2.6
+      value:
+        distribution: uniform
+        low: 1 / 6
+        high: 1 / 2.6
     R0s:
-      distribution: uniform
-      low: 2
-      high: 3
-    parallel_structure:
-      compartments:
-        unvaccinated:
-          transmissibility_reduction:
-            distribution: fixed
-            value: 0
-          susceptibility_reduction:
-            distribution: fixed
-            value: 0
-        first_dose:
-          transmissibility_reduction:
-            distribution: fixed
-            value: 0
-          susceptibility_reduction:
-            distribution: fixed
-            value: .5
-        second_dose:
-          transmissibility_reduction:
-            distribution: fixed
-            value: 0
-          susceptibility_reduction:
-            distribution: fixed
-            value: 1
-      transitions:
-        - from: unvaccinated
-          to: first_dose
-          rate:
-            distribution: fixed
-            value: 0
-        - from: first_dose
-          to: second_dose
-          rate:
-            distribution: fixed
-            value: 0
+      value:
+        distribution: uniform
+        low: 2
+        high: 3
+    theta_1:
+      value:
+        distribution: fixed
+        value: .1
+    theta_2:
+      value:
+        distribution: fixed
+        value: .2
+    nu_1:
+      intervention_overlap_operation : "sum"
+      value:
+        distribution: fixed
+        value: .3
+    nu_2:
+      intervention_overlap_operation : "sum"
+      value:
+        distribution: fixed
+        value: .4
+    chi_0:
+      value:
+        distribution: fixed
+        value: .5
+    chi_1:
+      value:
+        distribution: fixed
+        value: .6
+    rho:
+      intervention_overlap_operation : "prod"
+      value:
+        distribution: fixed
+        value: 7
   compartments:
     infection_stage: ["S", "E", "I1", "I2", "I3", "R"]
     vaccination_stage: ["0dose", "1dose", "2dose"]
