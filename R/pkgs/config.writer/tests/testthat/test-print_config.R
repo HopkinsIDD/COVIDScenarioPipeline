@@ -34,7 +34,7 @@ generate_config <- function(){
                    outcomes_parquet_file="usa-geoid-params-output_statelevel.parquet", 
                    incidC_prob_mean = 0.4)
     
-    print_filtering_statistics(sims_per_slot = 1500)
+    print_filtering_statistics(sims_per_slot = 1000)
     
     print_filtering_hierarchical(npi_name = c("local_variance", "probability_incidI_incidC"),
                                  module = c("seir", "hospitalization"),
