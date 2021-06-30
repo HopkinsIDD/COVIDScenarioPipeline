@@ -56,7 +56,7 @@ class Compartments:
             parallel_frame = pd.DataFrame(
                 {'key': 1, "vaccination_stage": seir_config["parameters"]["parallel_structure"]["compartments"].keys()})
         else:
-            parallel_frame = pd.DataFrame({'key': 1, "vaccination_stage": ["0dose"]})
+            parallel_frame = pd.DataFrame({'key': 1, "vaccination_stage": ["unvaccinated"]})
         self.compartments = pd.merge(
             self.compartments,
             parallel_frame
