@@ -447,7 +447,7 @@ def test_outcomes_pcomp():
 
     seir = pq.read_table("model_output/seir/000000001.105.seir.parquet").to_pandas()
     seir2 = seir.copy()
-    seir2['mc_vaccination_stage'] = '1dose'
+    seir2['mc_vaccination_stage'] = 'first_dose'
     for pl in geoid:
         seir2[pl] = seir2[pl]*p_compmult[1]
     new_seir = pd.concat([seir, seir2])
@@ -467,7 +467,7 @@ def test_outcomes_pcomp():
     hosp_f = pq.read_table('model_output/hosp/000000001.111.hosp.parquet').to_pandas()
     hosp_f.set_index('time', drop=True, inplace = True)
     # same as config.yaml (doubled, then NPI halve it)
-    for k, p_comp in enumerate(['0dose', '1dose']):
+    for k, p_comp in enumerate(['unvaccinated', 'first_dose']):
         hosp = hosp_f[hosp_f['mc_vaccination_stage'] == p_comp]
         for i, place  in enumerate(geoid):
             for dt in hosp.index:
@@ -493,7 +493,7 @@ def test_outcomes_pcomp():
                     assert(hosp[hosp['geoid']==place]['incidICU'][dt] == 0)
     hpar_f = pq.read_table('model_output/hpar/000000001.111.hpar.parquet').to_pandas()
     # Doubled everything from previous config.yaml
-    for k, p_comp in enumerate(['0dose', '1dose']):
+    for k, p_comp in enumerate(['unvaccinated', 'first_dose']):
         hpar = hpar_f[hpar_f['mc_vaccination_stage'] == p_comp]
         for i, place  in enumerate(geoid):
             assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'probability')]['value']) == 0.1*2)
