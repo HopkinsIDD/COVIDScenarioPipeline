@@ -334,13 +334,13 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     loaded_values[
                         (loaded_values['quantity'] == 'probability') &
                         (loaded_values['outcome'] == new_comp) &
-                        (loaded_values['mc_vaccination_stage'] == '0dose') &
+                        (loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
                         (loaded_values['source'] == source)
                         ]['value'].to_numpy()
                 delays = loaded_values[
                     (loaded_values['quantity'] == 'delay') &
                     (loaded_values['outcome'] == new_comp) &
-                    (loaded_values['mc_vaccination_stage'] == '0dose') &
+                    (loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
                     (loaded_values['source'] == source)
                     ]['value'].to_numpy()
             else:
