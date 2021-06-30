@@ -327,11 +327,13 @@ yaml_stack <- function(dat,
     ))
 }
 
-#' Convenience function to print transmission interventions and stack them
+#' Print Interventions Section 
+#' 
+#' @description Print transmission interventions and stack them
 #'
 #' @param dat dataframe with processed intervention names/periods; see collapsed_interventions
 #' @param scenario name of the scenario
-#'
+#' 
 #' @return
 #' @export
 #'
@@ -400,9 +402,9 @@ print_transmission_interventions <- function(dat,
                scenario)
 }
 
-#' Print outcomes section
+#' Print Outcomes Section
 #'
-#' @param dat=NULL df with processed outcome interventions
+#' @param dat=NULL df with outcome interventions
 #' @param ifr name of ifr scenario
 #' @param outcomes_parquet_file path to outcomes parquet file
 #' @param incidH_prob_dist distribution for incidH probability
@@ -440,10 +442,16 @@ print_transmission_interventions <- function(dat,
 #' @param incidC_delay_value time to case detection since infection in days
 #' @param incidC_delay_dist distribution of incidC delay
 #'
-#' @return
+#' @details 
+#' The settings for each scenario correspond to a set of different health outcome risks, most often just differences in the probability of death given infection (Pr(incidD|incidI)) and the probability of hospitalization given infection (Pr(incidH|incidI)). Each health outcome risk is referenced in relation to the outcome indicated in source. For example, the probability and delay in becoming a confirmed case (incidC) is most likely to be indexed off of the number and timing of infection (incidI).
+#' 
+#' Importantly, we note that incidI is automatically defined from the SEIR transmission model outputs, while the other compartment sources must be defined in the config before they are used. These settings are currently hardcoded into the function .
+#' 
+#' Users must specific two metrics for each health outcome, probability and delay, while a duration is optional (e.g., duration of time spent in the hospital). The perturbation section is currently enabled for incidC only.
+#' 
+#' Interventions on the outcomes are printed as a separate block preceding the Outcomes section. This assumes the print_outcomes function is called immediately after the [print_transmission_interventions()] 
 #' @export
 #'
-#' @examples
 #'
 
 print_outcomes <- function(dat=NULL,
@@ -520,9 +528,9 @@ print_outcomes <- function(dat=NULL,
         '            value: ',incidH_prob_value,'\n',
         '        delay:\n',
         '          value:\n',
-        '            distribution: ', incidH_delay_dist,'\n',
+        '            distribution: ', incidH_delay_dist,'\n', 
         '            value: ',incidH_delay_value,'\n',
-        '        duration:\n',
+        '        duration:\n', # TODO: optional
         '          value:\n',
         '            distribution: ',incidH_duration_dist,'\n',
         '            value: ',incidH_duration_value,'\n',
@@ -600,14 +608,15 @@ print_outcomes <- function(dat=NULL,
     }
 }
 
-#' Print seir section
-#'
-#' @param sigma inverse of the incubation period in days - fraction or probability
+#' Print SEIR Section
+#' @description Print seir section with specified parameters. 
+#'  
+#' @param sigma_val inverse of the incubation period in days - fraction or probability
 #' @param gamma_dist specify if gamma is fixed or distributional
 #' @param gamma_val inverse of the infectious period in days - fraction or probability
 #' @param gamma_a minimum value of gamma - required if distribution is not "fixed"
 #' @param gamma_b maximum value of gamma - required if distribution is not "fixed"
-#' @param alpha transmission dampening parameter; reasonable values for respiratory viruses range from 0.88-0.99
+#' @param alpha_val transmission dampening parameter; reasonable values for respiratory viruses range from 0.88-0.99
 #' @param R0_val basic reproduction number
 #' @param R0_dist specify if R0 is fixed or distributional
 #' @param R0_a minimum value of R0 - required if distribution is not "fixed"
@@ -620,11 +629,18 @@ print_outcomes <- function(dat=NULL,
 #' @param transitions_dist vector specifying whether transition rate between compartments is fixed; distributional is not yet supported
 #' @param transitions_val vector specifying base transition rate between compartments
 #'
-#' @return
 #' @export
 #'
 #' @examples
-#'
+#' print_seir(alpha_val=0.99, 
+#'            sigma_val = 1/5.2,
+#'            gamma_dist = "uniform", 
+#'            gamma_a = 1/6, 
+#'            gamma_b = 1/2.6,
+#'            R0s_dist = "fixed", 
+#'            R0s_val = 2.3, 
+#'            incl_vacc = FALSE)
+#'            
 
 print_seir <- function(sigma_val = 1/5.2,
                        gamma_dist = "fixed",
@@ -702,23 +718,24 @@ print_seir <- function(sigma_val = 1/5.2,
 
 }
 
-#' Print header section
-#'
-#' @param sim_name
-#' @param sim_start_date
-#' @param sim_end_date
-#' @param n_simulations
-#' @param dt
-#' @param census_year
-#' @param base_path
-#' @param sim_states
-#' @param setup_name
-#' @param geodata_file
-#' @param mobility_file
-#' @param popnodes
-#' @param nodenames
-#' @param include_in_report
-#' @param state_level
+#' Print Header Section
+#' @description Prints the global options and the spatial setup section of the configuration files. These typically sit at the top of the configuration file. 
+#' 
+#' @param sim_name name of simulation, typically named after the region/location you are modeling
+#' @param sim_start_date simulation start date, should match that of interventions, with format YYYY-MM-DD (e.g., 2020-01-31)
+#' @param sim_end_date simulation end date with format YYYY-MM-DD (e.g., 2020-01-31)
+#' @param n_simulations number of simulations to run
+#' @param dt simulation time step in days
+#' @param census_year integer(year)
+#' @param base_path base path for spatial files
+#' @param sim_states vector of locations that will be modeled
+#' @param setup_name spatial folder name
+#' @param geodata_file path to file relative to base_path. Geodata is a .csv with column headers, with at least two columns: nodenames and popnodes
+#' @param popnodes is the name of a column in geodata that specifies the population of the nodenames column
+#' @param nodenames is the name of a column in geodata that specifies the geo IDs of an area. This column must be unique.
+#' @param include_in_report is the name of an optional, boolean column in geodata that specifies which nodenames are included in the report. Models may include more locations than simply the location of interest.
+#' @param mobility_file path to file relative to base_path. The mobility file is a .csv file (it has to contains .csv as extension) with long form comma separated values. Columns have to be named ori, dest, amount with amount being the amount of individual going from place ori to place dest. Unassigned relations are assumed to be zero. ori and dest should match exactly the nodenames column in geodata.csv. It is also possible, but NOT RECOMMENDED to specify the mobility file as a .txt with space-separated values in the shape of a matrix. This matrix is symmetric and of size K x K, with K being the number of rows in geodata.
+#' @param state_level whether this is a state-level run 
 #'
 #' @return
 #' @export
@@ -765,14 +782,17 @@ print_header <- function(sim_name,
 }
 
 #' Print seeding section
+#' @description Prints the seeding section of the configuration file
+#' @param method There are two different seeding methods: 1) based on air importation (FolderDraw) and 2) based on earliest identified cases (PoissonDistributed). FolderDraw is required if the importation section is present and requires folder_path. Otherwise, put PoissonDistributed, which requires lambda_file.
+#' @param seeding_file_type indicates which seeding file type the SEIR model will look for, "seed", which is generated from inference::create_seeding.R, or "impa", which refers to importation
+#' @param folder_path path to folder where importation inference files will be saved
+#' @param lambda_file path to seeding file
+#' @param perturbation_sd standard deviation for the proposal value of the seeding date, in number of days
 #'
-#' @param method
-#' @param seeding_file_type
-#' @param folder_path
-#' @param lambda_file
-#' @param perturbation_sd
-#'
-#' @return
+#' @details 
+#' ## The model performns inference on the seeding date and initial number of seeding infections in each geoid with the default settings
+#' ## The method for determining the proposal distribution for the seeding amount is hard-coded in the inference package (R/pkgs/inference/R/functions/perturb_seeding.R). It is pertubed with a normal distribution where the mean of the distribution 10 times the number of confirmed cases on a given date and the standard deviation is 1.
+#' 
 #' @export
 #'
 #' @examples
@@ -796,20 +816,33 @@ print_seeding <- function(method = "FolderDraw",
     ))
 }
 
-#' Print filtering section
+#' Print filtering and filtering::statistics
+#' @description Set settings for the filtering section and its statistics component
 #'
-#' @param method
-#' @param seeding_file_type
-#' @param folder_path
-#' @param lambda_file
-#' @param perturbation_sd
+#' @param sims_per_slot number of iterations in a single MCMC inference chain With inference model runs, the number of simulations nsimulations refers to the number of final model simulations that will be produced. The sims_per_slot setting refers to the number of iterative simulations that will be run in order to produce a single final simulation (i.e., number of simulations in a single MCMC chain).
+#' @param data_path file path where observed data are saved
+#' @param gt_source source of data 
+#' @param stat_names the names of the statistics used to calibrate the model to empirical data
+#' @param aggregator function used to aggregate data over the period, usually sum or mean
+#' @param period duration over which data should be aggregated prior to use in the likelihood, may be specified in any number of days, weeks, months (e.g., "1 weeks")
+#' @param sim_var column name where model data can be found, from the hospitalization outcomes files
+#' @param data_var column where data can be found in data_path file
+#' @param remove_na logical
+#' @param add_one logical, TRUE if evaluating the log likelihood
+#' @param ll_dist distribution of the likelihood
+#' @param ll_param parameter value(s) for the likelihood distribution. These differ by distribution so refer to [inference::logLikStat()]
+#' @param final_print whether this is the final section of the config to print an empty space; set to FALSE if running [print_hierarchical()] and/or [print_prior()] 
 #'
-#' @return
+#' @details 
+#' The filtering section configures the settings for the inference algorithm, while the statistics component determines how the model is calibrated. 
+#' With inference model runs, the number of simulations n_simulations in [print_header()] refers to the number of final model simulations that will be produced. The sims_per_slot setting refers to the number of iterative simulations that will be run in order to produce a single final simulation (i.e., number of simulations in a single MCMC chain).
+#' The statistics specified here are used to calibrate the model to empirical data. If multiple statistics are specified, this inference is performed jointly and they are weighted in the likelihood according to the number of data points and the variance of the proposal distribution.
 #' @export
 #'
 #' @examples
-#'
-print_filtering <- function(sims_per_slot = 300,
+#' print_filtering_statistics()
+#' 
+print_filtering_statistics <- function(sims_per_slot = 300,
                             data_path = "data/us_data.csv",
                             gt_source = "csse",
                             stat_names = c("sum_deaths", "sum_confirmed"),
@@ -888,8 +921,8 @@ print_filtering <- function(sims_per_slot = 300,
 
 }
 
-#' Create hierarchical terms
-#'
+#' Print filtering::hierarchical_stats_geo
+#' @description 
 #' @param npi_name
 #' @param module
 #' @param geo_group_col
