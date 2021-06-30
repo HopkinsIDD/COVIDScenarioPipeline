@@ -73,7 +73,7 @@ class Setup:
                  ti,  # time to start
                  tf,  # time to finish
                  npi_scenario=None,
-                 config_version='old',
+                 config_version=None,
                  npi_config={},
                  seeding_config={},
                  initial_conditions_config={},
@@ -132,7 +132,16 @@ class Setup:
 
         self.build_setup()
 
+        if config_version is None:
+            if "compartments" in self.compartments_config.keys():
+                config_version = 'v2'
+            else:
+                config_version = 'old'
+
+            logging.info(f"Config version not provided, infering type {config_version}")
+
         if config_version != 'old' and config_version != 'v2':
+            print
             raise ValueError(f"Configuration version unknown: {config_version}. "
                              f"Should be either non-specified (default: 'old'), or set to 'old' or 'v2'.")
 
