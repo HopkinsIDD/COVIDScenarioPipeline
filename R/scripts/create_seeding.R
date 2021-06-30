@@ -185,11 +185,14 @@ if ("compartments" %in% names(config[["seir"]])) {
 
   if ("parallel_structure" %in% names(config[["seir"]][["parameters"]])) {
     parallel_compartments <- config[["seir"]][["parameters"]][["parallel_structure"]][["compartments"]]
-    incident_cases[["source_vaccination_stage"]] <- names(parallel_compartments)[[1]]
-    incident_cases[["destination_vaccination_stage"]] <- names(parallel_compartments)[[1]]
-    required_column_names <- c(required_column_names, "source_vaccination_stage", "destination_vaccination_stage")
+  } else {
+    parallel_compartments <- setNames(NA, "unvaccinated")
   }
+  incident_cases[["source_vaccination_stage"]] <- names(parallel_compartments)[[1]]
+  incident_cases[["destination_vaccination_stage"]] <- names(parallel_compartments)[[1]]
+  required_column_names <- c(required_column_names, "source_vaccination_stage", "destination_vaccination_stage")
 }
+print(required_column_names)
 incident_cases <- incident_cases[, required_column_names]
 
 
