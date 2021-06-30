@@ -518,7 +518,6 @@ def test_inference_resume():
     npis_new = pq.read_table(
         file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id2write + 1, 'snpi', "parquet")).to_pandas()
 
-    print(npis_new["npi_name"])
     assert (npis_old["npi_name"].isin(['None', 'Wuhan', 'KansasCity']).all())
     assert (npis_new["npi_name"].isin(['None', 'Wuhan', 'KansasCity', 'BrandNew']).all())
     # assert((['None', 'Wuhan', 'KansasCity']).isin(npis_old["npi_name"]).all())
