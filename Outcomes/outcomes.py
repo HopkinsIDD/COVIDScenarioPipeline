@@ -313,8 +313,21 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
     for p_comp in p_comps:
         all_data[p_comp] = {}
         incidI = diffI[(diffI['mc_vaccination_stage'] == p_comp) & (diffI['mc_infection_stage'] == 'I1')]
-        incidI = incidI.drop(['date', 'mc_vaccination_stage', 'mc_infection_stage', 'mc_name'], axis=1).to_numpy()
-        all_data[p_comp]['incidI'] = incidI
+
+        #additional_mcs = [c for c in incidI.drop(['date', 'mc_vaccination_stage', 'mc_infection_stage', 'mc_name'], axis=1).columns if 'mc_' in c]
+        #if not additional_mcs:
+        #    incidI = incidI.drop(['date', 'mc_vaccination_stage', 'mc_infection_stage', 'mc_name'], axis=1)
+        #    all_data[p_comp]['incidI'] = incidI.to_numpy()
+        #else:
+        incidI_arr = np.zeros((len(dates), len(places)), dtype=np.int)
+        for mcn in incidI['mc_name'].unique():
+            new_df = incidI[incidI['mc_name']==mcn]
+            new_df = new_df.drop([c for c in new_df.columns if 'mc_' in c], axis=1)
+            new_df = new_df.drop('date', axis=1)
+            incidI_arr = incidI_arr + new_df.to_numpy()
+
+
+            all_data[p_comp]['incidI'] = incidI_arr
 
     # We store them as numpy matrices. Dimensions is dates X places
 
