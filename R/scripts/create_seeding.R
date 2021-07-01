@@ -139,8 +139,8 @@ check_required_names <- function(df, cols, msg) {
 }
 
 if ("compartments" %in% names(config[["seir"]])) {
-  if (all(names(config$seir$compartments) %in% names(cases_deaths))) {
-    required_column_names <- c("FIPS", "Update", "value", names(config$seir$compartments))
+  if (all(names(config$seeding$seeding_compartments) %in% names(cases_deaths))) {
+    required_column_names <- c("FIPS", "Update", names(config$seeding$seeding_compartments))
     check_required_names(
       cases_deaths,
       required_column_names,
@@ -149,23 +149,28 @@ if ("compartments" %in% names(config[["seir"]])) {
         paste(required_column_names, collapse = ", ")
       )
     )
-    incident_cases <- cases_deaths[, required_column_names]
+    incident_cases <- cases_deaths[, required_column_names] %>%
+      tidyr::pivot_longer(!!names(config$seeding$seeding_compartments)) %>%
+      dplyr::mutate(
+        source_column = sapply(
+          config$seeding$seeding_compartments[name],
+          function(x){
+            paste(x$source_compartment, collapse = "_")
+          }
+        ),
+        destination_column = sapply(
+          config$seeding$seeding_compartments[name],
+          function(x){
+            paste(x$destination_compartment, collapse = "_")
+          }
+        )
+      ) %>%
+      tidyr::separate(source_column, paste("source", names(config$seir$compartments), sep = "_")) %>%
+      tidyr::separate(destination_column, paste("destination", names(config$seir$compartments), sep = "_"))
+    required_column_names <- c("FIPS", "Update", "value", paste("source", names(config$seir$compartments), sep = "_"), paste("destination", names(config$seir$compartments), sep = "_"))
+    incident_cases <- incident_cases[, required_column_names]
   } else {
-    required_column_names <- c("FIPS", "Update", "incidI")
-    check_required_names(
-      cases_deaths,
-      required_column_names,
-      paste(
-        "To create the seeding, we require the following columns to exist in the case data",
-        paste(required_column_names, collapse = ", ")
-      )
-    )
-    incident_cases <- cases_deaths[, required_column_names]
-    names(incident_cases)[3] <- "value"
-    for (name in names(config$seir$compartments)) {
-      incident_cases[[name]] <- config$seeding$seeding_compartment[[name]]
-    }
-    required_column_names <- c("FIPS", "Update", "value", names(config$seir$compartments))
+    stop("Please add a seecing_compartments section to the config")
   }
 } else {
   required_column_names <- c("FIPS", "Update", "incidI")

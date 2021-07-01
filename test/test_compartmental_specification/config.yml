@@ -16,6 +16,10 @@ spatial_setup:
     - HI
 
 seeding:
+  seeding_compartments:
+    incidI:
+      source_compartment: ["S", "unvaccinated", "var0"]
+      destination_compartment: ["E", "unvaccinated", "var0"]
   seeding_file_type: seed
   method: FolderDraw
   folder_path: importation/test1/

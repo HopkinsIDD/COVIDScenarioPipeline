@@ -477,7 +477,7 @@ class Compartments:
             transition_array[4][it] = current_proportion_start + len(elem)
             current_proportion_start += len(elem)
 
-        proportion_info = np.zeros((3, transition_array[:, 4].max()), dtype='int')
+        proportion_info = np.zeros((3, transition_array[4].max()), dtype='int')
         current_proportion_sum_start = 0
         current_proportion_sum_it = 0
         for it, elem in enumerate(self.transitions['proportional_to']):
