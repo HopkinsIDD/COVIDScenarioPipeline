@@ -33,7 +33,7 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
     assert (type(s.compartments.compartments.shape[0]) == int)
     assert (type(s.nnodes) == int)
     assert (s.n_days > 1)
-    assert (parsed_parameters.shape == (5, s.n_days, s.nnodes))
+    assert (parsed_parameters.shape[1:3] == (s.n_days, s.nnodes))
     assert (type(s.dt) == float)
     # assert (transition_array.shape == (5, 5))
     assert (type(transition_array[0][0]) == np.int64)
@@ -59,7 +59,7 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
 
     assert (len(mobility_data) > 0)
     print(f"mobility is of type {type(mobility_data[0])}")
-   
+
     assert (type(mobility_data[0]) == np.float64)
     assert (len(mobility_data) == len(mobility_geoid_indices))
     assert (type(mobility_geoid_indices[0]) == np.int32)
