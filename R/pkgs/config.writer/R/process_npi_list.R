@@ -166,6 +166,52 @@ process_npi_shub <- function(intervention_path,
 
 }
 
+#' Process California intervention data
+#'
+#' @param intervention_path path to csv with intervention list
+#' @param geodata df with state USPS and geoid from load_geodata_file
+#' @param prevent_overlap whether to allow for interventions to overlap in time and geoid
+#' @param prevent_gaps whether to prevent gaps in interventions (i.e. no interventions)
+#'
+#' @return df with six columns:
+#'         - USPS: state abbreviation
+#'         - geoid: county ID
+#'         - start_date: intervention start date
+#'         - end_date: intervention end date
+#'         - name: intervention name
+#'         - template: intervention template (e.g. ReduceR0, MultiTimeReduce)
+#' @export
+#'
+process_npi_ca <- function(intervention_path,
+                           geodata, 
+                           prevent_overlap = TRUE, 
+                           prevent_gaps = TRUE
+){
+    ## read intervention estimates
+    og <- readr::read_csv(intervention_path) %>%
+        dplyr::left_join(geodata) %>%
+        dplyr::group_by(county, geoid) %>%
+        dplyr::mutate(end_date = dplyr::if_else(end_date == max(end_date), lubridate::NA_Date_, end_date), 
+                      template = "MultiTimeReduce") %>%
+        dplyr::ungroup() %>%
+        dplyr::select(USPS, geoid, start_date, end_date, name = phase, template)
+    
+    if(prevent_overlap){
+        og <- og %>%
+            dplyr::group_by(USPS, geoid) %>% 
+            dplyr::mutate(end_date = dplyr::if_else(end_date >= dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
+    }
+    
+    if(prevent_gaps){
+        og <- og %>%
+            dplyr::group_by(USPS, geoid) %>% 
+            dplyr::mutate(end_date = dplyr::if_else(end_date < dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
+    }
+    
+    return(og)
+    
+}
+
 #' Function to process variant data for B117
 #'
 #' @param variant_path path to variant
