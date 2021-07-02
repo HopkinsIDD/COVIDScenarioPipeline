@@ -36,6 +36,8 @@ set_npi_params <- function(intervention_file,
                            v_dist = "truncnorm", v_mean=0.6, v_sd=0.05, v_a=0.0, v_b=0.9,
                            p_dist = "truncnorm", p_mean=0, p_sd=0.05, p_a=-1, p_b=1
 ){
+    if(any(stringr::str_detect(npi_dat$name, "^\\d$"))) stop("Intervention names must include at least one non-numeric character.")
+    
     sim_start_date <- lubridate::ymd(sim_start_date)
     sim_end_date <- lubridate::ymd(sim_end_date)
     npi_cuttoff_date <- lubridate::ymd(npi_cutoff_date)
@@ -679,6 +681,24 @@ daily_mean_reduction <- function(dat,
     
     timeline <- tidyr::crossing(time = seq(from=min(dat$start_date), to=max(dat$end_date), by = 1),
                                 geoid = unique(dat$geoid))
+    
+    if(any(stringr::str_detect(dat$geoid, '", "'))){
+        mtr_geoid <- dat %>%
+            dplyr::filter(stringr::str_detect(geoid, '", "'))
+        
+        temp <- list()
+        for(i in 1:nrow(mtr_geoid)){
+            temp[[i]] <- tidyr::expand_grid(geoid = mtr_geoid$geoid[i] %>% stringr::str_split('", "') %>% unlist(), 
+                                            mtr_geoid[i,] %>% dplyr::ungroup() %>% dplyr::select(-geoid)) %>%
+                dplyr::select(colnames(mtr_geoid))
+        }
+        
+        dat <- dat %>%
+            dplyr::filter(stringr::str_detect(geoid, '", "', negate = TRUE)) %>%
+            dplyr::bind_rows(
+                dplyr::bind_rows(temp)
+            )
+    }
     
     dat <- dat %>% 
         dplyr::filter(geoid=="all") %>% 
