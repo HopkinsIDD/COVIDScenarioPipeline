@@ -56,7 +56,7 @@ load_geodata_file <- function(filename,
             dplyr::rename(USPS = state) %>%
             dplyr::rename(state = state_name) %>%
             dplyr::mutate(state = dplyr::recode(state, "U.S. Virgin Islands" = "Virgin Islands")) %>%
-            dplyr::left_join(geodata)
+            dplyr::right_join(geodata)
     }
 
     return(geodata)
@@ -137,9 +137,13 @@ process_npi_shub <- function(intervention_path,
         dplyr::left_join(geodata) %>%
         dplyr::filter(GEOID == "all") %>%
         npi_recode_scenario() %>% # recode action variable into scenario
-        npi_recode_scenario_mult() %>%# recode action_new variable into scenario_mult
-        dplyr::mutate(dplyr::across(tidyselect::ends_with("_date"), ~ lubridate::mdy(.x)))
-
+        npi_recode_scenario_mult() # recode action_new variable into scenario_mult
+    
+    if(!all(lubridate::is.Date(og$start_date), lubridate::is.Date(og$end_date))){
+        og <- og %>%
+            dplyr::mutate(dplyr::across(tidyselect::ends_with("_date"), ~ lubridate::as_date(.x)))
+    }
+    
     if("template" %in% colnames(og)){
         og <- og %>%
             dplyr::mutate(name = dplyr::if_else(template=="MultiTimeReduce", scenario_mult, scenario)) %>%
