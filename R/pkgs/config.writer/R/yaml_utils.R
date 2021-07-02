@@ -430,12 +430,12 @@ print_transmission_interventions <- function(dat,
 #' @param incidVent_duration_dist distribution for incidVent duration
 #' @param incidVent_duration_value duration of ventilation in days
 #' @param incidC_prob_dist distribution for incidC probability
-#' @param incidC_prob_mean probability of detecting a case among incident infections
+#' @param incidC_prob_value probability of detecting a case among incident infections
 #' @param incidC_prob_sd standard deviation for incidC probability
 #' @param incidC_prob_a minimum value for incidC probability
 #' @param incidC_prob_b maximum value for incidC probability
 #' @param incidC_prob_dist_pert distribution for incidC perturbation
-#' @param incidC_prob_mean_pert mean perturbation value for incidC
+#' @param incidC_prob_value_pert mean perturbation value for incidC
 #' @param incidC_prob_sd_pert perturbation sd for incidC
 #' @param incidC_prob_a_pert maximum perturbation value for incidC probability
 #' @param incidC_prob_b_pert minimum perturbation value for incidC probability
@@ -480,12 +480,12 @@ print_outcomes <- function(dat=NULL,
                           incidVent_duration_dist="fixed",
                           incidVent_duration_value=7,
                           incidC_prob_dist="truncnorm",
-                          incidC_prob_mean=0.2,
+                          incidC_prob_value=0.2,
                           incidC_prob_sd=.1,
                           incidC_prob_a=0,
                           incidC_prob_b=1,
                           incidC_prob_dist_pert="truncnorm",
-                          incidC_prob_mean_pert=0,
+                          incidC_prob_value_pert=0,
                           incidC_prob_sd_pert=0.05,
                           incidC_prob_a_pert=-1,
                           incidC_prob_b_pert=1,
@@ -580,13 +580,13 @@ print_outcomes <- function(dat=NULL,
         '        probability:\n',
         '          value:\n',
         '            distribution: ',incidC_prob_dist,'\n',
-        '            mean: ', incidC_prob_mean, '\n',
+        '            mean: ', incidC_prob_value, '\n',
         '            sd: ',incidC_prob_sd,'\n',
         '            a: ',incidC_prob_a,'\n',
         '            b: ', incidC_prob_b, '\n',
         '          perturbation:\n',
         '            distribution: ',incidC_prob_dist_pert,'\n',
-        '            mean: ',incidC_prob_mean_pert,'\n',
+        '            mean: ',incidC_prob_value_pert,'\n',
         '            sd: ',incidC_prob_sd_pert,'\n',
         '            a: ',incidC_prob_a_pert,'\n',
         '            b: ',incidC_prob_b_pert,'\n',
