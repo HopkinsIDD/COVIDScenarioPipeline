@@ -119,6 +119,15 @@ def steps_SEIR_nb(
                     seeding_data['seeding_sources'][seeding_instance_idx]][
                     seeding_data['seeding_places'][seeding_instance_idx]] -= \
                     seeding_data['seeding_amounts'][seeding_instance_idx]
+
+                states_next[
+                    seeding_data['seeding_sources'][seeding_instance_idx]][
+                    seeding_data['seeding_places'][seeding_instance_idx]] = states_next[
+                    seeding_data['seeding_sources'][seeding_instance_idx]][
+                    seeding_data['seeding_places'][seeding_instance_idx]] * (states_next[
+                    seeding_data['seeding_sources'][seeding_instance_idx]][
+                    seeding_data['seeding_places'][seeding_instance_idx]] > 0)
+
                 states_next[
                     seeding_data['seeding_destinations'][seeding_instance_idx]][
                     seeding_data['seeding_places'][seeding_instance_idx]] += \
@@ -213,7 +222,8 @@ def steps_SEIR_nb(
                 print("  ", states_current[comp].max())
 
         if ((states_current.min() < 0) or (states_current.max() > 10 ** 10)):
-            raise ValueError("Overflow error")
+            print((states_current.min() < 0), (states_current.max() > 10 ** 10))
+            raise ValueError(f"Overflow error. Too small ?. Too large ?")
 
     # print(states)
     # print(states_daily_incid)
