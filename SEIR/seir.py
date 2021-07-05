@@ -68,9 +68,23 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
     assert (len(s.popnodes) == s.nnodes)
     assert (type(s.popnodes[0]) == np.int64)
 
-    print(mobility_data)
-    print(mobility_geoid_indices)
-    print(mobility_data_indices)
+    #print(mobility_data)
+    #print(mobility_geoid_indices)
+    #print(mobility_data_indices)
+    #print('initial_condition')
+    #print(initial_conditions)
+    #print('parsed_parameters')
+    #print(parsed_parameters)
+    #print('seeding_data')
+    #print(seeding_data)
+
+    #print('transition array')
+    #print(transition_array)
+    #print('proportion_info')
+    #print(proportion_info)
+    #print('proportion_array')
+    #print(proportion_array)
+
     return(steps_SEIR_nb(
         s.compartments.compartments.shape[0],
         s.nnodes,
@@ -78,8 +92,8 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
         parsed_parameters,
         s.dt,
         transition_array,
-        proportion_array,
         proportion_info,
+        proportion_array,
         initial_conditions,
         seeding_data,
         mobility_data,
