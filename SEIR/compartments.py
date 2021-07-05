@@ -72,7 +72,7 @@ class Compartments:
                 {
                     "source": ["S", "unvaccinated"],
                     "destination": ["E", "unvaccinated"],
-                    "rate": ["R0 / gamma", 1],
+                    "rate": ["R0 * gamma", 1],
                     "proportional_to": [["S", "unvaccinated"], [[["E", "I1", "I2", "I3"]], "unvaccinated"]],
                     "proportion_exponent": [["1", "1"], ["alpha", "1"]]
                 },
@@ -110,7 +110,7 @@ class Compartments:
                 {
                     "source": ["S", self.compartments["vaccination_stage"]],
                     "destination": ["E", self.compartments["vaccination_stage"]],
-                    "rate": ["R0 / gamma", 1],
+                    "rate": ["R0 * gamma", 1],
                     "proportional_to": [["S", self.compartments["vaccination_stage"]], [[["E", "I1", "I2", "I3"]], self.compartments["vaccination_stage"]]],
                     "proportion_exponent": [["1", "1"], ["alpha", "1"]]
                 },
