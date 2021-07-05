@@ -108,38 +108,38 @@ class Compartments:
         else:
             transitions = [
                 {
-                    "source": ["S", self.compartments["vaccination_stage"]],
-                    "destination": ["E", self.compartments["vaccination_stage"]],
+                    "source": ["S", self.compartments["vaccination_stage"].unique().tolist()],
+                    "destination": ["E", self.compartments["vaccination_stage"].unique().tolist()],
                     "rate": ["R0 * gamma", 1],
-                    "proportional_to": [["S", self.compartments["vaccination_stage"]], [[["E", "I1", "I2", "I3"]], self.compartments["vaccination_stage"]]],
+                    "proportional_to": [["S", self.compartments["vaccination_stage"].unique().tolist()], [[["E", "I1", "I2", "I3"]], self.compartments["vaccination_stage"].unique().tolist()]],
                     "proportion_exponent": [["1", "1"], ["alpha", "1"]]
                 },
                 {
-                    "source": [["E"], self.compartments["vaccination_stage"]],
-                    "destination": [["I1"], self.compartments["vaccination_stage"]],
+                    "source": [["E"], self.compartments["vaccination_stage"].unique().tolist()],
+                    "destination": [["I1"], self.compartments["vaccination_stage"].unique().tolist()],
                     "rate": ["sigma", 1],
-                    "proportional_to": [[["E"], self.compartments["vaccination_stage"]]],
+                    "proportional_to": [[["E"], self.compartments["vaccination_stage"].unique().tolist()]],
                     "proportion_exponent": [["1", "1"]]
                 },
                 {
-                    "source": [["I1"], self.compartments["vaccination_stage"]],
-                    "destination": [["I2"], self.compartments["vaccination_stage"]],
+                    "source": [["I1"], self.compartments["vaccination_stage"].unique().tolist()],
+                    "destination": [["I2"], self.compartments["vaccination_stage"].unique().tolist()],
                     "rate": ["3 * gamma", 1],
-                    "proportional_to": [[["I1"], self.compartments["vaccination_stage"]]],
+                    "proportional_to": [[["I1"], self.compartments["vaccination_stage"].unique().tolist()]],
                     "proportion_exponent": [["1", "1"]]
                 },
                 {
-                    "source": [["I2"], self.compartments["vaccination_stage"]],
-                    "destination": [["I3"], self.compartments["vaccination_stage"]],
+                    "source": [["I2"], self.compartments["vaccination_stage"].unique().tolist()],
+                    "destination": [["I3"], self.compartments["vaccination_stage"].unique().tolist()],
                     "rate": ["3 * gamma", 1],
-                    "proportional_to": [[["I2"], self.compartments["vaccination_stage"]]],
+                    "proportional_to": [[["I2"], self.compartments["vaccination_stage"].unique().tolist()]],
                     "proportion_exponent": [["1", "1"]]
                 },
                 {
-                    "source": [["I3"], self.compartments["vaccination_stage"]],
-                    "destination": [["R"], self.compartments["vaccination_stage"]],
+                    "source": [["I3"], self.compartments["vaccination_stage"].unique().tolist()],
+                    "destination": [["R"], self.compartments["vaccination_stage"].unique().tolist()],
                     "rate": ["3 * gamma", 1],
-                    "proportional_to": [[["I3"], self.compartments["vaccination_stage"]]],
+                    "proportional_to": [[["I3"], self.compartments["vaccination_stage"].unique().tolist()]],
                     "proportion_exponent": [["1", "1"]]
                 }
             ]
