@@ -53,7 +53,7 @@ def test_parameters_quick_draw_old():
 
     ### Check that the object is well constructed:
     print(params.pnames)
-    assert (params.pnames == ['alpha', 'sigma', 'gamma', 'R0s'])
+    assert (params.pnames == ['alpha', 'sigma', 'gamma', 'R0'])
     assert (params.npar == 4)
     assert (params.intervention_overlap_operation['sum'] == [])
     assert (params.intervention_overlap_operation['prod'] == [pn.lower() for pn in params.pnames])
@@ -63,7 +63,7 @@ def test_parameters_quick_draw_old():
     print(p_array.shape)
 
     alpha = p_array[params.pnames2pindex['alpha']]
-    R0s = p_array[params.pnames2pindex['R0s']]
+    R0s = p_array[params.pnames2pindex['R0']]
     sigma = p_array[params.pnames2pindex['sigma']]
     gamma = p_array[params.pnames2pindex['gamma']]
     # susceptibility_reduction = p_array[parameters.pnames2pindex['']]
