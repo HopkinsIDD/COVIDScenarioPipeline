@@ -325,8 +325,6 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             new_df = new_df.drop([c for c in new_df.columns if 'mc_' in c], axis=1)
             new_df = new_df.drop('date', axis=1)
             incidI_arr = incidI_arr + new_df.to_numpy()
-
-
             all_data[p_comp]['incidI'] = incidI_arr
 
     # We store them as numpy matrices. Dimensions is dates X places

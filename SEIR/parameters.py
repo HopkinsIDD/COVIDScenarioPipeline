@@ -77,7 +77,7 @@ class Parameters:
             p_dists = {'alpha': self.picklable_lamda_alpha,
                        'sigma': self.picklable_lamda_sigma,
                        'gamma': gamma_dist,
-                       'R0s': R0s_dist}
+                       'R0': R0s_dist}
             for key in p_dists:
                 self.intervention_overlap_operation['prod'].append(key.lower())
 
