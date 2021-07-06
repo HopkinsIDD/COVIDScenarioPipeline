@@ -73,17 +73,17 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
     #print(mobility_data_indices)
     #print('initial_condition')
     #print(initial_conditions)
-    #print('parsed_parameters')
-    #print(parsed_parameters)
+    print('parsed_parameters.shape')
+    print(parsed_parameters.shape)
     #print('seeding_data')
     #print(seeding_data)
 
-    #print('transition array')
-    #print(transition_array)
-    #print('proportion_info')
-    #print(proportion_info)
-    #print('proportion_array')
-    #print(proportion_array)
+    print('transition array')
+    print(transition_array)
+    print('proportion_info')
+    print(proportion_info)
+    print('proportion_array')
+    print(proportion_array)
 
     return(steps_SEIR_nb(
         s.compartments.compartments.shape[0],
