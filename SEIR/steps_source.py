@@ -141,7 +141,6 @@ def steps_SEIR_nb(
                                    seeding_data['seeding_places'][seeding_instance_idx]] += \
                     seeding_data['seeding_amounts'][seeding_instance_idx]
 
-
         for transition_index in range(ntransitions):
             #print("processing tranision", transition_index)
             total_rate = np.ones((nspatial_nodes))
@@ -150,6 +149,9 @@ def steps_SEIR_nb(
                     transitions[transition_proportion_start_col][transition_index],
                     transitions[transition_proportion_stop_col][transition_index]
             ):
+                if(transitions[transition_rate_col][transition_index] > 4):
+                    if (parameters[transitions[transition_rate_col][transition_index]][today][spatial_node]) > 0:
+                        raise ValueError("This shouldn't happen")
                 relevant_number_in_comp = np.zeros((nspatial_nodes))
                 relevant_exponent = np.ones((nspatial_nodes))
                 for proportion_sum_index in range(
@@ -164,7 +166,11 @@ def steps_SEIR_nb(
                     ][today]
                 if first_proportion:
                     first_proportion = False
-                    source_number = relevant_number_in_comp ** relevant_exponent
+                    source_number = relevant_number_in_comp
+                    if source_number.max() > 0:
+                        total_rate[source_number > 0] *= source_number[source_number > 0] ** relevant_exponent[source_number > 0] / source_number[source_number > 0]
+                    total_rate *= parameters[transitions[transition_rate_col][transition_index]][today] 
+                    print(total_rate)
                 else:
                     for spatial_node in range(nspatial_nodes):
                         proportion_keep_compartment = 1 - percent_day_away * percent_who_move[spatial_node]
@@ -184,6 +190,7 @@ def steps_SEIR_nb(
                         rate_change_compartment = rate_change_compartment / population[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]]
                         rate_change_compartment = rate_change_compartment * relevant_exponent[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]]
                         total_rate[spatial_node] *= (rate_keep_compartment + rate_change_compartment.sum())
+ 
             compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
 
             if stochastic_p:
