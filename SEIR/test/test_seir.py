@@ -413,7 +413,7 @@ def test_continuation_resume():
         file_paths.create_file_name(s.in_run_id, s.in_prefix, sim_id2write, 'seir', "parquet"),
     ).to_pandas()
     states_new = states_new[states_new["date"] == '2020-03-15'].reset_index(drop=True)
-    assert ((states_old == states_new).all().all())
+    assert ((states_old[states_old["value_type"] == 'prevalence'] == states_new[states_new["value_type"] == 'prevalence']).all().all())
 
     seir.onerun_SEIR_loadID(sim_id2write=sim_id2write + 1, s=s, sim_id2load=sim_id2write)
     states_new = pq.read_table(

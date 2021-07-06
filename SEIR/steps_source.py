@@ -101,6 +101,8 @@ def steps_SEIR_nb(
         is_a_new_day = False
         if time % 1 == 0: is_a_new_day = True
         if is_a_new_day:
+            # Prevalence is saved at the begining of the day, while incidence is during the day
+            states[today, :, :] = states_next
             for seeding_instance_idx in range(
                     seeding_data['day_start_idx'][today],
                     seeding_data['day_start_idx'][today + 1]
@@ -203,8 +205,7 @@ def steps_SEIR_nb(
             states_daily_incid[today, transitions[transition_destination_col][transition_index], :] += number_move
 
         states_current = states_next
-        if is_a_new_day:
-            states[today, :, :] = states_next
+
 
         # if debug_print:
         #     print("State Movements:")
