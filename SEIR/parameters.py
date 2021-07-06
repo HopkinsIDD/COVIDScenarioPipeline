@@ -84,20 +84,20 @@ class Parameters:
             if n_parallel_compartments > 1.5:
                 for compartment, index in compartments_dict.items():
                     if "susceptibility_reduction" in compartments_map[compartment]:
-                        pn = f"susceptibility_reduction {index}"
+                        pn = f"susceptibility_reduction{index}"
                         p_dists[pn] = compartments_map[compartment]["susceptibility_reduction"].as_random_distribution()
                         self.intervention_overlap_operation['prod'].append(pn.lower())
                     else:
                         raise ValueError(f"Susceptibility Reduction not found for comp {compartment}")
                     if "transmissibility_reduction" in compartments_map[compartment]:
-                        pn = f"transmissibility_reduction {index}"
+                        pn = f"transmissibility_reduction{index}"
                         p_dists[pn] = compartments_map[compartment][
                             "transmissibility_reduction"].as_random_distribution()
                         self.intervention_overlap_operation['prod'].append(pn.lower())
                     else:
                         raise ValueError(f"Transmissibility Reduction not found for comp {compartment}")
                 for transition in range(n_parallel_transitions):
-                    pn = f"transition_rate {transition}"
+                    pn = f"transition_rate{transition}"
                     p_dists[pn] = transition_map[transition]["rate"].as_random_distribution()
                     self.intervention_overlap_operation['sum'].append(pn.lower())
 
