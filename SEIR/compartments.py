@@ -581,7 +581,7 @@ class Compartments:
                         rc = compartment
                 proportion_array[it]
 
-            return parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info
+        return parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info
 
     def parse_parameter_strings_to_numpy_arrays(
             self,

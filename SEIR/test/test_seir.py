@@ -13,6 +13,7 @@ from SEIR import setup, seir, NPI, file_paths
 from ..utils import config
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
+os.chdir(os.path.dirname(__file__))
 
 
 def test_check_values():
@@ -530,3 +531,89 @@ def test_inference_resume():
         shutil.rmtree(path)
 
     ## Clean up after ourselves
+
+def test_parallel_compartments():
+    config.set_file(f"{DATA_DIR}/config_parallel.yml")
+
+    ss = setup.SpatialSetup(setup_name="test_seir",
+                            geodata_file=f"{DATA_DIR}/geodata.csv",
+                            mobility_file=f"{DATA_DIR}/mobility.txt",
+                            popnodes_key="population",
+                            nodenames_key="geoid")
+
+    index = 1
+    run_id = 'test_parallel'
+    prefix = ''
+    s = setup.Setup(setup_name="test_seir",
+                    spatial_setup=ss,
+                    nsim=1,
+                    npi_scenario="None",
+                    npi_config=config["interventions"]["settings"]["Scenario1"],
+                    parameters_config=config["seir"]["parameters"],
+                    seeding_config=config["seeding"],
+                    ti=config["start_date"].as_date(),
+                    tf=config["end_date"].as_date(),
+                    compartments_config = config["seir"],
+                    interactive=True,
+                    write_csv=False,
+                    first_sim_index=index,
+                    in_run_id=run_id,
+                    in_prefix=prefix,
+                    out_run_id=run_id,
+                    out_prefix=prefix,
+                    dt=0.25)
+
+    seeding_data = s.seedingAndIC.draw_seeding(sim_id=100, setup=s)
+    initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
+
+    mobility_geoid_indices = s.mobility.indices
+    mobility_data_indices = s.mobility.indptr
+    mobility_data = s.mobility.data
+
+    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
+
+    params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
+    params = s.parameters.parameters_reduce(params, npi)
+
+    parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info = \
+        s.compartments.get_transition_array(params, s.parameters.pnames)
+
+
+    for i in range(10):
+        states = seir.steps_SEIR_nb(
+            s.compartments.compartments.shape[0],
+            s.nnodes,
+            s.n_days,
+            parsed_parameters,
+            s.dt,
+            transition_array,
+            proportion_info,
+            proportion_array,
+            initial_conditions,
+            seeding_data,
+            mobility_data,
+            mobility_geoid_indices,
+            mobility_data_indices,
+            s.popnodes,
+            True)
+        df = seir.states2Df(s, states)
+        assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R') & (df['mc_vaccination_stage'] == 'first_dose')].max()["10001"] == 0.0
+
+        states = seir.steps_SEIR_nb(
+            s.compartments.compartments.shape[0],
+            s.nnodes,
+            s.n_days,
+            parsed_parameters,
+            s.dt,
+            transition_array,
+            proportion_info,
+            proportion_array,
+            initial_conditions,
+            seeding_data,
+            mobility_data,
+            mobility_geoid_indices,
+            mobility_data_indices,
+            s.popnodes,
+            False)
+        df = seir.states2Df(s, states)
+        assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R') & (df['mc_vaccination_stage'] == 'first_dose')].max()["10001"] == 0.0
