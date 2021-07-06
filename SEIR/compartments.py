@@ -149,10 +149,10 @@ class Compartments:
                 {
                     "source": [unique_infections_stages, [transition["from"].get()]],
                     "destination":[unique_infections_stages, [transition["to"].get()]],
-                    "rate": [transition["rate"].as_random_distribution(), 1],
+                    "rate": [f"transition_rate{i}", 1],
                     "proportional_to":[[unique_infections_stages, [transition["from"].get()]]],
                     "proportion_exponent":[["1","1"]],
-                } for transition in seir_config["parameters"]["parallel_structure"]["transitions"]
+                } for i, transition in enumerate(seir_config["parameters"]["parallel_structure"]["transitions"])
             ]
 
             transitions = transitions + parallel_transitions
