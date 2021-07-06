@@ -106,43 +106,57 @@ class Compartments:
                 }
             ]
         else:
+            unique_infections_stages = self.compartments["infection_stage"].unique().tolist()
+            unique_vaccination_stages = self.compartments["vaccination_stage"].unique().tolist()
             transitions = [
                 {
-                    "source": ["S", self.compartments["vaccination_stage"].unique().tolist()],
-                    "destination": ["E", self.compartments["vaccination_stage"].unique().tolist()],
+                    "source": ["S", unique_vaccination_stages],
+                    "destination": ["E", unique_vaccination_stages],
                     "rate": ["R0 * gamma", 1],
-                    "proportional_to": [["S", self.compartments["vaccination_stage"].unique().tolist()], [[["E", "I1", "I2", "I3"]], self.compartments["vaccination_stage"].unique().tolist()]],
+                    "proportional_to": [["S", unique_vaccination_stages], [[["E", "I1", "I2", "I3"]], unique_vaccination_stages]],
                     "proportion_exponent": [["1", "1"], ["alpha", "1"]]
                 },
                 {
-                    "source": [["E"], self.compartments["vaccination_stage"].unique().tolist()],
-                    "destination": [["I1"], self.compartments["vaccination_stage"].unique().tolist()],
+                    "source": [["E"], unique_vaccination_stages],
+                    "destination": [["I1"], unique_vaccination_stages],
                     "rate": ["sigma", 1],
-                    "proportional_to": [[["E"], self.compartments["vaccination_stage"].unique().tolist()]],
+                    "proportional_to": [[["E"], unique_vaccination_stages]],
                     "proportion_exponent": [["1", "1"]]
                 },
                 {
-                    "source": [["I1"], self.compartments["vaccination_stage"].unique().tolist()],
-                    "destination": [["I2"], self.compartments["vaccination_stage"].unique().tolist()],
+                    "source": [["I1"], unique_vaccination_stages],
+                    "destination": [["I2"], unique_vaccination_stages],
                     "rate": ["3 * gamma", 1],
-                    "proportional_to": [[["I1"], self.compartments["vaccination_stage"].unique().tolist()]],
+                    "proportional_to": [[["I1"], unique_vaccination_stages]],
                     "proportion_exponent": [["1", "1"]]
                 },
                 {
-                    "source": [["I2"], self.compartments["vaccination_stage"].unique().tolist()],
-                    "destination": [["I3"], self.compartments["vaccination_stage"].unique().tolist()],
+                    "source": [["I2"], unique_vaccination_stages],
+                    "destination": [["I3"], unique_vaccination_stages],
                     "rate": ["3 * gamma", 1],
-                    "proportional_to": [[["I2"], self.compartments["vaccination_stage"].unique().tolist()]],
+                    "proportional_to": [[["I2"], unique_vaccination_stages]],
                     "proportion_exponent": [["1", "1"]]
                 },
                 {
-                    "source": [["I3"], self.compartments["vaccination_stage"].unique().tolist()],
-                    "destination": [["R"], self.compartments["vaccination_stage"].unique().tolist()],
+                    "source": [["I3"], unique_vaccination_stages],
+                    "destination": [["R"], unique_vaccination_stages],
                     "rate": ["3 * gamma", 1],
-                    "proportional_to": [[["I3"], self.compartments["vaccination_stage"].unique().tolist()]],
+                    "proportional_to": [[["I3"], unique_vaccination_stages]],
                     "proportion_exponent": [["1", "1"]]
                 }
             ]
+            parallel_transitions = [
+                {
+                    "source": [unique_infections_stages, transition["from"]],
+                    "destination":[unique_infections_stages, transition["to"]],
+                    "rate": transition["rate"].as_random_distribution(),
+                    "proportional_to":[[unique_infections_stages, transition["from"]]],
+                    "proportion_exponent":[["1"]]
+                } for transition in seir_config["parameters"]["parallel_structure"]["transitions"]
+            ]
+            transitions.append(parallel_transitions)
+
+
             # raise Warning("This code doesn't actually work")
 
         self.transitions = self.parse_transitions({"transitions": transitions}, True)
