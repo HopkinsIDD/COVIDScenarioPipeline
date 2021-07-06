@@ -147,15 +147,15 @@ class Compartments:
             ]
             parallel_transitions = [
                 {
-                    "source": [unique_infections_stages, transition["from"]],
-                    "destination":[unique_infections_stages, transition["to"]],
-                    "rate": transition["rate"].as_random_distribution(),
-                    "proportional_to":[[unique_infections_stages, transition["from"]]],
-                    "proportion_exponent":[["1"]]
+                    "source": [unique_infections_stages, [transition["from"].get()]],
+                    "destination":[unique_infections_stages, [transition["to"].get()]],
+                    "rate": [transition["rate"].as_random_distribution(), 1],
+                    "proportional_to":[[unique_infections_stages, [transition["from"].get()]]],
+                    "proportion_exponent":[["1","1"]],
                 } for transition in seir_config["parameters"]["parallel_structure"]["transitions"]
             ]
-            transitions.append(parallel_transitions)
 
+            transitions = transitions + parallel_transitions
 
             # raise Warning("This code doesn't actually work")
 
