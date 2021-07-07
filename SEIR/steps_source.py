@@ -149,9 +149,6 @@ def steps_SEIR_nb(
                     transitions[transition_proportion_start_col][transition_index],
                     transitions[transition_proportion_stop_col][transition_index]
             ):
-                if(transitions[transition_rate_col][transition_index] > 4):
-                    if (parameters[transitions[transition_rate_col][transition_index]][today][spatial_node]) > 0:
-                        raise ValueError("This shouldn't happen")
                 relevant_number_in_comp = np.zeros((nspatial_nodes))
                 relevant_exponent = np.ones((nspatial_nodes))
                 for proportion_sum_index in range(
@@ -169,7 +166,7 @@ def steps_SEIR_nb(
                     source_number = relevant_number_in_comp
                     if source_number.max() > 0:
                         total_rate[source_number > 0] *= source_number[source_number > 0] ** relevant_exponent[source_number > 0] / source_number[source_number > 0]
-                    total_rate *= parameters[transitions[transition_rate_col][transition_index]][today] 
+                    total_rate *= parameters[transitions[transition_rate_col][transition_index]][today]
                     print(total_rate)
                 else:
                     for spatial_node in range(nspatial_nodes):
@@ -190,7 +187,7 @@ def steps_SEIR_nb(
                         rate_change_compartment = rate_change_compartment / population[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]]
                         rate_change_compartment = rate_change_compartment * relevant_exponent[mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]]
                         total_rate[spatial_node] *= (rate_keep_compartment + rate_change_compartment.sum())
- 
+
             compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
 
             if stochastic_p:
