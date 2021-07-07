@@ -40,7 +40,8 @@ load_geodata_file <- function(filename,
 ) {
 
     if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
-    geodata <- readr::read_csv(filename)
+    geodata <- readr::read_csv(filename) %>% 
+        dplyr::mutate(geoid = as.character(geoid))
 
     if (!("geoid" %in% names(geodata))) {
         stop(paste(filename, "does not have a column named geoid"))
@@ -141,7 +142,7 @@ process_npi_shub <- function(intervention_path,
     
     if(!all(lubridate::is.Date(og$start_date), lubridate::is.Date(og$end_date))){
         og <- og %>%
-            dplyr::mutate(dplyr::across(tidyselect::ends_with("_date"), ~ lubridate::as_date(.x)))
+            dplyr::mutate(dplyr::across(tidyselect::ends_with("_date"), ~ lubridate::mdy(.x)))
     }
     
     if("template" %in% colnames(og)){
