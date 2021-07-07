@@ -167,7 +167,7 @@ def steps_SEIR_nb(
                     if source_number.max() > 0:
                         total_rate[source_number > 0] *= source_number[source_number > 0] ** relevant_exponent[source_number > 0] / source_number[source_number > 0]
                     total_rate *= parameters[transitions[transition_rate_col][transition_index]][today]
-                    print(total_rate)
+                    #print(total_rate)
                 else:
                     for spatial_node in range(nspatial_nodes):
                         proportion_keep_compartment = 1 - percent_day_away * percent_who_move[spatial_node]

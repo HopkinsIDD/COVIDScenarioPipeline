@@ -68,7 +68,7 @@ class Reduce(NPIBase):
 
     def __createFromConfig(self, npi_config):
         # Get name of the parameter to reduce
-        self.param_name = npi_config["parameter"].as_str().lower()
+        self.param_name = npi_config["parameter"].as_str().lower().replace(" ", "")
 
         # Optional config field "affected_geoids"
         # If values of "affected_geoids" is "all" or unspecified, run on all geoids.

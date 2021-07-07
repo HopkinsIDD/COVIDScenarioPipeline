@@ -83,7 +83,7 @@ class MultiTimeReduce(NPIBase):
 
     def __createFromConfig(self, npi_config):
         # Get name of the parameter to reduce
-        self.param_name = npi_config["parameter"].as_str().lower()
+        self.param_name = npi_config["parameter"].as_str().lower().replace(" ", "")
 
         self.affected_geoids = self.__get_affected_geoids(npi_config)
         
