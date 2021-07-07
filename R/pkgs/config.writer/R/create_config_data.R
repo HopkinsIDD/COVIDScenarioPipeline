@@ -349,7 +349,8 @@ set_vacc_rates_params <- function(vacc_path,
         dplyr::filter(start_date <= sim_end_date) %>%
         dplyr::mutate(end_date = lubridate::as_date(ifelse(end_date>sim_end_date, sim_end_date, end_date))) %>%
         dplyr::rename(value_mean = vacc_rate) %>%
-        dplyr::mutate(month = lubridate::month(start_date, label=TRUE),
+        dplyr::mutate(geoid = as.character(geoid), 
+                      month = lubridate::month(start_date, label=TRUE),
                       type = "transmission",
                       category = "vaccination",
                       name = paste0("Dose1_",tolower(month),lubridate::year(start_date)),
@@ -523,7 +524,8 @@ set_vacc_outcome_params <- function(outcome_path,
                       start_date = lubridate::as_date(ifelse(end_date > start_date & start_date < sim_start_date, sim_start_date, start_date))) %>%
         dplyr::filter(start_date >= sim_start_date) %>%
         dplyr::rename(value_mean = prob_redux) %>%
-        dplyr::mutate(type = "outcome",
+        dplyr::mutate(geoid = as.character(geoid), 
+                      type = "outcome",
                       category = "vacc_outcome",
                       name = paste(param, "vaccadj", month, sep="_"),
                       template = "Reduce",
