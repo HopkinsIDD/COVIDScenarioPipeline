@@ -200,7 +200,7 @@ set_localvar_params <- function(sim_start_date=as.Date("2020-03-31"),
                                 name = "local_variance",
                                 type = "transmission",
                                 category = "local_variance",
-                                parameter = "",
+                                parameter = NA_character_,
                                 baseline_scenario = "",
                                 start_date = sim_start_date,
                                 end_date = sim_end_date,
@@ -617,7 +617,7 @@ set_incidC_shift <- function(startdate,
 #' @param ... intervention dfs with config params
 #' @param sim_start_date simulation start date
 #' @param sim_end_date simulation end date
-#' @param save_name directory to save dataframe
+#' @param save_name directory to save dataframe; NULL if no safe
 #'
 #' @return
 #' @export
@@ -651,7 +651,9 @@ bind_interventions <- function(...,
         if(any(check$note=="Gap")) warning(paste0("There are ", nrow(check[check$note=="Gap",]), " NPIs of the same category/geoid that are discontinuous."))
     } 
 
-    readr::write_csv(dat, file = save_name)
+    if(!is.null(save_name)){
+        readr::write_csv(dat, file = save_name)
+    }
 
     return(dat)
 }
