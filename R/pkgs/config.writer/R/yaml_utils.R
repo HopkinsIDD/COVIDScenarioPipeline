@@ -48,7 +48,7 @@ paste_param_val <- function(..., space_length = 6){
             )
         }
 
-        if(! ... %in% c("fixed", "uniform")){
+        if(... == "truncnorm"){
             min_a <- get(paste0(param, "a"), envir = parent.frame(n=1))
             max_b <- get(paste0(param, "b"), envir = parent.frame(n=1))
             mean <- get(paste0(param, "val"), envir = parent.frame(n=1))
@@ -56,7 +56,7 @@ paste_param_val <- function(..., space_length = 6){
 
             print_val <- paste0(
                 param_space, param_name, ":\n",
-                space, "distribution: uniform\n",
+                space, "distribution: truncnorm\n",
                 space, "mean: ", mean, "\n",
                 space, "sd: ", sd, "\n",
                 space, "a: ", min_a, "\n",
@@ -134,63 +134,115 @@ yaml_mtr_template <- function(dat){
     template <- unique(dat$template)
     geoid_all <- any(unique(dat$geoid)=="all")
     inference <- !any(is.na(dat$pert_dist))
-
+    
     if(template=="MultiTimeReduce" & geoid_all){
         cat(paste0(
             "    ", dat$name, ":\n",
             "      template: MultiTimeReduce\n",
             "      parameter: ", dat$parameter, "\n",
             "      groups:\n",
-            '        - affected_geoids: "all"'
+            '        - affected_geoids: "all"\n'
         ))
-
+        
         for(j in 1:nrow(dat)){
-            cat(paste0('\n',
-                '          periods:\n',
-                dat$period[j]
+            cat(paste0('          periods:\n',
+                       dat$period[j], '\n'
             ))
         }
     }
-
+    
     if(template=="MultiTimeReduce" & !geoid_all){
         cat(paste0(
             "    ", dat$name[1], ":\n",
             "      template: MultiTimeReduce\n",
             "      parameter: ", dat$parameter[1], "\n",
-            "      groups:"
+            "      groups:\n"
+        ))
+        
+        for(j in 1:nrow(dat)){
+            cat(paste0(
+                '        - affected_geoids: ["', dat$geoid[j], '"]\n',
+                '          periods:\n',
+                dat$period[j], '\n'
             ))
-
-            for(j in 1:nrow(dat)){
-                cat(paste0(
-                    "\n",
-                    '        - affected_geoids: ["', dat$geoid[j], '"]\n',
-                    '          periods:\n',
-                    dat$period[j]
-                ))
-            }
+        }
     }
-
-    cat(paste0(
-        "\n",
-        '      value:\n',
-        "        distribution: ", dat$value_dist[1],"\n",
-        "        mean: ", dat$value_mean[1],"\n",
-        "        sd: ",dat$value_sd[1],"\n",
-        "        a: ",dat$value_a[1],"\n",
-        "        b: ",dat$value_b[1]
-        ))
-
+    
+    cat(
+        print_value(value_dist = dat$value_dist[1], 
+                    value_mean = dat$value_mean[1], 
+                    value_sd = dat$value_sd[1], 
+                    value_a = dat$value_a[1], 
+                    value_b = dat$value_b[1])
+    )
+    
     if(inference){
-        cat(paste0(
-            "\n",
-            "      perturbation:\n",
-            "        distribution: ", dat$pert_dist[1],"\n",
-            "        mean: ", dat$pert_mean[1],"\n",
-            "        sd: ", dat$pert_sd[1],"\n",
-            "        a: ", dat$pert_a[1],"\n",
-            "        b: ", dat$pert_b[1],"\n"
-        ))
+        cat(
+            print_value(value_dist = dat$pert_dist[1], 
+                        value_mean = dat$pert_mean[1], 
+                        value_sd = dat$pert_sd[1], 
+                        value_a = dat$pert_a[1], 
+                        value_b = dat$pert_b[1], 
+                        perturbation = TRUE)
+        )
     }
+}
+
+#' Convenience function to print params based on the specified distribution 
+#'
+#' @param value_dist one of the following distributions: "fixed", "uniform", or "truncnorm"
+#' @param value_mean value when value_dist is "fixed" or mean if value_dist is ""truncnorm"
+#' @param value_sd standard deviation - required when value_dist is "truncnorm"
+#' @param value_a maximum - required when value_dist is "uniform" or "truncnorm"
+#' @param value_b minimum - required when value_dist is "uniform" or "truncnorm"
+#' @param perturbation whether parameters are specifying the values or pertubrations
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+print_value <- function(value_dist, 
+                        value_mean, 
+                        value_sd,
+                        value_a, 
+                        value_b,
+                        perturbation = FALSE){
+    
+    value <- ifelse(perturbation, "perturbation", "value")
+    
+    if(value_dist=="fixed"){
+        if(is.na(value_mean)){stop('Intervention value must be specified for "fixed" distributions')}
+        print_val <- paste0(
+            "      ", value, ":\n",
+            "        distribution: fixed\n",
+            "        value: ", value_mean, "\n"
+        )
+    }
+    
+    if(value_dist=="truncnorm"){
+        if(any(is.na(value_mean), is.na(value_sd), is.na(value_a), is.na(value_b))){stop('Intervention mean, sd, a, and b must be specified for "truncnorm" distributions')}
+        print_val <- paste0(
+            "      ", value, ":\n",
+            "        distribution: truncnorm\n",
+            "        mean: ", value_mean, "\n",
+            "        sd: ", value_sd, "\n", 
+            "        a: ", value_a, "\n", 
+            "        b: ", value_b, "\n"
+        )
+    }
+    
+    if(value_dist=="uniform"){
+        if(any(is.na(value_a), is.na(value_b))){stop('Intervention a and b must be specified for "uniform" distributions')}
+        print_val <- paste0(
+            "      ", value, ":\n",
+            "        distribution: uniform\n",
+            "        a: ", value_a, "\n", 
+            "        b: ", value_b, "\n"
+        )
+    } 
+    
+    return(print_val)
 }
 
 #' Print intervention text for Reduce interventions
@@ -211,60 +263,39 @@ yaml_reduce_template<- function(dat
             "    ", dat$name, ":\n",
             "      template: ", dat$template,"\n",
             '      affected_geoids: ["', dat$geoid, '"]\n',
-            dat$period,
-            '      value:\n',
-            "        distribution: ", dat$value_dist,"\n",
-            "        mean: ", dat$value_mean,"\n",
-            "        sd: ",dat$value_sd,"\n",
-            "        a: ",dat$value_a,"\n",
-            "        b: ",dat$value_b,"\n"
+            dat$period
         ))
     }
-
+    
     if(dat$template == "ReduceR0" & dat$geoid == "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
             "      template: ", dat$template,"\n",
             '      affected_geoids: "', dat$geoid, '"\n',
-            dat$period,
-            '      value:\n',
-            "        distribution: ", dat$value_dist,"\n",
-            "        mean: ", dat$value_mean,"\n",
-            "        sd: ",dat$value_sd,"\n",
-            "        a: ",dat$value_a,"\n",
-            "        b: ",dat$value_b,"\n"
+            dat$period
         ))
     }
-
+    
     if(dat$template == "Reduce" & is.na(dat$value_sd)){
         cat(paste0(
             "    ", dat$name, ":\n",
             "      template: ", dat$template,"\n",
             "      parameter: ", dat$parameter, "\n",
             '      affected_geoids: ["', dat$geoid, '"]\n',
-            dat$period,
-            '      value:\n',
-            "        distribution: ", dat$value_dist,"\n",
-            "        value: ", dat$value_mean,"\n"
+            dat$period
         ))
     }
-
+    
     if(dat$template == "Reduce" & !is.na(dat$value_sd)){
         cat(paste0(
             "    ", dat$name, ":\n",
             "      template: ", dat$template,"\n",
             "      parameter: ", dat$parameter, "\n",
             '      affected_geoids: ["', dat$geoid, '"]\n',
-            dat$period,
-            '      value:\n',
-            "        distribution: ", dat$value_dist,"\n",
-            "        mean: ", dat$value_mean,"\n",
-            "        sd: ", dat$value_sd, "\n",
-            "        a: ", dat$value_a, "\n",
-            "        b: ", dat$value_b, "\n"
+            dat$period
         ))
     }
-
+    
     if(dat$template == "ReduceIntervention"){
         cat(paste0(
             "    ", dat$name, ":\n",
@@ -272,23 +303,29 @@ yaml_reduce_template<- function(dat
             "      parameter: ", dat$parameter, "\n",
             '      affected_geoids: ["', dat$geoid, '"]\n',
             dat$period,
-            "      baseline_scenario: ", dat$baseline_scenario, "\n",
-            '      value:\n',
-            "        distribution: ", dat$value_dist,"\n",
-            "        value: ", dat$value_mean,"\n"
+            "      baseline_scenario: ", dat$baseline_scenario, "\n"
         ))
     }
-
+    
+    cat(
+        print_value(value_dist = dat$value_dist[1], 
+                    value_mean = dat$value_mean[1], 
+                    value_sd = dat$value_sd[1], 
+                    value_a = dat$value_a[1], 
+                    value_b = dat$value_b[1])
+    )
+    
     if(!is.na(dat$pert_dist)){
-        cat(paste0(
-            "      perturbation:\n",
-            "        distribution: ", dat$pert_dist,"\n",
-            "        mean: ", dat$pert_mean,"\n",
-            "        sd: ", dat$pert_sd,"\n",
-            "        a: ", dat$pert_a,"\n",
-            "        b: ", dat$pert_b,"\n"
-        ))
+        cat(
+            print_value(value_dist = dat$pert_dist[1], 
+                        value_mean = dat$pert_mean[1], 
+                        value_sd = dat$pert_sd[1], 
+                        value_a = dat$pert_a[1], 
+                        value_b = dat$pert_b[1], 
+                        perturbation = TRUE)
+        )
     }
+    
 }
 
 
