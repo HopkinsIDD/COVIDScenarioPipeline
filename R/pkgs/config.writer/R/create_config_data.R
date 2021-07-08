@@ -36,7 +36,7 @@ set_npi_params <- function(intervention_file,
                            v_dist = "truncnorm", v_mean=0.6, v_sd=0.05, v_a=0.0, v_b=0.9,
                            p_dist = "truncnorm", p_mean=0, p_sd=0.05, p_a=-1, p_b=1
 ){
-    if(any(stringr::str_detect(npi_dat$name, "^\\d$"))) stop("Intervention names must include at least one non-numeric character.")
+    
     
     sim_start_date <- lubridate::ymd(sim_start_date)
     sim_end_date <- lubridate::ymd(sim_end_date)
@@ -64,6 +64,9 @@ set_npi_params <- function(intervention_file,
                       baseline_scenario = "",
                       parameter = dplyr::if_else(template=="MultiTimeReduce", "R0", NA_character_)
         )
+    
+    if(any(stringr::str_detect(npi$name, "^\\d$"))) stop("Intervention names must include at least one non-numeric character.")
+    
     npi <- npi %>%
         dplyr::mutate(dplyr::across(pert_mean:pert_b, ~ifelse(inference, .x, NA_real_)),
                       pert_dist = ifelse(inference, pert_dist, NA_character_)) %>%
