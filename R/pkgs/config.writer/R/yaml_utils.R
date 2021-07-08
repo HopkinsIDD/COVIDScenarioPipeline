@@ -1,72 +1,72 @@
-#' Convenience function to print values for different distributions
-#'
-#' @param ... object specifying parameter distribution; object name should include param
-#' @param space_length number of spaces to add when printing
-#'
-#' @return string with parameter distribution and values
-#' @export
-#'
-#' @examples
-#'
-#' gamma_dist <- "fixed"
-#' gamma_val <- 0.167
-#'
-#' print_param_val(gamma_dist)
-#'
-paste_param_val <- function(..., space_length = 6){
-
-    space <- paste0(rep(" ", space_length), collapse = "")
-    param_space <- stringr::str_remove(space, "  ")
-    param <- deparse(substitute(...)) %>% stringr::str_extract(pattern = ".+\\_")
-
-    param_name <- stringr::str_remove(param, "\\_")
-    value <- get(paste0(param, "val"), envir = parent.frame(n=1))
-
-    if(is.null(...)){
-
-        print_val <- paste0(
-            param_space, param_name, ": ", value, "\n"
-        )
-    } else{
-        if(... == "fixed"){
-            print_val <- paste0(
-                param_space, param_name, ":\n",
-                space, "distribution: fixed\n",
-                space, "value: ", value, "\n"
-            )
-        }
-
-        if(... == "uniform"){
-            min_a <- get(paste0(param, "a"), envir = parent.frame(n=1))
-            max_b <- get(paste0(param, "b"), envir = parent.frame(n=1))
-
-            print_val <- paste0(
-                param_space, param_name, ":\n",
-                space, "distribution: uniform\n",
-                space, "low: ", min_a, "\n",
-                space, "high: ", max_b, "\n"
-            )
-        }
-
-        if(... == "truncnorm"){
-            min_a <- get(paste0(param, "a"), envir = parent.frame(n=1))
-            max_b <- get(paste0(param, "b"), envir = parent.frame(n=1))
-            mean <- get(paste0(param, "val"), envir = parent.frame(n=1))
-            sd <- get(paste0(param, "sd"), envir = parent.frame(n=1))
-
-            print_val <- paste0(
-                param_space, param_name, ":\n",
-                space, "distribution: truncnorm\n",
-                space, "mean: ", mean, "\n",
-                space, "sd: ", sd, "\n",
-                space, "a: ", min_a, "\n",
-                space, "b: ", max_b, "\n"
-            )
-        }
-    }
-
-    return(print_val)
-}
+# Convenience function to print values for different distributions
+#
+# @param ... object specifying parameter distribution; object name should include param
+# @param space_length number of spaces to add when printing
+#
+# @return string with parameter distribution and values
+# @export
+#
+# @examples
+#
+# gamma_dist <- "fixed"
+# gamma_val <- 0.167
+#
+#'print_param_val(gamma_dist)
+#
+# paste_param_val <- function(..., space_length = 6){
+# 
+#     space <- paste0(rep(" ", space_length), collapse = "")
+#     param_space <- stringr::str_remove(space, "  ")
+#     param <- deparse(substitute(...)) %>% stringr::str_extract(pattern = ".+\\_")
+# 
+#     param_name <- stringr::str_remove(param, "\\_")
+#     value <- get(paste0(param, "val"), envir = parent.frame(n=1))
+# 
+#     if(is.null(...)){
+# 
+#         print_val <- paste0(
+#             param_space, param_name, ": ", value, "\n"
+#         )
+#     } else{
+#         if(... == "fixed"){
+#             print_val <- paste0(
+#                 param_space, param_name, ":\n",
+#                 space, "distribution: fixed\n",
+#                 space, "value: ", value, "\n"
+#             )
+#         }
+# 
+#         if(... == "uniform"){
+#             min_a <- get(paste0(param, "a"), envir = parent.frame(n=1))
+#             max_b <- get(paste0(param, "b"), envir = parent.frame(n=1))
+# 
+#             print_val <- paste0(
+#                 param_space, param_name, ":\n",
+#                 space, "distribution: uniform\n",
+#                 space, "low: ", min_a, "\n",
+#                 space, "high: ", max_b, "\n"
+#             )
+#         }
+# 
+#         if(... == "truncnorm"){
+#             min_a <- get(paste0(param, "a"), envir = parent.frame(n=1))
+#             max_b <- get(paste0(param, "b"), envir = parent.frame(n=1))
+#             mean <- get(paste0(param, "val"), envir = parent.frame(n=1))
+#             sd <- get(paste0(param, "sd"), envir = parent.frame(n=1))
+# 
+#             print_val <- paste0(
+#                 param_space, param_name, ":\n",
+#                 space, "distribution: truncnorm\n",
+#                 space, "mean: ", mean, "\n",
+#                 space, "sd: ", sd, "\n",
+#                 space, "a: ", min_a, "\n",
+#                 space, "b: ", max_b, "\n"
+#             )
+#         }
+#     }
+# 
+#     return(print_val)
+# }
 
 #' Collapse MTR interventions into single row per intervention and generate final intervention names/periods
 #'
@@ -183,7 +183,7 @@ yaml_mtr_template <- function(dat){
                         value_sd = dat$pert_sd[1], 
                         value_a = dat$pert_a[1], 
                         value_b = dat$pert_b[1], 
-                        perturbation = TRUE)
+                        param_name = "perturbation")
         )
     }
 }
@@ -193,9 +193,10 @@ yaml_mtr_template <- function(dat){
 #' @param value_dist one of the following distributions: "fixed", "uniform", or "truncnorm"
 #' @param value_mean value when value_dist is "fixed" or mean if value_dist is ""truncnorm"
 #' @param value_sd standard deviation - required when value_dist is "truncnorm"
-#' @param value_a maximum - required when value_dist is "uniform" or "truncnorm"
-#' @param value_b minimum - required when value_dist is "uniform" or "truncnorm"
-#' @param perturbation whether parameters are specifying the values or pertubrations
+#' @param value_a minimum - required when value_dist is "uniform" or "truncnorm"
+#' @param value_b maximum - required when value_dist is "uniform" or "truncnorm"
+#' @param param_name name of the parameter whose distribution is being specified: "value", "perturbation", "R0s", or "gamma" 
+#' @param indent_space defaults to 6 for transmission and outcome interventions
 #'
 #' @return
 #' @export
@@ -207,40 +208,46 @@ print_value <- function(value_dist,
                         value_sd,
                         value_a, 
                         value_b,
-                        perturbation = FALSE){
+                        param_name = "value", 
+                        indent_space = 6){
     
-    value <- ifelse(perturbation, "perturbation", "value")
+    space <- rep(" ", indent_space) %>% paste0(collapse="")
+    space2 <- rep(" ", indent_space+2) %>% paste0(collapse="")
     
     if(value_dist=="fixed"){
         if(is.na(value_mean)){stop('Intervention value must be specified for "fixed" distributions')}
         print_val <- paste0(
-            "      ", value, ":\n",
-            "        distribution: fixed\n",
-            "        value: ", value_mean, "\n"
+            space, param_name, ":\n",
+            space2, "distribution: fixed\n",
+            space2, "value: ", value_mean, "\n"
         )
     }
     
     if(value_dist=="truncnorm"){
         if(any(is.na(value_mean), is.na(value_sd), is.na(value_a), is.na(value_b))){stop('Intervention mean, sd, a, and b must be specified for "truncnorm" distributions')}
         print_val <- paste0(
-            "      ", value, ":\n",
-            "        distribution: truncnorm\n",
-            "        mean: ", value_mean, "\n",
-            "        sd: ", value_sd, "\n", 
-            "        a: ", value_a, "\n", 
-            "        b: ", value_b, "\n"
+            space, "", param_name, ":\n",
+            space2, "distribution: truncnorm\n",
+            space2, "mean: ", value_mean, "\n",
+            space2, "sd: ", value_sd, "\n", 
+            space2, "a: ", value_a, "\n", 
+            space2, "b: ", value_b, "\n"
         )
     }
     
     if(value_dist=="uniform"){
         if(any(is.na(value_a), is.na(value_b))){stop('Intervention a and b must be specified for "uniform" distributions')}
         print_val <- paste0(
-            "      ", value, ":\n",
-            "        distribution: uniform\n",
-            "        a: ", value_a, "\n", 
-            "        b: ", value_b, "\n"
+            space, param_name, ":\n",
+            space2, "distribution: uniform\n",
+            space2, "low: ", value_a, "\n", 
+            space2, "high: ", value_b, "\n"
         )
     } 
+    
+    if(is.na(value_dist)){
+        print_val = ""
+    }
     
     return(print_val)
 }
@@ -322,7 +329,7 @@ yaml_reduce_template<- function(dat
                         value_sd = dat$pert_sd[1], 
                         value_a = dat$pert_a[1], 
                         value_b = dat$pert_b[1], 
-                        perturbation = TRUE)
+                        param_name = "perturbation")
         )
     }
     
@@ -546,6 +553,8 @@ print_outcomes <- function(dat=NULL,
             }
         }
     }
+    
+    
 
     cat(paste0(
         '\n',
@@ -615,18 +624,19 @@ print_outcomes <- function(dat=NULL,
         '      incidC:\n',
         '        source: incidI\n',
         '        probability:\n',
-        '          value:\n',
-        '            distribution: ',incidC_prob_dist,'\n',
-        '            mean: ', incidC_prob_value, '\n',
-        '            sd: ',incidC_prob_sd,'\n',
-        '            a: ',incidC_prob_a,'\n',
-        '            b: ', incidC_prob_b, '\n',
-        '          perturbation:\n',
-        '            distribution: ',incidC_prob_dist_pert,'\n',
-        '            mean: ',incidC_prob_value_pert,'\n',
-        '            sd: ',incidC_prob_sd_pert,'\n',
-        '            a: ',incidC_prob_a_pert,'\n',
-        '            b: ',incidC_prob_b_pert,'\n',
+        print_value(value_dist = incidC_prob_dist,
+                    value_mean = incidC_prob_value, 
+                    value_sd = incidC_prob_sd, 
+                    value_a = incidC_prob_a, 
+                    value_b = incidC_prob_b, 
+                    indent_space=10),
+        print_value(value_dist = incidC_prob_dist_pert,
+                    value_mean = incidC_prob_value_pert, 
+                    value_sd = incidC_prob_sd_pert, 
+                    value_a = incidC_prob_a_pert, 
+                    value_b = incidC_prob_b_pert, 
+                    param_name = "perturbation", 
+                    indent_space=10),
         '        delay:\n',
         '          value:\n',
         '            distribution: ',incidC_delay_dist,'\n',
@@ -665,7 +675,7 @@ print_outcomes <- function(dat=NULL,
 #' @param dose_susceptibility_val vector specifying reduction in risk per compartment
 #' @param transitions_dist vector specifying whether transition rate between compartments is fixed; distributional is not yet supported
 #' @param transitions_val vector specifying base transition rate between compartments
-#'
+#' @param compartment_names names of vaccination compartments: defaults to "unvaccinated", "first dose" and "second dose"
 #' @export
 #'
 #' @examples
@@ -697,61 +707,64 @@ print_seir <- function(sigma_val = 1/5.2,
                        dose_susceptibility_dist = c("fixed","fixed", "fixed"),
                        dose_susceptibility_val = c(0, 0.75, 0.90),
                        transitions_dist = c("fixed", "fixed"),
-                       transitions_val = c(0, 0.04)
+                       transitions_val = c(0, 0.04),
+                       compartment_names = c("unvaccinated", "first_dose", "second_dose")
 ){
     # TODO: add checks to compartment length
 
-    sigma_dist = NULL
-    alpha_dist = NULL
 
-    cat(
-        paste0("seir:\n",
-               "  parameters:\n",
-        paste_param_val(R0s_dist, space_length = 6),
-        paste_param_val(gamma_dist, space_length = 6),
-        paste_param_val(sigma_dist, space_length = 6),
-        paste_param_val(alpha_dist, space_length = 6),
+        seir <- paste0("seir:\n",
+                       "  parameters:\n",
+                       print_value(value_dist = R0s_dist, 
+                                   value_mean = R0s_val, 
+                                   value_sd = R0s_sd, 
+                                   value_a = R0s_a, 
+                                   value_b = R0s_b,
+                                   indent_space = 4, 
+                                   param_name = "R0s"),
+                       print_value(value_dist = gamma_dist, 
+                                   value_mean = gamma_val, 
+                                   value_sd = gamma_sd, 
+                                   value_a = gamma_a, 
+                                   value_b = gamma_b,
+                                   indent_space = 4, 
+                                   param_name = "gamma"),
+                       "    sigma: ", sigma_val, "\n",
+                       "    alpha: ", alpha_val, "\n"
+                       )
+        
         if(incl_vacc){
-            paste0(
-                "    parallel_structure:\n",
-                "      compartments:\n",
-                "        unvaccinated:\n",
-                "          transmissibility_reduction:\n",
-                "            distribution: ", dose_transmission_dist[1],"\n",
-                "            value: ", dose_transmission_val[1],"\n",
-                "          susceptibility_reduction:\n",
-                "            distribution: ", dose_susceptibility_dist[1],"\n",
-                "            value: ", dose_susceptibility_val[1],"\n",
-                "        first_dose:\n",
-                "          transmissibility_reduction:\n",
-                "            distribution: ", dose_transmission_dist[2],"\n",
-                "            value: ", dose_transmission_val[2],"\n",
-                "          susceptibility_reduction:\n",
-                "            distribution: ", dose_susceptibility_dist[2],"\n",
-                "            value: ", dose_susceptibility_val[2],"\n",
-                "        second_dose:\n",
-                "          transmissibility_reduction:\n",
-                "            distribution: ", dose_transmission_dist[3],"\n",
-                "            value: ", dose_transmission_val[3],"\n",
-                "          susceptibility_reduction:\n",
-                "            distribution: ", dose_susceptibility_dist[3],"\n",
-                "            value: ", dose_susceptibility_val[3], "\n",
-                "      transitions:\n",
-                "        - from: unvaccinated\n",
-                "          to: first_dose\n",
-                "          rate:\n",
-                "            distribution: ", transitions_dist[1],"\n",
-                "            value: ", transitions_val[1],"\n",
-                "        - from: first_dose\n",
-                "          to: second_dose\n",
-                "          rate:\n",
-                "            distribution: ", transitions_dist[2],"\n",
-                "            value: ", transitions_val[2],"\n"
-                )
-        } else{""},
-        "\n"
-        )
-    )
+            vacc <- paste0("    parallel_structure:\n",
+                           "      compartments:\n")
+            for(i in 1:length(compartment_names)){
+                vacc <- paste0(vacc, 
+                               "        ", compartment_names[i], ":\n",
+                               print_value(value_dist = dose_transmission_dist[i],
+                                           value_mean = dose_transmission_val[i],
+                                           indent_space = 10, 
+                                           param_name = "transmissibility_reduction"),
+                               print_value(value_dist = dose_susceptibility_dist[i],
+                                           value_mean = dose_susceptibility_val[i],
+                                           indent_space = 10, 
+                                           param_name = "susceptibility_reduction")
+                               )
+            }
+            vacc <- paste0(vacc,
+                           "      transitions:\n")
+            
+            for(i in 2:length(compartment_names)){
+                vacc <- paste0(vacc,
+                               "        - from: ", compartment_names[i-1], "\n",
+                               "          to: ", compartment_names[i], "\n", 
+                               print_value(value_dist = transitions_dist[i-1], 
+                                           value_mean = transitions_val[i-1], 
+                                           indent_space = 10, 
+                                           param_name = "rate"))
+            }
+            vacc
+        } else{ vacc <- ""}
+        
+        cat(paste0(seir, vacc, "\n"))
 
 }
 
