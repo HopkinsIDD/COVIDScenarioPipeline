@@ -452,6 +452,8 @@ class Compartments:
                 for compartment in range(self.compartments.shape[0]):
                     if self.compartments["name"][compartment] == elem:
                         rc = compartment
+                if rc == -1:
+                    raise ValueError(f"Could find {colname} defined by {elem} in compartments")
                 transition_array[cit, it] = rc
 
         unique_strings = []
@@ -473,6 +475,7 @@ class Compartments:
         assert (reduce(lambda a, b: a and b, [(x.find("(") == -1) for x in unique_strings]))
         assert (reduce(lambda a, b: a and b, [(x.find(")") == -1) for x in unique_strings]))
         assert (reduce(lambda a, b: a and b, [(x.find("%") == -1) for x in unique_strings]))
+        assert (reduce(lambda a, b: a and b, [(x.find(" ") == -1) for x in unique_strings]))
 
         parsed_parameters = self.parse_parameter_strings_to_numpy_arrays(parameters, parameter_names, unique_strings)
 
@@ -508,11 +511,13 @@ class Compartments:
                     while (len(y) < len(elem_tmp[0])):
                         elem_tmp[ity].append(elem_tmp[0][len(y)])
                 elem_tmp = [reduce(lambda a, b: a + "_" + b, y) for y in elem_tmp]
-                for it3, elem3 in enumerate(elem_tmp):
-                    rc = -1
-                    for compartment in range(self.compartments.shape[0]):
-                        if self.compartments["name"][compartment] == elem3:
-                            rc = compartment
+                # for it3, elem3 in enumerate(elem_tmp):
+                #     rc = -1
+                #     for compartment in range(self.compartments.shape[0]):
+                #         if self.compartments["name"][compartment] == elem3:
+                #             rc = compartment
+                #     if rc == -1:
+                #         raise ValueError(f"Could not find match for {elem3} in compartments")
                 proportion_info[0][current_proportion_sum_it] = current_proportion_sum_start
                 proportion_info[1][current_proportion_sum_it] = current_proportion_sum_start + len(elem_tmp)
                 current_proportion_sum_it += 1
@@ -553,33 +558,35 @@ class Compartments:
                     for compartment in range(self.compartments.shape[0]):
                         if self.compartments["name"][compartment] == elem3:
                             rc = compartment
+                    if rc == -1:
+                        raise ValueError(f"Could find proportional_to {elem3} in compartments")
+
                     proportion_array[proportion_index] = rc
                     proportion_index += 1
 
         ## This will need to be reworked to deal with the summing bit
         ## There will be changes needed in the steps_source too
         ## They are doable though
-        for it, elem in enumerate(self.transitions['proportional_to']):
-            elem = [y for y in map(
-                lambda x: reduce(
-                    lambda a, b: str(a) + "_" + str(b),
-                    map(
-                        lambda x: reduce(
-                            lambda a, b: str(a) + "+" + str(b),
-                            as_list(x)
-                        ),
-                        x
-                    )
-                ),
-                elem
-            )]
-            for it2, elem2 in enumerate(elem):
-
-                rc = -1
-                for compartment in range(self.compartments.shape[0]):
-                    if self.compartments["name"][compartment] == elem2:
-                        rc = compartment
-                proportion_array[it]
+        # for it, elem in enumerate(self.transitions['proportional_to']):
+        #     elem = [y for y in map(
+        #         lambda x: reduce(
+        #             lambda a, b: str(a) + "_" + str(b),
+        #             map(
+        #                 lambda x: reduce(
+        #                     lambda a, b: str(a) + "+" + str(b),
+        #                     as_list(x)
+        #                 ),
+        #                 x
+        #             )
+        #         ),
+        #         elem
+        #     )]
+        #     for it2, elem2 in enumerate(elem):
+        #         rc = -1
+        #         for compartment in range(self.compartments.shape[0]):
+        #             if self.compartments["name"][compartment] == elem2:
+        #                 rc = compartment
+        #         proportion_array[it]
 
         return parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info
 
