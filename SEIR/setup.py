@@ -98,7 +98,6 @@ class Setup:
         if self.tf <= self.ti:
             raise ValueError("tf (time to finish) is less than or equal to ti (time to start)")
         self.npi_scenario = npi_scenario
-        self.npi_scenario = npi_scenario
         self.npi_config = npi_config
         self.seeding_config = seeding_config
         self.initial_conditions_config = initial_conditions_config
