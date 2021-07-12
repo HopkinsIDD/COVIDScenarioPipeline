@@ -565,68 +565,121 @@ set_vacc_outcome_params <- function(outcome_path,
 
 }
 
-#' Generate incidC shift intervention
-#'
-#' @param startdate vector of start dates for incidC shift
-#' @param enddate vector of start dates for incidC shift
+#' Generate incidC shift interventions
+#' 
+#' @param periods vector of dates that include a shift in incidC
+#' @param geodata df with USPS and geoid column for geoids with a shift in incidC
+#' @param baseline_ifr assumed true infection fatality rate
+#' @param cfr_data optional file with estimates of cfr by state
+#' @param epochs character vector with the selection of epochs from the cfr_data file, any of "NoSplit", "MarJun", "JulOct", "NovJan". Required if cfr_data is specified.
+#' @param outcomes_parquet_file path to file with geoid-specific adjustments to IFR; required if cfr_data is specified
+#' @param inference logical indicating whether inference will be performed on intervention (default is TRUE); perturbation values are replaced with NA if set to FALSE.
 #' @param v_dist type of distribution for reduction
-#' @param v_mean reduction mean
+#' @param v_mean state-specific initial value. will be taken from empirical CFR estimates if it exists, otherwise this used. If a vector is specified, then each value is added to the corresponding period
 #' @param v_sd reduction sd
 #' @param v_a reduction a
 #' @param v_b reduction b
-#' @param inference logical indicating whether inference will be performed on intervention (default is TRUE); perturbation values are replaced with NA if set to FALSE.
 #' @param p_dist type of distribution for perturbation
 #' @param p_mean perturbation mean
 #' @param p_sd perturbation sd
 #' @param p_a perturbation a
 #' @param p_b perturbation b
-#'
-#'
-#' @return data frame with columns for
+#' @return 
 #' @export
 #'
 #' @examples
-#'
-set_incidC_shift <- function(startdate,
-                             enddate, # TODO: allow specific geoids
-                             inference = TRUE,
-                             v_dist="truncnorm",
-                             v_mean=0.07, v_sd = 0.05, v_a = 0, v_b = 1,
-                             p_dist="truncnorm",
-                             p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1
-){
+set_incidC_shift <- function(periods, 
+                              geodata, 
+                              baseline_ifr = 0.005,
+                              cfr_data = NULL,
+                              epochs = NULL,
+                              outcomes_parquet_file = NULL,
+                              inference = TRUE,
+                              v_dist="truncnorm",
+                              v_mean=0.25, v_sd = 0.05, v_a = 0, v_b = 1,
+                              p_dist="truncnorm",
+                              p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1
+                              ){
+    periods <- as.Date(periods)
+    
+    if(is.null(cfr_data)){
+        epochs <- 1:(length(periods)-1)
+        
+        cfr_data <- geodata %>%
+            dplyr::select(USPS, geoid) %>%
+            tidyr::expand_grid(value_mean = v_mean,
+                               epoch=epochs)
+    } else{
+        if(is.null(epochs) | length(epochs) != (length(periods)-1)){stop("The number of epochs selected should be equal to the number of periods with a shift in incidC")}
+        if(any(!epochs %in% c("NoSplit", "MarJun", "JulOct", "NovJan"))){stop('Unknown epoch selected, choose from: "NoSplit", "MarJun", "JulOct", "NovJan"')}
+        if(is.null(outcomes_parquet_file)){stop("Must specify a file with the age-adjustments to IFR by state")}
+        
+        relative_outcomes <- arrow::read_parquet(outcomes_parquet_file) 
+        
+        relative_ifr <- relative_outcomes %>%
+            dplyr::filter(source == 'incidI' & outcome == "incidD") %>%
+            dplyr::filter(geoid %in% geodata$geoid) %>%
+            dplyr::select(USPS,geoid,value) %>%
+            dplyr::rename(rel_ifr=value) %>%
+            dplyr::mutate(ifr=baseline_ifr*rel_ifr)
+        
+        cfr_data <- readr::read_csv(cfr_data) %>%
+            dplyr::rename(USPS=state, delay=lag) %>%
+            dplyr::select(USPS, epoch, delay, cfr) %>%
+            dplyr::filter(epoch %in% epochs) %>%
+            left_join(relative_ifr) %>%
+            dplyr::filter(geoid %in% geodata$geoid) %>%
+            dplyr::mutate(incidC = pmin(0.99,ifr/cfr),  # get effective case detection rate based in assumed IFR. 
+                          value_mean = pmax(0,1-incidC),
+                          value_mean = signif(value_mean, digits = 2)) %>% # get effective reduction in incidC assuming baseline incidC 
+            dplyr::select(USPS,geoid, epoch, value_mean)
+        
+        
+        no_cfr_data <- relative_ifr %>%
+            tidyr::expand_grid(value_mean = v_mean, 
+                               epoch = epochs) %>% 
+            dplyr::filter(!geoid %in% cfr_data$geoid) %>%
+            dplyr::select(USPS, geoid, epoch, value_mean)
+        
+        cfr_data <- dplyr::bind_rows(cfr_data, 
+                                     no_cfr_data)
+    }
 
-    startdate <- as.Date(startdate)
-    enddate <- as.Date(enddate)
-
-    outcome <- tidyr::expand_grid(
-        template = "Reduce",
-        type = "outcome",
-        category = "incidCshift",
-        parameter = "incidC::probability",
-        geoid = "all",
-        start_date = startdate,
-        end_date = enddate,
-        value_dist = v_dist,
-        value_mean = v_mean,
-        value_sd = v_sd,
-        value_a = v_a,
-        value_b = v_b,
-        pert_dist = p_dist,
-        pert_mean = p_mean,
-        pert_sd = p_sd,
-        pert_a = p_a,
-        pert_b = p_b,
-        baseline_scenario = "",
-        USPS = ""
-    ) %>%
-        dplyr::mutate(name = paste0("incidCshift_", lubridate::month(end_date, label = TRUE)),
-                      dplyr::across(pert_mean:pert_b, ~ifelse(inference, .x, NA_real_)),
+    outcome <- list()
+    for(i in 1:(length(periods)-1)){
+        outcome[[i]] <- cfr_data %>%
+            dplyr::filter(epoch == epochs[i]) %>%
+            dplyr::select(-epoch) %>%
+            dplyr::mutate(
+                template = "Reduce", 
+                name = paste0(USPS, "_incidCshift_", i), 
+                type = "outcome", 
+                category = "incidCshift", 
+                parameter = "incidC::probability", 
+                baseline_scenario = "", 
+                start_date = periods[i], 
+                end_date = periods[i+1], 
+                value_dist = v_dist, 
+                value_mean = value_mean, 
+                value_sd = v_sd, 
+                value_a = v_a, 
+                value_b = v_b,
+                pert_dist = p_dist, 
+                pert_mean = p_mean, 
+                pert_sd = p_sd, 
+                pert_a = p_a, 
+                pert_b = p_b
+                ) 
+            
+    }
+    
+    outcome <- dplyr::bind_rows(outcome) %>%
+        dplyr::mutate(dplyr::across(pert_mean:pert_b, ~ifelse(inference, .x, NA_real_)),
                       pert_dist = ifelse(inference, pert_dist, NA_character_)) %>%
         dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, baseline_scenario, tidyselect::starts_with("value_"), tidyselect::starts_with("pert_"))
-
+    
     return(outcome)
-
+    
 }
 
 #' Bind interventions and save 
