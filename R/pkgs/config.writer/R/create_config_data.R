@@ -652,7 +652,7 @@ set_incidC_shift <- function(periods,
             dplyr::select(-epoch) %>%
             dplyr::mutate(
                 template = "Reduce", 
-                name = paste0(USPS, "_incidCshift_", i), 
+                name = paste0("incidCshift_", i), 
                 type = "outcome", 
                 category = "incidCshift", 
                 parameter = "incidC::probability", 
