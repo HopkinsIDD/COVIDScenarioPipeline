@@ -93,7 +93,7 @@ collapse_intervention<- function(dat
         dplyr::mutate(period = paste0("            ", period))
 
     reduce <- dat %>%
-        dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, starts_with("value_"), starts_with("pert_")) %>%
+        dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, baseline_scenario, starts_with("value_"), starts_with("pert_")) %>%
         dplyr::filter(template %in% c("ReduceR0", "Reduce", "ReduceIntervention")) %>%
         dplyr::mutate(end_date=paste0("period_end_date: ", end_date),
                       start_date=paste0("period_start_date: ", start_date)) %>%
@@ -478,6 +478,7 @@ print_transmission_interventions <- function(dat,
 #' @param incidC_prob_sd standard deviation for incidC probability
 #' @param incidC_prob_a minimum value for incidC probability
 #' @param incidC_prob_b maximum value for incidC probability
+#' @param incidC_perturbation whether to include perturbation for incidC
 #' @param incidC_prob_dist_pert distribution for incidC perturbation
 #' @param incidC_prob_value_pert mean perturbation value for incidC
 #' @param incidC_prob_sd_pert perturbation sd for incidC
@@ -528,6 +529,7 @@ print_outcomes <- function(dat=NULL,
                           incidC_prob_sd=.1,
                           incidC_prob_a=0,
                           incidC_prob_b=1,
+                          incidC_perturbation = TRUE,
                           incidC_prob_dist_pert="truncnorm",
                           incidC_prob_value_pert=0,
                           incidC_prob_sd_pert=0.05,
@@ -554,7 +556,17 @@ print_outcomes <- function(dat=NULL,
         }
     }
     
-    
+    if(incidC_perturbation){
+        incidC_pert <- print_value(value_dist = incidC_prob_dist_pert,
+                                   value_mean = incidC_prob_value_pert, 
+                                   value_sd = incidC_prob_sd_pert, 
+                                   value_a = incidC_prob_a_pert, 
+                                   value_b = incidC_prob_b_pert, 
+                                   param_name = "perturbation", 
+                                   indent_space=10)
+    } else{
+        incidC_pert <- ""
+    }
 
     cat(paste0(
         '\n',
@@ -630,13 +642,7 @@ print_outcomes <- function(dat=NULL,
                     value_a = incidC_prob_a, 
                     value_b = incidC_prob_b, 
                     indent_space=10),
-        print_value(value_dist = incidC_prob_dist_pert,
-                    value_mean = incidC_prob_value_pert, 
-                    value_sd = incidC_prob_sd_pert, 
-                    value_a = incidC_prob_a_pert, 
-                    value_b = incidC_prob_b_pert, 
-                    param_name = "perturbation", 
-                    indent_space=10),
+        incidC_pert,
         '        delay:\n',
         '          value:\n',
         '            distribution: ',incidC_delay_dist,'\n',
@@ -870,6 +876,7 @@ print_seeding <- function(method = "FolderDraw",
 #' @description Set settings for the filtering section and its statistics component
 #'
 #' @param sims_per_slot number of iterations in a single MCMC inference chain With inference model runs, the number of simulations nsimulations refers to the number of final model simulations that will be produced. The sims_per_slot setting refers to the number of iterative simulations that will be run in order to produce a single final simulation (i.e., number of simulations in a single MCMC chain).
+#' @param do_filtering whether to perform inference
 #' @param data_path file path where observed data are saved
 #' @param gt_source source of data 
 #' @param stat_names the names of the statistics used to calibrate the model to empirical data
@@ -893,6 +900,7 @@ print_seeding <- function(method = "FolderDraw",
 #' print_filtering_statistics()
 #' 
 print_filtering_statistics <- function(sims_per_slot = 300,
+                                       do_filtering = TRUE,
                             data_path = "data/us_data.csv",
                             gt_source = "csse",
                             stat_names = c("sum_deaths", "sum_confirmed"),
@@ -912,6 +920,7 @@ print_filtering_statistics <- function(sims_per_slot = 300,
         "\n",
         "filtering:\n",
         "  simulations_per_slot: ", sims_per_slot, "\n",
+        "  do_filtering: ", do_filtering,"\n",
         "  data_path: ", data_path, "\n",
         '  gt_source: "', gt_source, '"\n',
         "  statistics:\n"

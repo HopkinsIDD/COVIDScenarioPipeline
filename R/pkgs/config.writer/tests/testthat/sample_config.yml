@@ -12017,6 +12017,7 @@ outcomes:
 
 filtering:
   simulations_per_slot: 1000
+  do_filtering: TRUE
   data_path: data/us_data.csv
   gt_source: "csse"
   statistics:
