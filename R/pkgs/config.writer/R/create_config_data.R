@@ -6,6 +6,7 @@
 #' @param sim_start_date simulation start date
 #' @param sim_end_date simulation end date
 #' @param npi_cutoff_date only interventions that start before or on npi_cuttof_date are included
+#' @param redux_geoids string or vector of characters indicating which geoids will have an intervention with the ReduceIntervention template; it accepts "all". If any values are specified, the intervention in the geoid with the maximum start date will be selected. It defaults to NULL. . 
 #' @param v_dist type of distribution for reduction
 #' @param v_mean reduction mean
 #' @param v_sd reduction sd
@@ -33,6 +34,7 @@ set_npi_params <- function(intervention_file,
                            sim_end_date=Sys.Date()+60,
                            npi_cutoff_date=Sys.Date()-7,
                            inference = TRUE,
+                           redux_geoids = NULL,
                            v_dist = "truncnorm", v_mean=0.6, v_sd=0.05, v_a=0.0, v_b=0.9,
                            p_dist = "truncnorm", p_mean=0, p_sd=0.05, p_a=-1, p_b=1
 ){
@@ -71,6 +73,25 @@ set_npi_params <- function(intervention_file,
         dplyr::mutate(dplyr::across(pert_mean:pert_b, ~ifelse(inference, .x, NA_real_)),
                       pert_dist = ifelse(inference, pert_dist, NA_character_)) %>%
         dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, baseline_scenario, tidyselect::starts_with("value_"), tidyselect::starts_with("pert_"))
+    
+    if(!is.null(redux_geoids)){
+        if(redux_geoids == 'all'){
+            redux_geoids <- unique(npi$geoid) 
+        }
+        
+        npi <- npi %>%
+            dplyr::filter(geoid %in% redux_geoids) %>%
+            dplyr::group_by(geoid) %>%
+            dplyr::filter(start_date == max(start_date)) %>%
+            dplyr::mutate(category = "base_npi", 
+                          name = paste0(name, "_last")) %>%
+            dplyr::bind_rows(
+                npi %>%
+                    dplyr::group_by(geoid) %>%
+                    dplyr::filter(start_date != max(start_date) |! geoid %in% redux_geoids)
+            ) %>%
+            dplyr::ungroup()
+    }
 
     return(npi)
 
@@ -233,9 +254,8 @@ set_localvar_params <- function(sim_start_date=as.Date("2020-03-31"),
 #' @param incl_geoid vector of geoids to include; NULL will generate interventions for all geographies
 #' @param projection_start_date first date without data to fit
 #' @param redux_end_date end date for reduction interventions; default NULL uses sim_end_date in npi_file
-#' @param redux_level reduction to intervention effectiveness
+#' @param redux_level reduction to intervention effectiveness; used to estimate mean value of reduction by month
 #' @param v_dist type of distribution for reduction
-#' @param v_mean reduction mean
 #' @param v_sd reduction sd
 #' @param v_a reduction a
 #' @param v_b reduction b
@@ -247,7 +267,6 @@ set_localvar_params <- function(sim_start_date=as.Date("2020-03-31"),
 #'
 #'
 set_redux_params <- function(npi_file,
-                             incl_geoid = NULL, # would need some USPS value if running multiple times on different geoids in same config
                              projection_start_date = Sys.Date(), # baseline npi should have at least 2-3 weeks worth of data
                              redux_end_date=NULL,
                              redux_level = 0.5,
@@ -267,14 +286,9 @@ set_redux_params <- function(npi_file,
 
     }
 
-    if(!is.null(incl_geoid)){
-        npi_file <- npi_file %>%
-            dplyr::filter(geoid %in% incl_geoid)
-    }
-
     og <- npi_file %>%
+        dplyr::filter(category == "base_npi") %>%
         dplyr::group_by(USPS, geoid) %>%
-        dplyr::filter(start_date == max(start_date)) %>%
         dplyr::mutate(end_date = dplyr::if_else(is.null(redux_end_date), end_date, redux_end_date))
 
     if(any(projection_start_date < unique(og$start_date))){warning("Some interventions start after the projection_start_date")}
@@ -293,22 +307,22 @@ set_redux_params <- function(npi_file,
         start_date = months_start,
         end_date = months_end,
         month = lubridate::month(months_start, label=TRUE, abbr=TRUE) %>% tolower(),
-        reduction = reduction, # TODO: reduction to value_mean
+        value_mean = reduction, # TODO: reduction to value_mean
         type = rep("transmission", month_n),
         geoid = npi_file$geoid %>% paste0(collapse = '", "')) %>%
         mutate(USPS = "",
                category = "NPI_redux",
                name = paste0(category, '_', month),
-               baseline_scenario = c("base_npi", paste("NPI_redux", month[-length(month)])),
+               baseline_scenario = c("base_npi", paste0("NPI_redux_", month[-length(month)])),
                template = "ReduceIntervention",
                parameter = "R0",
                value_dist = v_dist,
-               value_mean = v_mean,
                value_sd = v_sd,
                value_a = v_a,
                value_b = v_b,
                pert_dist = NA_character_,
                pert_mean = NA_real_,
+               pert_sd = NA_real_,
                pert_a = NA_real_,
                pert_b = NA_real_) %>%
         dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, baseline_scenario, tidyselect::starts_with("value_"), tidyselect::starts_with("pert_"))
