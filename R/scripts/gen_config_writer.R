@@ -1,92 +1,133 @@
 library(config.writer)
 
 # Default Params ----
+    ## Save Names
+    run_type <- "fchub"  # name to save processed intervention data, pasted with formatted config date. For example, if base_path is "data" then this would be saved as "data/fchub_20210712.csv". 
+    config_name <- "config.yml" # filename to save in current directory
+    
+    ## Data Files
+    outcomes_parquet_file <- "usa-geoid-params-output_statelevel.parquet"
+    
+    base_path <- "data" # path to directory with the geodata, intervention, vaccination, outcomes, and variant files
+    geodata_file <- "geodata_territories_2019_statelevel.csv"
+    mobility_file <- "mobility_territories_2011-2015_statelevel.csv"
+    intervention_file <- "intervention_tracking/Shelter-in-place-as-of-06252021.csv"
+    
+    vaccination_file <- "vaccination/Round6/vacc_rates_ROUND6.csv"
+    outcomes_file <- "vaccination/Round6/outcome_adj_allscenarios_ROUND6.csv"
+        vacc_scenario <- 2 # Scenario number from the vacc_path and outcomes_path files 
+    
+    variant_file_1 <- "variant/B117-fits.csv"
+    variant_file_2 <- "variant/B617-fits.csv"
+        b117_only <- FALSE # false if accounting for delta variant as well
+        variant_transmission_increase <- 0.6 # increase in transmission in delta vs 117
+    
+    incidC_shift_file <- "US_CFR.csv"
+        
+    ## Broad config settings 
+        ## Header
+        sim_name <- "USA"
+        sim_start <- "2020-01-01"
+        sim_end <- "2021-08-30"
+        setup_name <- "test"
+        state_level <- TRUE
+        n_simulations <- 1 # overwritten by environmental var COVID_NSIMULATIONS
+        
+        ## Seeding
+        seeding_method = "FolderDraw"
+        lambda_file <- "seeding_territories.csv"
+        perturbation_sd <- 3
+        
+        #SEIR
+        gamma_dist <- "uniform"
+        
+        ## Interventions
+        all_fixed <- FALSE # fixes all intervention values across chains
+        npi_scenario_name <- "inference"
+        exclude_apr_seasonality <- TRUE
+        add_redux = TRUE # whether to add NPI reduction interventions
+        
+        ## Outcomes
+        add_incidC = TRUE # whether to add incidC shift interventions
+        incidC_shift_periods = c("2020-01-01", "2020-06-15", "2020-12-31")
+        incidC_shift_epochs = c("MarJun", "NovJan")
+        incidC_shift_value_mean = 0.25 # state-specific initial value for those without an ifr estimate; possible to supply vectors to match the number of periods (e.g. c(0.25, 0.5))
+        incidC_shift_pert_sd = 0.01
+        ifr = "med"
+        incidD_prob_value = 0.005
+        incidC_prob_value = 0.4
+        incidC_prob_dist = "truncnorm"
+        incidC_prob_dist_pert = "truncnorm"
+        incidC_perturbation = TRUE
+        
+        ## Filtering
+        do_filtering = TRUE # inference?
+        sims_per_slot = 1 # overwritten by environmental var COVID_SIMULATIONS_PER_SLOT
+        data_file = "us_data.csv"
+        priors_name <- c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar", "Seas_apr",
+                         "Seas_may", "Seas_jun", "Seas_jul", "Seas_aug", "Seas_sep",
+                         "Seas_oct", "Seas_nov", "Seas_dec")
+        priors_name <- {if(exclude_apr_seasonality) priors_name[priors_name!="Seas_apr"] else(priors_name)}
 
+# Terminal Call ----
+    ## Ignore if not submitting from terminal
+
+        
 option_list = list(
-    optparse::make_option(c("-f", "--fixed"), action="store", type='logical', help="whether to set all intervention distributions to 'fixed'", default=FALSE),
-    optparse::make_option(c("-d", "--do-filter"), action="store", type='logical', help="whether inference will be performed", default=TRUE),
-    optparse::make_option(c("-p", "--path"), action="store", type='character', help = "path to data files", default = "data"),
-    optparse::make_option(c("-c", "--config-data"), action="store", type='character', help = "name of config", default= "config.yml"),
-    optparse::make_option(c("-g", "--geodata-file"), action="store", type='character', help="name geodata file", default = "geodata_territories_2019_statelevel.csv"),
-    optparse::make_option(c("-v", "--vaccination-file"), action="store", type='character', help = "path to vaccination data", default = "vaccination/Round6/vacc_rates_ROUND6.csv"),
-    optparse::make_option(c("-o", "--outcomes-file"), action="store", type='character', help = "path to outcome intervention data", default = "vaccination/Round6/outcome_adj_allscenarios_ROUND6.csv"),
-    optparse::make_option(c("-i", "--intervention-file"), action="store", type='character', help = "path to npi intervention data", default = "intervention_tracking/Shelter-in-place-as-of-06252021.csv"),
-    optparse::make_option(c("-s", "--state-level"), action="store", type='logical', help = "whether state-level run", default = TRUE), 
-    optparse::make_option(c("--var-1"), action="store", type='character', help = "path to fit for variant 1", default = "variant/B117-fits.csv"),
-    optparse::make_option(c("--var-2"), action="store", type='character', help = "path to fit for variant 2", default = "variant/B617-fits.csv"), 
-    optparse::make_option(c("--params-output-data"), action="store", type='character', help = "path to params outcomes parquet file", default = "usa-geoid-params-output_statelevel.parquet")
+    optparse::make_option(c("-f", "--fixed"), action="store", type='logical', help="whether to set all intervention distributions to 'fixed'", default=all_fixed),
+    optparse::make_option(c("-d", "--do-filter"), action="store", type='logical', help="whether inference will be performed", default=do_filtering),
+    optparse::make_option(c("-b", "--base-path"), action="store", type='character', help = "path to data files", default = base_path),
+    optparse::make_option(c("-c", "--config-name"), action="store", type='character', help = "name of config", default= config_name),
+    optparse::make_option(c("-g", "--geodata-file"), action="store", type='character', help="name of geodata file within path", default = geodata_file),
+    optparse::make_option(c("-v", "--vaccination-file"), action="store", type='character', help = "name of vaccination rates file within path", default = vaccination_file),
+    optparse::make_option(c("-o", "--outcomes-file"), action="store", type='character', help = "name of outcome adjustments within path", default = outcomes_file),
+    optparse::make_option(c("-i", "--intervention-file"), action="store", type='character', help = "name of npi intervention file within path", default = intervention_file),
+    optparse::make_option(c("-s", "--state-level"), action="store", type='logical', help = "whether state-level run", default = state_level), 
+    optparse::make_option(c("-i", "--incidC-file"), action="store", type='logical', help = "name of CFR file within path", default = incidC_shift_file),
+    optparse::make_option(c("--var-1"), action="store", type='character', help = "path to fit for variant 1", default = variant_file_1),
+    optparse::make_option(c("--var-2"), action="store", type='character', help = "path to fit for variant 2", default = variant_file_2), 
+    optparse::make_option(c("--params-output-data"), action="store", type='character', help = "path to params outcomes parquet file", default = "usa-geoid-params-output_statelevel.parquet"),
+    optparse::make_option(c("-k", "--sims_per_slot"), action="store", default=Sys.getenv("COVID_SIMULATIONS_PER_SLOT", as.numeric(sims_per_slot)), type='integer', help = "Number of simulations to run per slot"),
+    optparse::make_option(c("-n", "--slots"), action="store", default=Sys.getenv("COVID_NSIMULATIONS", as.numeric(n_simulations)), type='integer', help = "Number of slots to run.")
     
 )
-
-# option_list = list(
-#     optparse::make_option(c("-c", "--config-path"), action="store", type='character', help = "name of and path to config", default= config_path),
-#     optparse::make_option(c("-g", "--geodata-path"), action="store", type='character', help="path to geodata file", default = geodata_path),
-#     optparse::make_option(c("-v", "--vaccination-path"), action="store", type='character', help = "path to vaccination data", default = vaccination_path),
-#     optparse::make_option(c("-o", "--outcomes-path"), action="store", type='character', help = "path to outcome intervention data", default = outcomes_path),
-#     optparse::make_option(c("-i", "--intervention-path"), action="store", type='character', help = "path to npi intervention data", default = intervention_path),
-#     optparse::make_option(c("-s", "--state-level"), action="store", type='logical', help = "whether state-level run", default = state_level), 
-#     optparse::make_option(c("--var-1"), action="store", type='character', help = "path to fit for variant 1", default = variant_path_1),
-#     optparse::make_option(c("--var-2"), action="store", type='character', help = "path to fit for variant 2", default = variant_path_2), 
-#     optparse::make_option(c("--params-output-data"), action="store", type='character', help = "path to params outcomes parquet file", default = outcomes_parquet_file)
-#     
-# )
 
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)
 
-## Data Files/Processing
-run_type <- "fchub" # used to save processed intervention data (e.g. data/config_data/fchub_20210702.csv)
-config_name <- opt$`config-data`
-geodata_path <- file.path(opt$path, opt$`geodata-file`)
-vaccination_path <- file.path(opt$path, opt$`vaccination-file`) 
-outcomes_path <- file.path(opt$path, opt$`outcomes-file`)
-vacc_scenario <- 2 # Scenario number from the vacc_path and outcomes_path files 
+all_fixed = opt$`fixed`
+do_filtering = opt$`do-filter`
+base_path = opt$`base-path`
+config_name = opt$`config-name`
+geodata_file = opt$`geodata-file`
+vaccination_file = opt$`vaccination-file`
+outcomes_file = opt$`outcomes-file`
+intervention_file = opt$`intervention-file`
+state_level = opt$`state-level`
+variant_file_1 = opt$`var-1`
+variant_file_2 = opt$`var-2`
+outcomes_parquet_file = opt$`params-output-data`
 
-intervention_path <- file.path(opt$path, opt$`intervention-file`)
+incidC_perturbation = do_filtering
 
-variant_path_1 <- file.path(opt$path, opt$`var-1`)
-variant_path_2 <- file.path(opt$path, opt$`var-2`)
-b117_only <- FALSE 
-variant_transmission_increase <- 0.6 # increase in transmission in delta vs 117
+# Set Paths
 
-## Handy Config Settings 
-    ## Header
-    sim_name <- "USA"
-    sim_start <- "2020-01-01"
-    sim_end <- "2021-08-30"
-    geodata_file <- opt$`geodata-file`
-    mobility_file <- "mobility_territories_2011-2015_statelevel.csv"
-    setup_name <- "test"
-    state_level <- opt$`state-level`
-    n_simulations <- 1
-    ## Seeding
-    seeding_method = "FolderDraw"
-    lambda_file <- "data/seeding.csv"
-    perturbation_sd <- 3
-    #SEIR
-    gamma_dist <- "uniform"
-    ## Interventions
-    npi_scenario_name <- "inference"
-    exclude_apr_seasonality <- TRUE
-    ## Outcomes
-    ifr = "med"
-    outcomes_parquet_file=opt$`params-output-data`
-    incidD_prob_value = 0.005
-    incidC_prob_value = 0.4
-    incidC_prob_dist = "truncnorm"
-    incidC_prob_dist_pert = "truncnorm"
-    incidC_perturbation = opt$`do-filter`
-    ## Filtering
-    do_filtering = opt$`do-filter`
-    sims_per_slot = 1
-    data_path = file.path(opt$path, "us_data.csv")
+geodata_path <- file.path(base_path, geodata_file)
+lambda_path <- file.path(base_path, lambda_file)
 
-# Other
-save_config_data <- file.path(opt$path, "processed_interventions.csv")
-priors_name <- c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar", "Seas_apr",
-                 "Seas_may", "Seas_jun", "Seas_jul", "Seas_aug", "Seas_sep",
-                 "Seas_oct", "Seas_nov", "Seas_dec")
-priors_name <- {if(exclude_apr_seasonality) priors_name[priors_name!="Seas_apr"] else(priors_name)}
+vaccination_path <- file.path(base_path, vaccination_file) 
+outcomes_path <- file.path(base_path, outcomes_file)
+
+intervention_path <- file.path(base_path, intervention_file)
+
+variant_path_1 <- file.path(base_path, variant_file_1)
+variant_path_2 <- file.path(base_path, variant_file_2)
+
+incidC_shift_path <- file.path(base_path, incidC_shift_file)
+data_path = file.path(base_path, data_file)
+
+save_config_data <- file.path(base_path, paste0(run_type, "_", format(Sys.Date(), "%Y%m%d"), ".csv"))
+
 
 # Process Data ----
 
@@ -104,13 +145,13 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
                               sim_end_date = sim_end,
                               redux_geoids = "all",
                               npi_cutoff_date=Sys.Date()-7,
-                              inference = TRUE,
+                              inference = do_filtering,
                               v_dist = "truncnorm", v_mean=0.6, v_sd=0.05, v_a=0.0, v_b=0.9,
                               p_dist = "truncnorm", p_mean=0, p_sd=0.05, p_a=-1, p_b=1)
     ## Seasonality
     seasonality_dat <- set_seasonality_params(sim_start_date = sim_start,
                                               sim_end_date = sim_end,
-                                              inference = TRUE,
+                                              inference = do_filtering,
                                               template = "MultiTimeReduce", # TODO: MTR for some, but not all... not critical
                                               v_dist="truncnorm",
                                               v_mean = c(-0.2, -0.133, -0.067, 0, 0.067, 0.133, 0.2, 0.133, 0.067, 0, -0.067, -0.133), # TODO function?
@@ -122,7 +163,7 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
     ## Local Variance
     localvar_dat <- set_localvar_params(sim_start_date = sim_start,
                                         sim_end_date = sim_end,
-                                        inference = TRUE,
+                                        inference = do_filtering,
                                         v_dist="truncnorm",
                                         v_mean =  0, v_sd = 0.025, v_a = -1, v_b = 1, # TODO: add check on limits
                                         p_dist="truncnorm",
@@ -145,19 +186,22 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
                                       v_sd = 0.01,
                                       transmission_increase = variant_transmission_increase,
                                       v_a = -1.5,
-                                      v_b = 0)
+                                      v_b = 0, 
+                                      inference = do_filtering)
     
     ## Redux interventions
-    redux_dat <- set_redux_params(npi_file = npi_dat,
-                                  projection_start_date = Sys.Date(), 
-                                  redux_end_date=NULL,
-                                  redux_level = 0.5,
-                                  v_dist = "truncnorm", 
-                                  v_mean=0.8,
-                                  v_sd=0.01,
-                                  v_a=0,
-                                  v_b=1)
-
+    if(add_redux){
+        redux_dat <- set_redux_params(npi_file = npi_dat,
+                                      projection_start_date = Sys.Date(), 
+                                      redux_end_date=NULL,
+                                      redux_level = 0.5,
+                                      v_dist = "truncnorm", 
+                                      v_mean=0.8,
+                                      v_sd=0.01,
+                                      v_a=0,
+                                      v_b=1)
+    }
+    
     # Outcome interventions
 
     ## Vaccination impact on outcomes
@@ -175,37 +219,34 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
     
     ## IncidC Shift
 
-    incidC_dat <- set_incidC_shift(startdate = as.Date("2020-06-30"),
-                                   enddate = sim_end, # TODO: allow specific geoids
-                                   inference = TRUE,
-                                   v_dist="truncnorm",
-                                   v_mean=0.07, v_sd = 0.05, v_a = 0, v_b = 1,
-                                   p_dist="truncnorm",
-                                   p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1)
+    if(add_incidC){
+        incidC_dat <- set_incidC_shift(periods = incidC_shift_periods, 
+                                       geodata = geodata, 
+                                       baseline_ifr = 0.005,
+                                       cfr_data = incidC_shift_path,
+                                       epochs = incidC_shift_epochs,
+                                       outcomes_parquet_file = outcomes_parquet_file,
+                                       inference = do_filtering,
+                                       v_dist="truncnorm",
+                                       v_mean=incidC_shift_value_mean, v_sd = 0.05, v_a = 0, v_b = 1,
+                                       p_dist="truncnorm",
+                                       p_mean = 0, p_sd = incidC_shift_pert_sd, p_a = -1, p_b = 1)
+    }
     
     # Bind and save df
 
     interventions <- mget(objects(pattern = "_dat$")) %>%
-        bind_interventions(
-            # npi_dat,
-            #             seasonality_dat,
-            #             localvar_dat,
-            #             redux_dat,
-            #             vacc_dat,
-            #             variant_dat,
-            #             outcome_dat,
-                       # incidC_dat,
-                        sim_start_date = sim_start,
-                        sim_end_date = sim_end,
-                        save_name = save_config_data)
+        bind_interventions(.,
+                           sim_start_date = sim_start,
+                           sim_end_date = sim_end,
+                           save_name = save_config_data)
     
     daily_mean_reduction(interventions,
                          plot=TRUE)
     
-    if(opt$fixed){
+    if(all_fixed){
         interventions <- interventions %>%
-            dplyr::mutate(value_dist = "fixed",
-                          dplyr::across(tidyselect::starts_with("pert_"), ~NA))
+            dplyr::mutate(value_dist = "fixed")
         
         gamma_dist <- "fixed"
         incidC_prob_dist <- "fixed"
@@ -222,7 +263,7 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
                 n_simulations = n_simulations,
                 dt = 0.25,
                 census_year = 2019,
-                base_path = "data",
+                base_path = base_path,
                 sim_states = unique(interventions$USPS[!interventions$USPS %in% c("", "all") & !is.na(interventions$USPS)]),
                 setup_name,
                 geodata = geodata_file,
@@ -236,7 +277,7 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
     print_seeding(method = seeding_method,
                  seeding_file_type = "seed",
                  folder_path = "importation/minimal/",
-                 lambda_file = lambda_file,
+                 lambda_file = lambda_path,
                  perturbation_sd = perturbation_sd)
 
     print_seir(alpha = 0.99,
