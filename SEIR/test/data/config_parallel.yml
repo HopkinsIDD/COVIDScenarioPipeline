@@ -120,13 +120,13 @@ interventions:
       scenarios:
         - Dose1
         - Dose2
-    Scenario1:
+    Scenario_vacc:
       template: Stacked
       scenarios:
         - Place1
         - Place2
         - vaccination
-    Scenario2:
+    Scenario_novacc:
       template: Stacked
       scenarios:
         - Place1
