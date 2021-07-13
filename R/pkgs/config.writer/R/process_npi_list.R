@@ -394,5 +394,100 @@ generate_multiple_variants <- function(variant_path_1,
         dplyr::filter(R_ratio>1)
 }
 
+#' Function to process variant data for B117/B1617
+#'
+#' Generate state-level variant interventions
+#'
+#' @param variant_path_1 path to B117 variant
+#' @param variant_path_2 path to B1617 variant
+#' @param sim_start_date simulation start date
+#' @param sim_end_date simulation end date
+#' @param variant_lb
+#' @param varian_effect change in transmission for variant default is 50% from Davies et al 2021
+#' @param transmission_increase transmission increase in B1617 relative to B117
+#'
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+#' variant <- generate_multiple_variants(variant_path_1 = system.file("extdata", "B117-fits.csv", package = "config.writer"),
+#'                                       variant_path_2 = system.file("extdata", "B617-fits.csv", package = "config.writer"))
+#' variant
+#' 
+generate_multiple_variants_state <- function(variant_path_1,
+                                       variant_path_2,
+                                       sim_start_date=as.Date("2020-03-31"),
+                                       sim_end_date=Sys.Date()+60,
+                                       variant_lb = 1.4,
+                                       variant_effect = 1.5,
+                                       transmission_increase = 0.2
+){
+    
+    if(is.null(transmission_increase)){
+        transmission_increase=0.2
+    }
+    
+    b117 <- readr::read_csv(variant_path_1)
+    b1617 <- readr::read_csv(variant_path_2)
+    
+    sim_start_date <- as.Date(sim_start_date)
+    sim_end_date <- as.Date(sim_end_date)
+    
+    b117_week <- b117 %>%
+        dplyr::mutate(week = MMWRweek::MMWRweek(date)$MMWRweek,
+               year = MMWRweek::MMWRweek(date)$MMWRyear,
+               start_date = MMWRweek::MMWRweek2Date(MMWRyear=year, MMWRweek=week),
+               end_date = (start_date+6)) %>%
+        dplyr::rename(variant_prop = fit) %>%
+        dplyr::mutate(variant = "B117") %>%
+        dplyr::filter(!(start_date>sim_end)) %>%
+        dplyr::filter(date==end_date) %>%
+        dplyr::mutate(date=start_date) %>%
+        dplyr::mutate(param = "ReduceR0") %>%
+        dplyr::mutate(R_ratio = 1*(1-variant_prop) + variant_b117*variant_prop,
+               sd_variant = 1*(1-variant_prop) + variant_b117_lb*variant_prop,
+               sd_variant = (R_ratio - sd_variant)/1.96)
+    
+    # B.1.617
+    b1617_week <- b1617 %>%
+        dplyr::mutate(week = MMWRweek::MMWRweek(date)$MMWRweek,
+                      year = MMWRweek::MMWRweek(date)$MMWRyear,
+                      start_date = MMWRweek::MMWRweek2Date(MMWRyear=year, MMWRweek=week),
+                      end_date = (start_date+6)) %>%
+        rename(variant_prop = fit) %>%
+        dplyr::filter(!(start_date>sim_end_date)) %>%
+        dplyr::filter(date==end_date) %>%
+        dplyr::mutate(param = "ReduceR0") %>%
+        dplyr::mutate(R_ratio = variant_effect*(1-variant_prop) + variant_effect*(1+transmission_increase)*variant_prop,
+                      sd_variant = variant_lb*(1-variant_prop) + variant_lb*(1+transmission_increase)*variant_prop,
+                      sd_variant = (R_ratio - sd_variant)/1.96) %>%
+        dplyr::mutate(variant = "B1617")
+    
+    
+    b117_week_ <- b117_week
+    
+    variant_data <- b1617_week %>%
+        dplyr::bind_rows(b117_week_) %>%
+        dplyr::filter(end_date >= sim_start_date) %>%
+        dplyr::mutate(start_date = dplyr::if_else(start_date < sim_start_date &
+                                                  end_date > sim_start_date, sim_start_date, start_date),
+                      end_date = dplyr::if_else(end_date > sim_end_date, sim_end_date, end_date))
+    
+    variant_data <- variant_data %>%
+        dplyr::mutate(R_ratio = round(R_ratio, 2)) %>%
+        dplyr::select(location, week, start_date, end_date, variant, param, R_ratio, sd_variant) %>%
+        dplyr::group_by(R_ratio, location) %>%
+        dplyr::summarise(start_date = min(start_date),
+                         end_date = max(end_date),
+                         value_sd = mean(sd_variant),
+                         week = ifelse(length(week)==1, as.character(week), paste0(min(week), "-", max(week)))) %>%
+        dplyr::filter(R_ratio>1) %>%
+        dplyr::filter(location != "US") %>%
+        dplyr::rename("USPS" = "location") %>%
+        dplyr::left_join(geodata %>% dplyr::select(USPS, geoid))
+}
+
 
 
