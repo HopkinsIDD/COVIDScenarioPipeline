@@ -162,11 +162,14 @@ def steps_SEIR_nb(
                         proportion_info[proportion_exponent_col][proportion_index]
                     ][today]
                 if first_proportion:
+                    only_one_proportion = (transitions[transition_proportion_start_col][transition_index] + 1) == \
+                        transitions[transition_proportion_stop_col][transition_index]
                     first_proportion = False
                     source_number = relevant_number_in_comp
                     if source_number.max() > 0:
                         total_rate[source_number > 0] *= source_number[source_number > 0] ** relevant_exponent[source_number > 0] / source_number[source_number > 0]
-                    total_rate *= parameters[transitions[transition_rate_col][transition_index]][today]
+                    if only_one_proportion:
+                        total_rate *= parameters[transitions[transition_rate_col][transition_index]][today]
                     #print(total_rate)
                 else:
                     for spatial_node in range(nspatial_nodes):
