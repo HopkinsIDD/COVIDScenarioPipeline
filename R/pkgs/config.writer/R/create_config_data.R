@@ -483,6 +483,91 @@ set_variant_params <- function(b117_only = FALSE,
 
 }
 
+#' Generate state-level variant interventions
+#'
+#' @param b117_only whether to generate estimates for B117 variant only or both B117 and B1617
+#' @param variant_path_1 path to B117 variant
+#' @param variant_path_2 path to B1617 variant
+#' @param sim_start_date simulation start date
+#' @param sim_end_date simulation end date
+#' @param variant_lb
+#' @param varian_effect change in transmission for variant default is 50% from Davies et al 2021
+#' @param transmission_increase transmission increase in B1617 relative to B117
+#' @param inference logical indicating whether inference will be performed on intervention (default is TRUE); perturbation values are replaced with NA if set to FALSE.
+#' @param v_dist type of distribution for reduction
+#' @param v_mean reduction mean
+#' @param v_sd reduction sd
+#' @param v_a reduction a
+#' @param v_b reduction b
+#' @param p_dist type of distribution for perturbation
+#' @param p_mean perturbation mean
+#' @param p_sd perturbation sd
+#' @param p_a perturbation a
+#' @param p_b perturbation b
+#'
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+set_variant_params_state <- function(b117_only = FALSE,
+                               variant_path,
+                               variant_path_2 = NULL,
+                               sim_start_date,
+                               sim_end_date,
+                               variant_lb = 1.4,
+                               variant_effect = 1.5,
+                               month_shift = NULL,
+                               transmission_increase = NULL,
+                               inference = TRUE,
+                               v_dist="truncnorm",  v_sd = NULL, v_a = -1.5, v_b = 0,
+                               p_dist="truncnorm",
+                               p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1
+){
+    
+    
+    if(b117_only){
+        stop("State-level variant interventions not set up for B117 only")
+        
+    } else{
+        
+        if(is.null(variant_path_2)){stop("You must specify a path for the second variant.")}
+        
+        variant_data <- generate_multiple_variants_state(variant_path_1 = variant_path,
+                                                         variant_path_2 = variant_path_2,
+                                                         sim_start_date = sim_start_date,
+                                                         sim_end_date = sim_end_date,
+                                                         variant_lb = variant_lb,
+                                                         variant_effect= variant_effect,
+                                                         transmission_increase = transmission_increase)
+    }
+    
+    variant_data <- variant_data %>%
+        dplyr::mutate(type = "transmission",
+                      param = "ReduceR0",
+                      category = "variant",
+                      name = paste("variantR0adj", paste0("Week", week), sep="_"),
+                      template = "ReduceR0",
+                      geoid = geoid,
+                      parameter = NA,
+                      value_dist = v_dist,
+                      value_mean = 1-R_ratio,
+                      value_sd = ifelse(is.null(v_sd), round(value_sd,4), v_sd),
+                      value_a = v_a,
+                      value_b = v_b,
+                      pert_dist = p_dist,
+                      pert_mean = p_mean,
+                      pert_sd = p_sd, # dont want much perturbation on this if it gets perturbed
+                      pert_a = p_a,
+                      pert_b = p_b,
+                      baseline_scenario = "") %>% # really dont want to perturb this at the moment
+        dplyr::mutate(dplyr::across(pert_mean:pert_b, ~ifelse(inference, .x, NA_real_)),
+                      pert_dist = ifelse(inference, pert_dist, NA_character_)) %>%
+        dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, baseline_scenario, tidyselect::starts_with("value_"), tidyselect::starts_with("pert_"))
+    
+}
+
 #' Generate outcome interventions based on vaccination rates
 #'
 #' @param outcome_path path to vaccination adjusted outcome interventions
