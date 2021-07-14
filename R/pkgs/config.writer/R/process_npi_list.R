@@ -460,10 +460,11 @@ generate_multiple_variants_state <- function(variant_path_1,
                       end_date = (start_date+6)) %>%
         dplyr::rename(variant_prop = fit) %>%
         dplyr::filter(!(start_date>sim_end_date)) %>%
+        dplyr::filter(start_date >= as.Date("2021-04-01")) %>%
         dplyr::filter(date==end_date) %>%
         dplyr::mutate(param = "ReduceR0") %>%
-        dplyr::mutate(R_ratio = variant_effect*(1-variant_prop) + variant_effect*(1+transmission_increase)*variant_prop,
-                      sd_variant = variant_lb*(1-variant_prop) + variant_lb*(1+transmission_increase)*variant_prop,
+        dplyr::mutate(R_ratio = 1*(1-variant_prop) + variant_effect*(1+transmission_increase)*variant_prop,
+                      sd_variant = 1*(1-variant_prop) + variant_lb*(1+transmission_increase)*variant_prop,
                       sd_variant = (R_ratio - sd_variant)/1.96) %>%
         dplyr::mutate(variant = "B1617")
 
@@ -480,6 +481,8 @@ generate_multiple_variants_state <- function(variant_path_1,
     variant_data <- variant_data %>%
         dplyr::mutate(R_ratio = round(R_ratio, 2)) %>%
         dplyr::select(location, week, start_date, end_date, variant, param, R_ratio, sd_variant) %>%
+        dplyr::group_by(location, week, start_date, end_date) %>%
+        dplyr::summarise(R_ratio = prod(R_ratio), sd_variant = sum(sd_variant)) %>% # THIS IS NOT THE RIGHT SD BUT DOESN'T MATTER B/C WE DON'T USE IT
         dplyr::group_by(R_ratio, location) %>%
         dplyr::summarise(start_date = min(start_date),
                          end_date = max(end_date),
@@ -488,7 +491,9 @@ generate_multiple_variants_state <- function(variant_path_1,
         dplyr::filter(R_ratio>1) %>%
         dplyr::filter(location != "US") %>%
         dplyr::rename("USPS" = "location") %>%
-        dplyr::left_join(geodata %>% dplyr::select(USPS, geoid))
+        dplyr::left_join(geodata %>% dplyr::select(USPS, geoid)) %>%
+        dplyr::filter(!is.na(geoid)) %>%
+        dplyr::ungroup()
 }
 
 
