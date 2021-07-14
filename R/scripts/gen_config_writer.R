@@ -40,16 +40,20 @@ library(config.writer)
         
         #SEIR
         gamma_dist <- "uniform"
+        incl_vacc = TRUE
         
         ## Interventions
         all_fixed <- FALSE # fixes all intervention values across chains
         npi_scenario_name <- "inference"
         exclude_apr_seasonality <- TRUE
-        add_redux = TRUE # whether to add NPI reduction interventions
+        add_redux = FALSE # whether to add NPI reduction interventions
+            redux_geoids = {if(add_redux) "all" else(NULL)}
+            state_incl_geoid = {if(state_level) NULL else("06000")} # used to get the vaccination rates and vacc-adjusted outcomes, NULL if running state-level for ALL states. Otherwise, specify desired state geoids
         
         ## Outcomes
+        exclude_hosp_adjustment = TRUE
         add_incidC = TRUE # whether to add incidC shift interventions
-        incidC_shift_periods = c("2020-01-01", "2020-06-15", "2020-12-31")
+        incidC_shift_periods = c("2020-01-01", "2020-06-16", "2020-11-27")
         incidC_shift_epochs = c("MarJun", "NovJan")
         incidC_shift_value_mean = 0.25 # state-specific initial value for those without an ifr estimate; possible to supply vectors to match the number of periods (e.g. c(0.25, 0.5))
         incidC_shift_pert_sd = 0.01
@@ -86,7 +90,7 @@ option_list = list(
     optparse::make_option(c("-i", "--incidC-file"), action="store", type='logical', help = "name of CFR file within path", default = incidC_shift_file),
     optparse::make_option(c("--var-1"), action="store", type='character', help = "path to fit for variant 1", default = variant_file_1),
     optparse::make_option(c("--var-2"), action="store", type='character', help = "path to fit for variant 2", default = variant_file_2), 
-    optparse::make_option(c("--params-output-data"), action="store", type='character', help = "path to params outcomes parquet file", default = "usa-geoid-params-output_statelevel.parquet"),
+    optparse::make_option(c("--params-output-data"), action="store", type='character', help = "path to params outcomes parquet file", default = outcomes_parquet_file),
     optparse::make_option(c("-k", "--sims_per_slot"), action="store", default=Sys.getenv("COVID_SIMULATIONS_PER_SLOT", as.numeric(sims_per_slot)), type='integer', help = "Number of simulations to run per slot"),
     optparse::make_option(c("-n", "--slots"), action="store", default=Sys.getenv("COVID_NSIMULATIONS", as.numeric(n_simulations)), type='integer', help = "Number of slots to run.")
     
@@ -143,7 +147,7 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
     npi_dat <- set_npi_params(intervention_file = npi_dat,
                               sim_start_date = sim_start,
                               sim_end_date = sim_end,
-                              redux_geoids = "all",
+                              redux_geoids = redux_geoids,
                               npi_cutoff_date=Sys.Date()-7,
                               inference = do_filtering,
                               v_dist = "truncnorm", v_mean=0.6, v_sd=0.05, v_a=0.0, v_b=0.9,
@@ -173,9 +177,10 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
     vacc_dat <- set_vacc_rates_params(vacc_path = vaccination_path,
                                       sim_end_date = sim_end,
                                       vacc_start_date="2021-01-01",
-                                      incl_geoid = NULL, # TODO: add scenario filter similar to set_vacc_outcome_params
+                                      incl_geoid = state_incl_geoid, # TODO: add scenario filter similar to set_vacc_outcome_params
                                       scenario = vacc_scenario
-                                      )
+                                      ) %>%
+        {if(state_level) . else(dplyr::mutate(., geoid = paste0(sort(geodata$geoid), collapse = '", "')))}
 
     ## Variants
     variant_dat <- set_variant_params(variant_path = variant_path_1,
@@ -209,13 +214,14 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
                                            sim_start_date = sim_start,
                                            sim_end_date = sim_end,
                                            inference = FALSE,
-                                           incl_geoid = NULL,
+                                           incl_geoid = state_incl_geoid,
                                            scenario = vacc_scenario,
                                            v_dist="truncnorm",
                                            v_sd = 0.01, v_a = 0, v_b = 1,
                                            p_dist="truncnorm",
                                            p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1) %>%
-        dplyr::filter(stringr::str_detect(name, "incidH", negate=TRUE))
+        {if(exclude_hosp_adjustment) dplyr::filter(., stringr::str_detect(name, "incidH", negate=TRUE)) else(.)} %>%
+        {if(state_level) . else(dplyr::mutate(., geoid = paste0(sort(geodata$geoid), collapse = '", "')))}
     
     ## IncidC Shift
 
@@ -288,7 +294,7 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
               gamma_b = 1/3,
               R0s_dist = "fixed",
               R0s_val = 2.3,
-              incl_vacc = TRUE,
+              incl_vacc = incl_vacc,
               dose_transmission_dist = c("fixed","fixed", "fixed"),
               dose_transmission_val = c(0, 0, 0),
               dose_susceptibility_dist = c("fixed","fixed", "fixed"),
