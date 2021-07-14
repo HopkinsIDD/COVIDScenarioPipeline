@@ -15,22 +15,22 @@
 NULL
 
 ##' load_geodata_file
-##' 
+##'
 ##' Convenience function to load the geodata file
 ##'
 ##' @param filename filename of geodata file
 ##' @param geoid_len length of geoid character string
 ##' @param geoid_pad what to pad the geoid character string with
-##' @param state_name whether to add column state with the US state name; defaults to TRUE for forecast or scenario hub runs. 
-##' 
-##' @details 
-##' Currently, the package only supports a geodata object with at least two columns: USPS with the state abbreviation and geoid with the geo IDs of the area. . 
+##' @param state_name whether to add column state with the US state name; defaults to TRUE for forecast or scenario hub runs.
+##'
+##' @details
+##' Currently, the package only supports a geodata object with at least two columns: USPS with the state abbreviation and geoid with the geo IDs of the area. .
 ##'
 ##' @return a data frame with columns for state USPS, county geoid and population
-##' @examples 
+##' @examples
 ##' geodata <- load_geodata_file(filename = system.file("extdata", "geodata_territories_2019_statelevel.csv", package = "config.writer"))
 ##' geodata
-##' 
+##'
 ##' @export
 
 load_geodata_file <- function(filename,
@@ -40,7 +40,7 @@ load_geodata_file <- function(filename,
 ) {
 
     if(!file.exists(filename)){stop(paste(filename,"does not exist in",getwd()))}
-    geodata <- readr::read_csv(filename) %>% 
+    geodata <- readr::read_csv(filename) %>%
         dplyr::mutate(geoid = as.character(geoid))
 
     if (!("geoid" %in% names(geodata))) {
@@ -50,7 +50,7 @@ load_geodata_file <- function(filename,
     if (geoid_len > 0) {
         geodata$geoid <- stringr::str_pad(geodata$geoid, geoid_len, pad = geoid_pad)
     }
-    
+
     if(state_name) {
         geodata <- tigris::fips_codes %>%
             dplyr::distinct(state, state_name) %>%
@@ -129,8 +129,8 @@ npi_recode_scenario_mult <- function(data
 #'
 #' npi_dat
 process_npi_shub <- function(intervention_path,
-                             geodata, 
-                             prevent_overlap = TRUE, 
+                             geodata,
+                             prevent_overlap = TRUE,
                              prevent_gaps = TRUE
 ){
     ## read intervention estimates
@@ -139,12 +139,12 @@ process_npi_shub <- function(intervention_path,
         dplyr::filter(GEOID == "all") %>%
         npi_recode_scenario() %>% # recode action variable into scenario
         npi_recode_scenario_mult() # recode action_new variable into scenario_mult
-    
+
     if(!all(lubridate::is.Date(og$start_date), lubridate::is.Date(og$end_date))){
         og <- og %>%
             dplyr::mutate(dplyr::across(tidyselect::ends_with("_date"), ~ lubridate::mdy(.x)))
     }
-    
+
     if("template" %in% colnames(og)){
         og <- og %>%
             dplyr::mutate(name = dplyr::if_else(template=="MultiTimeReduce", scenario_mult, scenario)) %>%
@@ -154,16 +154,16 @@ process_npi_shub <- function(intervention_path,
             dplyr::mutate(template = "MultiTimeReduce") %>%
             dplyr::select(USPS, geoid, start_date, end_date, name=scenario_mult, template)
     }
-    
+
     if(prevent_overlap){
         og <- og %>%
-            dplyr::group_by(USPS, geoid) %>% 
+            dplyr::group_by(USPS, geoid) %>%
             dplyr::mutate(end_date = dplyr::if_else(end_date >= dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
     }
-    
+
     if(prevent_gaps){
         og <- og %>%
-            dplyr::group_by(USPS, geoid) %>% 
+            dplyr::group_by(USPS, geoid) %>%
             dplyr::mutate(end_date = dplyr::if_else(end_date < dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
     }
 
@@ -188,33 +188,33 @@ process_npi_shub <- function(intervention_path,
 #' @export
 #'
 process_npi_ca <- function(intervention_path,
-                           geodata, 
-                           prevent_overlap = TRUE, 
+                           geodata,
+                           prevent_overlap = TRUE,
                            prevent_gaps = TRUE
 ){
     ## read intervention estimates
     og <- readr::read_csv(intervention_path) %>%
         dplyr::left_join(geodata) %>%
         dplyr::group_by(county, geoid) %>%
-        dplyr::mutate(end_date = dplyr::if_else(end_date == max(end_date), lubridate::NA_Date_, end_date), 
+        dplyr::mutate(end_date = dplyr::if_else(end_date == max(end_date), lubridate::NA_Date_, end_date),
                       template = "MultiTimeReduce") %>%
         dplyr::ungroup() %>%
         dplyr::select(USPS, geoid, start_date, end_date, name = phase, template)
-    
+
     if(prevent_overlap){
         og <- og %>%
-            dplyr::group_by(USPS, geoid) %>% 
+            dplyr::group_by(USPS, geoid) %>%
             dplyr::mutate(end_date = dplyr::if_else(end_date >= dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
     }
-    
+
     if(prevent_gaps){
         og <- og %>%
-            dplyr::group_by(USPS, geoid) %>% 
+            dplyr::group_by(USPS, geoid) %>%
             dplyr::mutate(end_date = dplyr::if_else(end_date < dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
     }
-    
+
     return(og)
-    
+
 }
 
 #' Function to process variant data for B117
@@ -231,7 +231,7 @@ process_npi_ca <- function(intervention_path,
 #'
 #' @return
 #' @examples
-#' 
+#'
 #' variant <- generate_variant_b117(variant_path = system.file("extdata", "strain_replace_mmwr.csv", package = "config.writer"))
 #' variant
 #'
@@ -321,7 +321,7 @@ generate_variant_b117 <- function(variant_path,
 #' variant <- generate_multiple_variants(variant_path_1 = system.file("extdata", "B117-fits.csv", package = "config.writer"),
 #'                                       variant_path_2 = system.file("extdata", "B617-fits.csv", package = "config.writer"))
 #' variant
-#' 
+#'
 generate_multiple_variants <- function(variant_path_1,
                                        variant_path_2,
                                        sim_start_date=as.Date("2020-03-31"),
@@ -405,6 +405,7 @@ generate_multiple_variants <- function(variant_path_1,
 #' @param variant_lb
 #' @param varian_effect change in transmission for variant default is 50% from Davies et al 2021
 #' @param transmission_increase transmission increase in B1617 relative to B117
+#' @param geodata
 #'
 #'
 #' @return
@@ -415,26 +416,27 @@ generate_multiple_variants <- function(variant_path_1,
 #' variant <- generate_multiple_variants(variant_path_1 = system.file("extdata", "B117-fits.csv", package = "config.writer"),
 #'                                       variant_path_2 = system.file("extdata", "B617-fits.csv", package = "config.writer"))
 #' variant
-#' 
+#'
 generate_multiple_variants_state <- function(variant_path_1,
                                        variant_path_2,
                                        sim_start_date=as.Date("2020-03-31"),
                                        sim_end_date=Sys.Date()+60,
                                        variant_lb = 1.4,
                                        variant_effect = 1.5,
-                                       transmission_increase = 0.2
+                                       transmission_increase = 0.2,
+                                       geodata
 ){
-    
+
     if(is.null(transmission_increase)){
         transmission_increase=0.2
     }
-    
+
     b117 <- readr::read_csv(variant_path_1)
     b1617 <- readr::read_csv(variant_path_2)
-    
+
     sim_start_date <- as.Date(sim_start_date)
     sim_end_date <- as.Date(sim_end_date)
-    
+
     b117_week <- b117 %>%
         dplyr::mutate(week = MMWRweek::MMWRweek(date)$MMWRweek,
                year = MMWRweek::MMWRweek(date)$MMWRyear,
@@ -446,17 +448,17 @@ generate_multiple_variants_state <- function(variant_path_1,
         dplyr::filter(date==end_date) %>%
         dplyr::mutate(date=start_date) %>%
         dplyr::mutate(param = "ReduceR0") %>%
-        dplyr::mutate(R_ratio = 1*(1-variant_prop) + variant_b117*variant_prop,
-               sd_variant = 1*(1-variant_prop) + variant_b117_lb*variant_prop,
-               sd_variant = (R_ratio - sd_variant)/1.96)
-    
+        dplyr::mutate(R_ratio = 1*(1-variant_prop) + variant_effect*variant_prop,
+                      sd_variant = 1*(1-variant_prop) + variant_lb*variant_prop,
+                      sd_variant = (R_ratio - sd_variant)/1.96)
+
     # B.1.617
     b1617_week <- b1617 %>%
         dplyr::mutate(week = MMWRweek::MMWRweek(date)$MMWRweek,
                       year = MMWRweek::MMWRweek(date)$MMWRyear,
                       start_date = MMWRweek::MMWRweek2Date(MMWRyear=year, MMWRweek=week),
                       end_date = (start_date+6)) %>%
-        rename(variant_prop = fit) %>%
+        dplyr::rename(variant_prop = fit) %>%
         dplyr::filter(!(start_date>sim_end_date)) %>%
         dplyr::filter(date==end_date) %>%
         dplyr::mutate(param = "ReduceR0") %>%
@@ -464,17 +466,17 @@ generate_multiple_variants_state <- function(variant_path_1,
                       sd_variant = variant_lb*(1-variant_prop) + variant_lb*(1+transmission_increase)*variant_prop,
                       sd_variant = (R_ratio - sd_variant)/1.96) %>%
         dplyr::mutate(variant = "B1617")
-    
-    
+
+
     b117_week_ <- b117_week
-    
+
     variant_data <- b1617_week %>%
         dplyr::bind_rows(b117_week_) %>%
         dplyr::filter(end_date >= sim_start_date) %>%
         dplyr::mutate(start_date = dplyr::if_else(start_date < sim_start_date &
                                                   end_date > sim_start_date, sim_start_date, start_date),
                       end_date = dplyr::if_else(end_date > sim_end_date, sim_end_date, end_date))
-    
+
     variant_data <- variant_data %>%
         dplyr::mutate(R_ratio = round(R_ratio, 2)) %>%
         dplyr::select(location, week, start_date, end_date, variant, param, R_ratio, sd_variant) %>%
