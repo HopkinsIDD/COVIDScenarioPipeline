@@ -29,7 +29,7 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
     seeding_dict['seeding_sources'] = np.zeros(len(amounts), dtype=np.int64)
     seeding_dict['seeding_destinations'] = np.zeros(len(amounts), dtype=np.int64)
     seeding_dict['seeding_places'] = np.zeros(len(amounts), dtype=np.int64)
-    seeding_dict['seeding_amounts'] = np.zeros(len(amounts), dtype=np.int64)
+    seeding_amounts = np.zeros(len(amounts), dtype=np.float64)
 
     nb_seed_perday = np.zeros(setup.n_days, dtype=np.int64)
 
@@ -46,13 +46,13 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
         seeding_dict['seeding_sources'][idx] = setup.compartments.get_comp_idx(source_dict)
         seeding_dict['seeding_destinations'][idx] = setup.compartments.get_comp_idx(destination_dict)
         seeding_dict['seeding_places'][idx] = setup.spatset.nodenames.index(row['place'])
-        seeding_dict['seeding_amounts'][idx] = amounts[idx]
+        seeding_amounts[idx] = amounts[idx]
 
     day_start_idx =np.zeros(setup.n_days + 1, dtype=np.int64)
     day_start_idx[1:] = np.cumsum(nb_seed_perday)
     seeding_dict['day_start_idx'] = day_start_idx
 
-    return seeding_dict
+    return seeding_dict, seeding_amounts
 
 
 class SeedingAndIC:
@@ -141,7 +141,7 @@ class SeedingAndIC:
             raise NotImplementedError(f"unknown seeding method [got: {method}]")
 
         # Sorting by date is very important here for the seeding format necessary !!!!
-        seeding = seeding.sort_values(by='date', axis='index')
+        seeding = seeding.sort_values(by='date', axis='index').reset_index()
 
         amounts = np.zeros(len(seeding))
         if method == 'PoissonDistributed':

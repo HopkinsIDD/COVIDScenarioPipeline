@@ -28,7 +28,7 @@ except ModuleNotFoundError as e:
     except ModuleNotFoundError as e:
         raise RuntimeError("Missing compiled module, please run `python setup.py install`") from e
 
-def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proportion_info, initial_conditions, seeding_data, mobility_data, mobility_geoid_indices, mobility_data_indices, stoch_traj_flag):
+def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proportion_info, initial_conditions, seeding_data, seeding_amounts, mobility_data, mobility_geoid_indices, mobility_data_indices, stoch_traj_flag):
     mobility_data = mobility_data.astype('float64')
     assert (type(s.compartments.compartments.shape[0]) == int)
     assert (type(s.nnodes) == int)
@@ -44,9 +44,12 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
     assert (initial_conditions.shape == (s.compartments.compartments.shape[0], s.nnodes))
     assert (type(initial_conditions[0][0]) == np.float64)
     # Test of empty seeding:
-    assert len(seeding_data.keys()) == 5
-    keys_ref = ['seeding_sources', 'seeding_destinations', 'seeding_places', 'seeding_amounts', 'day_start_idx']
+    assert len(seeding_data.keys()) == 4
+
+    keys_ref = ['seeding_sources', 'seeding_destinations', 'seeding_places', 'day_start_idx']
     for key, item in seeding_data.items():
+        print(key)
+        print(item)
         assert key in keys_ref
         if key == 'day_start_idx':
             assert (len(item) == s.n_days + 1)
@@ -78,6 +81,7 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
     #print('seeding_data')
     #print(seeding_data)
 
+
     print('transition array')
     print(transition_array)
     print('proportion_info')
@@ -96,6 +100,7 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
         proportion_array,
         initial_conditions,
         seeding_data,
+        seeding_amounts,
         mobility_data,
         mobility_geoid_indices,
         mobility_data_indices,
@@ -113,7 +118,7 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
 
     with Timer('onerun_SEIR.seeding'):
         initial_conditions = s.seedingAndIC.draw_ic(sim_id, setup=s)
-        seeding_data = s.seedingAndIC.draw_seeding(sim_id, setup=s)
+        seeding_data, seeding_amounts = s.seedingAndIC.draw_seeding(sim_id, setup=s)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -140,6 +145,7 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
             proportion_info,
             initial_conditions,
             seeding_data,
+            seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
