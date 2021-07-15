@@ -133,8 +133,15 @@ process_npi_shub <- function(intervention_path,
                              prevent_overlap = TRUE,
                              prevent_gaps = TRUE
 ){
+    state_cw <- tigris::fips_codes %>%
+        dplyr::distinct(state, state_name) %>%
+        dplyr::rename(USPS = state) %>%
+        dplyr::rename(state = state_name) %>%
+        dplyr::mutate(state = dplyr::recode(state, "U.S. Virgin Islands" = "Virgin Islands"))
+
     ## read intervention estimates
     og <- readr::read_csv(intervention_path) %>%
+        dplyr::left_join(state_cw, by = c("state"))%>%
         dplyr::left_join(geodata) %>%
         dplyr::filter(GEOID == "all") %>%
         npi_recode_scenario() %>% # recode action variable into scenario
