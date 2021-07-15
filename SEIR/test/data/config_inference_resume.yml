@@ -13,7 +13,7 @@ spatial_setup:
   popnodes: population
   nodenames: geoid
 
-seeding:
+initial_conditions:
   method: InitialConditionsFolderDraw
   #seeding_file_type: seed
   folder_path: importation/minimal/

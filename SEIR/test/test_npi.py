@@ -13,6 +13,8 @@ DATA_DIR = os.path.dirname(__file__) + "/data"
 
 class TestInterventionsReduceR0:
     def test_ReduceR0_constructor_trivial(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         global_config = config["trivial_global"]
         test_result = ReduceR0(global_config = global_config,
@@ -24,6 +26,8 @@ class TestInterventionsReduceR0:
         assert (test_result.getReduction('r0').index.values == ["10001"])
 
     def test_ReduceR0_constructor_geoidrange(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         global_config = config["trivial_global"]
         test_result = ReduceR0(global_config = global_config,
@@ -41,6 +45,8 @@ class TestInterventionsReduceR0:
 
     def test_ReduceR0_constructor_daterange(self):
         # Test period date range
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         global_config = config["month_global"]
         npi_config = config["daterange"]
@@ -65,6 +71,8 @@ class TestInterventionsReduceR0:
 
     def test_ReduceR0_constructor_fullrange(self):
         # Test affected geoids and period date range
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         global_config = config["month_global"]
         npi_config = config["fullrange"]
@@ -83,6 +91,8 @@ class TestInterventionsReduceR0:
 
 class TestInterventionsReduce:
     def test_Reduce_constructor_trivial(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         global_config = config["trivial_global"]
         test_result = Reduce(global_config = global_config,
@@ -97,6 +107,8 @@ class TestInterventionsReduce:
         assert (reduction == 0.5).all(axis=None)
 
     def test_Reduce_constructor_geoidrange(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         test_result = Reduce(global_config = config["trivial_global"],
                                 npi_config = config["geoidrange"],
@@ -109,6 +121,8 @@ class TestInterventionsReduce:
         assert (reduction.loc["40"] == 0).all()
 
     def test_Reduce_constructor_daterange(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         global_config = config["month_global"]
         npi_config = config["daterange"]
@@ -133,6 +147,8 @@ class TestInterventionsReduce:
         assert (reduction[pd.date_range(period_end_date, global_end_date, closed="right")] == 0).all(axis=None)
 
     def test_Reduce_constructor_fullrange(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         global_config = config["month_global"]
         npi_config = config["fullrange"]
@@ -150,6 +166,8 @@ class TestInterventionsReduce:
                                                                 npi_config["period_end_date"].as_date())] == 0.5).all(axis=None)
 
     def test_Reduce_constructor_toobig(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         with pytest.raises(ValueError, match=r'.*greater than.*'):
             test_result = Reduce(global_config = config["trivial_global"],
@@ -157,6 +175,8 @@ class TestInterventionsReduce:
                                     geoids = ["10001","2020","40"])
 
     # def test_Reduce_invalid_parameter(self):
+    #     config.clear()
+    #     config.read(user=False)
     #     config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
     #     with pytest.raises(ValueError, match=r'Invalid parameter name.*'):
     #         test_result = Reduce(global_config = config["trivial_global"],
@@ -164,6 +184,8 @@ class TestInterventionsReduce:
     #                                 geoids = ["10001","2020","40"])
 
     def test_Reduce_bad_start_date(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         with pytest.raises(ValueError, match=r'.*not between global dates.*'):
             test_result = Reduce(global_config = config["trivial_global"],
@@ -171,6 +193,8 @@ class TestInterventionsReduce:
                                     geoids = ["10001","2020","40"])
 
     def test_Reduce_bad_end_date(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         with pytest.raises(ValueError, match=r'.*not between global dates.*'):
             test_result = Reduce(global_config = config["trivial_global"],
@@ -178,6 +202,8 @@ class TestInterventionsReduce:
                                     geoids = ["10001","2020","40"])
 
     def test_ReduceIntervention_0_value(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceIntervention_trivial.yml")
         global_config = config["month_global"]
         baseline_config = global_config["interventions"]["settings"]["baseline_daterange"]
@@ -190,6 +216,8 @@ class TestInterventionsReduce:
         assert((reduction_baseline == reduction_reduced).all().all())
 
     def test_ReduceIntervention_1_value(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceIntervention_trivial.yml")
         global_config = config["month_global"]
         baseline_config = global_config["interventions"]["settings"]["baseline_daterange"]
@@ -205,6 +233,8 @@ class TestInterventionsReduce:
         assert(((relevant_baseline * 0) == relevant_reduced).all().all())
 
     def test_ReduceIntervention_partial_value(self):
+        config.clear()
+        config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceIntervention_trivial.yml")
         global_config = config["month_global"]
         baseline_config = global_config["interventions"]["settings"]["baseline_daterange"]

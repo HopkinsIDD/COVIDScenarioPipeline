@@ -131,9 +131,9 @@ class Results():
             a = np.moveaxis(a, 1, 2)
             a = np.moveaxis(a, 0, 1)
             b = np.diff(a, axis=0)
-            difI = np.zeros((self.s.t_span + 1, self.s.nnodes))
+            difI = np.zeros((self.s.n_days, self.s.nnodes))
             difI[1:, :] = b[:, cumI, :]
-            na = np.zeros((self.s.t_span + 1, ncomp + 1, self.s.nnodes))
+            na = np.zeros((self.s.n_days, ncomp + 1, self.s.nnodes))
             na[:, :-1, :] = a
             na[:, -1, :] = difI
 

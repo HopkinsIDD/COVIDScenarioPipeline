@@ -26,7 +26,7 @@
 import pathlib
 from SEIR import seir, setup, file_paths
 from SEIR.utils import config, Timer
-from SEIR.profile import profile_options
+#from SEIR.profile import profile_options
 from Outcomes import outcomes
 import numpy as np
 
@@ -123,6 +123,7 @@ s = setup.Setup(
     npi_config=config["interventions"]["settings"][scenario],
     seeding_config=config["seeding"],
     parameters_config=config["seir"]["parameters"],
+    compartments_config=config["seir"],
     ti=config["start_date"].as_date(),
     tf=config["end_date"].as_date(),
     interactive=interactive,

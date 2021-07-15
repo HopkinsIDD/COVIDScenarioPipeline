@@ -16,11 +16,13 @@ spatial_setup:
 seeding:
   method: FolderDraw
   seeding_file_type: seed
-  folder_path: importation/minimal/
+
+initial_conditions:
+  method: Default
 
 seir:
   parameters:
-    alpha: 0.5
+    alpha: 0.9
     sigma: 1 / 5.2
     gamma:
       distribution: uniform

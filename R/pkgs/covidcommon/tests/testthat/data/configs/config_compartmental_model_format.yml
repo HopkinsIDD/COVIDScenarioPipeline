@@ -1,54 +1,43 @@
 seir:
   parameters:
-    alpha:
-      value:
-        distribution: fixed
-        value: .99
-    sigma:
-      value:
-        distribution: fixed
-        value: 1 / 5.2
+    alpha: 0.5
+    sigma: 1 / 5.2
     gamma:
-      value:
-        distribution: uniform
-        low: 1 / 6
-        high: 1 / 2.6
+      distribution: uniform
+      low: 1 / 6
+      high: 1 / 2.6
     R0s:
-      value:
-        distribution: uniform
-        low: 2
-        high: 3
+      distribution: uniform
+      low: 2
+      high: 3
     theta_1:
-      value:
-        distribution: fixed
-        value: .1
+      distribution: ???
+      low: ???
+      high: ???
     theta_2:
-      value:
-        distribution: fixed
-        value: .2
+      distribution: ???
+      low: ???
+      high: ???
     nu_1:
-      intervention_overlap_operation : "sum"
-      value:
-        distribution: fixed
-        value: .3
+      distribution: ???
+      low: ???
+      high: ???
     nu_2:
-      intervention_overlap_operation : "sum"
-      value:
-        distribution: fixed
-        value: .4
+      distribution: ???
+      low: ???
+      high: ???
     chi_0:
-      value:
-        distribution: fixed
-        value: .5
+      distribution: ???
+      low: ???
+      high: ???
     chi_1:
-      value:
-        distribution: fixed
-        value: .6
+      distribution: ???
+      low: ???
+      high: ???
     rho:
-      intervention_overlap_operation : "prod"
-      value:
-        distribution: fixed
-        value: 7
+      distribution: ???
+      low: ???
+      high: ???
   compartments:
     infection_stage: ["S", "E", "I1", "I2", "I3", "R"]
     vaccination_stage: ["0dose", "1dose", "2dose"]

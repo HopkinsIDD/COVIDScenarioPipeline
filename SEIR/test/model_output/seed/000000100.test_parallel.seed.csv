@@ -1,0 +1,3 @@
+date,place,amount,source_infection_stage,source_vaccination_stage,destination_infection_stage,destination_vaccination_stage
+2020-04-01,10001,10,S,unvaccinated,E,unvaccinated
+2020-04-02,10001,50,S,unvaccinated,E,unvaccinated

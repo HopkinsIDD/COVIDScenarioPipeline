@@ -63,10 +63,14 @@ if [ $local_install_ret -ne 0 ]; then
 	error_handler "Error code returned from running local_install.R: $local_install_ret"
 fi
 
+(cd COVIDScenarioPipeline && pip install -r requirements.txt)
+pip_install_ret=$?
+if [ $pip_install_ret -ne 0 ]; then
+	error_handler "Error code returned from running `pip install -r requirements.txt`: $pip_install_ret"
+fi
 
 (cd COVIDScenarioPipeline && python setup.py build install)
 python_install_ret=$?
-
 if [ $python_install_ret -ne 0 ]; then
 	error_handler "Error code returned from running `python setup.py install`: $python_install_ret"
 fi

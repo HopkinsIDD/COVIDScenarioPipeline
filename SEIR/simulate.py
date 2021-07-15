@@ -126,7 +126,7 @@ import click
 
 from SEIR import seir, setup, file_paths
 from SEIR.utils import config
-from SEIR.profile import profile_options
+#from SEIR.profile import profile_options
 
 
 @click.command()
@@ -154,7 +154,7 @@ from SEIR.profile import profile_options
               help="write CSV output at end of simulation")
 @click.option("--write-parquet/--no-write-parquet", default=True, show_default=True,
               help="write parquet file output at end of simulation")
-@profile_options
+#@profile_options
 def simulate(config_file, in_run_id, out_run_id, scenarios, nsim, jobs, interactive, write_csv, write_parquet,index):
     config.set_file(config_file)
 
@@ -183,7 +183,9 @@ def simulate(config_file, in_run_id, out_run_id, scenarios, nsim, jobs, interact
                         npi_scenario=scenario,
                         npi_config=config["interventions"]["settings"][scenario],
                         seeding_config=config["seeding"],
+                        initial_conditions_config=config["initial_conditions"],
                         parameters_config=config["seir"]["parameters"],
+                        compartments_config = config["seir"],
                         ti=config["start_date"].as_date(),
                         tf=config["end_date"].as_date(),
                         interactive=interactive,
