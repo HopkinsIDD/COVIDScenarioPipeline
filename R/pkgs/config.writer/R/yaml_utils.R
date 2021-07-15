@@ -314,12 +314,12 @@ yaml_reduce_template<- function(dat
         ))
     }
 
-    if(dat$template == "ReduceIntervention" & dat$geoid != "all"){
+    if(dat$template == "ReduceIntervention" & dat$geoid == "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
             "      template: ", dat$template,"\n",
             "      parameter: ", dat$parameter, "\n",
-            '      affected_geoids: ["', dat$geoid, '"]\n',
+            '      affected_geoids: "', dat$geoid, '"\n',
             dat$period,
             "      baseline_scenario: ", dat$baseline_scenario, "\n"
         ))
