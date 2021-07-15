@@ -360,13 +360,18 @@ yaml_reduce_template<- function(dat
 yaml_stack <- function(dat,
                        scenario = "Inference"
 ){
+
     dat<-dat %>%
+        dplyr::group_by(category, USPS, geoid) %>%
+        dplyr::filter(category == "NPI_redux" & period == max(period)) %>%
+        dplyr::bind_rows(dat %>%
+                             dplyr::filter(category != "NPI_redux")) %>%
         dplyr::distinct(name, category) %>%
         dplyr::group_by(category) %>%
         dplyr::summarize(name = paste0(name, collapse = '", "'))
 
     for(i in 1:nrow(dat)){
-        if(dat$category[i]=="local_variance"){next}
+        if(dat$category[i] %in% c("local_variance", "NPI_redux")){next}
         cat(paste0(
             "    ", dat$category[i], ":\n",
             "      template: Stacked\n",
@@ -374,6 +379,10 @@ yaml_stack <- function(dat,
         ))
 
     }
+
+    dat <- dat %>%
+        dplyr::filter(category != "base_npi") %>%
+        dplyr::mutate(category = dplyr::if_else(category == "NPI_redux", name, category))
 
     cat(paste0(
         "    ", scenario, ":\n",
