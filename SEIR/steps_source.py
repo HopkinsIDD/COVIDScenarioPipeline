@@ -42,7 +42,8 @@ proportion_exponent_col = 2
     ## Initial Conditions
     "float64[:,:],"  ## initial_conditions [ ncompartments x nspatial_nodes ]
     ## Seeding
-    "DictType(unicode_type, int64[:]),"  # seeding keys: 'seeding_amounts', 'seeding_places', 'seeding_destinations', 'seeding_sources'
+    "DictType(unicode_type, int64[:]),"  # seeding keys: 'seeding_places', 'seeding_destinations', 'seeding_sources'
+    "float64[:],"  # seeding keys: 'seeding_amounts'
     ## Mobility
     "float64[:],"  # mobility_data [ nmobility_instances ]
     "int32[:],"  # mobility_row_indices [ nmobility_instances ]
@@ -62,11 +63,12 @@ def steps_SEIR_nb(
         transition_sum_compartments,  # 8
         initial_conditions,  # 9
         seeding_data,  # 10
-        mobility_data,  # 11
-        mobility_row_indices,  # 12
-        mobility_data_indices,  # 13
-        population,  # 14
-        stochastic_p  # 15
+        seeding_amounts,  # 11
+        mobility_data,  # 12
+        mobility_row_indices,  # 13
+        mobility_data_indices,  # 14
+        population,  # 15
+        stochastic_p  # 16
 ):
     ## Declarations
     states = np.zeros((ndays, ncompartments, nspatial_nodes))
@@ -100,6 +102,8 @@ def steps_SEIR_nb(
         today = int(np.floor(time))
         is_a_new_day = False
         if time % 1 == 0: is_a_new_day = True
+        total_seeded = 0
+        times_seeded = 0
         if is_a_new_day:
             # Prevalence is saved at the begining of the day, while incidence is during the day
             states[today, :, :] = states_next
@@ -117,30 +121,24 @@ def steps_SEIR_nb(
                 #             seeding_instance_data[seeding_spatial_node_col][seeding_instance_idx]]
                 # )
 
-                states_next[
-                    seeding_data['seeding_sources'][seeding_instance_idx]][
-                    seeding_data['seeding_places'][seeding_instance_idx]] -= \
-                    seeding_data['seeding_amounts'][seeding_instance_idx]
+                this_seeding_amounts = seeding_amounts[seeding_instance_idx]
+                seeding_places = seeding_data['seeding_places'][seeding_instance_idx]
+                seeding_sources = seeding_data['seeding_sources'][seeding_instance_idx]
+                seeding_destinations = seeding_data['seeding_destinations'][seeding_instance_idx]
+                states_next[seeding_sources][seeding_places] -= this_seeding_amounts
+                states_next[seeding_sources][seeding_places] = states_next[seeding_sources][seeding_places] * \
+                    (states_next[seeding_sources][seeding_places] > 0)
+                states_next[seeding_destinations][seeding_places] += this_seeding_amounts
 
-                states_next[
-                    seeding_data['seeding_sources'][seeding_instance_idx]][
-                    seeding_data['seeding_places'][seeding_instance_idx]] = states_next[
-                    seeding_data['seeding_sources'][seeding_instance_idx]][
-                    seeding_data['seeding_places'][seeding_instance_idx]] * (states_next[
-                    seeding_data['seeding_sources'][seeding_instance_idx]][
-                    seeding_data['seeding_places'][seeding_instance_idx]] > 0)
-
-                states_next[
-                    seeding_data['seeding_destinations'][seeding_instance_idx]][
-                    seeding_data['seeding_places'][seeding_instance_idx]] += \
-                    seeding_data['seeding_amounts'][seeding_instance_idx]
-
+                total_seeded += this_seeding_amounts
+                times_seeded += 1
                 # ADD TO cumulative, this is debatable,
-                states_daily_incid[today,
-                                   seeding_data['seeding_destinations'][seeding_instance_idx],
-                                   seeding_data['seeding_places'][seeding_instance_idx]] += \
-                    seeding_data['seeding_amounts'][seeding_instance_idx]
+                states_daily_incid[today][seeding_destinations][seeding_places] += this_seeding_amounts
 
+        if total_seeded > 0:
+            print("At time, (", time_index, ", ", time, "): ", total_seeded, " were seeded accross all geoids during", times_seeded, "instances")
+
+        total_infected = 0
         for transition_index in range(ntransitions):
             #print("processing tranision", transition_index)
             total_rate = np.ones((nspatial_nodes))
@@ -158,7 +156,8 @@ def steps_SEIR_nb(
                     relevant_number_in_comp += states_current[
                         transition_sum_compartments[proportion_sum_index]
                     ]
-                    relevant_exponent *= parameters[
+                    # exponents should not be a proportion, since we don't sum them over sum compartments
+                    relevant_exponent = parameters[
                         proportion_info[proportion_exponent_col][proportion_index]
                     ][today]
                 if first_proportion:
@@ -185,14 +184,59 @@ def steps_SEIR_nb(
                                                 parameters[transitions[transition_rate_col][transition_index]][today][spatial_node]
 
                         visiting_compartment = mobility_row_indices[mobility_data_indices[spatial_node]:mobility_data_indices[spatial_node + 1]]
+
                         rate_change_compartment = proportion_change_compartment
-                        rate_change_compartment = rate_change_compartment * relevant_number_in_comp[visiting_compartment]
-                        rate_change_compartment = rate_change_compartment ** relevant_exponent[visiting_compartment]
-                        rate_change_compartment = rate_change_compartment / population[visiting_compartment]
-                        rate_change_compartment = rate_change_compartment * parameters[transitions[transition_rate_col][transition_index]][today][visiting_compartment]
+                        rate_change_compartment *= relevant_number_in_comp[visiting_compartment] ** relevant_exponent[visiting_compartment]
+                        rate_change_compartment /= population[visiting_compartment]
+                        rate_change_compartment *= parameters[transitions[transition_rate_col][transition_index]][today][visiting_compartment]
                         total_rate[spatial_node] *= (rate_keep_compartment + rate_change_compartment.sum())
+                        if ( (time_index == 66) and (
+                                (
+                                    (transitions[transition_destination_col][transition_index]  == 3) and
+                                    (transitions[transition_source_col][transition_index]  == 0)
+                                ) or
+                                (
+                                    (transitions[transition_destination_col][transition_index]  == 4) and
+                                    (transitions[transition_source_col][transition_index]  == 0)
+                                ) or
+                                (
+                                    (transitions[transition_destination_col][transition_index]  == 5) and
+                                    (transitions[transition_source_col][transition_index]  == 0)
+                                )
+                        )):
+                            print(proportion_keep_compartment)
+                            print(parameters[transitions[transition_rate_col][transition_index]][today][spatial_node])
+                            print(relevant_number_in_comp[spatial_node])
+                            print(relevant_exponent[spatial_node])
+                            print(population[spatial_node])
+                            print(
+                                proportion_keep_compartment *
+                                parameters[transitions[transition_rate_col][transition_index]][today][spatial_node] *
+                                relevant_number_in_comp[spatial_node] **
+                                relevant_exponent[spatial_node] /
+                                population[spatial_node]
+                            )
+
+                            print("local rates are ", rate_keep_compartment)
 
             compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
+            if (
+                    (
+                        (transitions[transition_destination_col][transition_index]  == 3) and
+                        (transitions[transition_source_col][transition_index]  == 0)
+                    ) or
+                    (
+                        (transitions[transition_destination_col][transition_index]  == 4) and
+                        (transitions[transition_source_col][transition_index]  == 0)
+                    ) or
+                    (
+                        (transitions[transition_destination_col][transition_index]  == 5) and
+                        (transitions[transition_source_col][transition_index]  == 0)
+                    )
+            ):
+                for spatial_node in range(nspatial_nodes):
+                    if compound_adjusted_rate[spatial_node] > 0:
+                        print("Probability of exposure for node", spatial_node, ": ", compound_adjusted_rate[spatial_node])
 
             if stochastic_p:
                 for spatial_node in range(nspatial_nodes):
@@ -208,11 +252,34 @@ def steps_SEIR_nb(
             #            #     states_next[transitions[transition_source_index][transition_index]]
             #            # )
             #
+
+
+            ## TESTING
+            if (
+                    (
+                        (transitions[transition_destination_col][transition_index]  == 3) and
+                        (transitions[transition_source_col][transition_index]  == 0)
+                    ) or
+                    (
+                        (transitions[transition_destination_col][transition_index]  == 4) and
+                        (transitions[transition_source_col][transition_index]  == 0)
+                    ) or
+                    (
+                        (transitions[transition_destination_col][transition_index]  == 5) and
+                        (transitions[transition_source_col][transition_index]  == 0)
+                    )
+            ):
+                total_infected += number_move.sum()
             states_next[transitions[transition_source_col][transition_index]] -= number_move
             states_next[transitions[transition_destination_col][transition_index]] += number_move
             states_daily_incid[today, transitions[transition_destination_col][transition_index], :] += number_move
 
-        states_current = states_next
+        ## TESTING
+        if total_infected > 0:
+            print("At time, (", time_index, ", ", time, "): ", total_infected, " were infected accross all geoids")
+            # raise ValueError("Stopping after first tranmission")
+
+        states_current = states_next.copy()
 
 
         # if debug_print:
