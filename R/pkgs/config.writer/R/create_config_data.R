@@ -93,6 +93,13 @@ set_npi_params <- function(intervention_file,
             dplyr::ungroup()
     }
 
+    npi <- npi %>%
+        dplyr::ungroup() %>%
+        dplyr::add_count(name) %>%
+        dplyr::mutate(template = dplyr::if_else(n==1 & template == "MultiTimeReduce", "Reduce", template),
+                      parameter = dplyr::if_else(n==1 & template == "Reduce", "R0", parameter)) %>%
+        dplyr::select(-n)
+
     return(npi)
 
 }
@@ -127,7 +134,7 @@ set_npi_params <- function(intervention_file,
 set_seasonality_params <- function(sim_start_date=as.Date("2020-03-31"),
                                    sim_end_date=Sys.Date()+60,
                                    inference = TRUE,
-                                   template = "MultiTimeReduce", # TODO: MTR for some, but not all... not critical
+                                   template = "MultiTimeReduce",
                                    v_dist="truncnorm",
                                    v_mean = c(-0.2, -0.133, -0.067, 0, 0.067, 0.133, 0.2, 0.133, 0.067, 0, -0.067, -0.133), # TODO function?
                                    v_sd = 0.05, v_a = -1, v_b = 1,
@@ -479,7 +486,6 @@ set_variant_params <- function(b117_only = FALSE,
 
     variant_data <- variant_data %>%
         dplyr::mutate(type = "transmission",
-                      param = "ReduceR0",
                       category = "variant",
                       name = paste("variantR0adj", paste0("Week", week), sep="_"),
                       template = "ReduceR0",
