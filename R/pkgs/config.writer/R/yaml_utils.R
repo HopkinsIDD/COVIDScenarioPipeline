@@ -14,16 +14,16 @@
 #'print_param_val(gamma_dist)
 #
 # paste_param_val <- function(..., space_length = 6){
-# 
+#
 #     space <- paste0(rep(" ", space_length), collapse = "")
 #     param_space <- stringr::str_remove(space, "  ")
 #     param <- deparse(substitute(...)) %>% stringr::str_extract(pattern = ".+\\_")
-# 
+#
 #     param_name <- stringr::str_remove(param, "\\_")
 #     value <- get(paste0(param, "val"), envir = parent.frame(n=1))
-# 
+#
 #     if(is.null(...)){
-# 
+#
 #         print_val <- paste0(
 #             param_space, param_name, ": ", value, "\n"
 #         )
@@ -35,11 +35,11 @@
 #                 space, "value: ", value, "\n"
 #             )
 #         }
-# 
+#
 #         if(... == "uniform"){
 #             min_a <- get(paste0(param, "a"), envir = parent.frame(n=1))
 #             max_b <- get(paste0(param, "b"), envir = parent.frame(n=1))
-# 
+#
 #             print_val <- paste0(
 #                 param_space, param_name, ":\n",
 #                 space, "distribution: uniform\n",
@@ -47,13 +47,13 @@
 #                 space, "high: ", max_b, "\n"
 #             )
 #         }
-# 
+#
 #         if(... == "truncnorm"){
 #             min_a <- get(paste0(param, "a"), envir = parent.frame(n=1))
 #             max_b <- get(paste0(param, "b"), envir = parent.frame(n=1))
 #             mean <- get(paste0(param, "val"), envir = parent.frame(n=1))
 #             sd <- get(paste0(param, "sd"), envir = parent.frame(n=1))
-# 
+#
 #             print_val <- paste0(
 #                 param_space, param_name, ":\n",
 #                 space, "distribution: truncnorm\n",
@@ -64,7 +64,7 @@
 #             )
 #         }
 #     }
-# 
+#
 #     return(print_val)
 # }
 
@@ -134,7 +134,7 @@ yaml_mtr_template <- function(dat){
     template <- unique(dat$template)
     geoid_all <- any(unique(dat$geoid)=="all")
     inference <- !any(is.na(dat$pert_dist))
-    
+
     if(template=="MultiTimeReduce" & geoid_all){
         cat(paste0(
             "    ", dat$name, ":\n",
@@ -143,14 +143,14 @@ yaml_mtr_template <- function(dat){
             "      groups:\n",
             '        - affected_geoids: "all"\n'
         ))
-        
+
         for(j in 1:nrow(dat)){
             cat(paste0('          periods:\n',
                        dat$period[j], '\n'
             ))
         }
     }
-    
+
     if(template=="MultiTimeReduce" & !geoid_all){
         cat(paste0(
             "    ", dat$name[1], ":\n",
@@ -158,7 +158,7 @@ yaml_mtr_template <- function(dat){
             "      parameter: ", dat$parameter[1], "\n",
             "      groups:\n"
         ))
-        
+
         for(j in 1:nrow(dat)){
             cat(paste0(
                 '        - affected_geoids: ["', dat$geoid[j], '"]\n',
@@ -167,35 +167,35 @@ yaml_mtr_template <- function(dat){
             ))
         }
     }
-    
+
     cat(
-        print_value(value_dist = dat$value_dist[1], 
-                    value_mean = dat$value_mean[1], 
-                    value_sd = dat$value_sd[1], 
-                    value_a = dat$value_a[1], 
+        print_value(value_dist = dat$value_dist[1],
+                    value_mean = dat$value_mean[1],
+                    value_sd = dat$value_sd[1],
+                    value_a = dat$value_a[1],
                     value_b = dat$value_b[1])
     )
-    
+
     if(inference){
         cat(
-            print_value(value_dist = dat$pert_dist[1], 
-                        value_mean = dat$pert_mean[1], 
-                        value_sd = dat$pert_sd[1], 
-                        value_a = dat$pert_a[1], 
-                        value_b = dat$pert_b[1], 
+            print_value(value_dist = dat$pert_dist[1],
+                        value_mean = dat$pert_mean[1],
+                        value_sd = dat$pert_sd[1],
+                        value_a = dat$pert_a[1],
+                        value_b = dat$pert_b[1],
                         param_name = "perturbation")
         )
     }
 }
 
-#' Convenience function to print params based on the specified distribution 
+#' Convenience function to print params based on the specified distribution
 #'
 #' @param value_dist one of the following distributions: "fixed", "uniform", or "truncnorm"
 #' @param value_mean value when value_dist is "fixed" or mean if value_dist is ""truncnorm"
 #' @param value_sd standard deviation - required when value_dist is "truncnorm"
 #' @param value_a minimum - required when value_dist is "uniform" or "truncnorm"
 #' @param value_b maximum - required when value_dist is "uniform" or "truncnorm"
-#' @param param_name name of the parameter whose distribution is being specified: "value", "perturbation", "R0s", or "gamma" 
+#' @param param_name name of the parameter whose distribution is being specified: "value", "perturbation", "R0s", or "gamma"
 #' @param indent_space defaults to 6 for transmission and outcome interventions
 #'
 #' @return
@@ -203,17 +203,17 @@ yaml_mtr_template <- function(dat){
 #'
 #' @examples
 #'
-print_value <- function(value_dist, 
-                        value_mean, 
+print_value <- function(value_dist,
+                        value_mean,
                         value_sd,
-                        value_a, 
+                        value_a,
                         value_b,
-                        param_name = "value", 
+                        param_name = "value",
                         indent_space = 6){
-    
+
     space <- rep(" ", indent_space) %>% paste0(collapse="")
     space2 <- rep(" ", indent_space+2) %>% paste0(collapse="")
-    
+
     if(value_dist=="fixed"){
         if(is.na(value_mean)){stop('Intervention value must be specified for "fixed" distributions')}
         print_val <- paste0(
@@ -222,33 +222,33 @@ print_value <- function(value_dist,
             space2, "value: ", value_mean, "\n"
         )
     }
-    
+
     if(value_dist=="truncnorm"){
         if(any(is.na(value_mean), is.na(value_sd), is.na(value_a), is.na(value_b))){stop('Intervention mean, sd, a, and b must be specified for "truncnorm" distributions')}
         print_val <- paste0(
             space, "", param_name, ":\n",
             space2, "distribution: truncnorm\n",
             space2, "mean: ", value_mean, "\n",
-            space2, "sd: ", value_sd, "\n", 
-            space2, "a: ", value_a, "\n", 
+            space2, "sd: ", value_sd, "\n",
+            space2, "a: ", value_a, "\n",
             space2, "b: ", value_b, "\n"
         )
     }
-    
+
     if(value_dist=="uniform"){
         if(any(is.na(value_a), is.na(value_b))){stop('Intervention a and b must be specified for "uniform" distributions')}
         print_val <- paste0(
             space, param_name, ":\n",
             space2, "distribution: uniform\n",
-            space2, "low: ", value_a, "\n", 
+            space2, "low: ", value_a, "\n",
             space2, "high: ", value_b, "\n"
         )
-    } 
-    
+    }
+
     if(is.na(value_dist)){
         print_val = ""
     }
-    
+
     return(print_val)
 }
 
@@ -273,7 +273,7 @@ yaml_reduce_template<- function(dat
             dat$period
         ))
     }
-    
+
     if(dat$template == "ReduceR0" & dat$geoid == "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
@@ -282,8 +282,8 @@ yaml_reduce_template<- function(dat
             dat$period
         ))
     }
-    
-    if(dat$template == "Reduce" & is.na(dat$value_sd)){
+
+    if(dat$template == "Reduce" & dat$geoid != "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
             "      template: ", dat$template,"\n",
@@ -292,18 +292,18 @@ yaml_reduce_template<- function(dat
             dat$period
         ))
     }
-    
-    if(dat$template == "Reduce" & !is.na(dat$value_sd)){
+
+    if(dat$template == "Reduce" & dat$geoid == "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
             "      template: ", dat$template,"\n",
             "      parameter: ", dat$parameter, "\n",
-            '      affected_geoids: ["', dat$geoid, '"]\n',
+            '      affected_geoids: "', dat$geoid, '"\n',
             dat$period
         ))
     }
-    
-    if(dat$template == "ReduceIntervention"){
+
+    if(dat$template == "ReduceIntervention" & dat$geoid != "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
             "      template: ", dat$template,"\n",
@@ -313,26 +313,37 @@ yaml_reduce_template<- function(dat
             "      baseline_scenario: ", dat$baseline_scenario, "\n"
         ))
     }
-    
+
+    if(dat$template == "ReduceIntervention" & dat$geoid != "all"){
+        cat(paste0(
+            "    ", dat$name, ":\n",
+            "      template: ", dat$template,"\n",
+            "      parameter: ", dat$parameter, "\n",
+            '      affected_geoids: ["', dat$geoid, '"]\n',
+            dat$period,
+            "      baseline_scenario: ", dat$baseline_scenario, "\n"
+        ))
+    }
+
     cat(
-        print_value(value_dist = dat$value_dist[1], 
-                    value_mean = dat$value_mean[1], 
-                    value_sd = dat$value_sd[1], 
-                    value_a = dat$value_a[1], 
+        print_value(value_dist = dat$value_dist[1],
+                    value_mean = dat$value_mean[1],
+                    value_sd = dat$value_sd[1],
+                    value_a = dat$value_a[1],
                     value_b = dat$value_b[1])
     )
-    
+
     if(!is.na(dat$pert_dist)){
         cat(
-            print_value(value_dist = dat$pert_dist[1], 
-                        value_mean = dat$pert_mean[1], 
-                        value_sd = dat$pert_sd[1], 
-                        value_a = dat$pert_a[1], 
-                        value_b = dat$pert_b[1], 
+            print_value(value_dist = dat$pert_dist[1],
+                        value_mean = dat$pert_mean[1],
+                        value_sd = dat$pert_sd[1],
+                        value_a = dat$pert_a[1],
+                        value_b = dat$pert_b[1],
                         param_name = "perturbation")
         )
     }
-    
+
 }
 
 
@@ -371,13 +382,13 @@ yaml_stack <- function(dat,
     ))
 }
 
-#' Print Interventions Section 
-#' 
+#' Print Interventions Section
+#'
 #' @description Print transmission interventions and stack them
 #'
 #' @param dat dataframe with processed intervention names/periods; see collapsed_interventions
 #' @param scenario name of the scenario
-#' 
+#'
 #' @return
 #' @export
 #'
@@ -487,14 +498,14 @@ print_transmission_interventions <- function(dat,
 #' @param incidC_delay_value time to case detection since infection in days
 #' @param incidC_delay_dist distribution of incidC delay
 #'
-#' @details 
+#' @details
 #' The settings for each scenario correspond to a set of different health outcome risks, most often just differences in the probability of death given infection (Pr(incidD|incidI)) and the probability of hospitalization given infection (Pr(incidH|incidI)). Each health outcome risk is referenced in relation to the outcome indicated in source. For example, the probability and delay in becoming a confirmed case (incidC) is most likely to be indexed off of the number and timing of infection (incidI).
-#' 
+#'
 #' Importantly, we note that incidI is automatically defined from the SEIR transmission model outputs, while the other compartment sources must be defined in the config before they are used. These settings are currently hardcoded into the function .
-#' 
+#'
 #' Users must specific two metrics for each health outcome, probability and delay, while a duration is optional (e.g., duration of time spent in the hospital). The perturbation section is currently enabled for incidC only.
-#' 
-#' Interventions on the outcomes are printed as a separate block preceding the Outcomes section. This assumes the print_outcomes function is called immediately after the [print_transmission_interventions()] 
+#'
+#' Interventions on the outcomes are printed as a separate block preceding the Outcomes section. This assumes the print_outcomes function is called immediately after the [print_transmission_interventions()]
 #' @export
 #'
 #'
@@ -555,14 +566,14 @@ print_outcomes <- function(dat=NULL,
             }
         }
     }
-    
+
     if(incidC_perturbation){
         incidC_pert <- print_value(value_dist = incidC_prob_dist_pert,
-                                   value_mean = incidC_prob_value_pert, 
-                                   value_sd = incidC_prob_sd_pert, 
-                                   value_a = incidC_prob_a_pert, 
-                                   value_b = incidC_prob_b_pert, 
-                                   param_name = "perturbation", 
+                                   value_mean = incidC_prob_value_pert,
+                                   value_sd = incidC_prob_sd_pert,
+                                   value_a = incidC_prob_a_pert,
+                                   value_b = incidC_prob_b_pert,
+                                   param_name = "perturbation",
                                    indent_space=10)
     } else{
         incidC_pert <- ""
@@ -586,7 +597,7 @@ print_outcomes <- function(dat=NULL,
         '            value: ',incidH_prob_value,'\n',
         '        delay:\n',
         '          value:\n',
-        '            distribution: ', incidH_delay_dist,'\n', 
+        '            distribution: ', incidH_delay_dist,'\n',
         '            value: ',incidH_delay_value,'\n',
         '        duration:\n', # TODO: optional
         '          value:\n',
@@ -637,10 +648,10 @@ print_outcomes <- function(dat=NULL,
         '        source: incidI\n',
         '        probability:\n',
         print_value(value_dist = incidC_prob_dist,
-                    value_mean = incidC_prob_value, 
-                    value_sd = incidC_prob_sd, 
-                    value_a = incidC_prob_a, 
-                    value_b = incidC_prob_b, 
+                    value_mean = incidC_prob_value,
+                    value_sd = incidC_prob_sd,
+                    value_a = incidC_prob_a,
+                    value_b = incidC_prob_b,
                     indent_space=10),
         incidC_pert,
         '        delay:\n',
@@ -662,8 +673,8 @@ print_outcomes <- function(dat=NULL,
 }
 
 #' Print SEIR Section
-#' @description Print seir section with specified parameters. 
-#'  
+#' @description Print seir section with specified parameters.
+#'
 #' @param sigma_val inverse of the incubation period in days - fraction or probability
 #' @param gamma_dist specify if gamma is fixed or distributional
 #' @param gamma_val inverse of the infectious period in days - fraction or probability
@@ -685,15 +696,15 @@ print_outcomes <- function(dat=NULL,
 #' @export
 #'
 #' @examples
-#' print_seir(alpha_val=0.99, 
+#' print_seir(alpha_val=0.99,
 #'            sigma_val = 1/5.2,
-#'            gamma_dist = "uniform", 
-#'            gamma_a = 1/6, 
+#'            gamma_dist = "uniform",
+#'            gamma_a = 1/6,
 #'            gamma_b = 1/2.6,
-#'            R0s_dist = "fixed", 
-#'            R0s_val = 2.3, 
+#'            R0s_dist = "fixed",
+#'            R0s_val = 2.3,
 #'            incl_vacc = FALSE)
-#'            
+#'
 
 print_seir <- function(sigma_val = 1/5.2,
                        gamma_dist = "fixed",
@@ -721,62 +732,62 @@ print_seir <- function(sigma_val = 1/5.2,
 
         seir <- paste0("seir:\n",
                        "  parameters:\n",
-                       print_value(value_dist = R0s_dist, 
-                                   value_mean = R0s_val, 
-                                   value_sd = R0s_sd, 
-                                   value_a = R0s_a, 
+                       print_value(value_dist = R0s_dist,
+                                   value_mean = R0s_val,
+                                   value_sd = R0s_sd,
+                                   value_a = R0s_a,
                                    value_b = R0s_b,
-                                   indent_space = 4, 
+                                   indent_space = 4,
                                    param_name = "R0s"),
-                       print_value(value_dist = gamma_dist, 
-                                   value_mean = gamma_val, 
-                                   value_sd = gamma_sd, 
-                                   value_a = gamma_a, 
+                       print_value(value_dist = gamma_dist,
+                                   value_mean = gamma_val,
+                                   value_sd = gamma_sd,
+                                   value_a = gamma_a,
                                    value_b = gamma_b,
-                                   indent_space = 4, 
+                                   indent_space = 4,
                                    param_name = "gamma"),
                        "    sigma: ", sigma_val, "\n",
                        "    alpha: ", alpha_val, "\n"
                        )
-        
+
         if(incl_vacc){
             vacc <- paste0("    parallel_structure:\n",
                            "      compartments:\n")
             for(i in 1:length(compartment_names)){
-                vacc <- paste0(vacc, 
+                vacc <- paste0(vacc,
                                "        ", compartment_names[i], ":\n",
                                print_value(value_dist = dose_transmission_dist[i],
                                            value_mean = dose_transmission_val[i],
-                                           indent_space = 10, 
+                                           indent_space = 10,
                                            param_name = "transmissibility_reduction"),
                                print_value(value_dist = dose_susceptibility_dist[i],
                                            value_mean = dose_susceptibility_val[i],
-                                           indent_space = 10, 
+                                           indent_space = 10,
                                            param_name = "susceptibility_reduction")
                                )
             }
             vacc <- paste0(vacc,
                            "      transitions:\n")
-            
+
             for(i in 2:length(compartment_names)){
                 vacc <- paste0(vacc,
                                "        - from: ", compartment_names[i-1], "\n",
-                               "          to: ", compartment_names[i], "\n", 
-                               print_value(value_dist = transitions_dist[i-1], 
-                                           value_mean = transitions_val[i-1], 
-                                           indent_space = 10, 
+                               "          to: ", compartment_names[i], "\n",
+                               print_value(value_dist = transitions_dist[i-1],
+                                           value_mean = transitions_val[i-1],
+                                           indent_space = 10,
                                            param_name = "rate"))
             }
             vacc
         } else{ vacc <- ""}
-        
+
         cat(paste0(seir, vacc, "\n"))
 
 }
 
 #' Print Header Section
-#' @description Prints the global options and the spatial setup section of the configuration files. These typically sit at the top of the configuration file. 
-#' 
+#' @description Prints the global options and the spatial setup section of the configuration files. These typically sit at the top of the configuration file.
+#'
 #' @param sim_name name of simulation, typically named after the region/location you are modeling
 #' @param sim_start_date simulation start date, should match that of interventions, with format YYYY-MM-DD (e.g., 2020-01-31)
 #' @param sim_end_date simulation end date with format YYYY-MM-DD (e.g., 2020-01-31)
@@ -791,7 +802,7 @@ print_seir <- function(sigma_val = 1/5.2,
 #' @param nodenames is the name of a column in geodata that specifies the geo IDs of an area. This column must be unique.
 #' @param include_in_report is the name of an optional, boolean column in geodata that specifies which nodenames are included in the report. Models may include more locations than simply the location of interest.
 #' @param mobility_file path to file relative to base_path. The mobility file is a .csv file (it has to contains .csv as extension) with long form comma separated values. Columns have to be named ori, dest, amount with amount being the amount of individual going from place ori to place dest. Unassigned relations are assumed to be zero. ori and dest should match exactly the nodenames column in geodata.csv. It is also possible, but NOT RECOMMENDED to specify the mobility file as a .txt with space-separated values in the shape of a matrix. This matrix is symmetric and of size K x K, with K being the number of rows in geodata.
-#' @param state_level whether this is a state-level run 
+#' @param state_level whether this is a state-level run
 #'
 #' @return
 #' @export
@@ -845,10 +856,10 @@ print_header <- function(sim_name,
 #' @param lambda_file path to seeding file
 #' @param perturbation_sd standard deviation for the proposal value of the seeding date, in number of days
 #'
-#' @details 
+#' @details
 #' ## The model performns inference on the seeding date and initial number of seeding infections in each geoid with the default settings
 #' ## The method for determining the proposal distribution for the seeding amount is hard-coded in the inference package (R/pkgs/inference/R/functions/perturb_seeding.R). It is pertubed with a normal distribution where the mean of the distribution 10 times the number of confirmed cases on a given date and the standard deviation is 1.
-#' 
+#'
 #' @export
 #'
 #' @examples
@@ -878,7 +889,7 @@ print_seeding <- function(method = "FolderDraw",
 #' @param sims_per_slot number of iterations in a single MCMC inference chain With inference model runs, the number of simulations nsimulations refers to the number of final model simulations that will be produced. The sims_per_slot setting refers to the number of iterative simulations that will be run in order to produce a single final simulation (i.e., number of simulations in a single MCMC chain).
 #' @param do_filtering whether to perform inference
 #' @param data_path file path where observed data are saved
-#' @param gt_source source of data 
+#' @param gt_source source of data
 #' @param stat_names the names of the statistics used to calibrate the model to empirical data
 #' @param aggregator function used to aggregate data over the period, usually sum or mean
 #' @param period duration over which data should be aggregated prior to use in the likelihood, may be specified in any number of days, weeks, months (e.g., "1 weeks")
@@ -888,17 +899,17 @@ print_seeding <- function(method = "FolderDraw",
 #' @param add_one logical, TRUE if evaluating the log likelihood
 #' @param ll_dist distribution of the likelihood: "sqrtnorm" or "pois"
 #' @param ll_param parameter value(s) for the likelihood distribution; not used if ll_dist = "pois". See [inference::logLikStat()]
-#' @param final_print whether this is the final section of the config to print an empty space; set to FALSE if running [print_hierarchical()] and/or [print_prior()] 
+#' @param final_print whether this is the final section of the config to print an empty space; set to FALSE if running [print_hierarchical()] and/or [print_prior()]
 #'
-#' @details 
-#' The filtering section configures the settings for the inference algorithm, while the statistics component determines how the model is calibrated. 
+#' @details
+#' The filtering section configures the settings for the inference algorithm, while the statistics component determines how the model is calibrated.
 #' With inference model runs, the number of simulations n_simulations in [print_header()] refers to the number of final model simulations that will be produced. The sims_per_slot setting refers to the number of iterative simulations that will be run in order to produce a single final simulation (i.e., number of simulations in a single MCMC chain).
 #' The statistics specified here are used to calibrate the model to empirical data. If multiple statistics are specified, this inference is performed jointly and they are weighted in the likelihood according to the number of data points and the variance of the proposal distribution.
 #' @export
 #'
 #' @examples
 #' print_filtering_statistics()
-#' 
+#'
 print_filtering_statistics <- function(sims_per_slot = 300,
                                        do_filtering = TRUE,
                             data_path = "data/us_data.csv",
@@ -981,16 +992,16 @@ print_filtering_statistics <- function(sims_per_slot = 300,
 }
 
 #' Print filtering::hierarchical_stats_geo
-#' @description Specify and print hierarchical settings as part of the filtering section of the configuration file. 
+#' @description Specify and print hierarchical settings as part of the filtering section of the configuration file.
 #' @param npi_name vector of names of the estimated parameters that will be grouped (e.g., the NPI scenario name or a standardized, combined health outcome name like probability_incidI_incidC)
 #' @param module vector of names of the module where this parameter is estimated (important for finding the appropriate files)
 #' @param geo_group_col geodata column name that should be used to group parameter estimation
 #' @param transform type of transform that should be applied to the likelihood: "none" or "logit"
-#' @param final_print whether this is the final section of the config to print an empty space; set to FALSE if running [print_hierarchical()] and/or [print_prior()] 
-#' 
-#' @details 
-#' This function should only be called after [print_hierarchical()]. 
-#' 
+#' @param final_print whether this is the final section of the config to print an empty space; set to FALSE if running [print_hierarchical()] and/or [print_prior()]
+#'
+#' @details
+#' This function should only be called after [print_hierarchical()].
+#'
 #' The hierarchical settings specified here are used to group the inference of certain parameters together (similar to inference in "hierarchical" or "fixed/group effects" models). For example, users may desire to group all counties in a given state because they are geograhically proximate and impacted by the same statewide policies. The effect should be to make these inferred parameters follow a normal distribution and to observe shrinkage among the variance in these grouped estimates.
 #' @export
 #'
@@ -1037,7 +1048,7 @@ print_filtering_hierarchical <- function(npi_name = c("local_variance", "probabi
 
 }
 #' print_filtering_prior
-#' 
+#'
 #' @description Set and print prior values for inferred parameters
 #'
 #' @param npi_name vector of names of NPI scenario or parameter that will have the prior
@@ -1046,8 +1057,8 @@ print_filtering_hierarchical <- function(npi_name = c("local_variance", "probabi
 #' @param param_mean string or vector of prior means. Defaults to NULL and takes intervention mean for the corresponding NPI scenario from dat. If string is provided, then the same mean value is used across all priors.
 #' @param param_sd string or vector of prior sd. If string is provided, then the same distribution is used across all priors.
 #' @param dat dataframe with intervention names (npi_name) and means (value_mean); required if param_mean is NULL
-#' 
-#' @details 
+#'
+#' @details
 #' Specifying prior values for inferred parameters will speed up model convergence
 #' @export
 #'
@@ -1070,12 +1081,12 @@ print_filtering_prior <- function(npi_name = c("local_variance", "Seas_jan", "Se
 
     if(is.null(param_mean)){ # TODO: allow to specify priors for some, take NPI means for others
         if(is.null(dat)) stop("Dataframe with intervention names (npi_name) and means (value_mean) must be provided if param_mean is NULL")
-        
+
         dat <- dat %>%
             collapse_intervention() %>%
             dplyr::filter(name %in% npi_name) %>%
             dplyr::mutate(value_mean = dplyr::if_else(is.na(value_mean), 0, value_mean))
-        
+
         for(i in 1:length(npi_name)){
             param_mean[i] <- dat %>%
                 dplyr::filter(name == npi_name[i]) %>%
@@ -1112,7 +1123,7 @@ print_filtering_prior <- function(npi_name = c("local_variance", "Seas_jan", "Se
 #' @examples
 #'
 
-repeat_string <- function(x, 
+repeat_string <- function(x,
                           y){
     if(length(x)==length(y) | is.null(x)){
         z <- x
@@ -1121,7 +1132,7 @@ repeat_string <- function(x,
     } else {
             stop(paste0("x must be of length 1 or a vector of equal length as y"))
     }
-    
+
     return(z)
 }
 
@@ -1230,18 +1241,18 @@ repeat_string <- function(x,
 #'                             prior_dist = "normal",
 #'                             prior_param_low = NULL,
 #'                             prior_param_high = 1){
-#' 
+#'
 #'     interventions <- readr::read_csv(intervention_path)
-#' 
+#'
 #'     if(is.null(save_path)){
 #'         config_name <- file.path(tempdir(), config_name)
 #'     } else{
 #'         config_name <- file.path(save_path, config_name)
 #'         print(paste0("Config saved in ", config_name))
 #'     }
-#' 
+#'
 #'     sink(config_name)
-#' 
+#'
 #'     print_header(sim_name = header_sim_name,
 #'                  sim_start_date = header_sim_start_date,
 #'                  sim_end_date = header_sim_end_date,
@@ -1257,13 +1268,13 @@ repeat_string <- function(x,
 #'                  nodenames = header_nodenames,
 #'                  include_in_report = header_include_in_report,
 #'                  state_level = header_state_level)
-#' 
+#'
 #'     print_seeding(method = seeding_method,
 #'                   seeding_file_type = seeding_file_type,
 #'                   folder_path = seeding_folder_path,
 #'                   lambda_file = seeding_lambda_file ,
 #'                   perturbation_sd = seeding_perturbation_sd)
-#' 
+#'
 #'     print_seir(alpha_val = seir_alpha_val,
 #'                sigma_val = seir_sigma_val,
 #'                gamma_dist = seir_gamma_dist,
@@ -1283,10 +1294,10 @@ repeat_string <- function(x,
 #'                dose_susceptibility_val = seir_dose_susceptibility_val,
 #'                transitions_dist = seir_transitions_dist,
 #'                transitions_val = seir_transitions_val)
-#' 
+#'
 #'     print_transmission_interventions(dat = interventions,
 #'                                      scenario = transmission_scenario)
-#' 
+#'
 #'     print_outcomes(dat = interventions,
 #'                    ifr = outcomes_ifr,
 #'                    outcomes_parquet_file = outcomes_parquet_file,
@@ -1324,7 +1335,7 @@ repeat_string <- function(x,
 #'                    incidC_prob_b_pert= outcomes_incidC_prob_b_pert,
 #'                    incidC_delay_value= outcomes_incidC_delay_value,
 #'                    incidC_delay_dist= outcomes_incidC_delay_dist)
-#' 
+#'
 #'     print_filtering(sims_per_slot = filtering_sims_per_slot,
 #'                     data_path = filtering_data_path,
 #'                     gt_source = filtering_gt_source,
@@ -1338,28 +1349,28 @@ repeat_string <- function(x,
 #'                     ll_dist = filtering_ll_dist,
 #'                     ll_param = filtering_ll_param,
 #'                     final_print = filtering_final_print)
-#' 
+#'
 #'     print_hierarchical(npi_name = hierarchical_npi_name,
 #'                        module = hierarchical_module,
 #'                        geo_group_col = hierarchical_geo_group_col,
 #'                        transform = hierarchical_transform,
 #'                        final_print = hierarchical_final_print)
-#' 
+#'
 #'     print_prior(dat = interventions,
 #'                 npi_name = prior_npi_name,
 #'                 module = prior_module,
 #'                 dist = prior_dist,
 #'                 param_low = prior_param_low,
 #'                 param_high = prior_param_high)
-#' 
+#'
 #'     sink()
-#' 
+#'
 #'     config <- yaml::read_yaml(config_name)
-#' 
+#'
 #'     if(is.null(save_path)){
 #'         unlink(config_name)
 #'     }
-#' 
+#'
 #'     return(config)
 #' }
 
