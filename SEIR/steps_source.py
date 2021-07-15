@@ -125,6 +125,7 @@ def steps_SEIR_nb(
                 seeding_places = seeding_data['seeding_places'][seeding_instance_idx]
                 seeding_sources = seeding_data['seeding_sources'][seeding_instance_idx]
                 seeding_destinations = seeding_data['seeding_destinations'][seeding_instance_idx]
+                # this_seeding_amounts = this_seeding_amounts < states_next[seeding_sources] ?  this_seeding_amounts : states_next[seeding_instance_idx]
                 states_next[seeding_sources][seeding_places] -= this_seeding_amounts
                 states_next[seeding_sources][seeding_places] = states_next[seeding_sources][seeding_places] * \
                     (states_next[seeding_sources][seeding_places] > 0)
@@ -270,6 +271,9 @@ def steps_SEIR_nb(
                     )
             ):
                 total_infected += number_move.sum()
+            for spatial_node in range(nspatial_nodes):
+                if number_move[spatial_node] > states_next[transitions[transition_source_col][transition_index]][spatial_node]:
+                    number_move[spatial_node] = states_next[transitions[transition_source_col][transition_index]][spatial_node]
             states_next[transitions[transition_source_col][transition_index]] -= number_move
             states_next[transitions[transition_destination_col][transition_index]] += number_move
             states_daily_incid[today, transitions[transition_destination_col][transition_index], :] += number_move
