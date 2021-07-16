@@ -443,7 +443,7 @@ set_variant_params <- function(b117_only = FALSE,
                                geodata = NULL,
                                transmission_increase = NULL,
                                inference = TRUE,
-                               v_dist="truncnorm",  v_sd = NULL, v_a = -1.5, v_b = 0,
+                               v_dist="truncnorm",  v_sd = 0.01, v_a = -1.5, v_b = 0,
                                p_dist="truncnorm",
                                p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1
 ){
@@ -492,7 +492,7 @@ set_variant_params <- function(b117_only = FALSE,
                       parameter = NA,
                       value_dist = v_dist,
                       value_mean = 1-R_ratio,
-                      value_sd = ifelse(is.null(v_sd), round(value_sd,4), v_sd),
+                      value_sd = v_sd,
                       value_a = v_a,
                       value_b = v_b,
                       pert_dist = p_dist,
@@ -652,7 +652,7 @@ set_incidC_shift <- function(periods,
             dplyr::rename(USPS=state, delay=lag) %>%
             dplyr::select(USPS, epoch, delay, cfr) %>%
             dplyr::filter(epoch %in% epochs) %>%
-            left_join(relative_ifr) %>%
+            dplyr::left_join(relative_ifr) %>%
             dplyr::filter(geoid %in% geodata$geoid) %>%
             dplyr::mutate(incidC = pmin(0.99,ifr/cfr),  # get effective case detection rate based in assumed IFR.
                           value_mean = pmax(0,1-incidC),
