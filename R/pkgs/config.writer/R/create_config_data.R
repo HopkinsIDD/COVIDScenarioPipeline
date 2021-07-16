@@ -144,7 +144,7 @@ set_seasonality_params <- function(sim_start_date=as.Date("2020-03-31"),
     sim_start_date <- as.Date(sim_start_date)
     sim_end_date <- as.Date(sim_end_date)
 
-    years_ <- unique(lubridate::year(c(sim_start_date, sim_end_date)))
+    years_ <- unique(lubridate::year(seq(sim_start_date, sim_end_date, 1)))
 
     seas <- tidyr::expand_grid(
         tidyr::tibble(month= tolower(month.abb),
@@ -163,6 +163,7 @@ set_seasonality_params <- function(sim_start_date=as.Date("2020-03-31"),
         dplyr::ungroup() %>%
         dplyr::mutate(start_date = lubridate::ymd(paste0('"', year, '-', month_num, '-01"')),
                       end_date = lubridate::ceiling_date(start_date, "months")-1,
+                      end_date = dplyr::if_else(end_date > sim_end_date, sim_end_date, end_date),
                       USPS = "",
                       type = "transmission",
                       parameter = "R0",
@@ -174,6 +175,7 @@ set_seasonality_params <- function(sim_start_date=as.Date("2020-03-31"),
                       pert_dist = ifelse(inference, as.character(pert_dist), NA_character_),
                       dplyr::across(pert_sd:pert_a, ~ifelse(inference, as.numeric(.x), NA_real_))
         ) %>%
+        dplyr::filter(start_date <= end_date) %>%
         dplyr::filter(lubridate::ceiling_date(start_date, "months") >= lubridate::ceiling_date(sim_start_date, "months") &
                           lubridate::ceiling_date(end_date, "months") <= lubridate::ceiling_date(sim_end_date, "months")
         ) %>%
