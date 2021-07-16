@@ -353,9 +353,10 @@ generate_multiple_variants <- function(variant_path_1,
         dplyr::filter(date==end_date) %>%
         dplyr::mutate(date=start_date) %>%
         dplyr::mutate(param = "ReduceR0") %>%
-        dplyr::mutate(R_ratio = 1*(1-variant_prop) + variant_effect*variant_prop,
-                      sd_variant = 1*(1-variant_prop) + variant_lb*variant_prop,
-                      sd_variant = (R_ratio - sd_variant)/1.96)
+        dplyr::mutate(R_ratio = 1*(1-variant_prop) + variant_effect*variant_prop
+                      # sd_variant = 1*(1-variant_prop) + variant_lb*variant_prop,
+                      # sd_variant = (R_ratio - sd_variant)/1.96
+                      )
 
     # B.1.617
     b1617_week <- b1617 %>%
@@ -367,9 +368,10 @@ generate_multiple_variants <- function(variant_path_1,
         dplyr::filter(!(start_date>sim_end_date)) %>%
         dplyr::filter(date==start_date) %>%
         dplyr::mutate(param = "ReduceR0") %>%
-        dplyr::mutate(R_ratio = variant_effect*(1-variant_prop) + variant_effect*(1+trans_inc)*variant_prop,
-                      sd_variant = variant_lb*(1-variant_prop) + variant_lb*(1+trans_inc)*variant_prop,
-                      sd_variant = (R_ratio - sd_variant)/1.96) %>%
+        dplyr::mutate(R_ratio = variant_effect*(1-variant_prop) + variant_effect*(1+trans_inc)*variant_prop
+                      # sd_variant = variant_lb*(1-variant_prop) + variant_lb*(1+trans_inc)*variant_prop,
+                      # sd_variant = (R_ratio - sd_variant)/1.96
+                      ) %>%
         dplyr::mutate(variant = "B1617")
 
 
@@ -386,11 +388,11 @@ generate_multiple_variants <- function(variant_path_1,
 
     variant_data <- variant_data %>%
         dplyr::mutate(R_ratio = round(R_ratio, 2)) %>%
-        dplyr::select(week, start_date, end_date, variant, param, R_ratio, sd_variant) %>%
+        dplyr::select(week, start_date, end_date, variant, param, R_ratio) %>%
         dplyr::group_by(R_ratio) %>%
         dplyr::summarise(start_date = min(start_date),
                          end_date = max(end_date),
-                         value_sd = mean(sd_variant),
+                         #value_sd = mean(sd_variant),
                          week = ifelse(length(week)==1, as.character(week), paste0(min(week), "-", max(week)))) %>%
         dplyr::filter(R_ratio>1)
 }
@@ -449,9 +451,11 @@ generate_multiple_variants_state <- function(variant_path_1,
         dplyr::filter(date==end_date) %>%
         dplyr::mutate(date=start_date) %>%
         dplyr::mutate(param = "ReduceR0") %>%
-        dplyr::mutate(R_ratio = 1*(1-variant_prop) + variant_effect*variant_prop,
-                      sd_variant = 1*(1-variant_prop) + variant_lb*variant_prop,
-                      sd_variant = (R_ratio - sd_variant)/1.96)
+        dplyr::mutate(R_ratio = 1*(1-variant_prop) + variant_effect*variant_prop
+                      # sd_variant = 1*(1-variant_prop) + variant_lb*variant_prop,
+                      # sd_variant = (R_ratio - sd_variant)/1.96
+        )
+
 
     # B.1.617
     b1617_week <- b1617 %>%
@@ -464,9 +468,10 @@ generate_multiple_variants_state <- function(variant_path_1,
         dplyr::filter(start_date >= as.Date("2021-04-01")) %>%
         dplyr::filter(date==end_date) %>%
         dplyr::mutate(param = "ReduceR0") %>%
-        dplyr::mutate(R_ratio = 1*(1-variant_prop) + variant_effect*(1+transmission_increase)*variant_prop,
-                      sd_variant = 1*(1-variant_prop) + variant_lb*(1+transmission_increase)*variant_prop,
-                      sd_variant = (R_ratio - sd_variant)/1.96) %>%
+        dplyr::mutate(R_ratio = 1*(1-variant_prop) + variant_effect*(1+transmission_increase)*variant_prop
+                      # sd_variant = 1*(1-variant_prop) + variant_lb*(1+transmission_increase)*variant_prop,
+                      # sd_variant = (R_ratio - sd_variant)/1.96
+                      ) %>%
         dplyr::mutate(variant = "B1617")
 
 
@@ -487,7 +492,7 @@ generate_multiple_variants_state <- function(variant_path_1,
         dplyr::group_by(R_ratio, location) %>%
         dplyr::summarise(start_date = min(start_date),
                          end_date = max(end_date),
-                         value_sd = mean(sd_variant),
+                         # value_sd = mean(sd_variant),
                          week = ifelse(length(week)==1, as.character(week), paste0(min(week), "-", max(week)))) %>%
         dplyr::filter(R_ratio>1) %>%
         dplyr::filter(location != "US") %>%
