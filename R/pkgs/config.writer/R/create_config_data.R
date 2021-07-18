@@ -458,7 +458,8 @@ set_variant_params <- function(b117_only = FALSE,
                                               variant_lb = variant_lb,
                                               variant_effect= variant_effect,
                                               month_shift = month_shift) %>%
-            dplyr::mutate(geoid = "all")
+            dplyr::mutate(geoid = "all",
+                          USPS = "")
     } else if(state_level) {
 
         if(is.null(variant_path_2)){stop("You must specify a path for the second variant.")}
@@ -483,13 +484,13 @@ set_variant_params <- function(b117_only = FALSE,
                                                    variant_lb = variant_lb,
                                                    variant_effect= variant_effect,
                                                    transmission_increase = transmission_increase) %>%
-            dplyr::mutate(geoid = "all")
+            dplyr::mutate(geoid = "all",
+                          USPS = "")
     }
 
     variant_data <- variant_data %>%
         dplyr::mutate(type = "transmission",
                       category = "variant",
-                      USPS= ifelse(state_level, as.character(USPS), ""),
                       name = paste0("variantR0adj_", paste0("Week", week)),
                       template = "ReduceR0",
                       parameter = NA,
