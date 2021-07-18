@@ -489,7 +489,8 @@ set_variant_params <- function(b117_only = FALSE,
     variant_data <- variant_data %>%
         dplyr::mutate(type = "transmission",
                       category = "variant",
-                      name = paste("variantR0adj", paste0("Week", week), sep="_"),
+                      USPS= ifelse(state_level, as.character(USPS), ""),
+                      name = paste0("variantR0adj_", paste0("Week", week)),
                       template = "ReduceR0",
                       parameter = NA,
                       value_dist = v_dist,
@@ -502,8 +503,7 @@ set_variant_params <- function(b117_only = FALSE,
                       pert_sd = p_sd, # dont want much perturbation on this if it gets perturbed
                       pert_a = p_a,
                       pert_b = p_b,
-                      baseline_scenario = "",
-                      USPS="") %>% # really dont want to perturb this at the moment
+                      baseline_scenario = "") %>%
         dplyr::mutate(dplyr::across(pert_mean:pert_b, ~ifelse(inference, .x, NA_real_)),
                       pert_dist = ifelse(inference, pert_dist, NA_character_)) %>%
         dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, baseline_scenario, tidyselect::starts_with("value_"), tidyselect::starts_with("pert_"))
