@@ -488,7 +488,7 @@ generate_multiple_variants_state <- function(variant_path_1,
         dplyr::mutate(R_ratio = round(R_ratio, 2)) %>%
         dplyr::select(location, week, start_date, end_date, variant, param, R_ratio) %>%
         dplyr::group_by(location, week, start_date, end_date) %>%
-        dplyr::summarise(R_ratio = prod(R_ratio)
+        dplyr::summarise(R_ratio = round(prod(R_ratio)*(1/0.05))*0.05
                          #, sd_variant = sum(sd_variant)
                          ) %>% # THIS IS NOT THE RIGHT SD BUT DOESN'T MATTER B/C WE DON'T USE IT
         dplyr::group_by(R_ratio, location) %>%
