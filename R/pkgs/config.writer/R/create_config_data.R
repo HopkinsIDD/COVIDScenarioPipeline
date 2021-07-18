@@ -318,7 +318,7 @@ set_redux_params <- function(npi_file,
         month = lubridate::month(months_start, label=TRUE, abbr=TRUE) %>% tolower(),
         value_mean = reduction, # TODO: reduction to value_mean
         type = rep("transmission", month_n),
-        geoid = npi_file$geoid %>% paste0(collapse = '", "')) %>%
+        geoid = og$geoid %>% paste0(collapse = '", "')) %>%
         mutate(USPS = "",
                category = "NPI_redux",
                name = paste0(category, '_', month),
