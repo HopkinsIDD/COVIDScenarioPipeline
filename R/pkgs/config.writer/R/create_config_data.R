@@ -409,6 +409,7 @@ set_vacc_rates_params <- function(vacc_path,
 #' @param variant_path_2 path to B1617 variant
 #' @param sim_start_date simulation start date
 #' @param sim_end_date simulation end date
+#' @param inference_cutoff_date no inference is applied for interventions that start on or after this day 
 #' @param variant_lb
 #' @param varian_effect change in transmission for variant default is 50% from Davies et al 2021
 #' @param month_shift
@@ -438,6 +439,7 @@ set_variant_params <- function(b117_only = FALSE,
                                variant_path_2 = NULL,
                                sim_start_date,
                                sim_end_date,
+                               inference_cutoff_date=Sys.Date()-7,
                                variant_lb = 1.4,
                                variant_effect = 1.5,
                                month_shift = NULL,
@@ -449,6 +451,7 @@ set_variant_params <- function(b117_only = FALSE,
                                p_dist="truncnorm",
                                p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1
 ){
+    inference_cutoff_date <- as.Date(inference_cutoff_date)
 
 
     if(b117_only){
@@ -505,8 +508,8 @@ set_variant_params <- function(b117_only = FALSE,
                       pert_a = p_a,
                       pert_b = p_b,
                       baseline_scenario = "") %>%
-        dplyr::mutate(dplyr::across(pert_mean:pert_b, ~ifelse(inference, .x, NA_real_)),
-                      pert_dist = ifelse(inference, pert_dist, NA_character_)) %>%
+        dplyr::mutate(dplyr::across(pert_mean:pert_b, ~ifelse(inference & start_date < inference_cutoff_date, .x, NA_real_)),
+                      pert_dist = ifelse(inference & start_date < inference_cutoff_date, pert_dist, NA_character_)) %>%
         dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, baseline_scenario, tidyselect::starts_with("value_"), tidyselect::starts_with("pert_"))
 
 }

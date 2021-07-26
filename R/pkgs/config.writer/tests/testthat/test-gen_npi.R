@@ -52,6 +52,7 @@ generate_processed <- function(geodata_path,
                                       variant_path_2 = variant_path_2,
                                       sim_start_date = sim_start,
                                       sim_end_date = sim_end,
+                                      inference_cutoff_date = as.Date("2021-06-15"),
                                       b117_only = FALSE,
                                       state_level = FALSE,
                                       v_sd = 0.01,
@@ -99,7 +100,12 @@ test_that("Interventions processing works", {
                                         outcomes_path = "outcome_adj.csv")
 
     interventions <- readr::read_csv("processed_intervention_data.csv") %>%
-        dplyr::filter(USPS %in% c("all", "KS", "DE", "") | geoid == "all")
+        dplyr::filter(USPS %in% c("all", "KS", "DE", "") | geoid == "all") %>%
+        dplyr::mutate(dplyr::across(pert_mean:pert_b,
+                                    ~ifelse(stringr::str_detect(name, "variant") & start_date < as.Date("2021-06-15") |
+                                                stringr::str_detect(name, "variant", negate = TRUE) , .x, NA_real_)),
+                      pert_dist = ifelse(stringr::str_detect(name, "variant") & start_date < as.Date("2021-06-15") |
+                                             stringr::str_detect(name, "variant", negate = TRUE) , pert_dist, NA_character_))
 
     expect_equal(
         test_interventions,
