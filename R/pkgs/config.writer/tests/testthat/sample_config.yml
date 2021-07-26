@@ -6522,12 +6522,6 @@ interventions:
         sd: 0.01
         a: -1.5
         b: 0
-      perturbation:
-        distribution: truncnorm
-        mean: 0
-        sd: 0.01
-        a: -1
-        b: 1
     variantR0adj_Week26:
       template: ReduceR0
       affected_geoids: "all"
@@ -6539,12 +6533,6 @@ interventions:
         sd: 0.01
         a: -1.5
         b: 0
-      perturbation:
-        distribution: truncnorm
-        mean: 0
-        sd: 0.01
-        a: -1
-        b: 1
     variantR0adj_Week27:
       template: ReduceR0
       affected_geoids: "all"
@@ -6556,12 +6544,6 @@ interventions:
         sd: 0.01
         a: -1.5
         b: 0
-      perturbation:
-        distribution: truncnorm
-        mean: 0
-        sd: 0.01
-        a: -1
-        b: 1
     variantR0adj_Week28:
       template: ReduceR0
       affected_geoids: "all"
@@ -6573,12 +6555,6 @@ interventions:
         sd: 0.01
         a: -1.5
         b: 0
-      perturbation:
-        distribution: truncnorm
-        mean: 0
-        sd: 0.01
-        a: -1
-        b: 1
     variantR0adj_Week29:
       template: ReduceR0
       affected_geoids: "all"
@@ -6590,12 +6566,6 @@ interventions:
         sd: 0.01
         a: -1.5
         b: 0
-      perturbation:
-        distribution: truncnorm
-        mean: 0
-        sd: 0.01
-        a: -1
-        b: 1
     variantR0adj_Week30:
       template: ReduceR0
       affected_geoids: "all"
@@ -6607,12 +6577,6 @@ interventions:
         sd: 0.01
         a: -1.5
         b: 0
-      perturbation:
-        distribution: truncnorm
-        mean: 0
-        sd: 0.01
-        a: -1
-        b: 1
     variantR0adj_Week31:
       template: ReduceR0
       affected_geoids: "all"
@@ -6624,12 +6588,6 @@ interventions:
         sd: 0.01
         a: -1.5
         b: 0
-      perturbation:
-        distribution: truncnorm
-        mean: 0
-        sd: 0.01
-        a: -1
-        b: 1
     NPI:
       template: Stacked
       scenarios: ["lockdown", "open_p1", "open_p2", "open_p3", "open_p4", "open_p5", "sd", "open_p6", "open_p7"]
