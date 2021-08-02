@@ -191,13 +191,21 @@ process_npi_shub <- function(intervention_path,
 process_npi_ca <- function(intervention_path,
                            geodata,
                            prevent_overlap = TRUE,
-                           prevent_gaps = TRUE
+                           prevent_gaps = TRUE,
+                           date_format = "%m/%d/%y"
 ){
     ## read intervention estimates
-    og <- readr::read_csv(intervention_path) %>%
+    og <- readr::read_csv(intervention_path,
+                          col_types = list(col_date(format = date_format),
+                                           col_character(), col_character(),
+                                           col_date(format = date_format), col_character())
+                          ) %>%
+        dplyr::mutate(geoid = dplyr::if_else(stringr::str_length(geoid)==4, paste0(0, geoid), geoid)) %>%
         dplyr::left_join(geodata) %>%
         dplyr::group_by(county, geoid) %>%
-        dplyr::mutate(end_date = dplyr::if_else(end_date == max(end_date), lubridate::NA_Date_, end_date),
+        dplyr::arrange(start_date) %>%
+        dplyr::mutate(end_date = dplyr::if_else(is.na(end_date), dplyr::lead(start_date)-1, end_date),
+                      end_date = dplyr::if_else(start_date == max(start_date), lubridate::NA_Date_, end_date),
                       template = "MultiTimeReduce") %>%
         dplyr::ungroup() %>%
         dplyr::select(USPS, geoid, start_date, end_date, name = phase, template)
@@ -205,13 +213,13 @@ process_npi_ca <- function(intervention_path,
     if(prevent_overlap){
         og <- og %>%
             dplyr::group_by(USPS, geoid) %>%
-            dplyr::mutate(end_date = dplyr::if_else(end_date >= dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
+            dplyr::mutate(end_date = dplyr::if_else(end_date >= dplyr::lead(start_date) & !is.na(end_date), dplyr::lead(start_date)-1, end_date))
     }
 
     if(prevent_gaps){
         og <- og %>%
             dplyr::group_by(USPS, geoid) %>%
-            dplyr::mutate(end_date = dplyr::if_else(end_date < dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
+            dplyr::mutate(end_date = dplyr::if_else(end_date < dplyr::lead(start_date) & !is.na(end_date), dplyr::lead(start_date)-1, end_date))
     }
 
     return(og)
@@ -405,6 +413,7 @@ generate_multiple_variants <- function(variant_path_1,
 #' @param variant_path_2 path to B1617 variant
 #' @param sim_start_date simulation start date
 #' @param sim_end_date simulation end date
+#' @param projection_start_date specified to ensure interventions in the two weeks before the projection start are not aggregated
 #' @param variant_lb
 #' @param varian_effect change in transmission for variant default is 50% from Davies et al 2021
 #' @param transmission_increase transmission increase in B1617 relative to B117
@@ -424,6 +433,7 @@ generate_multiple_variants_state <- function(variant_path_1,
                                        variant_path_2,
                                        sim_start_date=as.Date("2020-03-31"),
                                        sim_end_date=Sys.Date()+60,
+                                       projection_start_date = Sys.Date(),
                                        variant_lb = 1.4,
                                        variant_effect = 1.5,
                                        transmission_increase = 0.2,
@@ -439,6 +449,7 @@ generate_multiple_variants_state <- function(variant_path_1,
 
     sim_start_date <- as.Date(sim_start_date)
     sim_end_date <- as.Date(sim_end_date)
+    projection_start_date <- as.Date(projection_start_date)
 
     b117_week <- b117 %>%
         dplyr::mutate(week = MMWRweek::MMWRweek(date)$MMWRweek,
@@ -491,11 +502,17 @@ generate_multiple_variants_state <- function(variant_path_1,
         dplyr::summarise(R_ratio = round(prod(R_ratio)*(1/0.05))*0.05
                          #, sd_variant = sum(sd_variant)
                          ) %>% # THIS IS NOT THE RIGHT SD BUT DOESN'T MATTER B/C WE DON'T USE IT
-        dplyr::group_by(R_ratio, location) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(final_week = dplyr::if_else(start_date >= lubridate::floor_date(projection_start_date-14, "week") & start_date < projection_start_date,
+                                                  1, NA_real_)) %>%
+        dplyr::group_by(location, final_week) %>%
+        dplyr::mutate(final_week = cumsum(final_week)) %>%
+        dplyr::group_by(R_ratio, location, final_week) %>%
         dplyr::summarise(start_date = min(start_date),
                          end_date = max(end_date),
                          # value_sd = mean(sd_variant),
                          week = ifelse(length(week)==1, as.character(week), paste0(min(week), "-", max(week)))) %>%
+        dplyr::select(-final_week) %>%
         dplyr::filter(R_ratio>1) %>%
         dplyr::filter(location != "US") %>%
         dplyr::rename("USPS" = "location") %>%
