@@ -196,9 +196,9 @@ process_npi_ca <- function(intervention_path,
 ){
     ## read intervention estimates
     og <- readr::read_csv(intervention_path,
-                          col_types = list(col_date(format = date_format),
-                                           col_character(), col_character(),
-                                           col_date(format = date_format), col_character())
+                          col_types = list(readr::col_date(format = date_format),
+                                           readr::col_character(), readr::col_character(),
+                                           readr::col_date(format = date_format), readr::col_character())
                           ) %>%
         dplyr::mutate(geoid = dplyr::if_else(stringr::str_length(geoid)==4, paste0(0, geoid), geoid)) %>%
         dplyr::left_join(geodata) %>%
