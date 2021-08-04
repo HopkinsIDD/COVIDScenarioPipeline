@@ -409,7 +409,7 @@ set_vacc_rates_params <- function(vacc_path,
 #' @param variant_path_2 path to B1617 variant
 #' @param sim_start_date simulation start date
 #' @param sim_end_date simulation end date
-#' @param inference_cutoff_date no inference is applied for interventions that start on or after this day 
+#' @param inference_cutoff_date no inference is applied for interventions that start on or after this day
 #' @param variant_lb
 #' @param varian_effect change in transmission for variant default is 50% from Davies et al 2021
 #' @param month_shift
@@ -713,9 +713,10 @@ set_incidC_shift <- function(periods,
 
 }
 
-#' Bind interventions and save
+#' Bind interventions and prevents inference on interventions with no data
 #'
 #' @param ... intervention dfs with config params
+#' @param inference_cutoff_date no inference is applied for interventions that start on or after this day
 #' @param sim_start_date simulation start date
 #' @param sim_end_date simulation end date
 #' @param save_name directory to save dataframe; NULL if no safe
@@ -726,9 +727,11 @@ set_incidC_shift <- function(periods,
 #' @examples
 #'
 bind_interventions <- function(...,
+                               inference_cutoff_date = Sys.Date()-7,
                                sim_end_date,
                                sim_start_date,
                                save_name){
+    inference_cutoff_date <- as.Date(inference_cutoff_date)
     sim_end_date <- as.Date(sim_end_date)
     sim_start_date <- as.Date(sim_start_date)
     dat <- dplyr::bind_rows(...)
@@ -743,6 +746,8 @@ bind_interventions <- function(...,
         dplyr::mutate(note = dplyr::case_when(end_date >= dplyr::lead(start_date) ~ "Overlap",
                                               dplyr::lead(start_date)-end_date > 1 ~ "Gap",
                                               TRUE ~ NA_character_)) %>%
+        dplyr::mutate(dplyr::across(pert_mean:pert_b, ~ifelse(start_date < inference_cutoff_date, .x, NA_real_)),
+                      pert_dist = ifelse(start_date < inference_cutoff_date, pert_dist, NA_character_)) %>%
         dplyr::filter(!is.na(note))
 
     if(nrow(check) > 0){
