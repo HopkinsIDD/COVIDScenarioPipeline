@@ -97,7 +97,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
     config_outcomes = config["outcomes"]["settings"][scenario_outcomes]
     if config["outcomes"]["param_from_file"].get():
         # load a file from the seir model, to know how to filter the provided csv file
-        diffI, places, dates = read_seir_sim(run_id=run_id,prefix=prefix,sim_id=sim_ids[0])
+        diffI, places, dates = read_seir_sim(run_id=run_id, prefix=prefix, sim_id=sim_ids[0])
 
         # Load the actual csv file
         # Load the actual csv file
@@ -228,7 +228,6 @@ def read_seir_sim(run_id, prefix, sim_id):
     return diffI, places, dates
 
 
-
 def write_outcome_sim(outcomes, run_id, prefix, sim_id):
     outcomes['time'] = outcomes['date']
     out_df = pa.Table.from_pandas(outcomes, preserve_index=False)
@@ -307,37 +306,26 @@ def dataframe_from_array(data, places, dates, comp_name):
 # @dates Index for dates dimension of source_data.  dates should be one day apart a closed interval
 # @loaded_values A numpy array of dimensions place x time with values containing the probabilities
 def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag=True, npi=None):
-    hpar = pd.DataFrame(columns=['geoid', 'mc_vaccination_stage', 'quantity', 'outcome', 'source', 'value'])
+    hpar = pd.DataFrame(columns=['geoid', 'quantity', 'outcome', 'source', 'value'])
     all_data = {}
-    p_comps = diffI['mc_vaccination_stage'].unique()
-    for p_comp in p_comps:
-        all_data[p_comp] = {}
-        incidI = diffI[(diffI['mc_vaccination_stage'] == p_comp) & (diffI['mc_infection_stage'] == 'I1')]
 
-        #additional_mcs = [c for c in incidI.drop(['date', 'mc_vaccination_stage', 'mc_infection_stage', 'mc_name'], axis=1).columns if 'mc_' in c]
-        #if not additional_mcs:
-        #    incidI = incidI.drop(['date', 'mc_vaccination_stage', 'mc_infection_stage', 'mc_name'], axis=1)
-        #    all_data[p_comp]['incidI'] = incidI.to_numpy()
-        #else:
-        incidI_arr = np.zeros((len(dates), len(places)), dtype=np.int)
-        for mcn in incidI['mc_name'].unique():
-            new_df = incidI[incidI['mc_name']==mcn]
-            new_df = new_df.drop([c for c in new_df.columns if 'mc_' in c], axis=1)
-            new_df = new_df.drop('date', axis=1)
-            incidI_arr = incidI_arr + new_df.to_numpy()
-            all_data[p_comp]['incidI'] = incidI_arr
+    outcomes = pd.DataFrame()
 
-    # We store them as numpy matrices. Dimensions is dates X places
-
-    outcomes = pd.melt(diffI[diffI['mc_infection_stage'] == 'I1'].drop(['mc_infection_stage', 'mc_name'], axis=1),
-                       id_vars=['date', 'mc_vaccination_stage'],
-                       value_name='incidI', var_name='geoid')
     for new_comp in parameters:
+
         if 'source' in parameters[new_comp]:
             # Read the config for this compartment: if a source is specified, we
             # 1. compute incidence from binomial draw
             # 2. compute duration if needed
             source = parameters[new_comp]['source']
+            print(f'doing {new_comp} from {source}')
+            if source == 'incidI' and 'incidI' not in all_data:  # create incidI
+                all_data['incidI'] = backward_compatibility_incidI(diffI, dates, places)
+
+                outcomes = pd.melt(
+                    diffI[diffI['mc_infection_stage'] == 'I1'].drop(['mc_infection_stage', 'mc_name'], axis=1),
+                    id_vars=['date', 'mc_vaccination_stage'],
+                    value_name='incidI', var_name='geoid')
 
             if loaded_values is not None:
                 ## This may be unnecessary
@@ -368,53 +356,52 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             delays = np.repeat(delays[:, np.newaxis], len(dates), axis=1).T  # duplicate in time
             delays = np.round(delays).astype(int)
             # write hpar before NPI
-            for p_comp in p_comps:
-                hpar = pd.concat(
-                    [
-                        hpar,
-                        pd.DataFrame.from_dict(
-                            {'geoid': places,
-                             'mc_vaccination_stage': [p_comp] * len(places),
-                             'quantity': ['probability'] * len(places),
-                             'outcome': [new_comp] * len(places),
-                             'source': [source] * len(places),
-                             'value': probabilities[0] * np.ones(len(places))}),
-                        pd.DataFrame.from_dict(
-                            {'geoid': places,
-                             'mc_vaccination_stage': [p_comp] * len(places),
-                             'quantity': ['delay'] * len(places),
-                             'outcome': [new_comp] * len(places),
-                             'source': [source] * len(places),
-                             'value': delays[0] * np.ones(len(places))})
-                    ],
-                    axis=0)
+            hpar = pd.concat(
+                [
+                    hpar,
+                    pd.DataFrame.from_dict(
+                        {'geoid': places,
+                         # 'mc_vaccination_stage': [p_comp] * len(places),
+                         'quantity': ['probability'] * len(places),
+                         'outcome': [new_comp] * len(places),
+                         'source': [source] * len(places),
+                         'value': probabilities[0] * np.ones(len(places))}),
+                    pd.DataFrame.from_dict(
+                        {'geoid': places,
+                         # 'mc_vaccination_stage': [p_comp] * len(places),
+                         'quantity': ['delay'] * len(places),
+                         'outcome': [new_comp] * len(places),
+                         'source': [source] * len(places),
+                         'value': delays[0] * np.ones(len(places))})
+                ],
+                axis=0)
             if npi is not None:
                 delays = _parameter_reduce(delays, npi.getReduction(f"{new_comp}::delay".lower()))
                 delays = np.round(delays).astype(int)
                 probabilities = _parameter_reduce(probabilities, npi.getReduction(f"{new_comp}::probability".lower()))
 
             df = pd.DataFrame()
-            for p_comp in p_comps:
-                # Create new compartment incidence:
-                all_data[p_comp][new_comp] = np.empty_like(all_data[p_comp]['incidI'])
-                # Draw with from source compartment
-                if stoch_traj_flag:
-                    all_data[p_comp][new_comp] = np.random.binomial(all_data[p_comp][source].astype(np.int32),
-                                                                    probabilities)
-                else:
-                    all_data[p_comp][new_comp] = all_data[p_comp][source] * (
-                            probabilities * np.ones_like(all_data[p_comp][source]))
+            # Create new compartment incidence:
+            all_data[new_comp] = np.empty_like(all_data['incidI'])
+            # Draw with from source compartment
+            if stoch_traj_flag:
+                all_data[new_comp] = np.random.binomial(all_data[source].astype(np.int32),
+                                                        probabilities)
+            else:
+                all_data[new_comp] = all_data[source] * (
+                        probabilities * np.ones_like(all_data[source]))
 
-                # Shift to account for the delay
-                ## stoch_delay_flag is whether to use stochastic delays or not
-                stoch_delay_flag = False
-                all_data[p_comp][new_comp] = multishift(all_data[p_comp][new_comp], delays,
-                                                        stoch_delay_flag=stoch_delay_flag)
-                # Produce a dataframe an merge it
-                df_p = dataframe_from_array(all_data[p_comp][new_comp], places, dates, new_comp)
-                df_p['mc_vaccination_stage'] = p_comp
-                df = pd.concat([df, df_p])
+            # Shift to account for the delay
+            ## stoch_delay_flag is whether to use stochastic delays or not
+            stoch_delay_flag = False
+            all_data[new_comp] = multishift(all_data[new_comp], delays,
+                                                    stoch_delay_flag=stoch_delay_flag)
+            # Produce a dataframe an merge it
+            df_p = dataframe_from_array(all_data[new_comp], places, dates, new_comp)
+            #df_p['mc_vaccination_stage'] = p_comp
+            df = pd.concat([df, df_p])
             outcomes = pd.merge(outcomes, df)
+            print(outcomes)
 
             # Make duration
             if 'duration' in parameters[new_comp]:
@@ -422,7 +409,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     durations = loaded_values[
                         (loaded_values['quantity'] == 'duration') &
                         (loaded_values['outcome'] == new_comp) &
-                        (loaded_values['mc_vaccination_stage'] == p_comps[0]) &
+                        #(loaded_values['mc_vaccination_stage'] == p_comps[0]) &
                         (loaded_values['source'] == source)
                         ]['value'].to_numpy()
                 else:
@@ -430,20 +417,20 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                         size=len(places))  # one draw per geoid
                 durations = np.repeat(durations[:, np.newaxis], len(dates), axis=1).T  # duplicate in time
                 durations = np.round(durations).astype(int)
-                for p_comp in p_comps:
-                    hpar = pd.concat(
-                        [
-                            hpar,
-                            pd.DataFrame.from_dict(
-                                {'geoid': places,
-                                 'mc_vaccination_stage': [p_comp] * len(places),
-                                 'quantity': ['duration'] * len(places),
-                                 'outcome': [new_comp] * len(places),
-                                 'source': [source] * len(places),
-                                 'value': durations[0] * np.ones(len(places))
-                                 }
-                            )
-                        ], axis=0)
+
+                hpar = pd.concat(
+                    [
+                        hpar,
+                        pd.DataFrame.from_dict(
+                            {'geoid': places,
+                             #'mc_vaccination_stage': [p_comp] * len(places),
+                             'quantity': ['duration'] * len(places),
+                             'outcome': [new_comp] * len(places),
+                             'source': [source] * len(places),
+                             'value': durations[0] * np.ones(len(places))
+                             }
+                        )
+                    ], axis=0)
 
                 if npi is not None:
                     # import matplotlib.pyplot as plt
@@ -462,18 +449,17 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     # plt.close()
 
                 df = pd.DataFrame()
-                for p_comp in p_comps:
-                    all_data[p_comp][parameters[new_comp]['duration_name']] = np.cumsum(all_data[p_comp][new_comp],
-                                                                                        axis=0) - \
-                                                                              multishift(
-                                                                                  np.cumsum(all_data[p_comp][new_comp],
-                                                                                            axis=0), durations,
-                                                                                  stoch_delay_flag=stoch_delay_flag)
+                all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp],
+                                                                                    axis=0) - \
+                                                                          multishift(
+                                                                              np.cumsum(all_data[new_comp],
+                                                                                        axis=0), durations,
+                                                                              stoch_delay_flag=stoch_delay_flag)
 
-                    df_p = dataframe_from_array(all_data[p_comp][parameters[new_comp]['duration_name']], places,
-                                                dates, parameters[new_comp]['duration_name'])
-                    df_p['mc_vaccination_stage'] = p_comp
-                    df = pd.concat([df, df_p])
+                df_p = dataframe_from_array(all_data[parameters[new_comp]['duration_name']], places,
+                                            dates, parameters[new_comp]['duration_name'])
+                #df_p['mc_vaccination_stage'] = p_comp
+                df = pd.concat([df, df_p])
                 outcomes = pd.merge(outcomes, df)
 
         elif 'sum' in parameters[new_comp]:
@@ -481,6 +467,28 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
 
     return outcomes, hpar
+
+
+def backward_compatibility_incidI(diffI, dates, places):
+    incidI_arr = np.zeros((len(dates), len(places)), dtype=np.int)
+    mc_vaccination_stages = diffI['mc_vaccination_stage'].unique()
+    for p_comp in mc_vaccination_stages:
+        incidI = diffI[(diffI['mc_vaccination_stage'] == p_comp) & (diffI['mc_infection_stage'] == 'I1')]
+
+        # additional_mcs = [c for c in incidI.drop(['date', 'mc_vaccination_stage', 'mc_infection_stage', 'mc_name'], axis=1).columns if 'mc_' in c]
+        # if not additional_mcs:
+        #    incidI = incidI.drop(['date', 'mc_vaccination_stage', 'mc_infection_stage', 'mc_name'], axis=1)
+        #    all_data[p_comp]['incidI'] = incidI.to_numpy()
+        # else:
+
+        for mcn in incidI['mc_name'].unique():
+            new_df = incidI[incidI['mc_name'] == mcn]
+            new_df = new_df.drop([c for c in new_df.columns if 'mc_' in c], axis=1)
+            new_df = new_df.drop('date', axis=1)
+            incidI_arr = incidI_arr + new_df.to_numpy()
+    return incidI_arr
+
+    # We store them as numpy matrices. Dimensions is dates X places
 
 
 """ Quite fast shift implementation, along the first axis, 
