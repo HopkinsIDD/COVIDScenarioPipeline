@@ -74,7 +74,8 @@ pa.parquet.write_table(
 # cp new_test_no_vacc.parquet model_output/seir/000000001.2.seir.parquet
 
 b1d = b.copy(deep=True)
-b1d['mc_vaccination_stage'] = 'first_dose'
+b1d['mc_vaccination_stage'] = '1_dose'
+b1d['mc_name'] = b1d['mc_name'].str.replace('unvaccinated','1_dose')
 b = pd.concat((b, b1d))
 for i in range(5):
     b.loc[(b['value_type'] == 'incidence') & (b['date'] == str(date_data)) & (b['mc_vaccination_stage'] == 'first_dose'), geoid[i]] = diffI[i] * 3

@@ -436,7 +436,7 @@ def test_outcomes_read_write_hnpi2():
 def test_outcomes_pcomp():
     config.clear()
     config.read(user=False)     
-    config.set_file('config_npi.yml')
+    config.set_file('config_mc_selection.yml')
 
     run_id = 1
     index = 1
@@ -529,4 +529,5 @@ def test_outcomes_pcomp_read_write():
     hosp_wrote = pq.read_table('model_output/hosp/000000001.112.hosp.parquet').to_pandas()
     assert((hosp_read == hosp_wrote).all().all())
 
+# ADD A test that everything is equivalent
     

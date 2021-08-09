@@ -23,7 +23,7 @@ outcomes:
   settings:
     high_death_rate:
       incidH_0dose:
-        source: incidI
+        source: 
           incidence:
             infection_stage: ["I1"]
             vaccination_stage: ["0dose"]
@@ -40,13 +40,13 @@ outcomes:
           value:
             distribution: fixed
             value: 7
-          name: hosp_curr
+          name: incidH_0dose_curr
       incidH_1dose:
-        source: incidI
+        source: 
           incidence:
             infection_stage: ["I1"]
             vaccination_stage: "1dose"
-          # variant_type: ["var0", "var1"] no need for this, it incidence
+          # variant_type: ["var0", "var1"] no need for this if there is two variant because it sums on everything else
         probability:
           value:
             distribution: fixed
@@ -59,13 +59,12 @@ outcomes:
           value:
             distribution: fixed
             value: 7
-          name: hosp_curr
+          name: incidH_1dose_curr
       incidH_2dose:
-        source: incidI
+        source: 
           incidence:
             infection_stage: ["I1"]
             vaccination_stage: ["2dose"]
-          # variant_type: ["var0", "var1"] no need for this, it incidence
         probability:
           value:
             distribution: fixed
@@ -78,13 +77,13 @@ outcomes:
           value:
             distribution: fixed
             value: 7
-          name: hosp_curr
-      incidH_from_sum:
+          name: incidH_2dose_curr
+      incidH_from_sum:                                                # one way of having from everything: summing sub_outcomes
         sum: ['incidH_2dose', 'incidH_1dose', 'incidH_0dose']
-      incidH_from_all_implicit:
-        source: incidI
-        incidence:
-          infection_stage: "I1"
+      incidH_from_all_implicit:                                       # f all probabilities are the same then this does the same thing (implicitely)
+        source: 
+          incidence:
+            infection_stage: "I1"
         probability:
           value:
             distribution: fixed
@@ -98,11 +97,11 @@ outcomes:
             distribution: fixed
             value: 7
           name: hosp_curr
-      incidH_from_all_explicit:
-        source: incidI
-        incidence:
-          infection_stage: "I1"
-          vaccination_stage: ["0dose", "1dose", "2dose"]
+      incidH_from_all_explicit:                                     # if all probabilities are the same then this works too (explicitely secifying)
+        source: 
+          incidence:
+            infection_stage: "I1"
+            vaccination_stage: ["0dose", "1dose", "2dose"]
         probability:
           value:
             distribution: fixed
@@ -116,13 +115,18 @@ outcomes:
             distribution: fixed
             value: 7
           name: hosp_curr
-      incidD:
+      incidH_from_all_compatibility:                                     # For compatibility this work too.
         source: incidI
         probability:
           value:
             distribution: fixed
-            value: .01
+            value: .1
         delay:
           value:
             distribution: fixed
-            value: 2
+            value: 7
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: hosp_curr
