@@ -151,7 +151,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                         parameters[class_name]['duration_name'] = new_comp + '_curr' + subclass
 
                 if config["outcomes"]["param_from_file"].get():
-                    rel_probability = branching_data[(branching_data['source'] == parameters[class_name]['source']) &
+                    rel_probability = branching_data[#(branching_data['source'] == parameters[class_name]['source']) &
                                                      (branching_data['outcome'] == class_name) &
                                                      (branching_data['quantity'] == 'relative_probability')].copy(
                         deep=True)
@@ -315,7 +315,7 @@ def dataframe_from_array(data, places, dates, comp_name):
 # @dates Index for dates dimension of source_data.  dates should be one day apart a closed interval
 # @loaded_values A numpy array of dimensions place x time with values containing the probabilities
 def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag=True, npi=None):
-    hpar = pd.DataFrame(columns=['geoid', 'quantity', 'outcome', 'source', 'value'])
+    hpar = pd.DataFrame(columns=['geoid', 'quantity', 'outcome', 'value'])
     all_data = {}
 
     outcomes = dataframe_from_array(np.zeros((len(dates), len(places)), dtype=np.int),
@@ -344,15 +344,15 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 probabilities = \
                     loaded_values[
                         (loaded_values['quantity'] == 'probability') &
-                        (loaded_values['outcome'] == new_comp) &
+                        (loaded_values['outcome'] == new_comp) #&
                         # (loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
-                        (loaded_values['source'] == source_name)
+                        #(loaded_values['source'] == source_name)
                         ]['value'].to_numpy()
                 delays = loaded_values[
                     (loaded_values['quantity'] == 'delay') &
-                    (loaded_values['outcome'] == new_comp) &
+                    (loaded_values['outcome'] == new_comp) #&
                     # (loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
-                    (loaded_values['source'] == source_name)
+                   # (loaded_values['source'] == source_name)
                     ]['value'].to_numpy()
             else:
                 probabilities = parameters[new_comp]['probability'].as_random_distribution()(
@@ -376,14 +376,14 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                          # 'mc_vaccination_stage': [p_comp] * len(places),
                          'quantity': ['probability'] * len(places),
                          'outcome': [new_comp] * len(places),
-                         'source': [source_name] * len(places),
+                         #'source': [source_name] * len(places),
                          'value': probabilities[0] * np.ones(len(places))}),
                     pd.DataFrame.from_dict(
                         {'geoid': places,
                          # 'mc_vaccination_stage': [p_comp] * len(places),
                          'quantity': ['delay'] * len(places),
                          'outcome': [new_comp] * len(places),
-                         'source': [source_name] * len(places),
+                         #'source': [source_name] * len(places),
                          'value': delays[0] * np.ones(len(places))})
                 ],
                 axis=0)
@@ -416,9 +416,9 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 if loaded_values is not None:
                     durations = loaded_values[
                         (loaded_values['quantity'] == 'duration') &
-                        (loaded_values['outcome'] == new_comp) &
+                        (loaded_values['outcome'] == new_comp) #&
                         # (loaded_values['mc_vaccination_stage'] == p_comps[0]) &
-                        (loaded_values['source'] == source_name)
+                        # (loaded_values['source'] == source_name)
                         ]['value'].to_numpy()
                 else:
                     durations = parameters[new_comp]['duration'].as_random_distribution()(
@@ -434,7 +434,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                              # 'mc_vaccination_stage': [p_comp] * len(places),
                              'quantity': ['duration'] * len(places),
                              'outcome': [new_comp] * len(places),
-                             'source': [source_name] * len(places),
+                             #'source': [source_name] * len(places),
                              'value': durations[0] * np.ones(len(places))
                              }
                         )
