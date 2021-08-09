@@ -330,7 +330,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             source_name = parameters[new_comp]['source']
             print(f'doing {new_comp} from {source_name}')
             if source_name == 'incidI' and 'incidI' not in all_data:  # create incidI
-                source_array = backward_compatibility_incidI(diffI, dates, places)
+                source_array = get_filtered_incidI(diffI, dates, places, {'infection_stage':'I1'})
                 all_data['incidI'] = source_array
                 outcomes = dataframe_from_array(source_array, places, dates, 'incidI')
             elif isinstance(source_name, dict):
