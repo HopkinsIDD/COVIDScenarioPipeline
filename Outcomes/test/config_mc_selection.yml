@@ -21,13 +21,70 @@ outcomes:
   scenarios:
     - high_death_rate
   settings:
+  ### 3 examples of sourcing incidH with the new syntax:
+  ### 1. same old syntax. 
+  ### the source will be the sum of the incidence of infection_stage I1, accross all other meta_compartments.
+    incidH_from_all_compatibility:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: .1
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: hosp_curr
+  ### 2. Same thing as before but using the new syntax 
+    incidH_from_all_implicit:
+        source: 
+          incidence:
+            infection_stage: "I1"
+        probability:
+          value:
+            distribution: fixed
+            value: .1
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: hosp_curr
+    ### 3. Same thing as before but using the new syntax, but explicitely.
+      incidH_from_all_explicit:                              
+        source: 
+          incidence:
+            infection_stage: "I1"
+            vaccination_stage: ["0dose", "1dose", "2dose"]
+            variant_type: ["var0", "var1"]
+        probability:
+          value:
+            distribution: fixed
+            value: .1
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: hosp_curr
+  ### 3 different incidH for each dose, and then a sum that combine them together. Here it's possible 
+  ### to have different NPIs and probabilities for e.g different doses.
     high_death_rate:
       incidH_0dose:
         source: 
           incidence:
-            infection_stage: ["I1"]
+            infection_stage: ["I1"]                             
             vaccination_stage: ["0dose"]
-          # variant_type: ["var0", "var1"] no need for this, it incidence
         probability:
           value:
             distribution: fixed
@@ -46,7 +103,6 @@ outcomes:
           incidence:
             infection_stage: ["I1"]
             vaccination_stage: "1dose"
-          # variant_type: ["var0", "var1"] no need for this if there is two variant because it sums on everything else
         probability:
           value:
             distribution: fixed
@@ -78,55 +134,7 @@ outcomes:
             distribution: fixed
             value: 7
           name: incidH_2dose_curr
-      incidH_from_sum:                                                # one way of having from everything: summing sub_outcomes
+      incidH_from_sum:                                              
         sum: ['incidH_2dose', 'incidH_1dose', 'incidH_0dose']
-      incidH_from_all_implicit:                                       # f all probabilities are the same then this does the same thing (implicitely)
-        source: 
-          incidence:
-            infection_stage: "I1"
-        probability:
-          value:
-            distribution: fixed
-            value: .1
-        delay:
-          value:
-            distribution: fixed
-            value: 7
-        duration:
-          value:
-            distribution: fixed
-            value: 7
-          name: hosp_curr
-      incidH_from_all_explicit:                                     # if all probabilities are the same then this works too (explicitely secifying)
-        source: 
-          incidence:
-            infection_stage: "I1"
-            vaccination_stage: ["0dose", "1dose", "2dose"]
-        probability:
-          value:
-            distribution: fixed
-            value: .1
-        delay:
-          value:
-            distribution: fixed
-            value: 7
-        duration:
-          value:
-            distribution: fixed
-            value: 7
-          name: hosp_curr
-      incidH_from_all_compatibility:                                     # For compatibility this work too.
-        source: incidI
-        probability:
-          value:
-            distribution: fixed
-            value: .1
-        delay:
-          value:
-            distribution: fixed
-            value: 7
-        duration:
-          value:
-            distribution: fixed
-            value: 7
-          name: hosp_curr
+      
+
