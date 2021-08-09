@@ -2,6 +2,7 @@ import itertools
 import time, random
 import warnings
 from numba import jit
+import confuse
 
 import numpy as np
 import pandas as pd
@@ -125,9 +126,17 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                 class_name = new_comp + subclass
                 parameters[class_name] = {}
                 # Read the config for this compartement
-                parameters[class_name]['source'] = config_outcomes[new_comp]['source'].as_str()
-                if (parameters[class_name]['source'] != 'incidI'):
-                    parameters[class_name]['source'] = parameters[class_name]['source'] + subclass
+                src_name = config_outcomes[new_comp]['source'].get()
+                if isinstance(src_name, str):
+                    if src_name != 'incidI':
+                        parameters[class_name]['source'] = src_name + subclass
+                    else:
+                        parameters[class_name]['source'] = src_name
+                else:
+                    if subclasses != ['']:
+                        raise ValueError("Subclasses not compatible with outcomes ")
+                    else:
+                        parameters[class_name]['source'] = dict(src_name['incidence'])
 
                 parameters[class_name]['probability'] = config_outcomes[new_comp]['probability']['value']
 
@@ -141,7 +150,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                     else:
                         parameters[class_name]['duration_name'] = new_comp + '_curr' + subclass
 
-                if (config["outcomes"]["param_from_file"].get()):
+                if config["outcomes"]["param_from_file"].get():
                     rel_probability = branching_data[(branching_data['source'] == parameters[class_name]['source']) &
                                                      (branching_data['outcome'] == class_name) &
                                                      (branching_data['quantity'] == 'relative_probability')].copy(
@@ -171,7 +180,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
 
         elif config_outcomes[new_comp]['sum'].exists():
             parameters[new_comp] = {}
-            parameters[new_comp]['sum'] = config_outcomes[new_comp]['sum']
+            parameters[new_comp]['sum'] = config_outcomes[new_comp]['sum'].get()
         else:
             raise ValueError(f"No 'source' or 'sum' specified for comp {new_comp}")
 
@@ -309,23 +318,26 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
     hpar = pd.DataFrame(columns=['geoid', 'quantity', 'outcome', 'source', 'value'])
     all_data = {}
 
-    outcomes = pd.DataFrame()
+    outcomes = dataframe_from_array(np.zeros((len(dates), len(places)), dtype=np.int),
+                                    places,
+                                    dates, 'zeros').drop('zeros',axis=1)
 
     for new_comp in parameters:
-
         if 'source' in parameters[new_comp]:
             # Read the config for this compartment: if a source is specified, we
             # 1. compute incidence from binomial draw
             # 2. compute duration if needed
-            source = parameters[new_comp]['source']
-            print(f'doing {new_comp} from {source}')
-            if source == 'incidI' and 'incidI' not in all_data:  # create incidI
-                all_data['incidI'] = backward_compatibility_incidI(diffI, dates, places)
-
-                outcomes = pd.melt(
-                    diffI[diffI['mc_infection_stage'] == 'I1'].drop(['mc_infection_stage', 'mc_name'], axis=1),
-                    id_vars=['date', 'mc_vaccination_stage'],
-                    value_name='incidI', var_name='geoid')
+            source_name = parameters[new_comp]['source']
+            print(f'doing {new_comp} from {source_name}')
+            if source_name == 'incidI' and 'incidI' not in all_data:  # create incidI
+                source_array = backward_compatibility_incidI(diffI, dates, places)
+                all_data['incidI'] = source_array
+                outcomes = dataframe_from_array(source_array, places, dates, 'incidI')
+            elif isinstance(source_name, dict):
+                source_array = get_filtered_incidI(diffI, dates, places, source_name)
+                # we don't keep source in this cases
+            else:  # already defined outcomes
+                source_array = all_data[source_name]
 
             if loaded_values is not None:
                 ## This may be unnecessary
@@ -333,14 +345,14 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     loaded_values[
                         (loaded_values['quantity'] == 'probability') &
                         (loaded_values['outcome'] == new_comp) &
-                        #(loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
-                        (loaded_values['source'] == source)
+                        # (loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
+                        (loaded_values['source'] == source_name)
                         ]['value'].to_numpy()
                 delays = loaded_values[
                     (loaded_values['quantity'] == 'delay') &
                     (loaded_values['outcome'] == new_comp) &
-                    #(loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
-                    (loaded_values['source'] == source)
+                    # (loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
+                    (loaded_values['source'] == source_name)
                     ]['value'].to_numpy()
             else:
                 probabilities = parameters[new_comp]['probability'].as_random_distribution()(
@@ -364,14 +376,14 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                          # 'mc_vaccination_stage': [p_comp] * len(places),
                          'quantity': ['probability'] * len(places),
                          'outcome': [new_comp] * len(places),
-                         'source': [source] * len(places),
+                         'source': [source_name] * len(places),
                          'value': probabilities[0] * np.ones(len(places))}),
                     pd.DataFrame.from_dict(
                         {'geoid': places,
                          # 'mc_vaccination_stage': [p_comp] * len(places),
                          'quantity': ['delay'] * len(places),
                          'outcome': [new_comp] * len(places),
-                         'source': [source] * len(places),
+                         'source': [source_name] * len(places),
                          'value': delays[0] * np.ones(len(places))})
                 ],
                 axis=0)
@@ -380,28 +392,24 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 delays = np.round(delays).astype(int)
                 probabilities = _parameter_reduce(probabilities, npi.getReduction(f"{new_comp}::probability".lower()))
 
-            df = pd.DataFrame()
             # Create new compartment incidence:
-            all_data[new_comp] = np.empty_like(all_data['incidI'])
+            all_data[new_comp] = np.empty_like(source_array)
             # Draw with from source compartment
             if stoch_traj_flag:
-                all_data[new_comp] = np.random.binomial(all_data[source].astype(np.int32),
+                all_data[new_comp] = np.random.binomial(source_array.astype(np.int32),
                                                         probabilities)
             else:
-                all_data[new_comp] = all_data[source] * (
-                        probabilities * np.ones_like(all_data[source]))
+                all_data[new_comp] = source_array * (
+                        probabilities * np.ones_like(source_array))
 
             # Shift to account for the delay
             ## stoch_delay_flag is whether to use stochastic delays or not
             stoch_delay_flag = False
             all_data[new_comp] = multishift(all_data[new_comp], delays,
-                                                    stoch_delay_flag=stoch_delay_flag)
+                                            stoch_delay_flag=stoch_delay_flag)
             # Produce a dataframe an merge it
             df_p = dataframe_from_array(all_data[new_comp], places, dates, new_comp)
-            #df_p['mc_vaccination_stage'] = p_comp
-            df = pd.concat([df, df_p])
-            outcomes = pd.merge(outcomes, df)
-            print(outcomes)
+            outcomes = pd.merge(outcomes, df_p)
 
             # Make duration
             if 'duration' in parameters[new_comp]:
@@ -409,8 +417,8 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     durations = loaded_values[
                         (loaded_values['quantity'] == 'duration') &
                         (loaded_values['outcome'] == new_comp) &
-                        #(loaded_values['mc_vaccination_stage'] == p_comps[0]) &
-                        (loaded_values['source'] == source)
+                        # (loaded_values['mc_vaccination_stage'] == p_comps[0]) &
+                        (loaded_values['source'] == source_name)
                         ]['value'].to_numpy()
                 else:
                     durations = parameters[new_comp]['duration'].as_random_distribution()(
@@ -423,10 +431,10 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                         hpar,
                         pd.DataFrame.from_dict(
                             {'geoid': places,
-                             #'mc_vaccination_stage': [p_comp] * len(places),
+                             # 'mc_vaccination_stage': [p_comp] * len(places),
                              'quantity': ['duration'] * len(places),
                              'outcome': [new_comp] * len(places),
-                             'source': [source] * len(places),
+                             'source': [source_name] * len(places),
                              'value': durations[0] * np.ones(len(places))
                              }
                         )
@@ -448,19 +456,19 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     # plt.savefig('Daft'+new_comp + '-' + source)
                     # plt.close()
 
-                df = pd.DataFrame()
+                # df = pd.DataFrame()
                 all_data[parameters[new_comp]['duration_name']] = np.cumsum(all_data[new_comp],
-                                                                                    axis=0) - \
-                                                                          multishift(
-                                                                              np.cumsum(all_data[new_comp],
-                                                                                        axis=0), durations,
-                                                                              stoch_delay_flag=stoch_delay_flag)
+                                                                            axis=0) - \
+                                                                  multishift(
+                                                                      np.cumsum(all_data[new_comp],
+                                                                                axis=0), durations,
+                                                                      stoch_delay_flag=stoch_delay_flag)
 
                 df_p = dataframe_from_array(all_data[parameters[new_comp]['duration_name']], places,
                                             dates, parameters[new_comp]['duration_name'])
-                #df_p['mc_vaccination_stage'] = p_comp
-                df = pd.concat([df, df_p])
-                outcomes = pd.merge(outcomes, df)
+                # df_p['mc_vaccination_stage'] = p_comp
+                # df = pd.concat([df, df_p])
+                outcomes = pd.merge(outcomes, df_p)
 
         elif 'sum' in parameters[new_comp]:
             # Sum all concerned compartment.
@@ -470,6 +478,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
 
 
 def backward_compatibility_incidI(diffI, dates, places):
+    # We store them as numpy matrices. Dimensions is dates X places
     incidI_arr = np.zeros((len(dates), len(places)), dtype=np.int)
     mc_vaccination_stages = diffI['mc_vaccination_stage'].unique()
     for p_comp in mc_vaccination_stages:
@@ -488,8 +497,21 @@ def backward_compatibility_incidI(diffI, dates, places):
             incidI_arr = incidI_arr + new_df.to_numpy()
     return incidI_arr
 
-    # We store them as numpy matrices. Dimensions is dates X places
 
+def get_filtered_incidI(diffI, dates, places, filters):
+    incidI_arr = np.zeros((len(dates), len(places)), dtype=np.int)
+    df = diffI.copy()
+    for mc_type, mc_value in filters.items():
+        if isinstance(mc_value, str):
+            mc_value = [mc_value]
+        df = df[df[f'mc_{mc_type}'].isin(mc_value)]
+
+    for mcn in df['mc_name'].unique():
+        new_df = df[df['mc_name'] == mcn]
+        new_df = new_df.drop([c for c in new_df.columns if 'mc_' in c], axis=1)
+        new_df = new_df.drop('date', axis=1)
+        incidI_arr = incidI_arr + new_df.to_numpy()
+    return incidI_arr
 
 """ Quite fast shift implementation, along the first axis, 
     which is date. num is an integer not negative nor zero """
