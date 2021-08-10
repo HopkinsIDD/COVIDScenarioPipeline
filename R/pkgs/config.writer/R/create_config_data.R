@@ -64,7 +64,7 @@ set_npi_params <- function(intervention_file,
                       type = "transmission",
                       category = "NPI",
                       baseline_scenario = "",
-                      parameter = dplyr::if_else(template=="MultiTimeReduce", "R0", NA_character_)
+                      parameter = dplyr::if_else(template=="MultiTimeReduce", "r0", NA_character_)
         )
 
     if(any(stringr::str_detect(npi$name, "^\\d$"))) stop("Intervention names must include at least one non-numeric character.")
@@ -97,7 +97,7 @@ set_npi_params <- function(intervention_file,
         dplyr::ungroup() %>%
         dplyr::add_count(name) %>%
         dplyr::mutate(template = dplyr::if_else(n==1 & template == "MultiTimeReduce", "Reduce", template),
-                      parameter = dplyr::if_else(n==1 & template == "Reduce", "R0", parameter)) %>%
+                      parameter = dplyr::if_else(n==1 & template == "Reduce", "r0", parameter)) %>%
         dplyr::select(-n)
 
     return(npi)
@@ -166,7 +166,7 @@ set_seasonality_params <- function(sim_start_date=as.Date("2020-03-31"),
                       end_date = dplyr::if_else(end_date > sim_end_date, sim_end_date, end_date),
                       USPS = "",
                       type = "transmission",
-                      parameter = "R0",
+                      parameter = "r0",
                       category = "seasonal",
                       template = template,
                       baseline_scenario = "",
@@ -324,7 +324,7 @@ set_redux_params <- function(npi_file,
                name = paste0(category, '_', month),
                baseline_scenario = c("base_npi", paste0("NPI_redux_", month[-length(month)])),
                template = "ReduceIntervention",
-               parameter = "R0",
+               parameter = "r0",
                value_dist = v_dist,
                value_sd = v_sd,
                value_a = v_a,
