@@ -16,7 +16,8 @@ generate_config <- function(){
                  mobility = "mobility_territories_2011-2015_statelevel.csv")
 
     print_seeding(lambda_file = "data/minimal/seeding_territories.csv",
-                  perturbation_sd = 3)
+                  perturbation_sd = 3,
+                  compartment = FALSE)
 
     print_seir(gamma_dist = "uniform",
                gamma_a = 1/4.5,
@@ -24,8 +25,10 @@ generate_config <- function(){
                R0s_dist = "fixed",
                R0s_val = 2.3,
                incl_vacc = TRUE,
-               dose_susceptibility_val = c(0, 0.5, 0.90),
-               transitions_val = c(0, 0.04))
+               theta_1A_val = 0.5,
+               theta_2A_val = 0.9,
+               compartment = FALSE,
+               compartment_names = c("unvaccinated", "first_dose", "second_dose"))
 
     print_transmission_interventions(interventions,
                                      scenario = "inference")
