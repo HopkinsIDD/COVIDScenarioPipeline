@@ -690,10 +690,10 @@ print_outcomes <- function(dat=NULL,
 #' @param gamma_a minimum value of gamma - required if distribution is not "fixed"
 #' @param gamma_b maximum value of gamma - required if distribution is not "fixed"
 #' @param alpha_val transmission dampening parameter; reasonable values for respiratory viruses range from 0.88-0.99
-#' @param r0_val basic reproduction number
-#' @param r0_dist specify if R0 is fixed or distributional
-#' @param r0_a minimum value of R0 - required if distribution is not "fixed"
-#' @param r0_b maximum value of R0 - required if distribution is not "fixed"
+#' @param R0s_val basic reproduction number
+#' @param R0s_dist specify if R0 is fixed or distributional
+#' @param R0s_a minimum value of R0 - required if distribution is not "fixed"
+#' @param R0s_b maximum value of R0 - required if distribution is not "fixed"
 #' @param theta_1A_val reduction in susceptibility for the 1st vaccine compartment (i.e. 1-dose)
 #' @param theta_1A_dist distribution of theta_1A
 #' @param theta_2A_val reduction in susceptibility for the 2nd vaccine compartment (i.e. 2-doses)
@@ -739,11 +739,11 @@ print_seir <- function(sigma_val = 1/5.2,
                        gamma_a = 1/4.5,
                        gamma_b = 1/3,
                        alpha_val = 0.99,
-                       r0_val = 2.3,
-                       r0_dist = "uniform",
-                       r0_sd = NULL,
-                       r0_a = 2,
-                       r0_b = 3,
+                       R0s_val = 2.3,
+                       R0s_dist = "uniform",
+                       R0s_sd = NULL,
+                       R0s_a = 2,
+                       R0s_b = 3,
                        theta_1A_val = 0.5,
                        theta_1A_dist = "fixed",
                        theta_2A_val = 0.9,
@@ -777,11 +777,11 @@ print_seir <- function(sigma_val = 1/5.2,
                                                     value_mean = sigma_val),
                        "    alpha: \n", print_value(value_dist = "fixed",
                                                     value_mean = alpha_val),
-                       "    r0: \n", print_value(value_dist = r0_dist,
-                                                 value_mean = r0_val,
-                                                 value_sd = r0_sd,
-                                                 value_a = r0_a,
-                                                 value_b = r0_b),
+                       "    r0: \n", print_value(value_dist = R0s_dist,
+                                                 value_mean = R0s_val,
+                                                 value_sd = R0s_sd,
+                                                 value_a = R0s_a,
+                                                 value_b = R0s_b),
                        "    gamma: \n", print_value(value_dist = gamma_dist,
                                                     value_mean = gamma_val,
                                                     value_sd = gamma_sd,
