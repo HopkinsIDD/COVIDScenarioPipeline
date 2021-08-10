@@ -690,15 +690,32 @@ print_outcomes <- function(dat=NULL,
 #' @param gamma_a minimum value of gamma - required if distribution is not "fixed"
 #' @param gamma_b maximum value of gamma - required if distribution is not "fixed"
 #' @param alpha_val transmission dampening parameter; reasonable values for respiratory viruses range from 0.88-0.99
-#' @param R0_val basic reproduction number
-#' @param R0_dist specify if R0 is fixed or distributional
-#' @param R0_a minimum value of R0 - required if distribution is not "fixed"
-#' @param R0_b maximum value of R0 - required if distribution is not "fixed"
+#' @param r0_val basic reproduction number
+#' @param r0_dist specify if R0 is fixed or distributional
+#' @param r0_a minimum value of R0 - required if distribution is not "fixed"
+#' @param r0_b maximum value of R0 - required if distribution is not "fixed"
+#' @param theta_1A_val reduction in susceptibility for the 1st vaccine compartment (i.e. 1-dose)
+#' @param theta_1A_dist distribution of theta_1A
+#' @param theta_2A_val reduction in susceptibility for the 2nd vaccine compartment (i.e. 2-doses)
+#' @param theta_2A_dist distribution of theta_2A
+#' @param theta_1B_val reduction in susceptibility to the third variant for the 1st vaccine compartment (i.e. 1-dose)
+#' @param theta_1B_dist distribution of theta_1B
+#' @param theta_2B_val reduction in susceptibility to the third variant for the 2nd vaccine compartment (i.e. 2-doses)
+#' @param theta_2B_dist distribution of theta_2B
+#' @param nu_1_val value of transition from the unvaccinated to the 1st vaccine compartment
+#' @param nu_1_dist distribution of nu_1
+#' @param nu_1_overlap_operation
+#' @param nu_2_val value of transition from the 1st to the 2nd vaccine compartment
+#' @param nu_2_dist distribution of nu_2
+#' @param nu_2_overlap_operation
+#' @param chi_1_val relative change in transmission for the 2nd vs 1st variant compartment (e.g. alpha vs wild)
+#' @param chi_1_dist distribution of chi_1
+#' @param chi_2_val relative change in transmission for the 3rd vs 1st variant compartment (e.g. delta vs wild)
+#' @param chi_2_dist distribution of chi_2
+#' @param epsilon_val rate at which immunity wanes (i.e. movement from R --> S)
+#' @param epsilon_dist distribution of epsilon
 #' @param incl_vacc specify whether to include vaccination compartments. If TRUE, must specify dose transmission/susceptibility parameters for each compartment and transition across compartments
-#' @param dose_transmission_dist vector specifying whether transmission in each compartment is fixed; distributional is not yet supported
-#' @param dose_transmission_val vector specifying transmission rates per compartment
-#' @param dose_susceptibility_dist vector specifying whether susceptibility in each compartment is fixed; distributional is not yet supported
-#' @param dose_susceptibility_val vector specifying reduction in risk per compartment
+
 #' @param transitions_dist vector specifying whether transition rate between compartments is fixed; distributional is not yet supported
 #' @param transitions_val vector specifying base transition rate between compartments
 #' @param compartment_names names of vaccination compartments: defaults to "unvaccinated", "first dose" and "second dose"
@@ -710,8 +727,8 @@ print_outcomes <- function(dat=NULL,
 #'            gamma_dist = "uniform",
 #'            gamma_a = 1/6,
 #'            gamma_b = 1/2.6,
-#'            R0s_dist = "fixed",
-#'            R0s_val = 2.3,
+#'            r0_dist = "fixed",
+#'            r0_val = 2.3,
 #'            incl_vacc = FALSE)
 #'
 
@@ -722,75 +739,204 @@ print_seir <- function(sigma_val = 1/5.2,
                        gamma_a = 1/4.5,
                        gamma_b = 1/3,
                        alpha_val = 0.99,
-                       R0s_val = 2.3,
-                       R0s_dist = "uniform",
-                       R0s_sd = NULL,
-                       R0s_a = 2,
-                       R0s_b = 3,
+                       r0_val = 2.3,
+                       r0_dist = "uniform",
+                       r0_sd = NULL,
+                       r0_a = 2,
+                       r0_b = 3,
+                       theta_1A_val = 0.5,
+                       theta_1A_dist = "fixed",
+                       theta_2A_val = 0.9,
+                       theta_2A_dist = "fixed",
+                       theta_1B_val = 0.35,
+                       theta_1B_dist = "fixed",
+                       theta_2B_val = 0.85,
+                       theta_2B_dist = "fixed",
+                       nu_1_val = 0,
+                       nu_1_dist = "fixed",
+                       nu_1_overlap_operation = "sum",
+                       nu_2_val = 1/(3.5*7),
+                       nu_2_dist = "fixed",
+                       nu_2_overlap_operation = "sum",
+                       chi_1_val = 1.5,
+                       chi_1_dist = "fixed",
+                       chi_2_val = 1.6*1.5,
+                       chi_2_dist = "fixed",
+                       epsilon_val = 0*1/(365*1.5),
+                       epsilon_dist = "fixed",
                        incl_vacc = TRUE,
-                       dose_transmission_dist = c("fixed","fixed", "fixed"),
-                       dose_transmission_val = c(0, 0, 0),
-                       dose_susceptibility_dist = c("fixed","fixed", "fixed"),
-                       dose_susceptibility_val = c(0, 0.75, 0.90),
-                       transitions_dist = c("fixed", "fixed"),
-                       transitions_val = c(0, 0.04),
-                       compartment_names = c("unvaccinated", "first_dose", "second_dose")
+                       compartment_names = c("unvaccinated", "1dose", "2dose"),
+                       compartment = TRUE
 ){
     # TODO: add checks to compartment length
 
 
         seir <- paste0("seir:\n",
                        "  parameters:\n",
-                       print_value(value_dist = R0s_dist,
-                                   value_mean = R0s_val,
-                                   value_sd = R0s_sd,
-                                   value_a = R0s_a,
-                                   value_b = R0s_b,
-                                   indent_space = 4,
-                                   param_name = "R0s"),
-                       print_value(value_dist = gamma_dist,
-                                   value_mean = gamma_val,
-                                   value_sd = gamma_sd,
-                                   value_a = gamma_a,
-                                   value_b = gamma_b,
-                                   indent_space = 4,
-                                   param_name = "gamma"),
-                       "    sigma: ", sigma_val, "\n",
-                       "    alpha: ", alpha_val, "\n"
-                       )
+                       "    sigma: \n", print_value(value_dist = "fixed",
+                                                    value_mean = sigma_val),
+                       "    alpha: \n", print_value(value_dist = "fixed",
+                                                    value_mean = alpha_val),
+                       "    r0: \n", print_value(value_dist = r0_dist,
+                                                 value_mean = r0_val,
+                                                 value_sd = r0_sd,
+                                                 value_a = r0_a,
+                                                 value_b = r0_b),
+                       "    gamma: \n", print_value(value_dist = gamma_dist,
+                                                    value_mean = gamma_val,
+                                                    value_sd = gamma_sd,
+                                                    value_a = gamma_a,
+                                                    value_b = gamma_b))
 
-        if(incl_vacc){
-            vacc <- paste0("    parallel_structure:\n",
-                           "      compartments:\n")
-            for(i in 1:length(compartment_names)){
-                vacc <- paste0(vacc,
-                               "        ", compartment_names[i], ":\n",
-                               print_value(value_dist = dose_transmission_dist[i],
-                                           value_mean = dose_transmission_val[i],
+        if(compartment){
+            seir <- paste0(seir,
+                           "    theta_1A: \n", print_value(value_dis = theta_1A_dist,
+                                                           value_mean = theta_1A_val),
+                           "    theta_2A: \n", print_value(value_dis = theta_2A_dist,
+                                                           value_mean = theta_2A_val),
+                           "    theta_1B: \n", print_value(value_dis = theta_1B_dist,
+                                                           value_mean = theta_1B_val),
+                           "    theta_2B: \n", print_value(value_dis = theta_2B_dist,
+                                                           value_mean = theta_2B_val),
+                           "    nu_1: \n",
+                           "      intervention_overlap_operation: ", nu_1_overlap_operation, "\n",
+                           print_value(value_dis = nu_1_dist,
+                                       value_mean = nu_1_val),
+                           "    nu_2: \n",
+                           "      intervention_overlap_operation: ", nu_2_overlap_operation, "\n",
+                           print_value(value_dis = nu_2_dist,
+                                       value_mean = nu_2_val),
+                           "    chi_1: \n", print_value(value_dist = chi_1_dist,
+                                                        value_mean = chi_1_val),
+                           "    chi_2: \n", print_value(value_dist = chi_2_dist,
+                                                        value_mean = chi_2_val),
+                           "    epsilon: \n", print_value(value_dist = epsilon_dist,
+                                                          value_mean = epsilon_val),
+                           "  compartments:\n",
+                           '    infection_stage: ["S", "E", "I1", "I2", "I3", "R"] \n',
+                           '    vaccination_stage: ["', paste0(compartment_names, collapse = '", "'), '"] \n',
+                           '    variant_type: ["WILD", "ALPHA", "DELTA"] \n',
+                           '  transitions:\n ',
+                           '    - source: [["S"],["', paste0(compartment_names, collapse = '", "'), '"],"WILD"] \n',
+                           '      destination: [["E"],["', paste0(compartment_names, collapse = '", "'), '"],["WILD", "ALPHA"]]\n',
+                           '      proportional_to: [\n',
+                           '        "source"\n',
+                           '        [[["I1","I2","I3"]],[["', paste0(compartment_names, collapse = '", "'), '"], ["', paste0(compartment_names, collapse = '", "'), '"], ["', paste0(compartment_names, collapse = '", "'), '"]],[["WILD"],["ALPHA"]]]\n',
+                           '      ]\n',
+                           '      proportion_exponent: [[["1"],"1","1"],[["alpha"],"1","1"]]\n',
+                           '      rate: [["r0 * gamma"],["1", "theta_1A", "theta_2A"],["1", "chi_1"]]\n',
+
+                           '  transitions:\n ',
+                           '    - source: [["S"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD"]] \n',
+                           '      destination: [["E"], ["', paste0(compartment_names, collapse = '", "'), '"], ["DELTA"]]\n',
+                           '      proportional_to: [\n',
+                           '        "source",\n',
+                           '        [[["I1","I2","I3"]], [["', paste0(compartment_names, collapse = '", "'), '"], ["', paste0(compartment_names, collapse = '", "'), '"], ["', paste0(compartment_names, collapse = '", "'), '"]], ["DELTA"]]\n',
+                           '      ]\n',
+                           '      proportion_exponent: [\n',
+                           '        [["1"],"1","1"],\n',
+                           '        [["alpha"],"1","1"]\n',
+                           '      ]\n',
+                           '      rate: [["r0 * gamma"], ["1", "theta_1B", "theta_2B"], ["chi_2"]]\n',
+
+                           '  transitions:\n ',
+                           '    - source: [["E"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]]\n',
+                           '      destination: [["I1"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]]\n',
+                           '      proportional_to: ["source"]\n',
+                           '      proportion_exponent:  [["1","1","1"]]\n',
+                           '      rate: [["sigma"], "1", "1"]\n',
+
+                           '  transitions:\n ',
+                           '    - source: [["I1"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      destination: [["I2"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      proportional_to: ["source"] \n',
+                           '      proportion_exponent: [["1","1","1"]] \n',
+                           '      rate: ["3 * gamma", 1, 1] \n',
+
+                           '  transitions:\n ',
+                           '    - source: [["I2"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      destination: [["I3"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      proportional_to: ["source"] \n',
+                           '      proportion_exponent: [["1","1","1"]] \n',
+                           '      rate: ["3 * gamma", 1, 1] \n',
+
+                           '  transitions:\n ',
+                           '    - source: [["I3"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      destination: [["R"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      proportional_to: ["source"] \n',
+                           '      proportion_exponent: [["1","1","1"]] \n',
+                           '      rate: ["3 * gamma", 1, 1] \n',
+
+                           '  transitions:\n ',
+                           '    - source: [ ["S","E","I1","I2","I3","R"], ["unvaccinated", "1dose"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      destination: [["S","E","I1","I2","I3","R"], ["1dose", "2dose"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      proportional_to: ["source"] \n',
+                           '      proportion_exponent: [["1","1","1"]] \n',
+                           '      rate: ["1", ["nu_1","nu_2"], "1"] \n',
+
+                           '  transitions:\n ',
+                           '    - source: [["R"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      destination: [["S"], ["', paste0(compartment_names, collapse = '", "'), '"], "WILD"] \n',
+                           '      proportional_to: ["source"] \n',
+                           '      proportion_exponent: [["1","1","1"]] \n',
+                           '      rate: ["epsilon", 1, 1] \n'
+                           )
+        } else{
+
+            if(incl_vacc){
+                vacc <- paste0("    parallel_structure:\n",
+                               "      compartments:\n",
+                               "        ", compartment_names[1], ":\n",
+                               print_value(value_dist = "fixed",
+                                           value_mean = 0,
                                            indent_space = 10,
                                            param_name = "transmissibility_reduction"),
-                               print_value(value_dist = dose_susceptibility_dist[i],
-                                           value_mean = dose_susceptibility_val[i],
+                               print_value(value_dist = "fixed",
+                                           value_mean = 0,
                                            indent_space = 10,
-                                           param_name = "susceptibility_reduction")
-                               )
-            }
-            vacc <- paste0(vacc,
-                           "      transitions:\n")
+                                           param_name = "susceptibility_reduction"))
 
-            for(i in 2:length(compartment_names)){
+                dose_transmission_dist <- c("fixed", "fixed")
+                dose_transmission_val <- c(0, 0)
+
+                dose_susceptibility_dist <- c(theta_1A_dist, theta_2A_dist)
+                dose_susceptibility_val <- c(theta_1A_val, theta_2A_val)
+
+                for(i in 2:length(compartment_names)){
+                    vacc <- paste0(vacc,
+                                   "        ", compartment_names[i], ":\n",
+                                   print_value(value_dist = dose_transmission_dist[i-1],
+                                               value_mean = dose_transmission_val[i-1],
+                                               indent_space = 10,
+                                               param_name = "transmissibility_reduction"),
+                                   print_value(value_dist = dose_susceptibility_dist[i-1],
+                                               value_mean = dose_susceptibility_val[i-1],
+                                               indent_space = 10,
+                                               param_name = "susceptibility_reduction")
+                    )
+                }
                 vacc <- paste0(vacc,
-                               "        - from: ", compartment_names[i-1], "\n",
-                               "          to: ", compartment_names[i], "\n",
-                               print_value(value_dist = transitions_dist[i-1],
-                                           value_mean = transitions_val[i-1],
-                                           indent_space = 10,
-                                           param_name = "rate"))
-            }
-            vacc
-        } else{ vacc <- ""}
+                               "      transitions:\n")
 
-        cat(paste0(seir, vacc, "\n"))
+                transitions_dist <- c(nu_1_dist, nu_2_dist)
+                transitions_val <- c(nu_1_val, nu_2_val)
+
+                for(i in 2:length(compartment_names)){
+                    vacc <- paste0(vacc,
+                                   "        - from: ", compartment_names[i-1], "\n",
+                                   "          to: ", compartment_names[i], "\n",
+                                   print_value(value_dist = transitions_dist[i-1],
+                                               value_mean = transitions_val[i-1],
+                                               indent_space = 10,
+                                               param_name = "rate"))
+                }
+                vacc
+            } else{ vacc <- ""}
+
+            seir <- paste0(seir, vacc, "\n")
+        }
+
+        cat(seir)
 
 }
 
@@ -864,6 +1010,8 @@ print_header <- function(sim_name,
 #' @param folder_path path to folder where importation inference files will be saved
 #' @param lambda_file path to seeding file
 #' @param perturbation_sd standard deviation for the proposal value of the seeding date, in number of days
+#' @param variant_filename path to file with variant proportions per day per variant. Variant names: 'wild', 'alpha', 'delta'
+#' @param compartment whether to print config with compartments
 #'
 #' @details
 #' ## The model performns inference on the seeding date and initial number of seeding infections in each geoid with the default settings
@@ -877,12 +1025,28 @@ print_seeding <- function(method = "FolderDraw",
                          seeding_file_type = "seed",
                          folder_path = "importation/minimal/",
                          lambda_file = "data/minimal/seeding.csv",
-                         perturbation_sd = 1
+                         perturbation_sd = 1,
+                         variant_filename = "data/variant/variant_props_long.csv",
+                         compartment = TRUE
 ){
+    seeding_comp <- "seeding:\n"
+
+    if(compartment){
+        var_compartment <- c("wild", "alpha", "delta")
+        seeding_comp <- paste0(seeding_comp,
+                               '  variant_filename: ', variant_filename, '\n',
+                               '  seeding_compartments:\n')
+
+        for(i in 1:length(var_compartment)){
+            seeding_comp <- paste0(seeding_comp,
+                                   '    ', var_compartment[i], ':\n',
+                                   '      source_compartment: ["S", "unvaccinated","', stringr::str_to_upper(var_compartment[1]),'"]\n',
+                                   '      destination_compartment: ["E", "unvaccinated", "',stringr::str_to_upper(var_compartment[i]),'"]\n')
+        }
+    }
 
     cat(paste0(
-        "\n",
-        "seeding:\n",
+        seeding_comp,
         "  method: ", method,"\n",
         "  seeding_file_type: ", seeding_file_type,"\n",
         "  folder_path: ", folder_path,"\n",
