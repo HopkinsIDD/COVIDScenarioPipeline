@@ -43,7 +43,7 @@ proportion_exponent_col = 2
     "float64[:,:],"  ## initial_conditions [ ncompartments x nspatial_nodes ]
     ## Seeding
     "DictType(unicode_type, int64[:]),"  # seeding keys: 'seeding_places', 'seeding_destinations', 'seeding_sources'
-    "float64[:],"  # seeding keys: 'seeding_amounts'
+    "float64[:],"  # seeding_amounts
     ## Mobility
     "float64[:],"  # mobility_data [ nmobility_instances ]
     "int32[:],"  # mobility_row_indices [ nmobility_instances ]
@@ -95,13 +95,14 @@ def steps_SEIR_nb(
     compound_adjusted_rate = np.zeros((nspatial_nodes))
     number_move = np.zeros((nspatial_nodes))
 
-    # print("SEIR.beforeLoop")
 
+    yesterday = -1
     times = np.arange(0, (ndays - 1) + 1e-7, dt)
     for time_index, time in enumerate(times):
         today = int(np.floor(time))
-        is_a_new_day = False
-        if time % 1 == 0: is_a_new_day = True
+        is_a_new_day = (today != yesterday)
+        yesterday = today
+
         total_seeded = 0
         times_seeded = 0
         if is_a_new_day:
@@ -111,16 +112,6 @@ def steps_SEIR_nb(
                     seeding_data['day_start_idx'][today],
                     seeding_data['day_start_idx'][today + 1]
             ):
-
-                #print("some-seeding", seeding_data['seeding_amounts'][seeding_instance_idx])
-                #print(seeding_instance_idx)
-                # seeding_instance_data[seeding_value_col][seeding_instance_idx] = min(
-                #     seeding_instance_data[seeding_value_col][seeding_instance_idx],
-                #     states_next[
-                #         seeding_instance_data[seeding_source_col][seeding_instance_idx]][
-                #             seeding_instance_data[seeding_spatial_node_col][seeding_instance_idx]]
-                # )
-
                 this_seeding_amounts = seeding_amounts[seeding_instance_idx]
                 seeding_places = seeding_data['seeding_places'][seeding_instance_idx]
                 seeding_sources = seeding_data['seeding_sources'][seeding_instance_idx]
@@ -136,12 +127,8 @@ def steps_SEIR_nb(
                 # ADD TO cumulative, this is debatable,
                 states_daily_incid[today][seeding_destinations][seeding_places] += this_seeding_amounts
 
-        if total_seeded > 0:
-            print("At time, (", time_index, ", ", time, "): ", total_seeded, " were seeded accross all geoids during", times_seeded, "instances")
-
         total_infected = 0
         for transition_index in range(ntransitions):
-            #print("processing tranision", transition_index)
             total_rate = np.ones((nspatial_nodes))
             first_proportion = True
             for proportion_index in range(
@@ -170,7 +157,6 @@ def steps_SEIR_nb(
                         total_rate[source_number > 0] *= source_number[source_number > 0] ** relevant_exponent[source_number > 0] / source_number[source_number > 0]
                     if only_one_proportion:
                         total_rate *= parameters[transitions[transition_rate_col][transition_index]][today]
-                    #print(total_rate)
                 else:
                     for spatial_node in range(nspatial_nodes):
                         proportion_keep_compartment = 1 - percent_day_away * percent_who_move[spatial_node]
@@ -191,53 +177,8 @@ def steps_SEIR_nb(
                         rate_change_compartment /= population[visiting_compartment]
                         rate_change_compartment *= parameters[transitions[transition_rate_col][transition_index]][today][visiting_compartment]
                         total_rate[spatial_node] *= (rate_keep_compartment + rate_change_compartment.sum())
-                        if ( (time_index == 66) and (
-                                (
-                                    (transitions[transition_destination_col][transition_index]  == 3) and
-                                    (transitions[transition_source_col][transition_index]  == 0)
-                                ) or
-                                (
-                                    (transitions[transition_destination_col][transition_index]  == 4) and
-                                    (transitions[transition_source_col][transition_index]  == 0)
-                                ) or
-                                (
-                                    (transitions[transition_destination_col][transition_index]  == 5) and
-                                    (transitions[transition_source_col][transition_index]  == 0)
-                                )
-                        )):
-                            print(proportion_keep_compartment)
-                            print(parameters[transitions[transition_rate_col][transition_index]][today][spatial_node])
-                            print(relevant_number_in_comp[spatial_node])
-                            print(relevant_exponent[spatial_node])
-                            print(population[spatial_node])
-                            print(
-                                proportion_keep_compartment *
-                                parameters[transitions[transition_rate_col][transition_index]][today][spatial_node] *
-                                relevant_number_in_comp[spatial_node] **
-                                relevant_exponent[spatial_node] /
-                                population[spatial_node]
-                            )
-
-                            print("local rates are ", rate_keep_compartment)
 
             compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
-            if (
-                    (
-                        (transitions[transition_destination_col][transition_index]  == 3) and
-                        (transitions[transition_source_col][transition_index]  == 0)
-                    ) or
-                    (
-                        (transitions[transition_destination_col][transition_index]  == 4) and
-                        (transitions[transition_source_col][transition_index]  == 0)
-                    ) or
-                    (
-                        (transitions[transition_destination_col][transition_index]  == 5) and
-                        (transitions[transition_source_col][transition_index]  == 0)
-                    )
-            ):
-                for spatial_node in range(nspatial_nodes):
-                    if compound_adjusted_rate[spatial_node] > 0:
-                        print("Probability of exposure for node", spatial_node, ": ", compound_adjusted_rate[spatial_node])
 
             if stochastic_p:
                 for spatial_node in range(nspatial_nodes):
@@ -278,20 +219,9 @@ def steps_SEIR_nb(
             states_next[transitions[transition_destination_col][transition_index]] += number_move
             states_daily_incid[today, transitions[transition_destination_col][transition_index], :] += number_move
 
-        ## TESTING
-        if total_infected > 0:
-            print("At time, (", time_index, ", ", time, "): ", total_infected, " were infected accross all geoids")
-            # raise ValueError("Stopping after first tranmission")
-
         states_current = states_next.copy()
 
 
-        # if debug_print:
-        #     print("State Movements:")
-        #     movements = states_next - states_current
-        #     print("Movement extremes")
-        #     print(movements.min())
-        #     print(movements.max())
         if debug_print:
             print("Current States extremes:")
             print(states_current.min())
@@ -305,8 +235,6 @@ def steps_SEIR_nb(
             print((states_current.min() < 0), (states_current.max() > 10 ** 10))
             raise ValueError(f"Overflow error. Too small ?. Too large ?")
 
-    # print(states)
-    # print(states_daily_incid)
     return states, states_daily_incid
 
 
