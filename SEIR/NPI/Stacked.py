@@ -17,6 +17,7 @@ REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE",5000))
 class Stacked(NPIBase):
     def __init__(self, *, npi_config, global_config, geoids, loaded_df=None, pnames_overlap_operation_sum = []):
         super().__init__(name=npi_config.name)
+        print(f"""Beginning stacked intervention {npi_config.name}""")
 
         self.start_date = global_config["start_date"].as_date()
         self.end_date = global_config["end_date"].as_date()
@@ -34,6 +35,7 @@ class Stacked(NPIBase):
         for scenario in npi_config["scenarios"].get():
             # if it's a string, look up the scenario name's config
             if isinstance(scenario, str):
+                print(f"""Beginning sub-intervention {scenario}""")
                 settings = settings_map.get(scenario)
                 if settings is None:
                     raise RuntimeError(f"couldn't find scenario in config file [got: {scenario}]")
@@ -81,12 +83,15 @@ class Stacked(NPIBase):
                 else:
                     self.reduction_cap_exceeded = True
                     self.reduction_params.clear()
+            if isinstance(scenario, str):
+                print(f"""Ending ending {scenario}""")
 
         for param in self.param_name:
             if not param in pnames_overlap_operation_sum: #re.match("^transition_rate \d+$",param):
                 self.reductions[param] = 1 - self.reductions[param]
 
         self.__checkErrors()
+        print(f"""Ending stacked intervention {npi_config.name}""")
 
     def __checkErrors(self):
         for param, reduction in self.reductions.items():

@@ -707,7 +707,7 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 ##'
 ##' @export
 ##'
-get_groundtruth_from_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE){
+get_groundtruth_from_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE, adjust_for_variant = FALSE, variant_props_file = "data/variant/variant_props_long.csv"){
 
   if(source == "reichlab" & scale == "US county"){
 
@@ -781,8 +781,32 @@ get_groundtruth_from_source <- function(source = "csse", scale = "US county", va
     rc <- NULL
   }
 
+  if (adjust_for_variant) {
+    rc <- adjust_for_variant(rc, variant_props_file)
+  }
+
   return(rc)
 
+}
+
+adjust_for_variant <- function(rc, variant_props_file = "data/variant/variant_props_long.csv"){
+  non_outcome_column_names <- c("FIPS", "Update", "source")
+  outcome_column_names <- names(rc)[!(names(rc) %in% non_outcome_column_names)]
+  variant_data <- readr::read_csv(variant_props_file)
+  rc <- rc %>%
+    tidyr::pivot_longer(!!outcome_column_names, names_to = "outcome") %>%
+    dplyr::left_join(variant_data) %>%
+    dplyr::mutate(value = value * prop) %>%
+    dplyr::select(-prop) %>%
+    dplyr::bind_rows(
+      dplyr::mutate(
+        tidyr::pivot_longer(rc, !!outcome_column_names, names_to = "outcome"),
+        variant = "all variants"
+      )
+    )%>%
+    tidyr::pivot_wider(names_from = c("outcome", "variant"), values_from = "value") %>%
+    dplyr::bind_rows(rc)
+  return(rc)
 }
 
 ##'
