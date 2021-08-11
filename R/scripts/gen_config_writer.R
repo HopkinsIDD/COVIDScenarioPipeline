@@ -4,6 +4,7 @@ library(config.writer)
     ## Save Names
     run_type <- "fchub"  # name to save processed intervention data, pasted with formatted config date. For example, if base_path is "data" then this would be saved as "data/fchub_20210712.csv". 
     config_name <- "config.yml" # filename to save in current directory
+    run_compartment = FALSE # set to false for old config settings
     
     ## Data Files
     outcomes_parquet_file <- "usa-geoid-params-output_statelevel.parquet"
@@ -19,6 +20,7 @@ library(config.writer)
     
     variant_file_1 <- "variant/B117-fits.csv"
     variant_file_2 <- "variant/B617-fits.csv"
+    variant_seeding_file <- "variant/variant_props_long.csv"
         b117_only <- FALSE # false if accounting for delta variant as well
         variant_transmission_increase <- 0.6 # increase in transmission in delta vs 117
     
@@ -124,6 +126,7 @@ outcomes_path <- file.path(base_path, outcomes_file)
 
 intervention_path <- file.path(base_path, intervention_file)
 
+variant_seeding_path <- file.path(base_path, variant_seeding_file)
 variant_path_1 <- file.path(base_path, variant_file_1)
 variant_path_2 <- file.path(base_path, variant_file_2)
 
@@ -282,12 +285,13 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
                 )
 
     print_seeding(method = seeding_method,
-                 seeding_file_type = "seed",
-                 folder_path = "importation/minimal/",
-                 lambda_file = lambda_path,
-                 perturbation_sd = perturbation_sd, 
-                 compartment = FALSE)
-
+                  variant_filename = variant_seeding_path,
+                  seeding_file_type = "seed",
+                  folder_path = "importation/minimal/",
+                  lambda_file = lambda_path,
+                  perturbation_sd = perturbation_sd, 
+                  compartment = run_compartment)
+ 
     print_seir(alpha = 0.99,
               sigma = 1/5.2,
               gamma_dist = gamma_dist,
@@ -297,7 +301,7 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
               R0s_dist = "fixed",
               R0s_val = 2.3,
               incl_vacc = incl_vacc, 
-              compartment = FALSE)
+              compartment = run_compartment)
 
     print_transmission_interventions(interventions,
                                      scenario = npi_scenario_name)
