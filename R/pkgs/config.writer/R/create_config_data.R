@@ -713,6 +713,158 @@ set_incidC_shift <- function(periods,
 
 }
 
+#' Generate interventions to adjust hospitalizations
+#'
+#' @param outcome_path path to vaccination adjusted outcome interventions
+#' @param sim_start_date simulation start date
+#' @param sim_end_date simulation end date
+#' @param geodata df with USPS and geoid column for geoids with an incidH adjustment
+#' @param v_dist type of distribution for reduction
+#' @param v_sd reduction sd
+#' @param v_a reduction a
+#' @param v_b reduction b
+#' @param inference logical indicating whether inference will be performed on intervention (default is TRUE); perturbation values are replaced with NA if set to FALSE.
+#' @param p_dist type of distribution for perturbation
+#' @param p_mean perturbation mean
+#' @param p_sd perturbation sd
+#' @param p_a perturbation a
+#' @param p_b perturbation b
+#' @return
+#' @export
+#'
+#' @examples
+
+set_incidH_adj_params <- function(outcome_path,
+                                  sim_start_date=as.Date("2020-03-31"),
+                                  sim_end_date=Sys.Date()+60,
+                                  geodata,
+                                  inference = FALSE,
+                                  v_dist = "truncnorm", v_sd = 0.01, v_a = -10, v_b = 2,
+                                  p_dist = "truncnorm", p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1)
+{
+    sim_start_date <- lubridate::as_date(sim_start_date)
+    sim_end_date <- lubridate::as_date(sim_end_date)
+    outcome <- readr::read_csv(outcome_path) %>%
+        dplyr::filter(!is.na(ratio) & USPS != "US")
+
+    outcome <- outcome %>%
+        dplyr::left_join(geodata %>% dplyr::select(USPS, geoid))
+
+    outcome <- outcome %>% dplyr::mutate(param = "incidH") %>%
+        # dplyr::mutate(month = tolower(month)) %>%
+        dplyr::mutate(prob_redux = 1 - (1/ratio)) %>%
+        #dplyr::mutate(prob_redux = 1 / ratio) %>%
+        dplyr::mutate(end_date = sim_end_date,
+                      start_date = sim_start_date) %>%
+        dplyr::rename(value_mean = prob_redux) %>%
+        dplyr::mutate(geoid = as.character(geoid),
+                      type = "outcome",
+                      category = "outcome_adj",
+                      name = paste(param, "adj",USPS, sep = "_"),
+                      template = "Reduce",
+                      parameter = paste0(param, "::probability"),
+                      baseline_scenario = "",
+                      value_dist = v_dist,
+                      value_sd = v_sd,
+                      value_a = v_a,
+                      value_b = v_b,
+                      pert_dist = p_dist,
+                      pert_mean = p_mean,
+                      pert_sd = p_sd,
+                      pert_a = p_a,
+                      pert_b = p_b) %>%
+        dplyr::mutate(dplyr::across(pert_mean:pert_b, ~ifelse(inference, .x, NA_real_)),
+                      pert_dist = ifelse(inference, pert_dist, NA_character_)) %>%
+        dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category,
+                      parameter, baseline_scenario, tidyselect::starts_with("value_"),
+                      tidyselect::starts_with("pert_"))
+    return(outcome)
+}
+
+
+#' Generate interventions to adjust vaccine effectiveness on transmission
+#'
+#' @param variant_path path to variant data
+#' @param VE vaccine effectiveness against wild strain for the first and second doses, respectively
+#' @param VE_delta vaccine effectivenes against variant or the first and second doses, respectively
+#' @param sim_start_date simulation start date
+#' @param sim_end_date simulation end date
+#' @param geodata df with USPS and geoid column for geoids with an incidH adjustment
+#' @param v_dist type of distribution for reduction
+#' @param v_sd reduction sd
+#' @param v_a reduction a
+#' @param v_b reduction b
+#' @param inference logical indicating whether inference will be performed on intervention (default is TRUE); perturbation values are replaced with NA if set to FALSE.
+#' @param p_dist type of distribution for perturbation
+#' @param p_mean perturbation mean
+#' @param p_sd perturbation sd
+#' @param p_a perturbation a
+#' @param p_b perturbation b
+#' @return
+#' @export
+#'
+#' @examples
+#'
+
+set_ve_shift_params <- function(variant_path,
+                                VE = c(0.5, 0.9),
+                                VE_delta = c(0.35, 0.8),
+                                sim_start_date=as.Date("2020-03-31"),
+                                sim_end_date=Sys.Date()+60,
+                                geodata,
+                                inference = FALSE,
+                                v_dist = "truncnorm", v_sd = 0.01, v_a = -1, v_b = 2,
+                                p_dist = "truncnorm", p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1){
+
+    outcome <- readr::read_csv(variant_path) %>%
+        dplyr::filter(location == "US", date >= "2021-04-01") %>%
+        dplyr::mutate(month = lubridate::month(date, label=TRUE), year = lubridate::year(date),
+               monthyr = paste0(month,substr(year,3,4))) %>%
+        dplyr::group_by(month, monthyr, year) %>%
+        dplyr::summarize(start_date = min(date),
+                  end_date = as.Date(max(date)),
+                  variant_prop = median(fit)) %>%
+        dplyr::mutate(ve_1 = VE[1]*(1-variant_prop)+VE_delta[1]*variant_prop,
+               ve_2 = VE[2]*(1-variant_prop)+VE_delta[2]*variant_prop) %>%
+        dplyr::mutate(ve1_redux = 1 - (ve_1/VE[1]),
+               ve2_redux = 1 - (ve_2/VE[2])) %>%
+        dplyr::select(-ve_1, -ve_2) %>%
+        tidyr::pivot_longer(cols = ends_with("redux"), names_to = "dose", values_to = "value_mean") %>%
+        dplyr::mutate(value_mean = round(value_mean, 2)) %>%
+        dplyr::group_by(value_mean, dose) %>%
+        dplyr::summarise(month = ifelse(length(month)==1, as.character(monthyr), paste0(monthyr[which.min(start_date)], "-", monthyr[which.max(start_date)])),
+                  start_date = min(start_date),
+                  end_date = max(end_date)) %>%
+        dplyr::filter(value_mean != 0)
+
+
+    outcome <- outcome %>%
+        dplyr::mutate(name = paste0("VEshift_", tolower(month), "_dose", stringr::str_sub(dose, 3, 3))) %>%
+        dplyr::select(-dose) %>%
+        dplyr::filter(start_date <= sim_end_date & end_date > sim_start_date) %>%
+        dplyr::mutate(end_date = lubridate::as_date(ifelse(end_date > sim_end_date, sim_end_date, end_date))) %>%
+        dplyr::mutate(USPS = "",
+               geoid = "all",
+               type = "transmission",
+               parameter = dplyr::if_else(stringr::str_detect(name, "ose1"), "theta_1A", "theta_2A"),
+               category = "ve_shift",
+               template = "Reduce",
+               baseline_scenario = "",
+               value_dist = v_dist,
+               value_sd = v_sd,
+               value_a = v_a,
+               value_b = v_b,
+               pert_dist = p_dist,
+               pert_mean = p_mean,
+               pert_sd = p_sd, # dont want much perturbation on this if it gets perturbed
+               pert_a = p_a,
+               pert_b = p_b)  %>%
+        dplyr::mutate(dplyr::across(pert_mean:pert_b, ~ifelse(inference, .x, NA_real_)),
+                      pert_dist = ifelse(inference, pert_dist, NA_character_))
+    return(outcome)
+}
+
+
 #' Bind interventions and prevents inference on interventions with no data
 #'
 #' @param ... intervention dfs with config params
