@@ -63,6 +63,38 @@ load_geodata_file <- function(filename,
     return(geodata)
 }
 
+##' find_truncnorm_mean_parameter
+##'
+##' Convenience function that estimates the mean value for a truncnorm distribution given a, b, and sd that will have the expected value of the input mean.
+##'
+##' @param a lower bound
+##' @param b upper bound
+##' @param mean desired expected value from truncnorm given a, sd, and sd.
+##' @param sd standard deviation
+##'
+##'
+##' @export
+##'
+find_truncnorm_mean_parameter <- function(a, b, mean, sd) {
+    return(
+        optim(
+            mean,
+            purrr::partial(
+                function(a, b, mean, sd, x) {
+                    abs(truncnorm::etruncnorm(a,b,x,sd) - mean)
+                },
+                a = a,
+                b = b,
+                mean = mean,
+                sd = sd
+            ),
+            method = "Brent",
+            upper = b + 6 * sd,
+            lower = a - 6 * sd
+        )$par
+    )
+}
+
 #' ScenarioHub: Recode scenario hub interventions for "ReduceR0" template
 #'
 #' @param data intervention list for the national forecast or the scenariohub
