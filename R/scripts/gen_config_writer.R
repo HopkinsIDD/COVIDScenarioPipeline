@@ -285,7 +285,8 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
                  seeding_file_type = "seed",
                  folder_path = "importation/minimal/",
                  lambda_file = lambda_path,
-                 perturbation_sd = perturbation_sd)
+                 perturbation_sd = perturbation_sd, 
+                 compartment = FALSE)
 
     print_seir(alpha = 0.99,
               sigma = 1/5.2,
@@ -295,13 +296,8 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
               gamma_b = 1/3,
               R0s_dist = "fixed",
               R0s_val = 2.3,
-              incl_vacc = incl_vacc,
-              dose_transmission_dist = c("fixed","fixed", "fixed"),
-              dose_transmission_val = c(0, 0, 0),
-              dose_susceptibility_dist = c("fixed","fixed", "fixed"),
-              dose_susceptibility_val = c(0, 0.5, 0.90),
-              transitions_dist = c("fixed", "fixed"),
-              transitions_val = c(0, 0.04))
+              incl_vacc = incl_vacc, 
+              compartment = FALSE)
 
     print_transmission_interventions(interventions,
                                      scenario = npi_scenario_name)
