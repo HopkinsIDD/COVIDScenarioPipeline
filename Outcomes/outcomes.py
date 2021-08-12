@@ -240,6 +240,7 @@ def read_seir_sim(run_id, prefix, sim_id):
 def write_outcome_sim(outcomes, run_id, prefix, sim_id):
     outcomes['time'] = outcomes['date']
     out_df = pa.Table.from_pandas(outcomes, preserve_index=False)
+
     pa.parquet.write_table(
         out_df,
         file_paths.create_file_name(
@@ -328,11 +329,11 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             # 1. compute incidence from binomial draw
             # 2. compute duration if needed
             source_name = parameters[new_comp]['source']
-            print(f'doing {new_comp} from {source_name}')
+            print(f'doing {new_comp}')
             if source_name == 'incidI' and 'incidI' not in all_data:  # create incidI
                 source_array = get_filtered_incidI(diffI, dates, places, {'infection_stage':'I1'})
                 all_data['incidI'] = source_array
-                outcomes = dataframe_from_array(source_array, places, dates, 'incidI')
+                outcomes =  pd.merge(outcomes, dataframe_from_array(source_array, places, dates, 'incidI'))
             elif isinstance(source_name, dict):
                 source_array = get_filtered_incidI(diffI, dates, places, source_name)
                 # we don't keep source in this cases
