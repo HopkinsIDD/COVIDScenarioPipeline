@@ -153,7 +153,7 @@ logLikStat <- function(obs, sim, distr, param, add_one = F) {
   }
 
   if(distr == "pois") {
-    rc <- dpois(obs, sim, log = T)
+    rc <- dpois(round(obs), sim, log = T)
   } else if (distr == "norm") {
     rc <- dnorm(obs, sim, sd = param[[1]], log = T)
   } else  if (distr == "norm_cov") {

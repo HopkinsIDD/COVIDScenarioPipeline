@@ -48,8 +48,6 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
 
     keys_ref = ['seeding_sources', 'seeding_destinations', 'seeding_places', 'day_start_idx']
     for key, item in seeding_data.items():
-        print(key)
-        print(item)
         assert key in keys_ref
         if key == 'day_start_idx':
             assert (len(item) == s.n_days + 1)
@@ -61,7 +59,6 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
 
 
     assert (len(mobility_data) > 0)
-    print(f"mobility is of type {type(mobility_data[0])}")
 
     assert (type(mobility_data[0]) == np.float64)
     assert (len(mobility_data) == len(mobility_geoid_indices))
@@ -70,24 +67,6 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
     assert (type(mobility_data_indices[0]) == np.int32)
     assert (len(s.popnodes) == s.nnodes)
     assert (type(s.popnodes[0]) == np.int64)
-
-    #print(mobility_data)
-    #print(mobility_geoid_indices)
-    #print(mobility_data_indices)
-    #print('initial_condition')
-    #print(initial_conditions)
-    print('parsed_parameters.shape')
-    print(parsed_parameters.shape)
-    #print('seeding_data')
-    #print(seeding_data)
-
-
-    print('transition array')
-    print(transition_array)
-    print('proportion_info')
-    print(proportion_info)
-    print('proportion_array')
-    print(proportion_array)
 
     return(steps_SEIR_nb(
         s.compartments.compartments.shape[0],
@@ -135,6 +114,8 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
     with Timer('onerun_SEIR.compartments'):
         parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info = \
             s.compartments.get_transition_array(parameters, s.parameters.pnames)
+        log_debug_parameters(parsed_parameters, "Unique Parameters used by transitions")
+
 
     with Timer('onerun_SEIR.compute'):
         states = steps_SEIR(

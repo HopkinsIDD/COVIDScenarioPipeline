@@ -44,6 +44,8 @@ class Parameters:
                     logging.debug(
                         f"No 'intervention_overlap_operation' for parameter {pn}, assuming multiplicative NPIs")
                 self.intervention_overlap_operation[self.pdata[pn]['intervention_overlap_operation']].append(pn.lower())
+                print("HERE")
+            print("DONE")
 
         elif config_version == 'old':
             n_parallel_compartments = 1
@@ -147,10 +149,10 @@ class Parameters:
     def parameters_load(self, fname: str, nt_inter: int, nnodes: int, extension: str = 'parquet', ) -> ndarray:
         """
         drop-in equivalent to param_quick_draw() that take a file as written parameter_write()
-        :param fname: 
-        :param nt_inter: 
-        :param nnodes: 
-        :param extension: 
+        :param fname:
+        :param nt_inter:
+        :param nnodes:
+        :param extension:
         :return: array of shape (nparam, nt_inter, nnodes) with all parameters for all nodes and all time.
         """
         if extension == "csv":
