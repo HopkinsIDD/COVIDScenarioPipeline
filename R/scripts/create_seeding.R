@@ -68,6 +68,8 @@ if (is.null(config$spatial_setup$us_model)) {
 }
 
 is_US_run <- config$spatial_setup$us_model
+seed_variants <- "variant_filename" %in% names(config$seeding)
+
 
 ## backwards compatibility with configs that don't have filtering$gt_source
 ## parameter will use the previous default data source (USA Facts)
@@ -119,6 +121,15 @@ if (is_US_run) {
     mutate(FIPS = stringr::str_pad(FIPS, width = 5, side = "right", pad = "0"))
 }
 
+if (seed_variants) {
+  variant_data <- readr::read_csv(config$seeding$variant_filename)
+  cases_deaths <- cases_deaths %>%
+    left_join(variant_data) %>%
+    mutate(incidI = incidI * prop) %>%
+    select(-prop) %>%
+    pivot_wider(names_from = variant, values_from = incidI)
+}
+
 ## Check some data attributes:
 ## This is a hack:
 if ("geoid" %in% names(cases_deaths)) {
@@ -150,16 +161,16 @@ if ("compartments" %in% names(config[["seir"]])) {
       )
     )
     incident_cases <- cases_deaths[, required_column_names] %>%
-      tidyr::pivot_longer(!!names(config$seeding$seeding_compartments)) %>%
+      tidyr::pivot_longer(!!names(config$seeding$seeding_compartments), names_to = "seeding_group") %>%
       dplyr::mutate(
         source_column = sapply(
-          config$seeding$seeding_compartments[name],
+          config$seeding$seeding_compartments[seeding_group],
           function(x){
             paste(x$source_compartment, collapse = "_")
           }
         ),
         destination_column = sapply(
-          config$seeding$seeding_compartments[name],
+          config$seeding$seeding_compartments[seeding_group],
           function(x){
             paste(x$destination_compartment, collapse = "_")
           }

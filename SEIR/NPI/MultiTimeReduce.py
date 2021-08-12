@@ -37,7 +37,7 @@ class MultiTimeReduce(NPIBase):
         if too_early or too_late:
             raise ValueError("at least one period start or end date is not between global dates")
 
-        
+
         for grp_config in npi_config['groups']:
             affected_geoids_grp = self.__get_affected_geoids_grp(grp_config)
             for sub_index in range(len(self.parameters["start_date"][affected_geoids_grp[0]])):
@@ -86,7 +86,7 @@ class MultiTimeReduce(NPIBase):
         self.param_name = npi_config["parameter"].as_str().lower().replace(" ", "")
 
         self.affected_geoids = self.__get_affected_geoids(npi_config)
-        
+
         self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids)]
         self.dist = npi_config["value"].as_random_distribution()
         self.parameters["npi_name"] = self.name
@@ -124,10 +124,10 @@ class MultiTimeReduce(NPIBase):
         # self.parameters["start_date"] = [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["start_date"]]
         # self.parameters["end_date"] =   [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["end_date"]]
         # self.affected_geoids = set(self.parameters.index)
-        
+
         self.affected_geoids = self.__get_affected_geoids(npi_config)
 
-        for grp_config in npi_config['groups']: 
+        for grp_config in npi_config['groups']:
             affected_geoids_grp = self.__get_affected_geoids_grp(grp_config)
 
             # Create reduction
@@ -152,7 +152,7 @@ class MultiTimeReduce(NPIBase):
         affected_geoids_grp = []
         for grp_config in npi_config['groups']:
             if grp_config["affected_geoids"].get() == "all":
-                affected_geoids_grp += self.geoids
+                affected_geoids_grp = self.geoids
             else:
                 affected_geoids_grp += [str(n.get()) for n in grp_config["affected_geoids"]]
         affected_geoids = set(affected_geoids_grp)
