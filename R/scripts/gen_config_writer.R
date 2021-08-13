@@ -4,7 +4,7 @@ library(config.writer)
 ## Save Names
 run_type <- "fchub"  # name to save processed intervention data, pasted with formatted config date. For example, if base_path is "data" then this would be saved as "data/fchub_20210712.csv". 
 config_name <- "config.yml" # filename to save in current directory
-run_compartment = TRUE # set to false for old config settings
+run_compartment = FALSE # set to false for old config settings
 
 ## Data Files
 outcomes_parquet_file <- "usa-geoid-params-output_statelevel.parquet"
@@ -12,11 +12,11 @@ outcomes_parquet_file <- "usa-geoid-params-output_statelevel.parquet"
 base_path <- "data" # path to directory with the geodata, intervention, vaccination, outcomes, and variant files
 geodata_file <- "geodata_territories_2019_statelevel.csv"
 mobility_file <- "mobility_territories_2011-2015_statelevel.csv"
-intervention_file <- "intervention_tracking/Shelter-in-place-as-of-06252021.csv"
+intervention_file <- "intervention_tracking/Shelter-in-place-as-of-08122021.csv"
 
-vaccination_file <- "vaccination/Round6/vacc_rates_ROUND6.csv"
-outcomes_file <- "vaccination/Round6/outcome_adj_allscenarios_ROUND6.csv"
-hosp_file <- "hosp_adjust/hospitalization_ratios_R7.csv"
+vaccination_file <- "vaccination/Round7/vacc_rates_ROUND7.csv"
+outcomes_file <- "vaccination/Round7/outcome_adj_allscenarios_ROUND7.csv"
+hosp_file <- "hosp_adjust/hospitalization_ratios_2021-07-31.csv"
 vacc_scenario <- 2 # Scenario number from the vacc_path and outcomes_path files 
 
 variant_file_1 <- "variant/b117_fits_r7.csv"
@@ -31,14 +31,14 @@ incidC_shift_file <- "US_CFR.csv"
 ## Header
 sim_name <- "USA"
 sim_start <- "2020-01-01"
-sim_end <- "2021-08-30"
-setup_name <- "test"
+sim_end <- "2021-09-25"
+setup_name <- "usa_inference_territories_statelevel"
 state_level <- TRUE
-n_simulations <- 1 # overwritten by environmental var COVID_NSIMULATIONS
+n_simulations <- 300 # overwritten by environmental var COVID_NSIMULATIONS
 
 ## Seeding
 seeding_method = "FolderDraw"
-lambda_file <- "seeding_territories.csv"
+lambda_file <- "minimal/seeding_territories.csv"
 perturbation_sd <- 3
 
 #SEIR
@@ -56,15 +56,17 @@ redux_geoids = {if(add_redux) "all" else(NULL)}
 state_incl_geoid = {if(state_level) NULL else("06000")} # used to get the vaccination rates and vacc-adjusted outcomes, NULL if running state-level for ALL states. Otherwise, specify desired state geoids
 VE_shift = TRUE 
 VE = c(0.5, 0.9)
-VE_delta = c(0.35, 0.8)
+VE_delta = c(0.35, 0.6)
 
 ## Outcomes
-exclude_hosp_adjustment = TRUE
+hosp_adjustment = TRUE
+
 add_incidC = FALSE # whether to add incidC shift interventions
 incidC_shift_periods = c("2020-01-01", "2020-06-16", "2020-11-27")
 incidC_shift_epochs = c("MarJun", "NovJan")
 incidC_shift_value_mean = 0.25 # state-specific initial value for those without an ifr estimate; possible to supply vectors to match the number of periods (e.g. c(0.25, 0.5))
 incidC_shift_pert_sd = 0.01
+
 ifr = "med"
 incidD_prob_value = rep(0.005, length(variant_compartments))
 incidC_prob_value = rep(0.4, length(variant_compartments))
@@ -74,7 +76,7 @@ incidC_perturbation = TRUE
 
 ## Filtering
 do_filtering = TRUE # inference?
-sims_per_slot = 1 # overwritten by environmental var COVID_SIMULATIONS_PER_SLOT
+sims_per_slot = 1000 # overwritten by environmental var COVID_SIMULATIONS_PER_SLOT
 data_file = "us_data.csv"
 filtering_data_vars <- {if(run_compartment) c("incidDeath", "incidI") else(c("death_incid", "confirmed_incid"))}
 priors_name <- c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar", "Seas_apr",
@@ -197,19 +199,21 @@ vacc_dat <- set_vacc_rates_params(vacc_path = vaccination_path,
     {if(state_level) . else(dplyr::mutate(., geoid = paste0(sort(geodata$geoid), collapse = '", "')))}
 
 ## Variants
-if(!compartment){
+if(!run_compartment){
     variant_dat <- set_variant_params(variant_path = variant_path_1,
-                                  variant_path_2 = variant_path_2,
-                                  sim_start_date = sim_start,
-                                  sim_end_date = sim_end,
-                                  b117_only = b117_only,
-                                  geodata = geodata,
-                                  v_sd = 0.01,
-                                  transmission_increase = variant_transmission_increase,
-                                  v_a = -1.5,
-                                  v_b = 0, 
-                                  inference = do_filtering)
+                                      variant_path_2 = variant_path_2,
+                                      sim_start_date = sim_start,
+                                      sim_end_date = sim_end,
+                                      b117_only = b117_only,
+                                      geodata = geodata,
+                                      state_level = state_level, 
+                                      v_sd = 0.01,
+                                      transmission_increase = variant_transmission_increase,
+                                      v_a = -1.5,
+                                      v_b = 0, 
+                                      inference = do_filtering)
 }
+
 
 ## Redux interventions
 if(add_redux){
@@ -238,7 +242,7 @@ outcome_dat <- set_vacc_outcome_params(outcome_path = outcomes_path,
                                        v_sd = 0.01, v_a = 0, v_b = 1,
                                        p_dist="truncnorm",
                                        p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1) %>%
-    {if(exclude_hosp_adjustment) dplyr::filter(., stringr::str_detect(name, "incidH", negate=TRUE)) else(.)} %>%
+    dplyr::filter(., stringr::str_detect(name, "incidH", negate=TRUE))  %>%
     {if(state_level) . else(dplyr::mutate(., geoid = paste0(sort(geodata$geoid), collapse = '", "')))}
 
 ## Hospitalization adjustments
@@ -282,6 +286,7 @@ if(VE_shift){
                                         p_dist = "truncnorm", p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1,
                                         compartment = run_compartment)
 }
+
 # Bind and save df
 
 interventions <- mget(objects(pattern = "_dat$")) %>%
