@@ -192,7 +192,8 @@ vacc_dat <- set_vacc_rates_params(vacc_path = vaccination_path,
     {if(state_level) . else(dplyr::mutate(., geoid = paste0(sort(geodata$geoid), collapse = '", "')))}
 
 ## Variants
-variant_dat <- set_variant_params(variant_path = variant_path_1,
+if(!compartment){
+    variant_dat <- set_variant_params(variant_path = variant_path_1,
                                   variant_path_2 = variant_path_2,
                                   sim_start_date = sim_start,
                                   sim_end_date = sim_end,
@@ -203,6 +204,7 @@ variant_dat <- set_variant_params(variant_path = variant_path_1,
                                   v_a = -1.5,
                                   v_b = 0, 
                                   inference = do_filtering)
+}
 
 ## Redux interventions
 if(add_redux){
