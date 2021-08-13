@@ -180,8 +180,15 @@ if ("compartments" %in% names(config[["seir"]])) {
       tidyr::separate(destination_column, paste("destination", names(config$seir$compartments), sep = "_"))
     required_column_names <- c("FIPS", "Update", "value", paste("source", names(config$seir$compartments), sep = "_"), paste("destination", names(config$seir$compartments), sep = "_"))
     incident_cases <- incident_cases[, required_column_names]
+  } else if ("seeding_compartments" %in% names(config$seeding) ) {
+    stop(paste(
+      "Could not find all compartments.  Looking for",
+      paste(names(config$seeding$seeding_compartments), collapse = ", "),
+      "from selection",
+      paste(names(cases_deaths), collapse = ", ")
+    ))
   } else {
-    stop("Please add a seecing_compartments section to the config")
+    stop("Please add a seeding_compartments section to the config")
   }
 } else {
   required_column_names <- c("FIPS", "Update", "incidI")
