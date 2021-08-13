@@ -472,8 +472,18 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 outcomes = pd.merge(outcomes, df_p)
 
         elif 'sum' in parameters[new_comp]:
+            sum_outcome = np.zeros((len(dates), len(places)), dtype=np.int)
             # Sum all concerned compartment.
-            outcomes[new_comp] = outcomes[parameters[new_comp]['sum']].sum(axis=1)
+            for cmp in parameters[new_comp]['sum']:
+                sum_outcome += all_data[cmp]
+            all_data[new_comp] = sum_outcome
+            df_p = dataframe_from_array(sum_outcome, places,
+                                        dates, new_comp)
+            outcomes = pd.merge(outcomes, df_p)
+            #print(df_p)
+            #print(outcomes[parameters[new_comp]['sum']].sum(axis=1))
+
+            assert ((df_p['incidH'] == outcomes[parameters[new_comp]['sum']].sum(axis=1).values).all().all())
 
     return outcomes, hpar
 
