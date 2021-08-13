@@ -28,7 +28,7 @@ generate_config <- function(){
                theta_1A_val = 0.5,
                theta_2A_val = 0.9,
                compartment = FALSE,
-               compartment_names = c("unvaccinated", "first_dose", "second_dose"))
+               vaccine_compartments = c("unvaccinated", "first_dose", "second_dose"))
 
     print_interventions(interventions,
                         scenario = "inference")
