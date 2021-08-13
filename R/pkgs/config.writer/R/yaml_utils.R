@@ -862,7 +862,6 @@ print_outcomes <- function(dat=NULL,
 #' @param epsilon_val rate at which immunity wanes (i.e. movement from R --> S)
 #' @param epsilon_dist distribution of epsilon
 #' @param incl_vacc specify whether to include vaccination compartments. If TRUE, must specify dose transmission/susceptibility parameters for each compartment and transition across compartments
-
 #' @param transitions_dist vector specifying whether transition rate between compartments is fixed; distributional is not yet supported
 #' @param transitions_val vector specifying base transition rate between compartments
 #' @param vaccine_compartments names of vaccination compartments: defaults to "unvaccinated", "first dose" and "second dose"
@@ -962,7 +961,7 @@ print_seir <- function(sigma_val = 1/5.2,
                            '    infection_stage: ["S", "E", "I1", "I2", "I3", "R"] \n',
                            '    vaccination_stage: ["', paste0(vaccine_compartments, collapse = '", "'), '"] \n',
                            '    variant_type: ["WILD", "ALPHA", "DELTA"] \n',
-                           '  transitions:\n ',
+                           '  transitions:\n',
                            '    - source: [["S"],["', paste0(vaccine_compartments, collapse = '", "'), '"],"WILD"] \n',
                            '      destination: [["E"],["', paste0(vaccine_compartments, collapse = '", "'), '"],["WILD", "ALPHA"]]\n',
                            '      proportional_to: [\n',
