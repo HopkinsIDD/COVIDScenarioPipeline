@@ -72,7 +72,8 @@ generate_processed <- function(geodata_path,
                                            v_dist="truncnorm",
                                            v_sd = 0.01, v_a = 0, v_b = 1,
                                            p_dist="truncnorm",
-                                           p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1) %>%
+                                           p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1,
+                                           compartment = FALSE) %>%
         dplyr::filter(stringr::str_detect(name, "incidH", negate=TRUE))
 
     interventions <- bind_interventions(npi_dat,
