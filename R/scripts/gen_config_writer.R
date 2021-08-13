@@ -303,11 +303,10 @@ npi_dat <- process_npi_shub(intervention_path = intervention_path,
               incl_vacc = incl_vacc, 
               compartment = run_compartment)
 
-    print_transmission_interventions(interventions,
-                                     scenario = npi_scenario_name)
+    print_interventions(interventions,
+                        scenario = npi_scenario_name)
 
-    print_outcomes(dat = interventions,
-                  ifr = ifr,
+    print_outcomes(ifr = ifr,
                   outcomes_parquet_file = outcomes_parquet_file,
                   incidH_prob_dist="fixed",
                   incidH_prob_value=0.0175,
