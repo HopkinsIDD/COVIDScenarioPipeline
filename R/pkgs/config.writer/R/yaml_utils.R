@@ -1351,6 +1351,8 @@ print_filtering_statistics <- function(sims_per_slot = 300,
 #' @param geo_group_col geodata column name that should be used to group parameter estimation
 #' @param transform type of transform that should be applied to the likelihood: "none" or "logit"
 #' @param final_print whether this is the final section of the config to print an empty space; set to FALSE if running [print_hierarchical()] and/or [print_prior()]
+#' @param compartment
+#' @param variant_compartments
 #'
 #' @details
 #' This function should only be called after [print_hierarchical()].
@@ -1362,10 +1364,25 @@ print_filtering_statistics <- function(sims_per_slot = 300,
 #' print_filtering_hierarchical()
 
 print_filtering_hierarchical <- function(npi_name = c("local_variance", "probability_incidI_incidC"),
+                                         compartment = TRUE,
+                                         variant_compartments = c("wild", "alpha", "delta"),
                                          module = c("seir", "hospitalization"),
                                          geo_group_col = "USPS",
                                          transform = c("none", "logit"),
                                          final_print = FALSE){
+
+    variant_compartments <- stringr::str_to_upper(variant_compartments)
+
+    if(compartment){
+        not_variance <- npi_name!="local_variance"
+
+        npi_name <- c(npi_name[!not_variance], paste0(rep(npi_name[not_variance], each = length(variant_compartments)), "_", variant_compartments))
+
+        transform <- c(transform[!not_variance], rep(transform[not_variance], each = length(variant_compartments)))
+
+        module <- c(module[!not_variance], rep(module[not_variance], each = length(variant_compartments)))
+
+    }
 
     cat(paste0(
         "  hierarchical_stats_geo:\n"

@@ -3,8 +3,8 @@ library(config.writer)
 # Default Params ----
 ## Save Names
 run_type <- "fchub"  # name to save processed intervention data, pasted with formatted config date. For example, if base_path is "data" then this would be saved as "data/fchub_20210712.csv". 
-config_name <- "config.yml" # filename to save in current directory
-run_compartment = FALSE # set to false for old config settings
+config_name <- "config_fchub_compartment.yml" # filename to save in current directory
+run_compartment = TRUE # set to false for old config settings
 
 ## Data Files
 outcomes_parquet_file <- "usa-geoid-params-output_statelevel.parquet"
@@ -163,7 +163,7 @@ npi_dat <- set_npi_params(intervention_file = npi_dat,
                           redux_geoids = redux_geoids,
                           npi_cutoff_date=Sys.Date()-7,
                           inference = do_filtering,
-                          v_dist = "truncnorm", v_mean=0.6, v_sd=0.05, v_a=0.0, v_b=0.9,
+                          v_dist = "truncnorm", v_mean=0.35, v_sd=0.05, v_a=0.0, v_b=0.9,
                           p_dist = "truncnorm", p_mean=0, p_sd=0.05, p_a=-1, p_b=1, 
                           compartment = run_compartment)
 ## Seasonality
@@ -212,6 +212,8 @@ if(!run_compartment){
                                       v_a = -1.5,
                                       v_b = 0, 
                                       inference = do_filtering)
+} else{
+    remove(variant_dat)
 }
 
 
@@ -241,7 +243,9 @@ outcome_dat <- set_vacc_outcome_params(outcome_path = outcomes_path,
                                        v_dist="truncnorm",
                                        v_sd = 0.01, v_a = 0, v_b = 1,
                                        p_dist="truncnorm",
-                                       p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1) %>%
+                                       p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1,
+                                       compartment = run_compartment, 
+                                       variant_compartments = variant_compartments) %>%
     dplyr::filter(., stringr::str_detect(name, "incidH", negate=TRUE))  %>%
     {if(state_level) . else(dplyr::mutate(., geoid = paste0(sort(geodata$geoid), collapse = '", "')))}
 
@@ -253,8 +257,10 @@ if(hosp_adjustment){
                                       geodata=geodata,
                                       inference = FALSE,
                                       v_dist = "fixed", v_sd = 0.01, v_a = -10, v_b = 2,
-                                      p_dist = "truncnorm", p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1)
-}
+                                      p_dist = "truncnorm", p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1, 
+                                      compartment = run_compartment, 
+                                      variant_compartments = variant_compartments)
+} 
 
 ## IncidC Shift
 
@@ -274,7 +280,7 @@ if(add_incidC){
 
 ## VE Shift
 
-if(VE_shift){
+if(VE_shift & !run_compartment){
     ve_shift_dat <- set_ve_shift_params(variant_path = variant_path_2,
                                         VE =VE,
                                         VE_delta = VE_delta,
@@ -285,6 +291,8 @@ if(VE_shift){
                                         v_dist = "fixed", v_sd = 0.01, v_a = -1, v_b = 2,
                                         p_dist = "truncnorm", p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1,
                                         compartment = run_compartment)
+} else{
+    remove(ve_shift_dat)
 }
 
 # Bind and save df
@@ -411,10 +419,14 @@ print_filtering_statistics(sims_per_slot = sims_per_slot,
                            ll_param = .4, 
                            compartment = run_compartment)
 
-print_filtering_hierarchical(npi_name = c("local_variance", "probability_incidI_incidC"),
-                             module = c("seir", "hospitalization"),
-                             geo_group_col = "USPS",
-                             transform = c("none", "logit"))
+if(!state_level){
+    print_filtering_hierarchical(npi_name = c("local_variance", "probability_incidI_incidC"),
+                                 module = c("seir", "hospitalization"),
+                                 geo_group_col = "USPS",
+                                 transform = c("none", "logit"), 
+                                 compartment = run_compartment,
+                                 variant_compartments = variant_compartments)
+}
 
 print_filtering_prior(dat = interventions,
                       npi_name = priors_name,

@@ -48,7 +48,8 @@ generate_config <- function(){
     print_filtering_hierarchical(npi_name = c("local_variance", "probability_incidI_incidC"),
                                  module = c("seir", "hospitalization"),
                                  geo_group_col = "USPS",
-                                 transform = c("none", "logit"))
+                                 transform = c("none", "logit"),
+                                 compartment = FALSE)
 
     print_filtering_prior(dat = interventions,
                           npi_name = c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar",

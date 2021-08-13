@@ -541,7 +541,8 @@ set_variant_params <- function(b117_only = FALSE,
 #' @param p_sd perturbation sd
 #' @param p_a perturbation a
 #' @param p_b perturbation b
-#'
+#' @param compartment
+#' @param variant_compartments
 #'
 #' @return
 #' @export
@@ -610,7 +611,8 @@ set_vacc_outcome_params <- function(outcome_path,
             temp <- list()
             for(i in 1:length(variant_compartments)){
                 temp[[i]] <- outcome %>%
-                    dplyr::mutate(parameter = stringr::str_replace(parameter, "::probability", paste0("_", variant_compartments[i],"::probability")))
+                    dplyr::mutate(parameter = stringr::str_replace(parameter, "::probability", paste0("_", variant_compartments[i],"::probability")),
+                                  name = paste0(name, "_", variant_compartments[i]))
             }
 
             outcome <- dplyr::bind_rows(temp)
@@ -755,6 +757,7 @@ set_incidC_shift <- function(periods,
 #' @param p_a perturbation a
 #' @param p_b perturbation b
 #' @param compartment
+#' @param variant_compartments
 #'
 #' @return
 #' @export
@@ -815,7 +818,8 @@ set_incidH_adj_params <- function(outcome_path,
         temp <- list()
         for(i in 1:length(variant_compartments)){
             temp[[i]] <- outcome %>%
-                dplyr::mutate(parameter = stringr::str_replace(parameter, "::probability", paste0("_", variant_compartments[i],"::probability")))
+                dplyr::mutate(parameter = stringr::str_replace(parameter, "::probability", paste0("_", variant_compartments[i],"::probability")),
+                              name = paste0(name, "_", variant_compartments[i]))
         }
 
         outcome <- dplyr::bind_rows(temp)
