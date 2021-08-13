@@ -72,7 +72,7 @@ incidC_perturbation = TRUE
 do_filtering = TRUE # inference?
 sims_per_slot = 1 # overwritten by environmental var COVID_SIMULATIONS_PER_SLOT
 data_file = "us_data.csv"
-filtering_data_vars <- {if(run_compartment) c("death_incid", "confirmed_incid") else(c("incidDeath", "incidI"))}
+filtering_data_vars <- {if(run_compartment) c("incidDeath", "incidI") else(c("death_incid", "confirmed_incid"))}
 priors_name <- c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar", "Seas_apr",
                  "Seas_may", "Seas_jun", "Seas_jul", "Seas_aug", "Seas_sep",
                  "Seas_oct", "Seas_nov", "Seas_dec")
