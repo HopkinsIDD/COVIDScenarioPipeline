@@ -30,13 +30,12 @@ generate_config <- function(){
                compartment = FALSE,
                compartment_names = c("unvaccinated", "first_dose", "second_dose"))
 
-    print_transmission_interventions(interventions,
-                                     scenario = "inference")
+    print_interventions(interventions,
+                        scenario = "inference")
 
-    print_outcomes(dat = interventions,
-                   ifr = "med",
+    print_outcomes(ifr = "med",
                    outcomes_parquet_file="usa-geoid-params-output_statelevel.parquet",
-                   incidC_prob_value = 0.4)
+                   incidC_prob_value = c(0.4, 0.4, 0.4))
 
     print_filtering_statistics(sims_per_slot = 1000)
 

@@ -393,7 +393,7 @@ yaml_stack <- function(dat,
 
 #' Print Interventions Section
 #'
-#' @description Print transmission interventions and stack them
+#' @description Print transmission and outcomes interventions and stack them
 #'
 #' @param dat dataframe with processed intervention names/periods; see collapsed_interventions
 #' @param scenario name of the scenario
@@ -404,8 +404,8 @@ yaml_stack <- function(dat,
 #' @examples
 #'
 
-print_transmission_interventions <- function(dat,
-                                             scenario = "Inference"
+print_interventions <- function(dat,
+                                scenario = "Inference"
 ){
 
     cat(paste0(
@@ -414,6 +414,10 @@ print_transmission_interventions <- function(dat,
         '    - ', scenario, '\n',
         '  settings:\n'
     ))
+
+    outcome_dat <- dat %>%
+        collapse_intervention() %>%
+        dplyr::filter(type=="outcome")
 
     dat <- collapse_intervention(dat) %>%
         dplyr::filter(type == "transmission")
@@ -437,33 +441,21 @@ print_transmission_interventions <- function(dat,
 
     }
 
-    # reduce <- dat %>%
-    #     dplyr::filter(template != "MultiTimeReduce")
-    #
-    # if(nrow(reduce) > 0 ){
-    #     for(i in 1:nrow(reduce)){
-    #
-    #         yaml_reduce_template(reduce[i,])
-    #
-    #     }
-    # }
-    #
-    # mtr <- dat %>%
-    #     dplyr::filter(template=="MultiTimeReduce")
-    #
-    # npi_names <- mtr %>% dplyr::distinct(name) %>% dplyr::pull()
-    # if(nrow(mtr) > 0){
-    #     for(i in 1:length(npi_names)){
-    #         npi <- mtr %>%
-    #             dplyr::filter(name == npi_names[i])
-    #
-    #         yaml_mtr_template(npi)
-    #     }
-    #
-    # }
-
     yaml_stack(dat,
                scenario)
+
+    if(nrow(outcome_dat) > 0){
+        yaml_stack(outcome_dat,
+                   "outcome_interventions")
+
+        cat(paste0("\n"))
+        for(i in 1:nrow(outcome_dat)){
+            if(outcome_dat$template[i]=="Reduce"){
+                yaml_reduce_template(outcome_dat[i,])
+            }
+        }
+        cat(paste0("\n"))
+    }
 }
 
 #' Print Outcomes Section
@@ -509,6 +501,7 @@ print_transmission_interventions <- function(dat,
 #' @param compartment
 #' @param variant_compartments
 #' @param outcomes_included which outcomes to include, options: incidH, incidC, incidD, incidICU, incidVent.
+#' @param incl_interventions
 #'
 #' @details
 #' The settings for each scenario correspond to a set of different health outcome risks, most often just differences in the probability of death given infection (Pr(incidD|incidI)) and the probability of hospitalization given infection (Pr(incidH|incidI)). Each health outcome risk is referenced in relation to the outcome indicated in source. For example, the probability and delay in becoming a confirmed case (incidC) is most likely to be indexed off of the number and timing of infection (incidI).
@@ -522,8 +515,7 @@ print_transmission_interventions <- function(dat,
 #'
 #'
 
-print_outcomes <- function(dat=NULL,
-                          ifr=NULL,
+print_outcomes <- function(ifr=NULL,
                           outcomes_parquet_file="usa-geoid-params-output_statelevel.parquet",
                           incidH_prob_dist=c("fixed", "fixed", "fixed"),
                           incidH_prob_value=c(0.0175, 0.0175, 0.0175),
@@ -563,25 +555,11 @@ print_outcomes <- function(dat=NULL,
                           compartment = TRUE,
                           variant_compartments = c("wild", "alpha", "delta"),
                           vaccine_compartments = c("unvaccinated", "1dose", "2dose"),
-                          outcomes_included = c("incidH", "incidD", "incidC", "incidICU", "incidVent")
+                          outcomes_included = c("incidH", "incidD", "incidC", "incidICU", "incidVent"),
+                          incl_interventions = TRUE
 ){
 
     if(is.null(ifr)){stop("You must specify a scenario/IFR name.")}
-
-    if(!is.null(dat)){
-        dat <- dat %>%
-            collapse_intervention() %>%
-            dplyr::filter(type=="outcome")
-
-        if(nrow(dat) > 0){
-            cat(paste0("\n"))
-            for(i in 1:nrow(dat)){
-                if(dat$template[i]=="Reduce"){
-                    yaml_reduce_template(dat[i,])
-                }
-            }
-        }
-    }
 
     incidC_pert <- ""
 
@@ -728,13 +706,13 @@ print_outcomes <- function(dat=NULL,
         mget(outcomes_included) %>% unlist() %>% paste0(collapse = "")
         ))
 
-    if(!is.null(dat)){
+    if(incl_interventions){
         cat(paste0(
             '  interventions:\n',
             '    settings:\n',
             '      ', ifr, ':\n',
             '        template: Stacked\n',
-            '        scenarios: ["', paste0(unique(dat$name), collapse = '", "'), '"]\n'
+            '        scenarios: ["outcome_interventions"]\n'
         ))
     }
 }
@@ -1144,18 +1122,19 @@ print_seeding <- function(method = "FolderDraw",
 #'
 print_filtering_statistics <- function(sims_per_slot = 300,
                                        do_filtering = TRUE,
-                            data_path = "data/us_data.csv",
-                            gt_source = "csse",
-                            stat_names = c("sum_deaths", "sum_confirmed"),
-                            aggregator = "sum",
-                            period = "1 weeks",
-                            sim_var = c("incidD", "incidC"),
-                            data_var = c("death_incid", "confirmed_incid"),
-                            remove_na = FALSE,
-                            add_one = c(FALSE, TRUE),
-                            ll_dist = c("sqrtnorm", "pois"),
-                            ll_param = .4,
-                            final_print = FALSE){
+                                       data_path = "data/us_data.csv",
+                                       gt_source = "csse",
+                                       stat_names = c("sum_deaths", "sum_confirmed"),
+                                       variant_compartments = c("wild", "alpha", "delta"),
+                                       aggregator = "sum",
+                                       period = "1 weeks",
+                                       sim_var = c("incidD", "incidC"),
+                                       data_var = c("incidDeath", "Confirmed"),
+                                       remove_na = FALSE,
+                                       add_one = c(FALSE, TRUE),
+                                       ll_dist = c("sqrtnorm", "pois"),
+                                       ll_param = .4,
+                                       final_print = FALSE){
 
     if(length(stat_names)!=length(data_var)) stop("stat_names and data_var must be the same length")
 
@@ -1169,32 +1148,43 @@ print_filtering_statistics <- function(sims_per_slot = 300,
         "  statistics:\n"
     ))
 
+    stat_names <- paste(rep(stat_names, each = length(variant_compartments)), variant_compartments, sep ="_")
+    sim_var <- paste(rep(sim_var, each = length(variant_compartments)), stringr::str_to_upper(variant_compartments), sep="_")
+    data_var <- paste(rep(data_var, each = length(variant_compartments)), variant_compartments, sep ="_")
+
+    for(i in 1:length(variant_compartments)){
+        stat_names <- c(stat_names[stringr::str_detect(stat_names, variant_compartments[i], negate = TRUE)], stat_names[stringr::str_detect(stat_names, variant_compartments[i], negate = FALSE)])
+        sim_var <- c(sim_var[stringr::str_detect(sim_var, stringr::str_to_upper(variant_compartments[i]), negate = TRUE)], sim_var[stringr::str_detect(sim_var, stringr::str_to_upper(variant_compartments[i]), negate = FALSE)])
+        data_var <- c(data_var[stringr::str_detect(data_var, variant_compartments[i], negate = TRUE)], data_var[stringr::str_detect(data_var, variant_compartments[i], negate = FALSE)])
+    }
+
     n_vars <- length(stat_names)
 
-    if(length(aggregator)!=n_vars & length(aggregator)==1){
+    if(length(aggregator)!=n_vars){
         aggregator <- rep(aggregator, n_vars)
     }
 
-    if(length(period)!=n_vars & length(period)==1){
+    if(length(period)!=n_vars){
         period <- rep(period, n_vars)
     }
 
-    if(length(remove_na)!=n_vars & length(remove_na)==1){
+    if(length(remove_na)!=n_vars){
         remove_na <- rep(remove_na, n_vars)
     }
 
-    if(length(add_one)!=n_vars & length(add_one)==1){
+    if(length(add_one)!=n_vars){
         add_one <- rep(add_one, n_vars)
     }
 
-    if(length(ll_dist)!=n_vars & length(ll_dist)==1){
+    if(length(ll_dist)!=n_vars){
         ll_dist <- rep(ll_dist, n_vars)
     }
 
-    if(length(ll_param)!=n_vars & length(ll_param)==1){
+    if(length(ll_param)!=n_vars){
         ll_param <- rep(ll_param, n_vars)
 
     }
+
 
     for(i in 1:length(stat_names)){
         cat(paste0(
