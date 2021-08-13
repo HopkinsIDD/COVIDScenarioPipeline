@@ -148,7 +148,7 @@ aggregate_and_calc_loc_likelihoods <- function(
           defined_priors[[prior]]$likelihood$dist,
           defined_priors[[prior]]$likelihood$param
         )) %>%
-        select(geoid, likadj)
+        dplyr::select(geoid, likadj)
 
     } else if (defined_priors[[prior]]$module == "outcomes_interventions") {
       #' @importFrom magrittr %>%
@@ -158,7 +158,7 @@ aggregate_and_calc_loc_likelihoods <- function(
           defined_priors[[prior]]$likelihood$dist,
           defined_priors[[prior]]$likelihood$param
         )) %>%
-        select(geoid, likadj)
+        dplyr::select(geoid, likadj)
 
     }  else if (defined_priors[[prior]]$module %in% c("outcomes_parameters", "hospitalization")) {
 
@@ -183,6 +183,13 @@ aggregate_and_calc_loc_likelihoods <- function(
   }
 
 
+  if(any(is.na(likelihood_data$ll))) {
+    print("Full Likelihood")
+    print(likelihood_data)
+    print("NA only Likelihoods")
+    print(likelihood_data[is.na(likelihood_data$ll), ])
+    stop("The likelihood was NA")
+  }
 
   return(likelihood_data)
 }
@@ -449,6 +456,7 @@ initialize_mcmc_first_block <- function(
       collapse = "\n"
     ))
   }
+
   if (any(chimeric_check)) {
     warning(paste(
       "Found file",
