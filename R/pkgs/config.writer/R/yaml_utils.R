@@ -508,6 +508,7 @@ print_transmission_interventions <- function(dat,
 #' @param incidC_delay_dist distribution of incidC delay
 #' @param compartment
 #' @param variant_compartments
+#' @param outcomes_included which outcomes to include, options: incidH, incidC, incidD, incidICU, incidVent.
 #'
 #' @details
 #' The settings for each scenario correspond to a set of different health outcome risks, most often just differences in the probability of death given infection (Pr(incidD|incidI)) and the probability of hospitalization given infection (Pr(incidH|incidI)). Each health outcome risk is referenced in relation to the outcome indicated in source. For example, the probability and delay in becoming a confirmed case (incidC) is most likely to be indexed off of the number and timing of infection (incidI).
@@ -711,6 +712,16 @@ print_outcomes <- function(dat=NULL,
                                     indent_space = 10),
                         '          name: vent_curr\n'
     )
+
+    if(any(outcomes_included=="incidICU")){
+        if(any(outcomes_included=="incidVent")){
+            order_outcomes <- c("incidH", "incidICU", "incidVent")
+            outcomes_included <- c(order_outcomes, outcomes_included[!outcomes_included %in% order_outcomes])
+        } else{
+            order_outcomes <- c("incidH", "incidICU")
+            outcomes_included <- c(order_outcomes, outcomes_included[!outcomes_included %in% order_outcomes])
+        }
+    }
 
     cat(paste0(
         outcomes,
