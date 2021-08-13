@@ -27,17 +27,23 @@ generate_config <- function(){
                incl_vacc = TRUE,
                theta_1A_val = 0.5,
                theta_2A_val = 0.9,
+               nu_2_val = 0.04,
                compartment = FALSE,
                vaccine_compartments = c("unvaccinated", "first_dose", "second_dose"))
 
     print_interventions(interventions,
-                        scenario = "inference")
+                        scenario = "inference",
+                        compartment = FALSE)
 
-    print_outcomes(ifr = "med",
+    print_outcomes(dat = interventions,
+                   ifr = "med",
                    outcomes_parquet_file="usa-geoid-params-output_statelevel.parquet",
-                   incidC_prob_value = c(0.4, 0.4, 0.4))
+                   incidC_prob_value = c(0.4, 0.4, 0.4),
+                   compartment = FALSE)
 
-    print_filtering_statistics(sims_per_slot = 1000)
+    print_filtering_statistics(sims_per_slot = 1000,
+                               compartment = FALSE,
+                               data_var = c("death_incid", "confirmed_incid"))
 
     print_filtering_hierarchical(npi_name = c("local_variance", "probability_incidI_incidC"),
                                  module = c("seir", "hospitalization"),

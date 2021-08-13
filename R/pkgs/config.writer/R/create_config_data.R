@@ -18,6 +18,7 @@
 #' @param p_sd perturbation sd
 #' @param p_a perturbation a
 #' @param p_b perturbation b
+#' @param compartment
 #'
 #' @return
 #'
@@ -36,10 +37,10 @@ set_npi_params <- function(intervention_file,
                            inference = TRUE,
                            redux_geoids = NULL,
                            v_dist = "truncnorm", v_mean=0.6, v_sd=0.05, v_a=0.0, v_b=0.9,
-                           p_dist = "truncnorm", p_mean=0, p_sd=0.05, p_a=-1, p_b=1
+                           p_dist = "truncnorm", p_mean=0, p_sd=0.05, p_a=-1, p_b=1,
+                           compartment = TRUE
 ){
-
-
+    param_val <- ifelse(compartment, "r0", "R0")
     sim_start_date <- lubridate::ymd(sim_start_date)
     sim_end_date <- lubridate::ymd(sim_end_date)
     npi_cuttoff_date <- lubridate::ymd(npi_cutoff_date)
@@ -64,7 +65,7 @@ set_npi_params <- function(intervention_file,
                       type = "transmission",
                       category = "NPI",
                       baseline_scenario = "",
-                      parameter = dplyr::if_else(template=="MultiTimeReduce", "r0", NA_character_)
+                      parameter = dplyr::if_else(template=="MultiTimeReduce", param_val, NA_character_)
         )
 
     if(any(stringr::str_detect(npi$name, "^\\d$"))) stop("Intervention names must include at least one non-numeric character.")
@@ -97,7 +98,7 @@ set_npi_params <- function(intervention_file,
         dplyr::ungroup() %>%
         dplyr::add_count(name) %>%
         dplyr::mutate(template = dplyr::if_else(n==1 & template == "MultiTimeReduce", "Reduce", template),
-                      parameter = dplyr::if_else(n==1 & template == "Reduce", "r0", parameter)) %>%
+                      parameter = dplyr::if_else(n==1 & template == "Reduce", param_val, parameter)) %>%
         dplyr::select(-n)
 
     return(npi)
@@ -121,6 +122,7 @@ set_npi_params <- function(intervention_file,
 #' @param p_sd perturbation sd
 #' @param p_a perturbation a
 #' @param p_b perturbation b
+#' @param compartment
 #'
 #' @return data frame with columns seasonal terms and set parameters.
 #' @export
@@ -139,10 +141,13 @@ set_seasonality_params <- function(sim_start_date=as.Date("2020-03-31"),
                                    v_mean = c(-0.2, -0.133, -0.067, 0, 0.067, 0.133, 0.2, 0.133, 0.067, 0, -0.067, -0.133), # TODO function?
                                    v_sd = 0.05, v_a = -1, v_b = 1,
                                    p_dist="truncnorm",
-                                   p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1){
+                                   p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1,
+                                   compartment = TRUE){
 
     sim_start_date <- as.Date(sim_start_date)
     sim_end_date <- as.Date(sim_end_date)
+
+    param_val <- ifelse(compartment, "r0", "R0")
 
     years_ <- unique(lubridate::year(seq(sim_start_date, sim_end_date, 1)))
 
@@ -166,7 +171,7 @@ set_seasonality_params <- function(sim_start_date=as.Date("2020-03-31"),
                       end_date = dplyr::if_else(end_date > sim_end_date, sim_end_date, end_date),
                       USPS = "",
                       type = "transmission",
-                      parameter = "r0",
+                      parameter = param_val,
                       category = "seasonal",
                       template = template,
                       baseline_scenario = "",
@@ -268,6 +273,7 @@ set_localvar_params <- function(sim_start_date=as.Date("2020-03-31"),
 #' @param v_sd reduction sd
 #' @param v_a reduction a
 #' @param v_b reduction b
+#' @param compartment
 #'
 #' @return
 #' @export
@@ -283,10 +289,12 @@ set_redux_params <- function(npi_file,
                              v_mean=0.6,
                              v_sd=0.01,
                              v_a=0,
-                             v_b=1
+                             v_b=1,
+                             compartment = TRUE
 ){
 
     projection_start_date <- as.Date(projection_start_date)
+    param_val <- ifelse(compartment, "r0", "R0")
 
     if(!is.null(redux_end_date)){
         redux_end_date <- as.Date(redux_end_date)
@@ -324,7 +332,7 @@ set_redux_params <- function(npi_file,
                name = paste0(category, '_', month),
                baseline_scenario = c("base_npi", paste0("NPI_redux_", month[-length(month)])),
                template = "ReduceIntervention",
-               parameter = "r0",
+               parameter = param_val,
                value_dist = v_dist,
                value_sd = v_sd,
                value_a = v_a,
@@ -346,7 +354,7 @@ set_redux_params <- function(npi_file,
 #' @param sim_end_date simulation end date
 #' @param incl_geoid vector of geoids to include
 #' @param scenario_num which baseline scenario will be selected from the vaccination rate file
-#'
+#' @param compartment
 #'
 #' @return
 #' @export
@@ -358,8 +366,10 @@ set_vacc_rates_params <- function(vacc_path,
                                   sim_end_date=Sys.Date()+60,
                                   # inference = TRUE,
                                   incl_geoid = NULL, # TODO: add scenario filter similar to set_vacc_outcome_params
-                                  scenario_num = 1
+                                  scenario_num = 1,
+                                  compartment = TRUE
 ){
+    param_val <- ifelse(compartment, "nu_1", "transition_rate 0")
     vacc_start_date <- as.Date(vacc_start_date)
     sim_end_date <- as.Date(sim_end_date)
 
@@ -381,7 +391,7 @@ set_vacc_rates_params <- function(vacc_path,
                       category = "vaccination",
                       name = paste0("Dose1_",tolower(month),lubridate::year(start_date)),
                       template = "Reduce",
-                      parameter = "nu_1",
+                      parameter = param_val,
                       baseline_scenario = "",
                       value_dist = "fixed",
                       value_sd = NA_real_,

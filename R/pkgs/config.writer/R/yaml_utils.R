@@ -397,6 +397,7 @@ yaml_stack <- function(dat,
 #'
 #' @param dat dataframe with processed intervention names/periods; see collapsed_interventions
 #' @param scenario name of the scenario
+#' @param compartment
 #'
 #' @return
 #' @export
@@ -405,7 +406,8 @@ yaml_stack <- function(dat,
 #'
 
 print_interventions <- function(dat,
-                                scenario = "Inference"
+                                scenario = "Inference",
+                                compartment = TRUE
 ){
 
     cat(paste0(
@@ -445,10 +447,13 @@ print_interventions <- function(dat,
                scenario)
 
     if(nrow(outcome_dat) > 0){
-        yaml_stack(outcome_dat,
-                   "outcome_interventions")
+        if(compartment){
+            yaml_stack(outcome_dat,
+                       "outcome_interventions")
 
-        cat(paste0("\n"))
+            cat(paste0("\n"))
+        }
+
         for(i in 1:nrow(outcome_dat)){
             if(outcome_dat$template[i]=="Reduce"){
                 yaml_reduce_template(outcome_dat[i,])
@@ -515,7 +520,8 @@ print_interventions <- function(dat,
 #'
 #'
 
-print_outcomes <- function(ifr=NULL,
+print_outcomes <- function(dat=NULL,
+                           ifr=NULL,
                           outcomes_parquet_file="usa-geoid-params-output_statelevel.parquet",
                           incidH_prob_dist=c("fixed", "fixed", "fixed"),
                           incidH_prob_value=c(0.0175, 0.0175, 0.0175),
@@ -581,143 +587,245 @@ print_outcomes <- function(ifr=NULL,
 
     }
 
-    outcomes <- paste0('\n',
-                       'outcomes:\n',
-                       '  method: delayframe\n',
-                       '  param_from_file: TRUE\n',
-                       '  param_place_file: "', outcomes_parquet_file, '"\n',
-                       '  scenarios:\n',
-                       '    - ',ifr,'\n',
-                       '  settings:\n',
-                       '    ',ifr,':\n')
+    if(compartment){
 
-    incidH <- ""
-    incidD <- ""
-    incidC <- ""
+        outcomes <- paste0('\n',
+                           'outcomes:\n',
+                           '  method: delayframe\n',
+                           '  param_from_file: TRUE\n',
+                           '  param_place_file: "', outcomes_parquet_file, '"\n',
+                           '  scenarios:\n',
+                           '    - ',ifr,'\n',
+                           '  settings:\n',
+                           '    ',ifr,':\n')
 
-    for(i in 1:length(variant_compartments)){
-        incidH <- paste0(incidH,
-                         '      incidH_', stringr::str_to_upper(variant_compartments[i]), ':\n',
-                         '        source:\n',
-                         '          incidence:\n',
-                         '            infection_stage: ["I1"]\n',
-                         '            vaccination_stage: ["', paste0(vaccine_compartments, collapse = '", "'),'"]\n',
-                         '            variant_type: ["',stringr::str_to_upper(variant_compartments[i]),'"]\n',
-                         '        probability: \n',
-                         print_value(value_dist = incidH_prob_dist[i],
-                                     value_mean = incidH_prob_value[i],
-                                     indent_space = 10),
-                         '        delay:\n',
-                         print_value(value_dist = incidH_delay_dist[i],
-                                     value_mean = incidH_delay_value[i],
-                                     indent_space = 10),
-                         '        duration:\n',
-                         print_value(value_dist = incidH_duration_dist[i],
-                                     value_mean = incidH_duration_value[i],
-                                     indent_space = 10),
-                         '          name: hosp_curr\n'
-                           )
+        incidH <- ""
+        incidD <- ""
+        incidC <- ""
 
-        incidD <- paste0(incidD,
-                         '      incidD_', stringr::str_to_upper(variant_compartments[i]), ':\n',
-                         '        source:\n',
-                         '          incidence:\n',
-                         '            infection_stage: ["I1"]\n',
-                         '            vaccination_stage: ["', paste0(vaccine_compartments, collapse = '", "'),'"]\n',
-                         '            variant_type: ["',stringr::str_to_upper(variant_compartments[i]),'"]\n',
-                         '        probability:\n',
-                         print_value(value_dist = incidD_prob_dist[i],
-                                     value_mean = incidD_prob_value[i],
-                                     indent_space = 10),
-                         '        delay:\n',
-                         print_value(value_dist = incidD_delay_dist[i],
-                                     value_mean = incidD_delay_value[i],
-                                     indent_space = 10)
+        for(i in 1:length(variant_compartments)){
+            incidH <- paste0(incidH,
+                             '      incidH_', stringr::str_to_upper(variant_compartments[i]), ':\n',
+                             '        source:\n',
+                             '          incidence:\n',
+                             '            infection_stage: ["I1"]\n',
+                             '            vaccination_stage: ["', paste0(vaccine_compartments, collapse = '", "'),'"]\n',
+                             '            variant_type: ["',stringr::str_to_upper(variant_compartments[i]),'"]\n',
+                             '        probability: \n',
+                             print_value(value_dist = incidH_prob_dist[i],
+                                         value_mean = incidH_prob_value[i],
+                                         indent_space = 10),
+                             '        delay:\n',
+                             print_value(value_dist = incidH_delay_dist[i],
+                                         value_mean = incidH_delay_value[i],
+                                         indent_space = 10),
+                             '        duration:\n',
+                             print_value(value_dist = incidH_duration_dist[i],
+                                         value_mean = incidH_duration_value[i],
+                                         indent_space = 10),
+                             '          name: hosp_curr\n'
+            )
+
+            incidD <- paste0(incidD,
+                             '      incidD_', stringr::str_to_upper(variant_compartments[i]), ':\n',
+                             '        source:\n',
+                             '          incidence:\n',
+                             '            infection_stage: ["I1"]\n',
+                             '            vaccination_stage: ["', paste0(vaccine_compartments, collapse = '", "'),'"]\n',
+                             '            variant_type: ["',stringr::str_to_upper(variant_compartments[i]),'"]\n',
+                             '        probability:\n',
+                             print_value(value_dist = incidD_prob_dist[i],
+                                         value_mean = incidD_prob_value[i],
+                                         indent_space = 10),
+                             '        delay:\n',
+                             print_value(value_dist = incidD_delay_dist[i],
+                                         value_mean = incidD_delay_value[i],
+                                         indent_space = 10)
+            )
+
+            incidC <- paste0(incidC,
+                             '      incidC_', stringr::str_to_upper(variant_compartments[i]), ':\n',
+                             '        source:\n',
+                             '          incidence:\n',
+                             '            infection_stage: ["I1"]\n',
+                             '            vaccination_stage: ["', paste0(vaccine_compartments, collapse = '", "'),'"]\n',
+                             '            variant_type: ["',stringr::str_to_upper(variant_compartments[i]),'"]\n',
+                             '        probability:\n',
+                             print_value(value_dist = incidC_prob_dist[i],
+                                         value_mean = incidC_prob_value[i],
+                                         value_sd = incidC_prob_sd[i],
+                                         value_a = incidC_prob_a[i],
+                                         value_b = incidC_prob_b[i],
+                                         indent_space=10),
+                             incidC_pert[i],
+                             '        delay:\n',
+                             print_value(value_dist = incidC_delay_dist[i],
+                                         value_mean = incidC_delay_value[i],
+                                         indent_space = 10)
+            )
+        }
+
+        incidICU_source <- paste0("'incidH_", stringr::str_to_upper(variant_compartments), "'") %>% paste0(collapse = ', ')
+
+        incidICU <- paste0('      incidH:\n',
+                           '        sum: [', incidICU_source, ']\n',
+                           '      incidICU:\n',
+                           '        source: incidH\n',
+                           '        probability:\n',
+                           print_value(value_dist = incidICU_prob_dist,
+                                       value_mean = incidICU_prob_value,
+                                       indent_space = 10),
+                           '        delay:\n',
+                           print_value(value_dist = incidICU_delay_dist,
+                                       value_mean = incidICU_delay_value,
+                                       indent_space = 10),
+                           '        duration:\n',
+                           print_value(value_dist = incidICU_duration_dist,
+                                       value_mean = incidICU_duration_value,
+                                       indent_space = 10),
+                           '          name: icu_curr\n')
+
+        incidVent <- paste0('      incidVent:\n',
+                            '        source: incidICU\n',
+                            '        probability: \n',
+                            print_value(value_dist = incidVent_prob_dist,
+                                        value_mean = incidVent_prob_value,
+                                        indent_space = 10),
+                            '        delay:\n',
+                            print_value(value_dist = incidVent_delay_dist,
+                                        value_mean = incidVent_delay_value,
+                                        indent_space = 10),
+                            '        duration:\n', # TODO: optional
+                            print_value(value_dist = incidVent_duration_dist,
+                                        value_mean = incidVent_duration_value,
+                                        indent_space = 10),
+                            '          name: vent_curr\n'
         )
 
-        incidC <- paste0(incidC,
-                         '      incidC_', stringr::str_to_upper(variant_compartments[i]), ':\n',
-                         '        source:\n',
-                         '          incidence:\n',
-                         '            infection_stage: ["I1"]\n',
-                         '            vaccination_stage: ["', paste0(vaccine_compartments, collapse = '", "'),'"]\n',
-                         '            variant_type: ["',stringr::str_to_upper(variant_compartments[i]),'"]\n',
-                         '        probability:\n',
-                         print_value(value_dist = incidC_prob_dist[i],
-                                     value_mean = incidC_prob_value[i],
-                                     value_sd = incidC_prob_sd[i],
-                                     value_a = incidC_prob_a[i],
-                                     value_b = incidC_prob_b[i],
-                                     indent_space=10),
-                         incidC_pert[i],
-                         '        delay:\n',
-                         print_value(value_dist = incidC_delay_dist[i],
-                                     value_mean = incidC_delay_value[i],
-                                     indent_space = 10)
-        )
-    }
+        if(any(outcomes_included=="incidICU")){
+            if(any(outcomes_included=="incidVent")){
+                order_outcomes <- c("incidH", "incidICU", "incidVent")
+                outcomes_included <- c(order_outcomes, outcomes_included[!outcomes_included %in% order_outcomes])
+            } else{
+                order_outcomes <- c("incidH", "incidICU")
+                outcomes_included <- c(order_outcomes, outcomes_included[!outcomes_included %in% order_outcomes])
+            }
+        }
 
-    incidICU_source <- paste0("'incidH_", stringr::str_to_upper(variant_compartments), "'") %>% paste0(collapse = ', ')
+        cat(paste0(
+            outcomes,
+            mget(outcomes_included) %>% unlist() %>% paste0(collapse = "")
+        ))
 
-    incidICU <- paste0('      incidH:\n',
-                       '        sum: [', incidICU_source, ']\n',
-                       '      incidICU:\n',
-                       '        source: incidH\n',
-                       '        probability:\n',
-                       print_value(value_dist = incidICU_prob_dist,
-                                   value_mean = incidICU_prob_value,
-                                   indent_space = 10),
-                       '        delay:\n',
-                       print_value(value_dist = incidICU_delay_dist,
-                                   value_mean = incidICU_delay_value,
-                                   indent_space = 10),
-                       '        duration:\n',
-                       print_value(value_dist = incidICU_duration_dist,
-                                   value_mean = incidICU_duration_value,
-                                   indent_space = 10),
-                       '          name: icu_curr\n')
+        if(incl_interventions){
+            cat(paste0(
+                '  interventions:\n',
+                '    settings:\n',
+                '      ', ifr, ':\n',
+                '        template: Stacked\n',
+                '        scenarios: ["outcome_interventions"]\n'
+            ))
+        }
+    } else{
 
-    incidVent <- paste0('      incidVent:\n',
-                        '        source: incidICU\n',
-                        '        probability: \n',
-                        print_value(value_dist = incidVent_prob_dist,
-                                    value_mean = incidVent_prob_value,
-                                    indent_space = 10),
-                        '        delay:\n',
-                        print_value(value_dist = incidVent_delay_dist,
-                                    value_mean = incidVent_delay_value,
-                                    indent_space = 10),
-                        '        duration:\n', # TODO: optional
-                        print_value(value_dist = incidVent_duration_dist,
-                                    value_mean = incidVent_duration_value,
-                                    indent_space = 10),
-                        '          name: vent_curr\n'
-    )
+        cat(paste0(
+            '\n',
+            'outcomes:\n',
+            '  method: delayframe\n',
+            '  param_from_file: TRUE\n',
+            '  param_place_file: "', outcomes_parquet_file, '"\n',
+            '  scenarios:\n',
+            '    - ',ifr,'\n',
+            '  settings:\n',
+            '    ',ifr,':\n',
+            '      incidH:\n',
+            '        source: incidI\n',
+            '        probability:\n',
+            print_value(value_dist = incidH_prob_dist[1],
+                        value_mean = incidH_prob_value[1],
+                        indent_space = 10),
+            '        delay:\n',
+            print_value(value_dist = incidH_delay_dist[1],
+                        value_mean = incidH_delay_value[1],
+                        indent_space = 10),
+            '        duration:\n', # TODO: optional
+            print_value(value_dist = incidH_duration_dist[1],
+                        value_mean = incidH_duration_value[1],
+                        indent_space = 10),
+            '          name: hosp_curr\n',
+            '      incidD:\n',
+            '        source: incidI\n',
+            '        probability:\n',
+            print_value(value_dist = incidD_prob_dist[1],
+                        value_mean = incidD_prob_value[1],
+                        indent_space = 10),
+            '        delay:\n',
+            print_value(value_dist = incidD_delay_dist[1],
+                        value_mean = incidD_delay_value[1],
+                        indent_space = 10),
+            '      incidICU:\n',
+            '        source: incidH\n',
+            '        probability:\n',
+            print_value(value_dist = incidICU_prob_dist[1],
+                        value_mean = incidICU_prob_value[1],
+                        indent_space = 10),
+            '        delay:\n',
+            print_value(value_dist = incidICU_delay_dist[1],
+                        value_mean = incidICU_delay_value[1],
+                        indent_space = 10),
+            '        duration:\n', # TODO: optional
+            print_value(value_dist = incidICU_duration_dist[1],
+                        value_mean = incidICU_duration_value[1],
+                        indent_space = 10),
+            '          name: icu_curr\n',
+            '      incidVent:\n',
+            '        source: incidICU\n',
+            '        probability: \n',
+            print_value(value_dist = incidVent_prob_dist[1],
+                        value_mean = incidVent_prob_value[1],
+                        indent_space = 10),
+            '        delay:\n',
+            print_value(value_dist = incidVent_delay_dist[1],
+                        value_mean = incidVent_delay_value[1],
+                        indent_space = 10),
+            '        duration:\n',
+            print_value(value_dist = incidVent_duration_dist[1],
+                        value_mean = incidVent_duration_value[1],
+                        indent_space = 10),
+            '          name: vent_curr\n',
+            '      incidC:\n',
+            '        source: incidI\n',
+            '        probability:\n',
+            print_value(value_dist = incidC_prob_dist[1],
+                        value_mean = incidC_prob_value[1],
+                        value_sd = incidC_prob_sd[1],
+                        value_a = incidC_prob_a[1],
+                        value_b = incidC_prob_b[1],
+                        indent_space=10),
+            incidC_pert[1],
+            '        delay:\n',
+            print_value(value_dist = incidC_delay_dist[1],
+                        value_mean = incidC_delay_value[1],
+                        indent_space = 10)
+        ))
 
-    if(any(outcomes_included=="incidICU")){
-        if(any(outcomes_included=="incidVent")){
-            order_outcomes <- c("incidH", "incidICU", "incidVent")
-            outcomes_included <- c(order_outcomes, outcomes_included[!outcomes_included %in% order_outcomes])
-        } else{
-            order_outcomes <- c("incidH", "incidICU")
-            outcomes_included <- c(order_outcomes, outcomes_included[!outcomes_included %in% order_outcomes])
+        if(!is.null(dat)){
+            dat <- dat %>%
+                collapse_intervention() %>%
+                dplyr::filter(type=="outcome")
+
+            cat(paste0(
+                '  interventions:\n',
+                '    settings:\n',
+                '      ', ifr, ':\n',
+                '        template: Stacked\n',
+                '        scenarios: ["', paste0(unique(dat$name), collapse = '", "'), '"]\n'
+            ))
+
         }
     }
 
-    cat(paste0(
-        outcomes,
-        mget(outcomes_included) %>% unlist() %>% paste0(collapse = "")
-        ))
 
-    if(incl_interventions){
-        cat(paste0(
-            '  interventions:\n',
-            '    settings:\n',
-            '      ', ifr, ':\n',
-            '        template: Stacked\n',
-            '        scenarios: ["outcome_interventions"]\n'
-        ))
-    }
 }
 
 #' Print SEIR Section
@@ -809,25 +917,24 @@ print_seir <- function(sigma_val = 1/5.2,
 ){
     # TODO: add checks to compartment length
 
-
-        seir <- paste0("seir:\n",
-                       "  parameters:\n",
-                       "    sigma: \n", print_value(value_dist = "fixed",
-                                                    value_mean = sigma_val),
-                       "    alpha: \n", print_value(value_dist = "fixed",
-                                                    value_mean = alpha_val),
-                       "    r0: \n", print_value(value_dist = R0s_dist,
-                                                 value_mean = R0s_val,
-                                                 value_sd = R0s_sd,
-                                                 value_a = R0s_a,
-                                                 value_b = R0s_b),
-                       "    gamma: \n", print_value(value_dist = gamma_dist,
-                                                    value_mean = gamma_val,
-                                                    value_sd = gamma_sd,
-                                                    value_a = gamma_a,
-                                                    value_b = gamma_b))
-
         if(compartment){
+            seir <- paste0("seir:\n",
+                           "  parameters:\n",
+                           "    sigma: \n", print_value(value_dist = "fixed",
+                                                        value_mean = sigma_val),
+                           "    alpha: \n", print_value(value_dist = "fixed",
+                                                        value_mean = alpha_val),
+                           "    r0: \n", print_value(value_dist = R0s_dist,
+                                                     value_mean = R0s_val,
+                                                     value_sd = R0s_sd,
+                                                     value_a = R0s_a,
+                                                     value_b = R0s_b),
+                           "    gamma: \n", print_value(value_dist = gamma_dist,
+                                                        value_mean = gamma_val,
+                                                        value_sd = gamma_sd,
+                                                        value_a = gamma_a,
+                                                        value_b = gamma_b))
+
             seir <- paste0(seir,
                            "    theta_1A: \n", print_value(value_dis = theta_1A_dist,
                                                            value_mean = theta_1A_val),
@@ -921,6 +1028,26 @@ print_seir <- function(sigma_val = 1/5.2,
                            '      rate: ["epsilon", 1, 1] \n'
                            )
         } else{
+
+            seir <- paste0("seir:\n",
+                           "  parameters:\n",
+                           print_value(value_dist = R0s_dist,
+                                       value_mean = R0s_val,
+                                       value_sd = R0s_sd,
+                                       value_a = R0s_a,
+                                       value_b = R0s_b,
+                                       indent_space = 4,
+                                       param_name = "R0s"),
+                           print_value(value_dist = gamma_dist,
+                                       value_mean = gamma_val,
+                                       value_sd = gamma_sd,
+                                       value_a = gamma_a,
+                                       value_b = gamma_b,
+                                       indent_space = 4,
+                                       param_name = "gamma"),
+                           "    sigma: ", sigma_val, "\n",
+                           "    alpha: ", alpha_val, "\n"
+            )
 
             if(incl_vacc){
                 vacc <- paste0("    parallel_structure:\n",
@@ -1115,6 +1242,7 @@ print_seeding <- function(method = "FolderDraw",
 #' @param ll_dist distribution of the likelihood: "sqrtnorm" or "pois"
 #' @param ll_param parameter value(s) for the likelihood distribution; not used if ll_dist = "pois". See [inference::logLikStat()]
 #' @param final_print whether this is the final section of the config to print an empty space; set to FALSE if running [print_hierarchical()] and/or [print_prior()]
+#' @param compartment
 #'
 #' @details
 #' The filtering section configures the settings for the inference algorithm, while the statistics component determines how the model is calibrated.
@@ -1139,7 +1267,8 @@ print_filtering_statistics <- function(sims_per_slot = 300,
                                        add_one = c(FALSE, TRUE),
                                        ll_dist = c("sqrtnorm", "pois"),
                                        ll_param = .4,
-                                       final_print = FALSE){
+                                       final_print = FALSE,
+                                       compartment = TRUE){
 
     if(length(stat_names)!=length(data_var)) stop("stat_names and data_var must be the same length")
 
@@ -1153,16 +1282,19 @@ print_filtering_statistics <- function(sims_per_slot = 300,
         "  statistics:\n"
     ))
 
-    variant_compartments <- stringr::str_to_upper(variant_compartments)
+    if(compartment){
 
-    stat_names <- paste(rep(stat_names, each = length(variant_compartments)), variant_compartments, sep ="_")
-    sim_var <- paste(rep(sim_var, each = length(variant_compartments)), stringr::str_to_upper(variant_compartments), sep="_")
-    data_var <- paste(rep(data_var, each = length(variant_compartments)), variant_compartments, sep ="_")
+        variant_compartments <- stringr::str_to_upper(variant_compartments)
 
-    for(i in 1:length(variant_compartments)){
-        stat_names <- c(stat_names[stringr::str_detect(stat_names, variant_compartments[i], negate = TRUE)], stat_names[stringr::str_detect(stat_names, variant_compartments[i], negate = FALSE)])
-        sim_var <- c(sim_var[stringr::str_detect(sim_var, stringr::str_to_upper(variant_compartments[i]), negate = TRUE)], sim_var[stringr::str_detect(sim_var, stringr::str_to_upper(variant_compartments[i]), negate = FALSE)])
-        data_var <- c(data_var[stringr::str_detect(data_var, variant_compartments[i], negate = TRUE)], data_var[stringr::str_detect(data_var, variant_compartments[i], negate = FALSE)])
+        stat_names <- paste(rep(stat_names, each = length(variant_compartments)), variant_compartments, sep ="_")
+        sim_var <- paste(rep(sim_var, each = length(variant_compartments)), stringr::str_to_upper(variant_compartments), sep="_")
+        data_var <- paste(rep(data_var, each = length(variant_compartments)), variant_compartments, sep ="_")
+
+        for(i in 1:length(variant_compartments)){
+            stat_names <- c(stat_names[stringr::str_detect(stat_names, variant_compartments[i], negate = TRUE)], stat_names[stringr::str_detect(stat_names, variant_compartments[i], negate = FALSE)])
+            sim_var <- c(sim_var[stringr::str_detect(sim_var, stringr::str_to_upper(variant_compartments[i]), negate = TRUE)], sim_var[stringr::str_detect(sim_var, stringr::str_to_upper(variant_compartments[i]), negate = FALSE)])
+            data_var <- c(data_var[stringr::str_detect(data_var, variant_compartments[i], negate = TRUE)], data_var[stringr::str_detect(data_var, variant_compartments[i], negate = FALSE)])
+        }
     }
 
     n_vars <- length(stat_names)
