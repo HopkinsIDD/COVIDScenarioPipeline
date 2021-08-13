@@ -557,8 +557,12 @@ set_vacc_outcome_params <- function(outcome_path,
                                     v_dist="truncnorm",
                                     v_sd = 0.01, v_a = 0, v_b = 1,
                                     p_dist="truncnorm",
-                                    p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1
+                                    p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1,
+                                    compartment = TRUE,
+                                    variant_compartments = c("wild", "alpha", "delta")
 ){
+    variant_compartments <- stringr::str_to_upper(variant_compartments)
+
     sim_start_date <- as.Date(sim_start_date)
     sim_end_date <- as.Date(sim_end_date)
 
@@ -601,6 +605,17 @@ set_vacc_outcome_params <- function(outcome_path,
         dplyr::mutate(dplyr::across(pert_mean:pert_b, ~ifelse(inference, .x, NA_real_)),
                       pert_dist = ifelse(inference, pert_dist, NA_character_)) %>%
         dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, baseline_scenario, tidyselect::starts_with("value_"), tidyselect::starts_with("pert_"))
+
+        if(compartment){
+            temp <- list()
+            for(i in 1:length(variant_compartments)){
+                temp[[i]] <- outcome %>%
+                    dplyr::mutate(parameter = stringr::str_replace(parameter, "::probability", paste0("_", variant_compartments,"::probability")))
+            }
+
+            outcome <- dplyr::bind_rows(temp)
+
+        }
 
     return(outcome)
 
@@ -739,6 +754,8 @@ set_incidC_shift <- function(periods,
 #' @param p_sd perturbation sd
 #' @param p_a perturbation a
 #' @param p_b perturbation b
+#' @param compartment
+#'
 #' @return
 #' @export
 #'
@@ -750,8 +767,13 @@ set_incidH_adj_params <- function(outcome_path,
                                   geodata,
                                   inference = FALSE,
                                   v_dist = "fixed", v_sd = 0.01, v_a = -10, v_b = 2,
-                                  p_dist = "truncnorm", p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1)
+                                  p_dist = "truncnorm", p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1,
+                                  compartment = TRUE,
+                                  variant_compartments = c("wild", "alpha", "delta")
+                                  )
 {
+    variant_compartments <- stringr::str_to_upper(variant_compartments)
+
     sim_start_date <- lubridate::as_date(sim_start_date)
     sim_end_date <- lubridate::as_date(sim_end_date)
     outcome <- readr::read_csv(outcome_path) %>%
@@ -788,6 +810,18 @@ set_incidH_adj_params <- function(outcome_path,
         dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category,
                       parameter, baseline_scenario, tidyselect::starts_with("value_"),
                       tidyselect::starts_with("pert_"))
+
+    if(compartment){
+        temp <- list()
+        for(i in 1:length(variant_compartments)){
+            temp[[i]] <- outcome %>%
+                dplyr::mutate(parameter = stringr::str_replace(parameter, "::probability", paste0("_", variant_compartments,"::probability")))
+        }
+
+        outcome <- dplyr::bind_rows(temp)
+
+    }
+
     return(outcome)
 }
 
