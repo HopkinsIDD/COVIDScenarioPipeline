@@ -506,6 +506,8 @@ print_transmission_interventions <- function(dat,
 #' @param incidC_prob_b_pert minimum perturbation value for incidC probability
 #' @param incidC_delay_value time to case detection since infection in days
 #' @param incidC_delay_dist distribution of incidC delay
+#' @param compartment
+#' @param variant_compartments
 #'
 #' @details
 #' The settings for each scenario correspond to a set of different health outcome risks, most often just differences in the probability of death given infection (Pr(incidD|incidI)) and the probability of hospitalization given infection (Pr(incidH|incidI)). Each health outcome risk is referenced in relation to the outcome indicated in source. For example, the probability and delay in becoming a confirmed case (incidC) is most likely to be indexed off of the number and timing of infection (incidI).
@@ -556,7 +558,9 @@ print_outcomes <- function(dat=NULL,
                           incidC_prob_a_pert=-1,
                           incidC_prob_b_pert=1,
                           incidC_delay_value=7,
-                          incidC_delay_dist="fixed"
+                          incidC_delay_dist="fixed",
+                          compartment = TRUE,
+                          variant_compartments = c("wild", "alpha", "delta")
 ){
 
     if(is.null(ifr)){stop("You must specify a scenario/IFR name.")}
@@ -588,6 +592,8 @@ print_outcomes <- function(dat=NULL,
         incidC_pert <- ""
     }
 
+
+
     cat(paste0(
         '\n',
         'outcomes:\n',
@@ -601,57 +607,57 @@ print_outcomes <- function(dat=NULL,
         '      incidH:\n',
         '        source: incidI\n',
         '        probability:\n',
-        '          value:\n',
-        '            distribution: ',incidH_prob_dist,'\n',
-        '            value: ',incidH_prob_value,'\n',
+        print_value(value_dist = incidH_prob_dist,
+                    value_mean = incidH_prob_value,
+                    indent_space = 10),
         '        delay:\n',
-        '          value:\n',
-        '            distribution: ', incidH_delay_dist,'\n',
-        '            value: ',incidH_delay_value,'\n',
+        print_value(value_dist = incidH_delay_dist,
+                    value_mean = incidH_delay_value,
+                    indent_space = 10),
         '        duration:\n', # TODO: optional
-        '          value:\n',
-        '            distribution: ',incidH_duration_dist,'\n',
-        '            value: ',incidH_duration_value,'\n',
+        print_value(value_dist = incidH_duration_dist,
+                    value_mean = incidH_duration_value,
+                    indent_space = 10),
         '          name: hosp_curr\n',
         '      incidD:\n',
         '        source: incidI\n',
         '        probability:\n',
-        '          value:\n',
-        '            distribution: ',incidD_prob_dist,'\n',
-        '            value: ',incidD_prob_value,'\n',
+        print_value(value_dist = incidD_prob_dist,
+                    value_mean = incidD_prob_value,
+                    indent_space = 10),
         '        delay:\n',
-        '          value:\n',
-        '            distribution: ',incidD_delay_dist,'\n',
-        '            value: ',incidD_delay_value,'\n',
+        print_value(value_dist = incidD_delay_dist,
+                    value_mean = incidD_delay_value,
+                    indent_space = 10),
         '      incidICU:\n',
         '        source: incidH\n',
         '        probability:\n',
-        '          value:\n',
-        '            distribution: ',incidICU_prob_dist,'\n',
-        '            value: ',incidICU_prob_value,'\n',
+        print_value(value_dist = incidICU_prob_dist,
+                    value_mean = incidICU_prob_value,
+                    indent_space = 10),
         '        delay:\n',
-        '          value:\n',
-        '            distribution: ',incidICU_delay_dist,'\n',
-        '            value: ',incidICU_delay_value,'\n',
-        '        duration:\n',
-        '          value:\n',
-        '            distribution: ',incidICU_duration_dist,'\n',
-        '            value: ',incidICU_duration_value,'\n',
+        print_value(value_dist = incidICU_delay_dist,
+                    value_mean = incidICU_delay_value,
+                    indent_space = 10),
+        '        duration:\n', # TODO: optional
+        print_value(value_dist = incidICU_duration_dist,
+                    value_mean = incidICU_duration_value,
+                    indent_space = 10),
         '          name: icu_curr\n',
         '      incidVent:\n',
         '        source: incidICU\n',
         '        probability: \n',
-        '          value:\n',
-        '            distribution: ',incidVent_prob_dist,'\n',
-        '            value: ',incidVent_prob_value,'\n',
+        print_value(value_dist = incidVent_prob_dist,
+                    value_mean = incidVent_prob_value,
+                    indent_space = 10),
         '        delay:\n',
-        '          value:\n',
-        '            distribution: ',incidVent_delay_dist,'\n',
-        '            value: ',incidVent_delay_value,'\n',
-        '        duration:\n',
-        '          value:\n',
-        '            distribution: ',incidVent_duration_dist,'\n',
-        '            value: ',incidVent_duration_value,'\n',
+        print_value(value_dist = incidVent_delay_dist,
+                    value_mean = incidVent_delay_value,
+                    indent_space = 10),
+        '        duration:\n', # TODO: optional
+        print_value(value_dist = incidVent_duration_dist,
+                    value_mean = incidVent_duration_value,
+                    indent_space = 10),
         '          name: vent_curr\n',
         '      incidC:\n',
         '        source: incidI\n',
@@ -664,9 +670,9 @@ print_outcomes <- function(dat=NULL,
                     indent_space=10),
         incidC_pert,
         '        delay:\n',
-        '          value:\n',
-        '            distribution: ',incidC_delay_dist,'\n',
-        '            value: ',incidC_delay_value,'\n'
+        print_value(value_dist = incidC_delay_dist,
+                    value_mean = incidC_delay_value,
+                    indent_space = 10)
     ))
 
     if(!is.null(dat)){
@@ -1012,6 +1018,7 @@ print_header <- function(sim_name,
 #' @param perturbation_sd standard deviation for the proposal value of the seeding date, in number of days
 #' @param variant_filename path to file with variant proportions per day per variant. Variant names: 'wild', 'alpha', 'delta'
 #' @param compartment whether to print config with compartments
+#' @param variant_compartments vector of variant compartment names
 #'
 #' @details
 #' ## The model performns inference on the seeding date and initial number of seeding infections in each geoid with the default settings
@@ -1027,21 +1034,21 @@ print_seeding <- function(method = "FolderDraw",
                          lambda_file = "data/minimal/seeding.csv",
                          perturbation_sd = 1,
                          variant_filename = "data/variant/variant_props_long.csv",
-                         compartment = TRUE
+                         compartment = TRUE,
+                         variant_compartments = c("wild", "alpha", "delta")
 ){
     seeding_comp <- "seeding:\n"
 
     if(compartment){
-        var_compartment <- c("wild", "alpha", "delta")
         seeding_comp <- paste0(seeding_comp,
                                '  variant_filename: ', variant_filename, '\n',
                                '  seeding_compartments:\n')
 
-        for(i in 1:length(var_compartment)){
+        for(i in 1:length(variant_compartments)){
             seeding_comp <- paste0(seeding_comp,
-                                   '    ', var_compartment[i], ':\n',
-                                   '      source_compartment: ["S", "unvaccinated","', stringr::str_to_upper(var_compartment[1]),'"]\n',
-                                   '      destination_compartment: ["E", "unvaccinated", "',stringr::str_to_upper(var_compartment[i]),'"]\n')
+                                   '    ', variant_compartments[i], ':\n',
+                                   '      source_compartment: ["S", "unvaccinated","', stringr::str_to_upper(variant_compartments[1]),'"]\n',
+                                   '      destination_compartment: ["E", "unvaccinated", "',stringr::str_to_upper(variant_compartments[i]),'"]\n')
         }
     }
 
