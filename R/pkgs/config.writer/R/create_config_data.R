@@ -610,7 +610,7 @@ set_vacc_outcome_params <- function(outcome_path,
             temp <- list()
             for(i in 1:length(variant_compartments)){
                 temp[[i]] <- outcome %>%
-                    dplyr::mutate(parameter = stringr::str_replace(parameter, "::probability", paste0("_", variant_compartments,"::probability")))
+                    dplyr::mutate(parameter = stringr::str_replace(parameter, "::probability", paste0("_", variant_compartments[i],"::probability")))
             }
 
             outcome <- dplyr::bind_rows(temp)
@@ -815,7 +815,7 @@ set_incidH_adj_params <- function(outcome_path,
         temp <- list()
         for(i in 1:length(variant_compartments)){
             temp[[i]] <- outcome %>%
-                dplyr::mutate(parameter = stringr::str_replace(parameter, "::probability", paste0("_", variant_compartments,"::probability")))
+                dplyr::mutate(parameter = stringr::str_replace(parameter, "::probability", paste0("_", variant_compartments[i],"::probability")))
         }
 
         outcome <- dplyr::bind_rows(temp)
