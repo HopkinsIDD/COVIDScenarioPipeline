@@ -262,7 +262,7 @@ for(scenario in scenarios) {
           geodata = geodata,
           snpi = arrow::read_parquet(first_global_files[['snpi_filename']]),
           hnpi = arrow::read_parquet(first_global_files[['hnpi_filename']]),
-          hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,source,outcome,sep='_'))
+          hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,!!rlang::sym(obs_nodename),outcome,sep='_'))
         )
       },
       is_resume = opt[['is-resume']]
@@ -363,7 +363,10 @@ for(scenario in scenarios) {
         geodata = geodata,
         snpi = proposed_snpi,
         hnpi = proposed_hnpi,
-        hpar = dplyr::mutate(proposed_hpar, parameter = paste(quantity, source, outcome, sep = "_"))
+        hpar = dplyr::mutate(
+          proposed_hpar,
+          parameter = paste(quantity, !!rlang::sym(obs_nodename), outcome, sep = "_")
+        )
       )
 
 
