@@ -409,7 +409,7 @@ print_interventions <- function(dat,
 ){
 
     cat(paste0(
-        'interventions:\n',
+        '\ninterventions:\n',
         '  scenarios:\n',
         '    - ', scenario, '\n',
         '  settings:\n'
@@ -564,6 +564,9 @@ print_outcomes <- function(ifr=NULL,
     incidC_pert <- ""
 
     for(i in 1:length(variant_compartments)){
+        if(length(incidC_perturbation)==1){
+            incidC_perturbation <- rep(incidC_perturbation, length(variant_compartments))
+        }
         if(incidC_perturbation[i]){
             incidC_pert[i] <- print_value(value_dist = incidC_prob_dist_pert[i],
                                           value_mean = incidC_prob_value_pert[i],
@@ -754,7 +757,7 @@ print_outcomes <- function(ifr=NULL,
 
 #' @param transitions_dist vector specifying whether transition rate between compartments is fixed; distributional is not yet supported
 #' @param transitions_val vector specifying base transition rate between compartments
-#' @param compartment_names names of vaccination compartments: defaults to "unvaccinated", "first dose" and "second dose"
+#' @param vaccine_compartments names of vaccination compartments: defaults to "unvaccinated", "first dose" and "second dose"
 #' @export
 #'
 #' @examples
@@ -801,7 +804,7 @@ print_seir <- function(sigma_val = 1/5.2,
                        epsilon_val = 0*1/(365*1.5),
                        epsilon_dist = "fixed",
                        incl_vacc = TRUE,
-                       compartment_names = c("unvaccinated", "1dose", "2dose"),
+                       vaccine_compartments = c("unvaccinated", "1dose", "2dose"),
                        compartment = TRUE
 ){
     # TODO: add checks to compartment length
@@ -850,24 +853,24 @@ print_seir <- function(sigma_val = 1/5.2,
                                                           value_mean = epsilon_val),
                            "  compartments:\n",
                            '    infection_stage: ["S", "E", "I1", "I2", "I3", "R"] \n',
-                           '    vaccination_stage: ["', paste0(compartment_names, collapse = '", "'), '"] \n',
+                           '    vaccination_stage: ["', paste0(vaccine_compartments, collapse = '", "'), '"] \n',
                            '    variant_type: ["WILD", "ALPHA", "DELTA"] \n',
                            '  transitions:\n ',
-                           '    - source: [["S"],["', paste0(compartment_names, collapse = '", "'), '"],"WILD"] \n',
-                           '      destination: [["E"],["', paste0(compartment_names, collapse = '", "'), '"],["WILD", "ALPHA"]]\n',
+                           '    - source: [["S"],["', paste0(vaccine_compartments, collapse = '", "'), '"],"WILD"] \n',
+                           '      destination: [["E"],["', paste0(vaccine_compartments, collapse = '", "'), '"],["WILD", "ALPHA"]]\n',
                            '      proportional_to: [\n',
                            '        "source"\n',
-                           '        [[["I1","I2","I3"]],[["', paste0(compartment_names, collapse = '", "'), '"], ["', paste0(compartment_names, collapse = '", "'), '"], ["', paste0(compartment_names, collapse = '", "'), '"]],[["WILD"],["ALPHA"]]]\n',
+                           '        [[["I1","I2","I3"]],[["', paste0(vaccine_compartments, collapse = '", "'), '"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["', paste0(vaccine_compartments, collapse = '", "'), '"]],[["WILD"],["ALPHA"]]]\n',
                            '      ]\n',
                            '      proportion_exponent: [[["1"],"1","1"],[["alpha"],"1","1"]]\n',
                            '      rate: [["r0 * gamma"],["1", "theta_1A", "theta_2A"],["1", "chi_1"]]\n',
 
                            '  transitions:\n ',
-                           '    - source: [["S"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD"]] \n',
-                           '      destination: [["E"], ["', paste0(compartment_names, collapse = '", "'), '"], ["DELTA"]]\n',
+                           '    - source: [["S"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD"]] \n',
+                           '      destination: [["E"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["DELTA"]]\n',
                            '      proportional_to: [\n',
                            '        "source",\n',
-                           '        [[["I1","I2","I3"]], [["', paste0(compartment_names, collapse = '", "'), '"], ["', paste0(compartment_names, collapse = '", "'), '"], ["', paste0(compartment_names, collapse = '", "'), '"]], ["DELTA"]]\n',
+                           '        [[["I1","I2","I3"]], [["', paste0(vaccine_compartments, collapse = '", "'), '"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["', paste0(vaccine_compartments, collapse = '", "'), '"]], ["DELTA"]]\n',
                            '      ]\n',
                            '      proportion_exponent: [\n',
                            '        [["1"],"1","1"],\n',
@@ -876,29 +879,29 @@ print_seir <- function(sigma_val = 1/5.2,
                            '      rate: [["r0 * gamma"], ["1", "theta_1B", "theta_2B"], ["chi_2"]]\n',
 
                            '  transitions:\n ',
-                           '    - source: [["E"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]]\n',
-                           '      destination: [["I1"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]]\n',
+                           '    - source: [["E"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]]\n',
+                           '      destination: [["I1"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]]\n',
                            '      proportional_to: ["source"]\n',
                            '      proportion_exponent:  [["1","1","1"]]\n',
                            '      rate: [["sigma"], "1", "1"]\n',
 
                            '  transitions:\n ',
-                           '    - source: [["I1"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      destination: [["I2"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '    - source: [["I1"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      destination: [["I2"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
                            '      proportional_to: ["source"] \n',
                            '      proportion_exponent: [["1","1","1"]] \n',
                            '      rate: ["3 * gamma", 1, 1] \n',
 
                            '  transitions:\n ',
-                           '    - source: [["I2"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      destination: [["I3"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '    - source: [["I2"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      destination: [["I3"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
                            '      proportional_to: ["source"] \n',
                            '      proportion_exponent: [["1","1","1"]] \n',
                            '      rate: ["3 * gamma", 1, 1] \n',
 
                            '  transitions:\n ',
-                           '    - source: [["I3"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      destination: [["R"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '    - source: [["I3"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      destination: [["R"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
                            '      proportional_to: ["source"] \n',
                            '      proportion_exponent: [["1","1","1"]] \n',
                            '      rate: ["3 * gamma", 1, 1] \n',
@@ -911,8 +914,8 @@ print_seir <- function(sigma_val = 1/5.2,
                            '      rate: ["1", ["nu_1","nu_2"], "1"] \n',
 
                            '  transitions:\n ',
-                           '    - source: [["R"], ["', paste0(compartment_names, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      destination: [["S"], ["', paste0(compartment_names, collapse = '", "'), '"], "WILD"] \n',
+                           '    - source: [["R"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
+                           '      destination: [["S"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], "WILD"] \n',
                            '      proportional_to: ["source"] \n',
                            '      proportion_exponent: [["1","1","1"]] \n',
                            '      rate: ["epsilon", 1, 1] \n'
@@ -922,7 +925,7 @@ print_seir <- function(sigma_val = 1/5.2,
             if(incl_vacc){
                 vacc <- paste0("    parallel_structure:\n",
                                "      compartments:\n",
-                               "        ", compartment_names[1], ":\n",
+                               "        ", vaccine_compartments[1], ":\n",
                                print_value(value_dist = "fixed",
                                            value_mean = 0,
                                            indent_space = 10,
@@ -938,9 +941,9 @@ print_seir <- function(sigma_val = 1/5.2,
                 dose_susceptibility_dist <- c(theta_1A_dist, theta_2A_dist)
                 dose_susceptibility_val <- c(theta_1A_val, theta_2A_val)
 
-                for(i in 2:length(compartment_names)){
+                for(i in 2:length(vaccine_compartments)){
                     vacc <- paste0(vacc,
-                                   "        ", compartment_names[i], ":\n",
+                                   "        ", vaccine_compartments[i], ":\n",
                                    print_value(value_dist = dose_transmission_dist[i-1],
                                                value_mean = dose_transmission_val[i-1],
                                                indent_space = 10,
@@ -957,10 +960,10 @@ print_seir <- function(sigma_val = 1/5.2,
                 transitions_dist <- c(nu_1_dist, nu_2_dist)
                 transitions_val <- c(nu_1_val, nu_2_val)
 
-                for(i in 2:length(compartment_names)){
+                for(i in 2:length(vaccine_compartments)){
                     vacc <- paste0(vacc,
-                                   "        - from: ", compartment_names[i-1], "\n",
-                                   "          to: ", compartment_names[i], "\n",
+                                   "        - from: ", vaccine_compartments[i-1], "\n",
+                                   "          to: ", vaccine_compartments[i], "\n",
                                    print_value(value_dist = transitions_dist[i-1],
                                                value_mean = transitions_val[i-1],
                                                indent_space = 10,
@@ -1067,7 +1070,9 @@ print_seeding <- function(method = "FolderDraw",
                          compartment = TRUE,
                          variant_compartments = c("wild", "alpha", "delta")
 ){
-    seeding_comp <- "seeding:\n"
+    variant_compartments <- stringr::str_to_upper(variant_compartments)
+
+    seeding_comp <- "\nseeding:\n"
 
     if(compartment){
         seeding_comp <- paste0(seeding_comp,
@@ -1129,7 +1134,7 @@ print_filtering_statistics <- function(sims_per_slot = 300,
                                        aggregator = "sum",
                                        period = "1 weeks",
                                        sim_var = c("incidD", "incidC"),
-                                       data_var = c("incidDeath", "Confirmed"),
+                                       data_var = c("incidDeath", "incidI"),
                                        remove_na = FALSE,
                                        add_one = c(FALSE, TRUE),
                                        ll_dist = c("sqrtnorm", "pois"),
@@ -1147,6 +1152,8 @@ print_filtering_statistics <- function(sims_per_slot = 300,
         '  gt_source: "', gt_source, '"\n',
         "  statistics:\n"
     ))
+
+    variant_compartments <- stringr::str_to_upper(variant_compartments)
 
     stat_names <- paste(rep(stat_names, each = length(variant_compartments)), variant_compartments, sep ="_")
     sim_var <- paste(rep(sim_var, each = length(variant_compartments)), stringr::str_to_upper(variant_compartments), sep="_")
