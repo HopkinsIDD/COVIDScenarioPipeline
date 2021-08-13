@@ -72,6 +72,7 @@ incidC_perturbation = TRUE
 do_filtering = TRUE # inference?
 sims_per_slot = 1 # overwritten by environmental var COVID_SIMULATIONS_PER_SLOT
 data_file = "us_data.csv"
+filtering_data_vars <- ifelse(run_compartment, c("death_incid", "confirmed_incid"), c("incidDeath", "incidI"))
 priors_name <- c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar", "Seas_apr",
                  "Seas_may", "Seas_jun", "Seas_jul", "Seas_aug", "Seas_sep",
                  "Seas_oct", "Seas_nov", "Seas_dec")
@@ -156,7 +157,8 @@ npi_dat <- set_npi_params(intervention_file = npi_dat,
                           npi_cutoff_date=Sys.Date()-7,
                           inference = do_filtering,
                           v_dist = "truncnorm", v_mean=0.6, v_sd=0.05, v_a=0.0, v_b=0.9,
-                          p_dist = "truncnorm", p_mean=0, p_sd=0.05, p_a=-1, p_b=1)
+                          p_dist = "truncnorm", p_mean=0, p_sd=0.05, p_a=-1, p_b=1, 
+                          compartment = run_compartment)
 ## Seasonality
 seasonality_dat <- set_seasonality_params(sim_start_date = sim_start,
                                           sim_end_date = sim_end,
@@ -166,7 +168,8 @@ seasonality_dat <- set_seasonality_params(sim_start_date = sim_start,
                                           v_mean = c(-0.2, -0.133, -0.067, 0, 0.067, 0.133, 0.2, 0.133, 0.067, 0, -0.067, -0.133), # TODO function?
                                           v_sd = 0.05, v_a = -1, v_b = 1,
                                           p_dist="truncnorm",
-                                          p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1) %>%
+                                          p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1, 
+                                          compartment = run_compartment) %>%
     {if(exclude_apr_seasonality) dplyr::filter(., stringr::str_detect(name, "_apr", negate=TRUE)) else(.)}
 
 ## Local Variance
@@ -183,7 +186,8 @@ vacc_dat <- set_vacc_rates_params(vacc_path = vaccination_path,
                                   sim_end_date = sim_end,
                                   vacc_start_date="2021-01-01",
                                   incl_geoid = state_incl_geoid, # TODO: add scenario filter similar to set_vacc_outcome_params
-                                  scenario = vacc_scenario
+                                  scenario = vacc_scenario, 
+                                  compartment = run_compartment
 ) %>%
     {if(state_level) . else(dplyr::mutate(., geoid = paste0(sort(geodata$geoid), collapse = '", "')))}
 
@@ -210,7 +214,8 @@ if(add_redux){
                                   v_mean=0.8,
                                   v_sd=0.01,
                                   v_a=0,
-                                  v_b=1)
+                                  v_b=1, 
+                                  compartment = run_compartment)
 }
 
 # Outcome interventions
@@ -307,9 +312,11 @@ print_seir(alpha = 0.99,
            compartment = run_compartment)
 
 print_interventions(interventions,
-                    scenario = npi_scenario_name)
+                    scenario = npi_scenario_name, 
+                    compartment = run_compartment)
 
-print_outcomes(ifr = ifr,
+print_outcomes(dat = interventions,
+               ifr = ifr,
                outcomes_parquet_file = outcomes_parquet_file,
                incidH_prob_dist=c("fixed", "fixed", "fixed"),
                incidH_prob_value=c(0.0175, 0.0175, 0.0175),
@@ -346,7 +353,7 @@ print_outcomes(ifr = ifr,
                incidC_prob_b_pert=c(1, 1, 1),
                incidC_delay_value=c(7, 7, 7),
                incidC_delay_dist=c("fixed", "fixed", "fixed"), 
-               compartment = TRUE, 
+               compartment = run_compartment, 
                variant_compartments = variant_compartments, 
                vaccine_compartments = vaccine_compartments, 
                outcomes_included = c("incidH", "incidD", "incidC", "incidICU", "incidVent"))
@@ -360,11 +367,12 @@ print_filtering_statistics(sims_per_slot = sims_per_slot,
                            aggregator = "sum",
                            period = "1 weeks",
                            sim_var = c("incidD", "incidC"),
-                           data_var = c("death_incid", "confirmed_incid"),
+                           data_var = filtering_data_vars,
                            remove_na = FALSE,
                            add_one = c(FALSE, TRUE),
                            ll_dist = c("sqrtnorm", "pois"),
-                           ll_param = .4)
+                           ll_param = .4, 
+                           compartment = run_compartment)
 
 print_filtering_hierarchical(npi_name = c("local_variance", "probability_incidI_incidC"),
                              module = c("seir", "hospitalization"),
