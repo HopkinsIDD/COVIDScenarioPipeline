@@ -749,7 +749,7 @@ set_incidH_adj_params <- function(outcome_path,
                                   sim_end_date=Sys.Date()+60,
                                   geodata,
                                   inference = FALSE,
-                                  v_dist = "truncnorm", v_sd = 0.01, v_a = -10, v_b = 2,
+                                  v_dist = "fixed", v_sd = 0.01, v_a = -10, v_b = 2,
                                   p_dist = "truncnorm", p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1)
 {
     sim_start_date <- lubridate::as_date(sim_start_date)
@@ -823,8 +823,14 @@ set_ve_shift_params <- function(variant_path,
                                 sim_end_date=Sys.Date()+60,
                                 geodata,
                                 inference = FALSE,
-                                v_dist = "truncnorm", v_sd = 0.01, v_a = -1, v_b = 2,
-                                p_dist = "truncnorm", p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1){
+                                v_dist = "fixed", v_sd = 0.01, v_a = -1, v_b = 2,
+                                p_dist = "truncnorm", p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1,
+                                compartment = TRUE){
+
+    par_val_1 <- ifelse(compartment, "theta_1A", "susceptibility_reduction 1")
+    par_val_2 <- ifelse(compartment, "theta_2A", "susceptibility_reduction 2")
+    sim_start_date <- lubridate::as_date(sim_start_date)
+    sim_end_date <- lubridate::as_date(sim_end_date)
 
     outcome <- readr::read_csv(variant_path) %>%
         dplyr::filter(location == "US", date >= "2021-04-01") %>%
@@ -856,7 +862,7 @@ set_ve_shift_params <- function(variant_path,
         dplyr::mutate(USPS = "",
                geoid = "all",
                type = "transmission",
-               parameter = dplyr::if_else(stringr::str_detect(name, "ose1"), "theta_1A", "theta_2A"),
+               parameter = dplyr::if_else(stringr::str_detect(name, "ose1"), par_val_1, par_val_2),
                category = "ve_shift",
                template = "Reduce",
                baseline_scenario = "",

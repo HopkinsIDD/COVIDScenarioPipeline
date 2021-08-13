@@ -16,6 +16,7 @@ intervention_file <- "intervention_tracking/Shelter-in-place-as-of-06252021.csv"
 
 vaccination_file <- "vaccination/Round6/vacc_rates_ROUND6.csv"
 outcomes_file <- "vaccination/Round6/outcome_adj_allscenarios_ROUND6.csv"
+hosp_file <- "hosp_adjust/hospitalization_ratios_R7.csv"
 vacc_scenario <- 2 # Scenario number from the vacc_path and outcomes_path files 
 
 variant_file_1 <- "variant/b117_fits_r7.csv"
@@ -53,6 +54,9 @@ exclude_apr_seasonality <- TRUE
 add_redux = FALSE # whether to add NPI reduction interventions
 redux_geoids = {if(add_redux) "all" else(NULL)}
 state_incl_geoid = {if(state_level) NULL else("06000")} # used to get the vaccination rates and vacc-adjusted outcomes, NULL if running state-level for ALL states. Otherwise, specify desired state geoids
+VE_shift = TRUE 
+VE = c(0.5, 0.9)
+VE_delta = c(0.35, 0.8)
 
 ## Outcomes
 exclude_hosp_adjustment = TRUE
@@ -132,6 +136,7 @@ intervention_path <- file.path(base_path, intervention_file)
 variant_seeding_path <- file.path(base_path, variant_seeding_file)
 variant_path_1 <- file.path(base_path, variant_file_1)
 variant_path_2 <- file.path(base_path, variant_file_2)
+hosp_path <- file.path(base_path, hosp_file)
 
 incidC_shift_path <- file.path(base_path, incidC_shift_file)
 data_path = file.path(base_path, data_file)
@@ -236,6 +241,17 @@ outcome_dat <- set_vacc_outcome_params(outcome_path = outcomes_path,
     {if(exclude_hosp_adjustment) dplyr::filter(., stringr::str_detect(name, "incidH", negate=TRUE)) else(.)} %>%
     {if(state_level) . else(dplyr::mutate(., geoid = paste0(sort(geodata$geoid), collapse = '", "')))}
 
+## Hospitalization adjustments
+if(hosp_adjustment){
+    hosp_dat <- set_incidH_adj_params(outcome_path = hosp_path,
+                                      sim_start_date=sim_start,
+                                      sim_end_date=sim_end,
+                                      geodata=geodata,
+                                      inference = FALSE,
+                                      v_dist = "fixed", v_sd = 0.01, v_a = -10, v_b = 2,
+                                      p_dist = "truncnorm", p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1)
+}
+
 ## IncidC Shift
 
 if(add_incidC){
@@ -252,6 +268,20 @@ if(add_incidC){
                                    p_mean = 0, p_sd = incidC_shift_pert_sd, p_a = -1, p_b = 1)
 }
 
+## VE Shift
+
+if(VE_shift){
+    ve_shift_dat <- set_ve_shift_params(variant_path = variant_path_2,
+                                        VE =VE,
+                                        VE_delta = VE_delta,
+                                        sim_start_date=sim_start,
+                                        sim_end_date=sim_end,
+                                        geodata,
+                                        inference = FALSE,
+                                        v_dist = "fixed", v_sd = 0.01, v_a = -1, v_b = 2,
+                                        p_dist = "truncnorm", p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1,
+                                        compartment = run_compartment)
+}
 # Bind and save df
 
 interventions <- mget(objects(pattern = "_dat$")) %>%
@@ -280,7 +310,7 @@ print_header(sim_name = sim_name,
              sim_start_date = sim_start,
              sim_end_date = sim_end,
              n_simulations = n_simulations,
-             dt = 0.25,
+             dt = 0.025,
              census_year = 2019,
              base_path = base_path,
              sim_states = unique(interventions$USPS[!interventions$USPS %in% c("", "all") & !is.na(interventions$USPS)]),
