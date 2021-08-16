@@ -166,8 +166,8 @@ class MultiTimeReduce(NPIBase):
                 start_dates = [self.start_date]
                 end_dates = [self.end_date]
             for geoid in affected_geoids_grp:
-                self.parameters.at[geoid, "start_date"] = start_dates
-                self.parameters.at[geoid, "end_date"] = end_dates
+                self.parameters.at[geoid, "start_date"] = list(start_dates)
+                self.parameters.at[geoid, "end_date"] = list(end_dates)
         self.param_name = self.parameters["parameter"].unique()[0]          # [0] to convert ndarray to str
 
     def __get_affected_geoids(self, npi_config):
