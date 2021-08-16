@@ -431,14 +431,25 @@ initialize_mcmc_first_block <- function(
     return(TRUE)
   }
 
-  if ((is_resume) && (!all(global_check[non_llik_types]))) {
-    stop(paste(
-      "For a resume, all global files must be present.",
-      "Found the following files:",
-      paste(names(global_check)[which(global_check)], collapse = ", "),
-      "\nWas expecting the following files:",
-      paste(names(global_check[non_llik_types]), collapse = ", ")
-    ))
+  if (is_resume) {
+    print(global_check)
+    important_global_check <- global_check[
+      !(names(global_check) %in% c("llik_filename", "hosp_filename", "seir_filename"))
+    ]
+    if (!all(important_global_check)) {
+      all_file_types <- names(important_global_check)
+      missing_file_types <- names(important_global_check)[!important_global_check]
+      missing_files <- global_files[missing_file_types]
+      stop(paste(
+        "For a resume, all global files must be present.",
+        "Could not find the following file types:",
+        paste(missing_file_types, collapse = ", "),
+        "\nWas expecting the following files:",
+        paste(all_file_types, collapse = ", "),
+        "\nLooking for them in these files",
+        paste(missing_files, collapse = ", ")
+      ))
+    }
   }
 
   if (any(global_check)) {

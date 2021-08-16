@@ -10,10 +10,11 @@ from .base import NPIBase
 ###
 
 class MultiTimeReduce(NPIBase):
-    def __init__(self, *, npi_config, global_config, geoids, loaded_df=None):
+    def __init__(self, *, npi_config, global_config, geoids, loaded_df=None, sanitize = False):
         super().__init__(name=getattr(npi_config, "key",
                                       (npi_config["scenario"].exists() and npi_config["scenario"].get()) or "unknown"))
 
+        self.sanitize = sanitize
         self.start_date = global_config["start_date"].as_date()
         self.end_date = global_config["end_date"].as_date()
 
@@ -51,18 +52,21 @@ class MultiTimeReduce(NPIBase):
                                                  },
                                        index = self.geoids)
 
+        self.param_name = npi_config["parameter"].as_str().lower()
+
         if (loaded_df is not None) and self.name in loaded_df['npi_name'].values:
             self.__createFromDf(loaded_df, npi_config)
         else:
             self.__createFromConfig(npi_config)
 
         # if parameters are exceeding global start/end dates, index of parameter df will be out of range so check first
-        too_early = min([min(i) for i in self.parameters["start_date"]]) < self.start_date
-        too_late = max([max(i) for i in self.parameters["end_date"]]) > self.end_date
-        if too_early or too_late:
-            raise ValueError("at least one period start or end date is not between global dates")
+        if self.sanitize:
+            too_early = min([min(i) for i in self.parameters["start_date"]]) < self.start_date
+            too_late = max([max(i) for i in self.parameters["end_date"]]) > self.end_date
+            if too_early or too_late:
+                raise ValueError("at least one period start or end date is not between global dates")
 
-        
+
         for grp_config in npi_config['groups']:
             affected_geoids_grp = self.__get_affected_geoids_grp(grp_config)
             for sub_index in range(len(self.parameters["start_date"][affected_geoids_grp[0]])):
@@ -80,6 +84,8 @@ class MultiTimeReduce(NPIBase):
         self.__checkErrors()
 
     def __checkErrors(self):
+        if not self.sanitize:
+            return
         min_start_date = min([min(i) for i in self.parameters["start_date"]])
         max_start_date = max([max(i) for i in self.parameters["start_date"]])
         min_end_date = min([min(i) for i in self.parameters["end_date"]])
@@ -108,12 +114,11 @@ class MultiTimeReduce(NPIBase):
 
     def __createFromConfig(self, npi_config):
         # Get name of the parameter to reduce
-        self.param_name = npi_config["parameter"].as_str().lower()
 
         self.affected_geoids = self.__get_affected_geoids(npi_config)
-        
+
         self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids)]
-        self.dist = npi_config["value"].as_random_distribution()
+        dist = npi_config["value"].as_random_distribution()
         self.parameters["npi_name"] = self.name
         self.parameters["parameter"] = self.param_name
 
@@ -132,7 +137,7 @@ class MultiTimeReduce(NPIBase):
             for geoid in affected_geoids_grp:
                 self.parameters.at[geoid, "start_date"] = start_dates
                 self.parameters.at[geoid, "end_date"] = end_dates
-                self.parameters.at[geoid, "reduction"]= self.dist(size=1)
+                self.parameters.at[geoid, "reduction"]= dist(size=1)
 
     def __get_affected_geoids_grp(self, grp_config):
         if grp_config["affected_geoids"].get() == "all":
@@ -146,15 +151,17 @@ class MultiTimeReduce(NPIBase):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
         self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']].copy()
-        print(f"loading {self.name} and we got {len(self.parameters)} geoids")
         # self.parameters["start_date"] = [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["start_date"]]
         # self.parameters["end_date"] =   [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["end_date"]]
         # self.affected_geoids = set(self.parameters.index)
-        
+
         self.affected_geoids = self.__get_affected_geoids(npi_config)
-        print(f"getting from config that it affects {len(self.affected_geoids)}")
-        
-        for grp_config in npi_config['groups']: 
+        if self.sanitize:
+            if len(self.affected_geoids) != len(self.parameters):
+                print(f"loading {self.name} and we got {len(self.parameters)} geoids")
+                print(f"getting from config that it affects {len(self.affected_geoids)}")
+
+        for grp_config in npi_config['groups']:
             affected_geoids_grp = self.__get_affected_geoids_grp(grp_config)
             # Create reduction
             start_dates = []
@@ -167,8 +174,19 @@ class MultiTimeReduce(NPIBase):
                 start_dates = [self.start_date]
                 end_dates = [self.end_date]
             for geoid in affected_geoids_grp:
+                if not geoid in self.parameters.index:
+                    self.parameters.at[geoid, "start_date"] = start_dates
+                    self.parameters.at[geoid, "end_date"] = end_dates
+                    dist = npi_config["value"].as_random_distribution()
+                    self.parameters.at[geoid, "reduction"] = dist(size=1)
+                    self.parameters.at[geoid, "npi_name"] = self.name
+                    self.parameters.at[geoid, "parameter"] = self.param_name
                 self.parameters.at[geoid, "start_date"] = start_dates
                 self.parameters.at[geoid, "end_date"] = end_dates
+
+        self.parameters = self.parameters.loc[self.affected_geoids]
+        # self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids) ]
+        # self.parameters = self.parameters[self.affected_geoids]
         self.param_name = self.parameters["parameter"].unique()[0]          # [0] to convert ndarray to str
 
     def __get_affected_geoids(self, npi_config):
