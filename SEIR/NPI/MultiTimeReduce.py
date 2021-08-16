@@ -152,7 +152,7 @@ class MultiTimeReduce(NPIBase):
         # self.affected_geoids = set(self.parameters.index)
         
         self.affected_geoids = self.__get_affected_geoids(npi_config)
-        print(f"getting from config {self.affected_geoids}")
+        print(f"getting from config that it affects {len(self.affected_geoids)}")
         
         for grp_config in npi_config['groups']: 
             affected_geoids_grp = self.__get_affected_geoids_grp(grp_config)
