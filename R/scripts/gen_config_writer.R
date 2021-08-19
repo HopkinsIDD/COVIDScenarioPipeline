@@ -311,8 +311,8 @@ if(all_fixed){
         dplyr::mutate(value_dist = "fixed")
     
     gamma_dist <- "fixed"
-    incidC_prob_dist <- "fixed"
-    incidC_prob_dist_pert <- "fixed"
+    incidC_prob_dist <- rep("fixed", length(variant_compartments))
+    incidC_prob_dist_pert <- rep("fixed", length(variant_compartments))
     seeding_method = "PoissonDistributed"
 }
 # Print Config ----
