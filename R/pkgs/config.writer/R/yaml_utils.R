@@ -814,12 +814,20 @@ print_outcomes <- function(dat=NULL,
                 collapse_intervention() %>%
                 dplyr::filter(type=="outcome")
 
+            if(nrow(dat)==0){
+                outcome_interventions <- "local_variance"
+            } else{
+
+                outcome_interventions <- paste0(unique(dat$name), collapse = '", "')
+
+            }
+
             cat(paste0(
                 '  interventions:\n',
                 '    settings:\n',
                 '      ', ifr, ':\n',
                 '        template: Stacked\n',
-                '        scenarios: ["', paste0(unique(dat$name), collapse = '", "'), '"]\n'
+                '        scenarios: ["', outcome_interventions, '"]\n'
             ))
 
         } else{
