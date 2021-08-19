@@ -822,6 +822,14 @@ print_outcomes <- function(dat=NULL,
                 '        scenarios: ["', paste0(unique(dat$name), collapse = '", "'), '"]\n'
             ))
 
+        } else{
+            cat(paste0(
+                '  interventions:\n',
+                '    settings:\n',
+                '      ', ifr, ':\n',
+                '        template: Stacked\n',
+                '        scenarios: ["local_variance"]\n'
+            ))
         }
     }
 
