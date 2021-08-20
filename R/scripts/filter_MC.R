@@ -27,12 +27,23 @@ option_list = list(
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
   optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
   optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable"),
-  optparse::make_option(c("-R", "--is-resume"), action="store", default=Sys.getenv("COVID_IS_RESUME",FALSE), type = 'logical', help = "Is this run a resume")
+  optparse::make_option(c("-R", "--is-resume"), action="store", default=Sys.getenv("COVID_IS_RESUME",FALSE), type = 'logical', help = "Is this run a resume"),
+  optparse::make_option(c("-I", "--is-interactive"), action="store", default=Sys.getenv("COVID_INTERACTIVE",Sys.getenv("INTERACTIVE_RUN", FALSE)), type = 'logical', help = "Is this run an interactive run")
 )
 
 parser=optparse::OptionParser(option_list=option_list)
 opt = optparse::parse_args(parser)
 
+
+if(opt[["is-interactive"]]) {
+  options(error=recover)
+} else {
+  options(
+    error = function(...) {
+      quit(..., status = 2)
+    }
+  )
+}
 covidcommon::prettyprint_optlist(opt)
 
 reticulate::use_python(Sys.which(opt$python),require=TRUE)
@@ -173,7 +184,8 @@ obs <- inference::get_ground_truth(
           start_date = gt_start_date,
           end_date = gt_end_date,
           gt_source = gt_source,
-          gt_scale = gt_scale
+          gt_scale = gt_scale,
+          variant_filename = config$seeding$variant_filename
 )
 
 geonames <- unique(obs[[obs_nodename]])
