@@ -286,9 +286,9 @@ def write_outcome_hnpi(npi, run_id, prefix, sim_id):
 
 
 def dataframe_from_array(data, places, dates, comp_name):
-    """ 
-        Produce a dataframe in long form from a numpy matrix of 
-    dimensions: dates * places. This dataframe are merged together 
+    """
+        Produce a dataframe in long form from a numpy matrix of
+    dimensions: dates * places. This dataframe are merged together
     to produce the final output
     """
     df = pd.DataFrame(data.astype(np.double), columns=places, index=dates)
@@ -472,7 +472,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 outcomes = pd.merge(outcomes, df_p)
 
         elif 'sum' in parameters[new_comp]:
-            sum_outcome = np.zeros((len(dates), len(places)), dtype=np.int)
+            sum_outcome = np.zeros((len(dates), len(places)), dtype=all_data[parameters[new_comp]['sum'][0]].dtype)
             # Sum all concerned compartment.
             for cmp in parameters[new_comp]['sum']:
                 sum_outcome += all_data[cmp]
@@ -483,7 +483,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             #print(df_p)
             #print(outcomes[parameters[new_comp]['sum']].sum(axis=1))
 
-            assert ((df_p['incidH'] == outcomes[parameters[new_comp]['sum']].sum(axis=1).values).all().all())
+            # assert ((df_p['incidH'] == outcomes[parameters[new_comp]['sum']].sum(axis=1).values).all().all())
 
     return outcomes, hpar
 
@@ -524,7 +524,7 @@ def get_filtered_incidI(diffI, dates, places, filters):
         incidI_arr = incidI_arr + new_df.to_numpy()
     return incidI_arr
 
-""" Quite fast shift implementation, along the first axis, 
+""" Quite fast shift implementation, along the first axis,
     which is date. num is an integer not negative nor zero """
 
 
