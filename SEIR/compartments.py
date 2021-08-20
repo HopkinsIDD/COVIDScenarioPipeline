@@ -501,18 +501,13 @@ class Compartments:
         current_proportion_sum_it = 0
         for it, elem in enumerate(self.transitions['proportional_to']):
             for it2, elem2 in enumerate(elem):
-                elem_tmp = []
-                for ity, y in enumerate(elem2):
-                    for itz, z in enumerate(y):
-                        while (len(elem_tmp) <= itz):
-                            elem_tmp.append([])
-                        while (len(elem_tmp[itz]) <= ity):
-                            elem_tmp[itz].append([])
-                        elem_tmp[itz][ity] = z
-                for ity, y in enumerate(elem_tmp):
-                    while (len(y) < len(elem_tmp[0])):
-                        elem_tmp[ity].append(elem_tmp[0][len(y)])
-                elem_tmp = [reduce(lambda a, b: a + "_" + b, y) for y in elem_tmp]
+                elem_tmp = [w for w in pd.DataFrame(
+                    index = pd.MultiIndex.from_product(elem2)
+                ).reset_index().apply(
+                    lambda z : reduce(lambda x,y : f"{x}_{y}", z),
+                    axis = 1
+                )]
+
                 # for it3, elem3 in enumerate(elem_tmp):
                 #     rc = -1
                 #     for compartment in range(self.compartments.shape[0]):
@@ -543,18 +538,13 @@ class Compartments:
         proportion_index = 0
         for it, elem in enumerate(self.transitions['proportional_to']):
             for it2, elem2 in enumerate(elem):
-                elem_tmp = []
-                for ity, y in enumerate(elem2):
-                    for itz, z in enumerate(y):
-                        while (len(elem_tmp) <= itz):
-                            elem_tmp.append([])
-                        while (len(elem_tmp[itz]) <= ity):
-                            elem_tmp[itz].append([])
-                        elem_tmp[itz][ity] = z
-                for ity, y in enumerate(elem_tmp):
-                    while (len(y) < len(elem_tmp[0])):
-                        elem_tmp[ity].append(elem_tmp[0][len(y)])
-                elem_tmp = [reduce(lambda a, b: a + "_" + b, y) for y in elem_tmp]
+                elem_tmp = [w for w in pd.DataFrame(
+                    index = pd.MultiIndex.from_product(elem2)
+                ).reset_index().apply(
+                    lambda z : reduce(lambda x,y : f"{x}_{y}", z),
+                    axis = 1
+                )]
+
                 for it3, elem3 in enumerate(elem_tmp):
                     rc = -1
                     for compartment in range(self.compartments.shape[0]):
