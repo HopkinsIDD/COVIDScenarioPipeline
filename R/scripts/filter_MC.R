@@ -216,9 +216,9 @@ if(opt$stoch_traj_flag) {
 }
 
 #Temporary
-print("Setting random number seed")
-set.seed(1) # set within R
-reticulate::py_run_string(paste0("rng_seed = ", 1)) #set within Python
+#print("Setting random number seed")
+#set.seed(1) # set within R
+#reticulate::py_run_string(paste0("rng_seed = ", 1)) #set within Python
 
 # Scenario loop -----
 
