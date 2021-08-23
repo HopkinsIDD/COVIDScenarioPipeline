@@ -272,25 +272,6 @@ if (!dir.exists(lambda_dir)) {
   suppressWarnings(dir.create(lambda_dir, recursive = TRUE))
 }
 
-
-
-# Combine with population seeding for compartments (current hack to get population in)
-
-if ("compartments" %in% names(config[["seir"]]) & "pop_seed_file" %in% names(config[["seeding"]])) {
-  seeding_pop <- readr::read_csv(config$seeding$pop_seed_file)
-  seeding_pop <- seeding_pop %>%
-    dplyr::filter(place %in% all_geoids) %>%
-    dplyr::select(!!!colnames(incident_cases))
-    
-  incident_cases <- incident_cases %>%
-    dplyr::bind_rows(seeding_pop) %>% 
-    dplyr::arrange(place, date)
-}
-  
-
-
-# Save it
-
 write.csv(
   incident_cases,
   file = file.path(config$seeding$lambda_file),
