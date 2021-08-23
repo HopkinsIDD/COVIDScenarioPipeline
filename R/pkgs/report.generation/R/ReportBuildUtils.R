@@ -918,24 +918,50 @@ plot_model_vs_obs <- function(state_hosp_totals,
     dplyr::filter(!is.na(date)) %>%
     dplyr::filter(between(date, as.Date(sim_start_date), as.Date(sim_end_date)))
   
+  if(hosp){
+    jhu_obs_dat <- jhu_obs_dat %>%
+      dplyr::select(source, date, incidI, incidDeath,currhosp) 
+  }else{
+    jhu_obs_dat <- jhu_obs_dat %>%
+      dplyr::select(source, date, incidI, incidDeath)
+  }
+  
   jhu_obs_dat <- jhu_obs_dat %>%
-    dplyr::select(source, date, incidI, incidDeath) %>%
     dplyr::filter(between(date, as.Date(sim_start_date), as.Date(sim_end_date))) %>%
     dplyr::group_by(source, date) %>%
     dplyr::summarise_all(sum, na.rm=TRUE) %>% 
     ungroup()%>%
     rename(NincidConfirmed=incidI,
            NincidDeathsObs=incidDeath) 
+
   
   if(hosp){
+    
     state_hosp_summary <-
       state_hosp_totals %>%
+      {if(week) dplyr::group_by(.,date=lubridate::ceiling_date(date, "weeks"), scenario_name, sim_num) %>%
+          dplyr::summarize(NhospCurr=sum(NhospCurr))
+        else(.)}%>%
       dplyr::group_by(date, scenario_name) %>%
       dplyr::summarize(lo = quantile(NhospCurr, ci.L),
                        hi = quantile(NhospCurr, ci.U),
-                       mean= mean(NhospCurr),
-                       median = median(NhospCurr))%>%
+                       mean = mean(NhospCurr),
+                       median = median(NhospCurr)) %>%
+      dplyr::group_by(scenario_name) %>%
+      dplyr::filter(date!=max(date)) %>%
       dplyr::rename(est=!!as.symbol(tendency))
+    
+    
+    if(week){
+      jhu_obs_dat <- jhu_obs_dat %>%
+        dplyr::group_by(date=lubridate::ceiling_date(date, "weeks")) %>%
+        dplyr::summarize(NincidConfirmed=sum(NincidConfirmed),
+                         NincidDeathsObs=sum(NincidDeathsObs),
+                         currhosp=sum(currhosp)
+        )%>%
+        ungroup() %>%
+        dplyr::filter(date!=max(date))
+    }
     
     incid_hosp_plot <-
       ggplot(state_hosp_summary, aes(x = date)) +
@@ -958,16 +984,21 @@ plot_model_vs_obs <- function(state_hosp_totals,
       guides(color = guide_legend(nrow = 2, override.aes = list(alpha=1)),
              fill = FALSE) +
       coord_cartesian(ylim = c(0, 1.5*max(jhu_obs_dat$currhosp)))
+    
+    
+  }else{
+    
+    if(week){
+      jhu_obs_dat <- jhu_obs_dat %>%
+        dplyr::group_by(date=lubridate::ceiling_date(date, "weeks")) %>%
+        dplyr::summarize(NincidConfirmed=sum(NincidConfirmed),
+                         NincidDeathsObs=sum(NincidDeathsObs)
+        )%>%
+        ungroup() %>%
+        dplyr::filter(date!=max(date))
+    }
   }
-  
-  if(week){
-    jhu_obs_dat <- jhu_obs_dat %>%
-      dplyr::group_by(date=lubridate::ceiling_date(date, "weeks")) %>%
-      dplyr::summarize(NincidConfirmed=sum(NincidConfirmed),
-                       NincidDeathsObs=sum(NincidDeathsObs))%>%
-      ungroup() %>%
-      dplyr::filter(date!=max(date))
-  }
+    
   
   state_inf_summary <-
     state_hosp_totals %>%
@@ -2587,7 +2618,7 @@ plot_llik_by_location <- function(llik_interm,
     plot_rc[[i]]<-rc %>%
       filter(!!as.symbol(group_var)==group_names[i]) %>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=ll, color=lik_type)) +
+      geom_line(aes(y=ll, color=lik_type, alpha=as.factor(slot_num))) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -2642,10 +2673,10 @@ plot_llik_total <- function(llik_interm,
     print(i)
     plot_rc[[i]]<-rc %>%
       filter(!!as.symbol(group_var)==group_names[i]) %>%
-      dplyr::group_by(lik_type,iter_num) %>%
+      dplyr::group_by(lik_type,iter_num,slot_num) %>%
       dplyr::summarize(ll=sum(ll, na.rm=TRUE))%>% #add log likelihoods for all geoids together at each timepoint
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=ll, color=lik_type)) +
+      geom_line(aes(y=ll, color=lik_type,alpha=as.factor(slot_num))) +
       theme_bw()+
       ylab("Log Likelihood")+
       xlab("Iterations")+ 
@@ -2694,7 +2725,7 @@ plot_accept_by_location <- function(llik_interm,
     plot_rc[[i]]<-rc %>%
       filter(!!as.symbol(group_var)==group_names[i]) %>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=accept_avg, color=lik_type)) +
+      geom_line(aes(y=accept_avg, color=lik_type,alpha=as.factor(slot_num))) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -2751,9 +2782,9 @@ plot_accept_by_location_rolling <- function(llik_interm,
     plot_rc[[i]]<-rc %>%
       filter(!!as.symbol(group_var)==group_names[i]) %>%
       dplyr::group_by(lik_type,geoid) %>%
-      dplyr::mutate(accept_avg_roll=rollmean(accept, roll_period,fill=NA,align="right"))%>% #add log likelihoods for all geoids together at each timepoint
+      dplyr::mutate(accept_avg_roll=rollmean(accept, roll_period,fill=NULL,align="right"))%>% #add log likelihoods for all geoids together at each timepoint
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=accept_avg_roll, color=lik_type)) +
+      geom_line(aes(y=accept_avg_roll, color=lik_type,alpha=as.factor(slot_num))) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -2812,7 +2843,7 @@ plot_accept_by_location_cumul <- function(llik_interm,
       dplyr::group_by(lik_type,geoid) %>%
       dplyr::mutate(accept_cumul=cumsum(accept))%>% #add up all previous acceptances
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=accept_cumul, color=lik_type)) +
+      geom_line(aes(y=accept_cumul, color=lik_type,alpha=as.factor(slot_num))) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
