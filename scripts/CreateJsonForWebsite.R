@@ -1,3 +1,4 @@
+options(error=quit)
 ## First parse the options to the scripts
 #suppressMessages({
 library(optparse, quietly=TRUE)
@@ -6,10 +7,8 @@ library(parallel)
 library(tictoc)
 #})
 
-if(packageVersion("dplyr")[[1,1]] < 1) {
-    stop("requires dplyr 1.0 or higher.")
-}
 
+tic()
 ##List of specified options
 option_list <- list(
     make_option(c("-c", "--config"), action="store", default=Sys.getenv("CONFIG_PATH"), type='character', help="path to the config file"),
@@ -34,7 +33,7 @@ arguments <- parse_args(opt_parser, positional_arguments=c(0,Inf))
 opt <- arguments$options
 
 if(is.null(opt$outdir)) {
-  opt$outdir <- tempdir()
+  opt$outdir <- "json_output"
 }
 if(!dir.exists(opt$outdir)){
   dir.create(opt$outdir,recursive=TRUE)
@@ -70,47 +69,210 @@ if(opt$week) {
 }
 
 ##Loading the results is the same no matter what
-tic("Loaded data")
+tic()
 ##Load the data
 all_values <- rlang::syms(c("incidC","incidH","incidD"))
-res<- arrow::open_dataset(sprintf("%s/hosp",directory), 
-                          partitioning =c("location", 
-                                          "scenario", 
-                                          "death_rate", 
-                                          "date",
-                                          "lik_type", 
-                                          "is_final", 
-                                          "sim_id"))%>%
+res <- arrow::open_dataset(sprintf("%s/hosp",directory), 
+                           partitioning =c("location", 
+                                           "scenario", 
+                                           "death_rate", 
+                                           "run_id",
+                                           "lik_type", 
+                                           "is_final", 
+                                           "sim_id"))%>%
   filter(lik_type == 'global', is_final == 'final') %>%
-  select(time, geoid, death_rate, !!!all_values, sim_id)%>%
+  select(time, geoid, scenario, death_rate, run_id, !!!all_values, sim_id)%>%
   filter(time>=opt$start_date& time<=opt$end_date) %>%
   collect() %>%
-  mutate(time=as.Date(time,tz='UTC'),slot = sapply(strsplit(sim_id,split='[.]'),function(x){as.integer(x[[1]])})) %>%
-  select(-sim_id)
-
-tic("Processing geoids")
-tmp <- res %>%
+  mutate(
+    scenario = gsub("--*","-",gsub("[:.?]","-",paste(run_id,scenario,sep='-'))),
+    time=as.Date(time,tz='UTC'),
+    slot = sapply(strsplit(sim_id,split='[.]'),function(x){as.integer(x[[1]])})
+  ) %>%
+  select(-sim_id,-run_id) %>%
   tidyr::pivot_longer(as.character(all_values), names_to = 'outcome') %>%
-  group_by(geoid) %>%
-  group_map(function(.x1,.y1){ 
-    rc1 <- group_map(group_by(.x1,death_rate),function(.x2,.y2){
-      rc2 <- group_map(group_by(.x2,outcome),function(.x3,.y3){
-        rc3 <- group_map(group_by(.x3, slot),function(.x4,.y4){
-          rc4 <- list(name = .y4$slot, max = max(.x4$value), over = FALSE,  r0 = 1, vals = .x4$value)
-          return(rc4)
-        })
-        rc3 <- setNames(list(rc3),.y3$outcome)
-        return(rc3)
-      })
-      rc2 <- unlist(rc2,recursive=FALSE)
-      rc2 <- setNames(list(rc2),.y2$death_rate)
-      return(rc2)
-    })
-   rc1 <- unlist(rc1,recursive=FALSE)
-   filename <- paste0(opt$outdir,'/',.y1$geoid,".json")
-   ofp <- file(filename)
-   writeLines(rjson::toJSON(rc1),ofp)
-   close(ofp)
-   NULL
- })
+  mutate(state = gsub('...$','',geoid)) %>%
+  split(.$state)
+
+for(state in names(res)){
+  print(state)
+  tic()
+  res[[state]] <- res[[state]] %>%
+    group_by(time,scenario,slot,state,death_rate,outcome) %>%
+    summarize(value = sum(value), geoid = state[[1]]) %>%
+    bind_rows(res[[state]])
+  toc()
+}
 toc()
+
+tic()
+parameters <- arrow::open_dataset(sprintf("%s/spar",directory), 
+                           partitioning =c("location", 
+                                           "scenario", 
+                                           "death_rate", 
+                                           "run_id",
+                                           "lik_type", 
+                                           "is_final", 
+                                           "sim_id"))%>%
+  filter(lik_type == 'global', is_final == 'final',parameter == 'R0') %>%
+  select(value, scenario, death_rate, run_id, sim_id)%>%
+  collect() %>%
+  mutate(
+    scenario = gsub("--*","-",gsub("[:.?]","-",paste(run_id,scenario,sep='-'))),
+    slot = sapply(strsplit(sim_id,split='[.]'),function(x){as.integer(x[[1]])})
+  ) %>%
+  select(-sim_id,-run_id)
+
+parameter_offsets <- arrow::open_dataset(sprintf("%s/snpi",directory), 
+                           partitioning =c("location", 
+                                           "scenario", 
+                                           "death_rate", 
+                                           "run_id",
+                                           "lik_type", 
+                                           "is_final", 
+                                           "sim_id"))%>%
+  filter(lik_type == 'global', is_final == 'final',parameter == 'r0', npi_name == 'local_variance') %>%
+  select(geoid, reduction, scenario, death_rate, run_id, sim_id)%>%
+  collect() %>%
+  mutate(
+    scenario = gsub("--*","-",gsub("[:.?]","-",paste(run_id,scenario,sep='-'))),
+    slot = sapply(strsplit(sim_id,split='[.]'),function(x){as.integer(x[[1]])})
+  ) %>%
+  select(-sim_id,-run_id)
+
+parameter_offsets <- parameter_offsets %>%
+  mutate(geoid = gsub('...$','',geoid)) %>%
+  group_by(geoid,scenario,death_rate,slot) %>%
+  summarize(reduction = 0) %>%
+  bind_rows(parameter_offsets)
+
+parameters <- parameters %>%
+  left_join(parameter_offsets) %>%
+  mutate(value = ifelse(is.na(reduction),value,value * (1 - reduction)) ) %>%
+  select(-reduction)
+toc()
+
+hash <- function(...){paste(...,collapse = '-',sep = '::')}
+
+json_parameters <- rlang::env()
+tic()
+parameters %>%
+  group_by(geoid) %>%
+  group_map(function(.x,.y,.env = json_parameters){
+    .env[[.y$geoid]] <- rlang::env()
+    rc <- group_map(group_by(.x,scenario),function(.x1,.y1,.env1 = .env[[.y$geoid]]){
+      .env1[[.y1$scenario]] <- rlang::env()
+      rc1 <- group_map(group_by(.x1,death_rate),function(.x2,.y2, .env2 = .env1[[.y1$scenario]]){
+        .env2[[.y2$death_rate]] <- rlang::env()
+        rc2 <- group_map(group_by(.x2,slot),function(.x3,.y3,.env3 = .env2[[.y2$death_rate]]){
+          .env3[[as.character(.y3$slot)]] <- .x3$value
+          json_parameters[[hash(.y$geoid,.y1$scenario,.y2$death_rate,.y3$slot)]] <- .x3$value
+          return()
+        })
+        return()
+      })
+      return()
+    })
+    return()
+  })
+toc()
+
+tic()
+i <- 0
+for(state in names(res)){
+  tic()
+  purrr::map(split(res[[state]],res[[state]]$geoid),function(.x){
+    rc <- purrr::map(split(.x,.x$scenario),function(.x1){
+      rc1 <- purrr::map(split(.x1,.x1$death_rate),function(.x2){
+        rc2 <- purrr::map(split(.x2,.x2$outcome),function(.x3){
+          rc3 <- purrr::map(split(.x3,.x3$slot),function(.x4){
+            i <<- i + 1
+            rc4 <- list(
+              name = i,
+              max = max(.x4$value),
+              vals = .x4$value,
+              over = FALSE,
+              r0 = round(100 * json_parameters[[.x$geoid[[1]] ]][[.x1$scenario[[1]] ]][[.x2$death_rate[[1]] ]][[as.character(.x4$slot[[1]]) ]]) / 100
+            )
+            return(rc4)
+          })
+          rc3 <- unname(rc3)
+          return(rc3)
+        })
+        return(rc2)
+      })
+      rc1$dates <- format(sort(unique(.x1$time)),"%Y-%m-%d")
+      return(rc1)
+    })
+    filename <- paste0(opt$outdir,'/', .x$geoid[[1]], ".json")
+    ofp <- file(filename)
+    writeLines(rjson::toJSON(rc),ofp)
+    close(ofp)
+  })
+  toc()
+
+}
+RProf(NULL)
+a <- summaryRprof()
+toc()
+
+tic()
+tmp <- lapply(
+  res,
+  function(.x){
+    tic()
+    rc <- purrr::map(split(.x,.x$geoid),function(.x1){
+        rc1 <- purrr::map(split(.x1,.x1$scenario),function(.x2){
+          rc2 <- purrr::map(split(.x2,.x2$outcome),function(.x3){
+            rc3 <- summarize(group_by(arrange(.x3,time),time),value = median(value),.groups="drop")[['value']]
+            return(rc3)
+          })
+          return(rc2)
+        })
+        return(rc1)
+      })
+    toc()
+    return(rc)
+  }
+)
+filename <- paste0(opt$outdir,'/',"statsForMap.json")
+ofp <- file(filename)
+writeLines(rjson::toJSON(tmp),ofp)
+close(ofp)
+toc()
+
+toc()
+NULL
+
+all_geoids <- unlist(lapply(res,function(x){unique(x$geoid)}))
+tic()
+actuals <- inference::get_ground_truth(tempfile(),all_geoids,fips_column_name="FIPS",start_date = lubridate::ymd('2020-01-01'), end_date = lubridate::now())
+actuals <- actuals %>%
+  mutate(FIPS = gsub("...$","",FIPS)) %>%
+  group_by(FIPS,date) %>%
+  summarize(
+    confirmed_incid = sum(confirmed_incid),
+    death_incid = sum(death_incid)
+  ) %>%
+  bind_rows(actuals) %>%
+  select(-cumConfirmed, -cumDeaths, -source) %>%
+  ungroup()
+tmp <- actuals %>%
+  rename(incidC = confirmed_incid, incidD = death_incid) %>%
+  tidyr::pivot_longer(c(incidC,incidD),"outcome","value") %>%
+  split(.$FIPS) %>%
+  lapply(function(x){
+    rc <- lapply(
+      split(x,x$outcome),
+      function(.x2){
+        .x2$date <- format(.x2$date,format="%Y-%m-%d")
+        unname(split(.x2[,c("date","value")],.x2$date))
+      }
+    )
+    filename <- paste0(opt$outdir,'/',x$FIPS[[1]],"_actuals.json")
+    ofp <- file(filename)
+    writeLines(rjson::toJSON(rc),ofp)
+    close(ofp)
+  })
+toc()
+

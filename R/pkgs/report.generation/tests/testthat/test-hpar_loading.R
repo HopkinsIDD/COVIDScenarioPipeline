@@ -50,13 +50,6 @@ test_that("Simulation loading works", {
         )
     }, "object 'NA' not found")
     
-    expect_equal({
-        ncol(load_hpar_sims_filtered(
-            outcome_dir = 'a_b',
-            incl_geoids = included_geoids
-        ))
-    }, 12
-    )
     
     expect_error({
         load_hpar_sims_filtered(

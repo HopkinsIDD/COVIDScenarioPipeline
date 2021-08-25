@@ -1,42 +1,3 @@
-#' Returns a function to read files of a specific type (or automatically detected type based on extension)
-#' @param extension The file extension to read files of
-#' @param ... Arguments to pass to the reading function
-#' @return A function which will read files with that extension.
-#'  - We use readr::read_csv for csv files
-#'  - We use arrow::read_parquet for parquet files
-#'  - We use a function that detects the extension and calls this function if the auto extension is specified.
-read_file_of_type <- function(extension,...){
-  if(extension == 'csv'){
-    return(function(x){suppressWarnings(readr::read_csv(x,,col_types = cols(
-      .default = col_double(),
-      time=col_date(),
-      uid=col_character(),
-      comp=col_character(),
-      geoid=col_character()
-    )))})
-  }
-  if(extension == 'parquet'){
-    return(function(x){
-      tmp <- arrow::read_parquet(x) 
-      if("POSIXct" %in% class(tmp$time)){
-        tmp$time <- lubridate::as_date(tz="GMT",tmp$time)
-      }
-      tmp
-    })
-  }
-  if(extension == 'auto'){
-    return(function(filename){
-      extension <- gsub("[^.]*\\.","",filename)
-      if(extension == 'auto'){stop("read_file_of_type cannot read files with file extension '.auto'")}
-      read_file_of_type(extension)(filename)
-    })
-  }
-  if(extension == 'shp'){
-    return(sf::st_read)
-  }
-  stop(paste("read_file_of_type cannot read files of type",extension))
-}
-
 ##' Wrapper function for loading multiple hospitalization outcomes with open_dataset
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
@@ -511,6 +472,7 @@ load_hnpi_sims_filtered <- function(outcome_dir,
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
                                     incl_geoids,
+
                                     ...
 ) {
   

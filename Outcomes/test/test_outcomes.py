@@ -35,8 +35,8 @@ def test_outcomes_scenario():
     deathrate = 'high_death_rate'
     prefix = ''
     stoch_traj_flag = False
-    outcomes.run_delayframe_outcomes(config, run_id, prefix, int(index), run_id, prefix, int(index), # output
-                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+    outcomes.run_delayframe_outcomes(config, int(index), run_id, prefix, int(index), run_id, prefix, deathrate, nsim=1,
+                                     n_jobs=1, stoch_traj_flag=stoch_traj_flag)
 
     hosp = pq.read_table('model_output/hosp/000000001.1.hosp.parquet').to_pandas()
     hosp.set_index('time', drop=True, inplace = True)
@@ -83,8 +83,8 @@ def test_outcomes_scenario_with_load():
     deathrate = 'high_death_rate'
     prefix = ''
     stoch_traj_flag = False
-    outcomes.run_delayframe_outcomes(config, run_id, prefix, int(index), 2, prefix, int(index), # output
-                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+    outcomes.run_delayframe_outcomes(config, int(index), run_id, prefix, int(index), 2, prefix, deathrate, nsim=1,
+                                     n_jobs=1, stoch_traj_flag=stoch_traj_flag)
     hpar_config = pq.read_table('model_output/hpar/000000001.1.hpar.parquet').to_pandas()
     hpar_rel = pq.read_table('model_output/hpar/000000001.2.hpar.parquet').to_pandas()
 
@@ -115,9 +115,8 @@ def test_outcomes_read_write_hpar():
     deathrate = 'high_death_rate'
     prefix = ''
     stoch_traj_flag = False
-    outcomes.onerun_delayframe_outcomes_load_hpar(config, 2, prefix, int(index), # input
-                                                        3, prefix, int(index), # output
-                                                     deathrate, stoch_traj_flag)
+    outcomes.onerun_delayframe_outcomes_load_hpar(config, int(index), 2, prefix, int(index), 3, prefix, deathrate,
+                                                  stoch_traj_flag)
 
     hpar_read = pq.read_table('model_output/hpar/000000001.2.hpar.parquet').to_pandas()
     hpar_wrote = pq.read_table('model_output/hpar/000000001.3.hpar.parquet').to_pandas()
@@ -141,8 +140,8 @@ def test_outcomes_scenario_subclasses():
     deathrate = 'high_death_rate'
     prefix = ''
     stoch_traj_flag = False
-    outcomes.run_delayframe_outcomes(config, run_id, prefix, int(index), 10, prefix, int(index), # output
-                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+    outcomes.run_delayframe_outcomes(config, int(index), run_id, prefix, int(index), 10, prefix, deathrate, nsim=1,
+                                     n_jobs=1, stoch_traj_flag=stoch_traj_flag)
     hosp = pq.read_table('model_output/hosp/000000001.10.hosp.parquet').to_pandas()
     hosp.set_index('time', drop=True, inplace = True)
 
@@ -213,8 +212,8 @@ def test_outcomes_scenario_with_load_subclasses():
     deathrate = 'high_death_rate'
     prefix = ''
     stoch_traj_flag = False
-    outcomes.run_delayframe_outcomes(config, run_id, prefix, int(index), 11, prefix, int(index), # output
-                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+    outcomes.run_delayframe_outcomes(config, int(index), run_id, prefix, int(index), 11, prefix, deathrate, nsim=1,
+                                     n_jobs=1, stoch_traj_flag=stoch_traj_flag)
 
     hpar_config = pq.read_table('model_output/hpar/000000001.10.hpar.parquet').to_pandas()
     hpar_rel = pq.read_table('model_output/hpar/000000001.11.hpar.parquet').to_pandas()
@@ -254,8 +253,8 @@ def test_outcomes_read_write_hpar_subclasses():
     deathrate = 'high_death_rate'
     prefix = ''
     stoch_traj_flag = False
-    outcomes.run_delayframe_outcomes(config, run_id, prefix, int(index), 12, prefix, int(index), # output
-                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+    outcomes.run_delayframe_outcomes(config, int(index), run_id, prefix, int(index), 12, prefix, deathrate, nsim=1,
+                                     n_jobs=1, stoch_traj_flag=stoch_traj_flag)
     config.clear()
     config.read(user=False)
     config.set_file('config_load.yml')
@@ -265,9 +264,8 @@ def test_outcomes_read_write_hpar_subclasses():
     deathrate = 'high_death_rate'
     prefix = ''
     stoch_traj_flag = False
-    outcomes.onerun_delayframe_outcomes_load_hpar(config, 12, prefix, int(index), # input
-                                                        13, prefix, int(index), # output
-                                                        deathrate, stoch_traj_flag)
+    outcomes.onerun_delayframe_outcomes_load_hpar(config, int(index), 12, prefix, int(index), 13, prefix, deathrate,
+                                                  stoch_traj_flag)
 
 
     hpar_read = pq.read_table('model_output/hpar/000000001.12.hpar.parquet').to_pandas()
@@ -324,9 +322,8 @@ def test_outcomes_npi():
     deathrate = 'high_death_rate'
     prefix = ''
     stoch_traj_flag = False
-    outcomes.run_delayframe_outcomes(config, run_id, prefix, int(index), 
-                                             105, prefix, int(index), # output
-                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+    outcomes.run_delayframe_outcomes(config, int(index), run_id, prefix, int(index), 105, prefix, deathrate, nsim=1,
+                                     n_jobs=1, stoch_traj_flag=stoch_traj_flag)
 
     hosp = pq.read_table('model_output/hosp/000000001.105.hosp.parquet').to_pandas()
     hosp.set_index('time', drop=True, inplace = True)
@@ -374,9 +371,8 @@ def test_outcomes_read_write_hnpi():
     deathrate = 'high_death_rate'
     prefix = ''
     stoch_traj_flag = False
-    outcomes.onerun_delayframe_outcomes_load_hpar(config, 105, prefix, int(index), # input
-                                                        106, prefix, int(index), # output
-                                                     deathrate, stoch_traj_flag)
+    outcomes.onerun_delayframe_outcomes_load_hpar(config, int(index), 105, prefix, int(index), 106, prefix, deathrate,
+                                                  stoch_traj_flag)
 
     hpar_read = pq.read_table('model_output/hpar/000000001.105.hpar.parquet').to_pandas()
     hpar_wrote = pq.read_table('model_output/hpar/000000001.106.hpar.parquet').to_pandas()
@@ -415,9 +411,8 @@ def test_outcomes_read_write_hnpi2():
                            )
     import random
     random.seed(10)
-    outcomes.onerun_delayframe_outcomes_load_hpar(config, 105, prefix, int(index), # input
-                                                        106, prefix, int(index), # output
-                                                     deathrate, stoch_traj_flag)
+    outcomes.onerun_delayframe_outcomes_load_hpar(config, int(index), 105, prefix, int(index), 106, prefix, deathrate,
+                                                  stoch_traj_flag)
 
     hnpi_read = pq.read_table('model_output/hnpi/000000001.105.hnpi.parquet').to_pandas()
     hnpi_wrote = pq.read_table('model_output/hnpi/000000001.106.hnpi.parquet').to_pandas()
@@ -425,9 +420,8 @@ def test_outcomes_read_write_hnpi2():
 
 
     # runs with the new, random NPI
-    outcomes.onerun_delayframe_outcomes_load_hpar(config, 106, prefix, int(index), # input
-                                                        107, prefix, int(index), # output
-                                                     deathrate, stoch_traj_flag)
+    outcomes.onerun_delayframe_outcomes_load_hpar(config, int(index), 106, prefix, int(index), 107, prefix, deathrate,
+                                                  stoch_traj_flag)
 
     hpar_read = pq.read_table('model_output/hpar/000000001.106.hpar.parquet').to_pandas()
     hpar_wrote = pq.read_table('model_output/hpar/000000001.107.hpar.parquet').to_pandas()
@@ -467,9 +461,8 @@ def test_outcomes_pcomp():
                                'parquet'
                                )
                            )
-    outcomes.run_delayframe_outcomes(config, 110, prefix, int(index), 
-                                             111, prefix, int(index), # output
-                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
+    outcomes.run_delayframe_outcomes(config, int(index), 110, prefix, int(index), 111, prefix, deathrate, nsim=1,
+                                     n_jobs=1, stoch_traj_flag=stoch_traj_flag)
 
     hosp_f = pq.read_table('model_output/hosp/000000001.111.hosp.parquet').to_pandas()
     hosp_f.set_index('time', drop=True, inplace = True)
@@ -524,9 +517,8 @@ def test_outcomes_pcomp_read_write():
     prefix = ''
     stoch_traj_flag = False
 
-    outcomes.onerun_delayframe_outcomes_load_hpar(config, 111, prefix, int(index), 
-                                             112, prefix, int(index), # output
-                            deathrate, stoch_traj_flag = stoch_traj_flag)
+    outcomes.onerun_delayframe_outcomes_load_hpar(config, int(index), 111, prefix, int(index), 112, prefix, deathrate,
+                                                  stoch_traj_flag=stoch_traj_flag)
     hpar_read = pq.read_table('model_output/hpar/000000001.111.hpar.parquet').to_pandas()
     hpar_wrote = pq.read_table('model_output/hpar/000000001.112.hpar.parquet').to_pandas()
     assert((hpar_read == hpar_wrote).all().all())

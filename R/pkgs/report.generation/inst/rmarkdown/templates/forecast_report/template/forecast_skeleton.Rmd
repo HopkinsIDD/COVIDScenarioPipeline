@@ -11,15 +11,15 @@ output:
     toc_float: true
 bibliography: ReportReferences.bib
 params:
-  config_file: "config_ca_forecast_med_deaths_mtr.yml"
-  runs_dir: "model_outputs/runs_20210215" # directory with model output (i.e. with subdirs: hosp, snpi, spar)
+  config_file: "config.yml"
+  runs_dir: "model_outputs" # directory with model output (i.e. with subdirs: hosp, snpi, spar)
   continue_on_error: yes
   pdeath_default: "med"
   pdeath: 0.005
   pdeath_label: "0.5% IFR"
   state_usps: "CA"
-  projection_start: "2021/02/14" # Initial date of projetion, the system's date is used if none is specified <- will be reduce to Sunday of that week with lubridate::ceiling_date("weeks") 
-  npi_labels: ["Baseline", "SAH", "Phase 2\nEarly", "Phase 2\nLate", "Phase 3", "Phase 3\nRestricted", "Phase 2\nRestricted", "Dec\nSAH", "Tier 1A", "Tier 1B", "Tier 2A", "Tier 2B", "Tier 3A","Tier 3B", "Tier 4A", "Tier4B"]   # OPTIONAL: should match number of intervention categories (see npi_names). Example: ["Baseline", "School Lockdown", "Lockdown", "Post Lockdown"]
+  projection_start: "2021/03/02" # Initial date of projetion, the system's date is used if none is specified <- will be reduce to Sunday of that week with lubridate::ceiling_date("weeks") 
+  npi_labels: ["Baseline", "Dec\nSAH", "Tier 1A", "Tier 1B", "Tier 2A", "Tier 2B", "Tier 3A","Tier 3B", "Tier 4A", "Tier4B"]   # OPTIONAL: should match number of intervention categories (see npi_names). Example: ["Baseline", "School Lockdown", "Lockdown", "Post Lockdown"]
   npi_trimmer: "[[A-Z]].+\\_" #used by str_remove to group the same types of interventions when intervention periods vary by geoid (i.e. if there are affected geoids in config$interventions$settings). Ignore if intervention periods do not vary by geoid.
   county: "Los Angeles"
   county_report: TRUE # whether to generate figures for a particular county
@@ -68,6 +68,7 @@ if (params$state_usps=="[STATE USPS]") {stop("Must define a target state by USPS
 ```
 
 ```{r load_config}
+getwd()
 runs_dir<-params$runs_dir
 reportStateUSPS <- params$state_usps 
 npi_trimmer<-params$npi_trimmer
@@ -124,11 +125,14 @@ npi_names<- names(config$interventions$settings[unlist(lapply(config$interventio
   unique() # NOTE: this assumes all interventions have inference, if the projections for some geoids do NOT have inference, then you will need to modify the input to the Rt/effectiveness plots
 
 npi_names<-npi_names[str_detect(npi_names, "seas_", negate=TRUE)] # remove any seasonal terms
+npi_names <- c("Lockdown", "sah_2", npi_names[str_detect(npi_names, "T")])
 
 forecast<-"inference" # name of scenario with forecast data
 
 seasonal_terms<-names(config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="perturbation"))])
 seasonal_terms<-seasonal_terms[str_detect(seasonal_terms, "seas_")]
+
+
 
 ```
 
@@ -145,12 +149,6 @@ res_state <- load_hosp_county(runs_dir,
 
 ```
 
-```{r load_shapefile, include=FALSE}
-
-shp<-tigris::counties(state=reportStateUSPS, cb=TRUE, class="sf", year=2018) %>%
-  rename(name=NAME, geoid=GEOID)
-
-```
 
 ```{r rmd_formatting}
 nfiles2<-50
@@ -163,30 +161,6 @@ max_date<-lubridate::ceiling_date(lubridate::ymd(projection_start), "week")+7*3
 min_date<-lubridate::floor_date(min_date, "month")
 display_dates<-c(projection_start, max_date-7*3, max_date-7*2, max_date-7, max_date)
 
-tier_colors = c("#550055", "#CC0000", "#FF9900", "#FFFC11")
-tier_levels = c(1, 2, 3, 4)
-tier_labels = c("Tier 1: Widespread", "Tier 2: Substantial",
-                "Tier 3: Moderate", "Tier 4: Minimal")
-
-nocal<-geodata %>% 
-  filter(name %in% c("Modoc", "Siskiyou", "Del Norte", "Humboldt", "Trinity", "Shasta", "Lassen", "Tehama", "Mendocino", "Glenn", "Lake")) %>%
-  pull(geoid)
-
-bay<-geodata %>% 
-  filter(name %in% c("Sonoma", "Napa", "Solano", "Contra Costa", "Alameda", "Santa Clara", "Santa Cruz", "San Mateo", "San Francisco", "Marin", "Monterey")) %>%
-  pull(geoid)
-
-joaquin<-geodata%>%
-  filter(name %in% c("San Joaquin", "Calaveras", "Tuolumne", "Mariposa", "Stanislaus", "Merced", "San Benito", "Fresno", "Kings", "Tulare", "Madera", "Kern")) %>%
-  pull(geoid)
-
-socal<-geodata%>%
-  filter(name %in% c("Imperial", "San Diego", "Riverside", "Orange", "San Bernardino", "Los Angeles", "Ventura", "Santa Barbara", "San Luis Obispo", "Mono", "Inyo")) %>%
-  pull(geoid)
-
-sacramento<-geodata %>%
-  filter(!geoid %in% c(nocal, bay, joaquin, socal))%>%
-  pull(geoid)
 ```
 
 ```{r hosp_geocombined_totals}  
@@ -253,6 +227,7 @@ forecast_ifr<-c(forecast_ifr, pdeath_default)
 ```
 
 ```{r load_truth}
+# Download groundtruth
 truth_dat <-get_groundtruth_from_source(source="csse")
 
 truth_dat<-truth_dat%>%
@@ -260,39 +235,38 @@ truth_dat<-truth_dat%>%
   dplyr::select(Confirmed, Deaths, incidI, incidDeath, source, date=Update, geoid=FIPS) %>%
   left_join(geodata)
 
+# Download incident and occupied hospitalizations (state-level only)
 hosp_dat<-get_hhsCMU_incidH_st_data() %>%
   dplyr::select(date=Update, USPS=source, hosps=incidH_confirmed)%>%
   filter(USPS==reportStateUSPS) %>% 
   drop_na() 
 
-currhosp_dat <- read.csv("https://data.ca.gov/dataset/529ac907-6ba1-4cb7-9aae-8966fc96aeef/resource/42d33765-20fd-44b8-a978-b083b7542225/download/hospitals_by_county.csv") %>%
-    dplyr::rename(name = county, 
-                  date = todays_date,
-                  currhosp=hospitalized_covid_confirmed_patients) %>%
-  tibble()
-
-currhosp_dat <- currhosp_dat %>%
-    left_join(geodata) %>%
-    mutate(date = lubridate::ymd(date))
-
-hosp_dat<-currhosp_dat %>%
-  group_by(date) %>%
-  summarize(currhosp=sum(currhosp))%>%
+hosp_dat<-get_hhsCMU_hospCurr_st_data() %>%
+  dplyr::select(date=Update, USPS=source, currhosp=hospCurr_confirmed) %>%
+  filter(USPS==reportStateUSPS) %>%
+  drop_na() %>%
   left_join(hosp_dat)
 ```
 
 ```{r load_r}
+# NPI effectiveness and R0 by geoid/sim
 inference_r <-load_r_sims_filtered(outcome_dir=runs_dir,
                                    incl_geoids=included_geoids,
                                    npi_trimmer=npi_trimmer,
                                    pdeath_filter = pdeath_default)
 
-inference_r_time<-inference_r %>% 
-  mtr_estimates()
+inference_r_spark<-inference_r %>% 
+  mtr_estimates() %>%
+  filter(npi_name %in% c("local_variance", npi_names))
 
 inference_r<-inference_r%>%
   mutate(end_date=as.Date(end_date),
          start_date=as.Date(start_date))
+
+# Daily estimates of Rt by geoid/sim
+inference_r_time<- load_r_daily_sims_filtered(outcome_dir = runs_dir,
+                                                    incl_geoids = included_geoids,
+                                                    pdeath_filter = pdeath_default)
 ```
 
 ```{r load_hpar}
@@ -429,33 +403,6 @@ hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(runs_dir,
                                                                  pdeath_filter=pdeath_default,
                                                                  week=TRUE)
 
-hosp_geounit_relative_week<-hosp_geounit_relative%>%
-  filter(time>display_dates[1])
-
-icu_geounit_relative_week<-icu_geounit_relative%>%
-  filter(time>display_dates[1])
-
-icu_geounit_relative <- load_hosp_geounit_relative_to_threshold(runs_dir,
-                                                                scenario_levels=scn_levels,
-                                                                scenario_labels =scn_labels,
-                                                                threshold = beddata_icu,
-                                                                variable = "NICUCurr",
-                                                                end_date = sim_end_date,
-                                                                incl_geoids = included_geoids,
-                                                                pdeath_filter=pdeath_default,
-                                                                week=FALSE)
-
-hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(runs_dir,
-                                                                 threshold = beddata_hosp,
-                                                                 variable = "NhospCurr",
-                                                                 scenario_levels=scn_levels,
-                                                                 scenario_labels =scn_labels,
-                                                                 end_date = sim_end_date,
-                                                                 incl_geoids=included_geoids,
-                                                                 pdeath_filter=pdeath_default,
-                                                                 week=FALSE)
-
-
 ```
 
 ## Executive Summary
@@ -469,127 +416,16 @@ This report provides short- and medium-term estimates of COVID-19 transmission a
 
 The figures below show the projected weekly number of confirmed cases, deaths, and hospitalizations within the state of `r paste(state_name)` if ongoing policies are maintained. Model estimates are compared to those from the the COVID-19 Forecast Hub ensemble model, which combines estimates from a range of models each week to generate a consensus forecast (see [COVID-19 Forecast Hub](https://covid19forecasthub.org/doc/) for more information).  
 
-```{r forecast-data-setup, results='hide'}
-  
-forecast_plot<-function(usa_facts=NULL,
-                        county_dat=res_state,
-                        forecast_start=projection_start,
-                        scenarios=forecast,
-                        reichlab=NULL,
-                        var="NincidCase",
-                        pi_lo=0.025,
-                        pi_hi=0.975, 
-                        truth_source="JHU CSSE",
-                        color_vals=scn_colors,
-                        xmin_date=min_date,
-                        tendency="mean"){
-  
-  forecast_start<-as.Date(forecast_start)
-  truth_var<-if_else(str_detect(var, "ase"), "incidI", 
-                     if_else(str_detect(var, "eath"), "incidDeath",
-                             if_else(str_detect(var, "osp"), "hosps", NULL)))
-  
-  county_dat<-county_dat%>%
-      filter(scenario %in% scenarios) 
-  
-  if(is.null(reichlab)){
-    color_vals <- c("black", color_vals[1])
-    scen_levels<-c(truth_source, unique(county_dat$scenario_name))
-  } else {
-    color_vals <- c("black", color_vals[1], color_vals[2])
-    scen_levels<-c(truth_source, unique(county_dat$scenario_name), "COVID-19 Forecast Hub")
-  }
-  
-  if(is.null(usa_facts)){
-    county_dat<-county_dat%>%
-      mutate(scenario=scenario_name) %>%
-      group_by(time=lubridate::ceiling_date(time, "weeks"), sim_num, scenario) %>%
-      summarize(est=sum(!!as.symbol(var)))%>%
-      group_by(time, scenario) %>%
-      summarize(lo=quantile(est, pi_lo),
-                hi=quantile(est, pi_hi),
-                mean=mean(est),
-                median=median(est)) %>%
-      mutate(truth_var=NA_real_) %>%
-      group_by(scenario) %>%
-      filter(time!=max(time))%>%
-      rename(est=!!as.symbol(tendency))
-   
-    } else{
-
-        usa_facts<-usa_facts %>%
-          dplyr::filter(date <= forecast_start) %>%
-          group_by(time=lubridate::ceiling_date(date, "weeks")) %>%
-          summarize(truth_var=sum(!!as.symbol(truth_var))) %>%
-          filter(time!=max(time)|
-                   (as.numeric(as.Date(forecast_start)-time)==6)) %>%
-          mutate(scenario=truth_source)
-        
-         county_dat<-county_dat %>%
-           mutate(scenario=scenario_name) %>%
-           group_by(time=lubridate::ceiling_date(time, "weeks"), sim_num, scenario) %>%
-           summarize(est=sum(!!as.symbol(var))) %>%
-           group_by(time, scenario) %>%
-           summarize(lo=quantile(est, pi_lo),         
-                     hi=quantile(est, pi_hi),
-                     mean=mean(est),
-                     median=median(est)) %>%
-           filter(time>=max(usa_facts$time)) %>%
-           group_by(scenario) %>%
-           filter(time!=max(time)) %>%
-           rename(est=!!as.symbol(tendency))%>%
-           bind_rows(usa_facts, .) 
-        
-    }
-  
-  if(!is.null(reichlab)){
-    reichlab_var<-if_else(str_detect(var, "ase"), "case", "death")
-    
-    county_dat<-reichlab %>%
-      filter(quantile %in% c(pi_lo, 0.5, pi_hi) &
-               str_detect(target_variable, paste("inc", reichlab_var))) %>%
-    mutate(N=as.numeric(horizon),
-           quantile=case_when(quantile==0.5~"est",
-                              quantile==pi_lo~"lo",
-                              quantile==pi_hi~"hi"),
-           time=lubridate::ceiling_date(forecast_date, "weeks")+7*(N-1),
-           scenario="COVID-19 Forecast Hub") %>%
-      dplyr::select(N, time, scenario, quantile, value) %>%
-      pivot_wider(names_from=quantile, values_from=value) %>%
-      dplyr::select(time, scenario, lo, hi, est) %>%
-      bind_rows(county_dat)
-  }
-
-  
-  
-  plot_dat<-county_dat %>% 
-    mutate(scenario=factor(scenario, levels=scen_levels)) %>%
-    arrange(scenario, time) %>%
-    ggplot(aes(x=time))+
-    geom_line(aes(y=truth_var, col=scenario))+
-    geom_line(aes(y=est, col=scenario), linetype="dashed")+
-    geom_point(aes(y=est, col=scenario), linetype="dashed")+
-    geom_ribbon(aes(ymin=lo, ymax=hi, fill=scenario), alpha=0.1)+
-    theme_bw()+
-    xlab("")+
-    scale_color_manual(values=color_vals)+
-    scale_fill_manual(values=color_vals)+
-    coord_cartesian(ylim = c(0, 1.5*max(county_dat$est[!is.na(county_dat$est) & county_dat$time > xmin_date])))
-  
-  return(plot_dat)
-  
-}
-```
 
 ```{r}
 
 cases <- forecast_plot(county_dat=state_hosp_totals%>%mutate(scenario_name="Forecast"),
                        usa_facts=truth_dat,
-                       forecast_start=projection_start,
-                       scenarios=scn_levels[1],
-                       reichlab=ensemble,
-                       var="NincidCase",
-                       truth_source="JHU CSSE/DHHS") +
+                       forecast_start=projection_start, 
+                       scenarios=scn_levels[1], # Scenarios in county_dat to plot
+                       reichlab=ensemble, 
+                       var="NincidCase", # Variable to plot from county_dat
+                       truth_source="JHU CSSE/DHHS") + # Label for groundtruth
   ylab("Weekly Incident Cases")+
   scale_x_date(date_breaks="2 weeks", date_labels="%b %d", limits=c(min_date, max_date))
 
@@ -731,48 +567,33 @@ The figures below depict how COVID-19 transmission has changed over time in `r i
 
 ```{r}
 
-# Estimate reproductive number over time
-obs_dat<-truth_dat%>%
-  group_by(date)%>% 
-    summarize(NincidConfirmed=sum(incidI), 
-              NincidDeathsObs=sum(incidDeath),
-              NcumulConfirmed=sum(Confirmed))
-
+# Estimate vs empirical Rt over time
 plot_rt<-plot_rt_ts(county_dat = res_state%>% filter(str_detect(str_to_lower(scenario), "case")),
                     r_dat = inference_r_time %>% filter(str_detect(str_to_lower(scenario), "case")),
-                    truth_dat=obs_dat,
+                    truth_dat= truth_dat,
                     scenario_colors=scn_colors, 
                     scenario_labels=c("Forecast", scn_labels[2]),
                     scenario_levels=scn_levels, 
                     incl_geoids = included_geoids,
-                    start_date = sim_start_date,
-                    end_date=sim_end_date,
-                    pop_col="pop",
                     pdeath_filter=pdeath_default,
-                    susceptible=TRUE) +
+                    susceptible=TRUE,
+                    truth_source="JHU CSSE") +
           geom_vline(xintercept=projection_start, linetype="dotted")+
   ylab("Reproductive number")+
   scale_x_date(date_breaks = "1 month", date_labels = "%b", limits=c(as.Date(sim_start_date), max_date))
 
-plot_rt$data<-plot_rt$data %>%
-  mutate(`Based on`=if_else(scenario=="USA Facts", "JHU CSSE confirmed cases", as.character(`Based on`)),
-         `Based on`=factor(`Based on`, levels = c("Forecast", "JHU CSSE confirmed cases")))
 # Effectivenes by policy intervention
 
 plot_interventions<-inference_r %>%
-  filter(str_detect(npi_name, "T")) %>%
-  filter(str_detect(str_to_lower(scenario), "case")) %>%
-  mutate(phase=str_remove(npi_name, "^T\\d"),
-         npi_name=as.numeric(str_extract(npi_name, "\\d")),
-         npi_name=factor(npi_name, levels=tier_levels, labels=tier_labels),
-         phase=factor(phase, levels=c("A", "B", "C"), labels=c("Sep-Oct", "Nov-Jan 11", "Jan 12-onward"))) %>%
-  left_join(geodata)%>% 
-  group_by(phase, npi_name, scenario, sim_num) %>%
-  mutate(weight=pop/sum(pop)) %>%
+  filter(npi_name %in% npi_names  &
+           str_detect(str_to_lower(scenario), "case")) %>%
+  left_join(geodata)%>%
+  group_by(npi_name, sim_num) %>% 
+  mutate(weight=pop/sum(pop),
+         npi_name=factor(npi_name, levels=npi_names, labels=npi_labels)) %>%
   summarize(est=Hmisc::wtd.mean(reduction, weights=weight, normwt = TRUE)) %>%
-  ggplot(aes(x=phase, y=est, color=npi_name))+
+  ggplot(aes(x=npi_name, y=est))+
   geom_boxplot()+
-  scale_color_manual(values=tier_colors)+
   ylab("Effectiveness (% reduction)") +
   xlab("Period") +
   theme_bw()+
@@ -805,20 +626,17 @@ obs_dat<-truth_dat%>%
   filter(geoid==county) %>%
   filter(Confirmed>1)%>%
   group_by(date, geoid)%>% 
-  summarize(NincidConfirmed=sum(incidI), 
-            NincidDeathsObs=sum(incidDeath),
-            NcumulConfirmed=sum(Confirmed))
+  summarize(incidI=sum(incidI), 
+            incidDeath=sum(incidDeath),
+            Confirmed=sum(Confirmed))
 
 plot_rt_county<-plot_rt_ts(county_dat = res_state %>% filter(geoid==county & str_detect(str_to_lower(scenario), "case")),
-                    r_dat = inference_r %>% filter(geoid==county & str_detect(str_to_lower(scenario), "case")),
+                    r_dat = inference_r_time %>% filter(geoid==county & str_detect(str_to_lower(scenario), "case")),
                     truth_dat=obs_dat,
                     scenario_colors=scn_colors, 
                     scenario_labels=c("Forecast", scn_labels[2]),
                     scenario_levels=scn_levels, 
                     incl_geoids = county,
-                    start_date = sim_start_date,
-                    end_date=sim_end_date,
-                    pop_col="pop",
                     pdeath_filter=pdeath_default,
                     susceptible=TRUE) +
   geom_vline(xintercept=projection_start, linetype="dotted")+
@@ -828,19 +646,16 @@ plot_rt_county<-plot_rt_ts(county_dat = res_state %>% filter(geoid==county & str
 # Effectivenes by policy intervention
 
 plot_interventions_county<-inference_r %>%
-  filter(str_detect(npi_name, "T") & geoid==county) %>%
-  filter(str_detect(str_to_lower(scenario), "case")) %>%
-  mutate(phase=str_remove(npi_name, "^T\\d"),
-         npi_name=as.numeric(str_extract(npi_name, "\\d")),
-         npi_name=factor(npi_name, levels=tier_levels, labels=tier_labels),
-         phase=factor(phase, levels=c("A", "B", "C"), labels=c("Sep-Oct", "Nov-Jan 11", "Jan 12-onward"))) %>%
-  left_join(geodata)%>% 
-  group_by(phase, npi_name, scenario, sim_num) %>%
-  mutate(weight=pop/sum(pop)) %>%
+  filter(npi_name %in% npi_names  &
+           str_detect(str_to_lower(scenario), "case") &
+           geoid==county) %>%
+  left_join(geodata)%>%
+  group_by(npi_name, sim_num) %>% 
+  mutate(weight=pop/sum(pop),
+         npi_name=factor(npi_name, levels=npi_names, labels=npi_labels)) %>%
   summarize(est=Hmisc::wtd.mean(reduction, weights=weight, normwt = TRUE)) %>%
-  ggplot(aes(x=phase, y=est, color=npi_name))+
+  ggplot(aes(x=npi_name, y=est))+
   geom_boxplot()+
-  scale_color_manual(values=tier_colors)+
   ylab("Effectiveness (% reduction)") +
   xlab("Period") +
   theme_bw()+
@@ -927,84 +742,16 @@ fig_counter<-fig_counter+1
 
 ```
 
-```{r, eval=FALSE, fig.cap=cap, fig.height=9, fig.width=12}
-
-r_legend<-get_legend(plot_rt+theme(legend.position="bottom",
-                                   legend.title=element_blank()))
-plot_r<-plot_grid(NULL, NULL, NULL, 
-                  plot_rt+theme(legend.title=element_blank(),
-                                legend.position ="none"),
-                  plot_interventions+
-                     scale_y_continuous(limits = c(0, 1), expand=c(0,0)),
-                  plot_seas + 
-                     scale_y_continuous(limits = c(0, max(plot_seas$data$est)*1.05),
-                                        breaks=c(0, 1, 2, 3, 4, 5, 6),
-                                        expand=c(0,0))+
-                     geom_hline(yintercept = 1, linetype="dashed"),
-                  r_legend, NULL, NULL,
-                  nrow=3, ncol=3,
-                  rel_heights = c(0.05, 0.9, 0.08),
-                  labels=c("A", "B", "C"))
-
-plot_r
-
-cap<-paste0("**Fig. ", fig_counter, "** Model estimates for COVID transmission characteristics in ", state_name," at ", pdeath_label, " assumptions. (A) The mean basic reproductive number (orange) is compared to the effective reproductive number estimated from reported cases (green) using the R0 package. The dotted line indicates the start of the projection and shaded areas indicate the 95% intervals. (B) Estimates for the effectiveness of policy periods, which can be interpreted as the percent reduction in the basic reproductive number. (C) Monthly estimates of the basic reproduction number reflect the seasonal variation of COVID-19 transmission.")
-
-fig_counter<-fig_counter+1
-
-
-```
-
-```{r county, eval=FALSE, fig.height=10, fig.width=12, fig.cap=cap}
-
-r_legend<-get_legend(plot_rt+theme(legend.position="bottom",
-                                   legend.title=element_blank()))
-plot_r<-plot_grid(NULL, NULL, NULL,
-                  NULL, NULL, NULL, 
-                  plot_rt+theme(legend.title=element_blank(),
-                                legend.position ="none"),
-                   plot_interventions+
-                     scale_y_continuous(limits = c(0, 1), expand=c(0,0)),
-                   plot_seas + 
-                     scale_y_continuous(limits = c(0, max(plot_seas$data$est)*1.05),
-                                        breaks=c(0, 1, 2, 3, 4, 5, 6),
-                                        expand=c(0,0))+
-                     geom_hline(yintercept = 1, linetype="dashed"),
-                  NULL, NULL, NULL,
-                  plot_rt_county+theme(legend.title=element_blank(),
-                                legend.position ="none"),
-                  plot_interventions_county+
-                    scale_y_continuous(limits = c(0, 1), expand=c(0,0)),
-                  NULL,
-                  # plot_seas_county + 
-                  #   scale_y_continuous(limits = c(0, max(plot_seas$data$est)*1.05),
-                  #                      breaks=c(0, 1, 2, 3, 4, 5, 6),
-                  #                      expand=c(0,0))+
-                  #   geom_hline(yintercept = 1, linetype="dashed"),
-                  r_legend, NULL, NULL,
-                  nrow=6, ncol=3,
-                  rel_heights = c(0.03, 0.03, 0.425, 0.03, 0.425, 0.06),
-                  labels=c(state_name, "", "", "A", "B", "C", "","","",paste0(params$county, " County")))
-
-plot_r
-
-cap<-paste0("**Fig. ", fig_counter, "** Model estimates for COVID transmission characteristics in ", state_name, " and ", params$county," County at ", pdeath_label, " assumptions. (A) The mean basic reproductive number (orange) is compared to the effective reproductive number estimated from reported cases (green) using the R0 package. The dotted line indicates the start of the projection and shaded areas indicate 95% intervals. (B) Estimates for the effectiveness of policy periods, which can be interpreted as the percent reduction to the basic reproductive number. (C) Estimates of the basic reproduction number estimates for each month with a seasonal term.")
-
-fig_counter<-fig_counter+1
-
-```
 
 ## Model Fit & Calibration
 
 Model inference (or fitting to data) is often not perfect, particularly in situations where multiple targets are being estimated (here, confirmed cases and deaths) and when there may be changes to reporting or the infection fatality ratio over time which are non-identifiable. Two sets of estimates were generated this week by optimizing model fit to reported cases in one set (i.e. 'Case-Optimized') and to reported deaths in another (i.e. 'Death-Optimized). This approach allows us to extract the corresponding model outputs from each run and provide more appropriate estimates. Here, we compare the model estimates of historic incident confirmed cases and deaths to the observed data within the state of `r paste(state_name)`. The model projections fit data well; we do note that, generally, the model may underestimate confirmed cases and overestimate deaths. 
 
 ```{r calib}
-obs_dat<-currhosp_dat%>%
-  select(geoid, date, currhosp)%>%
-  left_join(truth_dat)
+
 
 calib_plts <- plot_model_vs_obs(state_hosp_totals,
-                                  jhu_obs_dat = obs_dat,
+                                  jhu_obs_dat = truth_dat,
                                   scenario_colors = scn_colors,
                                   obs_data_col = "black",
                                   ci.L = 0.025,
@@ -1013,7 +760,7 @@ calib_plts <- plot_model_vs_obs(state_hosp_totals,
                                   sim_start_date = sim_start_date,
                                   sim_end_date = max_date,
                                   week = TRUE,
-                                  hosp=TRUE, tendency="median")
+                                tendency="mean")
 
 calib_legend<-get_legend(calib_plts[[1]]+theme(legend.position="bottom"))
 calib_plts[[1]]<-calib_plts[[1]]+theme(legend.position = "none")+scale_x_date(breaks="1 month", date_labels="%b %y")
@@ -1060,8 +807,7 @@ for(i in 1:length(forecast_dirs)){
   
   cum_deaths[[i]]<-state_forecast %>%
     filter(forecast==forecast_dirs[i]) %>%
-    filter(str_detect(str_to_lower(scenario), "death") & as.Date(forecast_dates[i]) > as.Date("2020-11-20") |
-             as.Date(forecast_dates[i]) < as.Date("2020-11-20"))%>%
+    filter(str_detect(str_to_lower(scenario), "death"))%>%
     filter(time>=lubridate::ymd(forecast_dates[i])) %>%
     group_by(time, forecast) %>%
     summarize(lo=quantile(NincidDeath, 0.025),
@@ -1320,44 +1066,6 @@ fig_counter<-fig_counter+1
 
 ```
 
-```{r calibration county, fig.height=10, fig.width=12, eval=FALSE, fig.cap=cap}
-calib_plts<-plot_grid(NULL, NULL, NULL,
-                      NULL, calib_plts[[1]], calib_plts_county[[1]], 
-                      NULL, calib_plts[[2]], calib_plts_county[[2]],
-                      ncol=3, nrow=3,
-                      labels=c("", state_name, paste0(params$county, " County"), "A", "", "", "B", "", ""),
-                      rel_heights=c(0.03, 0.485, 0.485),
-                      rel_widths =c(0.03, 0.485, 0.485))
-
-calib_plts  
-
-cap <- paste("**Fig.", fig_counter, "** Modeled confirmed cases and deaths (assuming ", pdeath_label, " IFR) versus actual confirmed cases and deaths for all scenarios as compared to USAFacts data for ", state_name,". Black points represent actual data, lines represent means and shading represents the 95% prediction interval for a given scenario. The dotted lines indicate the start of the projection for the current forecast. Note that JHU CSSE data are originally reported as cumulative deaths, and daily cumulative case counts were differenced in order to report the incident deaths in this figure. In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.")
-
-fig_counter <- fig_counter+1
-
-```
-
-```{r forecast county plot, fig.height=10, fig.width=12, eval=FALSE, fig.cap=cap, eval=FALSE}
-forecast_plts<-plot_grid(NULL, NULL, NULL,
-                         NULL, pC+theme(legend.position="none"), pC_county+theme(axis.title=element_blank(),
-                                                                                 legend.position="none"),
-                         NULL, pD+theme(legend.position="none"), pD_county+theme(axis.title=element_blank(),
-                                                                                 legend.position="none"),
-                         ncol=3, nrow=3, 
-                         rel_widths=c(0.05, 0.475, 0.475),
-                         rel_heights=c(0.05, 0.475, 0.475),
-                         labels=c("", state_name, paste0(params$county, " County"), "A", "" ,"B", ""))
-
-forecast_plts<-plot_grid(forecast_plts, forecast_legend, nrow=2, rel_heights=c(0.95, 0.05))
-
-forecast_plts
-
-cap <- paste("**Fig.", fig_counter, "** Modeled confirmed cases and deaths (assuming ", pdeath_label, " IFR) versus actual confirmed cases and deaths for all scenarios as compared to USAFacts data for  ", state_name,". Black points represent actual data, lines represent mean and shading represents the 95% prediction interval for a given scenario. The dotted lines indicate the start of the projection for the current forecast. Note that JHU CSSE data are originally reported as cumulative deaths, and daily cumulative case counts were differenced in order to report the incident deaths in this figure. In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.")
-
-fig_counter <- fig_counter+1
-
-```
-
 ## Model Validation: Hospitalizations
 The figures below compare the model estimates for incident and current hospitalizations with data reported by the Department of Health and Human Services.
 ```{r}
@@ -1421,40 +1129,8 @@ plot_chops<-plot_chops %>%
 
 ```
 
-```{r, eval=county_report}
 
-plot_chops_county<-res_state %>%
-  filter(geoid==county)%>%
-  #group_by(time=lubridate::ceiling_date(time, "weeks"), scenario_name, pdeath, sim_num) %>%
-  #summarize(NhospCurr=sum(NhospCurr)) %>%
-  group_by(time, pdeath, scenario_name, geoid) %>%
-  summarize(low=quantile(NhospCurr, 0.025), 
-            high=quantile(NhospCurr, 0.975),
-            estimate=mean(NhospCurr)) %>%
-  left_join(currhosp_dat%>%
-              rename(time=date))%>%
-  drop_na() %>%
-  mutate(currhosp=if_else(currhosp==0, NA_real_, currhosp))
-
-plot_chops_county<-plot_chops_county %>%
-  ggplot(aes(x=time))+
-  geom_point(aes(y=currhosp), color="black")+
-  geom_line(aes(y=estimate, color=scenario_name))+
-  geom_ribbon(aes(ymin=low, ymax=high, fill=scenario_name), alpha=0.1)+
-  scale_x_date(date_breaks = "1 month", date_labels = "%b %Y", 
-            limits = c(as.Date(min(plot_chops_county$time)), as.Date(projection_start))) + 
-  scale_y_continuous("Daily Occupied Hospital Beds", labels = scales::comma) + 
-  scale_color_manual("Scenario", values = scn_colors) + 
-  theme_minimal() + 
-  theme(axis.title.x = element_blank(), 
-        axis.text.x = element_text(angle = 45), 
-        legend.position = "bottom", 
-        legend.title = element_blank()) + 
-  guides(color = guide_legend(nrow = 2, override.aes = list(alpha = 1)), fill = FALSE)
-
-```
-
-```{r, fig.height=6, fig.width=8, fig.cap=cap, eval=!county_report}
+```{r, fig.height=6, fig.width=8, fig.cap=cap}
 hosp_legend<-get_legend(plot_ihops+theme(legend.position="bottom"))
 plot_grid(plot_ihops+theme(legend.position = "none"),
           plot_chops+theme(legend.position="none"), 
@@ -1467,41 +1143,77 @@ cap=paste("**Fig.", fig_counter, "** Estimated incident hospitalizations and occ
 fig_counter <- fig_counter+1
 ```
 
-```{r, fig.height=6, fig.width=8, fig.cap=cap, eval=county_report}
-hosp_legend<-get_legend(plot_ihops+theme(legend.position="bottom"))
-plot_hosp<-plot_grid(NULL, NULL,
-                     plot_chops+theme(legend.position="none"), plot_chops_county+theme(legend.position = "none"),
-                     plot_ihops+theme(legend.position = "none"), NULL,
-                     nrow=3, ncol=2,
-                     rel_heights=c(0.06, 0.47, 0.47),
-                     labels=c(state_name, paste0(params$county, " County")))
-
-plot_grid(plot_hosp,
-          hosp_legend, 
-          nrow=2,
-          rel_heights = c(0.92, 0.08))
-
-cap=paste("**Fig.", fig_counter, "** Estimated occupied hospital beds and incident hospitalizations (assuming ", pdeath_label, " IFR) versus reported hospital admissions data from the Department of Health and Human Services and occupied hospital beds from the CDPH for  ", state_name," and ", params$county, " County. Black points represent actual data, lines represent mean and shading represents the 95% prediction interval for a given scenario. No hospitalization data is available before mid-July. ")
-
-fig_counter <- fig_counter+1
-```
-
 ## Technical Details   
 
-### County Level Calibration
+### County Summary
+
+`r paste0("**Tab. ", tab_counter, "** Summary estimates across counties for the ",format(projection_start,"%B %d"),"-", format(as.Date(max_date),"%B %d"), " time period with ",pdeath_label," assumptions.")`  
+```{r county_tab}
+
+make_scn_county_table_withVent(county_dat=res_state,
+                               start_date=projection_start,
+                               end_date=max_date,
+                               pdeath_filter=pdeath_default) %>%
+  flextable::align(align="right", j=1) %>%
+  flextable::width(j=1:2, width=0.5) %>%
+  flextable::width(j=3:4, width=1) %>%
+  flextable::width(j=5:13, width=1) %>%
+  flextable::width(j=14:15, width=1)%>%
+  flextable::merge_v(j=1, part="body") 
+
+tab_counter<-tab_counter+1
+
+```
+
+#### Intervention Impacts
+
+`r  paste0("**Tab. ", tab_counter, "**: Estimated effective reproduction number (mean and IQR) by county at baseline and across different reopening stages in the case optimized run with ", pdeath_label, " assumptions. The Rt estimates for ongoing interventions reflect the number of susceptible individuals on ", format(Sys.Date(), "%B %d"),". Estimates for past interventions reflect the proportion of susceptible individuals halfway through the intervention period. The effective Rt estimates are also visualized over time and intervention in the rightmost column, where the horizontal black line denotes an Rt of 1. Intervention periods are denoted by color which changes from red to yellow and blue over time.")`  
+
+```{r sparkline_r, fig.width=25}
+
+sparkline_r <- make_sparkline_tab_r(r_dat=inference_r_spark,
+                                    county_dat=res_state%>%filter(time<max_date),
+                                    susceptible=TRUE,
+                                    current_scenario=scn_levels[1], 
+                                    npi_levels=c("local_variance", npi_names),
+                                    npi_labels=c("Baseline", npi_labels), 
+                                    pi_lo=0.25,
+                                    pi_hi=0.75)
+
+sparkline_r
+
+tab_counter<-tab_counter+1
+
+```
+    
+    
+`r  paste0("**Tab. ", tab_counter, "**: Estimated effectiveness of intervention periods (mean and IQR) by county across different reopening stages in the case optimized run with ", pdeath_label, " assumptions. The estimates are visualized by intervention period in the rightmost column, where the horizontal line denotes 100% effectiveness. Intervention periods are denoted by color which changes from red to yellow and blue over time.")`  
+
+```{r r_eff, fig.width=25}
+
+sparkline_eff <- make_sparkline_tab_intervention_effect(r_dat=inference_r_spark%>%filter(npi_name!="local_variance"),
+                                                        current_scenario = scn_levels[1],
+                                                        npi_levels=npi_names,
+                                                        npi_labels=npi_labels, 
+                                                        pi_lo=0.25,
+                                                        pi_hi=0.75)
+
+
+sparkline_eff
+
+tab_counter<-tab_counter+1
+```
+##### Calibration
 
 ```{r county_truth, include=FALSE}
-obs_dat<-currhosp_dat %>%
-  dplyr::select(geoid, date, currhosp) %>%
-  right_join(truth_dat)
 
-calib<-plot_truth_by_county(truth_dat=obs_dat,
+calib<-plot_truth_by_county(truth_dat=truth_dat,
                             county_dat=res_state,
                             start_date=sim_start_date,
                             end_date=max_date,
                             filter_by="pdeath",
                             filter_val=pdeath_default,
-                            hosp=TRUE)
+                            hosp=FALSE)
 
 cases<-calib[[1]]+theme(legend.position="none",
                         strip.text.y = element_blank(), 
@@ -1517,23 +1229,18 @@ deaths<-calib[[2]]+theme(legend.position="none",
 
 deaths<-ggplot_gtable(ggplot_build(deaths))
 
-hosps<-calib[[3]]+theme(legend.position="none",
-                         axis.title.y = element_blank(),
-                        strip.text = element_text(size=10, face="bold"))
-
-hosps<-ggplot_gtable(ggplot_build(hosps))
 
 cases$widths<-deaths$widths
 hosps$widths<-deaths$widths
 
-plot_calib<-gridExtra::grid.arrange(grobs = list(cases, deaths, hosps), ncol=3, nrow=1)
+plot_calib<-gridExtra::grid.arrange(grobs = list(cases, deaths), ncol=2, nrow=1)
 legend<-get_legend(calib[[1]]+theme(legend.position="bottom"))
 ```
 
 ```{r county_plot, fig.height=80, fig.width=10, fig.cap=cap}
 cowplot::plot_grid(plot_calib, legend, nrow=2, rel_heights = c(1, 0.01))
 
-cap<- paste0("**Fig. ", fig_counter, "** Calibration of estimated incident cases and deaths to reported data from JHU CSSE, and validation of estimates for occupied hospital beds when compared to CDPH data. Here, modeled cases are calculated as a percent of modeled infection that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for each scenario at ",pdeath_label," and 0.5% assumptions. Note that JHU CSSE data were reported as daily cumulative cases and deaths. In this figure, daily cumulative case counts were differenced in order to report the incident cases and deaths. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")
+cap<- paste0("**Fig. ", fig_counter, "** Calibration of estimated incident cases and deaths to reported data from JHU CSSE. Here, modeled cases are calculated as a percent of modeled infection that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for each scenario at ",pdeath_label," assumptions. Note that JHU CSSE data were reported as daily cumulative cases and deaths. In this figure, daily cumulative case counts were differenced in order to report the incident cases and deaths. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")
 
 fig_counter<-fig_counter+1
      
