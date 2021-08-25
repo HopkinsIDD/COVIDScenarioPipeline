@@ -324,7 +324,6 @@ perturb_seeding <- function(seeding, date_sd, date_bounds, amount_sd = 1, contin
     seeding$date <- pmin(pmax(seeding$date + round(rnorm(nrow(seeding),0,date_sd)), date_bounds[1]), date_bounds[2])
   }
   if (amount_sd > 0) {
-    stop("Perturbing Amount")
     round_func <- ifelse(continuous, function(x){return(x)}, round)
     seeding$amount <- round_func(pmax(rnorm(nrow(seeding),seeding$amount, amount_sd),0))
   }
