@@ -76,7 +76,8 @@ seeding:
   seeding_file_type: seed
   folder_path: importation/minimal/
   lambda_file: data/minimal/seeding_territories.csv
-  perturbation_sd: 3
+  date_sd: 3
+  amount_sd: 1
 
 seir:
   parameters:

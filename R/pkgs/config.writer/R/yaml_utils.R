@@ -1229,19 +1229,10 @@ print_seeding <- function(method = "FolderDraw",
         "  method: ", method,"\n",
         "  seeding_file_type: ", seeding_file_type,"\n",
         "  folder_path: ", folder_path,"\n",
-        "  lambda_file: ", lambda_file,"\n"
-        )
-    
-    if(compartment){
-        seeding <- paste0(seeding, 
-                          "  date_sd: ", perturbation_sd, "\n",
-                          "  amount_sd: ", amount_sd, "\n",
-                          "\n")
-    } else {
-        seeding <- paste0(seeding, 
-                          "  perturbation_sd: ", perturbation_sd, "\n",
-                          "\n")
-    }
+        "  lambda_file: ", lambda_file,"\n",
+        "  date_sd: ", perturbation_sd, "\n",
+        "  amount_sd: ", amount_sd, "\n",
+        "\n")
     
     cat(seeding)
     
