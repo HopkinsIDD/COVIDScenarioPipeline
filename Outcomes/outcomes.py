@@ -20,7 +20,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, nsim = 1, n_jobs=1, stoch_traj_flag = True):
+def run_delayframe_outcomes(config, in_sim_id, in_run_id, in_prefix,out_sim_id, out_run_id, out_prefix, scenario_outcomes, nsim = 1, n_jobs=1, stoch_traj_flag = True):
     start = time.monotonic()
     in_sim_ids = np.arange(in_sim_id, in_sim_id + nsim)
     out_sim_ids = np.arange(out_sim_id, out_sim_id + nsim)
@@ -30,16 +30,17 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id,
     loaded_values = None
     if (n_jobs == 1) or (nsim == 1):  # run single process for debugging/profiling purposes
         for sim_offset in np.arange(nsim):
-            onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_ids[sim_offset], out_run_id, out_prefix, out_sim_ids[sim_offset], parameters, loaded_values, stoch_traj_flag, npi_config)
+            onerun_delayframe_outcomes(in_sim_ids[sim_offset], in_run_id, in_prefix, out_sim_ids[sim_offset],
+                                       out_run_id, out_prefix, parameters, loaded_values, stoch_traj_flag, npi_config)
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
+            in_sim_ids,
             itertools.repeat(in_run_id),
             itertools.repeat(in_prefix),
-            in_sim_ids,
+            out_sim_ids,
             itertools.repeat(out_run_id),
             itertools.repeat(out_prefix),
-            out_sim_ids,
             itertools.repeat(parameters),
             itertools.repeat(loaded_values),
             itertools.repeat(stoch_traj_flag),
@@ -53,7 +54,7 @@ def run_delayframe_outcomes(config, in_run_id, in_prefix, in_sim_id, out_run_id,
     return 1
 
 
-def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, scenario_outcomes, stoch_traj_flag = True):
+def onerun_delayframe_outcomes_load_hpar(config, in_sim_id, in_run_id, in_prefix, out_sim_id, out_run_id, out_prefix,  scenario_outcomes, stoch_traj_flag = True):
     
     parameters, npi_config = read_parameters_from_config(config, in_run_id, in_prefix, [in_sim_id], scenario_outcomes)
 
@@ -82,8 +83,8 @@ def onerun_delayframe_outcomes_load_hpar(config, in_run_id, in_prefix, in_sim_id
     else:
         npi = None
 
-
-    onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values, stoch_traj_flag, npi)
+    onerun_delayframe_outcomes(in_sim_id, in_run_id, in_prefix, out_sim_id, out_run_id, out_prefix, parameters,
+                               loaded_values, stoch_traj_flag, npi)
     return 1
 
 
@@ -184,7 +185,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
     return parameters, npi_config
 
 
-def onerun_delayframe_outcomes(in_run_id, in_prefix, in_sim_id, out_run_id, out_prefix, out_sim_id, parameters, loaded_values=None, stoch_traj_flag = True, npi_config = None):
+def onerun_delayframe_outcomes(in_sim_id, in_run_id, in_prefix,  out_sim_id, out_run_id, out_prefix,  parameters, loaded_values=None, stoch_traj_flag = True, npi_config = None):
     # Read files
     diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
 

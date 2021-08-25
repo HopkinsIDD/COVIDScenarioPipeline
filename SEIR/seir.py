@@ -14,14 +14,18 @@ import pyarrow as pa
 import logging
 logger = logging.getLogger(__name__)
 
+# The compiled module may be known as steps or SEIR.steps depending on virtual_env vs conda
 try:
-    # ignore DeprecationWarning inside numba
-    with warnings.catch_warnings() as w:
+    with warnings.catch_warnings() as w: # ignore DeprecationWarning inside numba
         warnings.simplefilter("ignore")
-
         from steps import steps_SEIR_nb
 except ModuleNotFoundError as e:
-    raise RuntimeError("Missing compiled module, please run `python setup.py install`") from e
+    try:
+        with warnings.catch_warnings() as w:  # ignore DeprecationWarning inside numba
+            warnings.simplefilter("ignore")
+            from SEIR.steps import steps_SEIR_nb
+    except ModuleNotFoundError as e:
+        raise RuntimeError("Missing compiled module, please run `python setup.py install`") from e
 
 ncomp = 7
 S, E, I1, I2, I3, R, cumI = np.arange(ncomp)

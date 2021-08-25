@@ -52,12 +52,6 @@ test_that("Simulation loading works", {
     # )
     # )
     
-    expect_equal({
-        ncol(load_spar_sims_filtered(
-            outcome_dir = 'a_b'
-        ))
-    }, 9
-    )
     
     expect_error({
         load_spar_sims_filtered(

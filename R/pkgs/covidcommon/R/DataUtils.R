@@ -37,7 +37,7 @@ download_USAFacts_data <- function(filename, url, value_col_name, incl_unassigne
   col_names <- names(usafacts_data)
   date_cols <- col_names[grepl("^\\d+[-/]\\d+[-/]\\d+$", col_names)]
   date_func <- ifelse(any(grepl("^\\d\\d\\d\\d",col_names)),lubridate::ymd, lubridate::mdy)
-  usafacts_data <- tidyr::pivot_longer(usafacts_data, date_cols, names_to="Update", values_to=value_col_name)
+  usafacts_data <- tidyr::pivot_longer(usafacts_data, tidyselect::all_of(date_cols), names_to="Update", values_to=value_col_name)
   usafacts_data <- dplyr::mutate(usafacts_data, Update=date_func(Update), FIPS=sprintf("%05d", FIPS))
 
   validation_date <- Sys.getenv("VALIDATION_DATE")
@@ -329,12 +329,12 @@ download_CSSE_US_data <- function(filename, url, value_col_name, incl_unassigned
                   !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
                   !is.na(FIPS))
   } else{
-    csse_data2 <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
-                    !grepl("unassigned", Admin2, ignore.case = TRUE) & ## probable cases
-                    !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
+    csse_data2 <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE),  ## out of state records
+                    !grepl("unassigned", Admin2, ignore.case = TRUE),  ## probable cases
+                    !grepl("princess", Province_State, ignore.case = TRUE),  ## cruise ship cases
                     !is.na(FIPS))
     ## include unassigned PR cases & deaths because they are being aggregated to territory level in get_CSSE_US_data
-    pr_unassigned <- dplyr::filter(csse_data, grepl("unassigned", Admin2, ignore.case = TRUE) &
+    pr_unassigned <- dplyr::filter(csse_data, grepl("unassigned", Admin2, ignore.case = TRUE),
                         Province_State == "Puerto Rico")
     csse_data <- dplyr::bind_rows(csse_data2, pr_unassigned)
   }
@@ -344,7 +344,6 @@ download_CSSE_US_data <- function(filename, url, value_col_name, incl_unassigned
                   FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
                   FIPS = ifelse(stringr::str_length(FIPS)<=2, paste0(FIPS, "000"), stringr::str_pad(FIPS, 5, pad = "0", side = "left")),
                   FIPS = ifelse(stringr::str_sub(FIPS, 1, 3)=="900", paste0(stringr::str_sub(FIPS, 4, 5), "000"), FIPS) ## clean FIPS codes for unassigned data
-
                   ) %>%
     dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>%
     dplyr::distinct()

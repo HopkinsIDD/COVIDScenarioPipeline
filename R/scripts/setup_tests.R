@@ -437,7 +437,7 @@ for (test in tests) {
   
   py$onerun_SEIR(0, py$s)
   py$onerun_SEIR_loadID(0, py$s, 0)
-  py$onerun_HOSP(0)
+  py$onerun_OUTCOMES(0)
   
   for (i in 1:opt$n_slots) {
     slot_prefix <- covidcommon::create_prefix(config$name, test$scenario, "med",test$runid,sep='/',trailing_separator='/')

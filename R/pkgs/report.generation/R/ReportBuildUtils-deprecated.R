@@ -718,3 +718,108 @@ make_excess_heatmap <- function(hosp_dat,
   
   return(rc)
 }
+
+##'
+##' Plot map showing chosen variable per 10K on a specific date for one scenario (blue/green color scale)
+##'
+##' @param cum_inf_geounit_dates dataframe produced by load_cum_inf_geounit_dates, with cumulative totals/averages on a given date
+##' @param plot_var name of the variable of which to plot intensity
+##' @param geodata as loaded by skeleton
+##' @param shp shapefile with geounits
+##' @param scenariolabel scenario label character string
+##' @param popnodes name of pop variable in geodata
+##' @param display_date string of display date for map
+##' @param viridis_palette character string of viridis palette
+##'
+##' @return map by geounit, filled by variable per 10K at a specific date for a single scenario
+##'
+##' @export
+##'
+plot_geounit_map <- function(cum_inf_geounit_dates, 
+                             plot_var,
+                             geodata, 
+                             shp, 
+                             legend_name = "Value per 10K",
+                             scenariolabel = config$report$formatting$scenario_labels[1], 
+                             popnodes = config$spatial_setup$popnodes, 
+                             display_date,
+                             clims = NULL){
+  
+  display_date <- as.Date(display_date)
+  
+  shp$geoid <- as.character(shp$geoid)
+  to_plt <- cum_inf_geounit_dates %>% 
+    dplyr::filter(scenario_name == scenariolabel, 
+                  time == display_date) %>% 
+    left_join(geodata) %>% 
+    dplyr::rename(pop = !!popnodes, plot_var = !!plot_var) %>% group_by(geoid) %>% 
+    dplyr::summarise(geoid_rate = mean(plot_var/pop) * 10000) %>% 
+    ungroup
+  
+  plot_shp <- left_join(shp, to_plt, by = "geoid")
+  
+  if(is.null(clims)){
+    clims = range(plot_shp$geoid_rate, na.rm=TRUE)
+  }
+  
+  rc <- ggplot(plot_shp) + 
+    geom_sf(aes(fill = geoid_rate)) + 
+    theme_minimal() + 
+    scale_fill_gradientn(name=legend_name, colors = RColorBrewer::brewer.pal(9, "YlGnBu"), limits=clims) + 
+    ggtitle(paste0(scenariolabel, ": ", print_pretty_date_short(display_date))) + 
+    theme(axis.title.x = element_blank(), axis.text.x = element_blank(), 
+          axis.ticks.x = element_blank(), axis.title.y = element_blank(), 
+          axis.text.y = element_blank(), panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(), panel.border = element_blank(), 
+          axis.ticks.y = element_blank())
+  return(rc)
+}   
+
+# #### This function isn't working quite right
+# ##'
+# ##' Plot modeling assumption parameter distributions
+# ##'
+# ##' @param name parameter name
+# ##' @param config config file
+# ##' @return plot of distribution of peak timing across simulations by county
+# ##'
+# ##' @export
+# ##'
+# plot_model_parameter_distributions <- function(name, config){
+#   dist_plot_config <- config$report$plot_settings$parameters_to_display
+#   local_config <- dist_plot_config[[name]]
+#   value <- config[[local_config$type]][['parameters']][[name]]
+#   if((length(value) > 1) & ("distribution" %in% names(value))){
+#     if(value$distribution == 'uniform' ){
+#       value <- runif(1e5,covidcommon::as_evaled_expression(value$low) , covidcommon::as_evaled_expression(value$high))
+#     }
+#   } else {
+#     value <- covidcommon::as_evaled_expression(value)
+#   }
+#   if('transform' %in% names(dist_plot_config[[name]]) ){
+#     if(dist_plot_config[[name]][['transform']] == 'invert'){
+#       value = 1 / value
+#     }
+#   }
+#   rval <- NaN
+#   if(local_config$distribution == "lnormal"){
+#     rval <- (rlnorm(1e5,meanlog= value[1], sdlog = value[2]))
+#   }
+#   if(local_config$distribution == "exp"){
+#     rval <- rexp(1e5,rate=value)
+#   }
+#   if(local_config$distribution == "gamma"){
+#     all_compartments <<- unique(report.generation::load_scenario_sims_filtered('mid-west-coast-AZ-NV_CaliforniaMild/',pre_process=function(x){return(x[x$time==x$time[1], ])})$comp)
+#     number_compartments <<- sum(grepl("I[[:digit:]]+",all_compartments))
+#     if(length(value)==1){
+#       value[2] <- 1/value[1]
+#     }
+#     rval <- rgamma(1e5,shape=value/number_compartments,scale=number_compartments)
+#   }
+#   if('xlim' %in% names(local_config)){
+#     plt <- plot(density(rval),main = local_config$formal_name, xlab = local_config$xlab, bty='n', xlim=as.numeric(local_config$xlim))
+#   } else {
+#     plt <- plot(density(rval),main = local_config$formal_name, xlab = local_config$xlab, bty='n')
+#   }
+#   return(plt)
+# }

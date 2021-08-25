@@ -202,7 +202,7 @@ class TestInterventionsReduce:
         relevant_dates = pd.date_range(npi_config["period_start_date"].get(), npi_config["period_end_date"].get())
         relevant_baseline = reduction_baseline.loc[:,relevant_dates]
         relevant_reduced = reduction_reduced.loc[:,relevant_dates]
-        assert(((1 - (1 - relevant_baseline) * 0) == relevant_reduced).all().all())
+        assert(((relevant_baseline * 0) == relevant_reduced).all().all())
 
     def test_ReduceIntervention_partial_value(self):
         config.set_file(f"{DATA_DIR}/test_ReduceIntervention_trivial.yml")
@@ -217,6 +217,6 @@ class TestInterventionsReduce:
         relevant_dates = pd.date_range(npi_config["period_start_date"].get(), npi_config["period_end_date"].get())
         relevant_baseline = reduction_baseline.loc[:,relevant_dates]
         relevant_reduced = reduction_reduced.loc[:,relevant_dates]
-        assert(((1 - (1 - relevant_baseline) * 0.9) == relevant_reduced).all().all())
+        assert(((relevant_baseline * (1 - .1)) == relevant_reduced).all().all())
 
 # TODO Stacked Tests
