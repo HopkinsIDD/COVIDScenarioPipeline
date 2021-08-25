@@ -1183,7 +1183,8 @@ print_header <- function(sim_name,
 #' @param seeding_file_type indicates which seeding file type the SEIR model will look for, "seed", which is generated from inference::create_seeding.R, or "impa", which refers to importation
 #' @param folder_path path to folder where importation inference files will be saved
 #' @param lambda_file path to seeding file
-#' @param perturbation_sd standard deviation for the proposal value of the seeding date, in number of days
+#' @param perturbation_sd standard deviation for the proposal value of the seeding date, in number of days (date_sd )
+#' @param amount_sd 
 #' @param variant_filename path to file with variant proportions per day per variant. Variant names: 'wild', 'alpha', 'delta'
 #' @param compartment whether to print config with compartments
 #' @param variant_compartments vector of variant compartment names
@@ -1201,6 +1202,7 @@ print_seeding <- function(method = "FolderDraw",
                          folder_path = "importation/minimal/",
                          lambda_file = "data/minimal/seeding.csv",
                          perturbation_sd = 1,
+                         amount_sd = 1, 
                          variant_filename = "data/variant/variant_props_long.csv",
                          compartment = TRUE,
                          variant_compartments = c("wild", "alpha", "delta")
@@ -1222,15 +1224,27 @@ print_seeding <- function(method = "FolderDraw",
         }
     }
 
-    cat(paste0(
+    seeding <- paste0(
         seeding_comp,
         "  method: ", method,"\n",
         "  seeding_file_type: ", seeding_file_type,"\n",
         "  folder_path: ", folder_path,"\n",
-        "  lambda_file: ", lambda_file,"\n",
-        "  perturbation_sd: ", perturbation_sd, "\n",
-        "\n"
-    ))
+        "  lambda_file: ", lambda_file,"\n"
+        )
+    
+    if(compartment){
+        seeding <- paste0(seeding, 
+                          "  date_sd: ", perturbation_sd, "\n",
+                          "  amount_sd: ", amount_sd, "\n",
+                          "\n")
+    } else {
+        seeding <- paste0(seeding, 
+                          "  perturbation_sd: ", perturbation_sd, "\n",
+                          "\n")
+    }
+    
+    cat(seeding)
+    
 }
 
 #' Print filtering and filtering::statistics
