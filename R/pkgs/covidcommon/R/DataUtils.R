@@ -707,7 +707,51 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 ##'
 ##' @export
 ##'
-get_groundtruth_from_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE){
+get_groundtruth_from_source <- function(source = c("csse", "csse", "csse", "csse"), scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE, adjust_for_variant = FALSE, variant_props_file = "data/variant/variant_props_long.csv", misc_data_filename = NULL) {
+  df <- data.frame(
+    data_source = source,
+    variables = variables
+  )
+
+  df %>%
+    dplyr::group_by(data_source) %>%
+    dplyr::group_modify(function(.x,.y){
+      return(get_groundtruth_from_single_source(
+        source = .y$data_source,
+        scale = scale,
+        variables = .x$variables,
+        incl_unass = incl_unass,
+        adjust_for_variant = adjust_for_variant,
+        variant_props_file = variant_props_file,
+        misc_data_filename = misc_data_filename
+      ))
+    }) %>%
+    return()
+}
+
+##'
+##' Wrapper function to pull data from different sources
+##'
+##' Pulls a groundtruth dataset with the variables specified
+##'
+##' @param source name of data source: reichlab, usafacts, csse
+##' @param scale geographic scale: US county, US state, country (csse only), complete (csse only)
+##' @param variables vector that may include one or more of the following variable names: Confirmed, Deaths, incidI, incidDeath, (hhsCMU source only: incidH_confirmed, incidH_all, hospCurr_confirmed, hospCurr_all)
+##' @return data frame
+##'
+##' @importFrom magrittr %>%
+##'
+##' @export
+##'
+get_groundtruth_from_single_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE, adjust_for_variant = FALSE, variant_props_file = "data/variant/variant_props_long.csv", misc_data_filename = NULL) {
+
+  if(length(source) > 1) {
+    stop(paste(
+        "get_groundtruth_from_single_source only allows a single source, but",
+        paste(source, collapse = ", "),
+        "was provided"
+      ))
+  }
 
   if(source == "reichlab" & scale == "US county"){
 
@@ -776,6 +820,9 @@ get_groundtruth_from_source <- function(source = "csse", scale = "US county", va
     rc <- dplyr::select(rc, Update, FIPS, source, !!variables)
     rc <- tidyr::drop_na(rc, tidyselect::everything())
 
+  } else if ((source == "from_file") && (scale == "from_file")) {
+    # rc <- get_from_file_US_county_hosp_data(misc_data_filename)
+    stop("This code is not yet written")
   } else{
     warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning NULL object.")))
     rc <- NULL
