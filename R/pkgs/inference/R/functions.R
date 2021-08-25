@@ -320,7 +320,6 @@ compute_totals <- function(sim_hosp) {
 perturb_seeding <- function(seeding, date_sd, date_bounds, amount_sd = 1, continuous = FALSE) {
 
   if (date_sd > 0) {
-    stop("Perturbing Date")
     seeding$date <- pmin(pmax(seeding$date + round(rnorm(nrow(seeding),0,date_sd)), date_bounds[1]), date_bounds[2])
   }
   if (amount_sd > 0) {
