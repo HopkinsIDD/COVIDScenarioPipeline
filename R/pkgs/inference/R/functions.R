@@ -318,15 +318,16 @@ compute_totals <- function(sim_hosp) {
 ##'
 ##' @export
 perturb_seeding <- function(seeding, date_sd, date_bounds, amount_sd = 1, continuous = FALSE) {
-  round_func <- ifelse(continuous, function(x){return(x)}, round)
-  seeding <- seeding %>%
-    dplyr::group_by(place) %>%
-    dplyr::mutate(date = date + round(rnorm(1,0,date_sd))) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(
-      amount = round_func(pmax(rnorm(length(amount),amount, amount_sd),0)),
-      date = pmin(pmax(date,date_bounds[1]),date_bounds[2])
-    )
+
+  if (date_sd > 0) {
+    stop("Perturbing Date")
+    seeding$date <- pmin(pmax(seeding$date + round(rnorm(nrow(seeding),0,date_sd)), date_bounds[1]), date_bounds[2])
+  }
+  if (amount_sd > 0) {
+    stop("Perturbing Amount")
+    round_func <- ifelse(continuous, function(x){return(x)}, round)
+    seeding$amount <- round_func(pmax(rnorm(nrow(seeding),seeding$amount, amount_sd),0))
+  }
 
   return(seeding)
 
