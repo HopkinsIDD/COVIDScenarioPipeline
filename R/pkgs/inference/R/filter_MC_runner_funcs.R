@@ -64,12 +64,13 @@ aggregate_and_calc_loc_likelihoods <- function(
     this_location_log_likelihood <- 0
     for (var in names(ground_truth_data[[location]])) {
 
+      observed_indices <- !is.na(ground_truth_data[[location]][[var]]$data_var)
 
       this_location_log_likelihood <- this_location_log_likelihood +
         ## Actually compute likelihood for this location and statistic here:
         sum(inference::logLikStat(
-          obs = ground_truth_data[[location]][[var]]$data_var,
-          sim = this_location_modeled_outcome[[var]]$sim_var,
+          obs = ground_truth_data[[location]][[var]]$data_var[observed_indices],
+          sim = this_location_modeled_outcome[[var]]$sim_var[observed_indices],
           dist = config$filtering$statistics[[var]]$likelihood$dist,
           param = config$filtering$statistics[[var]]$likelihood$param,
           add_one = config$filtering$statistics[[var]]$add_one

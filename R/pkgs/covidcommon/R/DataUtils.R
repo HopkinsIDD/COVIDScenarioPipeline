@@ -822,6 +822,7 @@ get_groundtruth_from_single_source <- function(source = "csse", scale = "US coun
 
   } else if ((source == "from_file") && (scale == "from_file")) {
     # rc <- get_from_file_US_county_hosp_data(misc_data_filename)
+    rc <- get_LA_health_dpt_country_hosp_data(misc_data_filename)
     stop("This code is not yet written")
   } else{
     warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning NULL object.")))
@@ -832,6 +833,9 @@ get_groundtruth_from_single_source <- function(source = "csse", scale = "US coun
 
 }
 
+get_LA_health_dpt_country_hosp_data <- function(data_filename) {
+  stop("This function is a stub.")
+}
 ##'
 ##' Pull CSSE US data in format similar to that of global data
 ##'

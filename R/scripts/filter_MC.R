@@ -160,24 +160,24 @@ if (is.null(gt_source)) {
 gt_scale <- ifelse(state_level, "US state", "US county")
 fips_codes_ <- geodata[[obs_nodename]]
 
-gt_start_date <- lubridate::ymd(config$start_date)
-if (opt$ground_truth_start != "") {
-  gt_start_date <- lubridate::ymd(opt$ground_truth_start)
-} else if (!is.null(config$start_date_groundtruth)) {
-  gt_start_date <- lubridate::ymd(config$start_date_groundtruth)
+gt_start_date <- unlist(sapply(config$filtering$statistics, function(x){x$start_date}))
+if(is.null(gt_start_date)) {
+  gt_start_date <- rep(times = length(gt_vars), lubridate::ymd(config$start_date))
 }
-if (gt_start_date < lubridate::ymd(config$start_date)) {
-  gt_start_date <- lubridate::ymd(config$start_date)
+if (opt$ground_truth_start != "") {
+  gt_start_date <- pmax(gt_start_date, lubridate::ymd(opt$ground_truth_start))
+} else if (!is.null(config$start_date_groundtruth)) {
+  gt_start_date <- pmax(gt_start_date, lubridate::ymd(config$start_date_groundtruth))
 }
 
-gt_end_date <- lubridate::ymd(config$end_date)
-if (opt$ground_truth_end != "") {
-  gt_end_date <- lubridate::ymd(opt$ground_truth_end)
-} else if (!is.null(config$end_date_groundtruth)) {
-  gt_end_date <- lubridate::ymd(config$end_date_groundtruth)
+gt_end_date <- unlist(sapply(config$filtering$statistics, function(x){x$end_date}))
+if(is.null(gt_end_date)) {
+  gt_end_date <- rep(times = length(gt_vars), lubridate::ymd(config$end_date))
 }
-if (gt_end_date > lubridate::ymd(config$end_date)) {
-  gt_end_date <- lubridate::ymd(config$end_date)
+if (opt$ground_truth_end != "") {
+  gt_end_date <- pmin(gt_end_date, lubridate::ymd(opt$ground_truth_end))
+} else if (!is.null(config$end_date_groundtruth)) {
+  gt_end_date <- pmin(gt_end_date, lubridate::ymd(config$end_date_groundtruth))
 }
 
 

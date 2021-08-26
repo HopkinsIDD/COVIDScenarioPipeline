@@ -106,34 +106,37 @@ get_ground_truth <- function(
     date_column_name = date_column_name
   )
 
-
   rc <- suppressMessages(readr::read_csv(data_path,col_types = list(FIPS = readr::col_character())))
-
 
   if(is.null(start_date)) {
     start_date <- min(rc$date)
   }
+
   if(is.null(end_date)) {
     end_date <- max(rc$date)
   }
+
   if (is.null(fips_codes)) {
     fips_codes <- unique(rc$fips_codes)
   }
 
-  rc <- dplyr::filter(
-    rc,
-    !!rlang::sym(fips_column_name) %in% fips_codes,
-    !!rlang::sym(date_column_name) >= start_date,
-    !!rlang::sym(date_column_name) <= end_date
-  )
-  rc <- dplyr::right_join(
-    rc,
-    tidyr::expand_grid(
-      FIPS = unique(rc$FIPS),
-      date = unique(rc$date)
+  rc <- rc %>%
+    tidyr::pivot_longer(new_vars) %>%
+    dplyr::mutate(
+      start_date = lubridate::ymd(start_date[match(name,new_vars)]),
+      end_date = lubridate::ymd(end_date[match(name,new_vars)])
+    ) %>%
+    dplyr::filter(
+      start_date <= !!rlang::sym(date_column_name),
+      !!rlang::sym(date_column_name) <= end_date,
+      !!rlang::sym(fips_column_name) %in% fips_codes
+    ) %>%
+    tidyr::pivot_wider(names_from = name, values_from = value) %>%
+    dplyr::right_join(
+      tidyr::expand_grid(
+        geoid = fips_codes,
+      )
     )
-  )
-  rc <- dplyr::mutate_if(rc,is.numeric,dplyr::coalesce,0)
-  names(rc)[names(rc) == "FIPS"] <- fips_column_name
+
   return(rc)
 }
