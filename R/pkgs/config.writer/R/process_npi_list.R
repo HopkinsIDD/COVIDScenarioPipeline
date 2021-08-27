@@ -503,8 +503,9 @@ generate_multiple_variants_state <- function(variant_path_1,
                          #, sd_variant = sum(sd_variant)
                          ) %>% # THIS IS NOT THE RIGHT SD BUT DOESN'T MATTER B/C WE DON'T USE IT
         dplyr::ungroup() %>%
-        dplyr::mutate(final_week = dplyr::if_else(start_date >= lubridate::floor_date(projection_start_date-14, "week") & start_date < projection_start_date,
-                                                  1, NA_real_)) %>%
+        dplyr::mutate(final_week = dplyr::case_when(start_date >= lubridate::floor_date(projection_start_date-14, "week") & start_date < projection_start_date ~ 1,
+                                                    start_date >= projection_start_date ~ 0,
+                                                    TRUE ~ NA_real_)) %>%
         dplyr::group_by(location, final_week) %>%
         dplyr::mutate(final_week = cumsum(final_week)) %>%
         dplyr::group_by(R_ratio, location, final_week) %>%
