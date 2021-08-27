@@ -820,10 +820,9 @@ get_groundtruth_from_single_source <- function(source = "csse", scale = "US coun
     rc <- dplyr::select(rc, Update, FIPS, source, !!variables)
     rc <- tidyr::drop_na(rc, tidyselect::everything())
 
-  } else if ((source == "from_file") && (scale == "from_file")) {
+  } else if ((source == "LA health dpt") && (scale == "US county")) {
     # rc <- get_from_file_US_county_hosp_data(misc_data_filename)
     rc <- get_LA_health_dpt_country_hosp_data(misc_data_filename)
-    stop("This code is not yet written")
   } else{
     warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning NULL object.")))
     rc <- NULL
@@ -833,9 +832,16 @@ get_groundtruth_from_single_source <- function(source = "csse", scale = "US coun
 
 }
 
-get_LA_health_dpt_country_hosp_data <- function(data_filename) {
-  stop("This function is a stub.")
+get_LA_health_dpt_county_hosp_data <- function(hosp_file_name = "data/LACDPH/hospitalizations/20210813.xlsx"){
+  dat <- read_xlsx(hosp_file_name) %>%
+    rename(incidH = incidH_covid) %>%
+    mutate(incidH = na_if(incidH, "n/a")) %>%
+    mutate(date = as.Date(date), incidH = as.numeric(incidH)) %>%
+    dplyr::select(date, incidH)
+
+  return(dat)
 }
+
 ##'
 ##' Pull CSSE US data in format similar to that of global data
 ##'
