@@ -107,7 +107,7 @@ class Stacked(NPIBase):
                     self.reduction_params.clear()
 
         for param in self.param_name:
-            if not re.match("^transition_rate \d+$",param):
+            if not re.match("^transition_rate [1234567890]+$",param):
                 self.reductions[param] = 1 - self.reductions[param]
 
         self.__checkErrors()
