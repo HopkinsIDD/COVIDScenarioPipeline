@@ -141,7 +141,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                 parameters[class_name]['probability'] = config_outcomes[new_comp]['probability']['value']
                 if config_outcomes[new_comp]['probability']['intervention_param_name'].exists():
                     parameters[class_name]['probability::npi_param_name'] = config_outcomes[new_comp]['probability'][
-                        'intervention_param_name'].lower()
+                        'intervention_param_name'].as_str().lower()
                     print(f"probability of outcome {new_comp} is affected by intervention "
                           f"named {parameters[class_name]['probability::npi_param_name']} "
                           f"instead of {new_comp}::probability")
@@ -151,7 +151,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                 parameters[class_name]['delay'] = config_outcomes[new_comp]['delay']['value']
                 if config_outcomes[new_comp]['delay']['intervention_param_name'].exists():
                     parameters[class_name]['delay::npi_param_name'] = config_outcomes[new_comp]['delay'][
-                        'intervention_param_name'].lower()
+                        'intervention_param_name'].as_str().lower()
                     print(f"delay of outcome {new_comp} is affected by intervention "
                           f"named {parameters[class_name]['delay::npi_param_name']} "
                           f"instead of {new_comp}::delay")
@@ -162,7 +162,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                     parameters[class_name]['duration'] = config_outcomes[new_comp]['duration']['value']
                     if config_outcomes[new_comp]['duration']['intervention_param_name'].exists():
                         parameters[class_name]['duration::npi_param_name'] = \
-                            config_outcomes[new_comp]['duration']['intervention_param_name'].lower()
+                            config_outcomes[new_comp]['duration']['intervention_param_name'].as_str().lower()
                         print(f"duration of outcome {new_comp} is affected by intervention "
                               f"named {parameters[class_name]['duration::npi_param_name']} "
                               f"instead of {new_comp}::duration")

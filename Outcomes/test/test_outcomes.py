@@ -433,6 +433,127 @@ def test_outcomes_read_write_hnpi2():
     hosp_wrote = pq.read_table('model_output/hosp/000000001.107.hosp.parquet').to_pandas()
     assert((hosp_read == hosp_wrote).all().all())
 
+
+def test_outcomes_npi_custom_pname():
+    config.clear()
+    config.read(user=False)
+    config.set_file('config_npi_custom_pnames.yml')
+    run_id = 1
+    index = 1
+    deathrate = 'high_death_rate'
+    prefix = ''
+    stoch_traj_flag = False
+    outcomes.run_delayframe_outcomes(config, int(index), run_id, prefix, int(index), 105, prefix, deathrate, nsim=1,
+                                     n_jobs=1, stoch_traj_flag=stoch_traj_flag)
+
+    hosp = pq.read_table('model_output/hosp/000000001.105.hosp.parquet').to_pandas()
+    hosp.set_index('time', drop=True, inplace = True)
+    # same as config.yaml (doubled, then NPI halve it)
+    for i, place  in enumerate(geoid):
+        for dt in hosp.index:
+            if dt == date_data:
+                assert(hosp[hosp['geoid']==place]['incidI'][dt] == diffI[i])
+                assert(hosp[hosp['geoid']==place]['incidH'][dt+datetime.timedelta(7)] == diffI[i]*.1)
+                assert(hosp[hosp['geoid']==place]['incidD'][dt+datetime.timedelta(2) ] == diffI[i]*.01)
+                assert(hosp[hosp['geoid']==place]['incidICU'][dt+datetime.timedelta(7)] == diffI[i]*.1*.4)
+                for j in range(7):
+                    assert(hosp[hosp['geoid']==place]['hosp_curr'][dt+datetime.timedelta(7+j)] == diffI[i]*.1)
+                assert(hosp[hosp['geoid']==place]['hosp_curr'][dt+datetime.timedelta(7+8)] == 0)
+
+            elif dt < date_data:
+                assert(hosp[hosp['geoid']==place]['incidH'][dt+datetime.timedelta(7)] == 0)
+                assert(hosp[hosp['geoid']==place]['incidI'][dt] == 0)
+                assert(hosp[hosp['geoid']==place]['incidD'][dt+datetime.timedelta(2)] == 0)
+                assert(hosp[hosp['geoid']==place]['incidICU'][dt+datetime.timedelta(7)] == 0)
+                assert(hosp[hosp['geoid']==place]['hosp_curr'][dt+datetime.timedelta(7)] == 0)
+            elif dt > (date_data + datetime.timedelta(7)):
+                assert(hosp[hosp['geoid']==place]['incidH'][dt] == 0)
+                assert(hosp[hosp['geoid']==place]['incidI'][dt-datetime.timedelta(7)] == 0)
+                assert(hosp[hosp['geoid']==place]['incidD'][dt-datetime.timedelta(4)] == 0)
+                assert(hosp[hosp['geoid']==place]['incidICU'][dt] == 0)
+    hpar = pq.read_table('model_output/hpar/000000001.105.hpar.parquet').to_pandas()
+    # Doubled everything from previous config.yaml
+    for i, place  in enumerate(geoid):
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'probability')]['value']) == 0.1*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'delay')]['value']) == 7*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidH') & (hpar['quantity'] == 'duration')]['value']) == 7*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidD') & (hpar['quantity'] == 'probability')]['value']) == 0.01*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidD') & (hpar['quantity'] == 'delay')]['value']) == 2*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidICU') & (hpar['quantity'] == 'probability')]['value']) == 0.4*2)
+        assert(float(hpar[(hpar['geoid']== place) & (hpar['outcome']== 'incidICU') & (hpar['quantity'] == 'delay')]['value']) == 0*2)
+
+def test_outcomes_read_write_hnpi_custom_pname():
+    config.clear()
+    config.read(user=False)
+    config.set_file('config_npi_custom_pnames.yml')
+
+    run_id = 1
+    index = 1
+    deathrate = 'high_death_rate'
+    prefix = ''
+    stoch_traj_flag = False
+    outcomes.onerun_delayframe_outcomes_load_hpar(config, int(index), 105, prefix, int(index), 106, prefix, deathrate,
+                                                  stoch_traj_flag)
+
+    hpar_read = pq.read_table('model_output/hpar/000000001.105.hpar.parquet').to_pandas()
+    hpar_wrote = pq.read_table('model_output/hpar/000000001.106.hpar.parquet').to_pandas()
+    assert((hpar_read == hpar_wrote).all().all())
+    hnpi_read = pq.read_table('model_output/hnpi/000000001.105.hnpi.parquet').to_pandas()
+    hnpi_wrote = pq.read_table('model_output/hnpi/000000001.106.hnpi.parquet').to_pandas()
+    assert((hnpi_read == hnpi_wrote).all().all())
+    hosp_read = pq.read_table('model_output/hosp/000000001.105.hosp.parquet').to_pandas()
+    hosp_wrote = pq.read_table('model_output/hosp/000000001.106.hosp.parquet').to_pandas()
+    assert((hosp_read == hosp_wrote).all().all())
+
+def test_outcomes_read_write_hnpi2_custom_pname():
+    config.clear()
+    config.read(user=False)
+    config.set_file('config_npi_custom_pnames.yml')
+
+    run_id = 1
+    index = 1
+    deathrate = 'high_death_rate'
+    prefix = ''
+    stoch_traj_flag = False
+
+
+
+    hnpi_read = pq.read_table('model_output/hnpi/000000001.105.hnpi.parquet').to_pandas()
+    hnpi_read['reduction'] = np.random.random(len(hnpi_read))*2-1
+    out_hnpi = pa.Table.from_pandas(hnpi_read, preserve_index=False)
+    pa.parquet.write_table(out_hnpi,
+                           file_paths.create_file_name(
+                               105,
+                               prefix,
+                               1,
+                               'hnpi',
+                               'parquet'
+                               )
+                           )
+    import random
+    random.seed(10)
+    outcomes.onerun_delayframe_outcomes_load_hpar(config, int(index), 105, prefix, int(index), 106, prefix, deathrate,
+                                                  stoch_traj_flag)
+
+    hnpi_read = pq.read_table('model_output/hnpi/000000001.105.hnpi.parquet').to_pandas()
+    hnpi_wrote = pq.read_table('model_output/hnpi/000000001.106.hnpi.parquet').to_pandas()
+    assert((hnpi_read == hnpi_wrote).all().all())
+
+
+    # runs with the new, random NPI
+    outcomes.onerun_delayframe_outcomes_load_hpar(config, int(index), 106, prefix, int(index), 107, prefix, deathrate,
+                                                  stoch_traj_flag)
+
+    hpar_read = pq.read_table('model_output/hpar/000000001.106.hpar.parquet').to_pandas()
+    hpar_wrote = pq.read_table('model_output/hpar/000000001.107.hpar.parquet').to_pandas()
+    assert((hpar_read == hpar_wrote).all().all())
+    hnpi_read = pq.read_table('model_output/hnpi/000000001.106.hnpi.parquet').to_pandas()
+    hnpi_wrote = pq.read_table('model_output/hnpi/000000001.107.hnpi.parquet').to_pandas()
+    assert((hnpi_read == hnpi_wrote).all().all())
+    hosp_read = pq.read_table('model_output/hosp/000000001.106.hosp.parquet').to_pandas()
+    hosp_wrote = pq.read_table('model_output/hosp/000000001.107.hosp.parquet').to_pandas()
+    assert((hosp_read == hosp_wrote).all().all())
+
 def test_outcomes_pcomp():
     config.clear()
     config.read(user=False)     
