@@ -105,7 +105,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
         branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pa.parquet.read_table(branching_file).to_pandas()
         if 'relative_probability' not in list(branching_data['quantity']):
-            raise ValueError(f"No 'relative_probablity' quantity in {branching_file}, therefor making it useless")
+            raise ValueError(f"No 'relative_probability' quantity in {branching_file}, therefor making it useless")
 
         print('Loaded geoids in loaded relative probablity file:', len(branching_data.geoid.unique()), '', end='')
         branching_data = branching_data[branching_data['geoid'].isin(places)]
@@ -139,11 +139,36 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                         parameters[class_name]['source'] = dict(src_name['incidence'])
 
                 parameters[class_name]['probability'] = config_outcomes[new_comp]['probability']['value']
+                if config_outcomes[new_comp]['probability']['intervention_param_name'].exists():
+                    parameters[class_name]['probability::npi_param_name'] = config_outcomes[new_comp]['probability'][
+                        'intervention_param_name'].lower()
+                    print(f"probability of outcome {new_comp} is affected by intervention "
+                          f"named {parameters[class_name]['probability::npi_param_name']} "
+                          f"instead of {new_comp}::probability")
+                else:
+                    parameters[class_name]['probability::npi_param_name'] = f"{new_comp}::probability".lower()
 
                 parameters[class_name]['delay'] = config_outcomes[new_comp]['delay']['value']
+                if config_outcomes[new_comp]['delay']['intervention_param_name'].exists():
+                    parameters[class_name]['delay::npi_param_name'] = config_outcomes[new_comp]['delay'][
+                        'intervention_param_name'].lower()
+                    print(f"delay of outcome {new_comp} is affected by intervention "
+                          f"named {parameters[class_name]['delay::npi_param_name']} "
+                          f"instead of {new_comp}::delay")
+                else:
+                    parameters[class_name]['delay::npi_param_name'] = f"{new_comp}::delay".lower()
 
                 if config_outcomes[new_comp]['duration'].exists():
                     parameters[class_name]['duration'] = config_outcomes[new_comp]['duration']['value']
+                    if config_outcomes[new_comp]['duration']['intervention_param_name'].exists():
+                        parameters[class_name]['duration::npi_param_name'] = \
+                            config_outcomes[new_comp]['duration']['intervention_param_name'].lower()
+                        print(f"duration of outcome {new_comp} is affected by intervention "
+                              f"named {parameters[class_name]['duration::npi_param_name']} "
+                              f"instead of {new_comp}::duration")
+                    else:
+                        parameters[class_name]['duration::npi_param_name'] = f"{new_comp}::duration".lower()
+
                     if config_outcomes[new_comp]['duration']['name'].exists():
                         parameters[class_name]['duration_name'] = config_outcomes[new_comp]['duration'][
                                                                       'name'].as_str() + subclass
@@ -151,9 +176,10 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                         parameters[class_name]['duration_name'] = new_comp + '_curr' + subclass
 
                 if config["outcomes"]["param_from_file"].get():
-                    rel_probability = branching_data[#(branching_data['source'] == parameters[class_name]['source']) &
-                                                     (branching_data['outcome'] == class_name) &
-                                                     (branching_data['quantity'] == 'relative_probability')].copy(
+                    rel_probability = branching_data[
+                        # (branching_data['source'] == parameters[class_name]['source']) &
+                        (branching_data['outcome'] == class_name) &
+                        (branching_data['quantity'] == 'relative_probability')].copy(
                         deep=True)
                     if len(rel_probability) > 0:
                         print(
@@ -321,7 +347,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
 
     outcomes = dataframe_from_array(np.zeros((len(dates), len(places)), dtype=np.int),
                                     places,
-                                    dates, 'zeros').drop('zeros',axis=1)
+                                    dates, 'zeros').drop('zeros', axis=1)
 
     for new_comp in parameters:
         if 'source' in parameters[new_comp]:
@@ -331,9 +357,9 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             source_name = parameters[new_comp]['source']
             print(f'doing {new_comp}')
             if source_name == 'incidI' and 'incidI' not in all_data:  # create incidI
-                source_array = get_filtered_incidI(diffI, dates, places, {'infection_stage':'I1'})
+                source_array = get_filtered_incidI(diffI, dates, places, {'infection_stage': 'I1'})
                 all_data['incidI'] = source_array
-                outcomes =  pd.merge(outcomes, dataframe_from_array(source_array, places, dates, 'incidI'))
+                outcomes = pd.merge(outcomes, dataframe_from_array(source_array, places, dates, 'incidI'))
             elif isinstance(source_name, dict):
                 source_array = get_filtered_incidI(diffI, dates, places, source_name)
                 # we don't keep source in this cases
@@ -345,15 +371,15 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 probabilities = \
                     loaded_values[
                         (loaded_values['quantity'] == 'probability') &
-                        (loaded_values['outcome'] == new_comp) #&
+                        (loaded_values['outcome'] == new_comp)  # &
                         # (loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
-                        #(loaded_values['source'] == source_name)
+                        # (loaded_values['source'] == source_name)
                         ]['value'].to_numpy()
                 delays = loaded_values[
                     (loaded_values['quantity'] == 'delay') &
-                    (loaded_values['outcome'] == new_comp) #&
+                    (loaded_values['outcome'] == new_comp)  # &
                     # (loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
-                   # (loaded_values['source'] == source_name)
+                    # (loaded_values['source'] == source_name)
                     ]['value'].to_numpy()
             else:
                 probabilities = parameters[new_comp]['probability'].as_random_distribution()(
@@ -377,21 +403,23 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                          # 'mc_vaccination_stage': [p_comp] * len(places),
                          'quantity': ['probability'] * len(places),
                          'outcome': [new_comp] * len(places),
-                         #'source': [source_name] * len(places),
+                         # 'source': [source_name] * len(places),
                          'value': probabilities[0] * np.ones(len(places))}),
                     pd.DataFrame.from_dict(
                         {'geoid': places,
                          # 'mc_vaccination_stage': [p_comp] * len(places),
                          'quantity': ['delay'] * len(places),
                          'outcome': [new_comp] * len(places),
-                         #'source': [source_name] * len(places),
+                         # 'source': [source_name] * len(places),
                          'value': delays[0] * np.ones(len(places))})
                 ],
                 axis=0)
             if npi is not None:
-                delays = _parameter_reduce(delays, npi.getReduction(f"{new_comp}::delay".lower()))
+                delays = _parameter_reduce(delays, npi.getReduction(parameters[new_comp][
+                        'delay::npi_param_name'].lower()))
                 delays = np.round(delays).astype(int)
-                probabilities = _parameter_reduce(probabilities, npi.getReduction(f"{new_comp}::probability".lower()))
+                probabilities = _parameter_reduce(probabilities, npi.getReduction(parameters[new_comp][
+                        'probability::npi_param_name'].lower()))
 
             # Create new compartment incidence:
             all_data[new_comp] = np.empty_like(source_array)
@@ -417,7 +445,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                 if loaded_values is not None:
                     durations = loaded_values[
                         (loaded_values['quantity'] == 'duration') &
-                        (loaded_values['outcome'] == new_comp) #&
+                        (loaded_values['outcome'] == new_comp)  # &
                         # (loaded_values['mc_vaccination_stage'] == p_comps[0]) &
                         # (loaded_values['source'] == source_name)
                         ]['value'].to_numpy()
@@ -435,7 +463,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                              # 'mc_vaccination_stage': [p_comp] * len(places),
                              'quantity': ['duration'] * len(places),
                              'outcome': [new_comp] * len(places),
-                             #'source': [source_name] * len(places),
+                             # 'source': [source_name] * len(places),
                              'value': durations[0] * np.ones(len(places))
                              }
                         )
@@ -449,7 +477,8 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     # plt.savefig('Dbef'+new_comp + '-' + source)
                     # plt.close()
                     # print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
-                    durations = _parameter_reduce(durations, npi.getReduction(f"{new_comp}::duration".lower()))
+                    durations = _parameter_reduce(durations, npi.getReduction(parameters[new_comp][
+                        'duration::npi_param_name']).lower())  # npi.getReduction(f"{new_comp}::duration".lower()))
                     durations = np.round(durations).astype(int)
                     # plt.imshow(durations)
                     # plt.title(durations.mean())
@@ -480,8 +509,8 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             df_p = dataframe_from_array(sum_outcome, places,
                                         dates, new_comp)
             outcomes = pd.merge(outcomes, df_p)
-            #print(df_p)
-            #print(outcomes[parameters[new_comp]['sum']].sum(axis=1))
+            # print(df_p)
+            # print(outcomes[parameters[new_comp]['sum']].sum(axis=1))
 
             # assert ((df_p['incidH'] == outcomes[parameters[new_comp]['sum']].sum(axis=1).values).all().all())
 
@@ -523,6 +552,7 @@ def get_filtered_incidI(diffI, dates, places, filters):
         new_df = new_df.drop('date', axis=1)
         incidI_arr = incidI_arr + new_df.to_numpy()
     return incidI_arr
+
 
 """ Quite fast shift implementation, along the first axis,
     which is date. num is an integer not negative nor zero """
