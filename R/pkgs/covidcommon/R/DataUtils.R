@@ -832,11 +832,15 @@ get_groundtruth_from_single_source <- function(source = "csse", scale = "US coun
 
 }
 
+##'
+##' Pull LA data
+##' 
+##' @export
 get_LA_health_dpt_county_hosp_data <- function(hosp_file_name = "data/LACDPH/hospitalizations/20210813.xlsx"){
-  dat <- read_xlsx(hosp_file_name) %>%
-    rename(incidH = incidH_covid) %>%
-    mutate(incidH = na_if(incidH, "n/a")) %>%
-    mutate(date = as.Date(date), incidH = as.numeric(incidH)) %>%
+  dat <- readxl::read_xlsx(hosp_file_name) %>%
+    dplyr::rename(incidH = incidH_covid) %>%
+    dplyr::mutate(incidH = dplyr::na_if(incidH, "n/a")) %>%
+    dplyr::mutate(date = as.Date(date), incidH = as.numeric(incidH)) %>%
     dplyr::select(date, incidH)
 
   return(dat)
