@@ -1,0 +1,142 @@
+name: test_inference
+start_date: 2020-04-01
+end_date: 2020-05-15
+nsimulations: 1
+dt: 0.25
+
+spatial_setup:
+  base_path: data
+  setup_name: test1
+  geodata: geodata.csv
+  mobility: mobility.csv
+  popnodes: population
+  nodenames: geoid
+  census_year: 2018
+  modeled_states:
+    - HI
+
+interventions:
+  scenarios:
+    - None
+  settings:
+    None:
+      template: ReduceR0
+      value:
+        distribution: fixed
+        value: 0
+    Hduration:
+      template: Reduce
+      parameter: "incidH::duration"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    Hdelay:
+      template: Reduce
+      parameter: "incidH::delay"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    Hprobability:
+      template: Reduce
+      parameter: "incidH::probability"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: 0.5
+    Ddelay:
+      template: Reduce
+      parameter: "incidD::delay"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    Dprobability:
+      template: Reduce
+      parameter: "incidD::probability"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    ICUprobability:
+      template: Reduce
+      parameter: "incidICU::probability"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    times2D:
+      template: Stacked
+      scenarios: ["Ddelay", "Dprobability"]
+    times2H:
+      template: Stacked
+      scenarios: ["Hdelay", "Hprobability", "Hduration"]
+
+
+
+outcomes:
+  method: delayframe
+  param_from_file: False
+  scenarios:
+    - high_death_rate
+  settings:
+    high_death_rate:
+      incidH:
+        source: incidI
+        probability:
+          intervention_param_name: hosp_param_prob
+          value:
+            distribution: fixed
+            value: .2
+        delay:
+          intervention_param_name: hosp_param_delay
+          value:
+            distribution: fixed
+            value: 14
+        duration:
+          intervention_param_name: hosp_param_durr
+          value:
+            distribution: fixed
+            value: 14
+          name: hosp_curr
+      incidD:
+        source: incidI
+        probability:
+          intervention_param_name: death_param_prob
+          value:
+            distribution: fixed
+            value: .02
+        delay:
+          intervention_param_name: death_param_delay
+          value:
+            distribution: fixed
+            value: 4
+      incidICU:
+        source: incidH
+        probability:
+          intervention_param_name: icu_param_prob
+          value:
+            distribution: fixed
+            value: .8
+        delay:
+          value:
+            distribution: fixed
+            value: 0
+  interventions:
+    settings:
+      high_death_rate:
+        template: Stacked
+        scenarios: ["times2H", "ICUprobability", "times2D"]
