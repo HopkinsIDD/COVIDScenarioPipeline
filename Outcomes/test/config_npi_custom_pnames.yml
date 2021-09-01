@@ -26,7 +26,7 @@ interventions:
         value: 0
     Hduration:
       template: Reduce
-      parameter: "incidH::duration"
+      parameter: "hosp_paraM_duRr"
       affected_geoids: "all"
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
@@ -35,7 +35,7 @@ interventions:
         value: .5
     Hdelay:
       template: Reduce
-      parameter: "incidH::delay"
+      parameter: "hosp_paraM_deLay"
       affected_geoids: "all"
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
@@ -44,7 +44,7 @@ interventions:
         value: .5
     Hprobability:
       template: Reduce
-      parameter: "incidH::probability"
+      parameter: "hosp_paraM_PROB"
       affected_geoids: "all"
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
@@ -53,7 +53,7 @@ interventions:
         value: 0.5
     Ddelay:
       template: Reduce
-      parameter: "incidD::delay"
+      parameter: "death_param_DELAY"
       affected_geoids: "all"
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
@@ -62,7 +62,7 @@ interventions:
         value: .5
     Dprobability:
       template: Reduce
-      parameter: "incidD::probability"
+      parameter: "death_param_prob"
       affected_geoids: "all"
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
@@ -71,7 +71,7 @@ interventions:
         value: .5
     ICUprobability:
       template: Reduce
-      parameter: "incidICU::probability"
+      parameter: "icu_param_PROB"
       affected_geoids: "all"
       period_start_date: 2020-04-01
       period_end_date: 2020-05-15
@@ -97,17 +97,17 @@ outcomes:
       incidH:
         source: incidI
         probability:
-          intervention_param_name: hosp_param_prob
+          intervention_param_name: hoSp_param_prob
           value:
             distribution: fixed
             value: .2
         delay:
-          intervention_param_name: hosp_param_delay
+          intervention_param_name: hoSp_param_delay
           value:
             distribution: fixed
             value: 14
         duration:
-          intervention_param_name: hosp_param_durr
+          intervention_param_name: hoSp_param_durr
           value:
             distribution: fixed
             value: 14
