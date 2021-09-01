@@ -822,7 +822,7 @@ get_groundtruth_from_single_source <- function(source = "csse", scale = "US coun
 
   } else if ((source == "LA health dpt") && (scale == "US county")) {
     # rc <- get_from_file_US_county_hosp_data(misc_data_filename)
-    rc <- get_LA_health_dpt_country_hosp_data(misc_data_filename)
+    rc <- get_LA_health_dpt_county_hosp_data(misc_data_filename)
   } else{
     warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning NULL object.")))
     rc <- NULL
