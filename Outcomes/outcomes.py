@@ -478,7 +478,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
                     # plt.close()
                     # print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
                     durations = _parameter_reduce(durations, npi.getReduction(parameters[new_comp][
-                        'duration::npi_param_name']).lower())  # npi.getReduction(f"{new_comp}::duration".lower()))
+                        'duration::npi_param_name'].lower()))  # npi.getReduction(f"{new_comp}::duration".lower()))
                     durations = np.round(durations).astype(int)
                     # plt.imshow(durations)
                     # plt.title(durations.mean())
