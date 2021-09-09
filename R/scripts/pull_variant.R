@@ -1,4 +1,4 @@
-library(dplyr)
+library(tidyverse)
 tmp <- jsonlite::fromJSON(httr::content(httr::GET("https://raw.githubusercontent.com/hodcroftlab/covariants/master/cluster_tables/USAClusters_data.json")))
 tmp3 <- as.data.frame(tmp[[1]][["Maine"]])
 
