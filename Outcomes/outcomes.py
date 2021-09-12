@@ -183,7 +183,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                         deep=True)
                     if len(rel_probability) > 0:
                         print(
-                            f"Using 'param_from_file' for relative probability {parameters[class_name]['source']} -->  {class_name}")
+                            f"Using 'param_from_file' for relative probability in outcome {class_name}")
                         # Sort it in case the relative probablity file is misecified
                         rel_probability.geoid = rel_probability.geoid.astype("category")
                         rel_probability.geoid.cat.set_categories(diffI.drop('date', axis=1).columns, inplace=True)
@@ -191,7 +191,7 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                         parameters[class_name]['rel_probability'] = rel_probability['value'].to_numpy()
                     else:
                         print(
-                            f"*NOT* Using 'param_from_file' for relative probability {parameters[class_name]['source']} -->  {class_name}")
+                            f"*NOT* Using 'param_from_file' for relative probability in outcome  {class_name}")
 
             # We need to compute sum across classes if there is subclasses
             if (subclasses != ['']):

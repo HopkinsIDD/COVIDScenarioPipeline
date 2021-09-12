@@ -44,8 +44,6 @@ class Parameters:
                     logging.debug(
                         f"No 'intervention_overlap_operation' for parameter {pn}, assuming multiplicative NPIs")
                 self.intervention_overlap_operation[self.pdata[pn]['intervention_overlap_operation']].append(pn.lower())
-                print("HERE")
-            print("DONE")
 
         elif config_version == 'old':
             n_parallel_compartments = 1
