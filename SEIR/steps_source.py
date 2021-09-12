@@ -63,7 +63,6 @@ def steps_SEIR_nb(
         mobility_data,
         stoch_traj_flag
 ):
-    print(mobility_row_indices, mobility_data_indices, mobility_data)
     y = np.zeros((ncomp, n_parallel_compartments, nnodes))
     y = np.copy(y0)
     states = np.zeros((ncomp, n_parallel_compartments, nnodes, len(t_inter)))
@@ -85,10 +84,8 @@ def steps_SEIR_nb(
         percent_who_move[node] = mobility_data[
             mobility_data_indices[node]:mobility_data_indices[node+1]
           ].sum() / popnodes[node]
-        print("p_who_move", node, percent_who_move[node])
 
     for it, t in enumerate(t_inter):
-        print("iteration", it)
         states[:, :, :, it] = y
         if (it % int(1 / dt) == 0):
             y[E][0] = y[E][0] + seeding[int(t)]
@@ -119,7 +116,6 @@ def steps_SEIR_nb(
                     alpha[it][i] / popnodes[row_index]  # population there
                 ).sum()
             ))
-            print(i,percent_day_away, percent_who_move, mobility_data[index], popnodes[i])
 
             p_infect = 1 - np.exp(-dt * sigma[it][i])
             p_recover = 1 - np.exp(-dt * gamma[it][i])
@@ -136,11 +132,8 @@ def steps_SEIR_nb(
                     if (np.isnan(p_recover)) or (p_recover > 1) or (p_recover < 0) :
                         raise ValueError("RECOVERY RATE OUT OF BOUNDS")
                 if stoch_traj_flag:
-                    print(f"binom(S, p = ", exposure_probability)
                     exposeCases[p_compartment][i] = np.random.binomial(y[S][p_compartment][i], exposure_probability)
-                    print(f"binom(E, p = " ,p_infect)
                     incidentCases[p_compartment][i] = np.random.binomial(y[E][p_compartment][i], p_infect)
-                    print(f"binom(I, p = ", p_recover)
                     incident2Cases[p_compartment][i] = np.random.binomial(y[I1][p_compartment][i], p_recover)
                     incident3Cases[p_compartment][i] = np.random.binomial(y[I2][p_compartment][i], p_recover)
                     recoveredCases[p_compartment][i] = np.random.binomial(y[I3][p_compartment][i], p_recover)

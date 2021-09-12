@@ -118,6 +118,7 @@ def test_constant_population():
 
 
 def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
+    print("test mobility with txt matrices")
     config.set_file(f"{DATA_DIR}/config.yml")
 
     ss = setup.SpatialSetup(setup_name="test_seir",
@@ -147,7 +148,6 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
-    print(s.mobility.data)
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
@@ -166,6 +166,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
 
 def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
     config.set_file(f"{DATA_DIR}/config.yml")
+    print("test mobility with csv matrices")
 
     ss = setup.SpatialSetup(setup_name="test_seir",
                             geodata_file=f"{DATA_DIR}/geodata.csv",
@@ -194,7 +195,6 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
-    print(s.mobility.data)
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
@@ -211,6 +211,7 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
         assert states[seir.cumI, :, 1, :].max() > 0
 
 def test_steps_SEIR_no_spread():
+    print("test mobility with no spread")
     config.set_file(f"{DATA_DIR}/config.yml")
 
     ss = setup.SpatialSetup(setup_name="test_seir",
