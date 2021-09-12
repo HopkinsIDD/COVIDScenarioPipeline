@@ -117,7 +117,7 @@ def test_constant_population():
         assert(completepop == totalpop)
 
 
-def test_steps_SEIR_nb_simple_spread():
+def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
     config.set_file(f"{DATA_DIR}/config.yml")
 
     ss = setup.SpatialSetup(setup_name="test_seir",
@@ -147,6 +147,54 @@ def test_steps_SEIR_nb_simple_spread():
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
+    print(s.mobility.data)
+
+    npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
+
+    parameters = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
+    parameters = setup.parameters_reduce(parameters, npi, s.dt)
+
+    for i in range(100):
+        states = seir.steps_SEIR_nb(*parameters, y0,
+                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
+                           mobility_geoid_indices, mobility_data_indices,
+                           mobility_data,True)
+
+
+        assert states[seir.cumI, :, 1, :].max() > 0
+
+
+def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
+    config.set_file(f"{DATA_DIR}/config.yml")
+
+    ss = setup.SpatialSetup(setup_name="test_seir",
+                            geodata_file=f"{DATA_DIR}/geodata.csv",
+                            mobility_file=f"{DATA_DIR}/mobility.csv",
+                            popnodes_key="population",
+                            nodenames_key="geoid")
+
+    s = setup.Setup(setup_name="test_seir",
+                        spatial_setup=ss,
+                        nsim=1,
+                        npi_scenario="None",
+                        npi_config=config["interventions"]["settings"]["None"],
+                        parameters_config=config["seir"]["parameters"],
+                        ti=config["start_date"].as_date(),
+                        tf=config["end_date"].as_date(),
+                        interactive=True,
+                        write_csv=False,
+                        dt=0.25)
+
+    seeding = np.zeros((len(s.t_inter), s.nnodes))
+    seeding[:,0] = 100
+
+    y0 = np.zeros((setup.ncomp, s.params.n_parallel_compartments, s.nnodes))
+    y0[setup.S, 0, :] = s.popnodes
+
+    mobility_geoid_indices = s.mobility.indices
+    mobility_data_indices = s.mobility.indptr
+    mobility_data = s.mobility.data
+    print(s.mobility.data)
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
