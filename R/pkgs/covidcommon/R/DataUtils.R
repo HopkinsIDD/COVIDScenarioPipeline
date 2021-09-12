@@ -707,7 +707,7 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 ##'
 ##' @export
 ##'
-get_groundtruth_from_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE, adjust_for_variant = FALSE, variant_props_file = "data/variant/variant_props_long.csv"){
+get_groundtruth_from_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = TRUE, adjust_for_variant = FALSE, variant_props_file = "data/variant/variant_props_long.csv"){
 
   if(source == "reichlab" & scale == "US county"){
 
