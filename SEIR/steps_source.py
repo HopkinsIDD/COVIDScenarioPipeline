@@ -36,7 +36,7 @@ debug_print = False
     "int64[:]," # sparse nodes x nodes
     "int32[:]," # sparse nodes x nodes
     "int32[:]," # sparse nodes x nodes
-    "float64[:]," # compartments x parallel_compartments x nnodes
+    "int64[:]," # compartments x parallel_compartments x nnodes
     "boolean"
     ")"
 )
@@ -120,6 +120,7 @@ def steps_SEIR_nb(
             p_infect = 1 - np.exp(-dt * sigma[it][i])
             p_recover = 1 - np.exp(-dt * gamma[it][i])
 
+
             ## Fix this:
             for p_compartment in range(n_parallel_compartments):
                 exposure_probability = susceptibility_ratio[it][p_compartment][i] * p_expose
@@ -142,8 +143,6 @@ def steps_SEIR_nb(
                     incident2Cases[p_compartment][i] = y[I1][p_compartment][i] * p_recover
                     incident3Cases[p_compartment][i] = y[I2][p_compartment][i] * p_recover
                     recoveredCases[p_compartment][i] = y[I3][p_compartment][i] * p_recover
-
-
 
         y[S] += -exposeCases
         y[E] += exposeCases - incidentCases
@@ -184,7 +183,7 @@ def steps_SEIR_nb(
             y[:-1,from_compartment,:] -= vaccinatedCases[:-1,from_compartment,:]
             y[:-1,to_compartment,:] += vaccinatedCases[:-1,from_compartment,:]
 
-        
+
         if debug_print:
             print("Y extremes:")
             print(y.min())
