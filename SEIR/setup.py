@@ -7,11 +7,11 @@ import scipy.sparse
 import pyarrow as pa
 import pyarrow.parquet as pq
 import copy
+from . import compartments
 from . import parameters
 from . import seeding_ic
 from .utils import config
 from . import file_paths
-from . import compartments
 from functools import reduce
 import typing
 import logging
@@ -141,7 +141,8 @@ class Setup:
 
         if config_version != 'old' and config_version != 'v2':
             print
-            raise ValueError(f"Configuration version unknown: {config_version}. "
+            raise ValueError(
+ f"Configuration version unknown: {config_version}. "
                              f"Should be either non-specified (default: 'old'), or set to 'old' or 'v2'.")
 
         self.parameters = parameters.Parameters(parameter_config=self.parameters_config,
@@ -161,7 +162,6 @@ class Setup:
 
     def build_setup(self):
         self.n_days = (self.tf - self.ti).days + 1  # because we include s.ti and s.tf
-        #self.t_inter = np.arange(0, (self.n_days -1) + 1e-7, self.dt)
         self.nnodes = self.spatset.nnodes
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
@@ -175,7 +175,8 @@ class SpatialSetup:
 
         # popnodes_key is the name of the column in geodata_file with populations
         if popnodes_key not in self.data:
-            raise ValueError(f"popnodes_key: {popnodes_key} does not correspond to a column in geodata.");
+            raise ValueError(
+ f"popnodes_key: {popnodes_key} does not correspond to a column in geodata.");
         self.popnodes = self.data[popnodes_key].to_numpy()  # population
         if len(np.argwhere(self.popnodes == 0)):
             raise ValueError(
@@ -183,15 +184,17 @@ class SpatialSetup:
 
         # nodenames_key is the name of the column in geodata_file with geoids
         if nodenames_key not in self.data:
-            raise ValueError(f"nodenames_key: {nodenames_key} does not correspond to a column in geodata.");
+            raise ValueError(
+ f"nodenames_key: {nodenames_key} does not correspond to a column in geodata.");
         self.nodenames = self.data[nodenames_key].tolist()
         if len(self.nodenames) != len(set(self.nodenames)):
-            raise ValueError(f"There are duplicate nodenames in geodata.")
+            raise ValueError(
+ f"There are duplicate nodenames in geodata.")
 
         mobility_file = pathlib.Path(mobility_file)
         if mobility_file.suffix == ".txt":
             print('Mobility files as matrices are not recommended. Please switch soon to long form csv files.')
-            self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file))  # K x K matrix of people moving
+            self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file), dtype=np.int)  # K x K matrix of people moving
             # Validate mobility data
             if self.mobility.shape != (self.nnodes, self.nnodes):
                 raise ValueError(
@@ -207,11 +210,11 @@ class SpatialSetup:
                     f"Mobility fluxes with same origin and destination in long form matrix. This is not supported")
 
             self.mobility = scipy.sparse.coo_matrix(
-                (mobility_data.amount, (mobility_data.ori_idx, mobility_data.dest_idx)),
-                shape=(self.nnodes, self.nnodes)).tocsr()
+ (mobility_data.amount, (mobility_data.ori_idx, mobility_data.dest_idx)),
+  shape=(self.nnodes, self.nnodes),dtype=np.int).tocsr()
 
         elif mobility_file.suffix == ".npz":
-            self.mobility = scipy.sparse.load_npz(mobility_file)
+            self.mobility = scipy.sparse.load_npz(mobility_file).astype(np.int)
             # Validate mobility data
             if self.mobility.shape != (self.nnodes, self.nnodes):
                 raise ValueError(
@@ -258,8 +261,7 @@ def _parameter_reduce(parameter: np.ndarray, modification: typing.Union[pd.DataF
     if isinstance(modification, pd.DataFrame):
         modification = modification.T
         modification.index = pd.to_datetime(modification.index.astype(str))
-        #modification = modification.resample(str(dt * 24) + 'H').ffill().to_numpy()
-        modification = modification.resample('1D').ffill().to_numpy()  # Type consistency:
+        modification = modification.resample("1D").ffill().to_numpy()  # Type consistency:
     if method == "prod":
         return parameter * (1 - modification)
     elif method == "sum":
