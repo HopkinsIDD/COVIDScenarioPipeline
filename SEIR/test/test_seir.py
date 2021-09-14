@@ -96,7 +96,7 @@ def test_constant_population():
 
                     dt=0.25)
 
-    seeding_data = s.seedingAndIC.draw_seeding(sim_id=100, setup=s)
+    seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
 
@@ -124,6 +124,7 @@ def test_constant_population():
         proportion_info,
         initial_conditions,
         seeding_data,
+        seeding_amounts,
         mobility_data,
         mobility_geoid_indices,
         mobility_data_indices,
@@ -173,7 +174,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
                     out_prefix=prefix,
                     dt=0.25)
 
-    seeding_data = s.seedingAndIC.draw_seeding(sim_id=100, setup=s)
+    seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     mobility_geoid_indices = s.mobility.indices
@@ -200,6 +201,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
             proportion_array,
             initial_conditions,
             seeding_data,
+            seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
@@ -219,6 +221,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
             proportion_array,
             initial_conditions,
             seeding_data,
+            seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
@@ -308,7 +311,7 @@ def test_steps_SEIR_no_spread():
                     out_prefix=prefix,
                     dt=0.25)
 
-    seeding_data = s.seedingAndIC.draw_seeding(sim_id=100, setup=s)
+    seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     mobility_geoid_indices = s.mobility.indices
@@ -336,6 +339,7 @@ def test_steps_SEIR_no_spread():
             proportion_array,
             initial_conditions,
             seeding_data,
+            seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
@@ -355,6 +359,7 @@ def test_steps_SEIR_no_spread():
             proportion_array,
             initial_conditions,
             seeding_data,
+            seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
@@ -614,7 +619,7 @@ def test_parallel_compartments_with_vacc():
                     out_prefix=prefix,
                     dt=0.25)
 
-    seeding_data = s.seedingAndIC.draw_seeding(sim_id=100, setup=s)
+    seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     mobility_geoid_indices = s.mobility.indices
@@ -642,6 +647,7 @@ def test_parallel_compartments_with_vacc():
             proportion_array,
             initial_conditions,
             seeding_data,
+            seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
@@ -661,6 +667,7 @@ def test_parallel_compartments_with_vacc():
             proportion_array,
             initial_conditions,
             seeding_data,
+            seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
@@ -700,7 +707,7 @@ def test_parallel_compartments_no_vacc():
                     out_prefix=prefix,
                     dt=0.25)
 
-    seeding_data = s.seedingAndIC.draw_seeding(sim_id=100, setup=s)
+    seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     mobility_geoid_indices = s.mobility.indices
@@ -729,6 +736,7 @@ def test_parallel_compartments_no_vacc():
             proportion_array,
             initial_conditions,
             seeding_data,
+            seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
@@ -748,6 +756,7 @@ def test_parallel_compartments_no_vacc():
             proportion_array,
             initial_conditions,
             seeding_data,
+            seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
