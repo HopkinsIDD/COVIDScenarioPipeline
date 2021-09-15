@@ -533,7 +533,7 @@ class Compartments:
 
         assert (proportion_compartment_index == current_proportion_sum_it)
 
-        proportion_array = np.zeros((current_proportion_sum_start), dtype='int')
+        proportion_array = np.zeros((current_proportion_sum_start), dtype='int64')
 
         proportion_index = 0
         for it, elem in enumerate(self.transitions['proportional_to']):
@@ -579,6 +579,11 @@ class Compartments:
         #             if self.compartments["name"][compartment] == elem2:
         #                 rc = compartment
         #         proportion_array[it]
+        print("HERE")
+        print(proportion_array)
+        print(proportion_array[0])
+        print(type(proportion_array[0]))
+        print("THERE")
 
         return parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info
 
