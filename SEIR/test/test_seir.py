@@ -113,23 +113,20 @@ def test_constant_population():
         s.compartments.get_transition_array(params, s.parameters.pnames)
 
 
-    states = seir.steps_SEIR_nb(
-        s.compartments.compartments.shape[0],
-        s.nnodes,
-        s.n_days,
-        parsed_parameters,
-        s.dt,
-        transition_array,
-        proportion_array,
-        proportion_info,
-        initial_conditions,
-        seeding_data,
-        seeding_amounts,
-        mobility_data,
-        mobility_geoid_indices,
-        mobility_data_indices,
-        s.popnodes,
-        True)
+    states = seir.steps_SEIR(
+            s,
+            parsed_parameters,
+            transition_array,
+            proportion_array,
+            proportion_info,
+            initial_conditions,
+            seeding_data,
+            seeding_amounts,
+            mobility_data,
+            mobility_geoid_indices,
+            mobility_data_indices,
+            True)
+
 
     completepop = s.popnodes.sum()
     origpop = s.popnodes
@@ -180,6 +177,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
+    print(mobility_data)
 
     npi = NPI.NPIBase.execute(npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames)
 
@@ -190,43 +188,37 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
         s.compartments.get_transition_array(params, s.parameters.pnames)
 
     for i in range(10):
-        states = seir.steps_SEIR_nb(
-            s.compartments.compartments.shape[0],
-            s.nnodes,
-            s.n_days,
+        states = seir.steps_SEIR(
+            s,
             parsed_parameters,
-            s.dt,
             transition_array,
-            proportion_info,
             proportion_array,
+            proportion_info,
             initial_conditions,
             seeding_data,
             seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
-            s.popnodes,
             True)
         df = seir.states2Df(s, states)
+        print(i)
+        assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R')].loc[str(s.tf), '10001'] > 1
         assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R')].loc[str(s.tf), '20002'] > 1
 
-        states = seir.steps_SEIR_nb(
-            s.compartments.compartments.shape[0],
-            s.nnodes,
-            s.n_days,
+        states = seir.steps_SEIR(
+            s,
             parsed_parameters,
-            s.dt,
             transition_array,
-            proportion_info,
             proportion_array,
+            proportion_info,
             initial_conditions,
             seeding_data,
             seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
-            s.popnodes,
-            False)
+            True)
         df = seir.states2Df(s, states)
         assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R')].loc[str(s.tf), '20002'] > 1
         assert states[seir.cumI, :, 1, :].max() > 0
@@ -272,10 +264,19 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
     parameters = setup.parameters_reduce(parameters, npi, s.dt)
 
     for i in range(100):
-        states = seir.steps_SEIR_nb(*parameters, y0,
-                           seeding, s.dt, s.t_inter, s.nnodes, s.popnodes,
-                           mobility_geoid_indices, mobility_data_indices,
-                           mobility_data,True)
+        states = seir.steps_SEIR(
+            s,
+            parsed_parameters,
+            transition_array,
+            proportion_array,
+            proportion_info,
+            initial_conditions,
+            seeding_data,
+            seeding_amounts,
+            mobility_data,
+            mobility_geoid_indices,
+            mobility_data_indices,
+            True)
 
 
         assert states[seir.cumI, :, 1, :].max() > 0
@@ -328,43 +329,35 @@ def test_steps_SEIR_no_spread():
 
 
     for i in range(10):
-        states = seir.steps_SEIR_nb(
-            s.compartments.compartments.shape[0],
-            s.nnodes,
-            s.n_days,
+        states = seir.steps_SEIR(
+            s,
             parsed_parameters,
-            s.dt,
             transition_array,
-            proportion_info,
             proportion_array,
+            proportion_info,
             initial_conditions,
             seeding_data,
             seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
-            s.popnodes,
             True)
         df = seir.states2Df(s, states)
         assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R')].loc[str(s.tf), '20002'] == 0.0
 
-        states = seir.steps_SEIR_nb(
-            s.compartments.compartments.shape[0],
-            s.nnodes,
-            s.n_days,
+        states = seir.steps_SEIR(
+            s,
             parsed_parameters,
-            s.dt,
             transition_array,
-            proportion_info,
             proportion_array,
+            proportion_info,
             initial_conditions,
             seeding_data,
             seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
-            s.popnodes,
-            False)
+            True)
         df = seir.states2Df(s, states)
         assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R')].loc[str(s.tf), '20002'] == 0.0
 
@@ -636,43 +629,35 @@ def test_parallel_compartments_with_vacc():
 
 
     for i in range(5):
-        states = seir.steps_SEIR_nb(
-            s.compartments.compartments.shape[0],
-            s.nnodes,
-            s.n_days,
+        states = seir.steps_SEIR(
+            s,
             parsed_parameters,
-            s.dt,
             transition_array,
-            proportion_info,
             proportion_array,
+            proportion_info,
             initial_conditions,
             seeding_data,
             seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
-            s.popnodes,
             True)
         df = seir.states2Df(s, states)
         assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R') & (df['mc_vaccination_stage'] == 'first_dose')].max()["10001"] > 2
 
-        states = seir.steps_SEIR_nb(
-            s.compartments.compartments.shape[0],
-            s.nnodes,
-            s.n_days,
+        states = seir.steps_SEIR(
+            s,
             parsed_parameters,
-            s.dt,
             transition_array,
-            proportion_info,
             proportion_array,
+            proportion_info,
             initial_conditions,
             seeding_data,
             seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
-            s.popnodes,
-            False)
+            True)
         df = seir.states2Df(s, states)
         assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R') & (df['mc_vaccination_stage'] == 'first_dose')].max()["10001"] > 2
 
@@ -725,42 +710,34 @@ def test_parallel_compartments_no_vacc():
 
     for i in range(5):
         s.npi_config = config["interventions"]["settings"]["Scenario_vacc"]
-        states = seir.steps_SEIR_nb(
-            s.compartments.compartments.shape[0],
-            s.nnodes,
-            s.n_days,
+        states = seir.steps_SEIR(
+            s,
             parsed_parameters,
-            s.dt,
             transition_array,
-            proportion_info,
             proportion_array,
+            proportion_info,
             initial_conditions,
             seeding_data,
             seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
-            s.popnodes,
             True)
         df = seir.states2Df(s, states)
         assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R') & (df['mc_vaccination_stage'] == 'first_dose')].max()["10001"] == 0
 
-        states = seir.steps_SEIR_nb(
-            s.compartments.compartments.shape[0],
-            s.nnodes,
-            s.n_days,
+        states = seir.steps_SEIR(
+            s,
             parsed_parameters,
-            s.dt,
             transition_array,
-            proportion_info,
             proportion_array,
+            proportion_info,
             initial_conditions,
             seeding_data,
             seeding_amounts,
             mobility_data,
             mobility_geoid_indices,
             mobility_data_indices,
-            s.popnodes,
             False)
         df = seir.states2Df(s, states)
         assert df[(df['value_type'] == 'prevalence') & (df['mc_infection_stage'] == 'R') & (df['mc_vaccination_stage'] == 'first_dose')].max()["10001"] == 0
