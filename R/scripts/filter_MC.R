@@ -180,6 +180,12 @@ if (opt$ground_truth_end != "") {
   gt_end_date <- pmin(gt_end_date, lubridate::ymd(config$end_date_groundtruth))
 }
 
+misc_data_filename <- unlist(sapply(config$filtering$statistics, function(x){x$misc_data_filename}))
+if(is.null(misc_data_filename)) {
+  if(!is.null(config$filtering$misc_data_filename)){
+    misc_data_filename <- config$filtering$misc_data_filename
+  }
+}
 
 obs <- inference::get_ground_truth(
           data_path = data_path,
@@ -190,7 +196,8 @@ obs <- inference::get_ground_truth(
           gt_source = gt_source,
           gt_scale = gt_scale,
           gt_vars = gt_vars,
-          new_vars = new_vars
+          new_vars = new_vars, 
+          misc_data_filename = misc_data_filename
 )
 
 geonames <- unique(obs[[obs_nodename]])
