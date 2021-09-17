@@ -7,7 +7,7 @@
 #' @return NULL
 #'
 #' @export
-get_ground_truth_file <- function(data_path, cache = TRUE, gt_source = "csse", gt_scale = "US county", gt_vars = c("Confirmed", "Deaths", "incidI", "incidDeath"), new_vars = gt_vars, fips_column_name = "geoid", date_column_name = "date") {
+get_ground_truth_file <- function(data_path, cache = TRUE, gt_source = "csse", gt_scale = "US county", gt_vars = c("Confirmed", "Deaths", "incidI", "incidDeath"), new_vars = gt_vars, fips_column_name = "geoid", date_column_name = "date", misc_data_filename = NULL) {
   data_dir <- dirname(data_path)
 
   if(!dir.exists(data_dir)){
@@ -33,7 +33,8 @@ get_ground_truth_file <- function(data_path, cache = TRUE, gt_source = "csse", g
       source = gt_source,
       scale = gt_scale,
       variables = gt_vars,
-      incl_unass = ifelse(gt_scale == "US state", TRUE, FALSE)
+      incl_unass = ifelse(gt_scale == "US state", TRUE, FALSE), 
+      misc_data_filename = misc_data_filename
     ))
     cases_deaths <- dplyr::arrange(
       dplyr::mutate(
@@ -92,7 +93,8 @@ get_ground_truth <- function(
   gt_source = "csse",
   gt_scale = "US county",
   gt_vars = c("Confirmed", "Deaths", "incidI", "incidDeath"),
-  new_vars = gt_vars
+  new_vars = gt_vars, 
+  misc_data_filename = NULL
 ) {
 
   get_ground_truth_file(
@@ -103,7 +105,8 @@ get_ground_truth <- function(
     gt_vars = gt_vars,
     new_vars = new_vars,
     fips_column_name = fips_column_name,
-    date_column_name = date_column_name
+    date_column_name = date_column_name, 
+    misc_data_filename = misc_data_filename
   )
 
   rc <- suppressMessages(readr::read_csv(data_path,col_types = list(FIPS = readr::col_character())))
