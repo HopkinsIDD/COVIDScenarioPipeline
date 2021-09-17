@@ -840,8 +840,10 @@ get_LA_health_dpt_county_hosp_data <- function(hosp_file_name = "data/LACDPH/hos
   dat <- readxl::read_xlsx(hosp_file_name) %>%
     dplyr::rename(incidH = incidH_covid) %>%
     dplyr::mutate(incidH = dplyr::na_if(incidH, "n/a")) %>%
-    dplyr::mutate(date = as.Date(date), incidH = as.numeric(incidH)) %>%
-    dplyr::select(date, incidH)
+    dplyr::mutate(date = as.Date(date), incidH = as.numeric(incidH), 
+                  FIPS = "06037") %>%
+    dplyr::select(Update=date, FIPS, incidH) %>%
+    dplyr::ungroup()
 
   return(dat)
 }
