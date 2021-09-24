@@ -528,16 +528,21 @@ generate_multiple_variants_state <- function(variant_path_1,
                       end_date = dplyr::if_else(end_date > sim_end_date, sim_end_date, end_date))
 
     variant_data <- variant_data %>%
-        dplyr::mutate(R_ratio = round(R_ratio, 2)) %>%
+        #dplyr::mutate(R_ratio = round(R_ratio, 2)) %>%
         dplyr::select(location, week, start_date, end_date, variant, param, R_ratio) %>%
         dplyr::group_by(location, week, start_date, end_date) %>%
         dplyr::summarise(R_ratio = round(prod(R_ratio)*(1/0.05))*0.05
                          #, sd_variant = sum(sd_variant)
-                         ) %>% # THIS IS NOT THE RIGHT SD BUT DOESN'T MATTER B/C WE DON'T USE IT
+        ) %>% # THIS IS NOT THE RIGHT SD BUT DOESN'T MATTER B/C WE DON'T USE IT
         dplyr::ungroup() %>%
         dplyr::mutate(final_week = dplyr::case_when(start_date >= lubridate::floor_date(projection_start_date-14, "week") & start_date < projection_start_date ~ 1,
                                                     start_date >= projection_start_date ~ 0,
-                                                    TRUE ~ NA_real_)) %>%
+                                                    TRUE ~ NA_real_), 
+                      sequential = dplyr::case_when(R_ratio == dplyr::lead(R_ratio) & R_ratio != dplyr::lag(R_ratio) ~ 1,  
+                                                    R_ratio == dplyr::lag(R_ratio) ~ 0,
+                                                    R_ratio != dplyr::lag(R_ratio) ~ 1)) %>%
+        dplyr::group_by(location) %>%
+        dplyr::mutate(sequential=cumsum(sequential)) %>%
         dplyr::group_by(location, final_week) %>%
         dplyr::mutate(final_week = cumsum(final_week)) %>%
         dplyr::group_by(R_ratio, location, final_week) %>%
