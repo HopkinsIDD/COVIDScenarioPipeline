@@ -380,8 +380,11 @@ for(scenario in scenarios) {
       ## For logging
       print(paste("Current likelihood",global_likelihood,"Proposed likelihood",proposed_likelihood))
 
-      if(inference::iterateAccept(global_likelihood, proposed_likelihood)){
+      if(inference::iterateAccept(global_likelihood, proposed_likelihood) || ((current_index == 0) && (opt$this_block == 1))){
         print("****ACCEPT****")
+        if ((opt$this_block == 1) && (current_index == 0)) {
+          print("by default because it's the first iteration of a block 1")
+        }
         current_index <- this_index
         global_likelihood <- proposed_likelihood
         global_likelihood_data <- proposed_likelihood_data
