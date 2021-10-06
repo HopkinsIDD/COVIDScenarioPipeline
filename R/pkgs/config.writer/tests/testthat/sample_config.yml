@@ -130,7 +130,8 @@ interventions:
     - inference
   settings:
     local_variance:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2020-01-01
       period_end_date: 2021-08-07
@@ -2225,7 +2226,8 @@ interventions:
         a: -1
         b: 1
     Seas_sep:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2020-09-01
       period_end_date: 2020-09-30
@@ -2242,7 +2244,8 @@ interventions:
         a: -1
         b: 1
     Seas_oct:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2020-10-01
       period_end_date: 2020-10-31
@@ -2259,7 +2262,8 @@ interventions:
         a: -1
         b: 1
     Seas_nov:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2020-11-01
       period_end_date: 2020-11-30
@@ -2276,7 +2280,8 @@ interventions:
         a: -1
         b: 1
     Seas_dec:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2020-12-01
       period_end_date: 2020-12-31
@@ -6190,7 +6195,8 @@ interventions:
         distribution: fixed
         value: 0.003368
     variantR0adj_Week2-3:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-01-10
       period_end_date: 2021-01-23
@@ -6207,7 +6213,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week4:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-01-24
       period_end_date: 2021-01-30
@@ -6224,7 +6231,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week5:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-01-31
       period_end_date: 2021-02-06
@@ -6241,7 +6249,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week6:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-02-07
       period_end_date: 2021-02-13
@@ -6258,7 +6267,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week7:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-02-14
       period_end_date: 2021-02-20
@@ -6275,7 +6285,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week8:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-02-21
       period_end_date: 2021-02-27
@@ -6292,7 +6303,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week9:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-02-28
       period_end_date: 2021-03-06
@@ -6309,7 +6321,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week10:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-03-07
       period_end_date: 2021-03-13
@@ -6326,7 +6339,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week11:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-03-14
       period_end_date: 2021-03-20
@@ -6343,7 +6357,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week12:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-03-21
       period_end_date: 2021-03-27
@@ -6360,7 +6375,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week13:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-03-28
       period_end_date: 2021-04-03
@@ -6377,7 +6393,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week14:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-04-04
       period_end_date: 2021-04-10
@@ -6394,7 +6411,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week15:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-04-11
       period_end_date: 2021-04-17
@@ -6411,7 +6429,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week16:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-04-18
       period_end_date: 2021-04-24
@@ -6428,7 +6447,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week17:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-04-25
       period_end_date: 2021-05-01
@@ -6445,7 +6465,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week18-21:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-05-02
       period_end_date: 2021-05-29
@@ -6462,7 +6483,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week22:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-05-30
       period_end_date: 2021-06-05
@@ -6479,7 +6501,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week23:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-06-06
       period_end_date: 2021-06-12
@@ -6496,7 +6519,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week24:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-06-13
       period_end_date: 2021-06-19
@@ -6513,7 +6537,8 @@ interventions:
         a: -1
         b: 1
     variantR0adj_Week25:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-06-20
       period_end_date: 2021-06-26
@@ -6524,7 +6549,8 @@ interventions:
         a: -1.5
         b: 0
     variantR0adj_Week26:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-06-27
       period_end_date: 2021-07-03
@@ -6535,7 +6561,8 @@ interventions:
         a: -1.5
         b: 0
     variantR0adj_Week27:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-07-04
       period_end_date: 2021-07-10
@@ -6546,7 +6573,8 @@ interventions:
         a: -1.5
         b: 0
     variantR0adj_Week28:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-07-11
       period_end_date: 2021-07-17
@@ -6557,7 +6585,8 @@ interventions:
         a: -1.5
         b: 0
     variantR0adj_Week29:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-07-18
       period_end_date: 2021-07-24
@@ -6568,7 +6597,8 @@ interventions:
         a: -1.5
         b: 0
     variantR0adj_Week30:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-07-25
       period_end_date: 2021-07-31
@@ -6579,7 +6609,8 @@ interventions:
         a: -1.5
         b: 0
     variantR0adj_Week31:
-      template: ReduceR0
+      template: Reduce
+      parameter: R0
       affected_geoids: "all"
       period_start_date: 2021-08-01
       period_end_date: 2021-08-07
@@ -6605,7 +6636,7 @@ interventions:
       template: Stacked
       scenarios: ["local_variance", "NPI", "seasonal", "vaccination", "variant"]
 
-    AL_incidD_vaccadj_jan:
+    AL_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["01000"]
@@ -6617,7 +6648,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AL_incidD_vaccadj_feb:
+    AL_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["01000"]
@@ -6629,7 +6660,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AL_incidD_vaccadj_mar:
+    AL_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["01000"]
@@ -6641,7 +6672,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AL_incidD_vaccadj_apr:
+    AL_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["01000"]
@@ -6653,7 +6684,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AL_incidD_vaccadj_may:
+    AL_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["01000"]
@@ -6665,7 +6696,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AL_incidD_vaccadj_jun:
+    AL_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["01000"]
@@ -6677,7 +6708,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AL_incidD_vaccadj_jul:
+    AL_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["01000"]
@@ -6689,7 +6720,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AL_incidD_vaccadj_aug:
+    AL_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["01000"]
@@ -6701,7 +6732,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AK_incidD_vaccadj_jan:
+    AK_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["02000"]
@@ -6713,7 +6744,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AK_incidD_vaccadj_feb:
+    AK_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["02000"]
@@ -6725,7 +6756,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AK_incidD_vaccadj_mar:
+    AK_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["02000"]
@@ -6737,7 +6768,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AK_incidD_vaccadj_apr:
+    AK_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["02000"]
@@ -6749,7 +6780,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AK_incidD_vaccadj_may:
+    AK_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["02000"]
@@ -6761,7 +6792,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AK_incidD_vaccadj_jun:
+    AK_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["02000"]
@@ -6773,7 +6804,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AK_incidD_vaccadj_jul:
+    AK_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["02000"]
@@ -6785,7 +6816,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AK_incidD_vaccadj_aug:
+    AK_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["02000"]
@@ -6797,7 +6828,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AZ_incidD_vaccadj_jan:
+    AZ_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["04000"]
@@ -6809,7 +6840,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AZ_incidD_vaccadj_feb:
+    AZ_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["04000"]
@@ -6821,7 +6852,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AZ_incidD_vaccadj_mar:
+    AZ_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["04000"]
@@ -6833,7 +6864,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AZ_incidD_vaccadj_apr:
+    AZ_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["04000"]
@@ -6845,7 +6876,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AZ_incidD_vaccadj_may:
+    AZ_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["04000"]
@@ -6857,7 +6888,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AZ_incidD_vaccadj_jun:
+    AZ_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["04000"]
@@ -6869,7 +6900,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AZ_incidD_vaccadj_jul:
+    AZ_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["04000"]
@@ -6881,7 +6912,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AZ_incidD_vaccadj_aug:
+    AZ_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["04000"]
@@ -6893,7 +6924,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AR_incidD_vaccadj_jan:
+    AR_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["05000"]
@@ -6905,7 +6936,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AR_incidD_vaccadj_feb:
+    AR_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["05000"]
@@ -6917,7 +6948,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AR_incidD_vaccadj_mar:
+    AR_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["05000"]
@@ -6929,7 +6960,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AR_incidD_vaccadj_apr:
+    AR_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["05000"]
@@ -6941,7 +6972,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AR_incidD_vaccadj_may:
+    AR_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["05000"]
@@ -6953,7 +6984,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AR_incidD_vaccadj_jun:
+    AR_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["05000"]
@@ -6965,7 +6996,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AR_incidD_vaccadj_jul:
+    AR_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["05000"]
@@ -6977,7 +7008,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    AR_incidD_vaccadj_aug:
+    AR_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["05000"]
@@ -6989,7 +7020,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CA_incidD_vaccadj_jan:
+    CA_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["06000"]
@@ -7001,7 +7032,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CA_incidD_vaccadj_feb:
+    CA_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["06000"]
@@ -7013,7 +7044,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CA_incidD_vaccadj_mar:
+    CA_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["06000"]
@@ -7025,7 +7056,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CA_incidD_vaccadj_apr:
+    CA_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["06000"]
@@ -7037,7 +7068,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CA_incidD_vaccadj_may:
+    CA_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["06000"]
@@ -7049,7 +7080,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CA_incidD_vaccadj_jun:
+    CA_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["06000"]
@@ -7061,7 +7092,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CA_incidD_vaccadj_jul:
+    CA_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["06000"]
@@ -7073,7 +7104,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CA_incidD_vaccadj_aug:
+    CA_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["06000"]
@@ -7085,7 +7116,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CO_incidD_vaccadj_jan:
+    CO_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["08000"]
@@ -7097,7 +7128,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CO_incidD_vaccadj_feb:
+    CO_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["08000"]
@@ -7109,7 +7140,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CO_incidD_vaccadj_mar:
+    CO_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["08000"]
@@ -7121,7 +7152,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CO_incidD_vaccadj_apr:
+    CO_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["08000"]
@@ -7133,7 +7164,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CO_incidD_vaccadj_may:
+    CO_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["08000"]
@@ -7145,7 +7176,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CO_incidD_vaccadj_jun:
+    CO_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["08000"]
@@ -7157,7 +7188,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CO_incidD_vaccadj_jul:
+    CO_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["08000"]
@@ -7169,7 +7200,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CO_incidD_vaccadj_aug:
+    CO_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["08000"]
@@ -7181,7 +7212,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CT_incidD_vaccadj_jan:
+    CT_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["09000"]
@@ -7193,7 +7224,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CT_incidD_vaccadj_feb:
+    CT_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["09000"]
@@ -7205,7 +7236,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CT_incidD_vaccadj_mar:
+    CT_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["09000"]
@@ -7217,7 +7248,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CT_incidD_vaccadj_apr:
+    CT_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["09000"]
@@ -7229,7 +7260,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CT_incidD_vaccadj_may:
+    CT_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["09000"]
@@ -7241,7 +7272,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CT_incidD_vaccadj_jun:
+    CT_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["09000"]
@@ -7253,7 +7284,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CT_incidD_vaccadj_jul:
+    CT_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["09000"]
@@ -7265,7 +7296,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    CT_incidD_vaccadj_aug:
+    CT_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["09000"]
@@ -7277,7 +7308,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DE_incidD_vaccadj_jan:
+    DE_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["10000"]
@@ -7289,7 +7320,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DE_incidD_vaccadj_feb:
+    DE_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["10000"]
@@ -7301,7 +7332,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DE_incidD_vaccadj_mar:
+    DE_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["10000"]
@@ -7313,7 +7344,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DE_incidD_vaccadj_apr:
+    DE_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["10000"]
@@ -7325,7 +7356,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DE_incidD_vaccadj_may:
+    DE_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["10000"]
@@ -7337,7 +7368,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DE_incidD_vaccadj_jun:
+    DE_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["10000"]
@@ -7349,7 +7380,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DE_incidD_vaccadj_jul:
+    DE_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["10000"]
@@ -7361,7 +7392,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DE_incidD_vaccadj_aug:
+    DE_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["10000"]
@@ -7373,7 +7404,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DC_incidD_vaccadj_jan:
+    DC_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["11000"]
@@ -7385,7 +7416,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DC_incidD_vaccadj_feb:
+    DC_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["11000"]
@@ -7397,7 +7428,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DC_incidD_vaccadj_mar:
+    DC_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["11000"]
@@ -7409,7 +7440,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DC_incidD_vaccadj_apr:
+    DC_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["11000"]
@@ -7421,7 +7452,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DC_incidD_vaccadj_may:
+    DC_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["11000"]
@@ -7433,7 +7464,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DC_incidD_vaccadj_jun:
+    DC_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["11000"]
@@ -7445,7 +7476,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DC_incidD_vaccadj_jul:
+    DC_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["11000"]
@@ -7457,7 +7488,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    DC_incidD_vaccadj_aug:
+    DC_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["11000"]
@@ -7469,7 +7500,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    FL_incidD_vaccadj_jan:
+    FL_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["12000"]
@@ -7481,7 +7512,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    FL_incidD_vaccadj_feb:
+    FL_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["12000"]
@@ -7493,7 +7524,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    FL_incidD_vaccadj_mar:
+    FL_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["12000"]
@@ -7505,7 +7536,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    FL_incidD_vaccadj_apr:
+    FL_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["12000"]
@@ -7517,7 +7548,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    FL_incidD_vaccadj_may:
+    FL_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["12000"]
@@ -7529,7 +7560,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    FL_incidD_vaccadj_jun:
+    FL_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["12000"]
@@ -7541,7 +7572,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    FL_incidD_vaccadj_jul:
+    FL_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["12000"]
@@ -7553,7 +7584,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    FL_incidD_vaccadj_aug:
+    FL_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["12000"]
@@ -7565,7 +7596,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GA_incidD_vaccadj_jan:
+    GA_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["13000"]
@@ -7577,7 +7608,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GA_incidD_vaccadj_feb:
+    GA_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["13000"]
@@ -7589,7 +7620,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GA_incidD_vaccadj_mar:
+    GA_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["13000"]
@@ -7601,7 +7632,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GA_incidD_vaccadj_apr:
+    GA_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["13000"]
@@ -7613,7 +7644,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GA_incidD_vaccadj_may:
+    GA_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["13000"]
@@ -7625,7 +7656,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GA_incidD_vaccadj_jun:
+    GA_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["13000"]
@@ -7637,7 +7668,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GA_incidD_vaccadj_jul:
+    GA_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["13000"]
@@ -7649,7 +7680,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GA_incidD_vaccadj_aug:
+    GA_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["13000"]
@@ -7661,7 +7692,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    HI_incidD_vaccadj_jan:
+    HI_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["15000"]
@@ -7673,7 +7704,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    HI_incidD_vaccadj_feb:
+    HI_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["15000"]
@@ -7685,7 +7716,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    HI_incidD_vaccadj_mar:
+    HI_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["15000"]
@@ -7697,7 +7728,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    HI_incidD_vaccadj_apr:
+    HI_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["15000"]
@@ -7709,7 +7740,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    HI_incidD_vaccadj_may:
+    HI_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["15000"]
@@ -7721,7 +7752,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    HI_incidD_vaccadj_jun:
+    HI_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["15000"]
@@ -7733,7 +7764,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    HI_incidD_vaccadj_jul:
+    HI_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["15000"]
@@ -7745,7 +7776,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    HI_incidD_vaccadj_aug:
+    HI_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["15000"]
@@ -7757,7 +7788,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ID_incidD_vaccadj_jan:
+    ID_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["16000"]
@@ -7769,7 +7800,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ID_incidD_vaccadj_feb:
+    ID_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["16000"]
@@ -7781,7 +7812,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ID_incidD_vaccadj_mar:
+    ID_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["16000"]
@@ -7793,7 +7824,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ID_incidD_vaccadj_apr:
+    ID_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["16000"]
@@ -7805,7 +7836,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ID_incidD_vaccadj_may:
+    ID_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["16000"]
@@ -7817,7 +7848,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ID_incidD_vaccadj_jun:
+    ID_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["16000"]
@@ -7829,7 +7860,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ID_incidD_vaccadj_jul:
+    ID_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["16000"]
@@ -7841,7 +7872,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ID_incidD_vaccadj_aug:
+    ID_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["16000"]
@@ -7853,7 +7884,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IL_incidD_vaccadj_jan:
+    IL_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["17000"]
@@ -7865,7 +7896,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IL_incidD_vaccadj_feb:
+    IL_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["17000"]
@@ -7877,7 +7908,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IL_incidD_vaccadj_mar:
+    IL_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["17000"]
@@ -7889,7 +7920,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IL_incidD_vaccadj_apr:
+    IL_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["17000"]
@@ -7901,7 +7932,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IL_incidD_vaccadj_may:
+    IL_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["17000"]
@@ -7913,7 +7944,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IL_incidD_vaccadj_jun:
+    IL_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["17000"]
@@ -7925,7 +7956,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IL_incidD_vaccadj_jul:
+    IL_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["17000"]
@@ -7937,7 +7968,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IL_incidD_vaccadj_aug:
+    IL_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["17000"]
@@ -7949,7 +7980,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IN_incidD_vaccadj_jan:
+    IN_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["18000"]
@@ -7961,7 +7992,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IN_incidD_vaccadj_feb:
+    IN_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["18000"]
@@ -7973,7 +8004,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IN_incidD_vaccadj_mar:
+    IN_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["18000"]
@@ -7985,7 +8016,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IN_incidD_vaccadj_apr:
+    IN_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["18000"]
@@ -7997,7 +8028,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IN_incidD_vaccadj_may:
+    IN_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["18000"]
@@ -8009,7 +8040,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IN_incidD_vaccadj_jun:
+    IN_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["18000"]
@@ -8021,7 +8052,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IN_incidD_vaccadj_jul:
+    IN_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["18000"]
@@ -8033,7 +8064,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IN_incidD_vaccadj_aug:
+    IN_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["18000"]
@@ -8045,7 +8076,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IA_incidD_vaccadj_jan:
+    IA_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["19000"]
@@ -8057,7 +8088,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IA_incidD_vaccadj_feb:
+    IA_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["19000"]
@@ -8069,7 +8100,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IA_incidD_vaccadj_mar:
+    IA_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["19000"]
@@ -8081,7 +8112,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IA_incidD_vaccadj_apr:
+    IA_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["19000"]
@@ -8093,7 +8124,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IA_incidD_vaccadj_may:
+    IA_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["19000"]
@@ -8105,7 +8136,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IA_incidD_vaccadj_jun:
+    IA_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["19000"]
@@ -8117,7 +8148,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IA_incidD_vaccadj_jul:
+    IA_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["19000"]
@@ -8129,7 +8160,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    IA_incidD_vaccadj_aug:
+    IA_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["19000"]
@@ -8141,7 +8172,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KS_incidD_vaccadj_jan:
+    KS_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["20000"]
@@ -8153,7 +8184,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KS_incidD_vaccadj_feb:
+    KS_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["20000"]
@@ -8165,7 +8196,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KS_incidD_vaccadj_mar:
+    KS_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["20000"]
@@ -8177,7 +8208,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KS_incidD_vaccadj_apr:
+    KS_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["20000"]
@@ -8189,7 +8220,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KS_incidD_vaccadj_may:
+    KS_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["20000"]
@@ -8201,7 +8232,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KS_incidD_vaccadj_jun:
+    KS_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["20000"]
@@ -8213,7 +8244,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KS_incidD_vaccadj_jul:
+    KS_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["20000"]
@@ -8225,7 +8256,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KS_incidD_vaccadj_aug:
+    KS_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["20000"]
@@ -8237,7 +8268,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KY_incidD_vaccadj_jan:
+    KY_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["21000"]
@@ -8249,7 +8280,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KY_incidD_vaccadj_feb:
+    KY_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["21000"]
@@ -8261,7 +8292,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KY_incidD_vaccadj_mar:
+    KY_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["21000"]
@@ -8273,7 +8304,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KY_incidD_vaccadj_apr:
+    KY_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["21000"]
@@ -8285,7 +8316,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KY_incidD_vaccadj_may:
+    KY_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["21000"]
@@ -8297,7 +8328,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KY_incidD_vaccadj_jun:
+    KY_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["21000"]
@@ -8309,7 +8340,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KY_incidD_vaccadj_jul:
+    KY_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["21000"]
@@ -8321,7 +8352,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    KY_incidD_vaccadj_aug:
+    KY_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["21000"]
@@ -8333,7 +8364,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    LA_incidD_vaccadj_jan:
+    LA_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["22000"]
@@ -8345,7 +8376,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    LA_incidD_vaccadj_feb:
+    LA_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["22000"]
@@ -8357,7 +8388,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    LA_incidD_vaccadj_mar:
+    LA_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["22000"]
@@ -8369,7 +8400,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    LA_incidD_vaccadj_apr:
+    LA_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["22000"]
@@ -8381,7 +8412,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    LA_incidD_vaccadj_may:
+    LA_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["22000"]
@@ -8393,7 +8424,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    LA_incidD_vaccadj_jun:
+    LA_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["22000"]
@@ -8405,7 +8436,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    LA_incidD_vaccadj_jul:
+    LA_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["22000"]
@@ -8417,7 +8448,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    LA_incidD_vaccadj_aug:
+    LA_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["22000"]
@@ -8429,7 +8460,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ME_incidD_vaccadj_jan:
+    ME_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["23000"]
@@ -8441,7 +8472,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ME_incidD_vaccadj_feb:
+    ME_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["23000"]
@@ -8453,7 +8484,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ME_incidD_vaccadj_mar:
+    ME_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["23000"]
@@ -8465,7 +8496,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ME_incidD_vaccadj_apr:
+    ME_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["23000"]
@@ -8477,7 +8508,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ME_incidD_vaccadj_may:
+    ME_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["23000"]
@@ -8489,7 +8520,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ME_incidD_vaccadj_jun:
+    ME_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["23000"]
@@ -8501,7 +8532,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ME_incidD_vaccadj_jul:
+    ME_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["23000"]
@@ -8513,7 +8544,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ME_incidD_vaccadj_aug:
+    ME_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["23000"]
@@ -8525,7 +8556,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MD_incidD_vaccadj_jan:
+    MD_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["24000"]
@@ -8537,7 +8568,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MD_incidD_vaccadj_feb:
+    MD_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["24000"]
@@ -8549,7 +8580,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MD_incidD_vaccadj_mar:
+    MD_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["24000"]
@@ -8561,7 +8592,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MD_incidD_vaccadj_apr:
+    MD_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["24000"]
@@ -8573,7 +8604,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MD_incidD_vaccadj_may:
+    MD_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["24000"]
@@ -8585,7 +8616,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MD_incidD_vaccadj_jun:
+    MD_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["24000"]
@@ -8597,7 +8628,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MD_incidD_vaccadj_jul:
+    MD_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["24000"]
@@ -8609,7 +8640,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MD_incidD_vaccadj_aug:
+    MD_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["24000"]
@@ -8621,7 +8652,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MA_incidD_vaccadj_jan:
+    MA_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["25000"]
@@ -8633,7 +8664,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MA_incidD_vaccadj_feb:
+    MA_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["25000"]
@@ -8645,7 +8676,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MA_incidD_vaccadj_mar:
+    MA_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["25000"]
@@ -8657,7 +8688,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MA_incidD_vaccadj_apr:
+    MA_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["25000"]
@@ -8669,7 +8700,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MA_incidD_vaccadj_may:
+    MA_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["25000"]
@@ -8681,7 +8712,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MA_incidD_vaccadj_jun:
+    MA_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["25000"]
@@ -8693,7 +8724,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MA_incidD_vaccadj_jul:
+    MA_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["25000"]
@@ -8705,7 +8736,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MA_incidD_vaccadj_aug:
+    MA_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["25000"]
@@ -8717,7 +8748,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MI_incidD_vaccadj_jan:
+    MI_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["26000"]
@@ -8729,7 +8760,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MI_incidD_vaccadj_feb:
+    MI_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["26000"]
@@ -8741,7 +8772,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MI_incidD_vaccadj_mar:
+    MI_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["26000"]
@@ -8753,7 +8784,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MI_incidD_vaccadj_apr:
+    MI_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["26000"]
@@ -8765,7 +8796,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MI_incidD_vaccadj_may:
+    MI_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["26000"]
@@ -8777,7 +8808,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MI_incidD_vaccadj_jun:
+    MI_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["26000"]
@@ -8789,7 +8820,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MI_incidD_vaccadj_jul:
+    MI_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["26000"]
@@ -8801,7 +8832,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MI_incidD_vaccadj_aug:
+    MI_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["26000"]
@@ -8813,7 +8844,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MN_incidD_vaccadj_jan:
+    MN_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["27000"]
@@ -8825,7 +8856,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MN_incidD_vaccadj_feb:
+    MN_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["27000"]
@@ -8837,7 +8868,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MN_incidD_vaccadj_mar:
+    MN_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["27000"]
@@ -8849,7 +8880,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MN_incidD_vaccadj_apr:
+    MN_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["27000"]
@@ -8861,7 +8892,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MN_incidD_vaccadj_may:
+    MN_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["27000"]
@@ -8873,7 +8904,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MN_incidD_vaccadj_jun:
+    MN_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["27000"]
@@ -8885,7 +8916,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MN_incidD_vaccadj_jul:
+    MN_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["27000"]
@@ -8897,7 +8928,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MN_incidD_vaccadj_aug:
+    MN_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["27000"]
@@ -8909,7 +8940,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MS_incidD_vaccadj_jan:
+    MS_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["28000"]
@@ -8921,7 +8952,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MS_incidD_vaccadj_feb:
+    MS_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["28000"]
@@ -8933,7 +8964,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MS_incidD_vaccadj_mar:
+    MS_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["28000"]
@@ -8945,7 +8976,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MS_incidD_vaccadj_apr:
+    MS_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["28000"]
@@ -8957,7 +8988,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MS_incidD_vaccadj_may:
+    MS_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["28000"]
@@ -8969,7 +9000,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MS_incidD_vaccadj_jun:
+    MS_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["28000"]
@@ -8981,7 +9012,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MS_incidD_vaccadj_jul:
+    MS_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["28000"]
@@ -8993,7 +9024,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MS_incidD_vaccadj_aug:
+    MS_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["28000"]
@@ -9005,7 +9036,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MO_incidD_vaccadj_jan:
+    MO_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["29000"]
@@ -9017,7 +9048,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MO_incidD_vaccadj_feb:
+    MO_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["29000"]
@@ -9029,7 +9060,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MO_incidD_vaccadj_mar:
+    MO_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["29000"]
@@ -9041,7 +9072,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MO_incidD_vaccadj_apr:
+    MO_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["29000"]
@@ -9053,7 +9084,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MO_incidD_vaccadj_may:
+    MO_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["29000"]
@@ -9065,7 +9096,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MO_incidD_vaccadj_jun:
+    MO_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["29000"]
@@ -9077,7 +9108,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MO_incidD_vaccadj_jul:
+    MO_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["29000"]
@@ -9089,7 +9120,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MO_incidD_vaccadj_aug:
+    MO_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["29000"]
@@ -9101,7 +9132,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MT_incidD_vaccadj_jan:
+    MT_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["30000"]
@@ -9113,7 +9144,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MT_incidD_vaccadj_feb:
+    MT_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["30000"]
@@ -9125,7 +9156,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MT_incidD_vaccadj_mar:
+    MT_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["30000"]
@@ -9137,7 +9168,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MT_incidD_vaccadj_apr:
+    MT_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["30000"]
@@ -9149,7 +9180,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MT_incidD_vaccadj_may:
+    MT_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["30000"]
@@ -9161,7 +9192,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MT_incidD_vaccadj_jun:
+    MT_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["30000"]
@@ -9173,7 +9204,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MT_incidD_vaccadj_jul:
+    MT_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["30000"]
@@ -9185,7 +9216,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MT_incidD_vaccadj_aug:
+    MT_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["30000"]
@@ -9197,7 +9228,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NE_incidD_vaccadj_jan:
+    NE_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["31000"]
@@ -9209,7 +9240,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NE_incidD_vaccadj_feb:
+    NE_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["31000"]
@@ -9221,7 +9252,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NE_incidD_vaccadj_mar:
+    NE_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["31000"]
@@ -9233,7 +9264,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NE_incidD_vaccadj_apr:
+    NE_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["31000"]
@@ -9245,7 +9276,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NE_incidD_vaccadj_may:
+    NE_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["31000"]
@@ -9257,7 +9288,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NE_incidD_vaccadj_jun:
+    NE_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["31000"]
@@ -9269,7 +9300,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NE_incidD_vaccadj_jul:
+    NE_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["31000"]
@@ -9281,7 +9312,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NE_incidD_vaccadj_aug:
+    NE_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["31000"]
@@ -9293,7 +9324,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NV_incidD_vaccadj_jan:
+    NV_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["32000"]
@@ -9305,7 +9336,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NV_incidD_vaccadj_feb:
+    NV_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["32000"]
@@ -9317,7 +9348,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NV_incidD_vaccadj_mar:
+    NV_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["32000"]
@@ -9329,7 +9360,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NV_incidD_vaccadj_apr:
+    NV_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["32000"]
@@ -9341,7 +9372,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NV_incidD_vaccadj_may:
+    NV_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["32000"]
@@ -9353,7 +9384,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NV_incidD_vaccadj_jun:
+    NV_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["32000"]
@@ -9365,7 +9396,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NV_incidD_vaccadj_jul:
+    NV_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["32000"]
@@ -9377,7 +9408,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NV_incidD_vaccadj_aug:
+    NV_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["32000"]
@@ -9389,7 +9420,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NH_incidD_vaccadj_jan:
+    NH_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["33000"]
@@ -9401,7 +9432,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NH_incidD_vaccadj_feb:
+    NH_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["33000"]
@@ -9413,7 +9444,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NH_incidD_vaccadj_mar:
+    NH_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["33000"]
@@ -9425,7 +9456,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NH_incidD_vaccadj_apr:
+    NH_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["33000"]
@@ -9437,7 +9468,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NH_incidD_vaccadj_may:
+    NH_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["33000"]
@@ -9449,7 +9480,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NH_incidD_vaccadj_jun:
+    NH_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["33000"]
@@ -9461,7 +9492,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NH_incidD_vaccadj_jul:
+    NH_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["33000"]
@@ -9473,7 +9504,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NH_incidD_vaccadj_aug:
+    NH_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["33000"]
@@ -9485,7 +9516,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NJ_incidD_vaccadj_jan:
+    NJ_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["34000"]
@@ -9497,7 +9528,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NJ_incidD_vaccadj_feb:
+    NJ_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["34000"]
@@ -9509,7 +9540,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NJ_incidD_vaccadj_mar:
+    NJ_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["34000"]
@@ -9521,7 +9552,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NJ_incidD_vaccadj_apr:
+    NJ_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["34000"]
@@ -9533,7 +9564,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NJ_incidD_vaccadj_may:
+    NJ_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["34000"]
@@ -9545,7 +9576,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NJ_incidD_vaccadj_jun:
+    NJ_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["34000"]
@@ -9557,7 +9588,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NJ_incidD_vaccadj_jul:
+    NJ_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["34000"]
@@ -9569,7 +9600,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NJ_incidD_vaccadj_aug:
+    NJ_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["34000"]
@@ -9581,7 +9612,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NM_incidD_vaccadj_jan:
+    NM_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["35000"]
@@ -9593,7 +9624,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NM_incidD_vaccadj_feb:
+    NM_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["35000"]
@@ -9605,7 +9636,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NM_incidD_vaccadj_mar:
+    NM_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["35000"]
@@ -9617,7 +9648,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NM_incidD_vaccadj_apr:
+    NM_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["35000"]
@@ -9629,7 +9660,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NM_incidD_vaccadj_may:
+    NM_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["35000"]
@@ -9641,7 +9672,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NM_incidD_vaccadj_jun:
+    NM_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["35000"]
@@ -9653,7 +9684,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NM_incidD_vaccadj_jul:
+    NM_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["35000"]
@@ -9665,7 +9696,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NM_incidD_vaccadj_aug:
+    NM_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["35000"]
@@ -9677,7 +9708,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NY_incidD_vaccadj_jan:
+    NY_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["36000"]
@@ -9689,7 +9720,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NY_incidD_vaccadj_feb:
+    NY_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["36000"]
@@ -9701,7 +9732,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NY_incidD_vaccadj_mar:
+    NY_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["36000"]
@@ -9713,7 +9744,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NY_incidD_vaccadj_apr:
+    NY_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["36000"]
@@ -9725,7 +9756,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NY_incidD_vaccadj_may:
+    NY_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["36000"]
@@ -9737,7 +9768,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NY_incidD_vaccadj_jun:
+    NY_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["36000"]
@@ -9749,7 +9780,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NY_incidD_vaccadj_jul:
+    NY_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["36000"]
@@ -9761,7 +9792,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NY_incidD_vaccadj_aug:
+    NY_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["36000"]
@@ -9773,7 +9804,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NC_incidD_vaccadj_jan:
+    NC_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["37000"]
@@ -9785,7 +9816,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NC_incidD_vaccadj_feb:
+    NC_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["37000"]
@@ -9797,7 +9828,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NC_incidD_vaccadj_mar:
+    NC_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["37000"]
@@ -9809,7 +9840,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NC_incidD_vaccadj_apr:
+    NC_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["37000"]
@@ -9821,7 +9852,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NC_incidD_vaccadj_may:
+    NC_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["37000"]
@@ -9833,7 +9864,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NC_incidD_vaccadj_jun:
+    NC_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["37000"]
@@ -9845,7 +9876,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NC_incidD_vaccadj_jul:
+    NC_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["37000"]
@@ -9857,7 +9888,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    NC_incidD_vaccadj_aug:
+    NC_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["37000"]
@@ -9869,7 +9900,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ND_incidD_vaccadj_jan:
+    ND_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["38000"]
@@ -9881,7 +9912,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ND_incidD_vaccadj_feb:
+    ND_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["38000"]
@@ -9893,7 +9924,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ND_incidD_vaccadj_mar:
+    ND_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["38000"]
@@ -9905,7 +9936,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ND_incidD_vaccadj_apr:
+    ND_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["38000"]
@@ -9917,7 +9948,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ND_incidD_vaccadj_may:
+    ND_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["38000"]
@@ -9929,7 +9960,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ND_incidD_vaccadj_jun:
+    ND_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["38000"]
@@ -9941,7 +9972,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ND_incidD_vaccadj_jul:
+    ND_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["38000"]
@@ -9953,7 +9984,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    ND_incidD_vaccadj_aug:
+    ND_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["38000"]
@@ -9965,7 +9996,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OH_incidD_vaccadj_jan:
+    OH_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["39000"]
@@ -9977,7 +10008,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OH_incidD_vaccadj_feb:
+    OH_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["39000"]
@@ -9989,7 +10020,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OH_incidD_vaccadj_mar:
+    OH_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["39000"]
@@ -10001,7 +10032,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OH_incidD_vaccadj_apr:
+    OH_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["39000"]
@@ -10013,7 +10044,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OH_incidD_vaccadj_may:
+    OH_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["39000"]
@@ -10025,7 +10056,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OH_incidD_vaccadj_jun:
+    OH_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["39000"]
@@ -10037,7 +10068,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OH_incidD_vaccadj_jul:
+    OH_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["39000"]
@@ -10049,7 +10080,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OH_incidD_vaccadj_aug:
+    OH_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["39000"]
@@ -10061,7 +10092,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OK_incidD_vaccadj_jan:
+    OK_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["40000"]
@@ -10073,7 +10104,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OK_incidD_vaccadj_feb:
+    OK_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["40000"]
@@ -10085,7 +10116,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OK_incidD_vaccadj_mar:
+    OK_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["40000"]
@@ -10097,7 +10128,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OK_incidD_vaccadj_apr:
+    OK_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["40000"]
@@ -10109,7 +10140,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OK_incidD_vaccadj_may:
+    OK_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["40000"]
@@ -10121,7 +10152,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OK_incidD_vaccadj_jun:
+    OK_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["40000"]
@@ -10133,7 +10164,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OK_incidD_vaccadj_jul:
+    OK_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["40000"]
@@ -10145,7 +10176,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OK_incidD_vaccadj_aug:
+    OK_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["40000"]
@@ -10157,7 +10188,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OR_incidD_vaccadj_jan:
+    OR_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["41000"]
@@ -10169,7 +10200,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OR_incidD_vaccadj_feb:
+    OR_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["41000"]
@@ -10181,7 +10212,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OR_incidD_vaccadj_mar:
+    OR_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["41000"]
@@ -10193,7 +10224,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OR_incidD_vaccadj_apr:
+    OR_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["41000"]
@@ -10205,7 +10236,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OR_incidD_vaccadj_may:
+    OR_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["41000"]
@@ -10217,7 +10248,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OR_incidD_vaccadj_jun:
+    OR_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["41000"]
@@ -10229,7 +10260,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OR_incidD_vaccadj_jul:
+    OR_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["41000"]
@@ -10241,7 +10272,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    OR_incidD_vaccadj_aug:
+    OR_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["41000"]
@@ -10253,7 +10284,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PA_incidD_vaccadj_jan:
+    PA_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["42000"]
@@ -10265,7 +10296,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PA_incidD_vaccadj_feb:
+    PA_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["42000"]
@@ -10277,7 +10308,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PA_incidD_vaccadj_mar:
+    PA_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["42000"]
@@ -10289,7 +10320,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PA_incidD_vaccadj_apr:
+    PA_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["42000"]
@@ -10301,7 +10332,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PA_incidD_vaccadj_may:
+    PA_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["42000"]
@@ -10313,7 +10344,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PA_incidD_vaccadj_jun:
+    PA_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["42000"]
@@ -10325,7 +10356,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PA_incidD_vaccadj_jul:
+    PA_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["42000"]
@@ -10337,7 +10368,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PA_incidD_vaccadj_aug:
+    PA_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["42000"]
@@ -10349,7 +10380,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    RI_incidD_vaccadj_jan:
+    RI_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["44000"]
@@ -10361,7 +10392,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    RI_incidD_vaccadj_feb:
+    RI_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["44000"]
@@ -10373,7 +10404,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    RI_incidD_vaccadj_mar:
+    RI_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["44000"]
@@ -10385,7 +10416,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    RI_incidD_vaccadj_apr:
+    RI_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["44000"]
@@ -10397,7 +10428,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    RI_incidD_vaccadj_may:
+    RI_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["44000"]
@@ -10409,7 +10440,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    RI_incidD_vaccadj_jun:
+    RI_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["44000"]
@@ -10421,7 +10452,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    RI_incidD_vaccadj_jul:
+    RI_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["44000"]
@@ -10433,7 +10464,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    RI_incidD_vaccadj_aug:
+    RI_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["44000"]
@@ -10445,7 +10476,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SC_incidD_vaccadj_jan:
+    SC_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["45000"]
@@ -10457,7 +10488,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SC_incidD_vaccadj_feb:
+    SC_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["45000"]
@@ -10469,7 +10500,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SC_incidD_vaccadj_mar:
+    SC_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["45000"]
@@ -10481,7 +10512,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SC_incidD_vaccadj_apr:
+    SC_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["45000"]
@@ -10493,7 +10524,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SC_incidD_vaccadj_may:
+    SC_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["45000"]
@@ -10505,7 +10536,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SC_incidD_vaccadj_jun:
+    SC_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["45000"]
@@ -10517,7 +10548,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SC_incidD_vaccadj_jul:
+    SC_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["45000"]
@@ -10529,7 +10560,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SC_incidD_vaccadj_aug:
+    SC_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["45000"]
@@ -10541,7 +10572,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SD_incidD_vaccadj_jan:
+    SD_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["46000"]
@@ -10553,7 +10584,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SD_incidD_vaccadj_feb:
+    SD_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["46000"]
@@ -10565,7 +10596,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SD_incidD_vaccadj_mar:
+    SD_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["46000"]
@@ -10577,7 +10608,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SD_incidD_vaccadj_apr:
+    SD_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["46000"]
@@ -10589,7 +10620,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SD_incidD_vaccadj_may:
+    SD_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["46000"]
@@ -10601,7 +10632,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SD_incidD_vaccadj_jun:
+    SD_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["46000"]
@@ -10613,7 +10644,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SD_incidD_vaccadj_jul:
+    SD_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["46000"]
@@ -10625,7 +10656,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    SD_incidD_vaccadj_aug:
+    SD_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["46000"]
@@ -10637,7 +10668,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TN_incidD_vaccadj_jan:
+    TN_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["47000"]
@@ -10649,7 +10680,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TN_incidD_vaccadj_feb:
+    TN_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["47000"]
@@ -10661,7 +10692,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TN_incidD_vaccadj_mar:
+    TN_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["47000"]
@@ -10673,7 +10704,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TN_incidD_vaccadj_apr:
+    TN_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["47000"]
@@ -10685,7 +10716,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TN_incidD_vaccadj_may:
+    TN_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["47000"]
@@ -10697,7 +10728,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TN_incidD_vaccadj_jun:
+    TN_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["47000"]
@@ -10709,7 +10740,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TN_incidD_vaccadj_jul:
+    TN_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["47000"]
@@ -10721,7 +10752,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TN_incidD_vaccadj_aug:
+    TN_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["47000"]
@@ -10733,7 +10764,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TX_incidD_vaccadj_jan:
+    TX_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["48000"]
@@ -10745,7 +10776,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TX_incidD_vaccadj_feb:
+    TX_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["48000"]
@@ -10757,7 +10788,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TX_incidD_vaccadj_mar:
+    TX_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["48000"]
@@ -10769,7 +10800,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TX_incidD_vaccadj_apr:
+    TX_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["48000"]
@@ -10781,7 +10812,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TX_incidD_vaccadj_may:
+    TX_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["48000"]
@@ -10793,7 +10824,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TX_incidD_vaccadj_jun:
+    TX_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["48000"]
@@ -10805,7 +10836,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TX_incidD_vaccadj_jul:
+    TX_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["48000"]
@@ -10817,7 +10848,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    TX_incidD_vaccadj_aug:
+    TX_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["48000"]
@@ -10829,7 +10860,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    UT_incidD_vaccadj_jan:
+    UT_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["49000"]
@@ -10841,7 +10872,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    UT_incidD_vaccadj_feb:
+    UT_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["49000"]
@@ -10853,7 +10884,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    UT_incidD_vaccadj_mar:
+    UT_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["49000"]
@@ -10865,7 +10896,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    UT_incidD_vaccadj_apr:
+    UT_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["49000"]
@@ -10877,7 +10908,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    UT_incidD_vaccadj_may:
+    UT_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["49000"]
@@ -10889,7 +10920,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    UT_incidD_vaccadj_jun:
+    UT_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["49000"]
@@ -10901,7 +10932,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    UT_incidD_vaccadj_jul:
+    UT_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["49000"]
@@ -10913,7 +10944,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    UT_incidD_vaccadj_aug:
+    UT_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["49000"]
@@ -10925,7 +10956,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VT_incidD_vaccadj_jan:
+    VT_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["50000"]
@@ -10937,7 +10968,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VT_incidD_vaccadj_feb:
+    VT_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["50000"]
@@ -10949,7 +10980,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VT_incidD_vaccadj_mar:
+    VT_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["50000"]
@@ -10961,7 +10992,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VT_incidD_vaccadj_apr:
+    VT_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["50000"]
@@ -10973,7 +11004,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VT_incidD_vaccadj_may:
+    VT_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["50000"]
@@ -10985,7 +11016,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VT_incidD_vaccadj_jun:
+    VT_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["50000"]
@@ -10997,7 +11028,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VT_incidD_vaccadj_jul:
+    VT_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["50000"]
@@ -11009,7 +11040,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VT_incidD_vaccadj_aug:
+    VT_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["50000"]
@@ -11021,7 +11052,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VA_incidD_vaccadj_jan:
+    VA_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["51000"]
@@ -11033,7 +11064,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VA_incidD_vaccadj_feb:
+    VA_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["51000"]
@@ -11045,7 +11076,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VA_incidD_vaccadj_mar:
+    VA_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["51000"]
@@ -11057,7 +11088,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VA_incidD_vaccadj_apr:
+    VA_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["51000"]
@@ -11069,7 +11100,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VA_incidD_vaccadj_may:
+    VA_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["51000"]
@@ -11081,7 +11112,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VA_incidD_vaccadj_jun:
+    VA_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["51000"]
@@ -11093,7 +11124,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VA_incidD_vaccadj_jul:
+    VA_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["51000"]
@@ -11105,7 +11136,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VA_incidD_vaccadj_aug:
+    VA_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["51000"]
@@ -11117,7 +11148,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WA_incidD_vaccadj_jan:
+    WA_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["53000"]
@@ -11129,7 +11160,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WA_incidD_vaccadj_feb:
+    WA_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["53000"]
@@ -11141,7 +11172,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WA_incidD_vaccadj_mar:
+    WA_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["53000"]
@@ -11153,7 +11184,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WA_incidD_vaccadj_apr:
+    WA_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["53000"]
@@ -11165,7 +11196,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WA_incidD_vaccadj_may:
+    WA_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["53000"]
@@ -11177,7 +11208,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WA_incidD_vaccadj_jun:
+    WA_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["53000"]
@@ -11189,7 +11220,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WA_incidD_vaccadj_jul:
+    WA_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["53000"]
@@ -11201,7 +11232,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WA_incidD_vaccadj_aug:
+    WA_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["53000"]
@@ -11213,7 +11244,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WV_incidD_vaccadj_jan:
+    WV_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["54000"]
@@ -11225,7 +11256,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WV_incidD_vaccadj_feb:
+    WV_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["54000"]
@@ -11237,7 +11268,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WV_incidD_vaccadj_mar:
+    WV_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["54000"]
@@ -11249,7 +11280,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WV_incidD_vaccadj_apr:
+    WV_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["54000"]
@@ -11261,7 +11292,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WV_incidD_vaccadj_may:
+    WV_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["54000"]
@@ -11273,7 +11304,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WV_incidD_vaccadj_jun:
+    WV_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["54000"]
@@ -11285,7 +11316,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WV_incidD_vaccadj_jul:
+    WV_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["54000"]
@@ -11297,7 +11328,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WV_incidD_vaccadj_aug:
+    WV_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["54000"]
@@ -11309,7 +11340,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WI_incidD_vaccadj_jan:
+    WI_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["55000"]
@@ -11321,7 +11352,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WI_incidD_vaccadj_feb:
+    WI_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["55000"]
@@ -11333,7 +11364,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WI_incidD_vaccadj_mar:
+    WI_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["55000"]
@@ -11345,7 +11376,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WI_incidD_vaccadj_apr:
+    WI_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["55000"]
@@ -11357,7 +11388,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WI_incidD_vaccadj_may:
+    WI_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["55000"]
@@ -11369,7 +11400,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WI_incidD_vaccadj_jun:
+    WI_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["55000"]
@@ -11381,7 +11412,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WI_incidD_vaccadj_jul:
+    WI_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["55000"]
@@ -11393,7 +11424,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WI_incidD_vaccadj_aug:
+    WI_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["55000"]
@@ -11405,7 +11436,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WY_incidD_vaccadj_jan:
+    WY_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["56000"]
@@ -11417,7 +11448,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WY_incidD_vaccadj_feb:
+    WY_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["56000"]
@@ -11429,7 +11460,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WY_incidD_vaccadj_mar:
+    WY_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["56000"]
@@ -11441,7 +11472,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WY_incidD_vaccadj_apr:
+    WY_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["56000"]
@@ -11453,7 +11484,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WY_incidD_vaccadj_may:
+    WY_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["56000"]
@@ -11465,7 +11496,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WY_incidD_vaccadj_jun:
+    WY_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["56000"]
@@ -11477,7 +11508,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WY_incidD_vaccadj_jul:
+    WY_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["56000"]
@@ -11489,7 +11520,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    WY_incidD_vaccadj_aug:
+    WY_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["56000"]
@@ -11501,7 +11532,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GU_incidD_vaccadj_jan:
+    GU_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["66000"]
@@ -11513,7 +11544,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GU_incidD_vaccadj_feb:
+    GU_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["66000"]
@@ -11525,7 +11556,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GU_incidD_vaccadj_mar:
+    GU_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["66000"]
@@ -11537,7 +11568,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GU_incidD_vaccadj_apr:
+    GU_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["66000"]
@@ -11549,7 +11580,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GU_incidD_vaccadj_may:
+    GU_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["66000"]
@@ -11561,7 +11592,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GU_incidD_vaccadj_jun:
+    GU_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["66000"]
@@ -11573,7 +11604,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GU_incidD_vaccadj_jul:
+    GU_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["66000"]
@@ -11585,7 +11616,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    GU_incidD_vaccadj_aug:
+    GU_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["66000"]
@@ -11597,7 +11628,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MP_incidD_vaccadj_jan:
+    MP_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["69000"]
@@ -11609,7 +11640,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MP_incidD_vaccadj_feb:
+    MP_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["69000"]
@@ -11621,7 +11652,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MP_incidD_vaccadj_mar:
+    MP_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["69000"]
@@ -11633,7 +11664,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MP_incidD_vaccadj_apr:
+    MP_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["69000"]
@@ -11645,7 +11676,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MP_incidD_vaccadj_may:
+    MP_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["69000"]
@@ -11657,7 +11688,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MP_incidD_vaccadj_jun:
+    MP_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["69000"]
@@ -11669,7 +11700,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MP_incidD_vaccadj_jul:
+    MP_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["69000"]
@@ -11681,7 +11712,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    MP_incidD_vaccadj_aug:
+    MP_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["69000"]
@@ -11693,7 +11724,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PR_incidD_vaccadj_jan:
+    PR_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["72000"]
@@ -11705,7 +11736,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PR_incidD_vaccadj_feb:
+    PR_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["72000"]
@@ -11717,7 +11748,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PR_incidD_vaccadj_mar:
+    PR_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["72000"]
@@ -11729,7 +11760,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PR_incidD_vaccadj_apr:
+    PR_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["72000"]
@@ -11741,7 +11772,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PR_incidD_vaccadj_may:
+    PR_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["72000"]
@@ -11753,7 +11784,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PR_incidD_vaccadj_jun:
+    PR_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["72000"]
@@ -11765,7 +11796,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PR_incidD_vaccadj_jul:
+    PR_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["72000"]
@@ -11777,7 +11808,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    PR_incidD_vaccadj_aug:
+    PR_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["72000"]
@@ -11789,7 +11820,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VI_incidD_vaccadj_jan:
+    VI_incidD_vaccadj_jan2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["78000"]
@@ -11801,7 +11832,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VI_incidD_vaccadj_feb:
+    VI_incidD_vaccadj_feb2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["78000"]
@@ -11813,7 +11844,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VI_incidD_vaccadj_mar:
+    VI_incidD_vaccadj_mar2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["78000"]
@@ -11825,7 +11856,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VI_incidD_vaccadj_apr:
+    VI_incidD_vaccadj_apr2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["78000"]
@@ -11837,7 +11868,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VI_incidD_vaccadj_may:
+    VI_incidD_vaccadj_may2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["78000"]
@@ -11849,7 +11880,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VI_incidD_vaccadj_jun:
+    VI_incidD_vaccadj_jun2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["78000"]
@@ -11861,7 +11892,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VI_incidD_vaccadj_jul:
+    VI_incidD_vaccadj_jul2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["78000"]
@@ -11873,7 +11904,7 @@ interventions:
         sd: 0.01
         a: 0
         b: 1
-    VI_incidD_vaccadj_aug:
+    VI_incidD_vaccadj_aug2021:
       template: Reduce
       parameter: incidD::probability
       affected_geoids: ["78000"]
@@ -11972,7 +12003,7 @@ outcomes:
     settings:
       med:
         template: Stacked
-        scenarios: ["AL_incidD_vaccadj_jan", "AL_incidD_vaccadj_feb", "AL_incidD_vaccadj_mar", "AL_incidD_vaccadj_apr", "AL_incidD_vaccadj_may", "AL_incidD_vaccadj_jun", "AL_incidD_vaccadj_jul", "AL_incidD_vaccadj_aug", "AK_incidD_vaccadj_jan", "AK_incidD_vaccadj_feb", "AK_incidD_vaccadj_mar", "AK_incidD_vaccadj_apr", "AK_incidD_vaccadj_may", "AK_incidD_vaccadj_jun", "AK_incidD_vaccadj_jul", "AK_incidD_vaccadj_aug", "AZ_incidD_vaccadj_jan", "AZ_incidD_vaccadj_feb", "AZ_incidD_vaccadj_mar", "AZ_incidD_vaccadj_apr", "AZ_incidD_vaccadj_may", "AZ_incidD_vaccadj_jun", "AZ_incidD_vaccadj_jul", "AZ_incidD_vaccadj_aug", "AR_incidD_vaccadj_jan", "AR_incidD_vaccadj_feb", "AR_incidD_vaccadj_mar", "AR_incidD_vaccadj_apr", "AR_incidD_vaccadj_may", "AR_incidD_vaccadj_jun", "AR_incidD_vaccadj_jul", "AR_incidD_vaccadj_aug", "CA_incidD_vaccadj_jan", "CA_incidD_vaccadj_feb", "CA_incidD_vaccadj_mar", "CA_incidD_vaccadj_apr", "CA_incidD_vaccadj_may", "CA_incidD_vaccadj_jun", "CA_incidD_vaccadj_jul", "CA_incidD_vaccadj_aug", "CO_incidD_vaccadj_jan", "CO_incidD_vaccadj_feb", "CO_incidD_vaccadj_mar", "CO_incidD_vaccadj_apr", "CO_incidD_vaccadj_may", "CO_incidD_vaccadj_jun", "CO_incidD_vaccadj_jul", "CO_incidD_vaccadj_aug", "CT_incidD_vaccadj_jan", "CT_incidD_vaccadj_feb", "CT_incidD_vaccadj_mar", "CT_incidD_vaccadj_apr", "CT_incidD_vaccadj_may", "CT_incidD_vaccadj_jun", "CT_incidD_vaccadj_jul", "CT_incidD_vaccadj_aug", "DE_incidD_vaccadj_jan", "DE_incidD_vaccadj_feb", "DE_incidD_vaccadj_mar", "DE_incidD_vaccadj_apr", "DE_incidD_vaccadj_may", "DE_incidD_vaccadj_jun", "DE_incidD_vaccadj_jul", "DE_incidD_vaccadj_aug", "DC_incidD_vaccadj_jan", "DC_incidD_vaccadj_feb", "DC_incidD_vaccadj_mar", "DC_incidD_vaccadj_apr", "DC_incidD_vaccadj_may", "DC_incidD_vaccadj_jun", "DC_incidD_vaccadj_jul", "DC_incidD_vaccadj_aug", "FL_incidD_vaccadj_jan", "FL_incidD_vaccadj_feb", "FL_incidD_vaccadj_mar", "FL_incidD_vaccadj_apr", "FL_incidD_vaccadj_may", "FL_incidD_vaccadj_jun", "FL_incidD_vaccadj_jul", "FL_incidD_vaccadj_aug", "GA_incidD_vaccadj_jan", "GA_incidD_vaccadj_feb", "GA_incidD_vaccadj_mar", "GA_incidD_vaccadj_apr", "GA_incidD_vaccadj_may", "GA_incidD_vaccadj_jun", "GA_incidD_vaccadj_jul", "GA_incidD_vaccadj_aug", "HI_incidD_vaccadj_jan", "HI_incidD_vaccadj_feb", "HI_incidD_vaccadj_mar", "HI_incidD_vaccadj_apr", "HI_incidD_vaccadj_may", "HI_incidD_vaccadj_jun", "HI_incidD_vaccadj_jul", "HI_incidD_vaccadj_aug", "ID_incidD_vaccadj_jan", "ID_incidD_vaccadj_feb", "ID_incidD_vaccadj_mar", "ID_incidD_vaccadj_apr", "ID_incidD_vaccadj_may", "ID_incidD_vaccadj_jun", "ID_incidD_vaccadj_jul", "ID_incidD_vaccadj_aug", "IL_incidD_vaccadj_jan", "IL_incidD_vaccadj_feb", "IL_incidD_vaccadj_mar", "IL_incidD_vaccadj_apr", "IL_incidD_vaccadj_may", "IL_incidD_vaccadj_jun", "IL_incidD_vaccadj_jul", "IL_incidD_vaccadj_aug", "IN_incidD_vaccadj_jan", "IN_incidD_vaccadj_feb", "IN_incidD_vaccadj_mar", "IN_incidD_vaccadj_apr", "IN_incidD_vaccadj_may", "IN_incidD_vaccadj_jun", "IN_incidD_vaccadj_jul", "IN_incidD_vaccadj_aug", "IA_incidD_vaccadj_jan", "IA_incidD_vaccadj_feb", "IA_incidD_vaccadj_mar", "IA_incidD_vaccadj_apr", "IA_incidD_vaccadj_may", "IA_incidD_vaccadj_jun", "IA_incidD_vaccadj_jul", "IA_incidD_vaccadj_aug", "KS_incidD_vaccadj_jan", "KS_incidD_vaccadj_feb", "KS_incidD_vaccadj_mar", "KS_incidD_vaccadj_apr", "KS_incidD_vaccadj_may", "KS_incidD_vaccadj_jun", "KS_incidD_vaccadj_jul", "KS_incidD_vaccadj_aug", "KY_incidD_vaccadj_jan", "KY_incidD_vaccadj_feb", "KY_incidD_vaccadj_mar", "KY_incidD_vaccadj_apr", "KY_incidD_vaccadj_may", "KY_incidD_vaccadj_jun", "KY_incidD_vaccadj_jul", "KY_incidD_vaccadj_aug", "LA_incidD_vaccadj_jan", "LA_incidD_vaccadj_feb", "LA_incidD_vaccadj_mar", "LA_incidD_vaccadj_apr", "LA_incidD_vaccadj_may", "LA_incidD_vaccadj_jun", "LA_incidD_vaccadj_jul", "LA_incidD_vaccadj_aug", "ME_incidD_vaccadj_jan", "ME_incidD_vaccadj_feb", "ME_incidD_vaccadj_mar", "ME_incidD_vaccadj_apr", "ME_incidD_vaccadj_may", "ME_incidD_vaccadj_jun", "ME_incidD_vaccadj_jul", "ME_incidD_vaccadj_aug", "MD_incidD_vaccadj_jan", "MD_incidD_vaccadj_feb", "MD_incidD_vaccadj_mar", "MD_incidD_vaccadj_apr", "MD_incidD_vaccadj_may", "MD_incidD_vaccadj_jun", "MD_incidD_vaccadj_jul", "MD_incidD_vaccadj_aug", "MA_incidD_vaccadj_jan", "MA_incidD_vaccadj_feb", "MA_incidD_vaccadj_mar", "MA_incidD_vaccadj_apr", "MA_incidD_vaccadj_may", "MA_incidD_vaccadj_jun", "MA_incidD_vaccadj_jul", "MA_incidD_vaccadj_aug", "MI_incidD_vaccadj_jan", "MI_incidD_vaccadj_feb", "MI_incidD_vaccadj_mar", "MI_incidD_vaccadj_apr", "MI_incidD_vaccadj_may", "MI_incidD_vaccadj_jun", "MI_incidD_vaccadj_jul", "MI_incidD_vaccadj_aug", "MN_incidD_vaccadj_jan", "MN_incidD_vaccadj_feb", "MN_incidD_vaccadj_mar", "MN_incidD_vaccadj_apr", "MN_incidD_vaccadj_may", "MN_incidD_vaccadj_jun", "MN_incidD_vaccadj_jul", "MN_incidD_vaccadj_aug", "MS_incidD_vaccadj_jan", "MS_incidD_vaccadj_feb", "MS_incidD_vaccadj_mar", "MS_incidD_vaccadj_apr", "MS_incidD_vaccadj_may", "MS_incidD_vaccadj_jun", "MS_incidD_vaccadj_jul", "MS_incidD_vaccadj_aug", "MO_incidD_vaccadj_jan", "MO_incidD_vaccadj_feb", "MO_incidD_vaccadj_mar", "MO_incidD_vaccadj_apr", "MO_incidD_vaccadj_may", "MO_incidD_vaccadj_jun", "MO_incidD_vaccadj_jul", "MO_incidD_vaccadj_aug", "MT_incidD_vaccadj_jan", "MT_incidD_vaccadj_feb", "MT_incidD_vaccadj_mar", "MT_incidD_vaccadj_apr", "MT_incidD_vaccadj_may", "MT_incidD_vaccadj_jun", "MT_incidD_vaccadj_jul", "MT_incidD_vaccadj_aug", "NE_incidD_vaccadj_jan", "NE_incidD_vaccadj_feb", "NE_incidD_vaccadj_mar", "NE_incidD_vaccadj_apr", "NE_incidD_vaccadj_may", "NE_incidD_vaccadj_jun", "NE_incidD_vaccadj_jul", "NE_incidD_vaccadj_aug", "NV_incidD_vaccadj_jan", "NV_incidD_vaccadj_feb", "NV_incidD_vaccadj_mar", "NV_incidD_vaccadj_apr", "NV_incidD_vaccadj_may", "NV_incidD_vaccadj_jun", "NV_incidD_vaccadj_jul", "NV_incidD_vaccadj_aug", "NH_incidD_vaccadj_jan", "NH_incidD_vaccadj_feb", "NH_incidD_vaccadj_mar", "NH_incidD_vaccadj_apr", "NH_incidD_vaccadj_may", "NH_incidD_vaccadj_jun", "NH_incidD_vaccadj_jul", "NH_incidD_vaccadj_aug", "NJ_incidD_vaccadj_jan", "NJ_incidD_vaccadj_feb", "NJ_incidD_vaccadj_mar", "NJ_incidD_vaccadj_apr", "NJ_incidD_vaccadj_may", "NJ_incidD_vaccadj_jun", "NJ_incidD_vaccadj_jul", "NJ_incidD_vaccadj_aug", "NM_incidD_vaccadj_jan", "NM_incidD_vaccadj_feb", "NM_incidD_vaccadj_mar", "NM_incidD_vaccadj_apr", "NM_incidD_vaccadj_may", "NM_incidD_vaccadj_jun", "NM_incidD_vaccadj_jul", "NM_incidD_vaccadj_aug", "NY_incidD_vaccadj_jan", "NY_incidD_vaccadj_feb", "NY_incidD_vaccadj_mar", "NY_incidD_vaccadj_apr", "NY_incidD_vaccadj_may", "NY_incidD_vaccadj_jun", "NY_incidD_vaccadj_jul", "NY_incidD_vaccadj_aug", "NC_incidD_vaccadj_jan", "NC_incidD_vaccadj_feb", "NC_incidD_vaccadj_mar", "NC_incidD_vaccadj_apr", "NC_incidD_vaccadj_may", "NC_incidD_vaccadj_jun", "NC_incidD_vaccadj_jul", "NC_incidD_vaccadj_aug", "ND_incidD_vaccadj_jan", "ND_incidD_vaccadj_feb", "ND_incidD_vaccadj_mar", "ND_incidD_vaccadj_apr", "ND_incidD_vaccadj_may", "ND_incidD_vaccadj_jun", "ND_incidD_vaccadj_jul", "ND_incidD_vaccadj_aug", "OH_incidD_vaccadj_jan", "OH_incidD_vaccadj_feb", "OH_incidD_vaccadj_mar", "OH_incidD_vaccadj_apr", "OH_incidD_vaccadj_may", "OH_incidD_vaccadj_jun", "OH_incidD_vaccadj_jul", "OH_incidD_vaccadj_aug", "OK_incidD_vaccadj_jan", "OK_incidD_vaccadj_feb", "OK_incidD_vaccadj_mar", "OK_incidD_vaccadj_apr", "OK_incidD_vaccadj_may", "OK_incidD_vaccadj_jun", "OK_incidD_vaccadj_jul", "OK_incidD_vaccadj_aug", "OR_incidD_vaccadj_jan", "OR_incidD_vaccadj_feb", "OR_incidD_vaccadj_mar", "OR_incidD_vaccadj_apr", "OR_incidD_vaccadj_may", "OR_incidD_vaccadj_jun", "OR_incidD_vaccadj_jul", "OR_incidD_vaccadj_aug", "PA_incidD_vaccadj_jan", "PA_incidD_vaccadj_feb", "PA_incidD_vaccadj_mar", "PA_incidD_vaccadj_apr", "PA_incidD_vaccadj_may", "PA_incidD_vaccadj_jun", "PA_incidD_vaccadj_jul", "PA_incidD_vaccadj_aug", "RI_incidD_vaccadj_jan", "RI_incidD_vaccadj_feb", "RI_incidD_vaccadj_mar", "RI_incidD_vaccadj_apr", "RI_incidD_vaccadj_may", "RI_incidD_vaccadj_jun", "RI_incidD_vaccadj_jul", "RI_incidD_vaccadj_aug", "SC_incidD_vaccadj_jan", "SC_incidD_vaccadj_feb", "SC_incidD_vaccadj_mar", "SC_incidD_vaccadj_apr", "SC_incidD_vaccadj_may", "SC_incidD_vaccadj_jun", "SC_incidD_vaccadj_jul", "SC_incidD_vaccadj_aug", "SD_incidD_vaccadj_jan", "SD_incidD_vaccadj_feb", "SD_incidD_vaccadj_mar", "SD_incidD_vaccadj_apr", "SD_incidD_vaccadj_may", "SD_incidD_vaccadj_jun", "SD_incidD_vaccadj_jul", "SD_incidD_vaccadj_aug", "TN_incidD_vaccadj_jan", "TN_incidD_vaccadj_feb", "TN_incidD_vaccadj_mar", "TN_incidD_vaccadj_apr", "TN_incidD_vaccadj_may", "TN_incidD_vaccadj_jun", "TN_incidD_vaccadj_jul", "TN_incidD_vaccadj_aug", "TX_incidD_vaccadj_jan", "TX_incidD_vaccadj_feb", "TX_incidD_vaccadj_mar", "TX_incidD_vaccadj_apr", "TX_incidD_vaccadj_may", "TX_incidD_vaccadj_jun", "TX_incidD_vaccadj_jul", "TX_incidD_vaccadj_aug", "UT_incidD_vaccadj_jan", "UT_incidD_vaccadj_feb", "UT_incidD_vaccadj_mar", "UT_incidD_vaccadj_apr", "UT_incidD_vaccadj_may", "UT_incidD_vaccadj_jun", "UT_incidD_vaccadj_jul", "UT_incidD_vaccadj_aug", "VT_incidD_vaccadj_jan", "VT_incidD_vaccadj_feb", "VT_incidD_vaccadj_mar", "VT_incidD_vaccadj_apr", "VT_incidD_vaccadj_may", "VT_incidD_vaccadj_jun", "VT_incidD_vaccadj_jul", "VT_incidD_vaccadj_aug", "VA_incidD_vaccadj_jan", "VA_incidD_vaccadj_feb", "VA_incidD_vaccadj_mar", "VA_incidD_vaccadj_apr", "VA_incidD_vaccadj_may", "VA_incidD_vaccadj_jun", "VA_incidD_vaccadj_jul", "VA_incidD_vaccadj_aug", "WA_incidD_vaccadj_jan", "WA_incidD_vaccadj_feb", "WA_incidD_vaccadj_mar", "WA_incidD_vaccadj_apr", "WA_incidD_vaccadj_may", "WA_incidD_vaccadj_jun", "WA_incidD_vaccadj_jul", "WA_incidD_vaccadj_aug", "WV_incidD_vaccadj_jan", "WV_incidD_vaccadj_feb", "WV_incidD_vaccadj_mar", "WV_incidD_vaccadj_apr", "WV_incidD_vaccadj_may", "WV_incidD_vaccadj_jun", "WV_incidD_vaccadj_jul", "WV_incidD_vaccadj_aug", "WI_incidD_vaccadj_jan", "WI_incidD_vaccadj_feb", "WI_incidD_vaccadj_mar", "WI_incidD_vaccadj_apr", "WI_incidD_vaccadj_may", "WI_incidD_vaccadj_jun", "WI_incidD_vaccadj_jul", "WI_incidD_vaccadj_aug", "WY_incidD_vaccadj_jan", "WY_incidD_vaccadj_feb", "WY_incidD_vaccadj_mar", "WY_incidD_vaccadj_apr", "WY_incidD_vaccadj_may", "WY_incidD_vaccadj_jun", "WY_incidD_vaccadj_jul", "WY_incidD_vaccadj_aug", "GU_incidD_vaccadj_jan", "GU_incidD_vaccadj_feb", "GU_incidD_vaccadj_mar", "GU_incidD_vaccadj_apr", "GU_incidD_vaccadj_may", "GU_incidD_vaccadj_jun", "GU_incidD_vaccadj_jul", "GU_incidD_vaccadj_aug", "MP_incidD_vaccadj_jan", "MP_incidD_vaccadj_feb", "MP_incidD_vaccadj_mar", "MP_incidD_vaccadj_apr", "MP_incidD_vaccadj_may", "MP_incidD_vaccadj_jun", "MP_incidD_vaccadj_jul", "MP_incidD_vaccadj_aug", "PR_incidD_vaccadj_jan", "PR_incidD_vaccadj_feb", "PR_incidD_vaccadj_mar", "PR_incidD_vaccadj_apr", "PR_incidD_vaccadj_may", "PR_incidD_vaccadj_jun", "PR_incidD_vaccadj_jul", "PR_incidD_vaccadj_aug", "VI_incidD_vaccadj_jan", "VI_incidD_vaccadj_feb", "VI_incidD_vaccadj_mar", "VI_incidD_vaccadj_apr", "VI_incidD_vaccadj_may", "VI_incidD_vaccadj_jun", "VI_incidD_vaccadj_jul", "VI_incidD_vaccadj_aug"]
+        scenarios: ["AL_incidD_vaccadj_jan2021", "AL_incidD_vaccadj_feb2021", "AL_incidD_vaccadj_mar2021", "AL_incidD_vaccadj_apr2021", "AL_incidD_vaccadj_may2021", "AL_incidD_vaccadj_jun2021", "AL_incidD_vaccadj_jul2021", "AL_incidD_vaccadj_aug2021", "AK_incidD_vaccadj_jan2021", "AK_incidD_vaccadj_feb2021", "AK_incidD_vaccadj_mar2021", "AK_incidD_vaccadj_apr2021", "AK_incidD_vaccadj_may2021", "AK_incidD_vaccadj_jun2021", "AK_incidD_vaccadj_jul2021", "AK_incidD_vaccadj_aug2021", "AZ_incidD_vaccadj_jan2021", "AZ_incidD_vaccadj_feb2021", "AZ_incidD_vaccadj_mar2021", "AZ_incidD_vaccadj_apr2021", "AZ_incidD_vaccadj_may2021", "AZ_incidD_vaccadj_jun2021", "AZ_incidD_vaccadj_jul2021", "AZ_incidD_vaccadj_aug2021", "AR_incidD_vaccadj_jan2021", "AR_incidD_vaccadj_feb2021", "AR_incidD_vaccadj_mar2021", "AR_incidD_vaccadj_apr2021", "AR_incidD_vaccadj_may2021", "AR_incidD_vaccadj_jun2021", "AR_incidD_vaccadj_jul2021", "AR_incidD_vaccadj_aug2021", "CA_incidD_vaccadj_jan2021", "CA_incidD_vaccadj_feb2021", "CA_incidD_vaccadj_mar2021", "CA_incidD_vaccadj_apr2021", "CA_incidD_vaccadj_may2021", "CA_incidD_vaccadj_jun2021", "CA_incidD_vaccadj_jul2021", "CA_incidD_vaccadj_aug2021", "CO_incidD_vaccadj_jan2021", "CO_incidD_vaccadj_feb2021", "CO_incidD_vaccadj_mar2021", "CO_incidD_vaccadj_apr2021", "CO_incidD_vaccadj_may2021", "CO_incidD_vaccadj_jun2021", "CO_incidD_vaccadj_jul2021", "CO_incidD_vaccadj_aug2021", "CT_incidD_vaccadj_jan2021", "CT_incidD_vaccadj_feb2021", "CT_incidD_vaccadj_mar2021", "CT_incidD_vaccadj_apr2021", "CT_incidD_vaccadj_may2021", "CT_incidD_vaccadj_jun2021", "CT_incidD_vaccadj_jul2021", "CT_incidD_vaccadj_aug2021", "DE_incidD_vaccadj_jan2021", "DE_incidD_vaccadj_feb2021", "DE_incidD_vaccadj_mar2021", "DE_incidD_vaccadj_apr2021", "DE_incidD_vaccadj_may2021", "DE_incidD_vaccadj_jun2021", "DE_incidD_vaccadj_jul2021", "DE_incidD_vaccadj_aug2021", "DC_incidD_vaccadj_jan2021", "DC_incidD_vaccadj_feb2021", "DC_incidD_vaccadj_mar2021", "DC_incidD_vaccadj_apr2021", "DC_incidD_vaccadj_may2021", "DC_incidD_vaccadj_jun2021", "DC_incidD_vaccadj_jul2021", "DC_incidD_vaccadj_aug2021", "FL_incidD_vaccadj_jan2021", "FL_incidD_vaccadj_feb2021", "FL_incidD_vaccadj_mar2021", "FL_incidD_vaccadj_apr2021", "FL_incidD_vaccadj_may2021", "FL_incidD_vaccadj_jun2021", "FL_incidD_vaccadj_jul2021", "FL_incidD_vaccadj_aug2021", "GA_incidD_vaccadj_jan2021", "GA_incidD_vaccadj_feb2021", "GA_incidD_vaccadj_mar2021", "GA_incidD_vaccadj_apr2021", "GA_incidD_vaccadj_may2021", "GA_incidD_vaccadj_jun2021", "GA_incidD_vaccadj_jul2021", "GA_incidD_vaccadj_aug2021", "HI_incidD_vaccadj_jan2021", "HI_incidD_vaccadj_feb2021", "HI_incidD_vaccadj_mar2021", "HI_incidD_vaccadj_apr2021", "HI_incidD_vaccadj_may2021", "HI_incidD_vaccadj_jun2021", "HI_incidD_vaccadj_jul2021", "HI_incidD_vaccadj_aug2021", "ID_incidD_vaccadj_jan2021", "ID_incidD_vaccadj_feb2021", "ID_incidD_vaccadj_mar2021", "ID_incidD_vaccadj_apr2021", "ID_incidD_vaccadj_may2021", "ID_incidD_vaccadj_jun2021", "ID_incidD_vaccadj_jul2021", "ID_incidD_vaccadj_aug2021", "IL_incidD_vaccadj_jan2021", "IL_incidD_vaccadj_feb2021", "IL_incidD_vaccadj_mar2021", "IL_incidD_vaccadj_apr2021", "IL_incidD_vaccadj_may2021", "IL_incidD_vaccadj_jun2021", "IL_incidD_vaccadj_jul2021", "IL_incidD_vaccadj_aug2021", "IN_incidD_vaccadj_jan2021", "IN_incidD_vaccadj_feb2021", "IN_incidD_vaccadj_mar2021", "IN_incidD_vaccadj_apr2021", "IN_incidD_vaccadj_may2021", "IN_incidD_vaccadj_jun2021", "IN_incidD_vaccadj_jul2021", "IN_incidD_vaccadj_aug2021", "IA_incidD_vaccadj_jan2021", "IA_incidD_vaccadj_feb2021", "IA_incidD_vaccadj_mar2021", "IA_incidD_vaccadj_apr2021", "IA_incidD_vaccadj_may2021", "IA_incidD_vaccadj_jun2021", "IA_incidD_vaccadj_jul2021", "IA_incidD_vaccadj_aug2021", "KS_incidD_vaccadj_jan2021", "KS_incidD_vaccadj_feb2021", "KS_incidD_vaccadj_mar2021", "KS_incidD_vaccadj_apr2021", "KS_incidD_vaccadj_may2021", "KS_incidD_vaccadj_jun2021", "KS_incidD_vaccadj_jul2021", "KS_incidD_vaccadj_aug2021", "KY_incidD_vaccadj_jan2021", "KY_incidD_vaccadj_feb2021", "KY_incidD_vaccadj_mar2021", "KY_incidD_vaccadj_apr2021", "KY_incidD_vaccadj_may2021", "KY_incidD_vaccadj_jun2021", "KY_incidD_vaccadj_jul2021", "KY_incidD_vaccadj_aug2021", "LA_incidD_vaccadj_jan2021", "LA_incidD_vaccadj_feb2021", "LA_incidD_vaccadj_mar2021", "LA_incidD_vaccadj_apr2021", "LA_incidD_vaccadj_may2021", "LA_incidD_vaccadj_jun2021", "LA_incidD_vaccadj_jul2021", "LA_incidD_vaccadj_aug2021", "ME_incidD_vaccadj_jan2021", "ME_incidD_vaccadj_feb2021", "ME_incidD_vaccadj_mar2021", "ME_incidD_vaccadj_apr2021", "ME_incidD_vaccadj_may2021", "ME_incidD_vaccadj_jun2021", "ME_incidD_vaccadj_jul2021", "ME_incidD_vaccadj_aug2021", "MD_incidD_vaccadj_jan2021", "MD_incidD_vaccadj_feb2021", "MD_incidD_vaccadj_mar2021", "MD_incidD_vaccadj_apr2021", "MD_incidD_vaccadj_may2021", "MD_incidD_vaccadj_jun2021", "MD_incidD_vaccadj_jul2021", "MD_incidD_vaccadj_aug2021", "MA_incidD_vaccadj_jan2021", "MA_incidD_vaccadj_feb2021", "MA_incidD_vaccadj_mar2021", "MA_incidD_vaccadj_apr2021", "MA_incidD_vaccadj_may2021", "MA_incidD_vaccadj_jun2021", "MA_incidD_vaccadj_jul2021", "MA_incidD_vaccadj_aug2021", "MI_incidD_vaccadj_jan2021", "MI_incidD_vaccadj_feb2021", "MI_incidD_vaccadj_mar2021", "MI_incidD_vaccadj_apr2021", "MI_incidD_vaccadj_may2021", "MI_incidD_vaccadj_jun2021", "MI_incidD_vaccadj_jul2021", "MI_incidD_vaccadj_aug2021", "MN_incidD_vaccadj_jan2021", "MN_incidD_vaccadj_feb2021", "MN_incidD_vaccadj_mar2021", "MN_incidD_vaccadj_apr2021", "MN_incidD_vaccadj_may2021", "MN_incidD_vaccadj_jun2021", "MN_incidD_vaccadj_jul2021", "MN_incidD_vaccadj_aug2021", "MS_incidD_vaccadj_jan2021", "MS_incidD_vaccadj_feb2021", "MS_incidD_vaccadj_mar2021", "MS_incidD_vaccadj_apr2021", "MS_incidD_vaccadj_may2021", "MS_incidD_vaccadj_jun2021", "MS_incidD_vaccadj_jul2021", "MS_incidD_vaccadj_aug2021", "MO_incidD_vaccadj_jan2021", "MO_incidD_vaccadj_feb2021", "MO_incidD_vaccadj_mar2021", "MO_incidD_vaccadj_apr2021", "MO_incidD_vaccadj_may2021", "MO_incidD_vaccadj_jun2021", "MO_incidD_vaccadj_jul2021", "MO_incidD_vaccadj_aug2021", "MT_incidD_vaccadj_jan2021", "MT_incidD_vaccadj_feb2021", "MT_incidD_vaccadj_mar2021", "MT_incidD_vaccadj_apr2021", "MT_incidD_vaccadj_may2021", "MT_incidD_vaccadj_jun2021", "MT_incidD_vaccadj_jul2021", "MT_incidD_vaccadj_aug2021", "NE_incidD_vaccadj_jan2021", "NE_incidD_vaccadj_feb2021", "NE_incidD_vaccadj_mar2021", "NE_incidD_vaccadj_apr2021", "NE_incidD_vaccadj_may2021", "NE_incidD_vaccadj_jun2021", "NE_incidD_vaccadj_jul2021", "NE_incidD_vaccadj_aug2021", "NV_incidD_vaccadj_jan2021", "NV_incidD_vaccadj_feb2021", "NV_incidD_vaccadj_mar2021", "NV_incidD_vaccadj_apr2021", "NV_incidD_vaccadj_may2021", "NV_incidD_vaccadj_jun2021", "NV_incidD_vaccadj_jul2021", "NV_incidD_vaccadj_aug2021", "NH_incidD_vaccadj_jan2021", "NH_incidD_vaccadj_feb2021", "NH_incidD_vaccadj_mar2021", "NH_incidD_vaccadj_apr2021", "NH_incidD_vaccadj_may2021", "NH_incidD_vaccadj_jun2021", "NH_incidD_vaccadj_jul2021", "NH_incidD_vaccadj_aug2021", "NJ_incidD_vaccadj_jan2021", "NJ_incidD_vaccadj_feb2021", "NJ_incidD_vaccadj_mar2021", "NJ_incidD_vaccadj_apr2021", "NJ_incidD_vaccadj_may2021", "NJ_incidD_vaccadj_jun2021", "NJ_incidD_vaccadj_jul2021", "NJ_incidD_vaccadj_aug2021", "NM_incidD_vaccadj_jan2021", "NM_incidD_vaccadj_feb2021", "NM_incidD_vaccadj_mar2021", "NM_incidD_vaccadj_apr2021", "NM_incidD_vaccadj_may2021", "NM_incidD_vaccadj_jun2021", "NM_incidD_vaccadj_jul2021", "NM_incidD_vaccadj_aug2021", "NY_incidD_vaccadj_jan2021", "NY_incidD_vaccadj_feb2021", "NY_incidD_vaccadj_mar2021", "NY_incidD_vaccadj_apr2021", "NY_incidD_vaccadj_may2021", "NY_incidD_vaccadj_jun2021", "NY_incidD_vaccadj_jul2021", "NY_incidD_vaccadj_aug2021", "NC_incidD_vaccadj_jan2021", "NC_incidD_vaccadj_feb2021", "NC_incidD_vaccadj_mar2021", "NC_incidD_vaccadj_apr2021", "NC_incidD_vaccadj_may2021", "NC_incidD_vaccadj_jun2021", "NC_incidD_vaccadj_jul2021", "NC_incidD_vaccadj_aug2021", "ND_incidD_vaccadj_jan2021", "ND_incidD_vaccadj_feb2021", "ND_incidD_vaccadj_mar2021", "ND_incidD_vaccadj_apr2021", "ND_incidD_vaccadj_may2021", "ND_incidD_vaccadj_jun2021", "ND_incidD_vaccadj_jul2021", "ND_incidD_vaccadj_aug2021", "OH_incidD_vaccadj_jan2021", "OH_incidD_vaccadj_feb2021", "OH_incidD_vaccadj_mar2021", "OH_incidD_vaccadj_apr2021", "OH_incidD_vaccadj_may2021", "OH_incidD_vaccadj_jun2021", "OH_incidD_vaccadj_jul2021", "OH_incidD_vaccadj_aug2021", "OK_incidD_vaccadj_jan2021", "OK_incidD_vaccadj_feb2021", "OK_incidD_vaccadj_mar2021", "OK_incidD_vaccadj_apr2021", "OK_incidD_vaccadj_may2021", "OK_incidD_vaccadj_jun2021", "OK_incidD_vaccadj_jul2021", "OK_incidD_vaccadj_aug2021", "OR_incidD_vaccadj_jan2021", "OR_incidD_vaccadj_feb2021", "OR_incidD_vaccadj_mar2021", "OR_incidD_vaccadj_apr2021", "OR_incidD_vaccadj_may2021", "OR_incidD_vaccadj_jun2021", "OR_incidD_vaccadj_jul2021", "OR_incidD_vaccadj_aug2021", "PA_incidD_vaccadj_jan2021", "PA_incidD_vaccadj_feb2021", "PA_incidD_vaccadj_mar2021", "PA_incidD_vaccadj_apr2021", "PA_incidD_vaccadj_may2021", "PA_incidD_vaccadj_jun2021", "PA_incidD_vaccadj_jul2021", "PA_incidD_vaccadj_aug2021", "RI_incidD_vaccadj_jan2021", "RI_incidD_vaccadj_feb2021", "RI_incidD_vaccadj_mar2021", "RI_incidD_vaccadj_apr2021", "RI_incidD_vaccadj_may2021", "RI_incidD_vaccadj_jun2021", "RI_incidD_vaccadj_jul2021", "RI_incidD_vaccadj_aug2021", "SC_incidD_vaccadj_jan2021", "SC_incidD_vaccadj_feb2021", "SC_incidD_vaccadj_mar2021", "SC_incidD_vaccadj_apr2021", "SC_incidD_vaccadj_may2021", "SC_incidD_vaccadj_jun2021", "SC_incidD_vaccadj_jul2021", "SC_incidD_vaccadj_aug2021", "SD_incidD_vaccadj_jan2021", "SD_incidD_vaccadj_feb2021", "SD_incidD_vaccadj_mar2021", "SD_incidD_vaccadj_apr2021", "SD_incidD_vaccadj_may2021", "SD_incidD_vaccadj_jun2021", "SD_incidD_vaccadj_jul2021", "SD_incidD_vaccadj_aug2021", "TN_incidD_vaccadj_jan2021", "TN_incidD_vaccadj_feb2021", "TN_incidD_vaccadj_mar2021", "TN_incidD_vaccadj_apr2021", "TN_incidD_vaccadj_may2021", "TN_incidD_vaccadj_jun2021", "TN_incidD_vaccadj_jul2021", "TN_incidD_vaccadj_aug2021", "TX_incidD_vaccadj_jan2021", "TX_incidD_vaccadj_feb2021", "TX_incidD_vaccadj_mar2021", "TX_incidD_vaccadj_apr2021", "TX_incidD_vaccadj_may2021", "TX_incidD_vaccadj_jun2021", "TX_incidD_vaccadj_jul2021", "TX_incidD_vaccadj_aug2021", "UT_incidD_vaccadj_jan2021", "UT_incidD_vaccadj_feb2021", "UT_incidD_vaccadj_mar2021", "UT_incidD_vaccadj_apr2021", "UT_incidD_vaccadj_may2021", "UT_incidD_vaccadj_jun2021", "UT_incidD_vaccadj_jul2021", "UT_incidD_vaccadj_aug2021", "VT_incidD_vaccadj_jan2021", "VT_incidD_vaccadj_feb2021", "VT_incidD_vaccadj_mar2021", "VT_incidD_vaccadj_apr2021", "VT_incidD_vaccadj_may2021", "VT_incidD_vaccadj_jun2021", "VT_incidD_vaccadj_jul2021", "VT_incidD_vaccadj_aug2021", "VA_incidD_vaccadj_jan2021", "VA_incidD_vaccadj_feb2021", "VA_incidD_vaccadj_mar2021", "VA_incidD_vaccadj_apr2021", "VA_incidD_vaccadj_may2021", "VA_incidD_vaccadj_jun2021", "VA_incidD_vaccadj_jul2021", "VA_incidD_vaccadj_aug2021", "WA_incidD_vaccadj_jan2021", "WA_incidD_vaccadj_feb2021", "WA_incidD_vaccadj_mar2021", "WA_incidD_vaccadj_apr2021", "WA_incidD_vaccadj_may2021", "WA_incidD_vaccadj_jun2021", "WA_incidD_vaccadj_jul2021", "WA_incidD_vaccadj_aug2021", "WV_incidD_vaccadj_jan2021", "WV_incidD_vaccadj_feb2021", "WV_incidD_vaccadj_mar2021", "WV_incidD_vaccadj_apr2021", "WV_incidD_vaccadj_may2021", "WV_incidD_vaccadj_jun2021", "WV_incidD_vaccadj_jul2021", "WV_incidD_vaccadj_aug2021", "WI_incidD_vaccadj_jan2021", "WI_incidD_vaccadj_feb2021", "WI_incidD_vaccadj_mar2021", "WI_incidD_vaccadj_apr2021", "WI_incidD_vaccadj_may2021", "WI_incidD_vaccadj_jun2021", "WI_incidD_vaccadj_jul2021", "WI_incidD_vaccadj_aug2021", "WY_incidD_vaccadj_jan2021", "WY_incidD_vaccadj_feb2021", "WY_incidD_vaccadj_mar2021", "WY_incidD_vaccadj_apr2021", "WY_incidD_vaccadj_may2021", "WY_incidD_vaccadj_jun2021", "WY_incidD_vaccadj_jul2021", "WY_incidD_vaccadj_aug2021", "GU_incidD_vaccadj_jan2021", "GU_incidD_vaccadj_feb2021", "GU_incidD_vaccadj_mar2021", "GU_incidD_vaccadj_apr2021", "GU_incidD_vaccadj_may2021", "GU_incidD_vaccadj_jun2021", "GU_incidD_vaccadj_jul2021", "GU_incidD_vaccadj_aug2021", "MP_incidD_vaccadj_jan2021", "MP_incidD_vaccadj_feb2021", "MP_incidD_vaccadj_mar2021", "MP_incidD_vaccadj_apr2021", "MP_incidD_vaccadj_may2021", "MP_incidD_vaccadj_jun2021", "MP_incidD_vaccadj_jul2021", "MP_incidD_vaccadj_aug2021", "PR_incidD_vaccadj_jan2021", "PR_incidD_vaccadj_feb2021", "PR_incidD_vaccadj_mar2021", "PR_incidD_vaccadj_apr2021", "PR_incidD_vaccadj_may2021", "PR_incidD_vaccadj_jun2021", "PR_incidD_vaccadj_jul2021", "PR_incidD_vaccadj_aug2021", "VI_incidD_vaccadj_jan2021", "VI_incidD_vaccadj_feb2021", "VI_incidD_vaccadj_mar2021", "VI_incidD_vaccadj_apr2021", "VI_incidD_vaccadj_may2021", "VI_incidD_vaccadj_jun2021", "VI_incidD_vaccadj_jul2021", "VI_incidD_vaccadj_aug2021"]
 
 filtering:
   simulations_per_slot: 1000

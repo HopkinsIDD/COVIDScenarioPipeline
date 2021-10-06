@@ -42,7 +42,7 @@ generate_processed <- function(geodata_path,
                                         v_dist="truncnorm",
                                         v_mean =  0, v_sd = 0.025, v_a = -1, v_b = 1,
                                         p_dist="truncnorm",
-                                        p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1)
+                                        p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1, compartment = FALSE)
 
     vacc_dat <- set_vacc_rates_params(vacc_path = vaccination_path,
                                       sim_end_date = sim_end,

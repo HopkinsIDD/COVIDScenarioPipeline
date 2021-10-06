@@ -240,12 +240,12 @@ set_localvar_params <- function(sim_start_date=as.Date("2020-03-31"),
                                 name = "local_variance",
                                 type = "transmission",
                                 category = "local_variance",
-                                parameter = NA_character_,
+                                parameter = param_val,
                                 baseline_scenario = "",
                                 start_date = sim_start_date,
                                 end_date = sim_end_date,
                                 template = template,
-                                param = param,
+                                param = param_val,
                                 affected_geoids = affected_geoids,
                                 value_dist = v_dist,
                                 value_mean = v_mean,
@@ -583,7 +583,7 @@ set_vacc_outcome_params <- function(outcome_path,
                                                 var=="rr_hosp_inf" ~ "incidH",
                                                 TRUE ~ NA_character_))%>%
         dplyr::filter(!is.na(param)) %>%
-        dplyr::mutate(month = paste0(tolower(month), "-", lubridate::year(start_date))) %>%
+        dplyr::mutate(month = paste0(tolower(month), lubridate::year(start_date))) %>%
         dplyr::mutate(prob_redux = 1 - prob_redux) %>%
         dplyr::filter(start_date <= sim_end_date) %>%
         dplyr::mutate(end_date = lubridate::as_date(ifelse(end_date>sim_end_date, sim_end_date, end_date)),
