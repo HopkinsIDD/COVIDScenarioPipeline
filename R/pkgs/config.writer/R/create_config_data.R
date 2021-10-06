@@ -185,7 +185,7 @@ set_seasonality_params <- function(sim_start_date=as.Date("2020-03-31"),
                           lubridate::ceiling_date(end_date, "months") <= lubridate::ceiling_date(sim_end_date, "months")
         ) %>%
         dplyr::add_count(name) %>%
-        dplyr::mutate(template = dplyr::if_else(n > 1, template, "ReduceR0"),
+        dplyr::mutate(template = dplyr::if_else(n > 1, template, "Reduce"),
                       end_date = dplyr::if_else(end_date > sim_end_date, sim_end_date, end_date),
                       start_date = dplyr::if_else(start_date < sim_start_date, sim_start_date, start_date)
         ) %>%
@@ -209,6 +209,7 @@ set_seasonality_params <- function(sim_start_date=as.Date("2020-03-31"),
 #' @param p_sd perturbation sd
 #' @param p_a perturbation a
 #' @param p_b perturbation b
+#' @param compartment 
 #'
 #' @return data frame with columns for
 #' @export
@@ -224,13 +225,14 @@ set_localvar_params <- function(sim_start_date=as.Date("2020-03-31"),
                                 v_dist="truncnorm",
                                 v_mean =  0, v_sd = 0.05, v_a = -1, v_b = 1, # TODO: add check on limits
                                 p_dist="truncnorm",
-                                p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1
+                                p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1, 
+                                compartment = TRUE
 ){
     sim_start_date <- as.Date(sim_start_date)
     sim_end_date <- as.Date(sim_end_date)
 
-    template = "ReduceR0"
-    param = NA_character_
+    template = "Reduce"
+    param_val <- ifelse(compartment, "r0", "R0")
     affected_geoids = "all"
 
     local_var <- dplyr::tibble(USPS = "",
@@ -505,8 +507,8 @@ set_variant_params <- function(b117_only = FALSE,
         dplyr::mutate(type = "transmission",
                       category = "variant",
                       name = paste0("variantR0adj_", paste0("Week", week)),
-                      template = "ReduceR0",
-                      parameter = NA,
+                      template = "Reduce",
+                      parameter = "R0",
                       value_dist = v_dist,
                       value_mean = 1-R_ratio,
                       value_sd = v_sd,
@@ -560,7 +562,7 @@ set_vacc_outcome_params <- function(outcome_path,
                                     p_dist="truncnorm",
                                     p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1,
                                     compartment = TRUE,
-                                    variant_compartments = c("wild", "alpha", "delta")
+                                    variant_compartments = c("WILD", "ALPHA", "DELTA")
 ){
     variant_compartments <- stringr::str_to_upper(variant_compartments)
 
@@ -575,12 +577,13 @@ set_vacc_outcome_params <- function(outcome_path,
         outcome<-outcome %>%
             dplyr::filter(geoid %in% incl_geoid)
     }
+    
         outcome <- outcome %>%
         dplyr::mutate(param = dplyr::case_when(var=="rr_death_inf" ~ "incidD",
                                                 var=="rr_hosp_inf" ~ "incidH",
                                                 TRUE ~ NA_character_))%>%
         dplyr::filter(!is.na(param)) %>%
-        dplyr::mutate(month = tolower(month)) %>%
+        dplyr::mutate(month = paste0(tolower(month), "-", lubridate::year(start_date))) %>%
         dplyr::mutate(prob_redux = 1 - prob_redux) %>%
         dplyr::filter(start_date <= sim_end_date) %>%
         dplyr::mutate(end_date = lubridate::as_date(ifelse(end_date>sim_end_date, sim_end_date, end_date)),
