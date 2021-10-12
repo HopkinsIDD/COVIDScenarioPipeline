@@ -239,7 +239,8 @@ load_seir_sims_filtered <- function(outcome_dir,
     dplyr::select(comp, p_comp, time, tidyselect::all_of(partitions[c(1:3, 7)]), tidyselect::any_of(incl_geoids)) %>%
     pre_process(...)%>%
     dplyr::collect() %>%
-    dplyr::mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+"))) %>%
+    dplyr::mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+")), 
+                  time=as.Date(time)) %>%
     dplyr::relocate(comp, p_comp, time, tidyselect::any_of(partitions), sim_num) %>%
     dplyr::select(-partitions[length(partitions)])
   
