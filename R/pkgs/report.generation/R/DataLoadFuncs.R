@@ -48,7 +48,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
   }
   
   hosp<-hosp %>%
-    mutate(sim_num=as.numeric(str_extract(max(partitions), "^\\d+")),
+    mutate(sim_num=as.numeric(str_extract(partitions[length(partitions)], "^\\d+")),
            time=as.Date(time)) 
   
   # fnames <- hosp$.data$files %>% 
@@ -116,7 +116,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
     dplyr::filter(geoid %in% incl_geoids)  %>%
     pre_process(...) %>%
     collect() %>%
-    mutate(sim_num=as.numeric(str_extract(max(partitions), "^\\d+")))
+    mutate(sim_num=as.numeric(str_extract(partitions[length(partitions)], "^\\d+")))
   
   
   # fnames <- hpar$.data$files %>% 
@@ -181,7 +181,7 @@ load_spar_sims_filtered <- function(outcome_dir,
     dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
     pre_process(...) %>%
     collect() %>%
-    mutate(sim_num=as.numeric(str_extract(max(partitions), "^\\d+")))
+    mutate(sim_num=as.numeric(str_extract(partitions[length(partitions)], "^\\d+")))
   
   # fnames <- spar$.data$files %>% 
   #   stringr::str_split("\\/") %>% 
@@ -252,7 +252,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
     dplyr::filter(geoid %in% incl_geoids)  %>%
     pre_process(...)%>%
     collect() %>%
-    mutate(sim_num=as.numeric(str_extract(max(partitions), "^\\d+")))
+    mutate(sim_num=as.numeric(str_extract(partitions[length(partitions)], "^\\d+")))
   
   # fnames <- snpi$.data$files %>% 
   #   stringr::str_split("\\/") %>% 
@@ -280,3 +280,4 @@ load_snpi_sims_filtered <- function(outcome_dir,
   return(snpi)
   
 }
+
