@@ -1757,7 +1757,7 @@ plot_rt_ts <- function(rc,
                      NcumulConfirmed=sum(Confirmed))
   
   truth_dat<-truth_dat%>%
-    dplyr::filter(NcumulConfirmed!=0)%>%
+    dplyr::filter(NcumulConfirmed>=2)%>%
     calcR0(geodat=geodat, by_geoid=FALSE, incl_geoids = geodat$geoid, pop_col="pop") %>%
     dplyr::mutate(scenario=truth_source)
   
