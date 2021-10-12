@@ -142,7 +142,7 @@ mtr_estimates <- function(rt_dat,
       dplyr::right_join(rt_dat%>%
                    dplyr::select(-start_date, -end_date)) %>%
       tidyr::drop_na() %>%
-      dplyr::mutate(dplyr::across(tidyselect::ends_with("date"), ~lubridate::ymd(.x)))%>%
+      dplyr::mutate(dplyr::across(tidyselect::any_of(c("start_date", "end_date")), ~lubridate::ymd(.x)))%>%
       dplyr::bind_rows(xx)
   }
   
@@ -173,14 +173,14 @@ rt_estimates <- function(r_dat,
                          location_only = TRUE){
   
   geodat<-geodat %>%
-    dplyr::rename(pop=starts_with("pop"))
+    dplyr::rename(pop=tidyselect::starts_with("pop"))
   
   
   r_dat<-r_dat %>%
     dplyr::filter(pdeath==pdeath_filter) %>%
     dplyr::filter(geoid %in% geodat$geoid) 
   
-  susceptible <- dat %>%
+  susceptible <- seir_dat %>%
     dplyr::filter(comp=="S") %>%
     dplyr::left_join(geodat) %>% 
     dplyr::mutate(vacc = value/pop, 

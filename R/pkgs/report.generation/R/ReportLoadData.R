@@ -842,15 +842,13 @@ load_r_daily_sims_filtered <- function(outcome_dir,
   
   spar <- load_spar_sims_filtered(outcome_dir=outcome_dir, 
                                   pre_process=function(x) {x %>% dplyr::filter(parameter=="R0")}, 
-                                  pdeath_filter=pdeath_filter,
-                                  ...) %>%
+                                  pdeath_filter=pdeath_filter) %>%
     dplyr::select(r0=value, location, scenario, pdeath, sim_num)
   
   snpi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
                                  pre_process=function(x) {x %>% dplyr::filter(parameter=="r0")}, 
                                  pdeath_filter=pdeath_filter, 
-                                 incl_geoids=incl_geoids,
-                                 ...) %>%
+                                 incl_geoids=incl_geoids) %>%
     dplyr::select(-parameter)
   
   if(mtr){
@@ -864,7 +862,7 @@ load_r_daily_sims_filtered <- function(outcome_dir,
              end_date=lubridate::ymd(end_date))
   }
   
-  geoiddate<-crossing(geoid=incl_geoids, time=seq(min(as.Date(npi$start_date)), max(as.Date(npi$end_date)), 1))
+  geoiddate<-tidyr::crossing(geoid=incl_geoids, time=seq(min(as.Date(npi$start_date)), max(as.Date(npi$end_date)), 1))
   
   rc<-list()
   
