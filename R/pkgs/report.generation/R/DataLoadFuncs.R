@@ -16,7 +16,7 @@
 ##'@export
 load_hosp_sims_filtered <- function(outcome_dir,
                                     model_output = 'hosp',
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
+                                    partitions=c("location", "scenario", "pdeath", "rundate", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     incl_geoids,
                                     pre_process=function(x) {x},
@@ -99,7 +99,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
 ##'@export
 load_hpar_sims_filtered <- function(outcome_dir,
                                     model_output = 'hpar',
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
+                                    partitions=c("location", "scenario", "pdeath", "rundate", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=function(x){x},
                                     incl_geoids,
@@ -166,7 +166,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
 ##'
 ##'@export
 load_spar_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
+                                    partitions=c("location", "scenario", "pdeath", "rundate", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     ...
@@ -235,7 +235,7 @@ load_spar_sims_filtered <- function(outcome_dir,
 ##'
 ##'@export
 load_snpi_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "date", "lik_type", "is_final", "filename"),
+                                    partitions=c("location", "scenario", "pdeath", "rundate", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     incl_geoids,
