@@ -129,45 +129,75 @@ mtr_estimates <- function(rt_dat,
 ##'Function to generate summary estimates of daily rt  
 ##' 
 ##' @param r_dat df with daily r estimates by geoid/sim
-##' @param county_dat df with geoid, scenario, pdeath, sim_num, time, location, and cum_inf columns
-##' @param lo 
+##' @param seir_dat df with geoid-specific outputs from SEIR
+##' @param geodat
 ##' @param hi
+##' @param lo
+##' @param pdeath_filter
+##' @param location_only
 ##' 
 ##' 
 ##' @export
 
 rt_estimates <- function(r_dat, 
-                         county_dat, 
+                         seir_dat, 
                          geodat,
                          lo=0.025,
-                         hi=0.975){
+                         hi=0.975, 
+                         pdeath_filter = "med",
+                         location_only = TRUE){
   
   geodat<-geodat %>%
     dplyr::rename(pop=starts_with("pop"))
   
-  rc<-county_dat %>%
-    dplyr::left_join(geodata) %>%
-    dplyr::right_join(r_dat) %>%
+  
+  r_dat<-r_dat %>%
+    dplyr::filter(pdeath==pdeath_filter) %>%
+    dplyr::filter(geoid %in% geodat$geoid) 
+  
+  susceptible <- dat %>%
+    dplyr::filter(comp=="S") %>%
+    dplyr::left_join(geodat) %>% 
+    dplyr::mutate(vacc = value/pop, 
+                  vacc = dplyr::case_when(p_comp==0 ~ vacc, 
+                                          p_comp==1 ~ vacc*(1-0.5), 
+                                          p_comp==2 ~ vacc*(1-0.9)))
+  
+  susceptible <- susceptible %>% 
+    dplyr::group_by(time, scenario, sim_num, pdeath, geoid, pop) %>%
+    dplyr::summarize(vacc = sum(vacc))
+  
+  rc <- r_dat %>%
+    dplyr::left_join(susceptible) %>% 
+    dplyr::mutate(rt = rt*vacc) %>%  
     dplyr::group_by(scenario, time, location) %>%
-    dplyr::mutate(rt=rt*(1-cum_inf/pop), 
-                  weight=pop/sum(pop))
+    dplyr::mutate(weight=pop/sum(pop))
+    
   
-  rc_state<-rc%>%
-    dplyr::group_by(scenario, time, pdeath, location) %>%
-    dplyr::arrange(rt) %>% 
-    dplyr::summarize(mean=Hmisc::wtd.mean(rt, weights = weight, normwt=TRUE), 
-                     median=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=0.5),
-                     ci_lo=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=lo),
-                     ci_hi=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=hi)) %>%
-    dplyr::rename(geoid=location)
-  
-  rc<-rc %>%
-    dplyr::group_by(scenario, time, pdeath, geoid) %>%
-    dplyr::summarize(mean=mean(rt),
-                     median=quantile(rt, probs=0.5),
-                     ci_lo=quantile(rt, probs=lo),
-                     ci_hi=quantile(rt, probs=hi)) %>%
-    dplyr::bind_rows(rc_state)
+  if(location_only){
+    rc<-rc%>%
+      dplyr::group_by(scenario, date=as.Date(time), pdeath, location) %>%
+      dplyr::arrange(rt) %>% 
+      dplyr::summarize(estimate=Hmisc::wtd.mean(rt, weights = weight, normwt=TRUE), 
+                       lower=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=lo),
+                       upper=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=hi)) %>%
+      dplyr::rename(geoid=location)
+  } else{
+    rc_state<-rc%>%
+      dplyr::group_by(scenario, date=as.Date(time), pdeath, location) %>%
+      dplyr::arrange(rt) %>% 
+      dplyr::summarize(estimate=Hmisc::wtd.mean(rt, weights = weight, normwt=TRUE), 
+                       lower=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=lo),
+                       upper=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=hi)) %>%
+      dplyr::rename(geoid=location)
+    
+    rc<-rc %>%
+      dplyr::group_by(scenario, date=as.Date(time), pdeath, location, geoid) %>%
+      dplyr::summarize(estimate=Hmisc::wtd.mean(rt, weights = weight, normwt=TRUE), 
+                       lower=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=lo),
+                       upper=Hmisc::wtd.quantile(rt, weights = weight, normwt=TRUE, probs=hi)) %>%
+      dplyr::bind_rows(rc_state)
+  }
   
   return(rc)
   
@@ -1172,8 +1202,7 @@ plot_inference_r <- function(r_dat,
 ##' Sparkline table with R estimates 
 ##' 
 ##' @param r_dat df with R or reduction estimates per sim (only one scenario)
-##' @param county_dat df with cumulative infections, scenario, pdeath, sim_num, and 
-##' time across geoids and all simulations
+##' @param county_dat df with SEIR outputs 
 ##' @param current_scenario name of scenario inputs to use
 ##' @param susceptible whether to show estimates adjusted for cumulative infections, 
 ##' in which case the estimate reflects the median Rt for past interventions and the Rt for
@@ -1244,14 +1273,23 @@ make_sparkline_tab_r <- function(r_dat,
       dplyr::select(-local_r, -reduction)
     
     if(susceptible){
-      r_dat2[[i]]<-county_dat %>%
-        dplyr::filter(scenario==current_scenario,
-                      pdeath==pdeath_filter, 
-                      geoid == unique(r_dat$geoid)[i]) %>%
-        dplyr::select(geoid, scenario, pdeath, sim_num, cum_inf, date=time) %>%
-        dplyr::right_join(r_dat2[[i]]) %>%
-        dplyr::left_join(geodat) %>%
-        dplyr::mutate(r=r*(1-cum_inf/pop)) 
+      susceptible_dat <- county_dat %>%
+        dplyr::filter(comp=="S" & geoid == unique(r_dat$geoid)[i] & pdeath==pdeath_filter & scenario==current_scenario) %>%
+        dplyr::left_join(geodat) %>% 
+        dplyr::mutate(vacc = value/pop, 
+                      vacc = dplyr::case_when(p_comp==0 ~ vacc, 
+                                              p_comp==1 ~ vacc*(1-0.5), 
+                                              p_comp==2 ~ vacc*(1-0.9)))
+      
+      susceptible_dat <- susceptible_dat %>% 
+        dplyr::group_by(time, scenario, sim_num, pdeath, geoid, location, pop, name) %>%
+        dplyr::summarize(vacc = sum(vacc))
+      
+      r_dat2[[i]]<- r_dat2[[i]] %>%
+        dplyr::left_join(susceptible_dat) %>% 
+        dplyr::mutate(rt = r*vacc) %>%  
+        dplyr::group_by(scenario, time, location) %>%
+        dplyr::mutate(weight=pop/sum(pop))
     }
     
     r_dat2[[i]] <- r_dat2[[i]] %>%
@@ -1636,16 +1674,13 @@ plot_truth_by_county <- function(truth_dat,
 }
 
 ##' Time series comparing Rt estimates by scenario over time
-##' @param county_dat df with geoid, sim_num, cum_inf, scenario, and time columns
-##' @param truth_dat df with date, geoid, incidI, and Confirmed columns
-##' @param r_dat df with daily estimate of Rt from load_r_daily_sims_filtered
+##' @param rc df with daily rt estimates for one geoid/location and columns "estimate", "lower", and "upper"
 ##' @param geodat df with geoid and population columns
 ##' @param pdeath_filter which pdeath to select
 ##' @param scenario_colors colors for each scenario
 ##' @param scenario_levels levels applied to scenarios
 ##' @param scenario_labels label applied to scenarios
-##' @param pi_lo lower limit to interval
-##' @param pi_hi upper limit to interval
+##' @param truth_source
 ##' 
 ##' @return a table with the effectiveness per intervention period and a bar graph
 ##' 
@@ -1654,68 +1689,33 @@ plot_truth_by_county <- function(truth_dat,
 ##'@export
 ##'
 
-plot_rt_ts <- function(county_dat=NULL, 
-                       truth_dat,
-                       r_dat,
-                       pdeath_filter = pdeath_default,
-                       scenario_colors,
-                       scenario_levels,
-                       scenario_labels,
-                       geodat=geodata,
-                       incl_geoids,
-                       susceptible=TRUE,
-                       pi_lo=0.025,
-                       pi_hi=0.975,
-                       truth_source="USA Facts"
-){
-  require(tidyverse)
-  if(is.null(county_dat) & susceptible){stop("county_dat is missing")}
+plot_rt_ts <- function(rc, 
+                       geodat,
+                       truth_dat, 
+                       scenario_levels = scn_levels, 
+                       scenario_labels = scn_labels,
+                       scenario_colors = scn_colors, 
+                       truth_source = "JHU CSSE", 
+                       pdeath_filter = "med"){
   
-  geodat <- geodat %>%
-    rename(pop=starts_with("pop"))
-  
-  r_dat<-r_dat %>%
-    dplyr::filter(pdeath==pdeath_filter) %>%
-    dplyr::filter(geoid %in% incl_geoids) 
-  
-  if(susceptible){
-    rc<-county_dat %>%
-      dplyr::filter(pdeath==pdeath_filter) %>%
-      dplyr::filter(geoid %in% incl_geoids) %>%
-      left_join(geodat)%>%
-      dplyr::select(geoid, sim_num, cum_inf, pop, scenario, time) %>%
-      dplyr::right_join(r_dat) %>%
-      dplyr::group_by(scenario, date=time) %>%
-      dplyr::mutate(rt=rt*(1-cum_inf/pop)) %>%
-      dplyr::mutate(weight = pop/sum(pop))
-    } else {
-      rc<- r_dat%>%
-        dplyr::group_by(scenario, date=time) %>%
-        left_join(geodat) %>%
-        dplyr::mutate(weight=pop/sum(pop))
-    }
-  
-  rc<-rc %>%
-    dplyr::group_by(scenario, date) %>%
-    dplyr::summarize(estimate=Hmisc::wtd.mean(rt, weights=weight, normwt=TRUE),
-                     lower=Hmisc::wtd.quantile(rt, weights=weight, normwt=TRUE, probs=pi_lo),
-                     upper=Hmisc::wtd.quantile(rt, weights=weight, normwt=TRUE, probs=pi_hi))
+  geodat<-geodat %>%
+    dplyr::rename(pop=starts_with("pop"))
   
   truth_dat<-truth_dat%>%
-    filter(geoid %in% incl_geoids) %>%
-    group_by(date)%>% 
-    summarize(NincidConfirmed=sum(incidI), 
-              NcumulConfirmed=sum(Confirmed))
+    dplyr::filter(geoid %in% geodat$geoid) %>%
+    dplyr::group_by(date)%>% 
+    dplyr::summarize(NincidConfirmed=sum(incidI), 
+                     NcumulConfirmed=sum(Confirmed))
   
   truth_dat<-truth_dat%>%
     dplyr::filter(NcumulConfirmed!=0)%>%
-    calcR0(geodat=geodat, by_geoid=FALSE, incl_geoids = incl_geoids, pop_col="pop") %>%
+    calcR0(geodat=geodat, by_geoid=FALSE, incl_geoids = geodat$geoid, pop_col="pop") %>%
     dplyr::mutate(scenario=truth_source)
   
-  dplyr::bind_rows(rc, truth_dat) %>%
+  rc<-dplyr::bind_rows(rc, truth_dat) %>%
     dplyr::mutate(`Based on`=factor(scenario, 
-                             levels=c(scenario_levels, truth_source),
-                             labels=c(scenario_labels, paste0(truth_source, " confirmed cases")))) %>%
+                                    levels=c(scenario_levels, truth_source),
+                                    labels=c(scenario_labels, paste0(truth_source, " confirmed cases")))) %>%
     ggplot(aes(x=date, y=estimate, ymin=lower, ymax=upper))+
     geom_line(aes(col=`Based on`), size=0.75)+
     geom_ribbon(aes(fill=`Based on`), alpha=0.12) +
@@ -1732,7 +1732,12 @@ plot_rt_ts <- function(county_dat=NULL,
     theme(legend.position= "bottom",
           panel.grid=element_blank()) +
     guides(col=guide_legend(nrow=2))
+  
+  return(rc)
+  
 }
+
+
 
 ##' Plot ratio of outcomes 
 ##' @param hosp_state_totals df with hospitalization outcomes
