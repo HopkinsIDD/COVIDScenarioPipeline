@@ -844,7 +844,7 @@ load_r_daily_sims_filtered <- function(outcome_dir,
                                   pre_process=function(x) {x %>% dplyr::filter(parameter=="R0")}, 
                                   pdeath_filter=pdeath_filter,
                                   ...) %>%
-    dplyr::select(r0=value, location, scenario, pdeath, date, sim_num)
+    dplyr::select(r0=value, location, scenario, pdeath, sim_num)
   
   snpi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
                                  pre_process=function(x) {x %>% dplyr::filter(parameter=="r0")}, 
@@ -856,12 +856,10 @@ load_r_daily_sims_filtered <- function(outcome_dir,
   if(mtr){
     npi <- snpi %>%
       left_join(spar) %>% 
-      dplyr::select(-date) %>%
       mtr_estimates(n_periods=n_periods)
   } else {
     npi <- snpi %>%
       left_join(spar) %>% 
-      dplyr::select(-date) %>%
       mutate(start_date=lubridate::ymd(start_date),
              end_date=lubridate::ymd(end_date))
   }
@@ -916,7 +914,7 @@ load_npi_sims_filtered <- function(outcome_dir,
                                  pdeath_filter=pdeath_filter, 
                                  incl_geoids=incl_geoids,
                                  ...) %>%
-    dplyr::select(-parameter, -date)
+    dplyr::select(-parameter)
   
   warning("Finished loading")
   
