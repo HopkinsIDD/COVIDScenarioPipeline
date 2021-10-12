@@ -110,14 +110,14 @@ mtr_estimates <- function(rt_dat,
   for(i in 1:n_periods){
     
     xx<-mtr_start %>%
-      dplyr::select(geoid, scenario, pdeath, starts_with("npi"), start_date=as.symbol(i)) %>%
+      dplyr::select(geoid, scenario, pdeath, tidyselect::starts_with("npi"), start_date=as.symbol(i)) %>%
       dplyr::left_join(mtr_end %>%
-                  dplyr::select(geoid, scenario, pdeath, starts_with("npi"), end_date=as.symbol(i))) %>%
+                  dplyr::select(geoid, scenario, pdeath, tidyselect::starts_with("npi"), end_date=as.symbol(i))) %>%
       tidyr::drop_na() %>%
       dplyr::right_join(rt_dat%>%
                    dplyr::select(-start_date, -end_date)) %>%
       tidyr::drop_na() %>%
-      dplyr::mutate(across(ends_with("date"), ~lubridate::ymd(.x)))%>%
+      dplyr::mutate(dplyr::across(tidyselect::ends_with("date"), ~lubridate::ymd(.x)))%>%
       dplyr::bind_rows(xx)
   }
   
