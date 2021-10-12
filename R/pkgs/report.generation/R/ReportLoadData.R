@@ -855,11 +855,11 @@ load_r_daily_sims_filtered <- function(outcome_dir,
   
   if(mtr){
     npi <- snpi %>%
-      left_join(spar) %>% 
+      dplyr::left_join(spar) %>% 
       mtr_estimates(n_periods=n_periods)
   } else {
     npi <- snpi %>%
-      left_join(spar) %>% 
+      dplyr::left_join(spar) %>% 
       mutate(start_date=lubridate::ymd(start_date),
              end_date=lubridate::ymd(end_date))
   }
@@ -870,20 +870,20 @@ load_r_daily_sims_filtered <- function(outcome_dir,
   
   for(i in 1:length(incl_geoids)){
     rc[[i]]<-npi %>%
-      filter(geoid == incl_geoids[i])%>%
-      left_join(geoiddate)%>%
-      mutate(geoid=if_else(start_date>time | end_date<time, NA_character_, geoid))%>%
-      drop_na() %>%
-      group_by(geoid, sim_num, time, pdeath, scenario, location) %>%
-      mutate(reduction=1-reduction)%>%
-      summarize(reduction=prod(reduction),
+      dplyr::filter(geoid == incl_geoids[i])%>%
+      dplyr::left_join(geoiddate)%>%
+      dplyr::mutate(geoid=dplyr::if_else(start_date>time | end_date<time, NA_character_, geoid))%>%
+      tidyr::drop_na() %>%
+      dplyr::group_by(geoid, sim_num, time, pdeath, scenario, location) %>%
+      dplyr::mutate(reduction=1-reduction)%>%
+      dplyr::summarize(reduction=prod(reduction),
                 r0=unique(r0)) %>%
-      mutate(rt=reduction*r0,
+      dplyr::mutate(rt=reduction*r0,
              reduction=1-reduction)
   }
   
-  rc<-bind_rows(rc) %>%
-    ungroup()
+  rc<-dplyr::bind_rows(rc) %>%
+    dplyr::ungroup()
   
   warning("Finished loading")
   return(rc)
