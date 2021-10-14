@@ -159,7 +159,7 @@ mtr_estimates <- function(rt_dat,
 ##' @param hi
 ##' @param lo
 ##' @param pdeath_filter
-##' @param location_only
+##' @param overall
 ##' 
 ##' 
 ##' @export
@@ -170,7 +170,7 @@ rt_estimates <- function(r_dat,
                          lo=0.025,
                          hi=0.975, 
                          pdeath_filter = "med",
-                         location_only = TRUE){
+                         overall = TRUE){
   
   geodat<-geodat %>%
     dplyr::rename(pop=tidyselect::starts_with("pop"))
@@ -199,7 +199,7 @@ rt_estimates <- function(r_dat,
     dplyr::mutate(weight=pop/sum(pop))
     
   
-  if(location_only){
+  if(overall){
     rc<-rc%>%
       dplyr::group_by(scenario, date=as.Date(time), pdeath, location) %>%
       dplyr::arrange(rt) %>% 
