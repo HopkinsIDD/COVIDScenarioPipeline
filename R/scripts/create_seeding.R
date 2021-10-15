@@ -74,9 +74,6 @@ if(is.null(config$filtering$gt_source)){
   gt_source <- config$filtering$gt_source
 }
 
-if(gt_source == "LA health dpt"){
-  gt_source <- "csse"
-}
 if(is.null(config$seeding$delay_incidC)){
   config$seeding$delay_incidC <- 5
 }
