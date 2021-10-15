@@ -73,6 +73,10 @@ if(is.null(config$filtering$gt_source)){
 } else{
   gt_source <- config$filtering$gt_source
 }
+
+if(gt_source == "LA health dpt"){
+  gt_source <- "csse"
+}
 if(is.null(config$seeding$delay_incidC)){
   config$seeding$delay_incidC <- 5
 }
@@ -80,9 +84,27 @@ if(is.null(config$seeding$ratio_incidC)){
   config$seeding$ratio_incidC <- 10
 }
 
+if(is_US_run){
+  state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
+  if(state_level){
+    gt_scale <- "US state"
+    include_unassigned <- TRUE
+  } else{
+    gt_scale <- "US county"
+    include_unassigned <- FALSE
+  }
+} else{
+  gt_scale <- "US county"
+  include_unassigned <- FALSE
+}
+
 if(!is.null(gt_source)){
-  cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = "US county")
+  cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = include_unassigned)
   print(paste("Successfully pulled", gt_source, "data for seeding."))
+  if(is_US_run){
+    cases_deaths <- cases_deaths %>%
+      mutate(FIPS = stringr::str_pad(FIPS, width = 5, side="right", pad="0"))
+  }
 } else {
   data_path <- config$filtering$data_path
   if(is.null(data_path)){
@@ -95,19 +117,19 @@ if(!is.null(gt_source)){
   print(paste("Successfully loaded data from ", data_path, "for seeding."))
 }
 
-# Aggregation to state level if in config
-if(is_US_run){
-  state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
-  if(state_level){
-    gt_scale <- "US state"
-    cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = TRUE) 
-  } else{
-    gt_scale <- "US county"
-    cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale) 
-  }
-  cases_deaths <- cases_deaths %>%
-    mutate(FIPS = stringr::str_pad(FIPS, width = 5, side="right", pad="0"))
-}
+# # Aggregation to state level if in config
+# if(is_US_run){
+#   state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
+#   if(state_level){
+#     gt_scale <- "US state"
+#     cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = TRUE) 
+#   } else{
+#     gt_scale <- "US county"
+#     cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale) 
+#   }
+#   cases_deaths <- cases_deaths %>%
+#     mutate(FIPS = stringr::str_pad(FIPS, width = 5, side="right", pad="0"))
+# }
 
 ## Check some data attributes:
 ## This is a hack:
