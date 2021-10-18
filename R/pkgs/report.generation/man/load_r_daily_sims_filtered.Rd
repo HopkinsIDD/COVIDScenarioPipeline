@@ -2,7 +2,7 @@
 % Please edit documentation in R/ReportLoadData.R
 \name{load_r_daily_sims_filtered}
 \alias{load_r_daily_sims_filtered}
-\title{Convenience function for loading daily Rt and total effectiveness estimates}
+\title{Convenience function for loading daily Rt and total effectiveness estimates by geoid}
 \usage{
 load_r_daily_sims_filtered(
   outcome_dir,
@@ -25,8 +25,8 @@ load_r_daily_sims_filtered(
 \item{n_periods}{maximum number of non-contiguous periods for any geoid/intervention}
 }
 \value{
-a combined data frame of daily Rt and total effectiveness estimates per geoid/sim
+a combined data frame of daily Rt and total effectiveness estimates per geoid
 }
 \description{
-Convenience function for loading daily Rt and total effectiveness estimates
+Convenience function for loading daily Rt and total effectiveness estimates by geoid
 }

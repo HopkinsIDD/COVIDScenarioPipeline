@@ -11,7 +11,7 @@ calcR0(
   by_geoid = FALSE,
   min.date = NULL,
   max.date = NULL,
-  pop_col = config$spatial_setup$popnodes
+  pop_col = "pop"
 )
 }
 \arguments{

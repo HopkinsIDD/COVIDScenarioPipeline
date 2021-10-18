@@ -5,7 +5,6 @@
 \title{Function makes a summary table for each county}
 \usage{
 make_scn_county_table_withVent(
-  current_scenario,
   county_dat,
   pi_lo = 0.025,
   pi_hi = 0.975,
@@ -16,8 +15,6 @@ make_scn_county_table_withVent(
 )
 }
 \arguments{
-\item{current_scenario}{scenario to summarize}
-
 \item{county_dat}{contains the relevant hospital data}
 
 \item{start_date}{summarization period start}
@@ -29,10 +26,6 @@ make_scn_county_table_withVent(
 \item{pi_low}{low side of the prediction interval}
 
 \item{pi_high}{high side of the prediction interval}
-
-\item{pdeath_labels}{to label pdeath}
-
-\item{pdeath_levels}{to order pdeaths}
 }
 \description{
 Function makes a summary table for each county

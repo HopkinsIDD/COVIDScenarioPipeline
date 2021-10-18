@@ -8,8 +8,8 @@ plot_hnpi_by_location(
   hnpi_interm,
   pdeath_filter,
   scenario_filter,
-  hnpi_filter = c("local_variance", "lockdown_partial"),
-  fig_labs = c("Local variance in R0", "Partial lockdown")
+  hnpi_filter = c("incidC_shift"),
+  fig_labs = c("Shift in case detection rate")
 )
 }
 \arguments{

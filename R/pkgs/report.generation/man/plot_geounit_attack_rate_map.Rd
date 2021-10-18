@@ -10,7 +10,7 @@ plot_geounit_attack_rate_map(
   shp,
   varlabel = "Infections",
   scenariolabel = config$report$formatting$scenario_labels[1],
-  popnodes = config$spatial_setup$popnodes,
+  popnodes = "pop",
   display_date,
   viridis_palette = "plasma"
 )

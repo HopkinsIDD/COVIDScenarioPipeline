@@ -13,6 +13,7 @@ plot_rt_ts(
   scenario_levels,
   scenario_labels,
   geodat = geodata,
+  incl_geoids,
   susceptible = TRUE,
   pi_lo = 0.025,
   pi_hi = 0.975,

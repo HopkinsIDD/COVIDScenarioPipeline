@@ -788,68 +788,6 @@ load_r_sims_filtered <- function(outcome_dir,
   
 }
 
-##' Convenience function for loading intervention effect and R estimates 
-##' 
-##' @param outcome_dir the subdirectory with all model outputs
-##' @param pdeath_filter string that indicates which pdeath(s) to import from outcome_dir
-##' @param pre_process function that does processing before collection of snpi outputs
-##' @param geodat df with geoid and name columns 
-##' @param incl_geoids character vector of geoids that are included in the report
-##' @param npi_trimmer pattern used by str_remove to edit npi_name column; original 
-##' names conserved in npi_group_name col
-##' 
-##' @return a combined data frame of all R and effectiveness per geoid-intervention across 
-##' simulations with filters applied pre merge
-##' 
-##'
-##'
-##'@export
-load_r_sims_filtered <- function(outcome_dir,
-                                 pdeath_filter=c("high", "med", "low"),
-                                 pre_process=function(x) {x},
-                                 geodat=geodata,
-                                 incl_geoids,
-                                 npi_trimmer="[[A-Z]].+\\_",
-                                 ...
-) {
-  
-  require(tidyverse)
-  
-  spar <- load_spar_sims_filtered(outcome_dir=outcome_dir, 
-                                  pre_process=function(x) {x %>% dplyr::filter(parameter=="R0")}, 
-                                  pdeath_filter=pdeath_filter,
-                                  ...) %>%
-    dplyr::group_by(scenario) %>%
-    dplyr::rename(r0=value) %>%
-    dplyr::select(sim_num, scenario, pdeath, r0) %>%
-    dplyr::ungroup()
-  
-  snpi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
-                                 pre_process=pre_process, 
-                                 pdeath_filter=pdeath_filter, 
-                                 incl_geoids=incl_geoids,
-                                 ...) %>%
-    dplyr::select(sim_num, scenario, pdeath, geoid, npi_name, start_date, end_date, reduction)
-  
-  rc <- snpi %>%
-    dplyr::filter(npi_name=="local_variance") %>%
-    dplyr::right_join(spar)%>%
-    dplyr::mutate(local_r = r0*(1-reduction)) %>% # county_r0 ought to be renamed to "geogroup_r0"
-    dplyr::select(geoid, sim_num, local_r, scenario, r0) %>%
-    dplyr::left_join(snpi) %>%
-    dplyr::mutate(r = if_else(npi_name=="local_variance",
-                       local_r,
-                       local_r*(1-reduction))) %>%
-    dplyr::left_join(geodat) %>%
-    dplyr::rename(npi_group_name=npi_name) %>%
-    dplyr::mutate(npi_name = stringr::str_remove(npi_group_name, npi_trimmer)) %>%
-    dplyr::ungroup() 
-  
-  warning("Finished loading")
-  return(rc)
-  
-}
-
 ##' Convenience function for loading daily Rt and total effectiveness estimates by geoid
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
