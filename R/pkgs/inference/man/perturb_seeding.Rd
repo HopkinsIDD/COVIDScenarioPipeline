@@ -6,12 +6,22 @@
 proposal on the start date and
 a poisson on the number of cases.}
 \usage{
-perturb_seeding(seeding, sd, date_bounds)
+perturb_seeding(
+  seeding,
+  date_sd,
+  date_bounds,
+  amount_sd = 1,
+  continuous = FALSE
+)
 }
 \arguments{
 \item{seeding}{the original seeding}
 
-\item{sd}{the standard deviation of the poisson}
+\item{date_sd}{the standard deviation parameter of the normal distribution used to perturb date}
+
+\item{amount_sd}{the standard deviation parameter of the normal distribution used to perturb amount}
+
+\item{continuous}{Whether the seeding is passed to a continuous model or not}
 }
 \value{
 a perturbed data frame

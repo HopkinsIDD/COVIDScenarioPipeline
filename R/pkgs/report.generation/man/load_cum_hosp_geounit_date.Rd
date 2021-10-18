@@ -64,7 +64,5 @@ a data frame with columns
          - scenario_name
 }
 \description{
-Deprecated convenience function to load cumulative geounit hosp outcomes at a specific date for the given scenario
-
-Convenience function to load cumulative geounit hosp outcomes at a specific date for the given scenario
+TODO : FIX ME
 }

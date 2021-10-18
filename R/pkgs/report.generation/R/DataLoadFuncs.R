@@ -15,7 +15,7 @@
 ##'@export
 load_hosp_sims_filtered <- function(outcome_dir,
                                     model_output = 'hosp',
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     incl_geoids,
                                     pre_process=list(partitions=function(x) {x},
@@ -48,30 +48,8 @@ load_hosp_sims_filtered <- function(outcome_dir,
   }
   
   hosp<-hosp %>%
-    mutate(sim_num=as.numeric(str_remove(sim_num, '\\..+$')), # removes everything after the first dot
+    mutate(sim_num=as.numeric(str_remove(filename, '\\..+$')), # removes everything after the first dot
            time=as.Date(time)) 
-  
-  # fnames <- hosp$.data$files %>% 
-  #   stringr::str_split("\\/") %>% 
-  #   dplyr::tibble() %>% 
-  #   tidyr::unnest_wider(., col=`.`)
-  # 
-  # fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
-  # 
-  # colnames(fnames) <- c(partitions, "sim_num")
-  # 
-  # fnames <- fnames %>%
-  #   pre_process$partitions() %>%
-  #   pull(sim_num)
-  # 
-  # hosp<-hosp %>%
-  #   pre_process$partitions() %>%
-  #   pre_process$data() %>%
-  #   collect() %>%
-  #   group_by(geoid, time, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
-  #   mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$')), 
-  #          time=as.Date(time)) %>%
-  #   dplyr::ungroup()
   
   if(nrow(hosp)==0){stop("Nothing was loaded, confirm filtering values are correct.")}
   
@@ -99,7 +77,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
 ##'@export
 load_hpar_sims_filtered <- function(outcome_dir,
                                     model_output = 'hpar',
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
@@ -117,29 +95,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
     dplyr::filter(geoid %in% incl_geoids)  %>%
     pre_process(...) %>%
     collect() %>%
-    dplyr::mutate(sim_num=as.numeric(str_remove(sim_num, '\\..+$'))) 
-  
-  
-  # fnames <- hpar$.data$files %>% 
-  #   stringr::str_split("\\/") %>% 
-  #   dplyr::tibble() %>% 
-  #   tidyr::unnest_wider(., col=`.`)
-  # 
-  # fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
-  # 
-  # colnames(fnames) <- c(partitions, "sim_num")
-  # 
-  # fnames <- fnames %>%
-  #   pre_process$partitions() %>%
-  #   pull(sim_num)
-  # 
-  # hpar<-hpar %>%
-  #   pre_process$partitions() %>%
-  #   pre_process$data() %>%
-  #   collect() %>%
-  #   group_by(quantity, outcome, geoid, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
-  #   mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$'))) %>%
-  #   dplyr::ungroup()
+    dplyr::mutate(sim_num=as.numeric(str_remove(filename, '\\..+$'))) 
   
   message("Finished loading")
   return(hpar)
@@ -167,12 +123,12 @@ load_hpar_sims_filtered <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - sim_num
+##'        - filename
 ##'
 ##'
 ##'@export
 load_hpar_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -188,7 +144,7 @@ load_hpar_sims_filtered_interm <- function(outcome_dir,
     collect()
   
   hpar<-hpar %>%
-    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",runID,'.hpar.parquet'))) %>% # remove runID component
+    dplyr::mutate(sim_num=str_remove(filename,paste0(".",runID,'.hpar.parquet'))) %>% # remove runID component
     tidyr::separate(sim_num,c('slot_num','block_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
   
   message("Finished loading intermediate Outcome parameters.")
@@ -214,12 +170,12 @@ load_hpar_sims_filtered_interm <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - sim_num
+##'        - filename
 ##'
 ##'
 ##'@export
 load_spar_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
@@ -235,28 +191,7 @@ load_spar_sims_filtered <- function(outcome_dir,
     dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
     pre_process(...) %>%
     collect() %>%
-    dplyr::mutate(sim_num=as.numeric(str_remove(sim_num, '\\..+$'))) 
-  
-  # fnames <- spar$.data$files %>% 
-  #   stringr::str_split("\\/") %>% 
-  #   dplyr::tibble() %>% 
-  #   tidyr::unnest_wider(., col=`.`)
-  # 
-  # fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
-  # 
-  # colnames(fnames) <- c(partitions, "sim_num")
-  # 
-  # fnames <- fnames %>%
-  #   pre_process$partitions() %>%
-  #   pull(sim_num)
-  # 
-  # spar<-spar %>%
-  #   pre_process$partitions() %>%
-  #   pre_process$data() %>%
-  #   collect() %>%
-  #   group_by(parameter, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
-  #   mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$'))) %>%
-  #   dplyr::ungroup()
+    dplyr::mutate(sim_num=as.numeric(str_remove(filename, '\\..+$'))) 
   
   message("Finished loading.")
   return(spar)
@@ -284,12 +219,12 @@ load_spar_sims_filtered <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - sim_num
+##'        - filename
 ##'
 ##'
 ##'@export
 load_spar_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -305,7 +240,7 @@ load_spar_sims_filtered_interm <- function(outcome_dir,
     collect()
   
   spar<-spar %>%
-    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",runID,'.spar.parquet'))) %>% # remove runID component
+    dplyr::mutate(sim_num=str_remove(filename,paste0(".",runID,'.spar.parquet'))) %>% # remove runID component
     tidyr::separate(sim_num,c('slot_num','block_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
   
   message("Finished loading intermediate SEIR parameters.")
@@ -337,12 +272,12 @@ load_spar_sims_filtered_interm <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - sim_num
+##'        - filename
 ##'
 ##'
 ##'@export
 load_snpi_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
@@ -360,28 +295,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
     dplyr::filter(geoid %in% incl_geoids)  %>%
     pre_process(...)%>%
     collect() %>%
-    dplyr::mutate(sim_num=as.numeric(str_remove(sim_num, '\\..+$'))) 
-  
-  # fnames <- snpi$.data$files %>% 
-  #   stringr::str_split("\\/") %>% 
-  #   dplyr::tibble() %>% 
-  #   tidyr::unnest_wider(., col=`.`)
-  # 
-  # fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
-  # 
-  # colnames(fnames) <- c(partitions, "sim_num")
-  # 
-  # fnames <- fnames %>%
-  #   pre_process$partitions() %>%
-  #   pull(sim_num)
-  # 
-  # snpi<-snpi %>%
-  #   pre_process$partitions() %>%
-  #   pre_process$data() %>%
-  #   collect() %>%
-  #   group_by(geoid, npi_name, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
-  #   mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$'))) %>%
-  #   dplyr::ungroup()
+    dplyr::mutate(sim_num=as.numeric(str_remove(filename, '\\..+$'))) 
   
   message("Finished loading.")
   
@@ -410,12 +324,12 @@ load_snpi_sims_filtered <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - sim_num
+##'        - filename
 ##'
 ##'
 ##'@export
 load_snpi_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -431,7 +345,7 @@ load_snpi_sims_filtered_interm <- function(outcome_dir,
     collect()
   
   snpi<-snpi %>%
-    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",runID,'.snpi.parquet'))) %>% # remove runID component
+    dplyr::mutate(sim_num=str_remove(filename,paste0(".",runID,'.snpi.parquet'))) %>% # remove runID component
     tidyr::separate(sim_num,c('slot_num','block_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
   
   message("Finished loading intermediate SNPI  parameters.")
@@ -462,12 +376,12 @@ load_snpi_sims_filtered_interm <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - sim_num
+##'        - filename
 ##'
 ##'
 ##'@export
 load_hnpi_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=list(partitions=function(x) {x},
                                                      data=function(x) {x}),
@@ -486,28 +400,7 @@ load_hnpi_sims_filtered <- function(outcome_dir,
     dplyr::filter(geoid %in% incl_geoids)  %>%
     pre_process(...)%>%
     collect() %>%
-    dplyr::mutate(sim_num=as.numeric(str_remove(sim_num, '\\..+$'))) 
-  
-  # fnames <- hnpi$.data$files %>% 
-  #   stringr::str_split("\\/") %>% 
-  #   dplyr::tibble() %>% 
-  #   tidyr::unnest_wider(., col=`.`)
-  # 
-  # fnames <- fnames[,(ncol(fnames)-length(partitions)):ncol(fnames)]
-  # 
-  # colnames(fnames) <- c(partitions, "sim_num")
-  # 
-  # fnames <- fnames %>%
-  #   pre_process$partitions() %>%
-  #   pull(sim_num)
-  # 
-  # hnpi<-hnpi %>%
-  #   pre_process$partitions() %>%
-  #   pre_process$data() %>%
-  #   collect() %>%
-  #   group_by(geoid, npi_name, !!as.symbol(partitions[2]), !!as.symbol(partitions[3])) %>%
-  #   mutate(sim_num=as.numeric(stringr::str_remove(fnames, '\\..+$'))) %>%
-  #   dplyr::ungroup()
+    dplyr::mutate(sim_num=as.numeric(str_remove(filename, '\\..+$'))) 
   
   message("Finished loading.")
   
@@ -536,12 +429,12 @@ load_hnpi_sims_filtered <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - sim_num
+##'        - filename
 ##'
 ##'
 ##'@export
 load_hnpi_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -557,7 +450,7 @@ load_hnpi_sims_filtered_interm <- function(outcome_dir,
     collect()
   
   hnpi<-hnpi %>%
-    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",runID,'.hnpi.parquet'))) %>% # remove runID component
+    dplyr::mutate(sim_num=str_remove(filename,paste0(".",runID,'.hnpi.parquet'))) %>% # remove runID component
     tidyr::separate(sim_num,c('slot_num','block_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) 
   
   message("Finished loading intermediate hnpi parameters.")
@@ -587,12 +480,12 @@ load_hnpi_sims_filtered_interm <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - sim_num
+##'        - filename
 ##'
 ##'
 ##'@export
 load_llik_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
                                     pdeath_filter=c("high", "med", "low"),
                                     incl_geoids,
                                     ...
@@ -610,7 +503,7 @@ load_llik_sims_filtered <- function(outcome_dir,
     collect()
   
   llik<-llik %>%
-    mutate(sim_num=as.numeric(str_remove(sim_num, '\\..+$'))) # removes everything after the first dot
+    mutate(sim_num=as.numeric(str_remove(filename, '\\..+$'))) # removes everything after the first dot
   
   message("Finished loading final log likelihoods.")
   
@@ -638,12 +531,12 @@ load_llik_sims_filtered <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - sim_num
+##'        - filename
 ##'
 ##'
 ##'@export
 load_llik_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "sim_num"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -660,7 +553,7 @@ load_llik_sims_filtered_interm <- function(outcome_dir,
     collect()
   
   llik<-llik %>%
-    dplyr::mutate(sim_num=str_remove(sim_num,paste0(".",runID,'.llik.parquet'))) %>% # remove runID component
+    dplyr::mutate(sim_num=str_remove(filename,paste0(".",runID,'.llik.parquet'))) %>% # remove runID component
     tidyr::separate(sim_num,c('slot_num','block_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) # split string
   
   message("Finished loading intermediate log likelihoods.")
