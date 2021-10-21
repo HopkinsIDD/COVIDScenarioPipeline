@@ -930,14 +930,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
                        median = median(NhospCurr))
     
     state_hosp_summary<-state_hosp_summary %>%
-      mutate(est = mean
-             # ,
-             # scenario_name = paste0(scenario_name
-             # , ": Mean")
-      )
-    # bind_rows(state_hosp_summary %>%
-    #             mutate(est=median, 
-    #                    scenario_name = paste0(scenario_name, ": Median"))) 
+      mutate(est = !!as.symbol(tendency))
     
     incid_hosp_plot <- state_hosp_summary %>%
       dplyr::left_join(jhu_obs_dat %>% dplyr::filter(date < max(date)) %>% select(date, truth_var=currhosp)) %>%
@@ -992,15 +985,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
     dplyr::filter(date!=max(date))
   
   state_inf_summary<-state_inf_summary %>%
-    mutate(est = mean
-           # ,
-           # scenario_name = paste0(scenario_name
-           # , ": Mean")
-    )
-  # %>%
-  #   bind_rows(state_inf_summary %>%
-  #               mutate(est=median, 
-  #                      scenario_name = paste0(scenario_name, ": Median")))
+    mutate(est = !!as.symbol(tendency))
   
   ### Incidence of infections plot
   incid_infections_plot <- state_inf_summary %>%
@@ -1039,11 +1024,7 @@ plot_model_vs_obs <- function(state_hosp_totals,
     dplyr::filter(date!=max(date))
   
   state_death_summary <- state_death_summary %>%
-    mutate(est = mean
-           # ,
-           # scenario_name = paste0(scenario_name
-           #                        , ": Mean")
-    )
+    mutate(est = !!as.symbol(tendency))
   # %>%
   #   bind_rows(state_death_summary %>%
   #               mutate(est=median, 
