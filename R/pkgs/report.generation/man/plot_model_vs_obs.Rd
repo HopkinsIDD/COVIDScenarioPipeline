@@ -21,9 +21,9 @@ plot_model_vs_obs(
 )
 }
 \arguments{
-\item{state_hosp_totals}{state hosp data frame}
+\item{state_hosp_totals}{df with model outputs summed over geoid (e.g., from load_hosp_geocombined_totals), with cols sim_num, pdeath, date, NincidCase, NincidDeath, NhospCurr}
 
-\item{jhu_obs_dat}{df with case data by geoid and cols incidI, incidDeath, and currhosp (if plotting hospitalizations)}
+\item{jhu_obs_dat}{df with observed data by geoid and cols incidI, incidDeath, and currhosp (if plotting hospitalizations)}
 
 \item{scenario_colors}{character vector with scenario colors}
 
@@ -41,7 +41,7 @@ plot_model_vs_obs(
 
 \item{sim_end_date}{simulation end date}
 
-\item{week}{whether to aggregate incident cases/deaths to weeks}
+\item{week}{whether to aggregate incident cases/deaths to weeks (sum for incid cases/deaths, avg for daily hosp beds)}
 
 \item{hosp}{whether to show hosp values}
 }

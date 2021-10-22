@@ -9,7 +9,7 @@ load_snpi_sims_filtered(
   partitions = c("location", "scenario", "pdeath", "runID", "lik_type", "is_final",
     "filename"),
   pdeath_filter = c("high", "med", "low"),
-  pre_process = list(partitions = function(x) {     x }, data = function(x) {     x }),
+  pre_process = function(x) {     x },
   incl_geoids,
   ...
 )
