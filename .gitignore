@@ -36,6 +36,7 @@ doc/latex
 
 # RStudio files
 .Rproj.user/
+COVIDScenarioPipeline.Rproj
 
 # produced vignettes
 vignettes/*.html
@@ -60,4 +61,5 @@ packrat/lib*/
 build/
 dist/
 SEIR.egg-info/
+Outcomes.egg-info/
 .Rproj.user

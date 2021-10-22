@@ -11,7 +11,7 @@ load_hosp_sims_filtered(
     "filename"),
   pdeath_filter = c("high", "med", "low"),
   incl_geoids,
-  pre_process = list(partitions = function(x) {     x }, data = function(x) {     x }),
+  pre_process = function(x) {     x },
   post_process = function(x) {     x },
   inference = TRUE,
   ...
