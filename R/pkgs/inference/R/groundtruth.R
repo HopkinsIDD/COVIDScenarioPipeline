@@ -139,7 +139,8 @@ get_ground_truth <- function(
       tidyr::expand_grid(
         geoid = fips_codes,
       )
-    )
+    ) %>%
+    dplyr::filter(!is.na(!!rlang::sym(date_column_name)))
 
   return(rc)
 }
