@@ -583,7 +583,8 @@ set_vacc_outcome_params <- function(outcome_path,
                                                 var=="rr_hosp_inf" ~ "incidH",
                                                 TRUE ~ NA_character_))%>%
         dplyr::filter(!is.na(param)) %>%
-        dplyr::mutate(month = paste0(tolower(month), lubridate::year(start_date))) %>%
+        dplyr::mutate(month = dplyr::if_else(month %in% 1:12, month.abb[month], as.character(month)), 
+                      month = paste0(tolower(month), lubridate::year(start_date))) %>%
         dplyr::mutate(prob_redux = 1 - prob_redux) %>%
         dplyr::filter(start_date <= sim_end_date) %>%
         dplyr::mutate(end_date = lubridate::as_date(ifelse(end_date>sim_end_date, sim_end_date, end_date)),

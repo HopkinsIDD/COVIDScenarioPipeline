@@ -568,8 +568,20 @@ print_outcomes <- function(dat=NULL,
     if(is.null(ifr)){stop("You must specify a scenario/IFR name.")}
 
     incidC_pert <- ""
+    
+    if(compartment){
+        pert_repeat <- length(variant_compartments)
+    } else{
+        pert_repeat <- min(length(incidC_perturbation),
+                           length(incidC_prob_dist_pert), 
+                           length(incidC_prob_value_pert),
+                           length(incidC_prob_sd_pert),
+                           length(incidC_prob_a_pert),
+                           length(incidC_prob_b_pert))
+    }
+    
 
-    for(i in 1:length(variant_compartments)){
+    for(i in 1:length(pert_repeat)){
         if(length(incidC_perturbation)==1){
             incidC_perturbation <- rep(incidC_perturbation, length(variant_compartments))
         }
