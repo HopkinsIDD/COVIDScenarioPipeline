@@ -1,0 +1,38 @@
+#!/bin/bash -l
+#SBATCH --nodes 1                      # Node PER JOB. Apparently this works on MARC
+#SBATCH --ntasks-per-node 1            # MPI sense -> just 1.
+#SBATCH --cpus-per-task 1              # No more than the number of CPU in a node. CPU <- coeur dans slurm
+#SBATCH --mem 10G                      # Per node
+#SBATCH --time 0-12                    #J-H:m:s
+#SBATCH --array=1-$COVID_NSIMULATIONS  # Index are choosen by me (can relaunch) before 0-1
+#SBATCH --qos=week                     # Echo is authorized to launch week-long job
+
+THIS_SLOT=${SLURM_ARRAY_TASK_ID}
+
+
+#export F_DIR="`date +%Y-%m-%d`-${MDL_NNODES}_${MDL_DAYS}_AG_${OBJ}/"
+
+
+module purge
+#module restore COVID_OCP
+conda activate covidSProd6
+cd $DATA_PATH
+srun Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH # path to the config file
+                                               --run_id $COVID_RUN_INDEX # Unique identifier for this run
+                                               --scenarios $COVID_SCENARIOS # name of the intervention to run, or 'all' 
+                                               --deathrates $COVID_DEATHRATES # name of the outcome scenarios to run, or 'all'
+                                               --jobs 1  # Number of jobs to run in parallel
+                                               --simulations_per_slot $COVID_SIMULATIONS_PER_SLOT # number of simulations to run for this slot
+                                               --this_slot $THIS_SLOT # id of this slot
+                                               --this_block 1 # id of this block
+                                               --stoch_traj_flag $COVID_STOCHASTIC # Stochastic SEIR and outcomes trajectories if true
+                                               --ground_truth_start $COVID_GT_END # First date to include groundtruth for
+                                               --ground_truth_end $COVID_GT_START # First date to include groundtruth fo
+                                               --pipepath $COVID_PATH
+                                               --python python
+                                               --rpath Rscript
+                                               --is-resume $COVID_IS_RESUME # Is this run a resume
+                                               --is-interactive FALSE # Is this run an interactive run 
+                                               > ${COVID_RUN_INDEX}_${THIS_SLOT}_debug.txt 2>&1 &
+
+wait
