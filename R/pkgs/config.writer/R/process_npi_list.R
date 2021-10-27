@@ -559,5 +559,91 @@ generate_multiple_variants_state <- function(variant_path_1,
         dplyr::ungroup()
 }
 
-
+#' Function to process variant data with variant compartments
+#'
+#' Generate state-level variant interventions
+#'
+#' @param variant_path_1 path to variant data with columns matching variant_compartments
+#' @param sim_start_date simulation start date
+#' @param sim_end_date simulation end date
+#' @param projection_start_date specified to ensure interventions in the two weeks before the projection start are not aggregated
+#' @param variant_lb
+#' @param varian_effect change in transmission for variant default is 50% from Davies et al 2021
+#' @param transmission_increase transmission increase in B1617 relative to B117
+#' @param geodata
+#'
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+#' variant <- generate_multiple_variants(variant_path_1 = system.file("extdata", "B117-fits.csv", package = "config.writer"),
+#'                                       variant_path_2 = system.file("extdata", "B617-fits.csv", package = "config.writer"))
+#' variant
+#'
+generate_compartment_variant <- function(variant_path = "../COVID19_USA/data/variant/variant_props_long.csv",
+                                         variant_compartments = c("WILD", "ALPHA", "DELTA"), 
+                                         transmission_increase = c(1, 1.45, (1.6*1.6)),
+                                         geodata, 
+                                         sim_start_date = as.Date("2020-03-31"),
+                                         sim_end_date = Sys.Date()+60){
+    trans_incr <- dplyr::tibble(variant_compartments, 
+                                transmission_increase)
+    
+    variant_data <- read_csv(var_path)
+    
+    if(!("source" %in% colnames(variant_data))){
+        variant_data$source <- ""
+    }
+    variant_data <- variant_data %>% full_join(trans_incr) %>%
+        rename(date = Update, USPS = source) %>%
+        mutate(trans_mult = (trans_incr * prop)) %>% 
+        group_by(date, USPS) %>%
+        summarise(trans_mult = sum(trans_mult))
+    
+    sim_start_date <- as.Date(sim_start_date)
+    sim_end_date <- as.Date(sim_end_date)
+    
+    variant_data <- variant_data %>%
+        dplyr::mutate(week = MMWRweek::MMWRweek(date)$MMWRweek,
+                      year = MMWRweek::MMWRweek(date)$MMWRyear,
+                      start_date = MMWRweek::MMWRweek2Date(MMWRyear=year, MMWRweek=week),
+                      end_date = (start_date+6)) %>%
+        dplyr::filter(!(start_date>sim_end_date)) %>%
+        dplyr::filter(date==end_date) %>%
+        dplyr::mutate(date=start_date) %>%
+        dplyr::mutate(param = "ReduceR0") %>%
+        dplyr::rename(R_ratio = trans_mult) %>%
+        dplyr::mutate(sd_variant = (sqrt(R_ratio)-1)/5)
+    
+    variant_data <- variant_data %>%
+        dplyr::filter(end_date >= sim_start_date) %>%
+        dplyr::mutate(start_date = dplyr::if_else(start_date < sim_start_date &
+                                                      end_date > sim_start_date, sim_start_date, start_date),
+                      end_date = dplyr::if_else(end_date > sim_end_date, sim_end_date, end_date))
+    
+    variant_data <- variant_data %>%
+        dplyr::mutate(R_ratio = round(R_ratio, 2)) %>%
+        dplyr::select(USPS, week, start_date, end_date, param, R_ratio, sd_variant) %>%
+        dplyr::mutate(R_ratio = round(R_ratio*(1/0.05))*0.05, sd_variant = mean(sd_variant)) # THIS IS NOT THE RIGHT SD BUT DOESN'T MATTER B/C WE DON'T USE IT
+    
+    # Combine interventions
+    dates_start_ <- sort(unique(variant_data$start_date))
+    for (d in 1:length(dates_start_)){
+        variant_data <- variant_data %>%
+            dplyr::mutate(date_curr = (start_date==dates_start_[d] | end_date==(dates_start_[d]-1)),
+                          date_comb = ifelse(date_curr==TRUE, "comb_group", as.character(start_date))) %>%
+            dplyr::group_by(USPS, param, R_ratio, date_comb) %>%
+            dplyr::summarise(start_date=min(start_date), end_date=max(end_date),
+                             sd_variant = round(mean(sd_variant,na.rm=TRUE),4))
+    }
+    variant_data <- variant_data %>% dplyr::as_tibble() %>% dplyr::select(-date_comb) %>% dplyr::distinct() 
+    variant_data <- variant_data %>% 
+        dplyr::filter(R_ratio>1) %>%
+        dplyr::filter(USPS != "US") %>%
+        dplyr::left_join(geodata %>% dplyr::select(USPS, geoid))
+    
+    return(variant_data)
+}
 
