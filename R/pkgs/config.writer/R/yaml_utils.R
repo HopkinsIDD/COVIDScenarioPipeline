@@ -926,6 +926,8 @@ print_seir <- function(sigma_val = 1/5.2,
                        theta_1B_dist = "fixed",
                        theta_2B_val = 0.85,
                        theta_2B_dist = "fixed",
+                       theta_W_val = c(0.25, 0.50), 
+                       theta_W_dist = c("fixed", "fixed"),
                        nu_1_val = 0,
                        nu_1_dist = "fixed",
                        nu_1_overlap_operation = "sum",
@@ -939,12 +941,23 @@ print_seir <- function(sigma_val = 1/5.2,
                        epsilon_val = 0*1/(365*1.5),
                        epsilon_dist = "fixed",
                        incl_vacc = TRUE,
+                       incl_waning = TRUE,
                        vaccine_compartments = c("unvaccinated", "1dose", "2dose"),
+                       variant_compartments = c("WILD", "ALPHA", "DELTA"),
+                       age_strata = c("under65", "65plus"),
                        compartment = TRUE
 ){
+    if(incl_waning & !identical(length(theta_W_val), length(theta_W_dist), length(age_strata))){stop("Lengths of theta_W_val, theta_W_dist, and age_strata are not identical")}
+    if(incl_waning){
+        vacc_comp <- c(vaccine_compartments, "waned")
+    }else{
+        vacc_comp <- vaccine_compartments
+    }
     # TODO: add checks to compartment length
-
         if(compartment){
+            
+            nu_names <- paste0("nu_1_", age_strata)
+            
             seir <- paste0("seir:\n",
                            "  parameters:\n",
                            "    sigma: \n", print_value(value_dist = "fixed",
@@ -970,8 +983,23 @@ print_seir <- function(sigma_val = 1/5.2,
                            "    theta_1B: \n", print_value(value_dis = theta_1B_dist,
                                                            value_mean = paste0(1, " - ", theta_1B_val)),
                            "    theta_2B: \n", print_value(value_dis = theta_2B_dist,
-                                                           value_mean = paste0(1, " - ", theta_2B_val)),
-                           "    nu_1: \n",
+                                                           value_mean = paste0(1, " - ", theta_2B_val))
+            )
+            
+            if(incl_waning){
+                seir <- paste0(seir, 
+                               sapply(X=1:length(age_strata), 
+                                      function(x=X) paste0("    theta_W_", age_strata[x],":\n", 
+                                                           print_value(value_dis = theta_W_dist[x], 
+                                                                       value_mean = paste0(1, " - ", theta_W_val[x])
+                                                                       )
+                                                           )
+                                      )
+                               )
+            }
+            
+            seir <- paste0(seir,
+                           "    nu_1_", age_strat, ": \n",
                            "      intervention_overlap_operation: ", nu_1_overlap_operation, "\n",
                            print_value(value_dis = nu_1_dist,
                                        value_mean = nu_1_val),
@@ -984,69 +1012,128 @@ print_seir <- function(sigma_val = 1/5.2,
                            "    chi_2: \n", print_value(value_dist = chi_2_dist,
                                                         value_mean = chi_2_val),
                            "    epsilon: \n", print_value(value_dist = epsilon_dist,
-                                                          value_mean = epsilon_val),
+                                                          value_mean = epsilon_val)
+            )
+            
+            seir <- paste0(seir,
                            "  compartments:\n",
                            '    infection_stage: ["S", "E", "I1", "I2", "I3", "R"] \n',
-                           '    vaccination_stage: ["', paste0(vaccine_compartments, collapse = '", "'), '"] \n',
-                           '    variant_type: ["WILD", "ALPHA", "DELTA"] \n',
+                           '    vaccination_stage: ["', paste0(vacc_comp, collapse = '", "'), '"] \n',
+                           '    variant_type: ["', paste0(variant_compartments, collapse = '", "'),'"] \n',
+                           '    age_strata: ["', paste0(age_strata, collapse = '", "'), '"]\n',
                            '  transitions:\n',
-                           '    - source: [["S"],["', paste0(vaccine_compartments, collapse = '", "'), '"],"WILD"] \n',
-                           '      destination: [["E"],["', paste0(vaccine_compartments, collapse = '", "'), '"],["WILD", "ALPHA"]]\n',
+                           '    - source: [["S"],["', paste0(vaccine_compartments, collapse = '", "'), '"],["', variant_compartments[1],'"],["', paste0(age_strata, collapse='", "'),'"]] \n',
+                           '      destination: [["E"],["', paste0(vaccine_compartments, collapse = '", "'), '"],["', paste0(variant_compartments[1:2], collapse='", "'),'"],["',paste0(age_strata, collapse='", "'),'"]]\n',
                            '      proportional_to: [\n',
                            '        "source",\n',
-                           '        [[["I1","I2","I3"]],[["', paste0(vaccine_compartments, collapse = '", "'), '"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["', paste0(vaccine_compartments, collapse = '", "'), '"]],[["WILD"],["ALPHA"]]]\n',
+                           '        [[["I1","I2","I3"]],\n',
+                           '        [\n',
+                           '          ["', paste0(vacc_comp, collapse = '", "'), '"],\n',
+                           '          ["', paste0(vacc_comp, collapse = '", "'), '"],\n',
+                           '          ["', paste0(vacc_comp, collapse = '", "'), '"]\n',
+                           '        ]\n',
+                           '        [["', paste0(variant_compartments[1:2], collapse='"], ["'), '"]]\n',
+                           '        [["', paste0(age_strata, collapse = '", "'), '"],["', paste0(age_strata, collapse = '", "'), '"]]\n',
+                           '        ]\n',
                            '      ]\n',
-                           '      proportion_exponent: [[["1"],"1","1"],[["alpha"],"1","1"]]\n',
-                           '      rate: [["r0 * gamma"],["1", "theta_1A", "theta_2A"],["1", "chi_1"]]\n',
-
-                           '    - source: [["S"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD"]] \n',
-                           '      destination: [["E"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["DELTA"]]\n',
+                           '      proportion_exponent: [[["1"],"1","1","1"],[["alpha"],"1","1","1"]]\n',
+                           '      rate: [["r0 * gamma"],["1", "theta_1A", "theta_2A"],["1", "chi_1"],["1", "1"]]\n',
+                           '\n'
+                           '    - source: [["S"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["', variant_compartments[1],'"],["', paste0(age_strata, collapse = '", "'),'"]] \n',
+                           '      destination: [["E"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["', variant_compartments[3],'"],["', paste0(age_strata, collapse = '", "'),'"]]\n',
                            '      proportional_to: [\n',
                            '        "source",\n',
-                           '        [[["I1","I2","I3"]], [["', paste0(vaccine_compartments, collapse = '", "'), '"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["', paste0(vaccine_compartments, collapse = '", "'), '"]], ["DELTA"]]\n',
+                           '        [[["I1","I2","I3"]],\n',
+                           '        [\n',
+                           '          ["', paste0(vacc_comp, collapse = '", "'), '"],\n',
+                           '          ["', paste0(vacc_comp, collapse = '", "'), '"],\n',
+                           '          ["', paste0(vacc_comp, collapse = '", "'), '"]\n',
+                           '        ],\n',
+                           '        [["', variant_compartments[3],'"]],\n',
+                           '        [["', paste0(age_strata, collapse = '", "'), '"], ["', paste0(age_strata, collapse = '", "'), '"]]\n',
+                           '        ]\n',
                            '      ]\n',
                            '      proportion_exponent: [\n',
-                           '        [["1"],"1","1"],\n',
-                           '        [["alpha"],"1","1"]\n',
+                           '        [["1"],"1","1", "1"],\n',
+                           '        [["alpha"],"1","1", "1"]\n',
                            '      ]\n',
-                           '      rate: [["r0 * gamma"], ["1", "theta_1B", "theta_2B"], ["chi_2"]]\n',
-
-                           '    - source: [["E"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]]\n',
-                           '      destination: [["I1"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]]\n',
-                           '      proportional_to: ["source"]\n',
-                           '      proportion_exponent:  [["1","1","1"]]\n',
-                           '      rate: [["sigma"], "1", "1"]\n',
-
-                           '    - source: [["I1"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      destination: [["I2"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      proportional_to: ["source"] \n',
-                           '      proportion_exponent: [["1","1","1"]] \n',
-                           '      rate: ["3 * gamma", 1, 1] \n',
-
-                           '    - source: [["I2"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      destination: [["I3"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      proportional_to: ["source"] \n',
-                           '      proportion_exponent: [["1","1","1"]] \n',
-                           '      rate: ["3 * gamma", 1, 1] \n',
-
-                           '    - source: [["I3"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      destination: [["R"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      proportional_to: ["source"] \n',
-                           '      proportion_exponent: [["1","1","1"]] \n',
-                           '      rate: ["3 * gamma", 1, 1] \n',
-
-                           '    - source: [ ["S","E","I1","I2","I3","R"], ["unvaccinated", "1dose"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      destination: [["S","E","I1","I2","I3","R"], ["1dose", "2dose"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      proportional_to: ["source"] \n',
-                           '      proportion_exponent: [["1","1","1"]] \n',
-                           '      rate: ["1", ["nu_1","nu_2"], "1"] \n',
-
-                           '    - source: [["R"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["WILD", "ALPHA", "DELTA"]] \n',
-                           '      destination: [["S"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], "WILD"] \n',
-                           '      proportional_to: ["source"] \n',
-                           '      proportion_exponent: [["1","1","1"]] \n',
-                           '      rate: ["epsilon", 1, 1] \n'
+                           '      rate: [["r0 * gamma"], ["1", "theta_1B", "theta_2B"], ["chi_2"], ["1", "1"]]\n',
+                           '\n'
                            )
+            
+            if(incl_waning){
+                seir <- paste0(seir,
+                               '    - source: [["S"],["waned"],["', variant_compartments[1],'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                               '      destination: [["E"],["waned"],["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                               '      proportional_to: [\n',
+                               '        "source",\n',
+                               '        [[["I1", "I2", "I3"]],\n',
+                               '        [\n',
+                               '          ["', paste0(vacc_comp, collapse = '", "'),'"]\n',
+                               '        ],\n',
+                               '        [["',paste0(variant_compartments, collapse = '", "'),'"]],\n',
+                               '        [["',paste0(age_strata, collapse = '", "'),'"],["',paste0(age_strata, collapse = '", "'),'"]]\n',
+                               '        ]\n',
+                               '      ]\n', 
+                               '      proportion_exponent: [[["1"],["1"],"1","1"],[["alpha"]],["1"],"1","1"]]\n',
+                               '      rate: [["r0 * gamma"],["1"],["1","chi_1","chi_2"],["', paste0(paste0("theta_W_", age_strata), collapse = '", "'),'"]]\n',
+                               '\n'
+                               )
+            }
+            seir <- paste0(seir,
+                           '    - source: [["E"], ["', paste0(vacc_comp, collapse = '", "'), '"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      destination: [["I1"], ["', paste0(vacc_comp, collapse = '", "'), '"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      proportional_to: ["source"]\n',
+                           '      proportion_exponent:  [["1","1","1","1"]]\n',
+                           '      rate: [["sigma"], "1", "1", "1"]\n',
+
+                           '    - source: [["I1"], ["', paste0(vacc_comp, collapse = '", "'), '"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      destination: [["I2"], ["', paste0(vacc_comp, collapse = '", "'), '"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      proportional_to: ["source"] \n',
+                           '      proportion_exponent: [["1","1","1","1"]] \n',
+                           '      rate: ["3 * gamma", "1", "1", "1"] \n',
+
+                           '    - source: [["I2"], ["', paste0(vacc_comp, collapse = '", "'), '"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      destination: [["I3"], ["', paste0(vacc_comp, collapse = '", "'), '"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      proportional_to: ["source"] \n',
+                           '      proportion_exponent: [["1","1","1","1"]] \n',
+                           '      rate: ["3 * gamma", "1", "1"] \n',
+
+                           '    - source: [["I3"], ["', paste0(vacc_comp, collapse = '", "'), '"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      destination: [["R"], ["', paste0(vacc_comp, collapse = '", "'), '"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      proportional_to: ["source"] \n',
+                           '      proportion_exponent: [["1","1","1","1"]] \n',
+                           '      rate: ["3 * gamma", "1", "1", "1"] \n',
+
+                           '    - source: [ ["S","E","I1","I2","I3","R"], ["unvaccinated"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      destination: [["S","E","I1","I2","I3","R"], ["1dose"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      proportional_to: ["source"] \n',
+                           '      proportion_exponent: [["1","1","1","1"]]\n',
+                           '      rate: ["1",["1"],"1", ["', paste0(paste0("nu_1_", age_strata), collapse = '", "'), '"]]\n',
+                           
+                           '    - source: [ ["S","E","I1","I2","I3","R"], ["1dose"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      destination: [["S","E","I1","I2","I3","R"], ["2dose"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                           '      proportional_to: ["source"] \n',
+                           '      proportion_exponent: [["1","1","1","1"]]\n',
+                           '      rate: ["1",["nu_2"],"1","1"]\n'
+            )
+            
+            if(incl_waning){
+                seir <- paste0(seir,
+                               '    - source: [["R"], ["', paste0(vaccine_compartments, collapse = '", "'), '"], ["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                               '      destination: [["S"], ["waned"], ["',variant_compartments[1],'"],["',paste0(age_strata, collapse = '", "'),'"]]\n',
+                               '      proportional_to: ["source"] \n',
+                               '      proportion_exponent: [["1","1","1","1"]] \n',
+                               '      rate: ["epsilon", "1", "1", "1"] \n',
+                               
+                               '    - source: [["S"],["2dose"],["',paste0(variant_compartments, collapse = '", "'),'"], ["', paste0(age_strata, collapse = '", "'),'"]]\n',
+                               '      destination: [["S"], ["waned"], ["',variant_compartments[1],'"],["',paste0(age_strata, collapse = '", "'),'"]]\n',
+                               '      proportional_to: ["source"] \n',
+                               '      proportion_exponent: [["1","1","1","1"]] \n',
+                               '      rate: ["epsilon", "1", "1", "1"] \n'
+                               )
+            }
+            
         } else{
 
             seir <- paste0("seir:\n",
@@ -1213,14 +1300,19 @@ print_seeding <- function(method = "FolderDraw",
                          seeding_file_type = "seed",
                          folder_path = "importation/minimal/",
                          lambda_file = "data/minimal/seeding.csv",
+                         population_file = "data/seeding_agestrat.csv", 
                          perturbation_sd = 1,
                          amount_sd = 1, 
                          variant_filename = "data/variant/variant_props_long.csv",
                          compartment = TRUE,
-                         variant_compartments = c("wild", "alpha", "delta")
+                         variant_compartments = c("WILD", "ALPHA", "DELTA"),
+                         vaccine_compartments = c("unvaccinated", "1dose", "2dose", "waned"),
+                         age_strat = c("under65", "65plus"),
+                         age_strat_seed = "under65"
 ){
     variant_compartments <- stringr::str_to_upper(variant_compartments)
-
+    vac <- vaccine_compartments[1]
+    age <- age_strat_seed
     seeding_comp <- "\nseeding:\n"
 
     if(compartment){
@@ -1231,8 +1323,8 @@ print_seeding <- function(method = "FolderDraw",
         for(i in 1:length(variant_compartments)){
             seeding_comp <- paste0(seeding_comp,
                                    '    ', variant_compartments[i], ':\n',
-                                   '      source_compartment: ["S", "unvaccinated","', stringr::str_to_upper(variant_compartments[1]),'"]\n',
-                                   '      destination_compartment: ["E", "unvaccinated", "',stringr::str_to_upper(variant_compartments[i]),'"]\n')
+                                   '      source_compartment: ["S", "unvaccinated", "', stringr::str_to_upper(variant_compartments[1]),'", "', age_strat_seed, '"]\n',
+                                   '      destination_compartment: ["E", "unvaccinated", "',stringr::str_to_upper(variant_compartments[i]), '", "', age_strat_seed, '"]\n')
         }
     }
 
@@ -1242,6 +1334,7 @@ print_seeding <- function(method = "FolderDraw",
         "  seeding_file_type: ", seeding_file_type,"\n",
         "  folder_path: ", folder_path,"\n",
         "  lambda_file: ", lambda_file,"\n",
+        "  pop_seed_file: ", population_file, "\n",
         "  date_sd: ", perturbation_sd, "\n",
         "  amount_sd: ", amount_sd, "\n",
         "\n")
