@@ -457,56 +457,66 @@ set_variant_params <- function(b117_only = FALSE,
                                month_shift = NULL,
                                state_level = TRUE,
                                geodata = NULL,
-                               transmission_increase = NULL,
+                               transmission_increase = c(1, 1.45, (1.6*1.6)),
+                               variant_compartments = c("WILD", "ALPHA", "DELTA")
                                inference = TRUE,
                                v_dist="truncnorm",  v_sd = 0.01, v_a = -1.5, v_b = 0,
                                p_dist="truncnorm",
                                p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1
 ){
     inference_cutoff_date <- as.Date(inference_cutoff_date)
-
-
-    if(b117_only){
-        variant_data <- generate_variant_b117(variant_path = variant_path,
-                                              sim_start_date = sim_start_date,
-                                              sim_end_date = sim_end_date,
-                                              variant_lb = variant_lb,
-                                              variant_effect= variant_effect,
-                                              month_shift = month_shift) %>%
-            dplyr::mutate(geoid = "all",
-                          USPS = "")
-    } else if(state_level) {
-
-        if(is.null(variant_path_2)){stop("You must specify a path for the second variant.")}
-        if(is.null(geodata)){stop("You must specify a geodata file")}
-
-        variant_data <- generate_multiple_variants_state(variant_path_1 = variant_path,
-                                                         variant_path_2 = variant_path_2,
-                                                         sim_start_date = sim_start_date,
-                                                         sim_end_date = sim_end_date,
-                                                         variant_lb = variant_lb,
-                                                         variant_effect= variant_effect,
-                                                         transmission_increase = transmission_increase,
-                                                         geodata = geodata)
+    
+    if(compartment){
+        variant_data <- generate_compartment_variant(variant_path = variant_path,
+                                                     variant_compartments = variant_compartments, 
+                                                     transmission_increase = transmission_increase,
+                                                     geodata = geodata, 
+                                                     sim_start_date = sim_start_end,
+                                                     sim_end_date = sim_end_date)
     } else{
-
-        if(is.null(variant_path_2)){stop("You must specify a path for the second variant.")}
-
-        variant_data <- generate_multiple_variants(variant_path_1 = variant_path,
-                                                   variant_path_2 = variant_path_2,
-                                                   sim_start_date = sim_start_date,
-                                                   sim_end_date = sim_end_date,
-                                                   variant_lb = variant_lb,
-                                                   variant_effect= variant_effect,
-                                                   transmission_increase = transmission_increase) %>%
-            dplyr::mutate(geoid = "all",
-                          USPS = "")
+        
+        if(b117_only){
+            variant_data <- generate_variant_b117(variant_path = variant_path,
+                                                  sim_start_date = sim_start_date,
+                                                  sim_end_date = sim_end_date,
+                                                  variant_lb = variant_lb,
+                                                  variant_effect= variant_effect,
+                                                  month_shift = month_shift) %>%
+                dplyr::mutate(geoid = "all",
+                              USPS = "")
+        } else if(state_level) {
+            
+            if(is.null(variant_path_2)){stop("You must specify a path for the second variant.")}
+            if(is.null(geodata)){stop("You must specify a geodata file")}
+            
+            variant_data <- generate_multiple_variants_state(variant_path_1 = variant_path,
+                                                             variant_path_2 = variant_path_2,
+                                                             sim_start_date = sim_start_date,
+                                                             sim_end_date = sim_end_date,
+                                                             variant_lb = variant_lb,
+                                                             variant_effect= variant_effect,
+                                                             transmission_increase = transmission_increase,
+                                                             geodata = geodata)
+        } else{
+            
+            if(is.null(variant_path_2)){stop("You must specify a path for the second variant.")}
+            
+            variant_data <- generate_multiple_variants(variant_path_1 = variant_path,
+                                                       variant_path_2 = variant_path_2,
+                                                       sim_start_date = sim_start_date,
+                                                       sim_end_date = sim_end_date,
+                                                       variant_lb = variant_lb,
+                                                       variant_effect= variant_effect,
+                                                       transmission_increase = transmission_increase) %>%
+                dplyr::mutate(geoid = "all",
+                              USPS = "")
+        }
     }
 
     variant_data <- variant_data %>%
         dplyr::mutate(type = "transmission",
                       category = "variant",
-                      name = paste0("variantR0adj_", paste0("Week", week)),
+                      name = paste0(USPS, "_variantR0adj_", paste0("Week", lubridate::week(start_date))),
                       template = "Reduce",
                       parameter = "R0",
                       value_dist = v_dist,
