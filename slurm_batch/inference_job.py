@@ -42,7 +42,7 @@ from SEIR import file_paths
               help="Maximum number of interventions to allow in a stacked intervention")
 @click.option("--validation-end-date","--validation-end-date", "last_validation_date", envvar="VALIDATION_DATE", type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()),
               help="Last date to pull for ground truth data")
-def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
+def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
 
     config = None
     with open(config_file) as f:
@@ -204,7 +204,7 @@ class BatchJobHandler(object):
                 print(f"""{envar["name"]} = {envar["value"]}""")
 
             # submit job (idea: use slumpy to get the "depend on")
-            command = ["sbatch", "$COVID_PATH/slurm_batch/inference_job.run"]
+            command = ["sbatch", f"--array=1-{self.num_jobs}", "$COVID_PATH/slurm_batch/inference_job.run"]
             subprocess.run(command, shell=True, check=True)
             
             run_id_restart = self.run_id
