@@ -58,8 +58,8 @@ cd $COVID_PATH &&
 3. Setup environment variable
 
 ```
-export SCENARIO=R7_lowVac_highVar_CA-WA-FL-DE-MA &&
-  export VALIDATION_DATE="2021-07-04" &&
+  export SCENARIO=R8_lowPro_slowWan &&
+  export VALIDATION_DATE="2021-10-10" &&
   export COVID_RUN_INDEX=$SCENARIO &&
   export CONFIG_NAME=config_SMH_$SCENARIO.yml &&
   export CONFIG_PATH=$DATA_PATH/$CONFIG_NAME &&
