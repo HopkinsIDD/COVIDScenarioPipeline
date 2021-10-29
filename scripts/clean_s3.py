@@ -23,12 +23,13 @@ for page in pages:
 
 
 for run in to_prun:
+    print(f"Pruning chimeric & intermediate in {run}...", end='')
     command = f"aws s3 rm --recursive --exclude '*' --include '*/intermediate/*' --include '*/chimeric/*' s3://{bucket}/{prefix}"
-    process = subprocess.Popen(command, shell=True)
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     process.wait()
-    print(f"Returned {process.returncode} for {run}")
+    print(f"Done, return code is {process.returncode} !")
     if process.returncode != 0:
-        raise ValueError(f"failed for {run}")
+        raise ValueError(f"STOPPING, aws s3 rm failed for {run} !")
 
 
 
