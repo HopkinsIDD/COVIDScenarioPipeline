@@ -38,7 +38,7 @@ from SEIR import file_paths
               help="The location of an S3 run to use as the initial to the first block of the current run")
 @click.option("--stochastic/--non-stochastic", "--stochastic/--non-stochastic", "stochastic", envvar="COVID_STOCHASTIC", type=bool, default=True,
               help="Flag determining whether to run stochastic simulations or not")
-@click.option("--stacked-max","--stacked-max", "max_stacked_interventions", envvar="COVID_MAX_STACK_SIZE", type=click.IntRange(min=350), default=350,
+@click.option("--stacked-max","--stacked-max", "max_stacked_interventions", envvar="COVID_MAX_STACK_SIZE", type=click.IntRange(min=350), default=5000,
               help="Maximum number of interventions to allow in a stacked intervention")
 @click.option("--validation-end-date","--validation-end-date", "last_validation_date", envvar="VALIDATION_DATE", type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()),
               help="Last date to pull for ground truth data")
@@ -66,13 +66,12 @@ def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, output
 
     if restart_from_run_id is None:
         restart_from_run_id = run_id
-    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date)
+    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date)
 
-    job_queues = get_job_queues(job_queue_prefix)
     scenarios = config['interventions']['scenarios']
     p_death_names = config['outcomes']['scenarios']
 
-    handler.launch(job_name, config_file, scenarios, p_death_names, job_queues)
+    handler.launch(job_name, config_file, scenarios, p_death_names)
 
     (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")
     print(txt)
@@ -119,7 +118,7 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
 
 
 class BatchJobHandler(object):
-    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
+    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
         self.run_id = run_id
         self.num_jobs = num_jobs
         self.sims_per_job = sims_per_job
@@ -127,15 +126,13 @@ class BatchJobHandler(object):
         self.outputs = outputs
         self.s3_bucket = s3_bucket
         self.batch_job_definition = batch_job_definition
-        self.vcpus = vcpus
-        self.memory = memory
         self.restart_from_s3_bucket = restart_from_s3_bucket
         self.restart_from_run_id = restart_from_run_id
         self.stochastic = stochastic
         self.max_stacked_interventions = max_stacked_interventions
         self.last_validation_date = last_validation_date
 
-    def launch(self, job_name, config_file, scenarios, p_death_names, job_queues):
+    def launch(self, job_name, config_file, scenarios, p_death_names):
 
         manifest = {}
         manifest['cmd'] = " ".join(sys.argv[:])
@@ -145,23 +142,25 @@ class BatchJobHandler(object):
 
         # Prepare to tar up the current directory, excluding any dvc outputs, so it
         # can be shipped to S3
-        tarfile_name = f"{job_name}/metadata/{job_name}.tar.gz"
-        tar = tarfile.open(tarfile_name, "w:gz", dereference=True)
-        for p in os.listdir('.'):
-            if p == 'COVIDScenarioPipeline':
-                for q in os.listdir('COVIDScenarioPipeline'):
-                    if not (q == 'packrat' or q == 'sample_data' or q == 'build' or q.startswith('.')):
-                        tar.add(os.path.join('COVIDScenarioPipeline', q))
-                    elif q == 'sample_data':
-                        for r in os.listdir('COVIDScenarioPipeline/sample_data'):
-                            if r != 'united-states-commutes':
-                                tar.add(os.path.join('COVIDScenarioPipeline', 'sample_data', r))
-            elif not (p.startswith(".") or p.endswith("tar.gz") or p in self.outputs):
-                tar.add(p, filter=lambda x: None if os.path.basename(x.name).startswith('.') else x)
-        tar.close()
+        os.makedirs(f"{job_name}/metadata/", exist_ok=True)
+        if False:
+            tarfile_name = f"{job_name}/metadata/{job_name}.tar.gz"
+            tar = tarfile.open(tarfile_name, "x:gz", dereference=True)
+            for p in os.listdir('.'):
+                if p == 'COVIDScenarioPipeline':
+                    for q in os.listdir('COVIDScenarioPipeline'):
+                        if not (q == 'packrat' or q == 'sample_data' or q == 'build' or q.startswith('.')):
+                            tar.add(os.path.join('COVIDScenarioPipeline', q))
+                        elif q == 'sample_data':
+                            for r in os.listdir('COVIDScenarioPipeline/sample_data'):
+                                if r != 'united-states-commutes':
+                                    tar.add(os.path.join('COVIDScenarioPipeline', 'sample_data', r))
+                elif not (p.startswith(".") or p.endswith("tar.gz") or p in self.outputs):
+                    tar.add(p, filter=lambda x: None if os.path.basename(x.name).startswith('.') else x)
+            tar.close()
 
         # Save the manifest file
-        with open('{job_name}/metadata/manifest.json', 'w') as f:
+        with open(f'{job_name}/metadata/manifest.json', 'x') as f:
             json.dump(manifest, f, indent=4)
     
         # Prepare and launch the num_jobs
