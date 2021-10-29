@@ -202,9 +202,18 @@ class BatchJobHandler(object):
                 os.environ[envar["name"]] = envar["value"]
                 print(f"""{envar["name"]} = {envar["value"]}""")
 
+        
+            export_str = "--export="
+            for envar in base_env_vars:
+                export_str += f"""{envar["name"]}={envar["value"]},"""
+            for envar in cur_env_vars:
+                export_str += f"""{envar["name"]}={envar["value"]},"""
+            export_str = export_str[:-1]
+
             # submit job (idea: use slumpy to get the "depend on")
-            command = ["sbatch", f"--array=1-{self.num_jobs}", "$COVID_PATH/slurm_batch/inference_job.run"]
-            subprocess.run(command, shell=True, check=True)
+            command = ["sbatch", export_str , f"--array=1-{self.num_jobs}", "$COVID_PATH/slurm_batch/inference_job.run"]
+            print(command)
+            subprocess.run(command,  check=True)
             
             run_id_restart = self.run_id
             print(f"Launching {cur_job_name}...")
