@@ -24,7 +24,7 @@ for page in pages:
 
 for run in to_prun:
     print(f"Pruning chimeric & intermediate in {run}...", end='')
-    command = f"aws s3 rm --recursive --exclude '*' --include '*/intermediate/*' --include '*/chimeric/*' s3://{bucket}/{prefix}"
+    command = f"aws s3 rm --recursive --exclude '*' --include '*/intermediate/*' --include '*/chimeric/*' s3://{bucket}/{run}"
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     process.wait()
     print(f"Done, return code is {process.returncode} !")
