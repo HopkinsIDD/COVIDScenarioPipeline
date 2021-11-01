@@ -10,22 +10,25 @@ pages = paginator.paginate(Bucket=bucket, Prefix='', Delimiter = "/") # needs pa
 
 to_prun = []
 # folders:
+print("Searching what to delete or keep: ")
 for page in pages:
     for cp in page['CommonPrefixes']:
         prefix = cp['Prefix']
         timestamp = prefix.split('-')[-1].replace('/','')
         rundate = datetime.datetime.strptime(timestamp, "%Y%m%dT%H%M%S")
         if rundate < datetime.datetime.now() - datetime.timedelta(weeks=8):
-            print(f"Will prun files in {prefix}")
+            print(f"- Will prun files in {prefix}")
             to_prun.append(prefix)
         else:
-            print(f"NOT pruning {prefix}")
+            print(f"- NOT pruning {prefix}")
 
 
+print("Performing deletion, this is dangerous...")
 for run in to_prun:
     print(f"Pruning chimeric & intermediate in {run}...", end='')
+    # --dryrun
     command = f"aws s3 rm --recursive --exclude '*' --include '*/intermediate/*' --include '*/chimeric/*' s3://{bucket}/{run}"
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    process = subprocess.Popen(command, shell=True) # stdout=subprocess.PIPE
     process.wait()
     print(f"Done, return code is {process.returncode} !")
     if process.returncode != 0:
