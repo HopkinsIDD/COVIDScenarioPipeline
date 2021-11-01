@@ -25,8 +25,10 @@ generate_config <- function(){
                R0s_dist = "fixed",
                R0s_val = 2.3,
                incl_vacc = TRUE,
-               theta_1A_val = 0.5,
-               theta_2A_val = 0.9,
+               theta_1_val = 0.5,
+               theta_1_dist = "fixed", 
+               theta_2_val = 0.9,
+               theta_2_dist = "fixed",
                nu_2_val = 0.04,
                compartment = FALSE,
                vaccine_compartments = c("unvaccinated", "first_dose", "second_dose"))

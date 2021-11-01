@@ -1023,7 +1023,7 @@ WY,56000,2021-05-01,2021-05-31,Dose1_may2021,Reduce,transmission,vaccination,tra
 WY,56000,2021-06-01,2021-06-30,Dose1_jun2021,Reduce,transmission,vaccination,transition_rate 0,NA,fixed,0.003188,NA,NA,NA,NA,NA,NA,NA,NA
 WY,56000,2021-07-01,2021-07-31,Dose1_jul2021,Reduce,transmission,vaccination,transition_rate 0,NA,fixed,0.005629,NA,NA,NA,NA,NA,NA,NA,NA
 WY,56000,2021-08-01,2021-08-07,Dose1_aug2021,Reduce,transmission,vaccination,transition_rate 0,NA,fixed,0.004926,NA,NA,NA,NA,NA,NA,NA,NA
-NA,all,2021-01-10,2021-01-23,variantR0adj_Week2-3,Reduce,transmission,variant,R0,NA,truncnorm,-0.01,0.01,-1.5,0,truncnorm,0,0.01,-1,1
+NA,all,2021-01-10,2021-01-23,variantR0adj_Week2,Reduce,transmission,variant,R0,NA,truncnorm,-0.01,0.01,-1.5,0,truncnorm,0,0.01,-1,1
 NA,all,2021-01-24,2021-01-30,variantR0adj_Week4,Reduce,transmission,variant,R0,NA,truncnorm,-0.02000000000000001,0.01,-1.5,0,truncnorm,0,0.01,-1,1
 NA,all,2021-01-31,2021-02-06,variantR0adj_Week5,Reduce,transmission,variant,R0,NA,truncnorm,-0.03000000000000002,0.01,-1.5,0,truncnorm,0,0.01,-1,1
 NA,all,2021-02-07,2021-02-13,variantR0adj_Week6,Reduce,transmission,variant,R0,NA,truncnorm,-0.05000000000000004,0.01,-1.5,0,truncnorm,0,0.01,-1,1
@@ -1038,7 +1038,7 @@ NA,all,2021-04-04,2021-04-10,variantR0adj_Week14,Reduce,transmission,variant,R0,
 NA,all,2021-04-11,2021-04-17,variantR0adj_Week15,Reduce,transmission,variant,R0,NA,truncnorm,-0.47,0.01,-1.5,0,truncnorm,0,0.01,-1,1
 NA,all,2021-04-18,2021-04-24,variantR0adj_Week16,Reduce,transmission,variant,R0,NA,truncnorm,-0.48,0.01,-1.5,0,truncnorm,0,0.01,-1,1
 NA,all,2021-04-25,2021-05-01,variantR0adj_Week17,Reduce,transmission,variant,R0,NA,truncnorm,-0.49,0.01,-1.5,0,truncnorm,0,0.01,-1,1
-NA,all,2021-05-02,2021-05-29,variantR0adj_Week18-21,Reduce,transmission,variant,R0,NA,truncnorm,-0.5,0.01,-1.5,0,truncnorm,0,0.01,-1,1
+NA,all,2021-05-02,2021-05-29,variantR0adj_Week18,Reduce,transmission,variant,R0,NA,truncnorm,-0.5,0.01,-1.5,0,truncnorm,0,0.01,-1,1
 NA,all,2021-05-30,2021-06-05,variantR0adj_Week22,Reduce,transmission,variant,R0,NA,truncnorm,-0.55,0.01,-1.5,0,truncnorm,0,0.01,-1,1
 NA,all,2021-06-06,2021-06-12,variantR0adj_Week23,Reduce,transmission,variant,R0,NA,truncnorm,-0.5900000000000001,0.01,-1.5,0,truncnorm,0,0.01,-1,1
 NA,all,2021-06-13,2021-06-19,variantR0adj_Week24,Reduce,transmission,variant,R0,NA,truncnorm,-0.6499999999999999,0.01,-1.5,0,truncnorm,0,0.01,-1,1
