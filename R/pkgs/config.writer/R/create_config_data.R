@@ -458,7 +458,8 @@ set_variant_params <- function(b117_only = FALSE,
                                state_level = TRUE,
                                geodata = NULL,
                                transmission_increase = c(1, 1.45, (1.6*1.6)),
-                               variant_compartments = c("WILD", "ALPHA", "DELTA")
+                               variant_compartments = c("WILD", "ALPHA", "DELTA"),
+                               compartment = TRUE,
                                inference = TRUE,
                                v_dist="truncnorm",  v_sd = 0.01, v_a = -1.5, v_b = 0,
                                p_dist="truncnorm",
@@ -516,7 +517,8 @@ set_variant_params <- function(b117_only = FALSE,
     variant_data <- variant_data %>%
         dplyr::mutate(type = "transmission",
                       category = "variant",
-                      name = paste0(USPS, "_variantR0adj_", paste0("Week", lubridate::week(start_date))),
+                      name = paste(USPS, "variantR0adj", paste0("Week", lubridate::week(start_date)), sep="_"),
+                      name = stringr::str_remove(name, '^\\_'),
                       template = "Reduce",
                       parameter = "R0",
                       value_dist = v_dist,
@@ -786,7 +788,7 @@ set_incidH_adj_params <- function(outcome_path,
                                   v_dist = "fixed", v_sd = 0.01, v_a = -10, v_b = 2,
                                   p_dist = "truncnorm", p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1,
                                   compartment = TRUE,
-                                  variant_compartments = c("wild", "alpha", "delta")
+                                  variant_compartments = c("WILD", "ALPHA", "DELTA")
                                   )
 {
     variant_compartments <- stringr::str_to_upper(variant_compartments)
