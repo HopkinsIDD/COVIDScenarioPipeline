@@ -111,6 +111,10 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
 
             num_blocks = int(math.ceil(sims_per_slot / sims_per_job))
 
+            # now launch full sims:
+            sims_per_job = sims_per_slot
+            num_blocks = 1
+
             print(f"Setting sims per job to {sims_per_job} "
                   f"[estimated based on {num_geoids} geoids and {sims_per_slot} simulations_per_slot in config]")
             print(f"Setting number of blocks to {num_blocks} [via math]")
@@ -118,6 +122,7 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
     if num_blocks is None:
         num_blocks = int(math.ceil(sims_per_slot / sims_per_job))
         print(f"Setting number of blocks to {num_blocks} [via {sims_per_slot} simulations_per_slot in config]")
+
 
     return (num_jobs, sims_per_job, num_blocks)
 
@@ -212,7 +217,7 @@ class BatchJobHandler(object):
                 print(f"""{envar["name"]} = {envar["value"]}""")
 
         
-            export_str = "--export="
+            export_str = "--export=ALL,"
             for envar in base_env_vars:
                 export_str += f"""{envar["name"]}="{envar["value"]}","""
             for envar in cur_env_vars:
@@ -220,7 +225,7 @@ class BatchJobHandler(object):
             export_str = export_str[:-1]
 
             # submit job (idea: use slumpy to get the "depend on")
-            command = ["sbatch", export_str , f"--array=1-{self.num_jobs}", "$COVID_PATH/slurm_batch/inference_job.run"]
+            command = ["sbatch", export_str , f"--array=1-{self.num_jobs}", f"{self.csp_path}/slurm_batch/inference_job.run"]
             print(' '.join(command))
             subprocess.run(command,  check=True, shell=True)
             
