@@ -13,6 +13,7 @@ export LOG_DIR="model_output/log/${COVID_RUN_INDEX}"
 mkdir -p $LOG_DIR
 #export F_DIR="`date +%Y-%m-%d`-${MDL_NNODES}_${MDL_DAYS}_AG_${OBJ}/"
 
+
 echo "Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH   # path to the config file  
                                                --run_id $COVID_RUN_INDEX  # Unique identifier for this run
                                                --scenarios $COVID_SCENARIOS  # name of the intervention to run, or 'all' 
@@ -33,8 +34,9 @@ echo "Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH   # 
 
 module purge
 #module restore COVID_OCP
+source ~/miniconda3/etc/profile.d/conda.sh # loading conda in case
 conda activate covidSProd6
-cd $DATA_PATH
+#cd $DATA_PATH
 srun Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH `#path to the config file` \
                                                --run_id $COVID_RUN_INDEX `#Unique identifier for this run` \
                                                --scenarios $COVID_SCENARIOS `#name of the intervention to run, or 'all'` \
@@ -50,7 +52,6 @@ srun Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH `#pat
                                                --python python \
                                                --rpath Rscript \
                                                --is-resume $COVID_IS_RESUME `#Is this run a resume` \
-                                               --is-interactive FALSE `#Is this run an interactive run` \
-                                               >>  ${LOG_DIR}/log_${COVID_RUN_INDEX}_${THIS_SLOT}.txt 2>&1 &
+                                               --is-interactive FALSE >> ${LOG_DIR}/log_${COVID_RUN_INDEX}_${THIS_SLOT}.txt 2>&1 &
 
 wait
