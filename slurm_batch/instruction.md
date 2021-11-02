@@ -42,6 +42,8 @@ at some point:
   export CENSUS_API_KEY=_YOURAPIKEYREPLACETHIS_
 ```
 
+You may want to add these line to the .bashrc..
+
 2. Install everything and cleanup
 
 ```bash
