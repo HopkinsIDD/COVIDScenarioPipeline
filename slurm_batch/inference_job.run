@@ -49,8 +49,8 @@ srun Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH `#pat
                                                --deathrates $COVID_DEATHRATES `#name of the outcome scenarios to run, or 'all'` \
                                                --jobs 1 `#Number of jobs to run in parallel` \
                                                --simulations_per_slot $COVID_SIMULATIONS_PER_SLOT `#number of simulations to run for this slot` \
-                                               --this_slot $THIS_SLOT `#id of this slot \
-                                               --this_block 1 `# id of this block \
+                                               --this_slot $THIS_SLOT `#id of this slot` \
+                                               --this_block 1 `# id of this block` \
                                                --stoch_traj_flag $COVID_STOCHASTIC `#Stochastic SEIR and outcomes trajectories if true` \
                                                --ground_truth_start $COVID_GT_END `#First date to include groundtruth for` \
                                                --ground_truth_end $COVID_GT_START `#First date to include groundtruth for` \
