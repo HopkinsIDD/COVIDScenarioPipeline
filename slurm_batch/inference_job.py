@@ -42,7 +42,12 @@ from SEIR import file_paths
               help="Maximum number of interventions to allow in a stacked intervention")
 @click.option("--validation-end-date","--validation-end-date", "last_validation_date", envvar="VALIDATION_DATE", type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()),
               help="Last date to pull for ground truth data")
-def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
+@click.option("-p","--pipepath", "csp_path", envvar="COVID_PATH", type=click.Path(exists=True), required=True,
+              help="path to the COVIDScenarioPipeline directory")
+@click.option("--data-path","--data-path", "data_path", envvar="DATA_PATH", type=click.Path(exists=True), required=True,
+              help="path to the data directory")
+
+def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date, csp_path, data_path):
 
     config = None
     with open(config_file) as f:
@@ -66,7 +71,7 @@ def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, output
 
     if restart_from_run_id is None:
         restart_from_run_id = run_id
-    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date)
+    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date, csp_path, data_path)
 
     scenarios = config['interventions']['scenarios']
     p_death_names = config['outcomes']['scenarios']
@@ -118,7 +123,7 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
 
 
 class BatchJobHandler(object):
-    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
+    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date, csp_path, data_path):
         self.run_id = run_id
         self.num_jobs = num_jobs
         self.sims_per_job = sims_per_job
@@ -131,6 +136,8 @@ class BatchJobHandler(object):
         self.stochastic = stochastic
         self.max_stacked_interventions = max_stacked_interventions
         self.last_validation_date = last_validation_date
+        self.csp_path = csp_path
+        self.data_path = data_path
 
     def launch(self, job_name, config_file, scenarios, p_death_names):
 
@@ -173,7 +180,9 @@ class BatchJobHandler(object):
                 {"name": "VALIDATION_DATE", "value": str(self.last_validation_date)},
                 {"name": "SIMS_PER_JOB", "value": str(self.sims_per_job) },
                 {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job) },
-                {"name": "COVID_STOCHASTIC", "value": str(self.stochastic) }
+                {"name": "COVID_STOCHASTIC", "value": str(self.stochastic) },
+                {"name": "DATA_PATH", "value": str(self.data_path) },
+                {"name": "COVID_PATH", "value": str(self.csp_path) }
         ]
 
         for envar in base_env_vars:

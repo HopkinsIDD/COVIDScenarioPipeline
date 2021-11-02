@@ -34,8 +34,14 @@ echo "Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH   # 
 
 module purge
 #module restore COVID_OCP
-source ~/miniconda3/etc/profile.d/conda.sh # loading conda in case
+
 conda activate covidSProd6
+
+# in case conda not found
+#source /home/jcblemai/.bashrc
+#source ~/miniconda3/etc/profile.d/conda.sh # loading conda in case
+#eval "$(conda shell.bash hook)"
+
 #cd $DATA_PATH
 srun Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH `#path to the config file` \
                                                --run_id $COVID_RUN_INDEX `#Unique identifier for this run` \
