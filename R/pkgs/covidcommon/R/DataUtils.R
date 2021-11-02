@@ -824,8 +824,8 @@ get_groundtruth_from_single_source <- function(source = "csse", scale = "US coun
     # rc <- get_from_file_US_county_hosp_data(misc_data_filename)
     rc <- get_LA_health_dpt_county_hosp_data(misc_data_filename)
   } else{
-    warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning NULL object.")))
-    rc <- NULL
+    warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning empty tibble.")))
+    rc <- as_tibble(NULL)
   }
 
   return(rc)
