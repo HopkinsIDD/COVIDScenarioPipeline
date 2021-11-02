@@ -23,16 +23,20 @@ for page in pages:
             print(f"- NOT pruning {prefix}")
 
 
-print("Performing deletion, this is dangerous...")
-for run in to_prun:
-    print(f"Pruning chimeric & intermediate in {run}...", end='')
-    # --dryrun
-    command = f"aws s3 rm --recursive --exclude '*' --include '*/intermediate/*' --include '*/chimeric/*' s3://{bucket}/{run}"
-    process = subprocess.Popen(command, shell=True) # stdout=subprocess.PIPE
-    process.wait()
-    print(f"Done, return code is {process.returncode} !")
-    if process.returncode != 0:
-        raise ValueError(f"STOPPING, aws s3 rm failed for {run} !")
+print("I'll perform the deletion, this is dangerous...")
+if input("... Do you wish to continue? [yes/no] ") == "yes":
+    for run in to_prun:
+        print(f"Pruning chimeric & intermediate in {run}...", end='')
+        # --dryrun
+        command = f"aws s3 rm --recursive --exclude '*' --include '*/intermediate/*' --include '*/chimeric/*' s3://{bucket}/{run}"
+        process = subprocess.Popen(command, shell=True) # stdout=subprocess.PIPE
+        process.wait()
+        print(f"Done, return code is {process.returncode} !")
+        if process.returncode != 0:
+            raise ValueError(f"STOPPING, aws s3 rm failed for {run} !")
+
+else:
+    print("wise choice, abording")
 
 
 
