@@ -51,6 +51,6 @@ srun Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH `#pat
                                                --rpath Rscript \
                                                --is-resume $COVID_IS_RESUME `#Is this run a resume` \
                                                --is-interactive FALSE `#Is this run an interactive run` \
-                                               >>  ${LOG_DIR}/log_${COVID_RUN_INDEX}_${THIS_SLOT}_debug.txt 2>&1 &
+                                               >>  ${LOG_DIR}/log_${COVID_RUN_INDEX}_${THIS_SLOT}.txt 2>&1 &
 
 wait
