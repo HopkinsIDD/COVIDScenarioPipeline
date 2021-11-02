@@ -5,6 +5,7 @@
 #SBATCH --mem 10G                      # Per node
 #SBATCH --time 0-0:40:00                    #J-H:m:s
 #SBATCH --qos=week                     # Echo is authorized to launch week-long job
+#SBATCH --reservationname=COVID19
 
 THIS_SLOT=${SLURM_ARRAY_TASK_ID}
 
