@@ -707,7 +707,8 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 ##'
 ##' @export
 ##'
-get_groundtruth_from_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE){
+get_groundtruth_from_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"),
+                                        incl_unass = FALSE, get_hosp = FALSE){
 
   if(source == "reichlab" & scale == "US county"){
 
@@ -779,6 +780,12 @@ get_groundtruth_from_source <- function(source = "csse", scale = "US county", va
   } else{
     warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning NULL object.")))
     rc <- NULL
+  }
+  
+  if(get_hosp & scale == "US state") {
+    hosp <- get_hhsCMU_incidH_st_data()
+    hosp <- hosp %>% dplyr::select(-FIPS)
+    rc <- left_join(rc, hosp)
   }
 
   return(rc)
