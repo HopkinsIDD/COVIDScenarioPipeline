@@ -1442,6 +1442,8 @@ print_seeding <- function(method = "FolderDraw",
 #' @param do_filtering whether to perform inference
 #' @param data_path file path where observed data are saved
 #' @param gt_source source of data
+#' @param gt_source_statistics 
+#' @param misc_data_filename
 #' @param stat_names the names of the statistics used to calibrate the model to empirical data
 #' @param aggregator function used to aggregate data over the period, usually sum or mean
 #' @param period duration over which data should be aggregated prior to use in the likelihood, may be specified in any number of days, weeks, months (e.g., "1 weeks")
@@ -1467,6 +1469,8 @@ print_filtering_statistics <- function(sims_per_slot = 300,
                                        do_filtering = TRUE,
                                        data_path = "data/us_data.csv",
                                        gt_source = "csse",
+                                       gt_source_statistics = NULL, 
+                                       misc_data_filename = NULL,
                                        stat_names = c("sum_deaths", "sum_confirmed"),
                                        aggregator = "sum",
                                        period = "1 weeks",
@@ -1489,6 +1493,7 @@ print_filtering_statistics <- function(sims_per_slot = 300,
         "  do_filtering: ", do_filtering,"\n",
         "  data_path: ", data_path, "\n",
         '  gt_source: "', gt_source, '"\n',
+        {if(!is.null(misc_data_filename)) paste0('  misc_data_filename: ', misc_data_filename, '\n') else(paste0(''))},
         "  statistics:\n"
     ))
 
@@ -1533,7 +1538,15 @@ print_filtering_statistics <- function(sims_per_slot = 300,
         ll_param <- rep(ll_param, n_vars)
 
     }
-
+    
+    if(is.null(gt_source_statistics)){
+        gt_source_statistics <- gt_source
+    }
+    
+    
+    if(length(gt_source_statistics)!=n_vars){
+        gt_source_statistics <- rep(gt_source_statistics, n_vars)
+    }
 
     for(i in 1:length(stat_names)){
         cat(paste0(
@@ -1541,6 +1554,7 @@ print_filtering_statistics <- function(sims_per_slot = 300,
             "      name: ", stat_names[i], "\n",
             "      aggregator: ", aggregator[i], "\n",
             '      period: "', period[i], '"\n',
+            '      gt_source: "', gt_source_statistics[i],'"\n',
             "      sim_var: ", sim_var[i], "\n",
             "      data_var: ", data_var[i], "\n",
             "      remove_na: ", remove_na[i], "\n",
