@@ -427,7 +427,7 @@ load_hosp_geounit_threshold <- function(threshold,
                            inference=inference)
     rc <- rc %>%
       dplyr::group_by(geoid, scenario, sim_num) %>%
-      group_map(function(.x,.y){
+      dplyr::group_map(function(.x,.y){
         .x <- .x %>% arrange(time)
         # Take the first element of the arranged data frame that meets the threshold
         if(.y$geoid %in% names(threshold)) {
@@ -441,7 +441,7 @@ load_hosp_geounit_threshold <- function(threshold,
         return(.x)
       }, .keep = TRUE) %>%
       do.call(what=dplyr::bind_rows) %>%
-      ungroup() 
+      dplyr::ungroup() 
     
       return(rc)
 }
@@ -485,7 +485,7 @@ load_geodata_file <- function(filename,
   if(names) {
   geodata<-geodata %>%
     dplyr::left_join(fips_codes%>%
-                       unite(col="geoid", ends_with("_code"), sep="") %>%
+                       tidyr::unite(col="geoid", tidyselect::ends_with("_code"), sep="") %>%
                        dplyr::select(-state_name, -state) %>%
                        dplyr::rename(name=county) %>%
                        dplyr::mutate(name=stringr::str_remove(name, " County")))
@@ -633,7 +633,7 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
   if(aggregate){
     usaf_dat <- usaf_dat %>%
       dplyr::group_by(date, source) %>%
-      dplyr::summarise(across(-geoid, ~sum(na.rm=TRUE))) %>%
+      dplyr::summarise(dplyr::across(-geoid, ~sum(na.rm=TRUE))) %>%
       dplyr::ungroup() %>%
       dplyr::rename(NcumulConfirmed=Confirmed,
                     NcumulDeathsObs=Deaths,
@@ -709,7 +709,7 @@ load_hosp_geounit_relative_to_threshold <- function(outcome_dir,
                                       incl_geoids=incl_geoids,
                                       inference=inference,
                                       pre_process=function(x){x%>%
-                                          select(geoid, time, pdeath, scenario, filename, ends_with("curr"))})
+                                          dplyr::select(geoid, time, pdeath, scenario, filename, tidyselect::ends_with("curr"))})
   
   county_dat<-county_dat %>% 
     dplyr::left_join(geodat) %>%
@@ -804,7 +804,7 @@ load_r_sims_filtered <- function(outcome_dir,
     dplyr::mutate(local_r = r0*(1-reduction)) %>% # county_r0 ought to be renamed to "geogroup_r0"
     dplyr::select(geoid, sim_num, local_r, scenario, r0) %>%
     dplyr::left_join(snpi) %>%
-    dplyr::mutate(r = if_else(npi_name=="local_variance",
+    dplyr::mutate(r = dplyr::if_else(npi_name=="local_variance",
                        local_r,
                        local_r*(1-reduction))) %>%
     dplyr::left_join(geodat) %>%
@@ -858,7 +858,7 @@ load_r_daily_sims_filtered <- function(outcome_dir,
   } else {
     npi <- snpi %>%
       dplyr::left_join(spar) %>% 
-      mutate(start_date=lubridate::ymd(start_date),
+      dplyr::mutate(start_date=lubridate::ymd(start_date),
              end_date=lubridate::ymd(end_date))
   }
   

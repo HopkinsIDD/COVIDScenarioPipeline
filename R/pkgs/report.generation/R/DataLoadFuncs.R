@@ -35,7 +35,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
       dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
       dplyr::filter(geoid %in% incl_geoids) %>%
       pre_process(...)%>%
-      collect()
+      dplyr::collect()
   } else {
     if(length(partitions)==7){partitions <- partitions[-5:-6]}
     
@@ -44,11 +44,11 @@ load_hosp_sims_filtered <- function(outcome_dir,
       dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
       dplyr::filter(geoid %in% incl_geoids) %>%
       pre_process(...)%>%
-      collect()
+      dplyr::collect()
   }
   
   hosp<-hosp %>%
-    mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+")),
+    dplyr::mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+")),
            time=as.Date(time)) 
   
   if(nrow(hosp)==0){stop("Nothing was loaded, confirm filtering values are correct.")}
@@ -93,8 +93,8 @@ load_hpar_sims_filtered <- function(outcome_dir,
     dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
     dplyr::filter(geoid %in% incl_geoids)  %>%
     pre_process(...) %>%
-    collect() %>%
-    mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+")))
+    dplyr::collect() %>%
+    dplyr::mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+")))
   
   message("Finished loading")
   return(hpar)
@@ -136,8 +136,8 @@ load_spar_sims_filtered <- function(outcome_dir,
                   !!as.symbol(partitions[6])=="final") %>%
     dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
     pre_process(...) %>%
-    collect() %>%
-    mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+")))
+    dplyr::collect() %>%
+    dplyr::mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+")))
   
   message("Finished loading.")
   return(spar)
@@ -186,8 +186,8 @@ load_snpi_sims_filtered <- function(outcome_dir,
     dplyr::filter(!!as.symbol(partitions[3]) %in% pdeath_filter) %>%
     dplyr::filter(geoid %in% incl_geoids)  %>%
     pre_process(...)%>%
-    collect() %>%
-    mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+")))
+    dplyr::collect() %>%
+    dplyr::mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+")))
   
   message("Finished loading.")
   
