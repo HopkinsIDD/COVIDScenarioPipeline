@@ -12015,6 +12015,7 @@ filtering:
       name: sum_deaths
       aggregator: sum
       period: "1 weeks"
+      gt_source: "csse"
       sim_var: incidD
       data_var: death_incid
       remove_na: FALSE
@@ -12026,6 +12027,7 @@ filtering:
       name: sum_confirmed
       aggregator: sum
       period: "1 weeks"
+      gt_source: "csse"
       sim_var: incidC
       data_var: confirmed_incid
       remove_na: FALSE
