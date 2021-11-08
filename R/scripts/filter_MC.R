@@ -445,9 +445,13 @@ for(scenario in scenarios) {
       
       ## Global likelihood acceptance or rejection decision ----
       
-      if(inference::iterateAccept(global_likelihood, proposed_likelihood)){
+      if(inference::iterateAccept(global_likelihood, proposed_likelihood) || ((current_index == 0) && (opt$this_block == 1))){
         
-        print("****ACCEPT (Recording) ****")
+        print("**** ACCEPT (Recording) ****")
+        if ((opt$this_block == 1) && (current_index == 0)) {
+          print("by default because it's the first iteration of a block 1")
+        }
+
         current_index <- this_index #IMPORTANT: This is the index of the most recent globally accepted parameters
         proposed_likelihood_data$accept <- 1 # global acceptance decision (0/1), same recorded for each geoID
         avg_global_accept_rate <- ((this_index-1)*old_avg_global_accept_rate + 1)/(this_index) # update running average acceptance probability
@@ -459,7 +463,7 @@ for(scenario in scenarios) {
         
       } else {
         
-        print("****REJECT (Recording) ****")
+        print("**** REJECT (Recording) ****")
         proposed_likelihood_data$accept <- 0
         avg_global_accept_rate <- ((this_index-1)*old_avg_global_accept_rate)/(this_index) # update running average acceptance probability
         proposed_likelihood_data$accept_avg <-avg_global_accept_rate
