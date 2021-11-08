@@ -92,7 +92,7 @@ test_that("Simulation loading works", {
             scenario_labels = 'baseline',
             incl_geoids = included_geoids,
             inference=FALSE
-    ))+2
+    ))
         }
     )
     

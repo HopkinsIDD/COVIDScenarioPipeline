@@ -191,39 +191,61 @@ load_hosp_geocombined_totals <- function(outcome_dir,
                                          pre_process=function(x) {x},
                                          incl_geoids,
                                          inference=TRUE,
+                                         vacc_compartment=FALSE,
                                          ...
 ) {
   
   require(tidyverse)
-  
-  hosp_post_process <- function(x) {
-    x %>%
-      dplyr::group_by(geoid, pdeath, scenario, runID, sim_num, location) %>%
-      dplyr::arrange(time) %>%
-      dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
-      dplyr::mutate(cum_death=cumsum(incidD)) %>%
-      dplyr::mutate(cum_case=cumsum(incidC)) %>%
-      dplyr::mutate(cum_inf=cumsum(incidI)) %>%
-      dplyr::group_by(pdeath, scenario, time, runID, sim_num) %>%
-      dplyr::summarize(NhospCurr=sum(hosp_curr),
-                       NICUCurr=sum(icu_curr),
-                       NincidDeath=sum(incidD),
-                       NincidInf=sum(incidI),
-                       NincidCase=sum(incidC),
-                       NincidICU=sum(incidICU),
-                       NincidHosp=sum(incidH),
-                       NincidVent=sum(incidVent),
-                       NVentCurr=sum(vent_curr),
-                       cum_hosp=sum(cum_hosp),
-                       cum_death=sum(cum_death),
-                       cum_case=sum(cum_case),
-                       cum_inf=sum(cum_inf)) %>%
-      dplyr::mutate(scenario_name = factor(scenario,
-                                           levels = scenario_levels, 
-                                           labels = scenario_labels)) %>%
-      ungroup()
+
+  if(vacc_compartment){
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::group_by(pdeath, scenario, sim_num, location, p_comp, time) %>%
+        dplyr::summarize(NhospCurr=sum(hosp_curr),
+                         NICUCurr=sum(icu_curr),
+                         NincidDeath=sum(incidD),
+                         NincidInf=sum(incidI),
+                         NincidCase=sum(incidC),
+                         NincidICU=sum(incidICU),
+                         NincidHosp=sum(incidH),
+                         NincidVent=sum(incidVent),
+                         NVentCurr=sum(vent_curr)) %>%
+        dplyr::group_by(pdeath, scenario, sim_num, location, p_comp) %>%
+        dplyr::mutate(cum_hosp=cumsum(NincidHosp)) %>%
+        dplyr::mutate(cum_death=cumsum(NincidDeath)) %>%
+        dplyr::mutate(cum_case=cumsum(NincidCase)) %>%
+        dplyr::mutate(cum_inf=cumsum(NincidInf)) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(scenario_name = factor(scenario,
+                                             levels = scenario_levels, 
+                                             labels = scenario_labels)) 
+    }
+  } else{
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::group_by(pdeath, scenario, sim_num, location, time) %>%
+        dplyr::summarize(NhospCurr=sum(hosp_curr), 
+                         NICUCurr=sum(icu_curr),       
+                         NincidDeath=sum(incidD),
+                         NincidInf=sum(incidI),
+                         NincidCase=sum(incidC),
+                         NincidICU=sum(incidICU),
+                         NincidHosp=sum(incidH),
+                         NincidVent=sum(incidVent),
+                         NVentCurr=sum(vent_curr)) %>%
+        dplyr::group_by(pdeath, scenario, sim_num, location) %>%
+        dplyr::mutate(cum_hosp=cumsum(NincidHosp)) %>%
+        dplyr::mutate(cum_death=cumsum(NincidDeath)) %>%
+        dplyr::mutate(cum_case=cumsum(NincidCase)) %>%
+        dplyr::mutate(cum_inf=cumsum(NincidInf)) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(scenario_name = factor(scenario,
+                                             levels = scenario_levels, 
+                                             labels = scenario_labels)) 
+    }
   }
- 
+  
+
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
                                pdeath_filter=pdeath_filter,
                                pre_process=pre_process,
@@ -280,31 +302,58 @@ load_hosp_county <- function(outcome_dir,
                              pre_process=function(x) {x},
                              incl_geoids,
                              inference=TRUE,
+                             vacc_compartment = FALSE,
                              ...
 ) {
   
   require(tidyverse)
   
-  hosp_post_process <- function(x) {
-    x %>%
-      dplyr::group_by(geoid, pdeath, scenario, runID, sim_num, location) %>%
-      dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
-      dplyr::mutate(cum_death=cumsum(incidD)) %>%
-      dplyr::mutate(cum_case=cumsum(incidC)) %>%
-      dplyr::mutate(cum_inf=cumsum(incidI)) %>%
-      dplyr::rename(NhospCurr=hosp_curr,
-                    NICUCurr=icu_curr,
-                    NincidDeath=incidD,
-                    NincidInf=incidI,
-                    NincidCase=incidC,
-                    NincidICU=incidICU,
-                    NincidHosp=incidH,
-                    NincidVent=incidVent,
-                    NVentCurr=vent_curr) %>%
-      dplyr::ungroup() %>%
-      dplyr::mutate(scenario_name = factor(scenario,
-                                           levels = scenario_levels, 
-                                           labels = scenario_labels)) 
+
+  if(vacc_compartment){
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::group_by(geoid, pdeath, scenario, sim_num, location, p_comp) %>%
+        dplyr::mutate(cum_hosp=cumsum(incidH)) %>%
+        dplyr::mutate(cum_death=cumsum(incidD)) %>%
+        dplyr::mutate(cum_case=cumsum(incidC)) %>%
+        dplyr::mutate(cum_inf=cumsum(incidI)) %>%
+        dplyr::rename(NhospCurr=hosp_curr,
+                      NICUCurr=icu_curr,
+                      NincidDeath=incidD,
+                      NincidInf=incidI,
+                      NincidCase=incidC,
+                      NincidICU=incidICU,
+                      NincidHosp=incidH,
+                      NincidVent=incidVent,
+                      NVentCurr=vent_curr) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(scenario_name = factor(scenario,
+                                             levels = scenario_levels, 
+                                             labels = scenario_labels)) 
+    }
+  } else{
+    hosp_post_process <- function(x) {
+      x %>%
+        dplyr::group_by(geoid, pdeath, scenario, sim_num, location, time) %>%
+        dplyr::summarize(NhospCurr=sum(hosp_curr), 
+                         NICUCurr=sum(icu_curr),       
+                         NincidDeath=sum(incidD),
+                         NincidInf=sum(incidI),
+                         NincidCase=sum(incidC),
+                         NincidICU=sum(incidICU),
+                         NincidHosp=sum(incidH),
+                         NincidVent=sum(incidVent),
+                         NVentCurr=sum(vent_curr)) %>%
+        dplyr::group_by(geoid, pdeath, scenario, sim_num, location) %>%
+        dplyr::mutate(cum_hosp=cumsum(NincidHosp)) %>%
+        dplyr::mutate(cum_death=cumsum(NincidDeath)) %>%
+        dplyr::mutate(cum_case=cumsum(NincidCase)) %>%
+        dplyr::mutate(cum_inf=cumsum(NincidInf)) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(scenario_name = factor(scenario,
+                                             levels = scenario_levels, 
+                                             labels = scenario_labels)) 
+    }
   }
   
   rc<- load_hosp_sims_filtered(outcome_dir=outcome_dir, 
@@ -382,7 +431,7 @@ load_hosp_geounit_threshold <- function(threshold,
                            inference=inference)
     rc <- rc %>%
       dplyr::group_by(geoid, scenario, sim_num) %>%
-      group_map(function(.x,.y){
+      dplyr::group_map(function(.x,.y){
         .x <- .x %>% arrange(time)
         # Take the first element of the arranged data frame that meets the threshold
         if(.y$geoid %in% names(threshold)) {
@@ -396,7 +445,7 @@ load_hosp_geounit_threshold <- function(threshold,
         return(.x)
       }, .keep = TRUE) %>%
       do.call(what=dplyr::bind_rows) %>%
-      ungroup() 
+      dplyr::ungroup() 
     
       return(rc)
 }
@@ -460,7 +509,7 @@ load_geodata_file <- function(filename,
   if(names) {
   geodata<-geodata %>%
     dplyr::left_join(fips_codes%>%
-                       unite(col="geoid", ends_with("_code"), sep="") %>%
+                       tidyr::unite(col="geoid", tidyselect::ends_with("_code"), sep="") %>%
                        dplyr::select(-state_name, -state) %>%
                        dplyr::rename(name=county) %>%
                        dplyr::mutate(name=stringr::str_remove(name, " County")))
@@ -603,7 +652,7 @@ load_USAFacts_for_report <- function(data_dir = "data/case_data",
   if(aggregate){
     usaf_dat <- usaf_dat %>%
       dplyr::group_by(date, source) %>%
-      dplyr::summarise(across(-geoid, ~sum(na.rm=TRUE))) %>%
+      dplyr::summarise(dplyr::across(-geoid, ~sum(na.rm=TRUE))) %>%
       dplyr::ungroup() %>%
       dplyr::rename(NcumulConfirmed=Confirmed,
                     NcumulDeathsObs=Deaths,
@@ -680,7 +729,7 @@ load_hosp_geounit_relative_to_threshold <- function(outcome_dir,
                                       incl_geoids=incl_geoids,
                                       inference=inference,
                                       pre_process=function(x){x%>%
-                                          select(geoid, time, pdeath, scenario, filename, ends_with("curr"))})
+                                          dplyr::select(geoid, time, pdeath, scenario, filename, tidyselect::ends_with("curr"))})
   
   county_dat<-county_dat %>% 
     dplyr::left_join(geodat) %>%
@@ -775,9 +824,9 @@ load_r_sims_filtered <- function(outcome_dir,
     dplyr::mutate(local_r = r0*(1-reduction)) %>% # county_r0 ought to be renamed to "geogroup_r0"
     dplyr::select(geoid, sim_num, local_r, scenario, r0) %>%
     dplyr::left_join(snpi) %>%
-    dplyr::mutate(r = if_else(npi_name=="local_variance",
-                              local_r,
-                              local_r*(1-reduction))) %>%
+    dplyr::mutate(r = dplyr::if_else(npi_name=="local_variance",
+                       local_r,
+                       local_r*(1-reduction))) %>%
     dplyr::left_join(geodat) %>%
     dplyr::rename(npi_group_name=npi_name) %>%
     dplyr::mutate(npi_name = stringr::str_remove(npi_group_name, npi_trimmer)) %>%
@@ -813,50 +862,46 @@ load_r_daily_sims_filtered <- function(outcome_dir,
   
   spar <- load_spar_sims_filtered(outcome_dir=outcome_dir, 
                                   pre_process=function(x) {x %>% dplyr::filter(parameter=="R0")}, 
-                                  pdeath_filter=pdeath_filter,
-                                  ...) %>%
-    dplyr::select(r0=value, location, scenario, pdeath, date, sim_num)
+                                  pdeath_filter=pdeath_filter) %>%
+    dplyr::select(r0=value, location, scenario, pdeath, sim_num)
   
   snpi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
                                  pre_process=function(x) {x %>% dplyr::filter(parameter=="r0")}, 
                                  pdeath_filter=pdeath_filter, 
-                                 incl_geoids=incl_geoids,
-                                 ...) %>%
+                                 incl_geoids=incl_geoids) %>%
     dplyr::select(-parameter)
   
   if(mtr){
     npi <- snpi %>%
-      left_join(spar) %>% 
-      dplyr::select(-date) %>%
+      dplyr::left_join(spar) %>% 
       mtr_estimates(n_periods=n_periods)
   } else {
     npi <- snpi %>%
-      left_join(spar) %>% 
-      dplyr::select(-date) %>%
-      mutate(start_date=lubridate::ymd(start_date),
+      dplyr::left_join(spar) %>% 
+      dplyr::mutate(start_date=lubridate::ymd(start_date),
              end_date=lubridate::ymd(end_date))
   }
   
-  geoiddate<-crossing(geoid=incl_geoids, time=seq(min(as.Date(npi$start_date)), max(as.Date(npi$end_date)), 1))
+  geoiddate<-tidyr::crossing(geoid=incl_geoids, time=seq(min(as.Date(npi$start_date)), max(as.Date(npi$end_date)), 1))
   
   rc<-list()
   
   for(i in 1:length(incl_geoids)){
     rc[[i]]<-npi %>%
-      filter(geoid == incl_geoids[i])%>%
-      left_join(geoiddate)%>%
-      mutate(geoid=if_else(start_date>time | end_date<time, NA_character_, geoid))%>%
-      drop_na() %>%
-      group_by(geoid, sim_num, time, pdeath, scenario, location) %>%
-      mutate(reduction=1-reduction)%>%
-      summarize(reduction=prod(reduction),
+      dplyr::filter(geoid == incl_geoids[i])%>%
+      dplyr::left_join(geoiddate)%>%
+      dplyr::mutate(geoid=dplyr::if_else(start_date>time | end_date<time, NA_character_, geoid))%>%
+      tidyr::drop_na() %>%
+      dplyr::group_by(geoid, sim_num, time, pdeath, scenario, location) %>%
+      dplyr::mutate(reduction=1-reduction)%>%
+      dplyr::summarize(reduction=prod(reduction),
                 r0=unique(r0)) %>%
-      mutate(rt=reduction*r0,
+      dplyr::mutate(rt=reduction*r0,
              reduction=1-reduction)
   }
   
-  rc<-bind_rows(rc) %>%
-    ungroup()
+  rc<-dplyr::bind_rows(rc) %>%
+    dplyr::ungroup()
   
   warning("Finished loading")
   return(rc)
@@ -883,11 +928,11 @@ load_npi_sims_filtered <- function(outcome_dir,
   require(tidyverse)
   
   npi<- load_snpi_sims_filtered(outcome_dir=outcome_dir, 
-                                pre_process=function(x) {x %>% dplyr::filter(parameter=="r0")}, 
-                                pdeath_filter=pdeath_filter, 
-                                incl_geoids=incl_geoids,
-                                ...) %>%
-    dplyr::select(-parameter, -runID)
+                                 pre_process=function(x) {x %>% dplyr::filter(parameter=="r0")}, 
+                                 pdeath_filter=pdeath_filter, 
+                                 incl_geoids=incl_geoids,
+                                 ...) %>%
+    dplyr::select(-parameter)
   
   warning("Finished loading")
   

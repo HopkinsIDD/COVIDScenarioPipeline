@@ -16,6 +16,7 @@
 load_hosp_sims_filtered <- function(outcome_dir,
                                     model_output = 'hosp',
                                     partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+
                                     pdeath_filter=c("high", "med", "low"),
                                     incl_geoids,
                                     pre_process=function(x) {x},
@@ -34,7 +35,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
       dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
       dplyr::filter(geoid %in% incl_geoids) %>%
       pre_process(...)%>%
-      collect()
+      dplyr::collect()
   } else {
     if(length(partitions)==7){partitions <- partitions[-5:-6]}
     
@@ -43,11 +44,11 @@ load_hosp_sims_filtered <- function(outcome_dir,
       dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
       dplyr::filter(geoid %in% incl_geoids) %>%
       pre_process(...)%>%
-      collect()
+      dplyr::collect()
   }
   
   hosp<-hosp %>%
-    mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+")), # removes everything after the first dot
+    dplyr::mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+")), # removes everything after the first dot
            time=as.Date(time)) 
   
   if(nrow(hosp)==0){stop("Nothing was loaded, confirm filtering values are correct.")}
@@ -60,7 +61,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
   
 }
 
-##' Wrapper function for loading hpar files with open_dataset
+##' Wrapper function for loading final hpar files with open_dataset
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param model_output folder with hpar outcomes
@@ -92,7 +93,7 @@ load_hpar_sims_filtered <- function(outcome_dir,
     dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
     dplyr::filter(geoid %in% incl_geoids)  %>%
     pre_process(...) %>%
-    collect() %>%
+    dplyr::collect() %>%
     dplyr::mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+"))) # removes everything after the first dot
   
   message("Finished loading")
@@ -152,7 +153,7 @@ load_hpar_sims_filtered_interm <- function(outcome_dir,
 }
 
 
-##' Wrapper function for loading spar files with open_dataset
+##' Wrapper function for loading final spar files with open_dataset
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param partitions used by open_dataset 
@@ -187,9 +188,8 @@ load_spar_sims_filtered <- function(outcome_dir,
                   !!as.symbol(partitions[6])=="final") %>%
     dplyr::filter(!!as.symbol(partitions[3])  %in% pdeath_filter) %>%
     pre_process(...) %>%
-    collect() %>%
-    dplyr::mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+"))) # removes everything after the first dot
-  
+    dplyr::collect() %>%
+    dplyr::mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+"))) # removes everything after the first dot  
   message("Finished loading.")
   return(spar)
   
@@ -248,7 +248,7 @@ load_spar_sims_filtered_interm <- function(outcome_dir,
 
 
 
-##' Wrapper function for loading spar files with open_dataset
+##' Wrapper function for loading final snpi files with open_dataset
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param partitions used by open_dataset 
@@ -290,7 +290,7 @@ load_snpi_sims_filtered <- function(outcome_dir,
     dplyr::filter(!!as.symbol(partitions[3]) %in% pdeath_filter) %>%
     dplyr::filter(geoid %in% incl_geoids)  %>%
     pre_process(...)%>%
-    collect() %>%
+    dplyr::collect() %>%
     dplyr::mutate(sim_num=as.numeric(stringr::str_extract(!!as.symbol(partitions[length(partitions)]), "^\\d+"))) # removes everything after the first dot
   
   message("Finished loading.")
@@ -351,7 +351,7 @@ load_snpi_sims_filtered_interm <- function(outcome_dir,
 }
 
 
-##' Wrapper function for loading spar files with open_dataset
+##' Wrapper function for loading final hnpi files with open_dataset
 ##' 
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param partitions used by open_dataset 
@@ -557,7 +557,7 @@ load_llik_sims_filtered_interm <- function(outcome_dir,
   
 }
 
-##' Wrapper function for loading seir files with open_dataset
+##' Wrapper function for loading final seir files with open_dataset
 ##'
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param partitions used by open_dataset 
@@ -602,7 +602,7 @@ load_seir_sims_filtered <- function(outcome_dir,
                   time=as.Date(time)) %>%
     dplyr::relocate(comp, p_comp, time, tidyselect::any_of(partitions), sim_num) %>%
     dplyr::select(-partitions[length(partitions)])
-  
+
   geoids <- colnames(seir)[!colnames(seir) %in% c("comp", "p_comp", "time", partitions, "sim_num")] # turn geoID into a single column instead
   temp <- list()
   
