@@ -45,7 +45,7 @@ class SpatialSetup:
         mobility_file = pathlib.Path(mobility_file)
         if mobility_file.suffix == ".txt":
             print('Mobility files as matrices are not recommended. Please switch soon to long form csv files.')
-            self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file))  # K x K matrix of people moving
+            self.mobility = scipy.sparse.csr_matrix(np.loadtxt(mobility_file), dtype=np.int)  # K x K matrix of people moving
             # Validate mobility data
             if self.mobility.shape != (self.nnodes, self.nnodes):
                 raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
@@ -58,10 +58,10 @@ class SpatialSetup:
             if any(mobility_data["ori_idx"] == mobility_data["dest_idx"]):
                 raise ValueError(f"Mobility fluxes with same origin and destination in long form matrix. This is not supported")
 
-            self.mobility = scipy.sparse.coo_matrix((mobility_data.amount, (mobility_data.ori_idx, mobility_data.dest_idx)), shape=(self.nnodes, self.nnodes)).tocsr()
+            self.mobility = scipy.sparse.coo_matrix((mobility_data.amount, (mobility_data.ori_idx, mobility_data.dest_idx)), shape=(self.nnodes, self.nnodes), dtype=np.int).tocsr()
 
         elif mobility_file.suffix == ".npz":
-            self.mobility = scipy.sparse.load_npz(mobility_file)
+            self.mobility = scipy.sparse.load_npz(mobility_file).astype(np.int32)
             # Validate mobility data
             if self.mobility.shape != (self.nnodes, self.nnodes):
                 raise ValueError(f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}")
@@ -386,7 +386,7 @@ def seeding_load(s, sim_id):
                 y0[S, 0, pl_idx] = s.popnodes[pl_idx]
             else:
                 raise ValueError(f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error")
-    
+
     elif (method == 'InitialConditionsFolderDraw'):
         sim_id_str = str(sim_id + s.first_sim_index - 1).zfill(9)
         states = pq.read_table(
