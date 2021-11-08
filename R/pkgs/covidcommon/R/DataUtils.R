@@ -707,7 +707,7 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 ##'
 ##' @export
 ##'
-get_groundtruth_from_source <- function(source = c("csse", "csse", "csse", "csse"), scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE, adjust_for_variant = FALSE, variant_props_file = "data/variant/variant_props_long.csv", misc_data_filename = NULL, get_hosp = FALSE) {
+get_groundtruth_from_source <- function(source = c("csse", "csse", "csse", "csse"), scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE, adjust_for_variant = FALSE, variant_props_file = "data/variant/variant_props_long.csv", misc_data_filename = NULL) {
   df <- data.frame(
     data_source = source,
     variables = variables
@@ -723,8 +723,7 @@ get_groundtruth_from_source <- function(source = c("csse", "csse", "csse", "csse
         incl_unass = incl_unass,
         adjust_for_variant = adjust_for_variant,
         variant_props_file = variant_props_file,
-        misc_data_filename = misc_data_filename, 
-        get_hosp = get_hosp
+        misc_data_filename = misc_data_filename
       ))
     }) %>%
     return()
@@ -744,7 +743,7 @@ get_groundtruth_from_source <- function(source = c("csse", "csse", "csse", "csse
 ##'
 ##' @export
 ##'
-get_groundtruth_from_single_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE, adjust_for_variant = FALSE, variant_props_file = "data/variant/variant_props_long.csv", misc_data_filename = NULL, get_hosp = FALSE) {
+get_groundtruth_from_single_source <- function(source = "csse", scale = "US county", variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = FALSE, adjust_for_variant = FALSE, variant_props_file = "data/variant/variant_props_long.csv", misc_data_filename = NULL) {
 
   if(length(source) > 1) {
     stop(paste(
@@ -817,22 +816,15 @@ get_groundtruth_from_single_source <- function(source = "csse", scale = "US coun
 
   } else if(source == "hhsCMU" & scale == "US state"){
 
-    rc <- get_hhsCMU_cleanHosp_st_data()
+    rc <- get_hhsCMU_incidH_st_data()
     rc <- dplyr::select(rc, Update, FIPS, source, !!variables)
     rc <- tidyr::drop_na(rc, tidyselect::everything())
 
   } else if ((source == "LA health dpt") && (scale == "US county")) {
     
-    # rc <- get_from_file_US_county_hosp_data(misc_data_filename)
     rc <- get_LA_health_dpt_county_hosp_data(misc_data_filename)
     
-  } else if(get_hosp & scale == "US state") {
-    
-    hosp <- get_hhsCMU_incidH_st_data()
-    hosp <- hosp %>% dplyr::select(-FIPS)
-    rc <- dplyr::left_join(rc, hosp)
-    
-  } else{
+  }  else {
     warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning empty tibble.")))
     rc <- dplyr::as_tibble(NULL)
   }
