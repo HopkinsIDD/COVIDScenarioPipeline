@@ -4,16 +4,22 @@
 \alias{rt_estimates}
 \title{Function to generate summary estimates of daily rt}
 \usage{
-rt_estimates(r_dat, county_dat, geodat, lo = 0.025, hi = 0.975)
+rt_estimates(
+  r_dat,
+  seir_dat,
+  geodat,
+  lo = 0.025,
+  hi = 0.975,
+  pdeath_filter = "med",
+  overall = TRUE
+)
 }
 \arguments{
 \item{r_dat}{df with daily r estimates by geoid/sim}
 
-\item{county_dat}{df with geoid, scenario, pdeath, sim_num, time, location, and cum_inf columns}
+\item{seir_dat}{df with geoid-specific outputs from SEIR}
 
-\item{lo}{}
-
-\item{hi}{}
+\item{overall}{}
 }
 \description{
 Function to generate summary estimates of daily rt

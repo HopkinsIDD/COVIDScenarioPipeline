@@ -7,9 +7,8 @@
 load_spar_sims_filtered_interm(
   outcome_dir,
   partitions = c("location", "scenario", "pdeath", "runID", "lik_type", "is_final",
-    "filename"),
+    "file_name"),
   pdeath_filter = c("high", "med", "low"),
-  incl_geoids,
   ...
 )
 }
@@ -19,12 +18,9 @@ load_spar_sims_filtered_interm(
 \item{partitions}{used by open_dataset}
 
 \item{pdeath_filter}{string that indicates which pdeath to import from outcome_dir}
-
-\item{incl_geoids}{character vector of geoids that are included in the report}
 }
 \value{
 a combined data frame of all R simulations with filters applied pre merge.
-       - geoid
        - start_date
        - end_date
        - npi_name
@@ -36,7 +32,7 @@ a combined data frame of all R simulations with filters applied pre merge.
        - date
        - lik_type
        - is_final
-       - filename
+       - file_name
 }
 \description{
 Wrapper function for loading intermediate spar files with open_dataset

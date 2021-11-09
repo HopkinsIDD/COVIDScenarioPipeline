@@ -9,10 +9,13 @@ plot_hnpi_by_location(
   pdeath_filter,
   scenario_filter,
   hnpi_filter = c("incidC_shift"),
-  fig_labs = c("Shift in case detection rate")
+  fig_labs = c("Shift in case detection rate"),
+  burn_in = 0
 )
 }
 \arguments{
+\item{burn_in}{number of iterations to discard before plotting}
+
 \item{truth_dat}{df with date, geoid, incidI, incidDeath; hosps if adding
 hospitalization data}
 

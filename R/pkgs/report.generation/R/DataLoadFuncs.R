@@ -15,8 +15,7 @@
 ##'@export
 load_hosp_sims_filtered <- function(outcome_dir,
                                     model_output = 'hosp',
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
-
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                     pdeath_filter=c("high", "med", "low"),
                                     incl_geoids,
                                     pre_process=function(x) {x},
@@ -77,7 +76,7 @@ load_hosp_sims_filtered <- function(outcome_dir,
 ##'@export
 load_hpar_sims_filtered <- function(outcome_dir,
                                     model_output = 'hpar',
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     incl_geoids,
@@ -122,12 +121,12 @@ load_hpar_sims_filtered <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - filename
+##'        - file_name
 ##'
 ##'
 ##'@export
 load_hpar_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -140,6 +139,7 @@ load_hpar_sims_filtered_interm <- function(outcome_dir,
     #dplyr::filter(!!as.symbol(partitions[5])=="global") %>%
     dplyr::filter(!!as.symbol(partitions[6])=="intermediate") %>%
     dplyr::filter(!!as.symbol(partitions[3]) %in% pdeath_filter) %>%
+    dplyr::filter(geoid %in% incl_geoids)  %>%
     collect()
   
   hpar<-hpar %>%
@@ -169,12 +169,12 @@ load_hpar_sims_filtered_interm <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - filename
+##'        - file_name
 ##'
 ##'
 ##'@export
 load_spar_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     ...
@@ -201,10 +201,8 @@ load_spar_sims_filtered <- function(outcome_dir,
 ##' @param outcome_dir the subdirectory with all model outputs
 ##' @param partitions used by open_dataset 
 ##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
-##' @param incl_geoids character vector of geoids that are included in the report
 ##' 
 ##' @return a combined data frame of all R simulations with filters applied pre merge.
-##'        - geoid
 ##'        - start_date
 ##'        - end_date
 ##'        - npi_name
@@ -216,14 +214,13 @@ load_spar_sims_filtered <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - filename
+##'        - file_name
 ##'
 ##'
 ##'@export
 load_spar_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                            pdeath_filter=c("high", "med", "low"),
-                                           incl_geoids,
                                            ...
 ) {
   
@@ -269,12 +266,12 @@ load_spar_sims_filtered_interm <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - filename
+##'        - file_name
 ##'
 ##'
 ##'@export
 load_snpi_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     incl_geoids,
@@ -320,12 +317,12 @@ load_snpi_sims_filtered <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - filename
+##'        - file_name
 ##'
 ##'
 ##'@export
 load_snpi_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -338,6 +335,7 @@ load_snpi_sims_filtered_interm <- function(outcome_dir,
     #dplyr::filter(!!as.symbol(partitions[5])=="global") %>%
     dplyr::filter(!!as.symbol(partitions[6])=="intermediate") %>%
     dplyr::filter(!!as.symbol(partitions[3]) %in% pdeath_filter) %>%
+    dplyr::filter(geoid %in% incl_geoids)  %>%
     collect()
   
   snpi<-snpi %>%
@@ -372,12 +370,12 @@ load_snpi_sims_filtered_interm <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - filename
+##'        - file_name
 ##'
 ##'
 ##'@export
 load_hnpi_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     incl_geoids,
@@ -424,12 +422,12 @@ load_hnpi_sims_filtered <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - filename
+##'        - file_name
 ##'
 ##'
 ##'@export
 load_hnpi_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -442,6 +440,7 @@ load_hnpi_sims_filtered_interm <- function(outcome_dir,
     #dplyr::filter(!!as.symbol(partitions[5])=="global") %>%
     dplyr::filter(!!as.symbol(partitions[6])=="intermediate") %>%
     dplyr::filter(!!as.symbol(partitions[3]) %in% pdeath_filter) %>%
+    dplyr::filter(geoid %in% incl_geoids)  %>%
     collect()
   
   hnpi<-hnpi %>%
@@ -475,12 +474,12 @@ load_hnpi_sims_filtered_interm <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - filename
+##'        - file_name
 ##'
 ##'
 ##'@export
 load_llik_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                     pdeath_filter=c("high", "med", "low"),
                                     incl_geoids,
                                     ...
@@ -526,12 +525,12 @@ load_llik_sims_filtered <- function(outcome_dir,
 ##'        - date
 ##'        - lik_type
 ##'        - is_final
-##'        - filename
+##'        - file_name
 ##'
 ##'
 ##'@export
 load_llik_sims_filtered_interm <- function(outcome_dir,
-                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                            pdeath_filter=c("high", "med", "low"),
                                            incl_geoids,
                                            ...
@@ -580,7 +579,7 @@ load_llik_sims_filtered_interm <- function(outcome_dir,
 ##'
 ##'@export
 load_seir_sims_filtered <- function(outcome_dir,
-                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "filename"),
+                                    partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
                                     pdeath_filter=c("high", "med", "low"),
                                     pre_process=function(x) {x},
                                     post_process=function(x) {x},
@@ -623,5 +622,60 @@ load_seir_sims_filtered <- function(outcome_dir,
   message("Finished loading seir output.")
   
   return(seir)
+  
+}
+
+##' Wrapper function for loading intermediate seeding files from csv files
+##'
+##' @param outcome_dir the subdirectory with all model outputs
+##' @param partitions used by open_dataset
+##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param incl_geoids character vector of geoids that are included in the report
+##'
+##' @return a combined data frame of all seeding values for all simulations with filters applied pre merge.
+##'        - geoid
+##'        - amount
+##'        - scenario
+##'        - pdeath
+##'        - date
+##'        - lik_type
+##'        - is_final
+##'        - slot_num
+##'        - block_num
+##'         -iter_num
+##'
+##'
+##'@export
+load_seed_sims_filtered_interm <- function(outcome_dir,
+                                           partitions=c("location", "scenario", "pdeath", "runID", "lik_type", "is_final", "file_name"),
+                                           pdeath_filter=c("high", "med", "low"),
+                                           incl_geoids,
+                                           ...
+) {
+  
+  require(tidyverse)
+  
+  # get list of all seeding file names
+  seeding.files <-list.files(file.path(outcome_dir,'seed'), full.names=TRUE, recursive = TRUE)
+  
+  # read in seeding files, get a list of dataframes
+  seeding.df.list <-setNames(lapply(seeding.files, read.csv, colClasses=c("place"="character")),seeding.files)
+  
+  # turn into a single dataframe
+  seeding_all <- bind_rows(seeding.df.list,.id="id") 
+  
+  # for each file name in "id" column, separate phrase after each "/" and add it it as columns to the variable
+  
+  seeding_all <- seeding_all %>% tidyr::separate(id,into=c("runs_folder","file_type",partitions),sep="/",convert=TRUE,remove=TRUE)%>%
+    dplyr::mutate(sim_num=str_remove(file_name,paste0(".",runID,'.seed.csv'))) %>% # remove runID component
+    tidyr::separate(sim_num,c('slot_num','block_num','iter_num'),sep="\\.",convert=TRUE,remove=TRUE) %>%
+    dplyr::rename(geoid=place) %>%
+    dplyr::mutate(date=as.Date(date))%>%
+    dplyr::filter(!!as.symbol(partitions[3]) %in% pdeath_filter) %>%
+    dplyr::select(-X,-location,-runID,-file_name,-file_type,-runs_folder)
+  
+  message("Finished loading intermediate seeding parameters.")
+  
+  return(seeding_all)
   
 }
