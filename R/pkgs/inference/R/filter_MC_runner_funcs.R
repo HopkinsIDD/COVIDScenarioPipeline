@@ -244,12 +244,6 @@ perform_MCMC_step_copies_global <- function(current_index,
       covidcommon::create_file_name(run_id,gf_prefix,slot,'llik','parquet'),
 	    overwrite = TRUE
     )
-    
-    rc$lcov_gf <- file.copy(
-      covidcommon::create_file_name(run_id,global_local_prefix,current_index,'lcov','parquet'),
-      covidcommon::create_file_name(run_id,gf_prefix,slot,'lcov','parquet'),
-      overwrite = TRUE
-    )
 
     rc$snpi_gf <- file.copy(
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'snpi','parquet'),
@@ -295,11 +289,6 @@ perform_MCMC_step_copies_global <- function(current_index,
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'llik','parquet'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'llik','parquet')
     )
-    
-    rc$lcov_block <- file.copy(
-      covidcommon::create_file_name(run_id,global_local_prefix,current_index,'lcov','parquet'),
-      covidcommon::create_file_name(run_id,global_block_prefix,block,'lcov','parquet')
-    )
 
     rc$snpi_block <- file.copy(
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'snpi','parquet'),
@@ -342,10 +331,6 @@ perform_MCMC_step_copies_global <- function(current_index,
       covidcommon::create_file_name(run_id,global_block_prefix,block,'llik','parquet')
     )
     
-    rc$lcov_prevblk <- file.copy(
-      covidcommon::create_file_name(run_id,global_block_prefix,block - 1,'lcov','parquet'),
-      covidcommon::create_file_name(run_id,global_block_prefix,block,'lcov','parquet')
-    )
 
     rc$snpi_prvblk <-file.copy(
       covidcommon::create_file_name(run_id,global_block_prefix,block - 1,'snpi','parquet'),
@@ -427,11 +412,6 @@ perform_MCMC_step_copies_chimeric <- function(current_index,
       overwrite = TRUE
     )
     
-    rc$lcov_gf <- file.copy(
-      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'lcov','parquet'),
-      covidcommon::create_file_name(run_id,cf_prefix,slot,'lcov','parquet'),
-      overwrite = TRUE
-    )
     
     rc$snpi_gf <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'snpi','parquet'),
@@ -479,11 +459,6 @@ perform_MCMC_step_copies_chimeric <- function(current_index,
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'llik','parquet')
     )
     
-    rc$lcov_block <- file.copy(
-      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'lcov','parquet'),
-      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'lcov','parquet')
-    )
-    
     rc$snpi_block <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'snpi','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'snpi','parquet')
@@ -525,11 +500,6 @@ perform_MCMC_step_copies_chimeric <- function(current_index,
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'llik','parquet')
     )
     
-    rc$lcov_prevblk <- file.copy(
-      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'lcov','parquet'),
-      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'lcov','parquet')
-    )
-    
     rc$snpi_prvblk <-file.copy(
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'snpi','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'snpi','parquet')
@@ -562,8 +532,8 @@ create_filename_list <- function(
   run_id,
   prefix,
   index,
-  types = c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik","lcov"),
-  extensions = c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
+  types = c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik"),
+  extensions = c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
 ) {
   if(length(types) != length(extensions)){
     stop("Please specify the same number of types and extensions.  Given",length(types),"and",length(extensions))
@@ -599,9 +569,9 @@ initialize_mcmc_first_block <- function(
 ) {
 
   ## Only works on these files:
-  types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik","lcov")
+  types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik")
   non_llik_types <- paste(c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar"), "filename", sep = "_")
-  extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
+  extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
 
   global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1).run_ID.variable.ext
   chimeric_files <- create_filename_list(run_id, chimeric_prefix, block - 1, types, extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.(block-1).run_ID.variable.ext

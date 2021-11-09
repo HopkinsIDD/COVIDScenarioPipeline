@@ -4,7 +4,7 @@
 \alias{perturb_hnpi_from_file}
 \title{Function perturbs an npi parameter file based on the current perturbation standard deviation in the file, and also can update the perturbation value if the adaptive mode is turned on}
 \usage{
-perturb_hnpi_from_file(hnpi, intervention_settings, llik, adapt = list(on = F))
+perturb_hnpi_from_file(hnpi, intervention_settings, llik)
 }
 \arguments{
 \item{hnpi}{the original npis.}
@@ -12,8 +12,6 @@ perturb_hnpi_from_file(hnpi, intervention_settings, llik, adapt = list(on = F))
 \item{intervention_settings}{a list of perturbation specifications}
 
 \item{llik}{log likelihood values}
-
-\item{adapt}{list including values on, accept_opt, perturb_sd_update}
 }
 \value{
 a perturbed data frame

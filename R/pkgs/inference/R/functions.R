@@ -596,23 +596,12 @@ add_perturb_column_snpi <- function(snpi, intervention_settings) {
 ##' @param snpi the original npis.
 ##' @param intervention_settings a list of perturbation specifications
 ##' @param llik log likelihood values
-##' @param adapt list including values on, accept_opt, perturb_sd_update
 ##' 
 ##' @return a perturbed data frame
 ##' @export
-perturb_snpi_from_file  <- function(snpi, intervention_settings, llik, adapt = list(on=F)){
+perturb_snpi_from_file  <- function(snpi, intervention_settings, llik){
   
-  if(adapt$on){
-    if(adapt$accept_opt<0 | adapt$accept_opt>1){
-      stop("Optimal acceptance rate (adapt$accept_opt) must be between 0 and 1")
-    }
-    if(adapt$perturb_sd_update<0){
-      stop("Maximal relative increase in perturbation sd (perturb_sd_update) must be a positive value")
-    }
-  }
-  
-  # add to make sure if adapt_on is given so is accept_opt, and that in [0,1]
-  
+
   ##Loop over all interventions
   for (intervention in names(intervention_settings)) {
     
@@ -633,15 +622,6 @@ perturb_snpi_from_file  <- function(snpi, intervention_settings, llik, adapt = l
         this_accept_avg <- llik$accept_avg[llik$geoid==this_geoid] 
         his_accept_prob <- llik$accept_prob[llik$geoid==this_geoid] 
         this_intervention_setting<- intervention_settings[[intervention]]
-        
-        if (adapt$on){
-
-          perturb_sd_new <- adaptation_simple(snpi[["perturb_sd"]][this_npi_ind], adapt, this_accept_avg, this_accept_prob)
-          
-          this_intervention_setting$perturbation$sd <-perturb_sd_new #update this value in parameter structure, which contains all other distribution parameters
-          snpi[["perturb_sd"]][this_npi_ind] <- perturb_sd_new
-          
-        }
         
         ##get the random distribution from covidcommon package
         pert_dist <- covidcommon::as_random_distribution(this_intervention_setting$perturbation)
@@ -711,22 +691,11 @@ add_perturb_column_hnpi <- function(hnpi, intervention_settings) {
 ##' @param hnpi the original npis.
 ##' @param intervention_settings a list of perturbation specifications
 ##' @param llik log likelihood values
-##' @param adapt list including values on, accept_opt, perturb_sd_update
 ##' 
 ##' @return a perturbed data frame
 ##' @export
-perturb_hnpi_from_file  <- function(hnpi, intervention_settings, llik, adapt = list(on=F)){
+perturb_hnpi_from_file  <- function(hnpi, intervention_settings, llik){
   
-  if(adapt$on){
-    if(adapt$accept_opt<0 | adapt$accept_opt>1){
-      stop("Optimal acceptance rate (adapt$accept_opt) must be between 0 and 1")
-    }
-    if(adapt$perturb_sd_update<0){
-      stop("Maximal relative increase in perturbation sd (perturb_sd_update) must be a positive value")
-    }
-  }
-  
-  # add to make sure if adapt_on is given so is accept_opt, and that in [0,1]
   
   ##Loop over all interventions
   for (intervention in names(intervention_settings)) {
@@ -748,15 +717,6 @@ perturb_hnpi_from_file  <- function(hnpi, intervention_settings, llik, adapt = l
         this_accept_avg <- llik$accept_avg[llik$geoid==this_geoid] 
         this_intervention_setting<- intervention_settings[[intervention]]
         
-        if (adapt$on){
-          
-          perturb_sd_new <- adaptation_simple(hnpi[["perturb_sd"]][this_npi_ind], adapt, this_accept_avg, this_accept_prob)
-          
-          this_intervention_setting$perturbation$sd <-perturb_sd_new #update this value in parameter structure, which contains all other distribution parameters
-          hnpi[["perturb_sd"]][this_npi_ind] <- perturb_sd_new
-          
-        }
-        
         ##get the random distribution from covidcommon package
         pert_dist <- covidcommon::as_random_distribution(this_intervention_setting$perturbation)
         
@@ -776,25 +736,5 @@ perturb_hnpi_from_file  <- function(hnpi, intervention_settings, llik, adapt = l
   }
   
   return(hnpi)
-}
-
-##' Function for adaptive MCMC that generates a new perturbation standard deviation based on the current value, any adaptation parameters, and the past acceptance rate
-##'
-##' @param current_sd the current perturbation sd
-##' @param adapt a list of adaptation parameters
-##' @param accept_avg the average acceptance rate
-##' @param accept_prob the most recent acceptance probability
-##' 
-##' @return updated perturbation sd
-##' @export
-adaptation_simple  <- function(current_sd, adapt, accept_avg, accept_prob){
-  
-  # update based on distance from optimal acceptance
-  perturb_sd_multiplier <- (1+adapt$perturb_sd_update*(accept_avg-adapt$accept_opt)/(1-adapt$accept_opt)) 
-  
-  new_sd <-perturb_sd_multiplier*current_sd
-  
-  return(new_sd)
-  
 }
 
