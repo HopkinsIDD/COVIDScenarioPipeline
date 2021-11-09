@@ -13,6 +13,7 @@ load_hosp_county(
   pre_process = function(x) {     x },
   incl_geoids,
   inference = TRUE,
+  vacc_compartment = FALSE,
   ...
 )
 }

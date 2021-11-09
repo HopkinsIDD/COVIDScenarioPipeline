@@ -7,7 +7,7 @@
 load_llik_sims_filtered_interm(
   outcome_dir,
   partitions = c("location", "scenario", "pdeath", "runID", "lik_type", "is_final",
-    "filename"),
+    "file_name"),
   pdeath_filter = c("high", "med", "low"),
   incl_geoids,
   ...
@@ -36,7 +36,7 @@ a combined data frame of all R simulations with filters applied pre merge.
        - date
        - lik_type
        - is_final
-       - filename
+       - file_name
 }
 \description{
 Wrapper function for loading intermediate llik files with open_dataset

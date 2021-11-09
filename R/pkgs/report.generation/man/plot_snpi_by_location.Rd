@@ -9,10 +9,13 @@ plot_snpi_by_location(
   pdeath_filter,
   scenario_filter,
   snpi_filter = c("local_variance", "lockdown_partial"),
-  fig_labs = c("Local variance in R0", "Partial lockdown")
+  fig_labs = c("Local variance in R0", "Partial lockdown"),
+  burn_in = 0
 )
 }
 \arguments{
+\item{burn_in}{number of iterations to discard before plotting}
+
 \item{truth_dat}{df with date, geoid, incidI, incidDeath; hosps if adding
 hospitalization data}
 

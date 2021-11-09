@@ -8,7 +8,7 @@ load_hosp_sims_filtered(
   outcome_dir,
   model_output = "hosp",
   partitions = c("location", "scenario", "pdeath", "runID", "lik_type", "is_final",
-    "filename"),
+    "file_name"),
   pdeath_filter = c("high", "med", "low"),
   incl_geoids,
   pre_process = function(x) {     x },

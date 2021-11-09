@@ -2681,6 +2681,7 @@ plot_llik_by_location <- function(llik_interm,
   llik_interm <-llik_interm %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
     dplyr::filter(iter_num >= burn_in)%>%
+    dplyr::mutate(slot_num = as.factor(slot_num))%>%
     drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- llik_interm
@@ -2694,7 +2695,7 @@ plot_llik_by_location <- function(llik_interm,
     plot_rc[[i]]<-rc %>%
       filter(!!as.symbol(group_var)==group_names[i]) %>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=ll, color=lik_type, alpha=as.factor(slot_num))) +
+      geom_line(aes(y=ll, color=lik_type, alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -2737,6 +2738,7 @@ plot_llik_total <- function(llik_interm,
   llik_interm <-llik_interm %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
     dplyr::filter(iter_num >= burn_in)%>%
+    dplyr::mutate(slot_num = as.factor(slot_num))%>%
     drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- llik_interm
@@ -2752,7 +2754,7 @@ plot_llik_total <- function(llik_interm,
       dplyr::group_by(lik_type,iter_num,slot_num) %>%
       dplyr::summarize(ll=sum(ll, na.rm=TRUE))%>% #add log likelihoods for all geoids together at each timepoint
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=ll, color=lik_type,alpha=as.factor(slot_num))) +
+      geom_line(aes(y=ll, color=lik_type,alpha=slot_num)) +
       theme_bw()+
       ylab("Log Likelihood")+
       xlab("Iterations")+ 
@@ -2788,6 +2790,7 @@ plot_accept_by_location <- function(llik_interm,
   llik_interm <-llik_interm %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
     dplyr::filter(iter_num >= burn_in)%>%
+    dplyr::mutate(slot_num = as.factor(slot_num))%>%
     drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- llik_interm
@@ -2801,7 +2804,7 @@ plot_accept_by_location <- function(llik_interm,
     plot_rc[[i]]<-rc %>%
       filter(!!as.symbol(group_var)==group_names[i]) %>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=accept_avg, color=lik_type,alpha=as.factor(slot_num))) +
+      geom_line(aes(y=accept_avg, color=lik_type,alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -2845,6 +2848,7 @@ plot_accept_by_location_rolling <- function(llik_interm,
   llik_interm <-llik_interm %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
     dplyr::filter(iter_num >= burn_in)%>%
+    dplyr::mutate(slot_num = as.factor(slot_num))%>%
     drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- llik_interm
@@ -2857,10 +2861,10 @@ plot_accept_by_location_rolling <- function(llik_interm,
     print(i)
     plot_rc[[i]]<-rc %>%
       filter(!!as.symbol(group_var)==group_names[i]) %>%
-      dplyr::group_by(lik_type,geoid) %>%
+      dplyr::group_by(lik_type,geoid,slot_num) %>%
       dplyr::mutate(accept_avg_roll=rollmean(accept, roll_period,fill=NA,align="right"))%>% #add log likelihoods for all geoids together at each timepoint
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=accept_avg_roll, color=lik_type,alpha=as.factor(slot_num))) +
+      geom_line(aes(y=accept_avg_roll, color=lik_type,alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -2894,7 +2898,6 @@ plot_accept_by_location_rolling <- function(llik_interm,
 plot_accept_by_location_cumul <- function(llik_interm,
                                        filter_by = "pdeath",
                                        filter_val = "med",
-                                       roll_period = 10,
                                        burn_in = 0
 ){
   
@@ -2904,6 +2907,7 @@ plot_accept_by_location_cumul <- function(llik_interm,
   llik_interm <-llik_interm %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
     dplyr::filter(iter_num >= burn_in)%>%
+    dplyr::mutate(slot_num = as.factor(slot_num))%>%
     drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- llik_interm
@@ -2916,10 +2920,10 @@ plot_accept_by_location_cumul <- function(llik_interm,
     print(i)
     plot_rc[[i]]<-rc %>%
       filter(!!as.symbol(group_var)==group_names[i]) %>%
-      dplyr::group_by(lik_type,geoid) %>%
+      dplyr::group_by(lik_type,geoid,slot_num) %>%
       dplyr::mutate(accept_cumul=cumsum(accept))%>% #add up all previous acceptances
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=accept_cumul, color=lik_type,alpha=as.factor(slot_num))) +
+      geom_line(aes(y=accept_cumul, color=lik_type,alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -2968,6 +2972,7 @@ plot_spars <- function(spar_interm,
   spar_interm <-spar_interm %>%
     dplyr::filter(!!as.symbol(filter_by)==filter_val)%>%
     dplyr::filter(iter_num >= burn_in)%>%
+    dplyr::mutate(slot_num = as.factor(slot_num))%>%
     drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- spar_interm
@@ -2983,7 +2988,7 @@ plot_spars <- function(spar_interm,
       filter(!!as.symbol(group_var)==group_names[i]) %>%
       #dplyr::filter(USPS == 'MA')%>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=value, color=lik_type)) +
+      geom_line(aes(y=value, color=lik_type, alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -3008,6 +3013,7 @@ plot_spars <- function(spar_interm,
 ##' @param partitions used by open_dataset 
 ##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
 ##' @param incl_geoids character vector of geoids that are included in the report
+##' @param burn_in number of iterations to discard before plotting
 ##' 
 ##' @return plot comparing observed and modeled estimates by geoid
 ##' 
@@ -3019,7 +3025,8 @@ plot_hpar_by_location <- function(hpar_interm,
                                   pdeath_filter,
                                   scenario_filter,
                                   hpar_filter = c('incidC_probability','incidD_probability'), #will find any parameters containing these phrases
-                                  fig_labs=c("Case detection probability","Death probability")
+                                  fig_labs=c("Case detection probability","Death probability"),
+                                  burn_in = 0
 ){
   
   
@@ -3028,6 +3035,8 @@ plot_hpar_by_location <- function(hpar_interm,
   hpar_interm <-hpar_interm %>%
     dplyr::filter(pdeath==pdeath_filter)%>%
     dplyr::filter(scenario==scenario_filter)%>%
+    dplyr::filter(iter_num >= burn_in)%>%
+    dplyr::mutate(slot_num = as.factor(slot_num))%>%
     unite(outcome_quantity,c("outcome","quantity"), sep="_")%>% #make a new parameter that combines the outcome+quantity variables
     drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
@@ -3041,7 +3050,7 @@ plot_hpar_by_location <- function(hpar_interm,
       dplyr::filter(grepl(hpar_filter[i],outcome_quantity))%>%
       #dplyr::filter(USPS == 'MA')%>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=value, color=lik_type)) +
+      geom_line(aes(y=value, color=lik_type, alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -3069,6 +3078,7 @@ plot_hpar_by_location <- function(hpar_interm,
 ##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
 ##' @param filter_val desired value of variable
 ##' @param geodat df with location names
+##' @param burn_in number of iterations to discard before plotting
 ##' 
 ##' @return plot comparing observed and modeled estimates by geoid
 ##' 
@@ -3080,12 +3090,15 @@ plot_snpi_by_location <- function(snpi_interm,
                                pdeath_filter,
                                scenario_filter,
                                snpi_filter = c('local_variance','lockdown_partial'), #will find any NPI containing these phrases
-                               fig_labs=c("Local variance in R0","Partial lockdown")
+                               fig_labs=c("Local variance in R0","Partial lockdown"),
+                               burn_in = 0
 ){
   
   snpi_interm <-snpi_interm %>%
     dplyr::filter(pdeath==pdeath_filter)%>%
     dplyr::filter(scenario==scenario_filter)%>%
+    dplyr::filter(iter_num >= burn_in)%>%
+    dplyr::mutate(slot_num = as.factor(slot_num))%>%
     drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
   rc <- snpi_interm
@@ -3098,7 +3111,7 @@ plot_snpi_by_location <- function(snpi_interm,
       dplyr::filter(grepl(snpi_filter[i],npi_name))%>%
       #dplyr::filter(USPS == 'MA')%>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=reduction, color=lik_type)) +
+      geom_line(aes(y=reduction, color=lik_type, alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -3127,6 +3140,7 @@ plot_snpi_by_location <- function(snpi_interm,
 ##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
 ##' @param filter_val desired value of variable
 ##' @param geodat df with location names
+##' @param burn_in number of iterations to discard before plotting
 ##' 
 ##' @return plot comparing observed and modeled estimates by geoid
 ##' 
@@ -3138,7 +3152,8 @@ plot_hnpi_by_location <- function(hnpi_interm,
                                   pdeath_filter,
                                   scenario_filter,
                                   hnpi_filter = c('incidC_shift'), #will find any NPI containing these phrases
-                                  fig_labs=c("Shift in case detection rate")
+                                  fig_labs=c("Shift in case detection rate"),
+                                  burn_in=0
 ){
   
   hnpi_filter_edit <- paste(hnpi_filter,collapse="|")
@@ -3146,6 +3161,8 @@ plot_hnpi_by_location <- function(hnpi_interm,
   hnpi_interm <-hnpi_interm %>%
     dplyr::filter(pdeath==pdeath_filter)%>%
     dplyr::filter(scenario==scenario_filter)%>%
+    dplyr::filter(iter_num >= burn_in)%>%
+    dplyr::mutate(slot_num = as.factor(slot_num))%>%
     #dplyr::filter(grepl(hnpi_filter_edit,npi_name))%>% # find npi_names that contain these phrases in them
     drop_na(iter_num) # for now, because don't know what it means to have no iteration number
   
@@ -3162,7 +3179,7 @@ plot_hnpi_by_location <- function(hnpi_interm,
       dplyr::filter(grepl(hnpi_filter[i],npi_name))%>%
       #dplyr::filter(USPS == 'MA')%>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=reduction, color=lik_type)) +
+      geom_line(aes(y=reduction, color=lik_type, alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),

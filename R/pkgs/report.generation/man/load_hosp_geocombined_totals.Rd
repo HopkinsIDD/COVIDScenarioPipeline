@@ -13,6 +13,7 @@ load_hosp_geocombined_totals(
   pre_process = function(x) {     x },
   incl_geoids,
   inference = TRUE,
+  vacc_compartment = FALSE,
   ...
 )
 }

@@ -2,12 +2,12 @@
 % Please edit documentation in R/DataLoadFuncs.R
 \name{load_seir_sims_filtered}
 \alias{load_seir_sims_filtered}
-\title{Wrapper function for loading seir files with open_dataset}
+\title{Wrapper function for loading final seir files with open_dataset}
 \usage{
 load_seir_sims_filtered(
   outcome_dir,
   partitions = c("location", "scenario", "pdeath", "runID", "lik_type", "is_final",
-    "filename"),
+    "file_name"),
   pdeath_filter = c("high", "med", "low"),
   pre_process = function(x) {     x },
   post_process = function(x) {     x },
@@ -40,5 +40,5 @@ a combined data frame of all simulations with filters applied pre merge.
        - value
 }
 \description{
-Wrapper function for loading seir files with open_dataset
+Wrapper function for loading final seir files with open_dataset
 }

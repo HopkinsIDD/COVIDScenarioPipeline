@@ -5,41 +5,30 @@
 \title{Time series comparing Rt estimates by scenario over time}
 \usage{
 plot_rt_ts(
-  county_dat = NULL,
+  rc,
+  geodat,
   truth_dat,
-  r_dat,
-  pdeath_filter = pdeath_default,
-  scenario_colors,
-  scenario_levels,
-  scenario_labels,
-  geodat = geodata,
-  incl_geoids,
-  susceptible = TRUE,
-  pi_lo = 0.025,
-  pi_hi = 0.975,
-  truth_source = "USA Facts"
+  scenario_levels = scn_levels,
+  scenario_labels = scn_labels,
+  scenario_colors = scn_colors,
+  truth_source = "JHU CSSE",
+  pdeath_filter = "med"
 )
 }
 \arguments{
-\item{county_dat}{df with geoid, sim_num, cum_inf, scenario, and time columns}
+\item{rc}{df with daily rt estimates for one geoid/location and columns "estimate", "lower", and "upper"}
 
-\item{truth_dat}{df with date, geoid, incidI, and Confirmed columns}
-
-\item{r_dat}{df with daily estimate of Rt from load_r_daily_sims_filtered}
-
-\item{pdeath_filter}{which pdeath to select}
-
-\item{scenario_colors}{colors for each scenario}
+\item{geodat}{df with geoid and population columns}
 
 \item{scenario_levels}{levels applied to scenarios}
 
 \item{scenario_labels}{label applied to scenarios}
 
-\item{geodat}{df with geoid and population columns}
+\item{scenario_colors}{colors for each scenario}
 
-\item{pi_lo}{lower limit to interval}
+\item{truth_source}{}
 
-\item{pi_hi}{upper limit to interval}
+\item{pdeath_filter}{which pdeath to select}
 }
 \value{
 a table with the effectiveness per intervention period and a bar graph

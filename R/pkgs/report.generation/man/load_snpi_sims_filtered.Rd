@@ -2,12 +2,12 @@
 % Please edit documentation in R/DataLoadFuncs.R
 \name{load_snpi_sims_filtered}
 \alias{load_snpi_sims_filtered}
-\title{Wrapper function for loading spar files with open_dataset}
+\title{Wrapper function for loading final snpi files with open_dataset}
 \usage{
 load_snpi_sims_filtered(
   outcome_dir,
   partitions = c("location", "scenario", "pdeath", "runID", "lik_type", "is_final",
-    "filename"),
+    "file_name"),
   pdeath_filter = c("high", "med", "low"),
   pre_process = function(x) {     x },
   incl_geoids,
@@ -39,8 +39,8 @@ a combined data frame of all R simulations with filters applied pre merge.
        - date
        - lik_type
        - is_final
-       - filename
+       - file_name
 }
 \description{
-Wrapper function for loading spar files with open_dataset
+Wrapper function for loading final snpi files with open_dataset
 }

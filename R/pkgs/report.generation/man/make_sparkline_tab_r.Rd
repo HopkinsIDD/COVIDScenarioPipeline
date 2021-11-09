@@ -23,8 +23,7 @@ make_sparkline_tab_r(
 \arguments{
 \item{r_dat}{df with R or reduction estimates per sim (only one scenario)}
 
-\item{county_dat}{df with cumulative infections, scenario, pdeath, sim_num, and 
-time across geoids and all simulations}
+\item{county_dat}{df with SEIR outputs}
 
 \item{susceptible}{whether to show estimates adjusted for cumulative infections, 
 in which case the estimate reflects the median Rt for past interventions and the Rt for

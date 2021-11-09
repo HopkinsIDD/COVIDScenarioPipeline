@@ -9,13 +9,16 @@ plot_hpar_by_location(
   pdeath_filter,
   scenario_filter,
   hpar_filter = c("incidC_probability", "incidD_probability"),
-  fig_labs = c("Case detection probability", "Death probability")
+  fig_labs = c("Case detection probability", "Death probability"),
+  burn_in = 0
 )
 }
 \arguments{
 \item{hpar_interm}{df with value, parameter, lik_type, scenario, pdeath, iter_num}
 
 \item{pdeath_filter}{string that indicates which pdeath to import from outcome_dir}
+
+\item{burn_in}{number of iterations to discard before plotting}
 
 \item{partitions}{used by open_dataset}
 

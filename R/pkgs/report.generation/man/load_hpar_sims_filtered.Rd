@@ -2,13 +2,13 @@
 % Please edit documentation in R/DataLoadFuncs.R
 \name{load_hpar_sims_filtered}
 \alias{load_hpar_sims_filtered}
-\title{Wrapper function for loading hpar files with open_dataset}
+\title{Wrapper function for loading final hpar files with open_dataset}
 \usage{
 load_hpar_sims_filtered(
   outcome_dir,
   model_output = "hpar",
   partitions = c("location", "scenario", "pdeath", "runID", "lik_type", "is_final",
-    "filename"),
+    "file_name"),
   pdeath_filter = c("high", "med", "low"),
   pre_process = function(x) {     x },
   incl_geoids,
@@ -32,5 +32,5 @@ load_hpar_sims_filtered(
 a combined data frame of all hpar simulations with filters applied pre merge.
 }
 \description{
-Wrapper function for loading hpar files with open_dataset
+Wrapper function for loading final hpar files with open_dataset
 }

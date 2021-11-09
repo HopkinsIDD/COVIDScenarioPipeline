@@ -8,7 +8,6 @@ plot_accept_by_location_cumul(
   llik_interm,
   filter_by = "pdeath",
   filter_val = "med",
-  roll_period = 10,
   burn_in = 0
 )
 }
