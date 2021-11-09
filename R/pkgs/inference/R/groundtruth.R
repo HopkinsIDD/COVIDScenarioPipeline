@@ -122,8 +122,9 @@ get_ground_truth <- function(
   if (is.null(fips_codes)) {
     fips_codes <- unique(rc$fips_codes)
   }
-
+  
   rc <- rc %>%
+    dplyr::filter(!!rlang::sym(fips_column_name) %in% fips_codes) %>%
     tidyr::pivot_longer(new_vars) %>%
     dplyr::mutate(
       start_date = lubridate::ymd(start_date[match(name,new_vars)]),
@@ -131,16 +132,16 @@ get_ground_truth <- function(
     ) %>%
     dplyr::filter(
       start_date <= !!rlang::sym(date_column_name),
-      !!rlang::sym(date_column_name) <= end_date,
-      !!rlang::sym(fips_column_name) %in% fips_codes
+      !!rlang::sym(date_column_name) <= end_date
     ) %>%
     tidyr::pivot_wider(names_from = name, values_from = value) %>%
     dplyr::right_join(
-      tidyr::expand_grid(
-        geoid = fips_codes,
-      )
+        tidyr::expand_grid(
+            !!rlang::sym(fips_column_name) := fips_codes
+        )
     ) %>%
-    dplyr::filter(!is.na(!!rlang::sym(date_column_name)))
+    dplyr::filter(!is.na(!!rlang::sym(date_column_name))) %>%
+    dplyr::mutate(geoid = !!rlang::sym(fips_column_name))
 
   return(rc)
 }
