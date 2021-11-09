@@ -35,16 +35,6 @@ opt = optparse::parse_args(parser)
 
 covidcommon::prettyprint_optlist(opt)
 
-# Parameters for adaptive method. Un-comment to run adaptive MCMC, otherwise no adaptation will occur. 
-# Adaptive MCMC alters standard deviation of perturbation in response to the (chimeric) time-averaged acceptance rate
-adapt <- list(on=F)
-# adapt <- list(on=T, #T/F to do adaptive MCMC
-#               accept_opt=0.3, #optimal acceptance rate
-#               perturb_sd_update = 0.0 #maximum relative increase in sd of perturbation per iteration
-#               )
-# print(paste0('Using adaptive method with optimal acceptance rate ',100*adapt$accept_opt,'% and maximum increase in perturbation step of ',100*adapt$perturb_sd_update,"%"))
-
-
 reticulate::use_python(Sys.which(opt$python),require=TRUE)
 ## Block loads the config file and geodata
 if(opt$config == ""){
@@ -317,10 +307,6 @@ for(scenario in scenarios) {
     arrow::write_parquet(initial_snpi,first_global_files[['snpi_filename']])
     arrow::write_parquet(initial_hnpi,first_global_files[['hnpi_filename']])
     
-    #write empty files for lcov for now
-    arrow::write_parquet(data.frame(),first_global_files[['lcov_filename']])
-    arrow::write_parquet(data.frame(),first_chimeric_files[['lcov_filename']])
-    
     #####Get the full likelihood (WHY IS THIS A DATA FRAME)
     # Compute total loglik for each sim
     global_likelihood <- sum(global_likelihood_data$ll)
@@ -372,8 +358,8 @@ for(scenario in scenarios) {
       
       # New perturbation method, from parameter file instead
       print("NOTE: Perturbations are being read from files instead of configs after 1st iteration in each slot for snpi and hnpi")
-      proposed_snpi <- inference::perturb_snpi_from_file(initial_snpi, config$interventions$settings, chimeric_likelihood_data, adapt)
-      proposed_hnpi <- inference::perturb_hnpi_from_file(initial_hnpi, config$interventions$settings, chimeric_likelihood_data, adapt)
+      proposed_snpi <- inference::perturb_snpi_from_file(initial_snpi, config$interventions$settings, chimeric_likelihood_data)
+      proposed_hnpi <- inference::perturb_hnpi_from_file(initial_hnpi, config$interventions$settings, chimeric_likelihood_data)
       
       ## Write files that need to be written for other code to read
       # writes to file  of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.block.iter.run_id.variable.ext
@@ -382,9 +368,6 @@ for(scenario in scenarios) {
       arrow::write_parquet(proposed_hnpi,this_global_files[['hnpi_filename']])
       arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
       arrow::write_parquet(proposed_hpar,this_global_files[['hpar_filename']])
-      
-      #write empty files for lcov for now
-      arrow::write_parquet(data.frame(),this_global_files[['lcov_filename']])
 
       #TEST
       #print("PRINTING py$s.in_run_id")
@@ -514,8 +497,6 @@ for(scenario in scenarios) {
       arrow::write_parquet(initial_spar,this_chimeric_files[['spar_filename']])
       arrow::write_parquet(initial_hpar,this_chimeric_files[['hpar_filename']])
       
-      #write empty files for lcov for now
-      arrow::write_parquet(data.frame(),this_chimeric_files[['lcov_filename']])
       
       print(paste("Current index is ",current_index))
       
@@ -570,9 +551,7 @@ for(scenario in scenarios) {
     arrow::write_parquet(initial_spar,output_chimeric_files[['spar_filename']])
     arrow::write_parquet(initial_hpar,output_chimeric_files[['hpar_filename']])
     arrow::write_parquet(chimeric_likelihood_data,output_chimeric_files[['llik_filename']])
-    
-    #write empty files for lcov for now
-    arrow::write_parquet(data.frame(),output_chimeric_files[['lcov_filename']])
+
     
     warning("Chimeric hosp and seir files not yet supported, just using the most recently generated file of each type")
     file.copy(last_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
