@@ -63,3 +63,6 @@ dist/
 SEIR.egg-info/
 Outcomes.egg-info/
 .Rproj.user
+
+# R package manuals
+man/
