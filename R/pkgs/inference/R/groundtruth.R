@@ -109,7 +109,8 @@ get_ground_truth <- function(
     misc_data_filename = misc_data_filename
   )
 
-  rc <- suppressMessages(readr::read_csv(data_path,col_types = list(FIPS = readr::col_character())))
+  
+    rc <- suppressMessages(readr::read_csv(data_path,col_types = list(FIPS = readr::col_character())))
 
   if(is.null(start_date)) {
     start_date <- min(rc$date)
@@ -123,9 +124,21 @@ get_ground_truth <- function(
     fips_codes <- unique(rc$fips_codes)
   }
   
+  if(length(start_date)!=length(gt_vars) & length(start_date)==1){
+    start_date <- rep(start_date, length(gt_vars))
+  } else if(length(start_date)!=length(gt_vars)){
+      warning("No start date specified for at least one of the variables; the variable will be removed from the groundtruth")
+  }
+  
+  if(length(end_date)!=length(gt_vars) & length(end_date)==1){
+    end_date <- rep(end_date, length(gt_vars))
+  } else if(length(end_date)!=length(gt_vars)){
+      warning("No end date specified for at least one of the variables; the variable will be removed from the groundtruth")
+  }
+  
   rc <- rc %>%
     dplyr::filter(!!rlang::sym(fips_column_name) %in% fips_codes) %>%
-    tidyr::pivot_longer(new_vars) %>%
+    tidyr::pivot_longer(tidyselect::all_of(new_vars)) %>%
     dplyr::mutate(
       start_date = lubridate::ymd(start_date[match(name,new_vars)]),
       end_date = lubridate::ymd(end_date[match(name,new_vars)])
