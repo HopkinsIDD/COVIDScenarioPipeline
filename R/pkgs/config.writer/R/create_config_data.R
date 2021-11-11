@@ -1,5 +1,81 @@
 # Process ------
 
+#' Generate incidH intervention
+#'
+#' @param sim_start_date simulation start date
+#' @param sim_end_date simulation end date
+#' @param incl_geoid
+#' @param v_dist type of distribution for reduction
+#' @param v_mean reduction mean
+#' @param v_sd reduction sd
+#' @param v_a reduction a
+#' @param v_b reduction b
+#' @param inference logical indicating whether inference will be performed on intervention (default is TRUE); perturbation values are replaced with NA if set to FALSE.
+#' @param p_dist type of distribution for perturbation
+#' @param p_mean perturbation mean
+#' @param p_sd perturbation sd
+#' @param p_a perturbation a
+#' @param p_b perturbation b
+#' @param compartment 
+#'
+#' @return data frame with columns for
+#' @export
+#'
+#' @examples
+#' dat <- set_localvar_params()
+#'
+#' dat
+#'
+set_incidH_params <- function(start_date=Sys.Date()-42,
+                              sim_end_date=Sys.Date()+60,
+                              incl_geoid = NULL,
+                              inference = TRUE,
+                              v_dist="truncnorm",
+                              v_mean =  0, v_sd = 0.1, v_a = -1, v_b = 1, # TODO: add check on limits
+                              p_dist="truncnorm",
+                              p_mean = 0, p_sd = 0.05, p_a = -1, p_b = 1
+){
+    start_date <- as.Date(start_date)
+    sim_end_date <- as.Date(sim_end_date)
+    
+    template = "Reduce"
+    param_val <- "incidH::probability"
+    
+    if(is.null(incl_geoid)){
+        affected_geoids = "all"
+    } else{
+        affected_geoids = paste0(incl_geoid, collapse='", "')
+    }
+    
+    
+    local_var <- dplyr::tibble(USPS = "",
+                               geoid = affected_geoids,
+                               name = "incidH_adj",
+                               type = "outcome",
+                               category = "incidH_adjustment",
+                               parameter = param_val,
+                               baseline_scenario = "",
+                               start_date = start_date,
+                               end_date = sim_end_date,
+                               template = template,
+                               param = param_val,
+                               value_dist = v_dist,
+                               value_mean = v_mean,
+                               value_sd = v_sd,
+                               value_a = v_a,
+                               value_b= v_b,
+                               pert_dist = p_dist,
+                               pert_mean = p_mean,
+                               pert_sd = p_sd,
+                               pert_a = p_a,
+                               pert_b = p_b) %>%
+        dplyr::mutate(pert_dist = ifelse(inference, as.character(pert_dist), NA_character_),
+                      dplyr::across(pert_mean:pert_b, ~ifelse(inference, as.numeric(.x), NA_real_))) %>%
+        dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, baseline_scenario, tidyselect::starts_with("value_"), tidyselect::starts_with("pert_"))
+    
+    return(local_var)
+}
+
 #' Specify parameters for NPIs
 #'
 #' @param intervention_file df with the location's state and ID and the intervention start and end dates, name, and template - from process_npi_shub
