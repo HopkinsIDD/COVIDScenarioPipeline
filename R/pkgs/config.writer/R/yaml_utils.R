@@ -482,8 +482,12 @@ print_interventions <- function(dat,
 #' @param dat=NULL df with outcome interventions
 #' @param ifr name of ifr scenario
 #' @param outcomes_parquet_file path to outcomes parquet file
+#' @param outcomes_compartment_adjustments
 #' @param incidH_prob_dist distribution for incidH probability
 #' @param incidH_prob_value probability of being hospitalized among incident infections
+#' @param incidH_prob_sd
+#' @param incidH_prob_a
+#' @param incidH_prob_b
 #' @param incidH_delay_dist distribution for incidH delay
 #' @param incidH_delay_value time to hospitalization since infection in days
 #' @param incidH_duration_dist distribution for incidH duration
@@ -519,6 +523,9 @@ print_interventions <- function(dat,
 #' @param incidC_delay_dist distribution of incidC delay
 #' @param compartment
 #' @param variant_compartments
+#' @param vaccine_compartments
+#' @param age_strata
+#' @param intervention_params
 #' @param outcomes_included which outcomes to include, options: incidH, incidC, incidD, incidICU, incidVent.
 #' @param incl_interventions
 #'
@@ -540,6 +547,9 @@ print_outcomes <- function(dat=NULL,
                           outcomes_parquet_file="usa-geoid-params-output_statelevel.parquet",
                           incidH_prob_dist="fixed",
                           incidH_prob_value=0.0175,
+                          incidH_prob_sd=0.1, 
+                          incidH_prob_a=-2, 
+                          incidH_prob_b=1, 
                           incidH_delay_dist= "fixed",
                           incidH_delay_value= 7,
                           incidH_duration_dist="fixed",
@@ -650,6 +660,9 @@ print_outcomes <- function(dat=NULL,
                              if("incidH" %in% intervention_params) paste0('          intervention_param_name: "incidH_total"\n'),
                              print_value(value_dist = incidH_prob_dist,
                                          value_mean = incidH_prob_value*outcomes_base_dat$incidH[i],
+                                         value_sd = incidH_prob_sd, 
+                                         value_a = incidH_prob_a, 
+                                         value_b = incidH_prob_b,
                                          indent_space = 10),
                              '        delay:\n',
                              print_value(value_dist = incidH_delay_dist,
@@ -826,6 +839,9 @@ print_outcomes <- function(dat=NULL,
             '        probability:\n',
             print_value(value_dist = incidH_prob_dist[1],
                         value_mean = incidH_prob_value[1],
+                        value_sd = incidH_prob_sd[1], 
+                        value_a = incidH_prob_a[1], 
+                        value_b = incidH_prob_b[1], 
                         indent_space = 10),
             '        delay:\n',
             print_value(value_dist = incidH_delay_dist[1],
