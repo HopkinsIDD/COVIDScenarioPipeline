@@ -34,22 +34,27 @@ def perform_deletions(to_prun, do_it_for_real = False):
         print("this is not a dry run, waiting 3 second so you reconsider")
         time.sleep(3)
         dry_run_str = ''
-    for run in to_prun:
-        print(f"Pruning chimeric & intermediate in {run}...", end='')
-        command = f"aws s3 rm {dry_run_str} --recursive --exclude '*' --include '*/intermediate/*' --include '*/chimeric/*' s3://{bucket}/{run}"
-        print(f">>> {command}")
-        process = subprocess.Popen(command, shell=True) # stdout=subprocess.PIPE
-        process.wait()
-        print(f"Done, return code is {process.returncode} !")
-        if process.returncode != 0:
-            raise ValueError(f"STOPPING, aws s3 rm failed for {run} !")
+    with open('toruntodelete.sh', 'w') as script_file:
+        for run in to_prun:
+            print(f"Pruning chimeric & intermediate in {run}...", end='')
+            command = f"aws s3 rm {dry_run_str} --recursive --exclude '*' --include '*/intermediate/*' --include '*/chimeric/*' s3://{bucket}/{run}"
+            print(f">>> {command}")
+            print(f"echo deleting {run}", file=script_file)
+            print(f"{command} || {{ echo 'failed for {run} !' ; exit 1; }}", file=script_file)
+            #process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+            #process.wait()
+            #print(f"Done, return code is {process.returncode} !")
+            #if process.returncode != 0:
+            #    raise ValueError(f"STOPPING, aws s3 rm failed for {run} !")
+
+        
 
 
 
 print("I'll perform the deletion, this is dangerous...")
 if input("... Do you wish to continue? [yes/no] ") == "yes":
     do_it_for_real = True
-    do_it_for_real = False
+    #do_it_for_real = False
     if do_it_for_real:
         if input("... NOT A DRY RUN, is that really ok ? [yes/no] ") == "yes":
             perform_deletions(to_prun = to_prun, do_it_for_real = do_it_for_real)
