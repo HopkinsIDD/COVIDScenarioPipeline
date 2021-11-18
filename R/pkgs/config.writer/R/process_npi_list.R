@@ -591,7 +591,7 @@ generate_compartment_variant <- function(variant_path = "../COVID19_USA/data/var
     trans_incr <- dplyr::tibble(variant_compartments, 
                                 transmission_increase)
     
-    variant_data <- read_csv(var_path)
+    variant_data <- read_csv(variant_path)
     
     if(!("source" %in% colnames(variant_data))){
         variant_data$source <- ""
