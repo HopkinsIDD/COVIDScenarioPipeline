@@ -1,7 +1,7 @@
 ---
 title: "R Notebook"
 params:
-  config_file: config_2020_updated_incidC_incidH_shifts_alh.yml
+  config_file: config_2020_updated_incidC_incidH_shifts.yml
   continue_on_error: yes
   hosp_eval: no
   pi_hi: 0.95
@@ -378,7 +378,7 @@ llik_final <- load_llik_sims_filtered(outcome_dir=runs_folder,
 llik_interm <- load_llik_sims_filtered_interm(outcome_dir=runs_folder, 
                                               pdeath_filter=pdeath_default, 
                                               incl_geoids=included_geoids_all) %>%
-  dplyr::select(c(-filename,-file_name,-runID))
+  dplyr::select(c(-filename,-file_name,-runID, -location))
 
 llik_interm  <- geodata_all %>%
   left_join(llik_interm)
@@ -390,7 +390,7 @@ llik_interm_some <-llik_interm %>% dplyr::filter(USPS %in% states)
 
 ```{r mcmc_llik_plot, include=FALSE}
 
-llik_plot <- plot_llik_by_location(llik_interm_some,# %>% dplyr::filter(slot_num==1), #change to show for only a single slot
+llik_plot <- plot_llik_by_location(llik_interm_some%>% dplyr::filter(slot_num %in% c(1,2)), #change to show for single slot or remove for all slots
                                    filter_by="pdeath",
                                    filter_val=pdeath_default,
                                    burn_in = 0
@@ -424,7 +424,7 @@ legend<-get_legend(llik_plot[[1]]+theme(legend.position="top"))
 ```{r llik_plot, fig.height=multi_fig_height, fig.width=10, fig.cap=cap}
 cowplot::plot_grid(plot_llik_grid, legend, nrow=2, rel_heights = c(1, 0.01))
 
-cap<- paste0("**Fig. ", fig_counter, "** GeoID-specific log-likelihood values by MCMC step. Here 'chimeric' values are the likelihood for accepted parameters in the chimeric likelihood, and 'global' values are the likelihood values for the proposed parameters of the chimeric likelihood, which are recorded in the global likelihood files. These two likelihood values are equivalent only at steps where the chimeric likelihood was accepted for that GeoID.**")
+cap<- paste0("**Fig. ", fig_counter, "** GeoID-specific log-likelihood values by MCMC step. Here 'chimeric' values are the likelihood for accepted parameters in the chimeric likelihood, and 'global' values are the likelihood values accepted for the global likelihood (only plot iterations at which accept=1). These two likelihood values are equivalent only at steps where the chimeric likelihood was accepted for that GeoID.**")
 
 fig_counter<-fig_counter+1
 
@@ -448,11 +448,13 @@ llik_plot <- plot_llik_total(llik_interm,# %>% dplyr::filter(slot_num==1), #chan
 ```{r llik_plot_total, fig.height=2, fig.width=5, fig.cap=cap}
 llik_plot[[1]]
 
-cap<- paste0("**Fig. ", fig_counter, "** Total log-likelihood values by MCMC step (summed over all GeoIDs). Here 'chimeric' values are the total likelihood for accepted parameters in the chimeric likelihood, and 'global' values are the likelihood values for the proposed parameters of the chimeric likelihood, which are recorded in the global likelihood files. The chimeric (accepted) likelihood is always higher since acceptance decisions are made on a geoID-by-geoID level, and only accepted for GeoIDs where the acceptance would improve the geoID-specific likelihood. These two likelihood values would only be equivalent at steps where the chimeric likelihood was accepted for every single GeoID.**")
+cap<- paste0("**Fig. ", fig_counter, "** Total log-likelihood values by MCMC step (summed over all GeoIDs). Here 'chimeric' values are the total likelihood for accepted parameters in the chimeric likelihood, and 'global' values are the total likelihood values for the accepted parameters of the global likelihood, which are recorded in the global likelihood files (only plot iterations at which accept=1). The chimeric (accepted) likelihood is always higher since acceptance decisions are made on a geoID-by-geoID level, and only accepted for GeoIDs where the acceptance would improve the geoID-specific likelihood. These two likelihood values would only be equivalent at steps where the chimeric likelihood was accepted for every single GeoID.**")
 
 fig_counter<-fig_counter+1
 
 ``` 
+
+
 ## Proportion of likelihoods accepted or rejected
 
 
@@ -607,6 +609,9 @@ spar_interm<- load_spar_sims_filtered_interm(outcome_dir=runs_folder,
                                              pdeath_filter=pdeath_default) %>%
   dplyr::select(c(-location,-runID,-file_name))
 
+spar_interm <- spar_interm %>%
+  left_join(llik_interm%>%dplyr::filter(USPS=='MA')%>%dplyr::select(-accept_avg,-accept_prob,-ll,-colnames(geodata_all))) #only need for 1 geoID, same for all
+
 ```
 
 ```{r mcmc_spar_plot, include=FALSE}
@@ -644,7 +649,7 @@ legend<-get_legend(spar_plot[[1]]+theme(legend.position="top"))
 ```{r spars_plot, fig.height=10, fig.width=10, fig.cap=cap}
 cowplot::plot_grid(plot_spar_grid, legend, nrow=2, rel_heights = c(1, 0.01))
 
-cap<- paste0("**Fig. ", fig_counter, "** SEIR parameters by MCMC step ('chimeric' values)**")
+cap<- paste0("**Fig. ", fig_counter, "** SEIR parameters by MCMC step**")
 
 fig_counter<-fig_counter+1
 
@@ -671,7 +676,8 @@ hpar_interm<- load_hpar_sims_filtered_interm(outcome_dir=runs_folder,
   dplyr::select(c(-location,-runID,-file_name))
 
 hpar_interm  <- geodata_all %>%
-  left_join(hpar_interm)
+  left_join(hpar_interm) %>%
+  left_join(llik_interm%>%dplyr::select(-accept_avg,-accept_prob,-ll))
 
 hpar_interm_some <- hpar_interm %>% dplyr::filter(USPS %in% states)
 
@@ -726,7 +732,7 @@ legend<-get_legend(hpar_plot[[1]]+theme(legend.position="top"))
 ```{r hpar_plot, fig.height=multi_fig_height, fig.width=10, fig.cap=cap}
 cowplot::plot_grid(plot_hpar_grid, legend, nrow=2, rel_heights = c(1, 0.01))
 
-cap<- paste0("**Fig. ", fig_counter, "** Inferred outcome parameter values by MCMC step for each GeoID.'Global' values are the proposed parameters at each step, and 'Chimeric' values are the parameters accepted at the GeoID-level in the chimeric likelihood  **")
+cap<- paste0("**Fig. ", fig_counter, "** Inferred outcome parameter values by MCMC step for each GeoID.'Global' values are the parameters accepted in the global likelihood, and 'Chimeric' values are the parameters accepted at the GeoID-level in the chimeric likelihood  **")
 
 fig_counter<-fig_counter+1
 
@@ -755,7 +761,8 @@ snpi_interm<- load_snpi_sims_filtered_interm(outcome_dir=runs_folder,
   dplyr::select(c(-location,-runID, -file_name))
 
 snpi_interm  <- geodata_all %>%
-  left_join(snpi_interm)
+  left_join(snpi_interm)%>%
+  left_join(llik_interm%>%dplyr::select(-accept_avg,-accept_prob,-ll))
 
 snpi_interm_some <-snpi_interm %>% dplyr::filter(USPS %in% states)
 ```
@@ -767,7 +774,7 @@ snpi_interm_some <-snpi_interm %>% dplyr::filter(USPS %in% states)
 #this_snpi_filter <-c('local_variance','Seas_mar','lockdown','open_p1','open_p2')
 #this_fig_labs <- c("Local variance in R0","March seasonality","Lockdown","Phase 1 re-opening","Phase 2 re-opening")
 
-snpi_plot <- plot_snpi_by_location(snpi_interm_some,#%>% dplyr::filter(slot_num==1),
+snpi_plot <- plot_snpi_by_location(snpi_interm_some%>% dplyr::filter(slot_num %in% c(1,2)), #change to show for single slot or remove for all slots
                                    pdeath_filter = pdeath_default,
                                    scenario_filter = 'inference',
                                    snpi_filter = this_snpi_filter,
@@ -810,7 +817,7 @@ legend<-get_legend(snpi_plot[[1]]+theme(legend.position="top"))
 ```{r snpi_plot, fig.height=multi_fig_height, fig.width=10, fig.cap=cap}
 cowplot::plot_grid(plot_snpi_grid, legend, nrow=2, rel_heights = c(1, 0.01))
 
-cap<- paste0("**Fig. ", fig_counter, "** Inferred paramter values by MCMC step for each GeoID.'Global' values are the proposed parameters at each step, and 'Chimeric' values are the parameters accepted at the GeoID-level in the chimeric likelihood  **")
+cap<- paste0("**Fig. ", fig_counter, "** Inferred paramter values by MCMC step for each GeoID.'Global' values are the parameters accepted in the global likelihood, and 'Chimeric' values are the parameters accepted at the GeoID-level in the chimeric likelihood  **")
 
 fig_counter<-fig_counter+1
 
@@ -847,7 +854,8 @@ hnpi_interm<- load_hnpi_sims_filtered_interm(outcome_dir=runs_folder,
   dplyr::select(c(-location,-runID, file_name))
 
 hnpi_interm  <- geodata_all %>%
-  left_join(hnpi_interm)
+  left_join(hnpi_interm)%>%
+  left_join(llik_interm%>%dplyr::select(-accept_avg,-accept_prob,-ll))
 
 hnpi_interm_some <-hnpi_interm %>% dplyr::filter(USPS %in% states)
 ```
@@ -859,7 +867,7 @@ eval_hnpi <-exists("hnpi_interm")==T
 
 ```{r mcmc_hnpi_plot, include=FALSE, eval=eval_hnpi}
 
-hnpi_plot <- plot_hnpi_by_location(hnpi_interm_some,#%>% dplyr::filter(slot_num==1),
+hnpi_plot <- plot_hnpi_by_location(hnpi_interm_some%>% dplyr::filter(slot_num %in% c(1,2)), #change to show for single slot or remove for all slots
                                    pdeath_filter = pdeath_default,
                                    scenario_filter = 'inference',
                                    hnpi_filter = this_hnpi_filter,
