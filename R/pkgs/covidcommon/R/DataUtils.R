@@ -817,6 +817,7 @@ get_groundtruth_from_single_source <- function(source = "csse", scale = "US coun
   } else if(source == "hhsCMU" & scale == "US state"){
 
     rc <- get_hhsCMU_incidH_st_data()
+    rc <- dplyr::mutate(rc, FIPS = paste0(FIPS, "000"))
     rc <- dplyr::select(rc, Update, FIPS, source, !!variables)
     rc <- tidyr::drop_na(rc, tidyselect::everything())
 
