@@ -136,35 +136,58 @@ if("priors"%in%names(config$filtering)) {
 ## Runner Script---------------------------------------------------------------------
 
 ## backwards compatibility with configs that don't have filtering$gt_source parameter will use the previous default data source (USA Facts)
-if(is.null(config$filtering$gt_source)){
-  gt_source <- "usafacts"
-} else{
-  gt_source <- config$filtering$gt_source
+
+new_vars <- unlist(sapply(config$filtering$statistics, function(x){x$data_var}))
+gt_vars <- unlist(sapply(config$filtering$statistics, function(x){x$gt_column_name}))
+if (is.null(gt_vars)) { # compatility with old configs
+  warning("Please specify gt_column_name in each inference statistic.  Defaulting to incident and cumulative confirmed cases and deaths")
+  gt_vars <- c("Confirmed", "Deaths", "incidI", "incidDeath")
+  new_vars <- c("cumConfirmed", "cumDeaths", "confirmed_incid", "death_incid")
+}
+
+gt_source <- unlist(sapply(config$filtering$statistics, function(x){x$gt_source}))
+if (is.null(gt_source)) {
+
+  if(is.null(config$filtering$gt_source)){
+    warning("Please specify gt_source in each inference statistic.  Defaulting to USA Facts")
+    gt_source <- "usafacts"
+  } else{
+    warning("Please specify gt_source in each inference statistic.  Defaulting to global filtering source")
+    gt_source <- config$filtering$gt_source
+  }
 }
 
 gt_scale <- ifelse(state_level, "US state", "US county")
 fips_codes_ <- geodata[[obs_nodename]]
 
-gt_start_date <- lubridate::ymd(config$start_date)
-if (opt$ground_truth_start != "") {
-  gt_start_date <- lubridate::ymd(opt$ground_truth_start)
-} else if (!is.null(config$start_date_groundtruth)) {
-  gt_start_date <- lubridate::ymd(config$start_date_groundtruth)
-}
-if (gt_start_date < lubridate::ymd(config$start_date)) {
+gt_start_date <- unlist(sapply(config$filtering$statistics, function(x){x$start_date}))
+if(is.null(gt_start_date)) {
   gt_start_date <- lubridate::ymd(config$start_date)
+  gt_start_date <- rep(gt_start_date, times = length(gt_vars))
+}
+if (opt$ground_truth_start != "") {
+  gt_start_date <- pmax(gt_start_date, lubridate::ymd(opt$ground_truth_start))
+} else if (!is.null(config$start_date_groundtruth)) {
+  gt_start_date <- pmax(gt_start_date, lubridate::ymd(config$start_date_groundtruth))
 }
 
-gt_end_date <- lubridate::ymd(config$end_date)
-if (opt$ground_truth_end != "") {
-  gt_end_date <- lubridate::ymd(opt$ground_truth_end)
-} else if (!is.null(config$end_date_groundtruth)) {
-  gt_end_date <- lubridate::ymd(config$end_date_groundtruth)
-}
-if (gt_end_date > lubridate::ymd(config$end_date)) {
+gt_end_date <- unlist(sapply(config$filtering$statistics, function(x){x$end_date}))
+if(is.null(gt_end_date)) {
   gt_end_date <- lubridate::ymd(config$end_date)
+  gt_end_date <- rep(gt_end_date, times = length(gt_vars))
+}
+if (opt$ground_truth_end != "") {
+  gt_end_date <- pmin(gt_end_date, lubridate::ymd(opt$ground_truth_end))
+} else if (!is.null(config$end_date_groundtruth)) {
+  gt_end_date <- pmin(gt_end_date, lubridate::ymd(config$end_date_groundtruth))
 }
 
+misc_data_filename <- unlist(sapply(config$filtering$statistics, function(x){x$misc_data_filename}))
+if(is.null(misc_data_filename)) {
+  if(!is.null(config$filtering$misc_data_filename)){
+    misc_data_filename <- config$filtering$misc_data_filename
+  }
+}
 
 obs <- inference::get_ground_truth(
           data_path = data_path,
@@ -173,7 +196,10 @@ obs <- inference::get_ground_truth(
           start_date = gt_start_date,
           end_date = gt_end_date,
           gt_source = gt_source,
-          gt_scale = gt_scale
+          gt_scale = gt_scale,
+          gt_vars = gt_vars,
+          new_vars = new_vars, 
+          misc_data_filename = misc_data_filename
 )
 
 geonames <- unique(obs[[obs_nodename]])

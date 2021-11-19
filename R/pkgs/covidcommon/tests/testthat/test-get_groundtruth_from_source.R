@@ -11,7 +11,8 @@ test_that("get_groundtruth_from_source works", {
   csse_st_ctyonly <- get_groundtruth_from_source(source = "csse", scale = "US state", incl_unass = FALSE)
   fake <- get_groundtruth_from_source(source = "fakesource")
 
-  expect_null(fake)
+  expect_equal(nrow(fake),
+               0)
   usaf_cty_processed <- usaf_cty %>%
     dplyr::mutate(FIPS = stringr::str_sub(FIPS, 1, 2)) %>%
     dplyr::group_by(Update, FIPS, source) %>%
