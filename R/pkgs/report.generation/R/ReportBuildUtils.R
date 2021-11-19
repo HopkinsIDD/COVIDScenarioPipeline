@@ -2663,7 +2663,7 @@ plot_truth_by_location <- function(truth_dat,
 ##' @param filter_val desired value of variable
 ##' @param burn_in number of iterations to discard at the beginning
 ##' 
-##' @return plot of proposed and accepted log likelihood values by geoid
+##' @return plot of accepted global and chimeric log likelihood values by geoid
 ##' 
 ##'
 ##'
@@ -2693,9 +2693,10 @@ plot_llik_by_location <- function(llik_interm,
   for(i in 1:length(group_names)){
     print(i)
     plot_rc[[i]]<-rc %>%
-      filter(!!as.symbol(group_var)==group_names[i]) %>%
+      dplyr::filter(!!as.symbol(group_var)==group_names[i]) %>%
+      dplyr::filter(accept==1)%>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=ll, color=lik_type, alpha=slot_num)) +
+      geom_step(aes(y=ll, color=lik_type, alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -2706,6 +2707,7 @@ plot_llik_by_location <- function(llik_interm,
       ylab("Log Likelihood")+
       xlab("Iterations")+ 
       facet_grid(rows=vars(name), scales="free") +
+      scale_alpha_discrete(range=if(length(unique((rc$slot_num)))==1){c(0.99,1)}else{c(0.2,1)}) +
       #scale_y_sqrt()+
       labs(subtitle = group_names[i])
   }
@@ -2720,7 +2722,7 @@ plot_llik_by_location <- function(llik_interm,
 ##' @param filter_val desired value of variable
 ##' @param burn_in number of iterations to discard at the beginning
 ##' 
-##' @return plot of proposed and accepted log likelihood values for entire nation
+##' @return plot of accepted global and chimeric log likelihood values for entire nation
 ##' 
 ##'
 ##'
@@ -2752,12 +2754,14 @@ plot_llik_total <- function(llik_interm,
     plot_rc[[i]]<-rc %>%
       filter(!!as.symbol(group_var)==group_names[i]) %>%
       dplyr::group_by(lik_type,iter_num,slot_num) %>%
-      dplyr::summarize(ll=sum(ll, na.rm=TRUE))%>% #add log likelihoods for all geoids together at each timepoint
+      dplyr::summarize(ll=sum(ll, na.rm=TRUE),accept=any(accept))%>% #add log likelihoods for all geoids together at each timepoint
+      dplyr::filter(accept==1)%>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=ll, color=lik_type,alpha=slot_num)) +
+      geom_step(aes(y=ll, color=lik_type,alpha=slot_num)) +
       theme_bw()+
       ylab("Log Likelihood")+
       xlab("Iterations")+ 
+      scale_alpha_discrete(range=if(length(unique((rc$slot_num)))==1){c(0.99,1)}else{c(0.2,1)}) +
       #scale_y_sqrt()+
       labs(subtitle = group_names[i])
   }
@@ -2815,6 +2819,7 @@ plot_accept_by_location <- function(llik_interm,
       ylab("Average acceptance rate")+
       xlab("Iterations")+ 
       facet_grid(rows=vars(name), scales="fixed") +
+      scale_alpha_discrete(range=if(length(unique((rc$slot_num)))==1){c(0.99,1)}else{c(0.2,1)}) +
       #scale_y_sqrt()+
       labs(subtitle = group_names[i])
   }
@@ -2875,6 +2880,7 @@ plot_accept_by_location_rolling <- function(llik_interm,
       ylab("Rolling mean acceptance rate")+
       xlab("Iterations")+ 
       facet_grid(rows=vars(name), scales="fixed") +
+      scale_alpha_discrete(range=if(length(unique((rc$slot_num)))==1){c(0.99,1)}else{c(0.2,1)}) +
       #scale_y_sqrt()+
       labs(subtitle = group_names[i])
   }
@@ -2934,6 +2940,7 @@ plot_accept_by_location_cumul <- function(llik_interm,
       ylab("Cumulative acceptances")+
       xlab("Iterations")+ 
       facet_grid(rows=vars(name), scales="fixed") +
+      scale_alpha_discrete(range=if(length(unique((rc$slot_num)))==1){c(0.99,1)}else{c(0.2,1)}) +
       #scale_y_sqrt()+
       labs(subtitle = group_names[i])
   }
@@ -2949,7 +2956,7 @@ plot_accept_by_location_cumul <- function(llik_interm,
 ##' @param filter_val desired value of variable
 ##' @param burn_in number of iterations to discard before plotting
 ##' 
-##' @return plot comparing observed and modeled estimates by geoid
+##' @return plot of accepted global and chimeric SEIR parameter values values by geoid
 ##' 
 ##'
 ##'
@@ -2958,9 +2965,7 @@ plot_accept_by_location_cumul <- function(llik_interm,
 plot_spars <- function(spar_interm,
                        filter_by = "pdeath",
                        filter_val = "med",
-                       burn_in = 0#,
-                       #spar_filter = c('local_variance','lockdown_partial'), #will find any parameters containing these phrases
-                       #fig_labs=c("Local variance in R0","Partial lockdown")
+                       burn_in = 0
 ){
   
   
@@ -2985,10 +2990,10 @@ plot_spars <- function(spar_interm,
   for(i in 1:length(group_names)){ 
     print(i)
     plot_rc[[i]]<-rc %>%
-      filter(!!as.symbol(group_var)==group_names[i]) %>%
-      #dplyr::filter(USPS == 'MA')%>%
+      dplyr::filter(!!as.symbol(group_var)==group_names[i]) %>%
+      dplyr::filter(accept==1)%>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=value, color=lik_type, alpha=slot_num)) +
+      geom_step(aes(y=value, color=lik_type, alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -2999,6 +3004,7 @@ plot_spars <- function(spar_interm,
       ylab("Value")+
       xlab("Iterations")+ 
       facet_grid(rows=vars(parameter), scales="free") +
+      scale_alpha_discrete(range=if(length(unique((rc$slot_num)))==1){c(0.99,1)}else{c(0.2,1)}) +
       #scale_y_sqrt()+
       labs(subtitle = group_names[i])
   }
@@ -3010,12 +3016,13 @@ plot_spars <- function(spar_interm,
 ##' Plot intermediate hpar over time for each geoID
 ##' 
 ##' @param hpar_interm df with value, parameter, lik_type, scenario, pdeath, iter_num
-##' @param partitions used by open_dataset 
 ##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
-##' @param incl_geoids character vector of geoids that are included in the report
+##' @param scenario_filter string that indicates which scenario to import from outcome_dir
+##' @param hpar_filter string that indicates which outcome parameters will be plotted
+##' @param fig_labs string that indicates subtitles to appear on plots of each parameter in hpar_filter
 ##' @param burn_in number of iterations to discard before plotting
 ##' 
-##' @return plot comparing observed and modeled estimates by geoid
+##' @return plot of accepted global and chimeric outcome parameter values by geoid
 ##' 
 ##'
 ##'
@@ -3048,9 +3055,9 @@ plot_hpar_by_location <- function(hpar_interm,
     print(i)
     plot_rc[[i]]<-rc %>%
       dplyr::filter(grepl(hpar_filter[i],outcome_quantity))%>%
-      #dplyr::filter(USPS == 'MA')%>%
+      dplyr::filter(accept==1)%>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=value, color=lik_type, alpha=slot_num)) +
+      geom_step(aes(y=value, color=lik_type, alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -3061,6 +3068,7 @@ plot_hpar_by_location <- function(hpar_interm,
       ylab("Value")+
       xlab("Iterations")+ 
       facet_grid(rows=vars(name), scales="fixed") +
+      scale_alpha_discrete(range=if(length(unique((rc$slot_num)))==1){c(0.99,1)}else{c(0.2,1)}) +
       #scale_y_sqrt()+
       labs(subtitle = fig_labs[i])
   }
@@ -3071,16 +3079,14 @@ plot_hpar_by_location <- function(hpar_interm,
 
 ##' Plot intermediate snpi over time for each geoID
 ##' 
-##' @param truth_dat df with date, geoid, incidI, incidDeath; hosps if adding
-##' hospitalization data
-##' @param model_dat df with model estimates 
-##' @param hosp whether hospitalization data is included in truth_dat with varname currhosp
-##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
-##' @param filter_val desired value of variable
-##' @param geodat df with location names
+##' @param snpi_interm df with value, parameter, lik_type, scenario, pdeath, iter_num
+##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param scenario_filter string that indicates which scenario to import from outcome_dir
+##' @param snpi_filter string that indicates which SNPI parameters will be plotted
+##' @param fig_labs string that indicates subtitles to appear on plots of each parameter in snpi_filter
 ##' @param burn_in number of iterations to discard before plotting
 ##' 
-##' @return plot comparing observed and modeled estimates by geoid
+##' @return plot of accepted global and chimeric NPI (on R0) parameter values by geoID
 ##' 
 ##'
 ##'
@@ -3109,9 +3115,9 @@ plot_snpi_by_location <- function(snpi_interm,
     print(i)
     plot_rc[[i]]<-rc %>%
       dplyr::filter(grepl(snpi_filter[i],npi_name))%>%
-      #dplyr::filter(USPS == 'MA')%>%
+      dplyr::filter(accept==1)%>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=reduction, color=lik_type, alpha=slot_num)) +
+      geom_step(aes(y=reduction, color=lik_type, alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -3122,6 +3128,7 @@ plot_snpi_by_location <- function(snpi_interm,
       ylab("Reduction in R0")+
       xlab("Iterations")+ 
       facet_grid(rows=vars(name), scales="fixed") +
+      scale_alpha_discrete(range=if(length(unique((rc$slot_num)))==1){c(0.99,1)}else{c(0.2,1)}) +
       #scale_y_sqrt()+
       labs(subtitle = fig_labs[i])
   }
@@ -3133,16 +3140,14 @@ plot_snpi_by_location <- function(snpi_interm,
 
 ##' Plot intermediate hnpi over time for each geoID
 ##' 
-##' @param truth_dat df with date, geoid, incidI, incidDeath; hosps if adding
-##' hospitalization data
-##' @param model_dat df with model estimates 
-##' @param hosp whether hospitalization data is included in truth_dat with varname currhosp
-##' @param filter_by variable name for filtering estimates either: scenario or pdeath 
-##' @param filter_val desired value of variable
-##' @param geodat df with location names
+##' @param hnpi_interm df with value, parameter, lik_type, scenario, pdeath, iter_num
+##' @param pdeath_filter string that indicates which pdeath to import from outcome_dir
+##' @param scenario_filter string that indicates which scenario to import from outcome_dir
+##' @param hnpi_filter string that indicates which SNPI parameters will be plotted
+##' @param fig_labs string that indicates subtitles to appear on plots of each parameter in snpi_filter
 ##' @param burn_in number of iterations to discard before plotting
 ##' 
-##' @return plot comparing observed and modeled estimates by geoid
+##' @return plot of accepted global and chimeric NPI (on outcomes) parameter values by geoID
 ##' 
 ##'
 ##'
@@ -3177,9 +3182,9 @@ plot_hnpi_by_location <- function(hnpi_interm,
     print(i)
     plot_rc[[i]]<-rc %>%
       dplyr::filter(grepl(hnpi_filter[i],npi_name))%>%
-      #dplyr::filter(USPS == 'MA')%>%
+      dplyr::filter(accept==1)%>%
       ggplot(aes(x=iter_num)) +
-      geom_line(aes(y=reduction, color=lik_type, alpha=slot_num)) +
+      geom_step(aes(y=reduction, color=lik_type, alpha=slot_num)) +
       theme_bw()+
       theme(panel.grid = element_blank(),
             legend.title=element_blank(),
@@ -3190,6 +3195,7 @@ plot_hnpi_by_location <- function(hnpi_interm,
       ylab("Reduction in parameter")+
       xlab("Iterations")+ 
       facet_grid(rows=vars(name), scales="fixed") +
+      scale_alpha_discrete(range=if(length(unique((rc$slot_num)))==1){c(0.99,1)}else{c(0.2,1)}) +
       #scale_y_sqrt()+
       labs(subtitle = fig_labs[i])
   }
