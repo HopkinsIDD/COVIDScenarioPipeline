@@ -12018,6 +12018,7 @@ filtering:
       gt_source: "csse"
       sim_var: incidD
       data_var: death_incid
+      gt_column_name: death_incid
       remove_na: FALSE
       add_one: FALSE
       likelihood:
@@ -12030,6 +12031,7 @@ filtering:
       gt_source: "csse"
       sim_var: incidC
       data_var: confirmed_incid
+      gt_column_name: confirmed_incid
       remove_na: FALSE
       add_one: TRUE
       likelihood:
