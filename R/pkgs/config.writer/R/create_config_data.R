@@ -542,6 +542,7 @@ set_variant_params <- function(b117_only = FALSE,
                                p_mean = 0, p_sd = 0.01, p_a = -1, p_b = 1
 ){
     inference_cutoff_date <- as.Date(inference_cutoff_date)
+    param_val <- ifelse(compartment==TRUE, "r0", "R0")
     
     if(compartment){
         variant_data <- generate_compartment_variant(variant_path = variant_path,
@@ -596,7 +597,7 @@ set_variant_params <- function(b117_only = FALSE,
                       name = paste(USPS, "variantR0adj", paste0("Week", lubridate::week(start_date)), sep="_"),
                       name = stringr::str_remove(name, '^\\_'),
                       template = "Reduce",
-                      parameter = "R0",
+                      parameter = param_val,
                       value_dist = v_dist,
                       value_mean = 1-R_ratio,
                       value_sd = v_sd,
