@@ -108,18 +108,17 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
         places = diffI.drop(['time', 'p_comp'], axis=1).columns
 
         # Load the actual csv file
-        # Load the actual csv file
         branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pa.parquet.read_table(branching_file).to_pandas()
         if ('relative_probability' not in list(branching_data['quantity'])):
             raise ValueError(f"No 'relative_probablity' quantity in {branching_file}, therefor making it useless")
 
-        print('Loaded geoids in loaded relative probablity file:', len(branching_data.geoid.unique()), '', end='')
+        print('Loaded geoids in loaded relative outcome probablity file:', len(branching_data.geoid.unique()), '', end='')
         branching_data = branching_data[branching_data['geoid'].isin(places)]
-        print('Intersect with seir simulation: ', len(branching_data.geoid.unique()), 'keeped')
+        print('Intersect with seir simulation: ', len(branching_data.geoid.unique()), 'kept')
 
         if (len(branching_data.geoid.unique()) != places.shape[0]):
-            raise ValueError(f"Places in seir input files does not correspond to places in outcome probability file {branching_file}")
+            raise ValueError(f"Places in seir input files does not correspond to places in relative outcome probability file {branching_file}")
 
     subclasses = ['']
     if config["outcomes"]["subclasses"].exists():
@@ -152,14 +151,14 @@ def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcom
                                                  (branching_data['outcome']==class_name) &
                                                  (branching_data['quantity']=='relative_probability')].copy(deep=True)
                     if len(rel_probability) > 0:
-                        print(f"Using 'param_from_file' for relative probability {parameters[class_name]['source']} -->  {class_name}")
+                        print(f"Using 'param_from_file' for relative outcome probability {parameters[class_name]['source']} -->  {class_name}")
                         # Sort it in case the relative probablity file is misecified
                         rel_probability.geoid = rel_probability.geoid.astype("category")
                         rel_probability.geoid.cat.set_categories(diffI.drop('time', axis=1).columns, inplace=True)
                         rel_probability = rel_probability.sort_values(["geoid"])
                         parameters[class_name]['rel_probability'] = rel_probability['value'].to_numpy()
                     else:
-                        print(f"*NOT* Using 'param_from_file' for relative probability {parameters[class_name]['source']} -->  {class_name}")
+                        print(f"*NOT* Using 'param_from_file' for relative outcome probability {parameters[class_name]['source']} -->  {class_name}")
 
             # We need to compute sum across classes if there is subclasses
             if (subclasses != ['']):

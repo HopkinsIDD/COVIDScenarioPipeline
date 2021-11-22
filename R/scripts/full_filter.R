@@ -29,6 +29,8 @@ if(opt$config == ""){
   ))
 }
 
+print(paste('Running ',opt$j,' jobs in parallel'))
+
 config <- covidcommon::load_config(opt$config)
 
 deathrates <- opt$deathrates

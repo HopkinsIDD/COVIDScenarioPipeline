@@ -305,7 +305,7 @@ compute_totals <- function(sim_hosp) {
 
 # MCMC stuff -------------------------------------------------------------------
 
-##' Fuction perturbs a seeding file based on a normal
+##' Function perturbs a seeding file based on a normal
 ##' proposal on the start date and
 ##' a poisson on the number of cases.
 ##'
@@ -314,7 +314,7 @@ compute_totals <- function(sim_hosp) {
 ##' @param amount_sd the standard deviation parameter of the normal distribution used to perturb amount
 ##' @param continuous Whether the seeding is passed to a continuous model or not
 ##'
-##' @return a pertubed data frame
+##' @return a perturbed data frame
 ##'
 ##' @export
 perturb_seeding <- function(seeding, date_sd, date_bounds, amount_sd = 1, continuous = FALSE) {
@@ -334,20 +334,20 @@ perturb_seeding <- function(seeding, date_sd, date_bounds, amount_sd = 1, contin
 
 
 
-##' Fuction perturbs an npi parameter file based on
+##' Function perturbs an npi parameter file based on
 ##' user-specified distributions
 ##'
 ##' @param snpi the original npis.
-##' @param intervention_settings a list of perturbation specificationss
+##' @param intervention_settings a list of perturbation specifications
 ##'
 ##'
-##' @return a pertubed data frame
+##' @return a perturbed data frame
 ##' @export
 perturb_snpi <- function(snpi, intervention_settings) {
   ##Loop over all interventions
   for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
 
-    ##Only perform pertubations on interventions where it is specified ot do so.
+    ##Only perform perturbations on interventions where it is specified to do so.
 
     if ('perturbation' %in% names(intervention_settings[[intervention]])){
 
@@ -360,7 +360,7 @@ perturb_snpi <- function(snpi, intervention_settings) {
         next
       }
 
-      ##add the pertubation...for now always parameterized in terms of a "reduction"
+      ##add the perturbation...for now always parameterized in terms of a "reduction"
       snpi_new <- snpi[["reduction"]][ind] + pert_dist(sum(ind))
 
       ##check that this is in bounds (equivalent to having a positive probability)
@@ -376,20 +376,20 @@ perturb_snpi <- function(snpi, intervention_settings) {
 }
 
 
-##' Fuction perturbs an npi parameter file based on
+##' Function perturbs an npi parameter file based on
 ##' user-specified distributions
 ##'
 ##' @param hnpi the original npis.
 ##' @param intervention_settings a list of perturbation specificationss
 ##'
 ##'
-##' @return a pertubed data frame
+##' @return a perturbed data frame
 ##' @export
 perturb_hnpi <- function(hnpi, intervention_settings) {
   ##Loop over all interventions
   for (intervention in names(intervention_settings)) { # consider doing unique(npis$npi_name) instead
 
-    ##Only perform pertubations on interventions where it is specified ot do so.
+    ##Only perform perturbations on interventions where it is specified to do so.
 
     if ('perturbation' %in% names(intervention_settings[[intervention]])){
 
@@ -402,7 +402,7 @@ perturb_hnpi <- function(hnpi, intervention_settings) {
         next
       }
 
-      ##add the pertubation...for now always parameterized in terms of a "reduction"
+      ##add the perturbation...for now always parameterized in terms of a "reduction"
       hnpi_new <- hnpi[["reduction"]][ind] + pert_dist(sum(ind))
 
       ##check that this is in bounds (equivalent to having a positive probability)
@@ -417,14 +417,14 @@ perturb_hnpi <- function(hnpi, intervention_settings) {
   return(hnpi)
 }
 
-##' Fuction perturbs an npi parameter file based on
+##' Fucction perturbs an outcomes parameter file based on
 ##' user-specified distributions
 ##'
-##' @param hpar the original hospitalization parameters.
+##' @param hpar the original hospitalization (outcomes) parameters.
 ##' @param intervention_settings a list of perturbation specifications
 ##'
 ##'
-##' @return a pertubed data frame
+##' @return a perturbed data frame
 ##' @export
 perturb_hpar <- function(hpar, intervention_settings) {
   ##Loop over all interventions
@@ -467,7 +467,7 @@ perturb_hpar <- function(hpar, intervention_settings) {
 
   return(hpar)
 }
-##' Function to go through to accept or reject seedings in a block manner based
+##' Function to go through to accept or reject proposed parameters for each geoid based
 ##' on a geoid specific likelihood.
 ##'
 ##'
@@ -506,7 +506,9 @@ accept_reject_new_seeding_npis <- function(
   accept <- ratio > runif(length(ratio), 0, 1)
 
   orig_lls$ll[accept] <- prop_lls$ll[accept]
-
+  
+  orig_lls$accept <- as.numeric(accept) # added column for acceptance decision
+  orig_lls$accept_prob <- min(1,ratio) # added column for acceptance decision
 
   for (place in orig_lls$geoid[accept]) {
     rc_seeding[rc_seeding$place == place, ] <- seeding_prop[seeding_prop$place ==place, ]
@@ -544,3 +546,195 @@ iterateAccept <- function(ll_ref, ll_new) {
   }
   return(FALSE)
 }
+
+# Extra functions for MCMC diagnostics and adaptation ------------------
+
+##' Function adds a column to the npi parameter file to record the perturbation standard deviation, initially taken from the config file
+##'
+##' @param snpi the original npis.
+##' @param intervention_settings a list of perturbation specifications
+##'
+##'
+##' @return data frame with perturb_sd column added
+##' @export
+add_perturb_column_snpi <- function(snpi, intervention_settings) {
+
+  snpi$perturb_sd <- 0 # create a column in the parameter data frame to hold the perturbation sd
+  
+  ##Loop over all interventions
+  for (intervention in names(intervention_settings)) {
+    ##Only perform perturbations on interventions where it is specified to do so.
+    
+    if ('perturbation' %in% names(intervention_settings[[intervention]])){
+      
+      ##find the npi with this name
+      ind <- (snpi[["npi_name"]] == intervention)
+      if(!any(ind)){
+        next
+      }
+      
+      if(!'sd' %in% names(intervention_settings[[intervention]][['perturbation']])){
+        stop("Cannot add perturbation sd to column unless 'sd' values exists in config$interventions$settings$this_intervention$perturbation")
+      }
+      
+      pert_sd <-intervention_settings[[intervention]][['perturbation']][['sd']]
+      #print(paste0(intervention," initial perturbation sd is ",pert_sd))
+      
+      snpi$perturb_sd[ind] <- pert_sd # update perturbation
+      
+    }
+  }
+  
+  return(snpi)
+}
+
+
+
+
+##' Function perturbs an npi parameter file based on the current perturbation standard deviation in the file, and also can update the perturbation value if the adaptive mode is turned on
+##'
+##' @param snpi the original npis.
+##' @param intervention_settings a list of perturbation specifications
+##' @param llik log likelihood values
+##' 
+##' @return a perturbed data frame
+##' @export
+perturb_snpi_from_file  <- function(snpi, intervention_settings, llik){
+  
+
+  ##Loop over all interventions
+  for (intervention in names(intervention_settings)) {
+    
+    ##Only perform perturbations on interventions where it is specified to do so.
+    
+    if ('perturbation' %in% names(intervention_settings[[intervention]])){
+      
+      ##find all the npi with this name (might be one for each geoID)
+      ind <- (snpi[["npi_name"]] == intervention)
+      if(!any(ind)){
+        next
+      }
+      
+      ## for each of them generate the perturbation and update their value
+      for (this_npi_ind in which(ind)){ # for each geoid that has this interventions
+        
+        this_geoid <- snpi[["geoid"]][this_npi_ind]
+        this_accept_avg <- llik$accept_avg[llik$geoid==this_geoid] 
+        his_accept_prob <- llik$accept_prob[llik$geoid==this_geoid] 
+        this_intervention_setting<- intervention_settings[[intervention]]
+        
+        ##get the random distribution from covidcommon package
+        pert_dist <- covidcommon::as_random_distribution(this_intervention_setting$perturbation)
+        
+        ##add the perturbation...for now always parameterized in terms of a "reduction"
+        snpi_new <- snpi[["reduction"]][this_npi_ind] + pert_dist(1)
+        
+        ##check that this is in bounds (equivalent to having a positive probability)
+        in_bounds_index <- covidcommon::as_density_distribution(
+          intervention_settings[[intervention]][['value']]
+        )(snpi_new) > 0
+        
+        ## include this perturbed parameter if it is in bounds
+        snpi$reduction[this_npi_ind][in_bounds_index] <- snpi_new[in_bounds_index]
+        
+      }
+    }
+  }
+  
+  return(snpi)
+}
+
+##' Function adds a column to the npi parameter file to record the perturbation standard deviation, initially taken from the config file
+##'
+##' @param hnpi the original npis.
+##' @param intervention_settings a list of perturbation specifications
+##'
+##'
+##' @return data frame with perturb_sd column added
+##' @export
+add_perturb_column_hnpi <- function(hnpi, intervention_settings) {
+  
+  hnpi$perturb_sd <- 0 # create a column in the parameter data frame to hold the perturbation sd
+  
+  ##Loop over all interventions
+  for (intervention in names(intervention_settings)) {
+    ##Only perform perturbations on interventions where it is specified to do so.
+    
+    if ('perturbation' %in% names(intervention_settings[[intervention]])){
+      
+      ##find the npi with this name
+      ind <- (hnpi[["npi_name"]] == intervention)
+      if(!any(ind)){
+        next
+      }
+      
+      if(!'sd' %in% names(intervention_settings[[intervention]][['perturbation']])){
+        stop("Cannot add perturbation sd to column unless 'sd' values exists in config$interventions$settings$this_intervention$perturbation")
+      }
+      
+      pert_sd <-intervention_settings[[intervention]][['perturbation']][['sd']]
+      #print(paste0(intervention," initial perturbation sd is ",pert_sd))
+      
+      hnpi$perturb_sd[ind] <- pert_sd # update perturbation
+      
+    }
+  }
+  
+  return(hnpi)
+}
+
+
+
+
+##' Function perturbs an npi parameter file based on the current perturbation standard deviation in the file, and also can update the perturbation value if the adaptive mode is turned on
+##'
+##' @param hnpi the original npis.
+##' @param intervention_settings a list of perturbation specifications
+##' @param llik log likelihood values
+##' 
+##' @return a perturbed data frame
+##' @export
+perturb_hnpi_from_file  <- function(hnpi, intervention_settings, llik){
+  
+  
+  ##Loop over all interventions
+  for (intervention in names(intervention_settings)) {
+    
+    ##Only perform perturbations on interventions where it is specified to do so.
+    
+    if ('perturbation' %in% names(intervention_settings[[intervention]])){
+      
+      ##find all the npi with this name (might be one for each geoID)
+      ind <- (hnpi[["npi_name"]] == intervention)
+      if(!any(ind)){
+        next
+      }
+      
+      ## for each of them generate the perturbation and update their value
+      for (this_npi_ind in which(ind)){ # for each geoid that has this interventions
+        
+        this_geoid <- hnpi[["geoid"]][this_npi_ind]
+        this_accept_avg <- llik$accept_avg[llik$geoid==this_geoid] 
+        this_intervention_setting<- intervention_settings[[intervention]]
+        
+        ##get the random distribution from covidcommon package
+        pert_dist <- covidcommon::as_random_distribution(this_intervention_setting$perturbation)
+        
+        ##add the perturbation...for now always parameterized in terms of a "reduction"
+        hnpi_new <- hnpi[["reduction"]][this_npi_ind] + pert_dist(1)
+        
+        ##check that this is in bounds (equivalent to having a positive probability)
+        in_bounds_index <- covidcommon::as_density_distribution(
+          intervention_settings[[intervention]][['value']]
+        )(hnpi_new) > 0
+        
+        ## include this perturbed parameter if it is in bounds
+        hnpi$reduction[this_npi_ind][in_bounds_index] <- hnpi_new[in_bounds_index]
+        
+      }
+    }
+  }
+  
+  return(hnpi)
+}
+

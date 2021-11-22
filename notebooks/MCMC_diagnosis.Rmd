@@ -1,0 +1,1254 @@
+---
+title: "R Notebook"
+params:
+  config_file: config_2020_updated_incidC_incidH_shifts.yml
+  continue_on_error: yes
+  hosp_eval: no
+  pi_hi: 0.95
+  pi_lo: 0.05 
+  runs_folder: model_output_2020_updated_incidC_incidH_shifts_n100_j4 # directory with model output (i.e. with subdirs: hosp, snpi, spar)
+  pdeath_default: "med"
+  #states: "ALL"
+  states: ["CA","FL","IL","NY","OH","TX","WA"]
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    toc_depth: 3
+editor_options:
+  chunk_output_type: inline
+#Note: For now it seems like this notebook must be in the main folder of COVID19_USA (although it is supposed to be able to find the correct directory)
+---
+
+```{r setup, include=F}
+
+## Block with general knitr options, library load, etc. Nothing specific to the project.
+knitr::opts_knit$set(eval.after = 'fig.cap',
+                     root.dir = rprojroot::find_root(rprojroot::has_file(params$config_file))) # the root does not seem to be working and carrying thru to other chunks
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  fig.align = "center",
+  message = FALSE,
+  warning = FALSE,
+  error = params$continue_on_error,
+  cache.lazy = FALSE,
+  bitmapType = "cairo"
+)
+
+options(scipen=999)
+
+#Preamble   
+# Make sure to run local_install.R first
+library(tidyverse)
+library(covidcommon)
+library(report.generation)
+library(covidImportation)
+library(ggtext)
+library(cowplot)
+library(googlesheets4)
+#library(covidHubUtils)
+library(gtsummary)
+library(zoo)
+library(corrplot)
+library(reshape2)
+```
+
+```{r parameter_definitions}
+
+config_file=params$config_file
+continue_on_error= params$continue_on_error
+hosp_eval=params$hosp_eval
+pi_hi= params$pi_hi
+pi_lo= params$pi_hi
+runs_folder= params$runs_folder
+states= params$states
+pdeath_default= params$pdeath_default
+
+# These filters select which fitted parameters were be plotted. They have to be changed depending on the config and what was run
+this_hpar_filter <-c('incidC_probability','incidH_probability','incidD_probability')
+this_hpar_fig_labs <- c("Case detection probability","Hospitalization probability","Death probability")
+this_snpi_filter <-c('local_variance','Seas_mar','lockdown','open_p1','open_p2')
+this_snpi_fig_labs <- c("Local variance in R0","March seasonality","Lockdown","Phase 1 re-opening","Phase 2 re-opening")
+this_hnpi_filter <-c('incidCshift1','incidCshift2','incidH_adj')
+this_hnpi_fig_labs <- c("State-specific reduction in incidC (phase 1)","State-specific reduction in incidC (phase 2)","State-specific adjustment to hospitalization rate")
+```
+
+```{r rmd_formatting}
+fig_counter <- 1
+tab_counter <- 1
+multi_fig_height <- length(states)
+```
+
+
+```{r load_config}
+config <- covidcommon::load_config(config_file)
+```
+
+
+```{r config_vals}
+scn_labels <- "inference"
+scn_levels <- "inference"
+scn_colors = c("#550055")
+# scn_labels <- config$report$formatting$scenario_labels
+# scn_levels<-config$report$formatting$scenario_levels
+sim_start_date <- config$start_date
+sim_end_date <- config$end_date
+max_date <-Sys.Date()
+
+
+pdeath_label= paste0(100*config$outcomes$settings[[pdeath_default]]$incidD$probability$value$value,"% IFR")
+
+```
+
+
+
+```{r}
+# In case you want to pre-maturely end and knit the document
+#knitr::knit_exit()
+```
+
+
+
+```{r}
+
+# Load in basic information on geoIDs of interest
+
+geodata_all <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
+                                 geoid_len=5,
+                                 names=TRUE)  %>%
+  mutate(name=str_to_title(name)) %>%
+  rename(pop=starts_with("pop"))
+
+included_geoids_all <- geodata_all$geoid
+
+```
+
+
+```{r choose_states}
+
+if(states=="ALL"){
+  
+  states <- geodata_all$USPS
+}
+
+multi_fig_height <- length(states)
+
+geodata_some <-geodata_all %>% dplyr::filter(USPS %in% states)
+
+included_geoids_some <- geodata_some$geoid
+```
+
+
+```{r load_model_timecourse_summed}  
+# Gets model outcomes over time summed over all geoIDs of interest
+model_output_summed <-load_hosp_geocombined_totals(runs_folder,
+                                                   scenario_levels = scn_levels,
+                                                   scenario_labels = scn_labels,
+                                                   incl_geoids = included_geoids_all,
+                                                   pdeath_filter=pdeath_default)
+
+```
+
+
+
+```{r load_model_timecourse} 
+# Gets model outcomes over time for all geoIDs of interest individually
+model_timecourse_all <- load_hosp_county(runs_folder, 
+                                         scenario_levels = scn_levels,
+                                         scenario_labels = scn_labels,
+                                         incl_geoids=included_geoids_all,
+                                         pdeath_filter = pdeath_default)  %>%
+  left_join(geodata_all) %>%
+  mutate(name = factor(name, levels=sort(geodata_all$name, decreasing=TRUE)))
+
+```
+
+
+```{r load_truth, cache=TRUE, cache.extra=paste(Sys.Date())}
+
+# Get up to date data on cases, deaths, and hospitalizations - takes a long time to run
+
+#truth_dat <-get_groundtruth_from_source(source="csse") # for county level
+truth_dat_raw <- covidcommon::get_groundtruth_from_source(source = "csse", scale = "US state")
+
+```
+
+
+```{r process_truth}
+
+truth_dat_all<-truth_dat_raw%>%
+  dplyr::select(Confirmed, Deaths, incidI, incidDeath, USPS=source, date=Update, geoid=FIPS) %>%
+  left_join(geodata_all)
+
+#truth_dat_some <-truth_dat_all %>% dplyr::filter(USPS %in% states)
+
+```
+
+
+
+```{r load_hosp_data,  cache=TRUE, cache.extra=paste(Sys.Date())}
+
+# State level hospitalization data
+# PROBLEM: These functions replace missing data with zeros! And not all states report until Aug 1. So, added code to replace all values before Aug 1 with NA
+hosp_data_start_date ="2020-08-01"
+
+hosp_dat_all<-get_hhsCMU_incidH_st_data() %>%
+  dplyr::select(date=Update, USPS=source, incidH=incidH_confirmed)%>%
+  #drop_na() 
+  mutate(incidH=ifelse(date>hosp_data_start_date,incidH,NA))
+
+hosp_dat_all <- geodata_all %>%
+  left_join(hosp_dat_all)
+
+currhosp_dat_all<-get_hhsCMU_hospCurr_st_data() %>%
+  dplyr::select(date=Update, USPS=source, currhosp=hospCurr_confirmed)%>%
+  #drop_na() 
+  mutate(currhosp=ifelse(date>hosp_data_start_date,currhosp,NA))
+
+currhosp_dat_all <- geodata_all %>%
+  left_join(currhosp_dat_all) 
+
+# This is specific to California data!
+# #only works by county. only has county name, not FIPS - not sure how they treat redundant counties!
+# currhosp_dat <- read.csv("https://data.ca.gov/dataset/529ac907-6ba1-4cb7-9aae-8966fc96aeef/resource/42d33765-20fd-44b8-a978-b083b7542225/download/hospitals_by_county.csv") %>%
+#     dplyr::rename(name = county, 
+#                   date = todays_date,
+#                   currhosp=hospitalized_covid_confirmed_patients) %>%
+#   tibble()
+
+# currhosp_dat <- currhosp_dat %>%
+#     left_join(geodata) %>%
+#     mutate(date = lubridate::ymd(date))
+
+# Currently hospitalized
+# hosp_dat<-currhosp_dat %>%
+#   group_by(date) %>%
+#   summarize(currhosp=sum(currhosp))%>%
+#   left_join(hosp_dat)
+```
+
+```{r}
+
+# combine case + death data with hospitalization data
+
+# prevalence
+combo_obs_dat<-currhosp_dat_all%>%
+  select(geoid, date, currhosp)%>%
+  right_join(truth_dat_all)
+
+# incidence
+combo_obs_dat<-hosp_dat_all%>%
+  select(geoid, date, incidH)%>%
+  right_join(combo_obs_dat)
+
+combo_obs_dat<-combo_obs_dat %>%  
+  dplyr::relocate(geoid, USPS, name, pop, date) %>%
+  arrange(geoid,date)
+  #dplyr::rename(source=USPS) #just needed for this plotting function for some reason
+
+```
+
+# Epidemic timecourse from simulations vs data 
+
+## National
+
+Using the final parameter values from each chain
+
+```{r calib}
+
+# Creates plots for time course of cases + deaths (+hospitalization) aggregated over geoIDs, model + data, for final parameter values from each slot
+
+calib_plts <- plot_model_vs_obs(model_output_summed,
+                                jhu_obs_dat = combo_obs_dat %>% dplyr::rename(source=USPS), #needed for plotting, not sure why
+                                scenario_colors = scn_colors,
+                                obs_data_col = "black",
+                                ci.L = 0.025,
+                                ci.U = 0.975,
+                                date_breaks = "1 month",
+                                sim_start_date = sim_start_date,
+                                sim_end_date = max_date,
+                                week = TRUE,
+                                hosp=TRUE, tendency="mean")
+
+calib_legend<-get_legend(calib_plts[[1]]+theme(legend.position="bottom"))
+
+#calib_plts[[1]]<-calib_plts[[1]]+theme(legend.position = "none")+scale_x_date(breaks="1 month", date_labels="%b %y")
+#calib_plts[[2]]<-calib_plts[[2]]+theme(legend.position = "none")+scale_x_date(breaks="1 month", date_labels="%b %y")
+calib_plts[[1]]<-calib_plts[[1]]+theme(legend.position = "none")
+calib_plts[[2]]<-calib_plts[[2]]+theme(legend.position = "none")
+
+if(length(calib_plts)>2){
+  calib_plts[[3]]<-calib_plts[[3]]+theme(legend.position = "none")
+}
+
+```
+
+```{r single_geoid_plot, fig.height=3, fig.width=10, fig.cap=cap}
+
+summed_fit<- plot_grid(NULL, NULL, NULL, NULL, NULL, NULL,
+                      NULL, calib_plts[[1]], 
+                      NULL, calib_plts[[2]],
+                      NULL, calib_plts[[3]], 
+                      NULL, NULL,calib_legend, NULL, NULL, NULL,
+                      ncol=6, nrow=3, 
+                      rel_heights=c(0.05, 0.9, 0.05),
+                      rel_widths = c(0.03, 0.47, 0.03, 0.47, 0.03, 0.47),
+                      labels=c("","","", "Model Calibration", "", "","",
+                               "A", "", "B", "","C",""))
+summed_fit
+
+cap<-paste0("**Fig. ", fig_counter, " ** Model calibration to incident cases (A) and incident deaths (B) reported by JHU CSSE for each state at ", pdeath_label, " assumptions, summed over entire country. (C) [Optional] Model comparison to hospitalizations (not fit). Shaded areas show 95% confidence intervals based on ",max(model_output_summed$sim_num),"independent inference runs and black points/lines indicate data reported by JHU CSSE.")
+
+fig_counter<-fig_counter+1
+```
+
+## State-level
+
+(for subset of states only now)
+
+```{r county_truth, include=FALSE}
+#replace term "_some" in variables with "_all" to plot for all locations instead of subset
+
+combo_obs_dat_some <-combo_obs_dat %>% dplyr::filter(USPS %in% states)
+model_timecourse_some <-model_timecourse_all %>% dplyr::filter(USPS %in% states)
+
+calib<-plot_truth_by_location(truth_dat=combo_obs_dat_some,
+                              model_dat=model_timecourse_some,
+                              start_date=sim_start_date,
+                              end_date=max_date,
+                              geodat=geodata_some,
+                              filter_by="pdeath",
+                              filter_val=pdeath_default,
+                              hosp=TRUE)
+
+cases<-calib[[1]]+theme(legend.position="none",
+                        strip.text.y = element_blank(), 
+                        strip.background.y = element_blank(),
+                        axis.title.y = element_blank()) + background_grid()
+
+cases<-ggplot_gtable(ggplot_build(cases))
+
+deaths<-calib[[2]]+theme(legend.position="none",
+                         #strip.text.y=element_blank(),
+                         #strip.background.y=element_blank(),
+                         axis.title.y = element_blank()) + background_grid()
+
+deaths<-ggplot_gtable(ggplot_build(deaths))
+
+# Comment out if set hosp=FALSE in calling the plotting function
+hosps<-calib[[3]]+theme(legend.position="none",
+                        axis.title.y = element_blank(),
+                        strip.text = element_text(size=10, face="bold")) + background_grid()
+
+hosps<-ggplot_gtable(ggplot_build(hosps))
+
+cases$widths<-deaths$widths
+hosps$widths<-deaths$widths
+
+plot_calib<-gridExtra::grid.arrange(grobs = list(cases, deaths, hosps), ncol=3, nrow=1)
+legend<-get_legend(calib[[1]]+theme(legend.position="bottom"))
+```
+
+
+```{r county_plot, fig.height=multi_fig_height, fig.width=10, fig.cap=cap}
+#{r county_plot, fig.height=10, fig.width=10, fig.cap=cap}
+cowplot::plot_grid(plot_calib, legend, nrow=2, rel_heights = c(1, 0.01))
+
+cap<- paste0("**Fig. ", fig_counter, "** Calibration of estimated incident cases and deaths to reported data from JHU CSSE, and validation of estimates for occupied hospital beds when compared to CDPH data. Here, modeled cases are calculated as a percent of modeled infection that is fit to county data. Black points represent actual data, lines represent means and shading represents the 95% prediction interval for each scenario at ",pdeath_label," and 0.5% assumptions. Note that JHU CSSE data were reported as daily cumulative cases and deaths. In this figure, daily cumulative case counts were differenced in order to report the incident cases and deaths. **In comparing the actual and modeled data, we emphasize that limited testing and reporting delays may affect the quality of the reported case data early on in the outbreak.**")
+
+fig_counter<-fig_counter+1
+
+``` 
+
+
+# Likelihood trends
+
+## Likelihood by MCMC iteration: state-level
+
+
+```{r}
+llik_final <- load_llik_sims_filtered(outcome_dir=runs_folder, 
+                                      pdeath_filter=pdeath_default, 
+                                      incl_geoids=included_geoids_all) %>%
+  dplyr::select(c(-filename,-file_name,-runID))
+```
+
+```{r}
+llik_interm <- load_llik_sims_filtered_interm(outcome_dir=runs_folder, 
+                                              pdeath_filter=pdeath_default, 
+                                              incl_geoids=included_geoids_all) %>%
+  dplyr::select(c(-filename,-file_name,-runID, -location))
+
+llik_interm  <- geodata_all %>%
+  left_join(llik_interm)
+
+llik_interm_some <-llik_interm %>% dplyr::filter(USPS %in% states)
+```
+
+
+
+```{r mcmc_llik_plot, include=FALSE}
+
+llik_plot <- plot_llik_by_location(llik_interm_some%>% dplyr::filter(slot_num %in% c(1,2)), #change to show for single slot or remove for all slots
+                                   filter_by="pdeath",
+                                   filter_val=pdeath_default,
+                                   burn_in = 0
+)
+
+lik_type1 <-llik_plot[[1]]+theme(legend.position="none",
+                                 #strip.text.y = element_blank(),
+                                 #strip.background.y = element_blank(),
+                                 #axis.title.y = element_blank(),
+                                 strip.text = element_text(size=10, face="bold")) + background_grid()
+
+lik_type1<-ggplot_gtable(ggplot_build(lik_type1))
+
+# Uncomment if more than one scenario or death rate being included
+# lik_type2 <-llik_plot[[2]]+theme(legend.position="none",
+#                         #strip.text.y = element_blank(),
+#                         #strip.background.y = element_blank(),
+#                         #axis.title.y = element_blank(),
+#                         strip.text = element_text(size=10, face="bold"))
+# 
+# lik_type2<-ggplot_gtable(ggplot_build(lik_type2))
+
+# repeat for other entries in llik_plot if more scenarios were looked at
+
+#plot_llik_grid <-gridExtra::grid.arrange(grobs = list(lik_type1,lik_type2), ncol=2, nrow=1)
+plot_llik_grid <-gridExtra::grid.arrange(grobs = list(lik_type1), ncol=2, nrow=1)
+legend<-get_legend(llik_plot[[1]]+theme(legend.position="top"))
+```
+
+
+```{r llik_plot, fig.height=multi_fig_height, fig.width=10, fig.cap=cap}
+cowplot::plot_grid(plot_llik_grid, legend, nrow=2, rel_heights = c(1, 0.01))
+
+cap<- paste0("**Fig. ", fig_counter, "** GeoID-specific log-likelihood values by MCMC step. Here 'chimeric' values are the likelihood for accepted parameters in the chimeric likelihood, and 'global' values are the likelihood values accepted for the global likelihood (only plot iterations at which accept=1). These two likelihood values are equivalent only at steps where the chimeric likelihood was accepted for that GeoID.**")
+
+fig_counter<-fig_counter+1
+
+``` 
+
+
+## Likelihood by MCMC iteration: national-level
+
+
+```{r mcmc_llik_plot_total, include=FALSE}
+
+llik_plot <- plot_llik_total(llik_interm,# %>% dplyr::filter(slot_num==1), #change to show for only a single slot
+                             filter_by="pdeath",
+                             filter_val=pdeath_default,
+                             burn_in = 0
+)
+
+```
+
+
+```{r llik_plot_total, fig.height=2, fig.width=5, fig.cap=cap}
+llik_plot[[1]]
+
+cap<- paste0("**Fig. ", fig_counter, "** Total log-likelihood values by MCMC step (summed over all GeoIDs). Here 'chimeric' values are the total likelihood for accepted parameters in the chimeric likelihood, and 'global' values are the total likelihood values for the accepted parameters of the global likelihood, which are recorded in the global likelihood files (only plot iterations at which accept=1). The chimeric (accepted) likelihood is always higher since acceptance decisions are made on a geoID-by-geoID level, and only accepted for GeoIDs where the acceptance would improve the geoID-specific likelihood. These two likelihood values would only be equivalent at steps where the chimeric likelihood was accepted for every single GeoID.**")
+
+fig_counter<-fig_counter+1
+
+``` 
+
+
+## Proportion of likelihoods accepted or rejected
+
+
+```{r mcmc_accept_rate_plot, include=FALSE}
+
+accept_plot <- plot_accept_by_location(llik_interm_some,# %>% dplyr::filter(slot_num==1), #change to show for only a single slot
+                                       filter_by="pdeath",
+                                       filter_val=pdeath_default,
+                                       burn_in = 0) 
+
+accept_type1 <-accept_plot[[1]]+theme(legend.position="none",
+                                      #strip.text.y = element_blank(), 
+                                      #strip.background.y = element_blank(),
+                                      #axis.title.y = element_blank(),
+                                      strip.text = element_text(size=10, face="bold")) + background_grid()
+
+accept_type1<-ggplot_gtable(ggplot_build(accept_type1))
+
+# accept_type2 <-accept_plot[[2]]+theme(legend.position="none",
+#                         #strip.text.y = element_blank(), 
+#                         #strip.background.y = element_blank(),
+#                         #axis.title.y = element_blank(),
+#                         strip.text = element_text(size=10, face="bold"))
+# 
+# accept_type2<-ggplot_gtable(ggplot_build(accept_type2))
+
+# repeat for other entries in llik_plot if more scenarios were looked at
+
+#plot_accept_grid <-gridExtra::grid.arrange(grobs = list(accept_type1,accept_type2), ncol=2, nrow=1)
+plot_accept_grid <-gridExtra::grid.arrange(grobs = list(accept_type1), ncol=2, nrow=1)
+legend<-get_legend(accept_plot[[1]]+theme(legend.position="top"))
+```
+
+
+```{r accept_plot, fig.height=multi_fig_height, fig.width=10, fig.cap=cap}
+cowplot::plot_grid(plot_accept_grid, legend, nrow=2, rel_heights = c(1, 0.01))
+
+cap<- paste0("**Fig. ", fig_counter, "** Acceptance rate of proposed parameters by MCMC step for each state ('chimeric' values) along with the global acceptance rate. Acceptance rate is averaged over all previous steps. **")
+
+fig_counter<-fig_counter+1
+
+``` 
+
+## Average acceptance as rolling mean over an interval
+
+
+```{r mcmc_accept_rate_plot_roll, include=FALSE}
+
+this_roll_period = 10
+this_burn_in = 10
+
+accept_plot <- plot_accept_by_location_rolling(llik_interm_some,# %>% dplyr::filter(slot_num==1), #change to show for only a single slot
+                                               filter_by="pdeath",
+                                               filter_val=pdeath_default,
+                                               roll_period = this_roll_period,
+                                               burn_in = this_burn_in)
+
+accept_type1 <-accept_plot[[1]]+theme(legend.position="none",
+                                      #strip.text.y = element_blank(), 
+                                      #strip.background.y = element_blank(),
+                                      #axis.title.y = element_blank(),
+                                      strip.text = element_text(size=10, face="bold")) + background_grid()
+
+accept_type1<-ggplot_gtable(ggplot_build(accept_type1))
+
+# accept_type2 <-accept_plot[[2]]+theme(legend.position="none",
+#                         #strip.text.y = element_blank(), 
+#                         #strip.background.y = element_blank(),
+#                         #axis.title.y = element_blank(),
+#                         strip.text = element_text(size=10, face="bold"))
+# 
+# accept_type2<-ggplot_gtable(ggplot_build(accept_type2))
+
+# repeat for other entries in llik_plot if more scenarios were looked at
+
+#plot_accept_grid <-gridExtra::grid.arrange(grobs = list(accept_type1,accept_type2), ncol=2, nrow=1)
+plot_accept_grid <-gridExtra::grid.arrange(grobs = list(accept_type1), ncol=2, nrow=1)
+legend<-get_legend(accept_plot[[1]]+theme(legend.position="top"))
+```
+
+
+```{r accept_plot_roll, fig.height=multi_fig_height, fig.width=10, fig.cap=cap}
+cowplot::plot_grid(plot_accept_grid, legend, nrow=2, rel_heights = c(1, 0.01))
+
+cap<- paste0("**Fig. ", fig_counter, "** Acceptance rate of proposed parameters by MCMC step for each state ('chimeric' values) along with the global acceptance rate. Acceptance rate is averaged over the previous",this_roll_period,"steps**")
+
+fig_counter<-fig_counter+1
+
+``` 
+## Cumulative acceptances
+
+
+```{r mcmc_accept_cumul, include=FALSE}
+
+accept_plot <- plot_accept_by_location_cumul(llik_interm_some,# %>% dplyr::filter(slot_num==1), #change to show for only a single slot
+                                             filter_by="pdeath",
+                                             filter_val=pdeath_default,
+                                             burn_in = 0)
+
+accept_type1 <-accept_plot[[1]]+theme(legend.position="none",
+                                      #strip.text.y = element_blank(), 
+                                      #strip.background.y = element_blank(),
+                                      #axis.title.y = element_blank(),
+                                      strip.text = element_text(size=10, face="bold")) + background_grid()
+
+accept_type1<-ggplot_gtable(ggplot_build(accept_type1))
+
+# accept_type2 <-accept_plot[[2]]+theme(legend.position="none",
+#                         #strip.text.y = element_blank(), 
+#                         #strip.background.y = element_blank(),
+#                         #axis.title.y = element_blank(),
+#                         strip.text = element_text(size=10, face="bold"))
+# 
+# accept_type2<-ggplot_gtable(ggplot_build(accept_type2))
+
+# repeat for other entries in llik_plot if more scenarios were looked at
+
+#plot_accept_grid <-gridExtra::grid.arrange(grobs = list(accept_type1,accept_type2), ncol=2, nrow=1)
+plot_accept_grid <-gridExtra::grid.arrange(grobs = list(accept_type1), ncol=2, nrow=1)
+legend<-get_legend(accept_plot[[1]]+theme(legend.position="top"))
+```
+
+
+```{r accept_plot_cumul, fig.height=multi_fig_height, fig.width=10, fig.cap=cap}
+cowplot::plot_grid(plot_accept_grid, legend, nrow=2, rel_heights = c(1, 0.01))
+
+cap<- paste0("**Fig. ", fig_counter, "** Cumulative number of acceptances of proposed parameters by MCMC step for each state ('chimeric' values) along with the global acceptance rate**")
+
+fig_counter<-fig_counter+1
+
+``` 
+
+# Parameter inference trends
+
+## Basic SEIR parameter by MCMC iteration
+
+Note: For these runs, these parameters are the same for all states and are fixed, not estimated, so nothing to plot
+
+```{r}
+# Load final SEIR parameter values
+
+spar_final <- load_spar_sims_filtered(outcome_dir=runs_folder, 
+                                      pre_process=function(x){x},
+                                      pdeath_filter=pdeath_default) 
+```
+
+```{r}
+
+# Load final values of intervention parameters
+spar_interm<- load_spar_sims_filtered_interm(outcome_dir=runs_folder, 
+                                             pre_process=function(x){x}, 
+                                             pdeath_filter=pdeath_default) %>%
+  dplyr::select(c(-location,-runID,-file_name))
+
+spar_interm <- spar_interm %>%
+  left_join(llik_interm%>%dplyr::filter(USPS=='MA')%>%dplyr::select(-accept_avg,-accept_prob,-ll,-colnames(geodata_all))) #only need for 1 geoID, same for all
+
+```
+
+```{r mcmc_spar_plot, include=FALSE}
+
+spar_plot <- plot_spars(spar_interm,#%>% dplyr::filter(slot_num==1),
+                        filter_by="pdeath",
+                        filter_val=pdeath_default,
+                        burn_in = 0
+)
+
+spar_type1 <-spar_plot[[1]]+theme(legend.position="none",
+                                  #strip.text.y = element_blank(), 
+                                  #strip.background.y = element_blank(),
+                                  #axis.title.y = element_blank(),
+                                  strip.text = element_text(size=10, face="bold")) + background_grid()
+
+spar_type1<-ggplot_gtable(ggplot_build(spar_type1))
+
+# accept_type2 <-accept_plot[[2]]+theme(legend.position="none",
+#                         #strip.text.y = element_blank(), 
+#                         #strip.background.y = element_blank(),
+#                         #axis.title.y = element_blank(),
+#                         strip.text = element_text(size=10, face="bold"))
+# 
+# accept_type2<-ggplot_gtable(ggplot_build(accept_type2))
+
+# repeat for other entries in llik_plot if more scenarios were looked at
+
+#plot_accept_grid <-gridExtra::grid.arrange(grobs = list(accept_type1,accept_type2), ncol=2, nrow=1)
+plot_spar_grid <-gridExtra::grid.arrange(grobs = list(spar_type1), ncol=2, nrow=1)
+legend<-get_legend(spar_plot[[1]]+theme(legend.position="top"))
+```
+
+
+```{r spars_plot, fig.height=10, fig.width=10, fig.cap=cap}
+cowplot::plot_grid(plot_spar_grid, legend, nrow=2, rel_heights = c(1, 0.01))
+
+cap<- paste0("**Fig. ", fig_counter, "** SEIR parameters by MCMC step**")
+
+fig_counter<-fig_counter+1
+
+``` 
+
+## Outcome model parameter values by MCMC iteration
+
+```{r}
+# Load final Outcomes parameter values
+
+hpar_final <- load_hpar_sims_filtered(outcome_dir=runs_folder, 
+                                      pre_process=function(x){x}, # {x %>% dplyr::filter(parameter=="R0")}, 
+                                      pdeath_filter=pdeath_default,
+                                      incl_geoids = included_geoids_all)
+```
+
+```{r}
+
+# Load final values of intervention parameters
+hpar_interm<- load_hpar_sims_filtered_interm(outcome_dir=runs_folder, 
+                                             pre_process=function(x){x}, 
+                                             pdeath_filter=pdeath_default, 
+                                             incl_geoids=included_geoids_all) %>%
+  dplyr::select(c(-location,-runID,-file_name))
+
+hpar_interm  <- geodata_all %>%
+  left_join(hpar_interm) %>%
+  left_join(llik_interm%>%dplyr::select(-accept_avg,-accept_prob,-ll))
+
+hpar_interm_some <- hpar_interm %>% dplyr::filter(USPS %in% states)
+
+```
+
+```{r mcmc_hpar_plot,include=FALSE}
+
+# These filters are defined at the top of the file now
+#this_hpar_filter <-c('incidC_probability','incidH_probability','incidD_probability')
+#this_fig_labs <- c("Case detection probability","Hospitalization probability","Death probability")
+
+hpar_plot <- plot_hpar_by_location(hpar_interm_some,#%>% dplyr::filter(slot_num==1),
+                                   pdeath_filter = pdeath_default,
+                                   scenario_filter = 'inference',
+                                   hpar_filter = this_hpar_filter,
+                                   fig_labs=this_hpar_fig_labs
+)
+
+hpar_plot_list <- list() 
+
+# for first column of plots, keep y axis and remove strip label
+hpar_plot_list[[1]] <- ggplot_gtable(ggplot_build(hpar_plot[[1]]+theme(legend.position="none",
+                                                                       #strip.text.y = element_blank(),
+                                                                       #strip.background.y = element_blank()
+                                                                       strip.text = element_text(size=10, face="bold")
+)))
+
+# for last column of plots, remove y axis and keep strip label
+hpar_plot_list[[length(this_hpar_filter)]] <- ggplot_gtable(ggplot_build(hpar_plot[[length(this_hpar_filter)]]+theme(legend.position="none",
+                                                                                                                     strip.text = element_text(size=10, face="bold"),
+                                                                                                                     axis.title.y = element_blank())))
+
+# for all other column of plots, remove y axis and remove strip label
+
+if (length(this_hpar_filter)>2){
+  for (i in 2:(length(this_hpar_filter)-1)){
+    print(i)
+    hpar_plot_list[[i]] <- ggplot_gtable(ggplot_build(hpar_plot[[i]]+theme(legend.position="none",
+                                                                           #strip.background.y = element_blank(),
+                                                                           #strip.text.y = element_blank(),
+                                                                           strip.text = element_text(size=10, face="bold"),
+                                                                           axis.title.y = element_blank())))
+  }
+}
+
+
+plot_hpar_grid <-gridExtra::grid.arrange(grobs = hpar_plot_list, ncol=length(this_hpar_filter), nrow=1)
+legend<-get_legend(hpar_plot[[1]]+theme(legend.position="top"))
+```
+
+
+```{r hpar_plot, fig.height=multi_fig_height, fig.width=10, fig.cap=cap}
+cowplot::plot_grid(plot_hpar_grid, legend, nrow=2, rel_heights = c(1, 0.01))
+
+cap<- paste0("**Fig. ", fig_counter, "** Inferred outcome parameter values by MCMC step for each GeoID.'Global' values are the parameters accepted in the global likelihood, and 'Chimeric' values are the parameters accepted at the GeoID-level in the chimeric likelihood  **")
+
+fig_counter<-fig_counter+1
+
+``` 
+
+## SNPIs by MCMC iteration
+
+
+```{r}
+
+# Load final values of intervention parameters
+
+snpi_final<- load_snpi_sims_filtered(outcome_dir=runs_folder, 
+                                     pre_process=function(x){x}, 
+                                     pdeath_filter=pdeath_default, 
+                                     incl_geoids=included_geoids_all) %>%
+  dplyr::select(sim_num, scenario, pdeath, geoid, npi_name, start_date, end_date, reduction) # need to fix sim_num parsing
+```
+
+```{r}
+# Load final values of intervention parameters
+snpi_interm<- load_snpi_sims_filtered_interm(outcome_dir=runs_folder, 
+                                             pre_process=function(x){x}, 
+                                             pdeath_filter=pdeath_default, 
+                                             incl_geoids=included_geoids_all) %>%
+  dplyr::select(c(-location,-runID, -file_name))
+
+snpi_interm  <- geodata_all %>%
+  left_join(snpi_interm)%>%
+  left_join(llik_interm%>%dplyr::select(-accept_avg,-accept_prob,-ll))
+
+snpi_interm_some <-snpi_interm %>% dplyr::filter(USPS %in% states)
+```
+
+
+```{r mcmc_snpi_plot, include=FALSE}
+
+# These filters are defined at the top of the file now
+#this_snpi_filter <-c('local_variance','Seas_mar','lockdown','open_p1','open_p2')
+#this_fig_labs <- c("Local variance in R0","March seasonality","Lockdown","Phase 1 re-opening","Phase 2 re-opening")
+
+snpi_plot <- plot_snpi_by_location(snpi_interm_some%>% dplyr::filter(slot_num %in% c(1,2)), #change to show for single slot or remove for all slots
+                                   pdeath_filter = pdeath_default,
+                                   scenario_filter = 'inference',
+                                   snpi_filter = this_snpi_filter,
+                                   fig_labs=this_snpi_fig_labs
+)
+
+snpi_plot_list <- list() 
+
+# for first column of plots, keep y axis and remove strip label
+snpi_plot_list[[1]] <- ggplot_gtable(ggplot_build(snpi_plot[[1]]+theme(legend.position="none",
+                                                                       #strip.text.y = element_blank(),
+                                                                       #strip.background.y = element_blank()
+                                                                       strip.text = element_text(size=10, face="bold")
+)))
+
+# for last column of plots, remove y axis and keep strip label
+snpi_plot_list[[length(this_snpi_filter)]] <- ggplot_gtable(ggplot_build(snpi_plot[[length(this_snpi_filter)]]+theme(legend.position="none",
+                                                                                                                     strip.text = element_text(size=10, face="bold"),
+                                                                                                                     axis.title.y = element_blank())))
+
+# for all other column of plots, remove y axis and remove strip label
+
+if (length(this_snpi_filter)>2){
+  for (i in 2:(length(this_snpi_filter)-1)){
+    print(i)
+    snpi_plot_list[[i]] <- ggplot_gtable(ggplot_build(snpi_plot[[i]]+theme(legend.position="none",
+                                                                           #strip.background.y = element_blank(),
+                                                                           #strip.text.y = element_blank(),
+                                                                           strip.text = element_text(size=10, face="bold"),
+                                                                           axis.title.y = element_blank())))
+  }
+}
+
+
+plot_snpi_grid <-gridExtra::grid.arrange(grobs = snpi_plot_list, ncol=length(this_snpi_filter), nrow=1)
+legend<-get_legend(snpi_plot[[1]]+theme(legend.position="top"))
+```
+
+
+```{r snpi_plot, fig.height=multi_fig_height, fig.width=10, fig.cap=cap}
+cowplot::plot_grid(plot_snpi_grid, legend, nrow=2, rel_heights = c(1, 0.01))
+
+cap<- paste0("**Fig. ", fig_counter, "** Inferred paramter values by MCMC step for each GeoID.'Global' values are the parameters accepted in the global likelihood, and 'Chimeric' values are the parameters accepted at the GeoID-level in the chimeric likelihood  **")
+
+fig_counter<-fig_counter+1
+
+``` 
+
+## HNPIs by MCMC iteration
+
+This section might be blank if no outcome parameters were fit
+
+<!--
+
+If there are no interventions on outcome parameters in these simulations, files are empty and can't be opened with arrow)
+
+-->
+
+```{r}
+
+# Load final values of intervention parameters
+# 
+hnpi_final<- load_hnpi_sims_filtered(outcome_dir=runs_folder,
+                                     pre_process=function(x){x},
+                                     pdeath_filter=pdeath_default,
+                                     incl_geoids=included_geoids_all) %>%
+  dplyr::select(sim_num, scenario, pdeath, geoid, npi_name, start_date, end_date, reduction) # need to fix sim_num parsing
+```
+
+
+```{r}
+# Load final values of intervention parameters
+hnpi_interm<- load_hnpi_sims_filtered_interm(outcome_dir=runs_folder,
+                                             pre_process=function(x){x},
+                                             pdeath_filter=pdeath_default,
+                                             incl_geoids=included_geoids_all) %>%
+  dplyr::select(c(-location,-runID, file_name))
+
+hnpi_interm  <- geodata_all %>%
+  left_join(hnpi_interm)%>%
+  left_join(llik_interm%>%dplyr::select(-accept_avg,-accept_prob,-ll))
+
+hnpi_interm_some <-hnpi_interm %>% dplyr::filter(USPS %in% states)
+```
+
+```{r}
+eval_hnpi <-exists("hnpi_interm")==T
+```
+
+
+```{r mcmc_hnpi_plot, include=FALSE, eval=eval_hnpi}
+
+hnpi_plot <- plot_hnpi_by_location(hnpi_interm_some%>% dplyr::filter(slot_num %in% c(1,2)), #change to show for single slot or remove for all slots
+                                   pdeath_filter = pdeath_default,
+                                   scenario_filter = 'inference',
+                                   hnpi_filter = this_hnpi_filter,
+                                   fig_labs=this_hnpi_fig_labs
+)
+
+hnpi_plot_list <- list() 
+
+# for first column of plots, keep y axis and remove strip label
+hnpi_plot_list[[1]] <- ggplot_gtable(ggplot_build(hnpi_plot[[1]]+theme(legend.position="none",
+                                                                       #strip.text.y = element_blank(),
+                                                                       #strip.background.y = element_blank()
+                                                                       strip.text = element_text(size=10, face="bold")
+)))
+
+# for last column of plots, remove y axis and keep strip label
+hnpi_plot_list[[length(this_hnpi_filter)]] <- ggplot_gtable(ggplot_build(hnpi_plot[[length(this_hnpi_filter)]]+theme(legend.position="none",
+                                                                                                                     strip.text = element_text(size=10, face="bold"),
+                                                                                                                     axis.title.y = element_blank())))
+
+# for all other column of plots, remove y axis and remove strip label
+
+if (length(this_hnpi_filter)>2){
+  for (i in 2:(length(this_hnpi_filter)-1)){
+    print(i)
+    hnpi_plot_list[[i]] <- ggplot_gtable(ggplot_build(hnpi_plot[[i]]+theme(legend.position="none",
+                                                                           #strip.background.y = element_blank(),
+                                                                           #strip.text.y = element_blank(),
+                                                                           strip.text = element_text(size=10, face="bold"),
+                                                                           axis.title.y = element_blank())))
+  }
+}
+
+
+plot_hnpi_grid <-gridExtra::grid.arrange(grobs = hnpi_plot_list, ncol=max(3,length(this_hnpi_filter)), nrow=1)
+legend<-get_legend(hnpi_plot[[1]]+theme(legend.position="top"))
+
+```
+
+
+```{r hnpi_plot, fig.height=multi_fig_height, fig.width=10, fig.cap=cap, eval=eval_hnpi}
+
+#if (exists("hnpi_interm")==T) {
+  
+cowplot::plot_grid(plot_hnpi_grid, legend, nrow=2, rel_heights = c(1, 0.01))
+
+cap<- paste0("**Fig. ", fig_counter, "** Inferred paramter values by MCMC step for each GeoID.'Global' values are the proposed parameters at each step, and 'Chimeric' values are the parameters accepted at the GeoID-level in the chimeric likelihood  **")
+
+fig_counter<-fig_counter+1
+
+#}
+
+
+
+``` 
+
+
+## Seeding parameters
+
+```{r}
+
+seed_all <- load_seed_sims_filtered_interm(outcome_dir=runs_folder,
+                                             pdeath_filter=pdeath_default,
+                                             incl_geoids=included_geoids_all) 
+
+seed_all <- geodata_all %>%
+  left_join(seed_all)
+
+seed_interm <- seed_all%>% dplyr::filter(is_final =="intermediate")
+
+seed_interm_some <-seed_interm %>% dplyr::filter(USPS %in% states)
+
+seed_final <- seed_all %>% 
+  dplyr::filter(is_final =="final", lik_type =="global") %>%
+  dplyr::select(-block_num,-iter_num) %>%
+  dplyr::rename(sim_num=slot_num)
+
+rm(seed_all)
+
+```
+
+Don't have any plots developed yet for seeding values, but do have code to read them in
+
+# Correlations between fit parameter values (identifiability analysis)
+
+Correlations are for within a particular MCMC chain, treating each iteration as a sample
+
+## For each state individually
+
+<!--
+Update this to combine fit parameters of different types (snpi, hnpi, spar, hpar, etc)
+-->
+
+```{r}
+
+# fix this to use config to figure out what parameters were fit or not (instead of removing NA values)
+# Fix this to average over all slots
+
+#these_states=c('MA','NY','AZ','CA','IL','TX')
+these_states = states
+
+for (this_state in these_states){
+  
+  this_state_name=str_replace_all(geodata_all$name[geodata_all$USPS==this_state]," ","")
+  print(this_state_name)
+  
+  snpi_interm_mat <- snpi_interm %>% dplyr::filter(slot_num==1)%>% 
+    filter(USPS==this_state) %>% 
+    dplyr::filter(lik_type=='chimeric')%>%
+    dplyr::select(c("npi_name","reduction","iter_num")) %>% 
+    drop_na() %>% 
+    tidyr::spread(npi_name,reduction) %>% 
+    dplyr::select(-starts_with("Dose")) %>% # remove variables that were not fit (otherwise get NAs in correlation matrix due to zero STD)
+    #select_if(~ !any(is.na(.)))   # remove any other rows or columns with NA values 
+    dplyr::select(where(~!sd(.) == 0)) # remove any columns with zero standard deviation (ie were not fit)
+  
+  
+  names(snpi_interm_mat) <- str_remove(names(snpi_interm_mat),fixed(paste0(this_state_name,'_'),ignore_case=TRUE)) # remove states names from intervention names
+  names(snpi_interm_mat) <- str_remove(names(snpi_interm_mat),fixed(paste0(this_state,'_'),ignore_case=TRUE)) # remove states names from intervention names
+  
+  hpar_interm_mat <-hpar_interm %>% dplyr::filter(slot_num==1)%>%
+    filter(USPS==this_state) %>% 
+    dplyr::filter(lik_type=='chimeric') %>%
+    unite(outcome_quantity,c("outcome","quantity"), sep="_")%>% #make a new parameter that combines the outcome+quantity variables
+    dplyr::select(c("outcome_quantity","value","iter_num")) %>%
+    drop_na(iter_num)  %>% # for now, because don't know what it means to have no iteration number
+    tidyr::spread(outcome_quantity,value) %>% 
+    dplyr::select(where(~!sd(.) == 0)) # remove any columns with zero standard deviation (ie were not fit)
+  
+  if (exists("hnpi_interm")==T) {
+    
+    hnpi_interm_mat <-hnpi_interm %>% dplyr::filter(slot_num==1)%>%
+      filter(USPS==this_state) %>% 
+      dplyr::filter(lik_type=='chimeric') %>%
+      dplyr::select(c("npi_name","reduction","iter_num")) %>%
+      drop_na(iter_num)  %>% # for now, because don't know what it means to have no iteration number
+      tidyr::spread(npi_name,reduction) 
+    
+    if(nrow(hnpi_interm_mat)>0){ # if there are interventions for this geoID
+      hnpi_interm_mat <- hnpi_interm_mat %>% 
+      dplyr::select(where(~!sd(.) == 0)) # remove any columns with zero standard deviation (ie were not fit)
+    }
+    
+    names(hnpi_interm_mat) <- str_remove(names(hnpi_interm_mat),fixed(paste0(this_state_name,'_'),ignore_case=TRUE)) # remove states names from intervention names
+    names(hnpi_interm_mat) <- str_remove(names(hnpi_interm_mat),fixed(paste0(this_state,'_'),ignore_case=TRUE)) # remove states names from intervention names
+    
+    fit_param_mat <- snpi_interm_mat %>% left_join(hpar_interm_mat) %>% left_join(hnpi_interm_mat)
+    
+  }else{
+    
+    fit_param_mat <- snpi_interm_mat %>% left_join(hpar_interm_mat)
+  }
+  
+  fit_param_mat$iter_num <- NULL
+  
+  fit_param_cor = cor(fit_param_mat)
+  
+  corrplot(cor(fit_param_mat), method = "ellipse",order = "hclust", addrect = 3, title=this_state_name)
+  
+}
+
+
+```
+
+## Average over all states
+
+```{r}
+# Fix this to average over all slots
+all_fit_param_cor<- data.frame(Var1=character(),Var2=character(),value=double(),state=character())
+
+these_states <- unique(snpi_interm$USPS)
+
+for (this_state in these_states){
+  
+  this_state_name=str_replace_all(geodata_all$name[geodata_all$USPS==this_state]," ","")
+  
+  snpi_interm_mat <- snpi_interm%>% dplyr::filter(slot_num==1) %>% 
+    filter(USPS==this_state) %>% 
+    dplyr::filter(lik_type=='chimeric')%>%
+    dplyr::select(c("npi_name","reduction","iter_num")) %>% 
+    drop_na() %>% 
+    tidyr::spread(npi_name,reduction) %>% 
+    dplyr::select(-starts_with("Dose")) %>% # remove variables that were not fit (otherwise get NAs in correlation matrix due to zero STD)
+    #select_if(~ !any(is.na(.)))   # remove any other rows or columns with NA values 
+    dplyr::select(where(~!sd(.) == 0)) # remove any columns with zero standard deviation (ie were not fit)
+  
+  names(snpi_interm_mat) <- str_remove(names(snpi_interm_mat),fixed(paste0(this_state_name,'_'),ignore_case=TRUE)) # remove states names from intervention names
+  names(snpi_interm_mat) <- str_remove(names(snpi_interm_mat),fixed(paste0(this_state,'_'),ignore_case=TRUE)) # remove states names from intervention names
+  
+  if (this_state=="VI"){ # US Virgin Islands, name in geodata does not match name in config
+    names(snpi_interm_mat) <- str_remove(names(snpi_interm_mat),fixed(paste0("VirginIslands",'_'),ignore_case=TRUE)) # remove states names from intervention names
+  }
+  
+  hpar_interm_mat <-hpar_interm %>% dplyr::filter(slot_num==1)%>%
+    filter(USPS==this_state) %>% 
+    dplyr::filter(lik_type=='chimeric') %>%
+    unite(outcome_quantity,c("outcome","quantity"), sep="_")%>% #make a new parameter that combines the outcome+quantity variables
+    dplyr::select(c("outcome_quantity","value","iter_num")) %>%
+    drop_na(iter_num)  %>% # for now, because don't know what it means to have no iteration number
+    tidyr::spread(outcome_quantity,value) %>% 
+    dplyr::select(where(~!sd(.) == 0)) # remove any columns with zero standard deviation (ie were not fit)
+  
+  if (exists("hnpi_interm")==T) {
+    
+    hnpi_interm_mat <-hnpi_interm%>% dplyr::filter(slot_num==1) %>%
+      filter(USPS==this_state) %>% 
+      dplyr::filter(lik_type=='chimeric') %>%
+      dplyr::select(c("npi_name","reduction","iter_num")) %>%
+      drop_na(iter_num)  %>% # for now, because don't know what it means to have no iteration number
+      tidyr::spread(npi_name,reduction) 
+    
+    if(nrow(hnpi_interm_mat)>0){ # if there are interventions for this geoID
+      hnpi_interm_mat %>% 
+      dplyr::select(where(~!sd(.) == 0)) # remove any columns with zero standard deviation (ie were not fit)
+    }
+    
+      names(hnpi_interm_mat) <- str_remove(names(hnpi_interm_mat),fixed(paste0(this_state_name,'_'),ignore_case=TRUE)) # remove states names from intervention names    
+      names(hnpi_interm_mat) <- str_remove(names(hnpi_interm_mat),fixed(paste0(this_state,'_'),ignore_case=TRUE)) # remove states names from intervention names  
+    
+    fit_param_mat <- snpi_interm_mat %>% left_join(hpar_interm_mat) %>% left_join(hnpi_interm_mat)
+    
+  }else{
+    
+    fit_param_mat <- snpi_interm_mat %>% left_join(hpar_interm_mat)
+  }
+  
+  fit_param_mat$iter_num <- NULL
+  
+  fit_param_cor = cor(fit_param_mat)
+  
+  all_fit_param_cor <-rbind(all_fit_param_cor,mutate(melt(fit_param_cor),state=this_state_name))
+  
+  #corrplot(cor(snpi_interm_mat), method = "ellipse",order = "hclust", addrect = 3, title=this_state_name)
+  
+}
+```
+
+```{r}
+mean_fit_param_cor <- all_fit_param_cor %>% group_by(Var1,Var2) %>% summarize(mean_corr=mean(value))
+mean_fit_param_cor$Var1 <-str_replace_all(mean_fit_param_cor$Var1,
+                                            regex(c("seas_jan"="seas_01jan",
+                                              "seas_feb"="seas_02feb",
+                                              "seas_mar"="seas_03mar",
+                                              "seas_apr"="seas_04apr",
+                                              "seas_may"="seas_05may",
+                                              "seas_jun"="seas_06jun",
+                                              "seas_jul"="seas_07jul",
+                                              "seas_aug"="seas_08aug",
+                                              "seas_sep"="seas_09sep",
+                                              "seas_oct"="seas_10oct",
+                                              "seas_nov"="seas_11nov",
+                                              "seas_dec"="seas_12dec"
+                                              ), ignore_case=TRUE))
+mean_fit_param_cor$Var2 <-str_replace_all(mean_fit_param_cor$Var2,
+                                            regex(c("seas_jan"="seas_01jan",
+                                              "seas_feb"="seas_02feb",
+                                              "seas_mar"="seas_03mar",
+                                              "seas_apr"="seas_04apr",
+                                              "seas_may"="seas_05may",
+                                              "seas_jun"="seas_06jun",
+                                              "seas_jul"="seas_07jul",
+                                              "seas_aug"="seas_08aug",
+                                              "seas_sep"="seas_09sep",
+                                              "seas_oct"="seas_10oct",
+                                              "seas_nov"="seas_11nov",
+                                              "seas_dec"="seas_12dec"
+                                              ), ignore_case=TRUE))
+
+mean_fit_param_cor_mat <- mean_fit_param_cor %>% 
+    tidyr::spread(Var2,mean_corr) %>%
+    mutate_all(~replace(.,is.na(.),0))
+mean_fit_param_cor_mat$Var1<- NULL
+
+
+corrplot(cor(mean_fit_param_cor_mat), method = "ellipse",order = "hclust", addrect = 4, title="Mean over all states")
+corrplot(cor(mean_fit_param_cor_mat), method = "ellipse",order = "alphabet", title="Mean over all states")
+```
+
+
+# Variance of posterior vs proposal step size
+
+This is a way of measuring whether adaptive MCMC could help. (Ignore covariance for now). If observed std >> perturb_sd, suggests that proposal too small. If observed_sd << perturb_sd, suggests proposal too big. Done for each parameteres
+
+```{r}
+
+# calculate variance for runs for a certain range of iterations (after ~100 runs acceptance ->0)
+iter_start <-0
+iter_finish <-max(snpi_interm$iter_num, na.rm=TRUE)
+
+snpi_interm_var_mat <- snpi_interm %>% dplyr::filter(slot_num==1)%>% drop_na() %>% filter(iter_num > iter_start & iter_num < iter_finish) %>% dplyr::filter(lik_type=='chimeric')%>% group_by(USPS,geoid,scenario,pdeath,lik_type,npi_name) %>% dplyr::summarize(npi_sd_observed=sd(reduction)) %>% ungroup()
+
+# Get the perturbation values used in the simulation from the config file
+
+snpi_fit_inds <- config$interventions$settings[unlist(lapply(config$interventions$settings, exists, x="perturbation"))]
+snpi_fit_names <- names(snpi_fit_inds)# %>%
+#str_remove(npi_trimmer) %>%
+#unique() # NOTE: this assumes all interventions have inference, if the projections for some geoids do NOT have inference, then you will need to modify the input to the Rt/effectiveness plots
+
+#get original perturbation
+snpi_fit_perturb_sd <- lapply(snpi_fit_names,function(x){config$interventions$settings[[x]]$perturbation$sd})
+
+# make a table of NPI name and perturbation
+snpi_fit_df <- data.frame(unlist(snpi_fit_names),unlist(snpi_fit_perturb_sd))
+names(snpi_fit_df) <- c("npi_name","npi_sd_input")
+
+snpi_interm_var_mat <- snpi_interm_var_mat %>% left_join(snpi_fit_df)  %>% drop_na()
+
+snpi_interm_var_mat$npi_sd_fold_change <-snpi_interm_var_mat$npi_sd_observed/snpi_interm_var_mat$npi_sd_input
+
+snpi_interm_var_mat
+# compare
+
+```
+
+# Final likelihood values
+
+```{r}
+
+# get final global values
+
+llik_final <- geodata_all %>%
+    left_join(llik_final) %>%
+    select(c(USPS,geoid,ll,sim_num))
+
+for (i in unique(llik_final$sim_num)){
+  
+  llik_final_temp <- llik_final%>% dplyr::filter(sim_num==i)
+  
+  sumLL <- sum(llik_final_temp$ll)
+  #print(sumLL)
+
+  llik_final <- llik_final %>% add_row(USPS="TT",geoid="00000",sim_num=i,ll=sumLL)
+
+}
+
+```
+
+```{r}
+# get final chimeric values
+
+llik_final_chimeric <- llik_interm %>% 
+  dplyr::filter(lik_type == "chimeric") %>%
+  dplyr::filter(iter_num == max(llik_interm$iter_num,na.rm=TRUE)) %>%
+  select(c(USPS,geoid,ll,slot_num)) %>%
+  dplyr::rename(sim_num=slot_num)
+
+# get the total
+
+for (i in unique(llik_final_chimeric$sim_num)){
+  
+  llik_final_temp <- llik_final_chimeric%>% dplyr::filter(sim_num==i)
+  
+  sumLL <- sum(llik_final_temp$ll)
+  #print(sumLL)
+
+  llik_final_chimeric <- llik_final_chimeric %>% add_row(USPS="TT",geoid="00000",sim_num=i,ll=sumLL)
+
+}
+  
+llik_final_combo <- full_join(llik_final,llik_final_chimeric,by = c("USPS", "geoid","sim_num"),suffix = c(".global", ".chimeric")) %>%
+  dplyr::relocate(USPS,geoid,sim_num) %>%
+  dplyr::arrange(geoid,sim_num)
+```
+
+
+```{r}
+llik_final_combo
+```
+
+
+#OTHER
+
+Example code to read in SEIR values directly
+
+```{r}
+seir <- load_seir_sims_filtered(outcome_dir = runs_folder, 
+                                    pdeath_filter=pdeath_default, 
+                                    incl_geoids = included_geoids_all, 
+                                    pre_process = function(x){x %>% filter(comp %in% c("S","R"))},
+                                    post_process = function(x){x %>% pivot_wider(names_from=comp, values_from=value)} #make each variable into column
+                                )
+
+```
+
