@@ -38,7 +38,8 @@ spatial_config = config["spatial_setup"]
 spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 scenario = scenario
 deathrate = deathrate
-stoch_traj_flag= stoch_traj_flag # Truthy: stochastic simulation, Falsy: determnistic mean of the binomial draws
+stoch_traj_flag= stoch_traj_flag # Truthy: stochastic simulation, Falsy: deterministic mean of the binomial draws
+
 nsim = 1
 interactive = False
 write_csv = False
