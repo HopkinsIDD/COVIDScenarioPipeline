@@ -1502,10 +1502,11 @@ print_filtering_statistics <- function(sims_per_slot = 300,
                                        compartment = TRUE,
                                        variant_compartments = c("WILD", "ALPHA", "DELTA")){
 
-    if(length(stat_names)!=length(data_var)) stop("stat_names and data_var must be the same length")
     if(is.null(data_var)){
         data_var <- gt_column_name
     }
+    if(length(stat_names)!=length(data_var)) stop("stat_names and data_var must be the same length")
+    
     cat(paste0(
         "\n",
         "filtering:\n",
@@ -1523,11 +1524,13 @@ print_filtering_statistics <- function(sims_per_slot = 300,
 
         stat_names <- paste(rep(stat_names, each = length(variant_compartments)), variant_compartments, sep ="_")
         sim_var <- paste(rep(sim_var, each = length(variant_compartments)), stringr::str_to_upper(variant_compartments), sep="_")
-        data_var <- paste(rep(data_var, each = length(variant_compartments)), variant_compartments, sep ="_")
+        gt_column_name <- paste(rep(gt_column_name, each = length(variant_compartments)), variant_compartments, sep ="_")
+        data_var <- gt_column_name
 
         for(i in 1:length(variant_compartments)){
             stat_names <- c(stat_names[stringr::str_detect(stat_names, variant_compartments[i], negate = TRUE)], stat_names[stringr::str_detect(stat_names, variant_compartments[i], negate = FALSE)])
             sim_var <- c(sim_var[stringr::str_detect(sim_var, stringr::str_to_upper(variant_compartments[i]), negate = TRUE)], sim_var[stringr::str_detect(sim_var, stringr::str_to_upper(variant_compartments[i]), negate = FALSE)])
+            gt_column_name <- c(gt_column_name[stringr::str_detect(gt_column_name, variant_compartments[i], negate = TRUE)], gt_column_name[stringr::str_detect(gt_column_name, variant_compartments[i], negate = FALSE)])
             data_var <- c(data_var[stringr::str_detect(data_var, variant_compartments[i], negate = TRUE)], data_var[stringr::str_detect(data_var, variant_compartments[i], negate = FALSE)])
         }
     }
@@ -1577,6 +1580,7 @@ print_filtering_statistics <- function(sims_per_slot = 300,
             '      gt_source: "', gt_source_statistics[i],'"\n',
             "      sim_var: ", sim_var[i], "\n",
             "      data_var: ", data_var[i], "\n",
+            "      gt_column_name: ", gt_column_name[i], "\n", 
             "      remove_na: ", remove_na[i], "\n",
             "      add_one: ", add_one[i], "\n",
             "      likelihood:\n",
