@@ -1182,9 +1182,11 @@ snpi_interm_var_mat
 
 ```
 
-# Final global likelihood values
+# Final likelihood values
 
 ```{r}
+
+# get final global values
 
 llik_final <- geodata_all %>%
     left_join(llik_final) %>%
@@ -1204,7 +1206,35 @@ for (i in unique(llik_final$sim_num)){
 ```
 
 ```{r}
-llik_final
+# get final chimeric values
+
+llik_final_chimeric <- llik_interm %>% 
+  dplyr::filter(lik_type == "chimeric") %>%
+  dplyr::filter(iter_num == max(llik_interm$iter_num,na.rm=TRUE)) %>%
+  select(c(USPS,geoid,ll,slot_num)) %>%
+  dplyr::rename(sim_num=slot_num)
+
+# get the total
+
+for (i in unique(llik_final_chimeric$sim_num)){
+  
+  llik_final_temp <- llik_final_chimeric%>% dplyr::filter(sim_num==i)
+  
+  sumLL <- sum(llik_final_temp$ll)
+  #print(sumLL)
+
+  llik_final_chimeric <- llik_final_chimeric %>% add_row(USPS="TT",geoid="00000",sim_num=i,ll=sumLL)
+
+}
+  
+llik_final_combo <- full_join(llik_final,llik_final_chimeric,by = c("USPS", "geoid","sim_num"),suffix = c(".global", ".chimeric")) %>%
+  dplyr::relocate(USPS,geoid,sim_num) %>%
+  dplyr::arrange(geoid,sim_num)
+```
+
+
+```{r}
+llik_final_combo
 ```
 
 
