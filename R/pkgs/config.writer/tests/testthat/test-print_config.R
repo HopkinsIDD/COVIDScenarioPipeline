@@ -45,7 +45,7 @@ generate_config <- function(){
 
     print_filtering_statistics(sims_per_slot = 1000,
                                compartment = FALSE,
-                               data_var = c("death_incid", "confirmed_incid"))
+                               gt_column_name = c("death_incid", "confirmed_incid"))
 
     print_filtering_hierarchical(npi_name = c("local_variance", "probability_incidI_incidC"),
                                  module = c("seir", "hospitalization"),
