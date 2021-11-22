@@ -591,16 +591,16 @@ generate_compartment_variant <- function(variant_path = "../COVID19_USA/data/var
     trans_incr <- dplyr::tibble(variant_compartments, 
                                 transmission_increase)
     
-    variant_data <- read_csv(variant_path)
+    variant_data <- readr::read_csv(variant_path)
     
     if(!("source" %in% colnames(variant_data))){
         variant_data$source <- ""
     }
-    variant_data <- variant_data %>% full_join(trans_incr) %>%
-        rename(date = Update, USPS = source) %>%
-        mutate(trans_mult = (trans_incr * prop)) %>% 
-        group_by(date, USPS) %>%
-        summarise(trans_mult = sum(trans_mult))
+    variant_data <- variant_data %>% dplyr::full_join(trans_incr) %>%
+        dplyr::rename(date = Update, USPS = source) %>%
+        dplyr::mutate(trans_mult = (trans_incr * prop)) %>% 
+        dplyr::group_by(date, USPS) %>%
+        dplyr::summarise(trans_mult = sum(trans_mult))
     
     sim_start_date <- as.Date(sim_start_date)
     sim_end_date <- as.Date(sim_end_date)
