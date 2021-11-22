@@ -594,7 +594,7 @@ set_variant_params <- function(b117_only = FALSE,
     variant_data <- variant_data %>%
         dplyr::mutate(type = "transmission",
                       category = "variant",
-                      name = paste(USPS, "variantR0adj", paste0("Week", lubridate::week(start_date)), sep="_"),
+                      name = paste("variantR0adj", paste0("Week", lubridate::week(start_date)), sep="_"),
                       name = stringr::str_remove(name, '^\\_'),
                       template = "Reduce",
                       parameter = param_val,
