@@ -614,7 +614,7 @@ load_seir_sims_filtered <- function(outcome_dir,
   seir <- dplyr::bind_rows(temp) %>%
     dplyr::group_by(across(c(geoid,any_of(partitions)))) %>%  
     dplyr::arrange(sim_num,time,comp,.by_group=TRUE) %>%
-    ungroup()
+    dplyr::ungroup()
   
   seir <- seir %>%
     post_process()
