@@ -135,7 +135,7 @@ load_cum_hosp_geounit_date <- function(outcome_dir,
                          NincidICU=sum(incidICU),
                          NincidHosp=sum(incidH),
                          NincidVent = sum(incidVent)) %>%
-        ungroup() 
+        dplyr::ungroup() 
     }
   } else {
     hosp_post_process <- function(x) {

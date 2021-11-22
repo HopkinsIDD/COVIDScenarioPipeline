@@ -341,7 +341,7 @@ plot_hist_incidHosp_state <- function(hosp_state_totals,
     dplyr::filter(time >= sim_start_date & time <= summary_date) %>%
     dplyr::group_by(scenario_name, sim_num) %>%
     dplyr::summarise(pltVar = sum(pltVar)) %>%
-    dplyr::ungroup 
+    dplyr::ungroup() 
 
   rc <- ggplot(data=to_plt,
                aes(x = pltVar, fill = scenario_name, color = scenario_name)) +
@@ -457,7 +457,7 @@ plot_geounit_map <- function(cum_inf_geounit_dates,
     dplyr::left_join(geodat) %>% 
     dplyr::rename(pop = !!popnodes, plot_var = !!plot_var) %>% group_by(geoid) %>% 
     dplyr::summarise(geoid_rate = mean(plot_var/pop) * 10000) %>% 
-    dplyr::ungroup
+    dplyr::ungroup()
   
   plot_shp <- dplyr::left_join(shp, to_plt, by = "geoid")
   
@@ -2589,7 +2589,7 @@ plot_truth_by_location <- function(truth_dat,
                               high=quantile(NincidHosp,pi_hi),
                               est=mean(NincidHosp),
                               type=fig_labs[3]))) %>%
-      ungroup() %>%
+      dplyr::ungroup() %>%
       dplyr::mutate(type = factor(type, levels = fig_labs[3:1]),
                     confirmed=if_else(confirmed==0, NA_real_, confirmed))
   } else{
@@ -2620,7 +2620,7 @@ plot_truth_by_location <- function(truth_dat,
                                      high=quantile(NincidDeath,pi_hi),
                                      est=mean(NincidDeath),
                                      type=fig_labs[2]))) %>%
-      ungroup() %>%
+      dplyr::ungroup() %>%
       dplyr::mutate(type = factor(type, levels = fig_labs),
                     confirmed=if_else(confirmed==0, NA_real_, confirmed))
   }
