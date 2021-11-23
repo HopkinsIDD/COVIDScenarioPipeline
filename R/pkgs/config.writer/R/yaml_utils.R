@@ -1282,8 +1282,8 @@ print_seir <- function(sigma_val = 1/5.2,
                 dose_transmission_dist <- c("fixed", "fixed")
                 dose_transmission_val <- c(0, 0)
 
-                dose_susceptibility_dist <- c(theta_1_dist, theta_2_dist)
-                dose_susceptibility_val <- c(theta_1_val, theta_2_val)
+                dose_susceptibility_dist <- c(theta_1_dist[1], theta_2_dist[1])
+                dose_susceptibility_val <- c(theta_1_val[1], theta_2_val[1])
 
                 for(i in 2:length(vaccine_compartments)){
                     vacc <- paste0(vacc,
