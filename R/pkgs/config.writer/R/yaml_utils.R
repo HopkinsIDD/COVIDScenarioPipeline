@@ -1625,6 +1625,7 @@ print_filtering_hierarchical <- function(npi_name = c("local_variance", "probabi
                                          module = c("seir", "hospitalization"),
                                          geo_group_col = "USPS",
                                          transform = c("none", "logit"),
+                                         empty_print = FALSE,
                                          final_print = FALSE){
 
     variant_compartments <- stringr::str_to_upper(variant_compartments)
@@ -1657,17 +1658,19 @@ print_filtering_hierarchical <- function(npi_name = c("local_variance", "probabi
     if(length(transform)!=n_vars & length(transform)==1){
         transform <- rep(transform, n_vars)
     }
-
-    for(i in 1:n_vars){
-        cat(paste0(
-            "    ", paste0(npi_name[i], "_hierarchy:\n"),
-            "      name: ", npi_name[i], "\n",
-            "      module: ", module[i], "\n",
-            "      geo_group_col: ", geo_group_col[i], "\n",
-            "      transform: ", transform[i], "\n"
-        ))
+    
+    if(!empty_print){
+        for(i in 1:n_vars){
+            cat(paste0(
+                "    ", paste0(npi_name[i], "_hierarchy:\n"),
+                "      name: ", npi_name[i], "\n",
+                "      module: ", module[i], "\n",
+                "      geo_group_col: ", geo_group_col[i], "\n",
+                "      transform: ", transform[i], "\n"
+            ))
+        }
     }
-
+    
     if(final_print){
         cat(paste0("\n"))
     }
@@ -1698,6 +1701,7 @@ print_filtering_prior <- function(npi_name = c("local_variance", "Seas_jan", "Se
                                   dist = "normal",
                                   param_mean = c(0.000, -0.200, -0.133, -0.067, 0.00,  0.067, 0.133,  0.200, 0.133,  0.067,  0.000, -0.067, -0.133),
                                   param_sd = 1,
+                                  empty_print = FALSE, 
                                   dat=NULL
 ){
     module <- repeat_string(module, npi_name)
@@ -1723,18 +1727,22 @@ print_filtering_prior <- function(npi_name = c("local_variance", "Seas_jan", "Se
 
     cat(paste0(
         "  priors:\n"))
-
-    for(i in 1:length(npi_name)){
-        cat(paste0(
-            "    ", paste0(npi_name[i], "_prior"),":\n",
-            "      name: ", npi_name[i], "\n",
-            "      module: ", module[i], "\n",
-            "      likelihood:\n",
-            "        dist: ", dist[i], "\n",
-            "        param:\n",
-            "        - ", param_mean[i], "\n",
-            "        - ", param_sd[i], "\n"
-        ))
+    
+    if(!empty_print){
+        for(i in 1:length(npi_name)){
+            cat(paste0(
+                "    ", paste0(npi_name[i], "_prior"),":\n",
+                "      name: ", npi_name[i], "\n",
+                "      module: ", module[i], "\n",
+                "      likelihood:\n",
+                "        dist: ", dist[i], "\n",
+                "        param:\n",
+                "        - ", param_mean[i], "\n",
+                "        - ", param_sd[i], "\n"
+            ))
+        }
+    } else{
+        cat(paste0("\n"))
     }
 }
 
