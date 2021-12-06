@@ -366,7 +366,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
             else:  # already defined outcomes
                 source_array = all_data[source_name]
 
-            if loaded_values is not None:
+            if (loaded_values is not None) and (new_comp in loaded_values['outcome'].values):
                 ## This may be unnecessary
                 probabilities = \
                     loaded_values[
@@ -442,7 +442,7 @@ def compute_all_multioutcomes(parameters, diffI, places, dates, loaded_values=No
 
             # Make duration
             if 'duration' in parameters[new_comp]:
-                if loaded_values is not None:
+                if (loaded_values is not None) and (new_comp in loaded_values['outcome'].values):
                     durations = loaded_values[
                         (loaded_values['quantity'] == 'duration') &
                         (loaded_values['outcome'] == new_comp)  # &
