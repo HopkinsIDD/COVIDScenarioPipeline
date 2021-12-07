@@ -193,12 +193,16 @@ class Compartments:
         return True
 
     def access_original_config_by_multi_index(self, config_piece, index, dimension=None, encapsulate_as_list=False):
-        if dimension is None:
-            dimension = [None for i in index]
-        tmp = [y for y in zip(index, range(len(index)), dimension)]
+        try:
+            if dimension is None:
+                dimension = [None for i in index]
+            tmp = [y for y in zip(index, range(len(index)), dimension)]
 
-        tmp = zip(index, range(len(index)), dimension)
-        tmp = [list_access_element(config_piece[x[1]], x[0], x[2], encapsulate_as_list) for x in tmp]
+            tmp = zip(index, range(len(index)), dimension)
+            tmp = [list_access_element(config_piece[x[1]], x[0], x[2], encapsulate_as_list) for x in tmp]
+        except:
+            print(f"""\t\tconfig piece is {config_piece}\n\t\tindex is {index}\n\t\tdimension is {dimension}\n\t\tencapsulate as list is {encapsulate_as_list}\n""")
+            IndexError(f"""\t\tconfig piece is {config_piece}\n\t\tindex is {index}\n\t\tdimension is {dimension}\n\t\tencapsulate as list is {encapsulate_as_list}\n""")
         return (tmp)
 
     def expand_transition_elements(self, single_transition_config, problem_dimension):
@@ -372,7 +376,6 @@ class Compartments:
         problem_dimension = reduce(lambda x, y: max(x, y), (source_dimension, destination_dimension))
         self.check_transition_elements(single_transition_config, problem_dimension)
         transitions = self.expand_transition_elements(single_transition_config, problem_dimension)
-
         tmp_array = np.zeros(problem_dimension)
         it = np.nditer(tmp_array, flags=['multi_index'])
         rc = reduce(
