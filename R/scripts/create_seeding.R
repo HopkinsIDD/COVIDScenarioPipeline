@@ -288,6 +288,13 @@ if ("compartments" %in% names(config[["seir"]]) & "pop_seed_file" %in% names(con
 }
   
 
+# Limit seeding to on or after the config start date and before the config end date
+incident_cases <- incident_cases %>% 
+    dplyr::filter(date >= lubridate::as_date(config$start_date) & date <= lubridate::as_date(config$end_date))
+
+
+
+
 
 # Save it
 
