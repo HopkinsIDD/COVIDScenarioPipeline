@@ -400,13 +400,18 @@ for(scenario in scenarios) {
         if ((opt$this_block == 1) && (current_index == 0)) {
           print("by default because it's the first iteration of a block 1")
         }
+        files_to_delete <- inference::create_filename_list(opt$run_id, global_local_prefix, current_index)
         current_index <- this_index
         global_likelihood <- proposed_likelihood
         global_likelihood_data <- proposed_likelihood_data
       } else {
         print("****REJECT****")
+        files_to_delete <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
       }
       arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
+      for(a_file in files_to_delete) {
+        file.remove(a_file)
+      }
 
       seeding_npis_list <- inference::accept_reject_new_seeding_npis(
         seeding_orig = initial_seeding,
