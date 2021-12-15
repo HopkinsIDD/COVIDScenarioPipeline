@@ -22,6 +22,7 @@ option_list = list(
   optparse::make_option(c("-i", "--this_slot"), action="store", default=Sys.getenv("COVID_SLOT_INDEX", 1), type='integer', help = "id of this slot"),
   optparse::make_option(c("-b", "--this_block"), action="store", default=Sys.getenv("COVID_BLOCK_INDEX",1), type='integer', help = "id of this block"),
   optparse::make_option(c("-t", "--stoch_traj_flag"), action="store", default=Sys.getenv("COVID_STOCHASTIC",TRUE), type='logical', help = "Stochastic SEIR and outcomes trajectories if true"),
+  optparse::make_option(c("--prune"), action="store", default=Sys.getenv("COVID_PRUNE",FALSE), type='logical', help = "Prune SEIR and outcomes unaccepted simulations if true"),
   optparse::make_option(c("--ground_truth_start"), action = "store", default = Sys.getenv("COVID_GT_START", ""), type = "character", help = "First date to include groundtruth for"),
   optparse::make_option(c("--ground_truth_end"), action = "store", default = Sys.getenv("COVID_GT_END", ""), type = "character", help = "Last date to include groundtruth for"),
   optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
@@ -215,6 +216,11 @@ if(opt$stoch_traj_flag) {
   reticulate::py_run_string(paste0("stoch_traj_flag = True"))
 } else {
   reticulate::py_run_string(paste0("stoch_traj_flag = False"))
+}
+if(opt$prune) {
+  print("Running with Pruning")
+} else {
+  print("Running without Pruning")
 }
 
 for(scenario in scenarios) {
@@ -411,10 +417,11 @@ for(scenario in scenarios) {
         files_to_delete <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
       }
       arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
-      warning("There should be a check here to make sure we enabled this setting")
+      if (opt$prune) {
         for(a_file in files_to_delete) {
           file.remove(a_file)
         }
+      }
 
       seeding_npis_list <- inference::accept_reject_new_seeding_npis(
         seeding_orig = initial_seeding,

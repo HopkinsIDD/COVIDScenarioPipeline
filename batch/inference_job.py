@@ -43,6 +43,8 @@ from SEIR import file_paths
               help="The location of an S3 run to use as the initial to the first block of the current run")
 @click.option("--stochastic/--non-stochastic", "--stochastic/--non-stochastic", "stochastic", envvar="COVID_STOCHASTIC", type=bool, default=True,
               help="Flag determining whether to run stochastic simulations or not")
+@click.option("--prune/--no-prune", "--prune/--no-prune", "prune", envvar="COVID_PRUNE", type=bool, default=True,
+              help="Flag determining whether to prune simulations no longer in consideration or not")
 @click.option("--stacked-max","--stacked-max", "max_stacked_interventions", envvar="COVID_MAX_STACK_SIZE", type=click.IntRange(min=350), default=350,
               help="Maximum number of interventions to allow in a stacked intervention")
 @click.option("--validation-end-date","--validation-end-date", "last_validation_date", envvar="VALIDATION_DATE", type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()),
@@ -210,6 +212,7 @@ class BatchJobHandler(object):
                 {"name": "SIMS_PER_JOB", "value": str(self.sims_per_job) },
                 {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job) },
                 {"name": "COVID_STOCHASTIC", "value": str(self.stochastic) }
+                {"name": "COVID_PRUNE", "value": str(self.prune) }
         ]
 
         runner_script_path = f"s3://{self.s3_bucket}/{runner_script_name}"
