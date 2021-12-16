@@ -214,7 +214,7 @@ class BatchJobHandler(object):
                 {"name": "VALIDATION_DATE", "value": str(self.last_validation_date)},
                 {"name": "SIMS_PER_JOB", "value": str(self.sims_per_job) },
                 {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job) },
-                {"name": "COVID_STOCHASTIC", "value": str(self.stochastic) }
+                {"name": "COVID_STOCHASTIC", "value": str(self.stochastic) },
                 {"name": "COVID_PRUNE", "value": str(self.prune) }
         ]
 
