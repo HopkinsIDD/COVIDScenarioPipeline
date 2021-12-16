@@ -80,6 +80,9 @@ def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, output
     p_death_names = config['outcomes']['scenarios']
 
     handler.launch(job_name, config_file, scenarios, p_death_names, job_queues)
+    
+    # Set job_name as environmental variable so it can be pulled for pushing to git
+    os.environ['job_name'] = job_name
 
     (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")
     print(txt)
