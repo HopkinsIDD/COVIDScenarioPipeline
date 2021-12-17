@@ -406,6 +406,7 @@ for(scenario in scenarios) {
         print("****ACCEPT****")
         if (opt$this_block == 1) {
           print("by default because it's the first iteration of a block 1")
+        }
         if ((current_index != 0)) {
           files_to_delete <- inference::create_filename_list(opt$run_id, global_local_prefix, current_index)
         }
