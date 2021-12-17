@@ -90,7 +90,7 @@ def launch_batch(
 
     if restart_from_run_id is None:
         restart_from_run_id = run_id
-    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date)
+    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, prune, max_stacked_interventions, last_validation_date)
 
     job_queues = get_job_queues(job_queue_prefix)
     scenarios = config['interventions']['scenarios']
@@ -159,7 +159,7 @@ def get_job_queues(job_queue_prefix):
 
 
 class BatchJobHandler(object):
-    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
+    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, prune, max_stacked_interventions, last_validation_date):
         self.run_id = run_id
         self.num_jobs = num_jobs
         self.sims_per_job = sims_per_job
@@ -172,6 +172,7 @@ class BatchJobHandler(object):
         self.restart_from_s3_bucket = restart_from_s3_bucket
         self.restart_from_run_id = restart_from_run_id
         self.stochastic = stochastic
+        self.prune = prune
         self.max_stacked_interventions = max_stacked_interventions
         self.last_validation_date = last_validation_date
 
