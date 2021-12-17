@@ -49,8 +49,25 @@ from SEIR import file_paths
               help="Maximum number of interventions to allow in a stacked intervention")
 @click.option("--validation-end-date","--validation-end-date", "last_validation_date", envvar="VALIDATION_DATE", type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()),
               help="Last date to pull for ground truth data")
-def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
-
+def launch_batch(
+    config_file,
+    run_id,
+    num_jobs,
+    sims_per_job,
+    num_blocks,
+    outputs,
+    s3_bucket,
+    batch_job_definition,
+    job_queue_prefix,
+    vcpus,
+    memory,
+    restart_from_s3_bucket,
+    restart_from_run_id,
+    stochastic,
+    prune,
+    max_stacked_interventions,
+    last_validation_date
+):
     config = None
     with open(config_file) as f:
         config = yaml.full_load(f)
@@ -80,7 +97,7 @@ def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, output
     p_death_names = config['outcomes']['scenarios']
 
     handler.launch(job_name, config_file, scenarios, p_death_names, job_queues)
-    
+
     # Set job_name as environmental variable so it can be pulled for pushing to git
     os.environ['job_name'] = job_name
 
