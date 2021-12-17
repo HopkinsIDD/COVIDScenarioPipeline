@@ -401,12 +401,12 @@ for(scenario in scenarios) {
       ## For logging
       print(paste("Current likelihood",global_likelihood,"Proposed likelihood",proposed_likelihood))
 
+      files_to_delete <- c()
       if (inference::iterateAccept(global_likelihood, proposed_likelihood) || ((current_index == 0) && (opt$this_block == 1))) {
         print("****ACCEPT****")
-        if ((opt$this_block == 1) && (current_index == 0)) {
+        if (opt$this_block == 1) {
           print("by default because it's the first iteration of a block 1")
-          files_to_delete <- c()
-        } else {
+        if ((current_index != 0)) {
           files_to_delete <- inference::create_filename_list(opt$run_id, global_local_prefix, current_index)
         }
         current_index <- this_index
