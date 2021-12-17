@@ -480,4 +480,5 @@ for(scenario in scenarios) {
     file.copy(last_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
     file.copy(last_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
   }
+  }
 }
