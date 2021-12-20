@@ -402,12 +402,12 @@ for(scenario in scenarios) {
       print(paste("Current likelihood",global_likelihood,"Proposed likelihood",proposed_likelihood))
 
       files_to_delete <- c()
-      if (inference::iterateAccept(global_likelihood, proposed_likelihood) || ((current_index == 0) && (opt$this_block == 1))) {
+      if(inference::iterateAccept(global_likelihood, proposed_likelihood) || ((current_index == 0) && (opt$this_block == 1))){
         print("****ACCEPT****")
         if (opt$this_block == 1) {
           print("by default because it's the first iteration of a block 1")
         }
-        if ((current_index != 0)) {
+        if (current_index > 0) {
           files_to_delete <- inference::create_filename_list(opt$run_id, global_local_prefix, current_index)
         }
         current_index <- this_index
@@ -419,7 +419,8 @@ for(scenario in scenarios) {
       }
       arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
       if (opt$prune) {
-        for(a_file in files_to_delete) {
+        for (a_file in files_to_delete) {
+          print(paste("Deleting file ", a_file))
           file.remove(a_file)
         }
       }
