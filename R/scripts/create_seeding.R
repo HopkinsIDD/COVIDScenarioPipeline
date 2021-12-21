@@ -150,6 +150,13 @@ check_required_names <- function(df, cols, msg) {
 }
 
 if ("compartments" %in% names(config[["seir"]])) {
+    
+    if (config$smh_round=="R11"){
+        if (!("OMICRON" %in% names(cases_deaths))){
+            cases_deaths <- cases_deaths %>% mutate(OMICRON=NA)
+        }
+    }
+    
     if (all(names(config$seeding$seeding_compartments) %in% names(cases_deaths))) {
         required_column_names <- c("FIPS", "Update", names(config$seeding$seeding_compartments))
         check_required_names(
@@ -180,6 +187,20 @@ if ("compartments" %in% names(config[["seir"]])) {
             tidyr::separate(destination_column, paste("destination", names(config$seir$compartments), sep = "_"))
         required_column_names <- c("FIPS", "Update", "value", paste("source", names(config$seir$compartments), sep = "_"), paste("destination", names(config$seir$compartments), sep = "_"))
         incident_cases <- incident_cases[, required_column_names]
+        
+        
+        if (config$smh_round=="R11"){
+            incident_cases_om <- incident_cases %>%
+                dplyr::filter(Update==lubridate::as_date("2021-12-01")) %>%
+                dplyr::group_by(FIPS, Update, source_infection_stage, source_vaccination_stage, source_age_strata,
+                         destination_vaccination_stage, destination_age_strata, destination_infection_stage) %>%
+                dplyr::summarise(value = sum(value, na.rm=TRUE)) %>%
+                dplyr::mutate(source_variant_type = "WILD", destination_variant_type = "OMICRON") %>%
+                dplyr::mutate(value = round(ifelse(FIPS %in% c("53000","06000","36000","12000"), value*0.001, value*0.0005))) %>% 
+                tibble::as_tibble()
+        }
+        
+        
     } else if ("seeding_compartments" %in% names(config$seeding) ) {
         stop(paste(
             "Could not find all compartments.  Looking for",
@@ -215,6 +236,7 @@ if ("compartments" %in% names(config[["seir"]])) {
     incident_cases[["destination_vaccination_stage"]] <- names(parallel_compartments)[[1]]
     required_column_names <- c(required_column_names, "source_vaccination_stage", "destination_vaccination_stage")
 }
+
 print(required_column_names)
 incident_cases <- incident_cases[, required_column_names]
 
@@ -286,6 +308,20 @@ if ("compartments" %in% names(config[["seir"]]) & "pop_seed_file" %in% names(con
         dplyr::bind_rows(seeding_pop) %>% 
         dplyr::arrange(place, date)
 }
+
+# Combine with omicron if R11
+if (config$smh_round=="R11"){
+    
+    incident_cases_om <- incident_cases_om %>%
+        dplyr::rename(place=FIPS, date=Update, amount=value)
+    incident_cases_om <- incident_cases_om %>%
+        dplyr::filter(!is.na(amount) | !is.na(date))
+    
+    incident_cases <- incident_cases %>%
+        dplyr::bind_rows(incident_cases_om) %>% 
+        dplyr::arrange(place, date)
+}
+
 
 
 # Limit seeding to on or after the config start date and before the config end date
