@@ -289,6 +289,7 @@ for(scenario in scenarios) {
     if (opt$stoch_traj_flag) {
       initial_seeding$amount <- as.integer(round(initial_seeding$amount))
     }
+    initial_cont <- arrow::read_parquet(first_chimeric_files[['cont_filename']])
     initial_snpi <- arrow::read_parquet(first_chimeric_files[['snpi_filename']])
     initial_hnpi <- arrow::read_parquet(first_chimeric_files[['hnpi_filename']])
     initial_spar <- arrow::read_parquet(first_chimeric_files[['spar_filename']])
@@ -324,6 +325,7 @@ for(scenario in scenarios) {
         amount_sd = config$seeding$amount_sd,
         continuous = !(opt$stoch_traj_flag)
       )
+      proposed_cont <- inference::perturb_cont(cont = initial_cont, perturbation_settings = config$cont$perturbation)
       proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
       proposed_hnpi <- inference::perturb_hnpi(initial_hnpi, config$interventions$settings)
       proposed_spar <- initial_spar
@@ -334,6 +336,7 @@ for(scenario in scenarios) {
 
       ## Write files that need to be written for other code to read
       write.csv(proposed_seeding,this_global_files[['seed_filename']])
+      arrow::write_parquet(proposed_cont,this_global_files[['cont_filename']])
       arrow::write_parquet(proposed_snpi,this_global_files[['snpi_filename']])
       arrow::write_parquet(proposed_hnpi,this_global_files[['hnpi_filename']])
       arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
@@ -411,6 +414,8 @@ for(scenario in scenarios) {
       seeding_npis_list <- inference::accept_reject_new_seeding_npis(
         seeding_orig = initial_seeding,
         seeding_prop = proposed_seeding,
+        cont_orig = initial_cont,
+        cont_prop = proposed_cont,
         snpi_orig = initial_snpi,
         snpi_prop = proposed_snpi,
         hnpi_orig = initial_hnpi,
@@ -432,6 +437,7 @@ for(scenario in scenarios) {
       # print(chimeric_likelihood_data)
 
       ###Memory managment
+      rm(proposed_cont)
       rm(proposed_snpi)
       rm(proposed_hnpi)
       rm(proposed_hpar)
@@ -455,6 +461,7 @@ for(scenario in scenarios) {
     output_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block)
     output_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block)
     readr::write_csv(initial_seeding,output_chimeric_files[['seed_filename']])
+    arrow::write_parquet(initial_cont,output_chimeric_files[['cont_filename']])
     arrow::write_parquet(initial_snpi,output_chimeric_files[['snpi_filename']])
     arrow::write_parquet(initial_hnpi,output_chimeric_files[['hnpi_filename']])
     arrow::write_parquet(initial_spar,output_chimeric_files[['spar_filename']])

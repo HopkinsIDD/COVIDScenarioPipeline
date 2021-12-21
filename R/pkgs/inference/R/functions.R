@@ -318,6 +318,9 @@ compute_totals <- function(sim_hosp) {
 ##'
 ##' @export
 perturb_seeding <- function(seeding, date_sd, date_bounds, amount_sd = 1, continuous = FALSE) {
+  if (nrow(seeding) == 0) {
+    return(seeding)
+  }
 
   if (date_sd > 0) {
     seeding$date <- pmin(pmax(seeding$date + round(rnorm(nrow(seeding),0,date_sd)), date_bounds[1]), date_bounds[2])
@@ -329,6 +332,25 @@ perturb_seeding <- function(seeding, date_sd, date_bounds, amount_sd = 1, contin
 
   return(seeding)
 
+}
+
+
+
+
+##' Fuction perturbs an initial conditions file according to user specified distributions
+##'
+##' @param cont the original initial conditions.
+##' @param perturbation_settings a list of perturbation specifications
+##'
+##'
+##' @return a pertubed data frame
+##' @export
+perturb_cont <- function(cont, perturbation_settings) {
+  ##Loop over all interventions
+  if (!is.null(perturbation_settings)) {
+    stop("Perturbation of initial conditions files currently does nothing")
+  }
+  return(cont)
 }
 
 
@@ -484,6 +506,8 @@ perturb_hpar <- function(hpar, intervention_settings) {
 accept_reject_new_seeding_npis <- function(
   seeding_orig,
   seeding_prop,
+  cont_orig,
+  cont_prop,
   snpi_orig,
   snpi_prop,
   hnpi_orig,
@@ -494,6 +518,7 @@ accept_reject_new_seeding_npis <- function(
   prop_lls
 ) {
   rc_seeding <- seeding_orig
+  rc_cont <- cont_orig
   rc_snpi <- snpi_orig
   rc_hnpi <- hnpi_orig
   rc_hpar <- hpar_orig
@@ -508,8 +533,10 @@ accept_reject_new_seeding_npis <- function(
   orig_lls$ll[accept] <- prop_lls$ll[accept]
 
 
+  warning("Inference on cont is not implemented")
   for (place in orig_lls$geoid[accept]) {
     rc_seeding[rc_seeding$place == place, ] <- seeding_prop[seeding_prop$place ==place, ]
+    # rc_cont[rc_cont$geoid == place, ] <- cont_prop[cont_prop$geoid == place, ]
     rc_snpi[rc_snpi$geoid == place, ] <- snpi_prop[snpi_prop$geoid == place, ]
     rc_hnpi[rc_hnpi$geoid == place, ] <- hnpi_prop[hnpi_prop$geoid == place, ]
     rc_hpar[rc_hpar$geoid == place, ] <- hpar_prop[hpar_prop$geoid == place, ]
@@ -517,6 +544,7 @@ accept_reject_new_seeding_npis <- function(
 
   return(list(
     seeding = rc_seeding,
+    cont = rc_cont,
     snpi = rc_snpi,
     hnpi = rc_hnpi,
     hpar = rc_hpar,

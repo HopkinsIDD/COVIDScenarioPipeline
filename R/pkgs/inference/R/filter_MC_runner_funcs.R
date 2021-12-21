@@ -230,6 +230,12 @@ perform_MCMC_step_copies <- function(current_index,
 	    overwrite = TRUE
     )
 
+    rc$cont_gf <- file.copy(
+      covidcommon::create_file_name(run_id,global_local_prefix,current_index,'cont','parquet'),
+      covidcommon::create_file_name(run_id,gf_prefix,slot,'cont','parquet'),
+	    overwrite = TRUE
+    )
+
     rc$seir_gf <- file.copy(
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seir','parquet'),
       covidcommon::create_file_name(run_id,gf_prefix,slot,'seir','parquet'),
@@ -277,6 +283,11 @@ perform_MCMC_step_copies <- function(current_index,
       covidcommon::create_file_name(run_id,global_block_prefix,block,'seed','csv')
     )
 
+    rc$cont_block <- file.copy(
+      covidcommon::create_file_name(run_id,global_local_prefix,current_index,'cont','parquet'),
+      covidcommon::create_file_name(run_id,global_block_prefix,block,'cont','parquet')
+    )
+
     rc$seir_block <- file.copy(
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seir','parquet'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'seir','parquet')
@@ -319,6 +330,11 @@ perform_MCMC_step_copies <- function(current_index,
       covidcommon::create_file_name(run_id,global_block_prefix,block,'seed','csv')
     )
 
+    rc$cont_prevblk <- file.copy(
+      covidcommon::create_file_name(run_id,global_block_prefix,block - 1 ,'cont','parquet'),
+      covidcommon::create_file_name(run_id,global_block_prefix,block,'cont','parquet')
+    )
+
     rc$seir_prevblk <- file.copy(
       covidcommon::create_file_name(run_id,global_block_prefix,block - 1 ,'seir','parquet'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'seir','parquet')
@@ -355,7 +371,6 @@ perform_MCMC_step_copies <- function(current_index,
     )
   }
 
-
   return(rc)
 
 }
@@ -366,8 +381,8 @@ create_filename_list <- function(
   run_id,
   prefix,
   index,
-  types = c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik"),
-  extensions = c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
+  types = c("seed", "cont", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik"),
+  extensions = c("csv", rep("parquet", times = length(types) - 1))
 ) {
   if(length(types) != length(extensions)){
     stop("Please specify the same number of types and extensions.  Given",length(types),"and",length(extensions))
@@ -403,9 +418,9 @@ initialize_mcmc_first_block <- function(
 ) {
 
   ## Only works on these files:
-  types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik")
-  non_llik_types <- paste(c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar"), "filename", sep = "_")
-  extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
+  types <- c("seed", "cont", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik")
+  non_llik_types <- paste(types[types != "llik"], "filename", sep = "_")
+  extensions <- c("csv", rep("parquet", times = length(types) - 1))
 
   global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions)
   chimeric_files <- create_filename_list(run_id, chimeric_prefix, block - 1, types, extensions)
@@ -494,6 +509,23 @@ initialize_mcmc_first_block <- function(
     err <- !(file.copy(config$seeding$lambda_file, global_files[["seed_filename"]]))
     if (err != 0) {
       stop("Could not copy seeding")
+    }
+  }
+
+  ## cont
+  if ("cont_filename" %in% global_file_names) {
+    if (is.null(config$initial_conditions)) {
+      stop("Can't deal with this right now. In order to do initial conditions, they need to be provided in the config as initial_conditions::initial_condition_file")
+    }
+    if (is.null(config$initial_conditions$initial_condition_file)) {
+      stop("Can't deal with this right now. In order to do initial conditions, they need to be provided in the config as initial_conditions::initial_condition_file")
+    }
+    if (!file.exists(config$initial_conditions$initial_condition_file)) {
+      stop(paste("Could not locate initial conditions file",config$initial_conditions$initial_condition_file))
+    }
+    err <- !(file.copy(config$initial_conditions$initial_condition_file, global_files[["cont_filename"]]))
+    if (err != 0) {
+      stop("Could not copy initial conditions")
     }
   }
 
