@@ -196,7 +196,8 @@ if ("compartments" %in% names(config[["seir"]])) {
                          destination_vaccination_stage, destination_age_strata, destination_infection_stage) %>%
                 dplyr::summarise(value = sum(value, na.rm=TRUE)) %>%
                 dplyr::mutate(source_variant_type = "WILD", destination_variant_type = "OMICRON") %>%
-                dplyr::mutate(value = round(ifelse(FIPS %in% c("53000","06000","36000","12000"), value*0.001, value*0.0005))) %>% 
+                dplyr::mutate(value = round(ifelse(FIPS %in% c("06000","36000"), 10, 
+                                                   ifelse(FIPS %in% c("53000","12000"), 5, 1)))) %>% 
                 tibble::as_tibble()
         }
         
