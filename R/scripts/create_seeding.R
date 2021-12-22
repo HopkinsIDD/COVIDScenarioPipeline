@@ -255,6 +255,7 @@ geodata <- report.generation:::load_geodata_file(
 all_geoids <- geodata[[config$spatial_setup$nodenames]]
 
 
+
 incident_cases <- incident_cases %>%
     dplyr::filter(FIPS %in% all_geoids) %>%
     dplyr::select(!!!required_column_names)
@@ -314,6 +315,7 @@ if ("compartments" %in% names(config[["seir"]]) & "pop_seed_file" %in% names(con
 if (config$smh_round=="R11"){
     
     incident_cases_om <- incident_cases_om %>%
+        dplyr::filter(FIPS %in% all_geoids) %>%
         dplyr::rename(place=FIPS, date=Update, amount=value)
     incident_cases_om <- incident_cases_om %>%
         dplyr::filter(!is.na(amount) | !is.na(date))
