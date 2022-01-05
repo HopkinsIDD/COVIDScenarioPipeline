@@ -780,6 +780,7 @@ daily_mean_reduction <- function(dat,
 
     dat <- dat %>%
         dplyr::filter(type == "transmission") %>%
+        dplyr::filter(is.na(parameter) | parameter == "R0") %>%
         dplyr::mutate(mean = dplyr::case_when(value_dist == "truncnorm" ~
                                                   truncnorm::etruncnorm(a=value_a, b=value_b, mean=value_mean, sd=value_sd),
                                               value_dist == "fixed" ~
