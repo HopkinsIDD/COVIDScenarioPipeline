@@ -154,12 +154,6 @@ check_required_names <- function(df, cols, msg) {
 
 if ("compartments" %in% names(config[["seir"]])) {
     
-    if (config$smh_round=="R11"){
-        if (!("OMICRON" %in% names(cases_deaths))){
-            cases_deaths <- cases_deaths %>% mutate(OMICRON=NA)
-        }
-    }
-    
     if (all(names(config$seeding$seeding_compartments) %in% names(cases_deaths))) {
         required_column_names <- c("FIPS", "Update", names(config$seeding$seeding_compartments))
         check_required_names(
@@ -311,20 +305,6 @@ if ("compartments" %in% names(config[["seir"]]) & "pop_seed_file" %in% names(con
     
     incident_cases <- incident_cases %>%
         dplyr::bind_rows(seeding_pop) %>% 
-        dplyr::arrange(place, date)
-}
-
-# Combine with omicron if R11
-if (config$smh_round=="R11"){
-    
-    incident_cases_om <- incident_cases_om %>%
-        dplyr::filter(FIPS %in% all_geoids) %>%
-        dplyr::rename(place=FIPS, date=Update, amount=value)
-    incident_cases_om <- incident_cases_om %>%
-        dplyr::filter(!is.na(amount) | !is.na(date))
-    
-    incident_cases <- incident_cases %>%
-        dplyr::bind_rows(incident_cases_om) %>% 
         dplyr::arrange(place, date)
 }
 
