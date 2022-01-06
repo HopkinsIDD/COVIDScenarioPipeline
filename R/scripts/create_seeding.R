@@ -90,8 +90,23 @@ if (is.null(config$seeding$ratio_incidC)) {
 }
 
 if (!is.null(gt_source)) {
-    cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = "US county")
+    # cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = "US county")
+    
+    # Aggregation to state level if in config
+    if (is_US_run) {
+        state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
+        if (state_level) {
+            gt_scale <- "US state"
+            cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = TRUE)
+        } else{
+            gt_scale <- "US county"
+            cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale)
+        }
+        cases_deaths <- cases_deaths %>%
+            mutate(FIPS = stringr::str_pad(FIPS, width = 5, side = "right", pad = "0"))
+    }
     print(paste("Successfully pulled", gt_source, "data for seeding."))
+    
 } else {
     data_path <- config$filtering$data_path
     if (is.null(data_path)) {
@@ -107,19 +122,7 @@ if (!is.null(gt_source)) {
     print(paste("Successfully loaded data from ", data_path, "for seeding."))
 }
 
-# Aggregation to state level if in config
-if (is_US_run) {
-    state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
-    if (state_level) {
-        gt_scale <- "US state"
-        cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = TRUE)
-    } else{
-        gt_scale <- "US county"
-        cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale)
-    }
-    cases_deaths <- cases_deaths %>%
-        mutate(FIPS = stringr::str_pad(FIPS, width = 5, side = "right", pad = "0"))
-}
+
 
 if (seed_variants) {
     variant_data <- readr::read_csv(config$seeding$variant_filename)
@@ -193,7 +196,7 @@ if ("compartments" %in% names(config[["seir"]])) {
             incident_cases_om <- incident_cases %>%
                 dplyr::filter(Update==lubridate::as_date("2021-12-01")) %>%
                 dplyr::group_by(FIPS, Update, source_infection_stage, source_vaccination_stage, source_age_strata,
-                         destination_vaccination_stage, destination_age_strata, destination_infection_stage) %>%
+                                destination_vaccination_stage, destination_age_strata, destination_infection_stage) %>%
                 dplyr::summarise(value = sum(value, na.rm=TRUE)) %>%
                 dplyr::mutate(source_variant_type = "WILD", destination_variant_type = "OMICRON") %>%
                 dplyr::mutate(value = round(ifelse(FIPS %in% c("06000","36000"), 10, 
