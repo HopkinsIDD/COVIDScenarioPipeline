@@ -160,7 +160,7 @@ npi_recode_scenario_mult <- function(data
 #' npi_dat <- process_npi_shub(intervention_path = system.file("extdata", "intervention_data.csv", package = "config.writer"), geodata)
 #'
 #' npi_dat
-process_npi_shub <- function (intervention_path, 
+process_npi_usa <- function (intervention_path, 
                                geodata, 
                                prevent_overlap = TRUE, 
                                prevent_gaps = TRUE) {
