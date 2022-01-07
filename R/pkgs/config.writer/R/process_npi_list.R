@@ -160,49 +160,38 @@ npi_recode_scenario_mult <- function(data
 #' npi_dat <- process_npi_shub(intervention_path = system.file("extdata", "intervention_data.csv", package = "config.writer"), geodata)
 #'
 #' npi_dat
-process_npi_shub <- function(intervention_path,
-                             geodata,
-                             prevent_overlap = TRUE,
-                             prevent_gaps = TRUE
-){
-
-    ## read intervention estimates
-    og <- readr::read_csv(intervention_path) %>%
-        dplyr::left_join(geodata) %>%
-        dplyr::filter(GEOID == "all") %>%
-        npi_recode_scenario() %>% # recode action variable into scenario
-        npi_recode_scenario_mult() # recode action_new variable into scenario_mult
-
-    if(!all(lubridate::is.Date(og$start_date), lubridate::is.Date(og$end_date))){
-        og <- og %>%
-            dplyr::mutate(dplyr::across(tidyselect::ends_with("_date"), ~ lubridate::mdy(.x)))
+process_npi_shub <- function (intervention_path, 
+                               geodata, 
+                               prevent_overlap = TRUE, 
+                               prevent_gaps = TRUE) {
+    
+    og <- readr::read_csv(intervention_path) %>% dplyr::left_join(geodata) %>% 
+        dplyr::filter(GEOID == "all") %>% 
+        npi_recode_scenario() %>% 
+        npi_recode_scenario_mult2()
+    
+    if (!all(lubridate::is.Date(og$start_date), lubridate::is.Date(og$end_date))) {
+        og <- og %>% dplyr::mutate(dplyr::across(tidyselect::ends_with("_date"), ~lubridate::mdy(.x)))
     }
-
-    if("template" %in% colnames(og)){
-        og <- og %>%
-            dplyr::mutate(name = dplyr::if_else(template=="MultiTimeReduce", scenario_mult, scenario)) %>%
+    if ("template" %in% colnames(og)) {
+        og <- og %>% dplyr::mutate(name = dplyr::if_else(template == "MultiTimeReduce", scenario_mult, scenario)) %>% 
             dplyr::select(USPS, geoid, start_date, end_date, name, template)
-    } else{
-        og <- og %>%
-            dplyr::mutate(template = "MultiTimeReduce") %>%
-            dplyr::select(USPS, geoid, start_date, end_date, name=scenario_mult, template)
+    } else {
+        og <- og %>% dplyr::mutate(template = "MultiTimeReduce") %>% 
+            dplyr::select(USPS, geoid, start_date, end_date, name = scenario_mult, template)
     }
-
-    if(prevent_overlap){
-        og <- og %>%
-            dplyr::group_by(USPS, geoid) %>%
-            dplyr::mutate(end_date = dplyr::if_else(end_date >= dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
+    if (prevent_overlap) {
+        og <- og %>% dplyr::group_by(USPS, geoid) %>% 
+            dplyr::mutate(end_date = dplyr::if_else(end_date >= dplyr::lead(start_date), dplyr::lead(start_date) - 1, end_date))
     }
-
-    if(prevent_gaps){
-        og <- og %>%
-            dplyr::group_by(USPS, geoid) %>%
-            dplyr::mutate(end_date = dplyr::if_else(end_date < dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
+    if (prevent_gaps) {
+        og <- og %>% dplyr::group_by(USPS, geoid) %>% 
+            dplyr::mutate(end_date = dplyr::if_else(end_date < dplyr::lead(start_date), dplyr::lead(start_date) - 1, end_date))
     }
-
     return(og)
-
 }
+
+
 
 #' Process California intervention data
 #'
