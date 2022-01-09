@@ -993,7 +993,7 @@ print_seir <- function (seir_csv = "seir_R11.csv",
     
     # Define Transitions .............................................
     
-    seir_dat <- readr::read_csv(seir_csv)
+    seir_dat <- suppressWarnings(suppressMessages(readr::read_csv(seir_csv)))
     seir <- ""
     for (i in 1:nrow(seir_dat)){
         
