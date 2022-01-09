@@ -127,17 +127,18 @@ npi_recode_scenario <- function(data
 #' @export
 #'
 
-npi_recode_scenario_mult <- function(data
-                                     ){
-    data %>%
-        dplyr::mutate(scenario_mult = action_new,
-                      scenario_mult = ifelse(grepl("stay at home", scenario_mult), "lockdown", scenario_mult),
-                      scenario_mult = gsub("paste", "open_p", scenario_mult),
-                      scenario_mult = gsub("phase", "open_p", scenario_mult),
-                      scenario_mult = ifelse(grepl("open_p", scenario_mult), stringr::str_extract(scenario_mult, "open_p[[:digit:]]"), scenario_mult),
-                      scenario_mult = dplyr::recode(scenario_mult,
-                                                    "social distancing" = "sd"))
+npi_recode_scenario_mult <- function(data){
+    data %>% dplyr::mutate(scenario_mult = action_new, 
+                           scenario_mult = ifelse(grepl("stay at home", scenario_mult), "lockdown", scenario_mult),
+                           scenario_mult = gsub("paste", "open_p", scenario_mult), 
+                           scenario_mult = gsub("phase", "open_p", scenario_mult), 
+                           scenario_mult = ifelse(grepl("open_p", scenario_mult),
+                                                  stringr::str_extract(scenario_mult, "open_p[[:digit:]]+"), scenario_mult), 
+                           scenario_mult = dplyr::recode(scenario_mult, `social distancing` = "sd"))
 }
+
+
+
 
 #' ScenarioHub: Process scenario hub npi list
 #'
@@ -168,7 +169,7 @@ process_npi_usa <- function (intervention_path,
     og <- readr::read_csv(intervention_path) %>% dplyr::left_join(geodata) %>% 
         dplyr::filter(GEOID == "all") %>% 
         npi_recode_scenario() %>% 
-        npi_recode_scenario_mult2()
+        npi_recode_scenario_mult()
     
     if (!all(lubridate::is.Date(og$start_date), lubridate::is.Date(og$end_date))) {
         og <- og %>% dplyr::mutate(dplyr::across(tidyselect::ends_with("_date"), ~lubridate::mdy(.x)))
