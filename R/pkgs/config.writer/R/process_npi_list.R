@@ -127,17 +127,18 @@ npi_recode_scenario <- function(data
 #' @export
 #'
 
-npi_recode_scenario_mult <- function(data
-                                     ){
-    data %>%
-        dplyr::mutate(scenario_mult = action_new,
-                      scenario_mult = ifelse(grepl("stay at home", scenario_mult), "lockdown", scenario_mult),
-                      scenario_mult = gsub("paste", "open_p", scenario_mult),
-                      scenario_mult = gsub("phase", "open_p", scenario_mult),
-                      scenario_mult = ifelse(grepl("open_p", scenario_mult), stringr::str_extract(scenario_mult, "open_p[[:digit:]]"), scenario_mult),
-                      scenario_mult = dplyr::recode(scenario_mult,
-                                                    "social distancing" = "sd"))
+npi_recode_scenario_mult <- function(data){
+    data %>% dplyr::mutate(scenario_mult = action_new, 
+                           scenario_mult = ifelse(grepl("stay at home", scenario_mult), "lockdown", scenario_mult),
+                           scenario_mult = gsub("paste", "open_p", scenario_mult), 
+                           scenario_mult = gsub("phase", "open_p", scenario_mult), 
+                           scenario_mult = ifelse(grepl("open_p", scenario_mult),
+                                                  stringr::str_extract(scenario_mult, "open_p[[:digit:]]+"), scenario_mult), 
+                           scenario_mult = dplyr::recode(scenario_mult, `social distancing` = "sd"))
 }
+
+
+
 
 #' ScenarioHub: Process scenario hub npi list
 #'
