@@ -906,6 +906,12 @@ print_seir <- function (seir_csv = "seir_R11.csv",
                         inf_stages = c("S", "E", "I1", "I2", "I3", "R", "W"),
                         use_descriptions = TRUE) {
     
+      # get csv of transitions and remove errors (remove quotations and spaces, which screw up parsing)
+    seir_dat <- suppressWarnings(suppressMessages(read_csv(seir_csv, lazy = FALSE, progress = FALSE)))
+    seir_dat[colnames(seir_dat!="description")] <- apply(seir_dat[colnames(seir_dat!="description")], 2, gsub, pattern=" ", replacement="")
+    seir_dat[colnames(seir_dat!="description")] <- apply(seir_dat[colnames(seir_dat!="description")], 2, gsub, pattern='"', replacement='')
+    
+    
     seir <- ""
     
     seir <- paste0("seir:\n", 
@@ -991,13 +997,8 @@ print_seir <- function (seir_csv = "seir_R11.csv",
                    "    age_strata: [", cmprt_list(age_strata),"]\n", 
                    "  transitions:\n")
     
+    
     # Define Transitions .............................................
-    
-    # get csv of transitions and remove errors (remove quotations and spaces, which screw up parsing)
-    seir_dat <- suppressWarnings(suppressMessages(readr::read_csv(seir_csv)))
-    seir_dat[colnames(seir_dat!="description")] <- apply(seir_dat[colnames(seir_dat!="description")], 2, gsub, pattern=" ", replacement="")
-    seir_dat[colnames(seir_dat!="description")] <- apply(seir_dat[colnames(seir_dat!="description")], 2, gsub, pattern='"', replacement='')
-    
     
     for (i in 1:nrow(seir_dat)){
         
