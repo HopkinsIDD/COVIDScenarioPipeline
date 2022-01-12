@@ -444,7 +444,7 @@ print_interventions <- function (dat,
     
     if (nrow(outcome_dat) > 0) {
         if (compartment) {
-            yaml_stack3(outcome_dat, "outcome_interventions", stack)
+            yaml_stack(outcome_dat, "outcome_interventions", stack)
             cat(paste0("\n"))
         }
         for (i in 1:nrow(outcome_dat)) {
