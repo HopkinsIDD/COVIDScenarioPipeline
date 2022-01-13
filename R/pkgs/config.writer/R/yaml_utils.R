@@ -1642,8 +1642,8 @@ seir_chunk <- function(SEIR_source = c("R","W"),
                    "        ",rate_age_parts,"\n",
                    "      ]\n"),
                paste0(
-                   "      proportional_to: [\"source\"],\n", 
-                   "      proportion_exponent: [[\"1\",\"1\",\"1\",\"1\"]],\n",
+                   "      proportional_to: [\"source\"]\n", 
+                   "      proportion_exponent: [[\"1\",\"1\",\"1\",\"1\"]]\n",
                    "      rate: [",rate_seir_parts,", ", rate_vacc_parts,", ", rate_var_parts,", ", rate_age_parts,"]\n")), 
         "\n")
     
