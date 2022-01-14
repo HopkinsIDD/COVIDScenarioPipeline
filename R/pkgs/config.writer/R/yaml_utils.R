@@ -470,6 +470,7 @@ print_interventions <- function (dat,
 
 #' Print Outcomes Section
 #'
+#' @param resume_modifier text that will be added to outcomes so they overwrite existing outcomes in run resumed from; if not a resume or the same outcome, leave NULL
 #' @param ifr name of ifr scenario
 #' @param outcomes_parquet_file path to outcomes parquet file
 #' @param incidH_prob_dist distribution for incidH probability
@@ -529,7 +530,8 @@ print_interventions <- function (dat,
 #' @export
 #'
 #'
-print_outcomes <- function (dat = NULL, ifr = NULL, outcomes_base_data = NULL, 
+print_outcomes <- function (resume_modifier = NULL, 
+                            dat = NULL, ifr = NULL, outcomes_base_data = NULL, 
                             outcomes_parquet_file = "usa-geoid-params-output_statelevel.parquet", 
                             incidH_prob_dist = "fixed", incidH_prob_value = 0.0175, 
                             incidH_delay_dist = "fixed", incidH_delay_value = 7, incidH_duration_dist = "fixed", 
@@ -554,6 +556,8 @@ print_outcomes <- function (dat = NULL, ifr = NULL, outcomes_base_data = NULL,
     if (is.null(ifr)) {
         stop("You must specify a scenario/IFR name.")
     }
+    
+    
     #age_strata <- dplyr::if_else(stringr::str_detect(age_strata, "^age\\_"), age_strata, paste0("age_", age_strata))
     incidC_pert <- ""
     if (compartment) {
@@ -582,6 +586,11 @@ print_outcomes <- function (dat = NULL, ifr = NULL, outcomes_base_data = NULL,
             dplyr::mutate(age_strata = dplyr::if_else(stringr::str_detect(age_strata, "^age"), age_strata, paste0("age", age_strata)), 
                           var_compartment = paste(vacc, variant, age_strata,  sep = "_"))
         
+        # modify if resuming and want to overwrite all outcomes
+        if (!is.null(resume_modifier)){
+            outcomes_base_data <- outcomes_base_data %>% mutate(var_compartment = paste0(var_compartment, resume_modifier))
+        }
+        
         if (!("incidD" %in% colnames(outcomes_base_data))){
             outcomes_base_data <- outcomes_base_data %>% mutate(incidD = 1) 
         }
@@ -595,7 +604,7 @@ print_outcomes <- function (dat = NULL, ifr = NULL, outcomes_base_data = NULL,
             outcomes_base_data <- outcomes_base_data %>% mutate(incidI = 1) 
         }
         
-        outcomes <- paste0(#"\n",
+        outcomes <- paste0(
             "outcomes:\n", 
             "  method: delayframe\n", 
             "  param_from_file: TRUE\n", 
@@ -604,7 +613,8 @@ print_outcomes <- function (dat = NULL, ifr = NULL, outcomes_base_data = NULL,
             "    - ", ifr, "\n", 
             "  settings:\n", 
             "    ", ifr, ":\n")
-        for (i in 1:nrow(outcomes_base_data)) {
+        
+        for (i in 1:nrow(outcomes_base_data)){
             if ("incidH" %in% outcomes_included){
                 incidH <- paste0(incidH, 
                                  "      incidH_", outcomes_base_data$var_compartment[i], ":\n", 
@@ -615,8 +625,10 @@ print_outcomes <- function (dat = NULL, ifr = NULL, outcomes_base_data = NULL,
                                              value_mean = incidH_prob_value * outcomes_base_data$incidH[i], 
                                              indent_space = 10), 
                                  "        delay:\n", print_value(value_dist = incidH_delay_dist, value_mean = incidH_delay_value, indent_space = 10), 
-                                 "        duration:\n", print_value(value_dist = incidH_duration_dist, value_mean = incidH_duration_value, indent_space = 10), 
-                                 "          name: hosp_curr_", paste0(outcomes_base_data$var_compartment[i]), "\n")
+                                 ifelse(incl_hosp_curr, 
+                                        paste0(
+                                            "        duration:\n", print_value(value_dist = incidH_duration_dist, value_mean = incidH_duration_value, indent_space = 10), 
+                                            "          name: hosp_curr_", paste0(outcomes_base_data$var_compartment[i]), "\n"), ""))
             }
             
             if ("incidI" %in% outcomes_included){
@@ -836,6 +848,7 @@ print_outcomes <- function (dat = NULL, ifr = NULL, outcomes_base_data = NULL,
 
 
 
+
 #' Print SEIR Section
 #' @description Print seir section with specified parameters.
 #'
@@ -887,47 +900,83 @@ print_outcomes <- function (dat = NULL, ifr = NULL, outcomes_base_data = NULL,
 #'            r0_val = 2.3,
 #'            incl_vacc = FALSE)
 #'
-print_seir <- function (seir_csv = "seir_R11.csv", 
-                        sigma_val = 1/5.2, 
-                        gamma_dist = "fixed", gamma_val = 1/3.83, gamma_sd = NULL, gamma_a = 1/4.5, gamma_b = 1/3, 
-                        alpha_val = 0.99,
-                        R0s_val = 2.3, R0s_dist = "uniform", R0s_sd = NULL, R0s_a = 2, R0s_b = 3,
-                        ve_data = ve_data,
-                        theta_dist = "fixed",
-                        nu_1_val = 0, nu_1_dist = "fixed", nu_1_overlap_operation = "sum",
-                        nu_2_val = 1/(3.5 * 7), nu_2_dist = "fixed", nu_2_overlap_operation = "sum",
-                        nu_3_val = 0, nu_3_dist = "fixed", nu_3_overlap_operation = "sum",
-                        chi_vals = c(1.5, 1.5*1.6, 1.5*1.6*1.25), chi_dist = "fixed",
-                        epsilon_val = 0 * 1/(365 * 1.5), epsilon_dist = "fixed",
-                        vaccine_compartments = c("unvaccinated", "1dose", "2dose", "waned"),
-                        variant_compartments = c("WILD", "ALPHA", "DELTA", "OMICRON"),
-                        age_strata = c("age0to17", "age18to64", "age65to100"),
-                        age_strata_boosters = c("age0to17", "age18to64","age65to100"),
-                        inf_stages = c("S", "E", "I1", "I2", "I3", "R", "W"),
-                        use_descriptions = TRUE) {
+print_seir <- function(resume_modifier = NULL,
+                       seir_csv = "seir_R11.csv", 
+                       sigma_val = 1/5.2, 
+                       gamma_dist = "fixed", gamma_val = 1/3.83, gamma_sd = NULL, gamma_a = 1/4.5, gamma_b = 1/3, 
+                       alpha_val = 0.99,
+                       R0s_val = 2.3, R0s_dist = "uniform", R0s_sd = NULL, R0s_a = 2, R0s_b = 3,
+                       ve_data = ve_data,
+                       theta_dist = "fixed",
+                       nu_1_val = 0, nu_1_dist = "fixed", nu_1_overlap_operation = "sum",
+                       nu_2_val = 1/(3.5 * 7), nu_2_dist = "fixed", nu_2_overlap_operation = "sum",
+                       nu_3_val = 0, nu_3_dist = "fixed", nu_3_overlap_operation = "sum",
+                       chi_vals = c(1.5, 1.5*1.6, 1.5*1.6*1.25), chi_dist = "fixed",
+                       epsilon_val = 0 * 1/(365 * 1.5), epsilon_dist = "fixed",
+                       vaccine_compartments = c("unvaccinated", "1dose", "2dose", "waned"),
+                       variant_compartments = c("WILD", "ALPHA", "DELTA", "OMICRON"),
+                       age_strata = c("age0to17", "age18to64", "age65to100"),
+                       age_strata_boosters = c("age0to17", "age18to64","age65to100"),
+                       inf_stages = c("S", "E", "I1", "I2", "I3", "R", "W"),
+                       use_descriptions = TRUE) {
     
-      # get csv of transitions and remove errors (remove quotations and spaces, which screw up parsing)
+    # get csv of transitions and remove errors (remove quotations and spaces, which screw up parsing)
     seir_dat <- suppressWarnings(suppressMessages(read_csv(seir_csv, lazy = FALSE, progress = FALSE)))
     seir_dat[colnames(seir_dat!="description")] <- apply(seir_dat[colnames(seir_dat!="description")], 2, gsub, pattern=" ", replacement="")
     seir_dat[colnames(seir_dat!="description")] <- apply(seir_dat[colnames(seir_dat!="description")], 2, gsub, pattern='"', replacement='')
     
     
+    # Modify names if resume and overwriting
+    if (!any(is.na(resume_modifier) | is.null(resume_modifier) | resume_modifier=="")){
+        
+        resume_mod_rates <- function(rate){
+            
+            if (rate !="1" & !is.na(rate)){
+                rate_ <- strsplit(rate, ",")[[1]]
+                
+                rate_new <- NULL
+                for (i in 1:length(rate_)){
+                    rate_new <- c(rate_new, ifelse(rate_[i]=="1", "1", paste0(rate_[i], resume_modifier)))
+                }
+            } else {
+                rate_new <- rate
+            }
+            rate_new <- paste(rate_new,collapse=",")
+            return(rate_new)
+        }
+        
+        #cbind(seir_dat$rate_seir, as.vector(sapply(seir_dat$rate_seir, resume_mod_rates)))
+        
+        
+        seir_dat <- seir_dat %>%
+            mutate(rate_seir = as.vector(sapply(rate_seir, resume_mod_rates)),
+                   rate_vacc = as.vector(sapply(rate_vacc, resume_mod_rates)),
+                   rate_var = as.vector(sapply(rate_var, resume_mod_rates)),
+                   rate_age = as.vector(sapply(rate_age, resume_mod_rates))) %>%
+            ungroup() %>%
+            mutate(rate_seir = gsub("r0", paste0("r0", resume_modifier), rate_seir))
+        
+        
+    }
+    
+    resume_modifier <- ifelse(is.na(resume_modifier) | is.null(resume_modifier), "", resume_modifier)
+    
     seir <- ""
     
     seir <- paste0("seir:\n", 
                    "  parameters:\n", 
-                   "    sigma: \n", 
+                   "    sigma", resume_modifier, ": \n", 
                    print_value(value_dist = "fixed", value_mean = sigma_val), 
-                   "    alpha: \n", 
+                   "    alpha", resume_modifier, ": \n", 
                    print_value(value_dist = "fixed", 
                                value_mean = alpha_val), 
-                   "    r0: \n", 
+                   "    r0", resume_modifier, ": \n", 
                    print_value(value_dist = R0s_dist, 
                                value_mean = R0s_val, 
                                value_sd = R0s_sd, 
                                value_a = R0s_a, 
                                value_b = R0s_b), 
-                   "    gamma: \n", 
+                   "    gamma", resume_modifier, ": \n", 
                    print_value(value_dist = gamma_dist, value_mean = gamma_val, 
                                value_sd = gamma_sd, value_a = gamma_a, value_b = gamma_b))
     
@@ -945,33 +994,33 @@ print_seir <- function (seir_csv = "seir_R11.csv",
     # Add thetas (VEs)
     for (i in 1:length(thetas)) {
         seir <- paste0(seir, 
-                       "    ", thetas[i], ":\n", 
+                       "    ", thetas[i], resume_modifier, ":\n", 
                        print_value(value_dist = theta_dist[i], value_mean = paste0(1, " - ", theta_vals[i])))
     }
     
     # Add nus (vaccination rates)
     for (i in 1:length(age_strata)) {
         seir <- paste0(seir, 
-                       "    nu1", age_strata[i], ": \n", 
+                       "    nu1", age_strata[i], resume_modifier, ": \n", 
                        "      intervention_overlap_operation: ", nu_1_overlap_operation, "\n", 
                        print_value(value_dis = nu_1_dist, value_mean = nu_1_val))
         
         if (all(nu_2_val==0)){
             seir <- paste0(seir, 
-                           "    nu2", age_strata[i], ": \n", 
+                           "    nu2", age_strata[i], resume_modifier, ": \n", 
                            "      intervention_overlap_operation: ", nu_2_overlap_operation, "\n", 
                            print_value(value_dis = nu_2_dist, value_mean = nu_2_val))
         }
         if (any(!is.na(nu_3_val))){
             seir <- paste0(seir, 
-                           "    nu3", age_strata[i], ": \n", 
+                           "    nu3", age_strata[i], resume_modifier, ": \n", 
                            "      intervention_overlap_operation: ", nu_3_overlap_operation, "\n", 
                            print_value(value_dis = nu_3_dist, value_mean = nu_3_val))
         }
     }
     if (any(nu_2_val!=0)){
         seir <- paste0(seir, 
-                       "    nu2: \n", 
+                       "    nu2", resume_modifier, ": \n", 
                        "      intervention_overlap_operation: ", nu_2_overlap_operation, "\n", 
                        print_value(value_dis = nu_2_dist, value_mean = nu_2_val))
     }
@@ -979,11 +1028,11 @@ print_seir <- function (seir_csv = "seir_R11.csv",
     
     for (i in 1:(length(variant_compartments)-1)) {
         seir <- paste0(seir, 
-                       paste0("    chi",i), ": \n", 
+                       paste0("    chi",i), resume_modifier, ": \n", 
                        print_value(value_dist = chi_dist, value_mean = chi_vals[i]))
     }
     seir <- paste0(seir, 
-                   "    epsilon: \n", 
+                   "    epsilon", resume_modifier, ": \n", 
                    print_value(value_dist = epsilon_dist, value_mean = epsilon_val))
     
     
