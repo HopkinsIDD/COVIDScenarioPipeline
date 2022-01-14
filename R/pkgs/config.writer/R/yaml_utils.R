@@ -1056,7 +1056,8 @@ print_seir <- function(resume_modifier = NULL,
                                   !(is.na(seir_dat$description[i]) | is.null(seir_dat$description[i]) | seir_dat$description[i]==""), 
                               paste0("# ", seir_dat$transition[i], " - ", seir_dat$description[i], "\n"),""),
                        
-                       seir_chunk(SEIR_source = strsplit(seir_dat$SEIR_source[i],",")[[1]],
+                       seir_chunk(resume_modifier = resume_modifier,
+                                  SEIR_source = strsplit(seir_dat$SEIR_source[i],",")[[1]],
                                   SEIR_dest = strsplit(seir_dat$SEIR_dest[i],",")[[1]],
                                   vaccine_compartments_source = strsplit(seir_dat$vaccine_compartments_source[i],",")[[1]],
                                   vaccine_compartments_dest = strsplit(seir_dat$vaccine_compartments_dest[i],",")[[1]],
@@ -1630,7 +1631,8 @@ cmprt_rate_bracketing <- function(rate, length_comprt){
 #' @export
 #'
 #' @examples
-seir_chunk <- function(SEIR_source = c("R","W"),
+seir_chunk <- function(resume_modifier = NULL,
+                       SEIR_source = c("R","W"),
                        SEIR_dest = "E",
                        vaccine_compartments_source = c("2dose", "previousinfection"),
                        vaccine_compartments_dest = c("2dose", "previousinfection"),
@@ -1648,7 +1650,7 @@ seir_chunk <- function(SEIR_source = c("R","W"),
     variant_parts <- cmprt_bracketing(variant_compartments_source, variant_compartments_dest)
     
     rate_propexp_parts <- cmprt_rate_bracketing(rep("1",length(SEIR_source)), max(length(SEIR_source), length(SEIR_dest)))
-    rate_alpha_parts <- cmprt_rate_bracketing(rep("alpha",length(SEIR_source)), max(length(SEIR_source), length(SEIR_dest)))
+    rate_alpha_parts <- cmprt_rate_bracketing(rep(paste0("alpha", resume_modifier),length(SEIR_source)), max(length(SEIR_source), length(SEIR_dest)))
     
     rate_seir_parts <- cmprt_rate_bracketing(rate_seir, max(length(SEIR_source), length(SEIR_dest)))
     rate_vacc_parts <- cmprt_rate_bracketing(rate_vacc, max(length(vaccine_compartments_source), length(vaccine_compartments_dest)))
