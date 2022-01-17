@@ -93,7 +93,7 @@ class Reduce(NPIBase):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df['npi_name'] == self.name]
         self.parameters = loaded_df[['npi_name','start_date','end_date','parameter','reduction']].copy()
-
+        # dates are picked from config
         self.parameters["start_date"] = npi_config["period_start_date"].as_date()  \
             if npi_config["period_start_date"].exists() else self.start_date
         self.parameters["end_date"] = npi_config["period_end_date"].as_date() \
@@ -109,7 +109,11 @@ class Reduce(NPIBase):
         #    self.parameters["start_date"] = self.end_date
 
         self.affected_geoids = set(self.parameters.index)
-        self.param_name = self.parameters["parameter"].unique()[0]  # [0] to convert ndarray to str
+        # parameter name is picked from config too: (before: )
+        #self.param_name = self.parameters["parameter"].unique()[0]  # [0] to convert ndarray to str
+        #now:
+        self.param_name = npi_config["parameter"].as_str().lower().replace(" ", "")
+        self.parameters["parameter"] = self.param_name
 
     def getReduction(self, param, default=0.0):
         "Return the reduction for this param, `default` if no reduction defined"
