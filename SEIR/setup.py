@@ -92,7 +92,7 @@ class Setup:
                  ):
         self.setup_name = setup_name
         self.nsim = nsim
-        self.dt = dt
+        self.dt = float(dt)
         self.ti = ti  ## we start at 00:00 on ti
         self.tf = tf  ## we end on 23:59 on tf
         if self.tf <= self.ti:
