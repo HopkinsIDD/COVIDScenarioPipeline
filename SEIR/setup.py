@@ -107,6 +107,7 @@ class Setup:
         self.write_csv = write_csv
         self.write_parquet = write_parquet
         self.first_sim_index = first_sim_index
+        self.integration_method = 'classical'
 
         if in_run_id is None:
             in_run_id = file_paths.run_id()
