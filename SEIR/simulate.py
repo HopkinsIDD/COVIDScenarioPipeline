@@ -126,36 +126,105 @@ import click
 
 from SEIR import seir, setup, file_paths
 from SEIR.utils import config
-#from SEIR.profile import profile_options
+
+# from SEIR.profile import profile_options
 
 
 @click.command()
-@click.option("-c", "--config", "config_file", envvar=["COVID_CONFIG_PATH", "CONFIG_PATH"], type=click.Path(exists=True), required=True,
-              help="configuration file for this simulation")
-@click.option("-s", "--scenario", "scenarios", envvar="COVID_SCENARIOS", type=str, default=[], multiple=True,
-              help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]")
-@click.option("-n", "--nsim", envvar="COVID_NSIMULATIONS", type=click.IntRange(min=1),
-              help="override the # of simulation runs in the config file")
-@click.option("-i", "--index", envvar="COVID_INDEX", type=click.IntRange(min=1),
-              default=1, show_default=True,
-              help="The index of the first simulation")
-@click.option("-j", "--jobs", envvar="COVID_NJOBS", type=click.IntRange(min=1),
-              default=multiprocessing.cpu_count(), show_default=True,
-              help="the parallelization factor")
-@click.option("--in-id", "--in-id", "in_run_id", envvar="COVID_RUN_INDEX", type=str,
-              default=file_paths.run_id(), show_default=True,
-              help="Unique identifier for the run") # Default does not make sense here
-@click.option("--out-id", "--out-id", "out_run_id", envvar="COVID_RUN_INDEX", type=str,
-              default=file_paths.run_id(), show_default=True,
-              help="Unique identifier for the run")
-@click.option("--interactive/--batch", default=False,
-              help="run in interactive or batch mode [default: batch]")
-@click.option("--write-csv/--no-write-csv", default=False, show_default=True,
-              help="write CSV output at end of simulation")
-@click.option("--write-parquet/--no-write-parquet", default=True, show_default=True,
-              help="write parquet file output at end of simulation")
-#@profile_options
-def simulate(config_file, in_run_id, out_run_id, scenarios, nsim, jobs, interactive, write_csv, write_parquet,index):
+@click.option(
+    "-c",
+    "--config",
+    "config_file",
+    envvar=["COVID_CONFIG_PATH", "CONFIG_PATH"],
+    type=click.Path(exists=True),
+    required=True,
+    help="configuration file for this simulation",
+)
+@click.option(
+    "-s",
+    "--scenario",
+    "scenarios",
+    envvar="COVID_SCENARIOS",
+    type=str,
+    default=[],
+    multiple=True,
+    help="override the scenario(s) run for this simulation [supports multiple scenarios: `-s Wuhan -s None`]",
+)
+@click.option(
+    "-n",
+    "--nsim",
+    envvar="COVID_NSIMULATIONS",
+    type=click.IntRange(min=1),
+    help="override the # of simulation runs in the config file",
+)
+@click.option(
+    "-i",
+    "--index",
+    envvar="COVID_INDEX",
+    type=click.IntRange(min=1),
+    default=1,
+    show_default=True,
+    help="The index of the first simulation",
+)
+@click.option(
+    "-j",
+    "--jobs",
+    envvar="COVID_NJOBS",
+    type=click.IntRange(min=1),
+    default=multiprocessing.cpu_count(),
+    show_default=True,
+    help="the parallelization factor",
+)
+@click.option(
+    "--in-id",
+    "--in-id",
+    "in_run_id",
+    envvar="COVID_RUN_INDEX",
+    type=str,
+    default=file_paths.run_id(),
+    show_default=True,
+    help="Unique identifier for the run",
+)  # Default does not make sense here
+@click.option(
+    "--out-id",
+    "--out-id",
+    "out_run_id",
+    envvar="COVID_RUN_INDEX",
+    type=str,
+    default=file_paths.run_id(),
+    show_default=True,
+    help="Unique identifier for the run",
+)
+@click.option(
+    "--interactive/--batch",
+    default=False,
+    help="run in interactive or batch mode [default: batch]",
+)
+@click.option(
+    "--write-csv/--no-write-csv",
+    default=False,
+    show_default=True,
+    help="write CSV output at end of simulation",
+)
+@click.option(
+    "--write-parquet/--no-write-parquet",
+    default=True,
+    show_default=True,
+    help="write parquet file output at end of simulation",
+)
+# @profile_options
+def simulate(
+    config_file,
+    in_run_id,
+    out_run_id,
+    scenarios,
+    nsim,
+    jobs,
+    interactive,
+    write_csv,
+    write_parquet,
+    index,
+):
     config.set_file(config_file)
 
     spatial_config = config["spatial_setup"]
@@ -173,37 +242,47 @@ def simulate(config_file, in_run_id, out_run_id, scenarios, nsim, jobs, interact
         geodata_file=spatial_base_path / spatial_config["geodata"].get(),
         mobility_file=spatial_base_path / spatial_config["mobility"].get(),
         popnodes_key=spatial_config["popnodes"].get(),
-        nodenames_key=spatial_config["nodenames"].get())
+        nodenames_key=spatial_config["nodenames"].get(),
+    )
 
     start = time.monotonic()
     for scenario in scenarios:
-        s = setup.Setup(setup_name=config["name"].get() + "/" + str(scenario) + "/",
-                        spatial_setup=spatial_setup,
-                        nsim=nsim,
-                        npi_scenario=scenario,
-                        npi_config=config["interventions"]["settings"][scenario],
-                        seeding_config=config["seeding"],
-                        initial_conditions_config=config["initial_conditions"],
-                        parameters_config=config["seir"]["parameters"],
-                        seir_config = config["seir"],
-                        ti=config["start_date"].as_date(),
-                        tf=config["end_date"].as_date(),
-                        interactive=interactive,
-                        write_csv=write_csv,
-                        write_parquet=write_parquet,
-                        dt=config["dt"].as_number(),
-                        first_sim_index = index,
-                        in_run_id = in_run_id,
-                        in_prefix = config["name"].get() + "/",
-                        out_run_id = out_run_id,
-                        out_prefix = config["name"].get() + "/" + str(scenario) + "/" + out_run_id + "/")
+        s = setup.Setup(
+            setup_name=config["name"].get() + "/" + str(scenario) + "/",
+            spatial_setup=spatial_setup,
+            nsim=nsim,
+            npi_scenario=scenario,
+            npi_config=config["interventions"]["settings"][scenario],
+            seeding_config=config["seeding"],
+            initial_conditions_config=config["initial_conditions"],
+            parameters_config=config["seir"]["parameters"],
+            seir_config=config["seir"],
+            ti=config["start_date"].as_date(),
+            tf=config["end_date"].as_date(),
+            interactive=interactive,
+            write_csv=write_csv,
+            write_parquet=write_parquet,
+            dt=config["dt"].as_number(),
+            first_sim_index=index,
+            in_run_id=in_run_id,
+            in_prefix=config["name"].get() + "/",
+            out_run_id=out_run_id,
+            out_prefix=config["name"].get()
+            + "/"
+            + str(scenario)
+            + "/"
+            + out_run_id
+            + "/",
+        )
 
-        print(f"""
+        print(
+            f"""
 >> Scenario: {scenario}
 >> Starting {s.nsim} model runs beginning from {s.first_sim_index} on {jobs} processes
 >> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}
 >> writing to folder : {s.datadir}{s.setup_name}
-    """)
+    """
+        )
 
         seir.run_parallel(s, n_jobs=jobs)
     print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")
