@@ -78,7 +78,7 @@ class Setup:
                  seeding_config={},
                  initial_conditions_config={},
                  parameters_config={},
-                 compartments_config={},
+                 seir_config={},
                  interactive=True,
                  write_csv=False,
                  write_parquet=False,
@@ -102,7 +102,7 @@ class Setup:
         self.seeding_config = seeding_config
         self.initial_conditions_config = initial_conditions_config
         self.parameters_config = parameters_config
-        self.compartments_config = compartments_config
+        self.seir_config = seir_config
         self.interactive = interactive
         self.write_csv = write_csv
         self.write_parquet = write_parquet
@@ -133,7 +133,7 @@ class Setup:
         self.build_setup()
 
         if config_version is None:
-            if "compartments" in self.compartments_config.keys():
+            if "compartments" in self.seir_config.keys():
                 config_version = 'v2'
             else:
                 config_version = 'old'
@@ -150,7 +150,7 @@ class Setup:
                                                 config_version=config_version)
         self.seedingAndIC = seeding_ic.SeedingAndIC(seeding_config=self.seeding_config,
                                                       initial_conditions_config=self.initial_conditions_config)
-        self.compartments = compartments.Compartments(self.compartments_config)
+        self.compartments = compartments.Compartments(self.seir_config)
 
         if self.write_csv or self.write_parquet:
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
