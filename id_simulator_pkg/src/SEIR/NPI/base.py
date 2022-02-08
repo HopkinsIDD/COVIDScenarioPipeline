@@ -30,9 +30,23 @@ class NPIBase(abc.ABC):
             out_df = pa.Table.from_pandas(out_df, preserve_index=False)
             pa.parquet.write_table(out_df, f"{fname}.{extension}")
         else:
-            raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
+            raise NotImplementedError(
+                f"Invalid extension {extension}. Must be 'csv' or 'parquet'"
+            )
 
-    def execute(*, npi_config, global_config, geoids, loaded_df=None, pnames_overlap_operation_sum = []):
+    def execute(
+        *,
+        npi_config,
+        global_config,
+        geoids,
+        loaded_df=None,
+        pnames_overlap_operation_sum=[],
+    ):
         template = npi_config["template"].as_str()
         npi_class = NPIBase.__plugins__[template]
-        return npi_class(npi_config=npi_config, global_config=global_config, geoids=geoids, loaded_df=loaded_df)
+        return npi_class(
+            npi_config=npi_config,
+            global_config=global_config,
+            geoids=geoids,
+            loaded_df=loaded_df,
+        )
