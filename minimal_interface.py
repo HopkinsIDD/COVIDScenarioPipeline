@@ -26,10 +26,10 @@
 import pathlib
 from SEIR import seir, setup, file_paths
 from SEIR.utils import config, Timer
-
-# from SEIR.profile import profile_options
+#from SEIR.profile import profile_options
 from Outcomes import outcomes
 import numpy as np
+
 
 
 config.set_file(config_path)
@@ -38,7 +38,7 @@ spatial_config = config["spatial_setup"]
 spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 scenario = scenario
 deathrate = deathrate
-stoch_traj_flag = stoch_traj_flag  # Truthy: stochastic simulation, Falsy: determnistic mean of the binomial draws
+stoch_traj_flag= stoch_traj_flag # Truthy: stochastic simulation, Falsy: determnistic mean of the binomial draws
 nsim = 1
 interactive = False
 write_csv = False
@@ -57,9 +57,7 @@ import pstats
 from functools import wraps
 
 
-def profile(
-    output_file=None, sort_by="cumulative", lines_to_print=None, strip_dirs=False
-):
+def profile(output_file=None, sort_by='cumulative', lines_to_print=None, strip_dirs=False):
     """A time profiler decorator.
     Inspired by and modified the profile decorator of Giampaolo Rodola:
     http://code.activestate.com/recipes/577817-profile-decorator/
@@ -87,7 +85,7 @@ def profile(
     def inner(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            _output_file = output_file or func.__name__ + ".prof"
+            _output_file = output_file or func.__name__ + '.prof'
             pr = cProfile.Profile()
             pr.enable()
             retval = func(*args, **kwargs)
@@ -99,18 +97,14 @@ def profile(
 
     return inner
 
-
 ### Logger configuration
 import logging
 import os
-
-logging.basicConfig(level=os.environ.get("COVID_LOGLEVEL", "INFO").upper())
+logging.basicConfig(level=os.environ.get('COVID_LOGLEVEL', 'INFO').upper())
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 # '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
-formatter = logging.Formatter(
-    "%(asctime)s [%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
-)
+formatter = logging.Formatter("%(asctime)s [%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s")
 
 handler.setFormatter(formatter)
 print()
@@ -122,7 +116,7 @@ s = setup.Setup(
         geodata_file=spatial_base_path / spatial_config["geodata"].get(),
         mobility_file=spatial_base_path / spatial_config["mobility"].get(),
         popnodes_key=spatial_config["popnodes"].get(),
-        nodenames_key=spatial_config["nodenames"].get(),
+        nodenames_key=spatial_config["nodenames"].get()
     ),
     nsim=nsim,
     npi_scenario=scenario,
@@ -137,67 +131,46 @@ s = setup.Setup(
     write_csv=write_csv,
     write_parquet=write_parquet,
     dt=config["dt"].as_number(),
-    first_sim_index=index,
-    in_run_id=run_id,
-    in_prefix=prefix,
-    out_run_id=run_id,
-    out_prefix=prefix,
+    first_sim_index = index,
+    in_run_id = run_id,
+    in_prefix = prefix,
+    out_run_id = run_id,
+    out_prefix = prefix
 )
 
-print(
-    f"""
+print(f"""
 >> Running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** SEIR and Outcomes modules;
 >> Setup {s.setup_name}; ti: {s.ti}; tf: {s.tf}; Scenario SEIR: {scenario}; Scenario Outcomes: {deathrate};
->> index: {s.first_sim_index}; run_id: {run_id}, prefix: {prefix};"""
-)
+>> index: {s.first_sim_index}; run_id: {run_id}, prefix: {prefix};""")
 
 setup_name = s.setup_name
 
-# @profile()
+#@profile()
 def onerun_OUTCOMES_loadID(index):
-    with Timer("onerun_OUTCOMES_loadID"):
-        outcomes.onerun_delayframe_outcomes_load_hpar(
-            config,
-            int(index),
-            run_id,
-            prefix,  # input
-            int(index),
-            run_id,
-            prefix,  # output
-            deathrate,
-            stoch_traj_flag,
-        )
+    with Timer('onerun_OUTCOMES_loadID'):
+        outcomes.onerun_delayframe_outcomes_load_hpar(config,
+                                                        int(index), run_id, prefix, # input
+                                                        int(index), run_id, prefix,  # output
+                                                        deathrate, stoch_traj_flag)
     return 1
 
-
-# @profile()
+#@profile()                                                   
 def onerun_OUTCOMES(index):
-    with Timer("onerun_OUTCOMES"):
-        outcomes.run_delayframe_outcomes(
-            config,
-            int(index),
-            run_id,
-            prefix,  # input
-            int(index),
-            run_id,
-            prefix,  # output
-            deathrate,
-            nsim=1,
-            n_jobs=1,
-            stoch_traj_flag=stoch_traj_flag,
-        )
+    with Timer('onerun_OUTCOMES'):
+        outcomes.run_delayframe_outcomes(config,
+                                            int(index), run_id, prefix, # input
+                                            int(index), run_id, prefix, # output
+                                            deathrate, nsim=1, n_jobs=1, stoch_traj_flag = stoch_traj_flag)
     return 1
 
-
-# @profile()
+#@profile()
 def onerun_SEIR_loadID(sim_id2write, s, sim_id2load):
-    with Timer("onerun_SEIR_loadID"):
+    with Timer('onerun_SEIR_loadID'):
         seir.onerun_SEIR_loadID(int(sim_id2write), s, int(sim_id2load), stoch_traj_flag)
     return 1
 
-
-# @profile()
+#@profile()
 def onerun_SEIR(sim_id2write, s):
-    with Timer("onerun_SEIR"):
+    with Timer('onerun_SEIR'):
         seir.onerun_SEIR(int(sim_id2write), s, stoch_traj_flag)
     return 1
