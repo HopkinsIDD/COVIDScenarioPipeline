@@ -16,7 +16,7 @@ doc/latex
 # ^Joseph's stuff
 
 Outcomes/test/model_output
-
+model_output/
 
 # History files
 .Rhistory
