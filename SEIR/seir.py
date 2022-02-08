@@ -90,9 +90,11 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
         s.popnodes,
         stoch_traj_flag) # TODO make it a dict, it's safer
 
-    if s.integration_method == 'classical':
+    logging.info(f"Integrating with method {s.integration_method}")
+
+    if s.integration_method == 'legacy':
         seir_sim = steps_SEIR_nb(*fnct_args)
-    elif s.integration_method == 'rk4':
+    elif s.integration_method == 'rk4.jit':
         seir_sim = steps_rk4.rk4_integration(*fnct_args)
     else:
         logging.critical("Experimental !!! These methods are not ready for production ! ")
