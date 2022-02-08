@@ -1,6 +1,7 @@
 import itertools
 import time
 import warnings
+from matplotlib.pyplot import step
 
 import numpy as np
 import pandas as pd
@@ -12,7 +13,8 @@ from SEIR.utils import config, Timer
 import pyarrow.parquet as pq
 import pyarrow as pa
 import logging
-import SEIR.steps_ode as steps_ode
+import SEIR.steps_rk4 as steps_rk4
+import SEIR.dev.steps as steps_experimental
 
 logger = logging.getLogger(__name__)
 
@@ -90,29 +92,33 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
 
     if s.integration_method == 'classical':
         seir_sim = steps_SEIR_nb(*fnct_args)
-    elif s.integration_method in ['scipy.solve_ivp', 'scipy.odeint', 'scipy.solve_ivp2', 'scipy.odeint2']:
-        if stoch_traj_flag == True:
-            raise ValueError(f"with method {s.integration_method}, only deterministic"
-                             f"integration is possible (got stoch_straj_flag={stoch_traj_flag}")
-        seir_sim = steps_ode.ode_integration(*fnct_args, integration_method=s.integration_method)
-    elif s.integration_method == 'rk4.jit1':
-        seir_sim = steps_ode.rk4_integration1(*fnct_args)
-    elif s.integration_method == 'rk4.jit2':
-        seir_sim = steps_ode.rk4_integration2(*fnct_args)
-    elif s.integration_method == 'rk4.jit3':
-        seir_sim = steps_ode.rk4_integration3(*fnct_args)
-    elif s.integration_method == 'rk4.jit4':
-        seir_sim = steps_ode.rk4_integration4(*fnct_args)
-    elif s.integration_method == 'rk4.jit5':
-        seir_sim = steps_ode.rk4_integration5(*fnct_args)
-    elif s.integration_method == 'rk4.jit6':
-        seir_sim = steps_ode.rk4_integration6(*fnct_args)
-    elif s.integration_method == 'rk4.jit.smart':
-        seir_sim = steps_ode.rk4_integration2_smart(*fnct_args)
-    elif s.integration_method == 'rk4_aot':
-        seir_sim = rk4_aot(*fnct_args)
+    elif s.integration_method == 'rk4':
+        seir_sim = steps_rk4.rk4_integration(*fnct_args)
     else:
-        raise ValueError(f"Unknow integration scheme, got {s.integration_method}")
+        logging.critical("Experimental !!! These methods are not ready for production ! ")
+        if s.integration_method in ['scipy.solve_ivp', 'scipy.odeint', 'scipy.solve_ivp2', 'scipy.odeint2']:
+            if stoch_traj_flag == True:
+                raise ValueError(f"with method {s.integration_method}, only deterministic"
+                                f"integration is possible (got stoch_straj_flag={stoch_traj_flag}")
+            seir_sim = steps_experimental.ode_integration(*fnct_args, integration_method=s.integration_method)
+        elif s.integration_method == 'rk4.jit1':
+            seir_sim = steps_experimental.rk4_integration1(*fnct_args)
+        elif s.integration_method == 'rk4.jit2':
+            seir_sim = steps_experimental.rk4_integration2(*fnct_args)
+        elif s.integration_method == 'rk4.jit3':
+            seir_sim = steps_experimental.rk4_integration3(*fnct_args)
+        elif s.integration_method == 'rk4.jit4':
+            seir_sim = steps_experimental.rk4_integration4(*fnct_args)
+        elif s.integration_method == 'rk4.jit5':
+            seir_sim = steps_experimental.rk4_integration5(*fnct_args)
+        elif s.integration_method == 'rk4.jit6':
+            seir_sim = steps_experimental.rk4_integration6(*fnct_args)
+        elif s.integration_method == 'rk4.jit.smart':
+            seir_sim = steps_experimental.rk4_integration2_smart(*fnct_args)
+        elif s.integration_method == 'rk4_aot':
+            seir_sim = steps_experimental.rk4_aot(*fnct_args)
+        else:
+            raise ValueError(f"Unknow integration scheme, got {s.integration_method}")
     return seir_sim
 
 def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):

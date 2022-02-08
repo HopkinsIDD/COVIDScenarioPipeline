@@ -15,7 +15,7 @@ proportion_sum_starts_col = 0
 proportion_sum_stops_col = 1
 proportion_exponent_col = 2
 
-def rk4_integration4(
+def rk4_integration(
         ncompartments,  # 1
         nspatial_nodes,  # 2
         ndays,  # 3
@@ -120,7 +120,7 @@ def rk4_integration4(
 
     #@jit(nopython=True, fastmath=True, cache=True)
     def rk4_integrate(t, x, today):
-        dt = 1 # day by day rk integration
+        dt = 1 # day by day rk integration. TODO: Should support smaller dt !
         k1 = rhs(t, x, today)
         k2 = rhs(t, x + dt / 2 * k1, today)
         k3 = rhs(t, x + dt / 2 * k2, today)
