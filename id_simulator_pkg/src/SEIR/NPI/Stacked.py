@@ -11,11 +11,19 @@ debug_print = False
 
 "Cap on # of reduction metadata entries to store in memory"
 
-REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE",5000))
+REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE", 5000))
 
 
 class Stacked(NPIBase):
-    def __init__(self, *, npi_config, global_config, geoids, loaded_df=None, pnames_overlap_operation_sum = []):
+    def __init__(
+        self,
+        *,
+        npi_config,
+        global_config,
+        geoids,
+        loaded_df=None,
+        pnames_overlap_operation_sum=[],
+    ):
         super().__init__(name=npi_config.name)
 
         self.start_date = global_config["start_date"].as_date()
@@ -23,7 +31,7 @@ class Stacked(NPIBase):
 
         self.geoids = geoids
         self.param_name = []
-        self.reductions = {} #{param: 1 for param in REDUCE_PARAMS}
+        self.reductions = {}  # {param: 1 for param in REDUCE_PARAMS}
         self.reduction_params = collections.deque()
         self.reduction_cap_exceeded = False
         self.reduction_number = 0
@@ -36,7 +44,9 @@ class Stacked(NPIBase):
             if isinstance(scenario, str):
                 settings = settings_map.get(scenario)
                 if settings is None:
-                    raise RuntimeError(f"couldn't find scenario in config file [got: {scenario}]")
+                    raise RuntimeError(
+                        f"couldn't find scenario in config file [got: {scenario}]"
+                    )
                 # via profiling: faster to recreate the confuse view than to fetch+resolve due to confuse isinstance
                 # checks
                 scenario_npi_config = confuse.RootView([settings])
@@ -46,15 +56,23 @@ class Stacked(NPIBase):
                 scenario_npi_config = confuse.RootView([scenario])
                 scenario_npi_config.key = "unnamed-{hash(scenario)}"
 
-            sub_npi = NPIBase.execute(npi_config=scenario_npi_config, global_config=global_config, geoids=geoids,
-                                      loaded_df=loaded_df)
-            new_params = sub_npi.param_name # either a list (if stacked) or a string
-            new_params= [new_params] if isinstance(new_params, str) else new_params # convert to list
+            sub_npi = NPIBase.execute(
+                npi_config=scenario_npi_config,
+                global_config=global_config,
+                geoids=geoids,
+                loaded_df=loaded_df,
+            )
+            new_params = sub_npi.param_name  # either a list (if stacked) or a string
+            new_params = (
+                [new_params] if isinstance(new_params, str) else new_params
+            )  # convert to list
             # Add each parameter at first encounter
             for new_p in new_params:
                 if new_p not in self.param_name:
                     self.param_name.append(new_p)
-                    if new_p in pnames_overlap_operation_sum: #re.match("^transition_rate [1234567890]+$",new_p):
+                    if (
+                        new_p in pnames_overlap_operation_sum
+                    ):  # re.match("^transition_rate [1234567890]+$",new_p):
                         self.reductions[new_p] = 0
                     else:
                         self.reductions[new_p] = 1
@@ -65,10 +83,12 @@ class Stacked(NPIBase):
 
             for param in self.param_name:
                 reduction = sub_npi.getReduction(param, default=0.0)
-                if param in pnames_overlap_operation_sum: #re.match("^transition_rate [1234567890]+$",param):
+                if (
+                    param in pnames_overlap_operation_sum
+                ):  # re.match("^transition_rate [1234567890]+$",param):
                     self.reductions[param] += reduction
                 else:
-                    self.reductions[param] *= (1 - reduction)
+                    self.reductions[param] *= 1 - reduction
 
             # FIXME: getReductionToWrite() returns a concat'd set of stacked scenario params, which is
             # serialized as a giant dataframe to parquet. move this writing to be incremental, but need to
@@ -83,7 +103,9 @@ class Stacked(NPIBase):
                     self.reduction_params.clear()
 
         for param in self.param_name:
-            if not param in pnames_overlap_operation_sum: #re.match("^transition_rate \d+$",param):
+            if (
+                not param in pnames_overlap_operation_sum
+            ):  # re.match("^transition_rate \d+$",param):
                 self.reductions[param] = 1 - self.reductions[param]
 
         self.__checkErrors()
@@ -91,14 +113,20 @@ class Stacked(NPIBase):
     def __checkErrors(self):
         for param, reduction in self.reductions.items():
             if isinstance(reduction, pd.DataFrame) and (reduction > 1).any(axis=None):
-                raise ValueError(f"The intervention in config: {self.name} has reduction of {param} with value {self.reductions.get(param).max().max()} which is greater than 100% reduced.")
+                raise ValueError(
+                    f"The intervention in config: {self.name} has reduction of {param} with value {self.reductions.get(param).max().max()} which is greater than 100% reduced."
+                )
 
     def getReduction(self, param, default=0.0):
         return self.reductions.get(param, default)
 
     def getReductionToWrite(self):
         if self.reduction_cap_exceeded:
-            warnings.warn(f"""Not writing reduction metadata (*.snpi.*) as memory buffer cap exceeded {self.reduction_number}""")
-            raise RuntimeError("error : Not writing reduction metadata (*.snpi.*) as memory buffer cap exceeded. Try setting `export COVID_MAX_STACK_SIZE=[BIGNUMBER]`")
-            #return pd.DataFrame({"error": ["No reduction metadata as memory buffer cap exceeded"]})
+            warnings.warn(
+                f"""Not writing reduction metadata (*.snpi.*) as memory buffer cap exceeded {self.reduction_number}"""
+            )
+            raise RuntimeError(
+                "error : Not writing reduction metadata (*.snpi.*) as memory buffer cap exceeded. Try setting `export COVID_MAX_STACK_SIZE=[BIGNUMBER]`"
+            )
+            # return pd.DataFrame({"error": ["No reduction metadata as memory buffer cap exceeded"]})
         return pd.concat(self.reduction_params, ignore_index=True)
