@@ -16,7 +16,7 @@ setuptools.setup(
     author_email="jo.lemaitresamra@gmail.com",
     description="SEIR simulation",
     packages=setuptools.find_packages(exclude=["*.test*"]),
-    ext_modules=[steps_cc.distutils_extension()]#, steps_ode.distutils_extension()], # LazyExtensions(),#
+    ext_modules=[steps_cc.distutils_extension()],#, steps_ode.distutils_extension()], # LazyExtensions(),#
     license="LICENSE",
     install_requires=requirements,
     #setup_requires=['numba==0.53.1'],

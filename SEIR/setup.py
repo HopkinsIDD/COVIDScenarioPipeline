@@ -107,8 +107,18 @@ class Setup:
         self.write_csv = write_csv
         self.write_parquet = write_parquet
         self.first_sim_index = first_sim_index
-        self.integration_method = 'classical'
-
+        if  "integration_method" in self.seir_config.keys():
+            self.integration_method = self.seir_config["integration_method"].get()
+            if self.integration_method == 'best.current':
+                self.integration_method = 'rk4.jit'
+            if self.integration_method == 'rk4':
+                self.integration_method = 'rk4.jit'
+            if self.integration_method not in ['rk4.jit', 'legacy']:
+                raise ValueError(f"Unknow integration method {self.integration_method}.")
+        else:
+            self.integration_method = 'legacy'
+            logging.info(f"Integration method not provided, assuming type {self.integration_method}")
+            
         if in_run_id is None:
             in_run_id = file_paths.run_id()
         self.in_run_id = in_run_id

@@ -4,8 +4,6 @@ from numba import jit
 import numba
 import tqdm
 from SEIR.utils import Timer
-import SEIR.nbkode as nbkode
-
 
 transition_source_col, \
 transition_destination_col, \
