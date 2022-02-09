@@ -30,6 +30,7 @@ jobs:
         run: cp Docker.Rprofile $HOME/.Rprofile
         shell: bash
       - name: Install id simulation package
+        run: |
           /home/app/python_venv/bin/python -m pip install --upgrade pip
           pip install -e id_simulator_pkg/
         shell: bash
