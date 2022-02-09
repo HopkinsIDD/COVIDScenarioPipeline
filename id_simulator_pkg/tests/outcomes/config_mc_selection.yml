@@ -185,7 +185,7 @@ outcomes:
           intervention_param_name: incidH_probability
           value:
             distribution: fixed
-            value: .1
+            value: .2
         delay:
           intervention_param_name: incidH_delay
           value:
@@ -206,7 +206,7 @@ outcomes:
           intervention_param_name: incidH_probability
           value:
             distribution: fixed
-            value: .1
+            value: .2
         delay:
           intervention_param_name: incidH_delay
           value:

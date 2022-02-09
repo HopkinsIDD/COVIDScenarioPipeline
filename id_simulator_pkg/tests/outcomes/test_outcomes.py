@@ -1404,14 +1404,15 @@ def test_outcomes_pcomp():
         f"{config_path_prefix}model_output/hpar/000000001.111.hpar.parquet"
     ).to_pandas()
     # Doubled everything from previous config.yaml
-    for k, p_comp in enumerate(["unvaccinated", "first_dose"]):
-        hpar = hpar_f[hpar_f["mc_vaccination_stage"] == p_comp]
+    #for k, p_comp in enumerate(["unvaccinated", "first_dose"]):
+    for k, p_comp in enumerate(["0dose", "1dose"]):
+        hpar = hpar_f
         for i, place in enumerate(geoid):
             assert (
                 float(
                     hpar[
                         (hpar["geoid"] == place)
-                        & (hpar["outcome"] == "incidH")
+                        & (hpar["outcome"] == f"incidH_{p_comp}")
                         & (hpar["quantity"] == "probability")
                     ]["value"]
                 )
@@ -1421,7 +1422,7 @@ def test_outcomes_pcomp():
                 float(
                     hpar[
                         (hpar["geoid"] == place)
-                        & (hpar["outcome"] == "incidH")
+                        & (hpar["outcome"] == f"incidH_{p_comp}")
                         & (hpar["quantity"] == "delay")
                     ]["value"]
                 )
@@ -1431,7 +1432,7 @@ def test_outcomes_pcomp():
                 float(
                     hpar[
                         (hpar["geoid"] == place)
-                        & (hpar["outcome"] == "incidH")
+                        & (hpar["outcome"] == f"incidH_{p_comp}")
                         & (hpar["quantity"] == "duration")
                     ]["value"]
                 )
@@ -1441,7 +1442,7 @@ def test_outcomes_pcomp():
                 float(
                     hpar[
                         (hpar["geoid"] == place)
-                        & (hpar["outcome"] == "incidD")
+                        & (hpar["outcome"] == f"incidD_{p_comp}")
                         & (hpar["quantity"] == "probability")
                     ]["value"]
                 )
@@ -1451,7 +1452,7 @@ def test_outcomes_pcomp():
                 float(
                     hpar[
                         (hpar["geoid"] == place)
-                        & (hpar["outcome"] == "incidD")
+                        & (hpar["outcome"] == f"incidD_{p_comp}")
                         & (hpar["quantity"] == "delay")
                     ]["value"]
                 )
@@ -1461,7 +1462,7 @@ def test_outcomes_pcomp():
                 float(
                     hpar[
                         (hpar["geoid"] == place)
-                        & (hpar["outcome"] == "incidICU")
+                        & (hpar["outcome"] == f"incidICU_{p_comp}")
                         & (hpar["quantity"] == "probability")
                     ]["value"]
                 )
@@ -1471,7 +1472,7 @@ def test_outcomes_pcomp():
                 float(
                     hpar[
                         (hpar["geoid"] == place)
-                        & (hpar["outcome"] == "incidICU")
+                        & (hpar["outcome"] == f"incidICU_{p_comp}")
                         & (hpar["quantity"] == "delay")
                     ]["value"]
                 )
