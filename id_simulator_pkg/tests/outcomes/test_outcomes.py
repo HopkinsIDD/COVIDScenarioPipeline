@@ -31,6 +31,7 @@ subclasses = ["_A", "_B"]
 
 os.chdir(os.path.dirname(__file__))
 
+
 def test_outcomes_scenario():
     os.chdir(os.path.dirname(__file__))  ## this is redundant but necessary. Why ?
     config.clear()
@@ -1404,7 +1405,7 @@ def test_outcomes_pcomp():
         f"{config_path_prefix}model_output/hpar/000000001.111.hpar.parquet"
     ).to_pandas()
     # Doubled everything from previous config.yaml
-    #for k, p_comp in enumerate(["unvaccinated", "first_dose"]):
+    # for k, p_comp in enumerate(["unvaccinated", "first_dose"]):
     for k, p_comp in enumerate(["0dose", "1dose"]):
         hpar = hpar_f
         for i, place in enumerate(geoid):

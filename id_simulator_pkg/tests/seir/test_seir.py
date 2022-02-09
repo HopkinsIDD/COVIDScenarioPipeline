@@ -232,7 +232,6 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
             True,
         )
         df = seir.states2Df(s, states)
-        print(i)
         assert (
             df[
                 (df["value_type"] == "prevalence") & (df["mc_infection_stage"] == "R")
@@ -267,7 +266,18 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
             ].loc[str(s.tf), "20002"]
             > 1
         )
-        assert states[seir.cumI, :, 1, :].max() > 0
+        assert (
+            df[
+                (df["value_type"] == "incidence") & (df["mc_infection_stage"] == "I1")
+            ].max()["20002"]
+            > 0
+        )
+        assert (
+            df[
+                (df["value_type"] == "incidence") & (df["mc_infection_stage"] == "I1")
+            ].max()["10001"]
+            > 0
+        )
 
 
 def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
@@ -285,6 +295,10 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
         nodenames_key="geoid",
     )
 
+    index = 1
+    run_id = "test_SeedOneNode"
+    prefix = ""
+
     s = setup.Setup(
         setup_name="test_seir",
         spatial_setup=ss,
@@ -292,18 +306,21 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
         npi_scenario="None",
         npi_config=config["interventions"]["settings"]["None"],
         parameters_config=config["seir"]["parameters"],
+        seeding_config=config["seeding"],
         ti=config["start_date"].as_date(),
         tf=config["end_date"].as_date(),
         interactive=True,
         write_csv=False,
+        first_sim_index=index,
+        in_run_id=run_id,
+        in_prefix=prefix,
+        out_run_id=run_id,
+        out_prefix=prefix,
         dt=0.25,
     )
 
-    seeding = np.zeros((len(s.t_inter), s.nnodes))
-    seeding[:, 0] = 100
-
-    y0 = np.zeros((setup.ncomp, s.params.n_parallel_compartments, s.nnodes))
-    y0[setup.S, 0, :] = s.popnodes
+    seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
+    initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
@@ -313,10 +330,18 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
         npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
     )
 
-    parameters = setup.parameters_quick_draw(s.params, len(s.t_inter), s.nnodes)
-    parameters = setup.parameters_reduce(parameters, npi, s.dt)
+    params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
+    params = s.parameters.parameters_reduce(params, npi)
 
-    for i in range(100):
+    (
+        parsed_parameters,
+        unique_strings,
+        transition_array,
+        proportion_array,
+        proportion_info,
+    ) = s.compartments.get_transition_array(params, s.parameters.pnames)
+
+    for i in range(10):
         states = seir.steps_SEIR(
             s,
             parsed_parameters,
@@ -331,8 +356,20 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
             mobility_data_indices,
             True,
         )
+        df = seir.states2Df(s, states)
 
-        assert states[seir.cumI, :, 1, :].max() > 0
+        assert (
+            df[
+                (df["value_type"] == "incidence") & (df["mc_infection_stage"] == "I1")
+            ].max()["20002"]
+            > 0
+        )
+        assert (
+            df[
+                (df["value_type"] == "incidence") & (df["mc_infection_stage"] == "I1")
+            ].max()["10001"]
+            > 0
+        )
 
 
 def test_steps_SEIR_no_spread():
