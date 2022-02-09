@@ -18,6 +18,7 @@ import id_simulator.dev.steps as steps_experimental
 
 logger = logging.getLogger(__name__)
 
+
 def steps_SEIR(
     s,
     parsed_parameters,
@@ -97,8 +98,8 @@ def steps_SEIR(
     logging.info(f"Integrating with method {s.integration_method}")
 
     if s.integration_method == "legacy":
-        raise ValueError('AOT legacy method not available on this version')
-        #seir_sim = steps_SEIR_nb(*fnct_args)
+        raise ValueError("AOT legacy method not available on this version")
+        # seir_sim = steps_SEIR_nb(*fnct_args)
     elif s.integration_method == "rk4.jit":
         seir_sim = steps_rk4.rk4_integration(*fnct_args)
     else:

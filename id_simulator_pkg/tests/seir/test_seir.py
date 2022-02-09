@@ -147,7 +147,11 @@ def test_constant_population():
         totalpop = 0
         for i in range(s.nnodes):
             totalpop += states[0].sum(axis=1)[it, i]
-            assert states[0].sum(axis=1)[it, i] - 1e-3 < origpop[i] < states[0].sum(axis=1)[it, i] + 1e-3
+            assert (
+                states[0].sum(axis=1)[it, i] - 1e-3
+                < origpop[i]
+                < states[0].sum(axis=1)[it, i] + 1e-3
+            )
         assert completepop - 1e-3 < totalpop < completepop + 1e-3
 
 
