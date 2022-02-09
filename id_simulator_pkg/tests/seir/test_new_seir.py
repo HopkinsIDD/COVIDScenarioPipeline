@@ -14,6 +14,7 @@ from id_simulator import setup, seir, NPI, file_paths, compartments
 from id_simulator.utils import config
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
+os.chdir(os.path.dirname(__file__))
 
 
 def test_constant_population():
