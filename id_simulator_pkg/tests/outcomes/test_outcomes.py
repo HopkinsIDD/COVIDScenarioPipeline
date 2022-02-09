@@ -1484,7 +1484,7 @@ def test_outcomes_pcomp_read_write():
     os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_npi.yml")
+    config.set_file(f"{config_path_prefix}config_mc_selection.yml")
 
     run_id = 1
     index = 1
