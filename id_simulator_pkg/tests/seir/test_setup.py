@@ -5,9 +5,9 @@ import pandas as pd
 import pytest
 import confuse
 
-from SEIR import setup
+from id_simulator import setup
 
-from ..utils import config
+from id_simulator.utils import config
 
 TEST_SETUP_NAME = "minimal_test"
 

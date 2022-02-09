@@ -10,9 +10,9 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import filecmp
 
-from SEIR import compartments, seir, NPI, file_paths, setup
+from id_simulator import compartments, seir, NPI, file_paths, setup
 
-from ..utils import config
+from id_simulator.utils import config
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
 

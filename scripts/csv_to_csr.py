@@ -5,7 +5,7 @@ import pandas as pd
 import os
 import scipy.sparse
 
-from SEIR.utils import config
+from id_simulator.utils import config
 
 
 @click.command()

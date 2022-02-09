@@ -2,7 +2,7 @@ import numpy as np
 from numba import jit
 import numba
 import tqdm
-from SEIR.utils import Timer
+from id_simulator.utils import Timer
 
 (
     transition_source_col,

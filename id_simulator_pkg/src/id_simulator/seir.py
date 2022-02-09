@@ -8,31 +8,15 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from SEIR import NPI, setup, file_paths
-from SEIR.utils import config, Timer
+from id_simulator import NPI, setup, file_paths
+from id_simulator.utils import config, Timer
 import pyarrow.parquet as pq
 import pyarrow as pa
 import logging
-import SEIR.steps_rk4 as steps_rk4
-import SEIR.dev.steps as steps_experimental
+import id_simulator.steps_rk4 as steps_rk4
+import id_simulator.dev.steps as steps_experimental
 
 logger = logging.getLogger(__name__)
-
-# The compiled module may be known as steps or SEIR.steps depending on virtual_env vs conda
-try:
-    with warnings.catch_warnings() as w:  # ignore DeprecationWarning inside numba
-        warnings.simplefilter("ignore")
-        from steps import steps_SEIR_nb
-except ModuleNotFoundError as e:
-    try:
-        with warnings.catch_warnings() as w:  # ignore DeprecationWarning inside numba
-            warnings.simplefilter("ignore")
-            from SEIR.steps import steps_SEIR_nb
-    except ModuleNotFoundError as e:
-        raise RuntimeError(
-            "Missing compiled module, please run `python setup.py install`"
-        ) from e
-
 
 def steps_SEIR(
     s,
@@ -113,7 +97,8 @@ def steps_SEIR(
     logging.info(f"Integrating with method {s.integration_method}")
 
     if s.integration_method == "legacy":
-        seir_sim = steps_SEIR_nb(*fnct_args)
+        raise ValueError('AOT legacy method not available on this version')
+        #seir_sim = steps_SEIR_nb(*fnct_args)
     elif s.integration_method == "rk4.jit":
         seir_sim = steps_rk4.rk4_integration(*fnct_args)
     else:

@@ -5,9 +5,9 @@ import os
 import pytest
 import confuse
 
-from SEIR.NPI import ReduceR0, Reduce, ReduceIntervention
+from id_simulator.NPI import ReduceR0, Reduce, ReduceIntervention
 
-from ..utils import config
+from id_simulator.utils import config
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
 

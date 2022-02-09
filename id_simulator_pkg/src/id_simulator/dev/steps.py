@@ -3,7 +3,7 @@ from scipy.integrate import solve_ivp, odeint, ode
 from numba import jit
 import numba
 import tqdm
-from SEIR.utils import Timer
+from id_simulator.utils import Timer
 
 (
     transition_source_col,

@@ -124,10 +124,10 @@ import time
 
 import click
 
-from SEIR import seir, setup, file_paths
-from SEIR.utils import config
+from id_simulator import seir, setup, file_paths
+from id_simulator.utils import config
 
-# from SEIR.profile import profile_options
+# from id_simulator.profile import profile_options
 
 
 @click.command()

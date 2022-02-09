@@ -11,10 +11,10 @@ import filecmp
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import SEIR.seir
-from SEIR import compartments, seir, NPI, file_paths, setup
+import id_simulator.seir
+from id_simulator import compartments, seir, NPI, file_paths, setup
 
-from SEIR.utils import config
+from id_simulator.utils import config
 
 DATA_DIR = "data"
 

@@ -7,7 +7,7 @@ import multiprocessing
 import datetime
 import hashlib
 
-from SEIR import file_paths
+from id_simulator import file_paths
 
 
 # assert helpers

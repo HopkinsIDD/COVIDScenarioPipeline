@@ -6,7 +6,7 @@ import copy
 import confuse
 from numpy import ndarray
 
-import SEIR.setup
+import id_simulator.setup
 import logging
 
 logger = logging.getLogger(__name__)
