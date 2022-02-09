@@ -15,6 +15,7 @@ from id_simulator import setup, seir, NPI, file_paths, parameters
 from id_simulator.utils import config
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
+os.chdir(os.path.dirname(__file__))
 
 
 def test_parameters_from_config_plus_read_write():

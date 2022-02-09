@@ -13,7 +13,7 @@ from id_simulator import setup, seir, NPI, file_paths
 from id_simulator.utils import config
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
-#os.chdir(os.path.dirname(__file__))
+os.chdir(os.path.dirname(__file__))
 
 
 def test_check_values():

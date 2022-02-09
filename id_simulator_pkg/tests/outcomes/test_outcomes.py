@@ -20,7 +20,11 @@ import click
 import pyarrow as pa
 from id_simulator import file_paths
 
-config_path_prefix = 'tests/outcomes/'
+print( os.getcwd())
+os.chdir(os.path.dirname(__file__))
+print( os.getcwd())
+
+config_path_prefix = ""#'tests/outcomes/'
 
 ### To generate files for this test, see notebook Test Outcomes  playbook.ipynb in COVID19_Maryland
 
@@ -31,8 +35,10 @@ subclasses = ["_A", "_B"]
 
 
 def test_outcomes_scenario():
+    os.chdir(os.path.dirname(__file__))  ## this is redundant but necessary. Why ?
     config.clear()
     config.read(user=False)
+    print( os.getcwd())
     config.set_file(f"{config_path_prefix}config.yml")
     run_id = 1
     index = 1
@@ -53,7 +59,7 @@ def test_outcomes_scenario():
         stoch_traj_flag=stoch_traj_flag,
     )
 
-    hosp = pq.read_table("model_output/hosp/000000001.1.hosp.parquet").to_pandas()
+    hosp = pq.read_table(f"{config_path_prefix}model_output/hosp/000000001.1.hosp.parquet").to_pandas()
     hosp.set_index("time", drop=True, inplace=True)
     for i, place in enumerate(geoid):
         for dt in hosp.index:
@@ -116,7 +122,7 @@ def test_outcomes_scenario():
                     == 0
                 )
                 assert hosp[hosp["geoid"] == place]["incidICU"][dt] == 0
-    hpar = pq.read_table("model_output/hpar/000000001.1.hpar.parquet").to_pandas()
+    hpar = pq.read_table(f"{config_path_prefix}model_output/hpar/000000001.1.hpar.parquet").to_pandas()
     for i, place in enumerate(geoid):
         assert (
             float(
@@ -214,9 +220,9 @@ def test_outcomes_scenario_with_load():
         stoch_traj_flag=stoch_traj_flag,
     )
     hpar_config = pq.read_table(
-        "model_output/hpar/000000001.1.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.1.hpar.parquet"
     ).to_pandas()
-    hpar_rel = pq.read_table("model_output/hpar/000000001.2.hpar.parquet").to_pandas()
+    hpar_rel = pq.read_table(f"{config_path_prefix}model_output/hpar/000000001.2.hpar.parquet").to_pandas()
 
     for out in ["incidH", "incidD", "incidICU"]:
         for i, place in enumerate(geoid):
@@ -251,14 +257,14 @@ def test_outcomes_read_write_hpar():
         config, int(index), 2, prefix, int(index), 3, prefix, deathrate, stoch_traj_flag
     )
 
-    hpar_read = pq.read_table("model_output/hpar/000000001.2.hpar.parquet").to_pandas()
-    hpar_wrote = pq.read_table("model_output/hpar/000000001.3.hpar.parquet").to_pandas()
+    hpar_read = pq.read_table(f"{config_path_prefix}model_output/hpar/000000001.2.hpar.parquet").to_pandas()
+    hpar_wrote = pq.read_table(f"{config_path_prefix}model_output/hpar/000000001.3.hpar.parquet").to_pandas()
     assert (hpar_read == hpar_wrote).all().all()
-    hnpi_read = pq.read_table("model_output/hnpi/000000001.2.hnpi.parquet").to_pandas()
-    hnpi_wrote = pq.read_table("model_output/hnpi/000000001.3.hnpi.parquet").to_pandas()
+    hnpi_read = pq.read_table(f"{config_path_prefix}model_output/hnpi/000000001.2.hnpi.parquet").to_pandas()
+    hnpi_wrote = pq.read_table(f"{config_path_prefix}model_output/hnpi/000000001.3.hnpi.parquet").to_pandas()
     assert (hnpi_read == hnpi_wrote).all().all()
-    hosp_read = pq.read_table("model_output/hosp/000000001.2.hosp.parquet").to_pandas()
-    hosp_wrote = pq.read_table("model_output/hosp/000000001.3.hosp.parquet").to_pandas()
+    hosp_read = pq.read_table(f"{config_path_prefix}model_output/hosp/000000001.2.hosp.parquet").to_pandas()
+    hosp_wrote = pq.read_table(f"{config_path_prefix}model_output/hosp/000000001.3.hosp.parquet").to_pandas()
     assert (hosp_read == hosp_wrote).all().all()
 
 
@@ -285,7 +291,7 @@ def test_outcomes_scenario_subclasses():
         n_jobs=1,
         stoch_traj_flag=stoch_traj_flag,
     )
-    hosp = pq.read_table("model_output/hosp/000000001.10.hosp.parquet").to_pandas()
+    hosp = pq.read_table(f"{config_path_prefix}model_output/hosp/000000001.10.hosp.parquet").to_pandas()
     hosp.set_index("time", drop=True, inplace=True)
 
     for i, place in enumerate(geoid):
@@ -415,7 +421,7 @@ def test_outcomes_scenario_subclasses():
                     )
                     assert hosp[hosp["geoid"] == place][f"incidICU{cl}"][dt] == 0
 
-    hpar = pq.read_table("model_output/hpar/000000001.10.hpar.parquet").to_pandas()
+    hpar = pq.read_table(f"{config_path_prefix}model_output/hpar/000000001.10.hpar.parquet").to_pandas()
     for cl in subclasses:
         for i, place in enumerate(geoid):
             assert (
@@ -517,9 +523,9 @@ def test_outcomes_scenario_with_load_subclasses():
     )
 
     hpar_config = pq.read_table(
-        "model_output/hpar/000000001.10.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.10.hpar.parquet"
     ).to_pandas()
-    hpar_rel = pq.read_table("model_output/hpar/000000001.11.hpar.parquet").to_pandas()
+    hpar_rel = pq.read_table(f"{config_path_prefix}model_output/hpar/000000001.11.hpar.parquet").to_pandas()
     for cl in subclasses:
         for out in [f"incidH{cl}", f"incidD{cl}", f"incidICU{cl}"]:
             for i, place in enumerate(geoid):
@@ -548,7 +554,7 @@ def test_outcomes_scenario_with_load_subclasses():
                                 diffI[i] * 0.1 + add
                             )
 
-    hosp_rel = pq.read_table("model_output/hosp/000000001.11.hosp.parquet").to_pandas()
+    hosp_rel = pq.read_table(f"{config_path_prefix}model_output/hosp/000000001.11.hosp.parquet").to_pandas()
     assert (hosp_rel["incidH"] == hosp_rel["incidH_A"] + hosp_rel["incidH_B"]).all()
 
 
@@ -596,15 +602,15 @@ def test_outcomes_read_write_hpar_subclasses():
         stoch_traj_flag,
     )
 
-    hpar_read = pq.read_table("model_output/hpar/000000001.12.hpar.parquet").to_pandas()
+    hpar_read = pq.read_table(f"{config_path_prefix}model_output/hpar/000000001.12.hpar.parquet").to_pandas()
     hpar_wrote = pq.read_table(
-        "model_output/hpar/000000001.13.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.13.hpar.parquet"
     ).to_pandas()
     assert (hpar_read == hpar_wrote).all().all()
 
-    hosp_read = pq.read_table("model_output/hosp/000000001.12.hosp.parquet").to_pandas()
+    hosp_read = pq.read_table(f"{config_path_prefix}model_output/hosp/000000001.12.hosp.parquet").to_pandas()
     hosp_wrote = pq.read_table(
-        "model_output/hosp/000000001.13.hosp.parquet"
+        f"{config_path_prefix}model_output/hosp/000000001.13.hosp.parquet"
     ).to_pandas()
     assert (hosp_read == hosp_wrote).all().all()
 
@@ -670,7 +676,7 @@ def test_outcomes_npi():
         stoch_traj_flag=stoch_traj_flag,
     )
 
-    hosp = pq.read_table("model_output/hosp/000000001.105.hosp.parquet").to_pandas()
+    hosp = pq.read_table(f"{config_path_prefix}model_output/hosp/000000001.105.hosp.parquet").to_pandas()
     hosp.set_index("time", drop=True, inplace=True)
     # same as config.yaml (doubled, then NPI halve it)
     for i, place in enumerate(geoid):
@@ -734,7 +740,7 @@ def test_outcomes_npi():
                     == 0
                 )
                 assert hosp[hosp["geoid"] == place]["incidICU"][dt] == 0
-    hpar = pq.read_table("model_output/hpar/000000001.105.hpar.parquet").to_pandas()
+    hpar = pq.read_table(f"{config_path_prefix}model_output/hpar/000000001.105.hpar.parquet").to_pandas()
     # Doubled everything from previous config.yaml
     for i, place in enumerate(geoid):
         assert (
@@ -832,24 +838,24 @@ def test_outcomes_read_write_hnpi():
     )
 
     hpar_read = pq.read_table(
-        "model_output/hpar/000000001.105.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.105.hpar.parquet"
     ).to_pandas()
     hpar_wrote = pq.read_table(
-        "model_output/hpar/000000001.106.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.106.hpar.parquet"
     ).to_pandas()
     assert (hpar_read == hpar_wrote).all().all()
     hnpi_read = pq.read_table(
-        "model_output/hnpi/000000001.105.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
     ).to_pandas()
     hnpi_wrote = pq.read_table(
-        "model_output/hnpi/000000001.106.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet"
     ).to_pandas()
     assert (hnpi_read == hnpi_wrote).all().all()
     hosp_read = pq.read_table(
-        "model_output/hosp/000000001.105.hosp.parquet"
+        f"{config_path_prefix}model_output/hosp/000000001.105.hosp.parquet"
     ).to_pandas()
     hosp_wrote = pq.read_table(
-        "model_output/hosp/000000001.106.hosp.parquet"
+        f"{config_path_prefix}model_output/hosp/000000001.106.hosp.parquet"
     ).to_pandas()
     assert (hosp_read == hosp_wrote).all().all()
 
@@ -866,7 +872,7 @@ def test_outcomes_read_write_hnpi2():
     stoch_traj_flag = False
 
     hnpi_read = pq.read_table(
-        "model_output/hnpi/000000001.105.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
     ).to_pandas()
     hnpi_read["reduction"] = np.random.random(len(hnpi_read)) * 2 - 1
     out_hnpi = pa.Table.from_pandas(hnpi_read, preserve_index=False)
@@ -889,10 +895,10 @@ def test_outcomes_read_write_hnpi2():
     )
 
     hnpi_read = pq.read_table(
-        "model_output/hnpi/000000001.105.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
     ).to_pandas()
     hnpi_wrote = pq.read_table(
-        "model_output/hnpi/000000001.106.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet"
     ).to_pandas()
     assert (hnpi_read == hnpi_wrote).all().all()
 
@@ -910,24 +916,24 @@ def test_outcomes_read_write_hnpi2():
     )
 
     hpar_read = pq.read_table(
-        "model_output/hpar/000000001.106.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.106.hpar.parquet"
     ).to_pandas()
     hpar_wrote = pq.read_table(
-        "model_output/hpar/000000001.107.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.107.hpar.parquet"
     ).to_pandas()
     assert (hpar_read == hpar_wrote).all().all()
     hnpi_read = pq.read_table(
-        "model_output/hnpi/000000001.106.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet"
     ).to_pandas()
     hnpi_wrote = pq.read_table(
-        "model_output/hnpi/000000001.107.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.107.hnpi.parquet"
     ).to_pandas()
     assert (hnpi_read == hnpi_wrote).all().all()
     hosp_read = pq.read_table(
-        "model_output/hosp/000000001.106.hosp.parquet"
+        f"{config_path_prefix}model_output/hosp/000000001.106.hosp.parquet"
     ).to_pandas()
     hosp_wrote = pq.read_table(
-        "model_output/hosp/000000001.107.hosp.parquet"
+        f"{config_path_prefix}model_output/hosp/000000001.107.hosp.parquet"
     ).to_pandas()
     assert (hosp_read == hosp_wrote).all().all()
 
@@ -955,7 +961,7 @@ def test_outcomes_npi_custom_pname():
         stoch_traj_flag=stoch_traj_flag,
     )
 
-    hosp = pq.read_table("model_output/hosp/000000001.105.hosp.parquet").to_pandas()
+    hosp = pq.read_table(f"{config_path_prefix}model_output/hosp/000000001.105.hosp.parquet").to_pandas()
     hosp.set_index("time", drop=True, inplace=True)
     # same as config.yaml (doubled, then NPI halve it)
     for i, place in enumerate(geoid):
@@ -1019,7 +1025,7 @@ def test_outcomes_npi_custom_pname():
                     == 0
                 )
                 assert hosp[hosp["geoid"] == place]["incidICU"][dt] == 0
-    hpar = pq.read_table("model_output/hpar/000000001.105.hpar.parquet").to_pandas()
+    hpar = pq.read_table(f"{config_path_prefix}model_output/hpar/000000001.105.hpar.parquet").to_pandas()
     # Doubled everything from previous config.yaml
     for i, place in enumerate(geoid):
         assert (
@@ -1117,24 +1123,24 @@ def test_outcomes_read_write_hnpi_custom_pname():
     )
 
     hpar_read = pq.read_table(
-        "model_output/hpar/000000001.105.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.105.hpar.parquet"
     ).to_pandas()
     hpar_wrote = pq.read_table(
-        "model_output/hpar/000000001.106.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.106.hpar.parquet"
     ).to_pandas()
     assert (hpar_read == hpar_wrote).all().all()
     hnpi_read = pq.read_table(
-        "model_output/hnpi/000000001.105.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
     ).to_pandas()
     hnpi_wrote = pq.read_table(
-        "model_output/hnpi/000000001.106.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet"
     ).to_pandas()
     assert (hnpi_read == hnpi_wrote).all().all()
     hosp_read = pq.read_table(
-        "model_output/hosp/000000001.105.hosp.parquet"
+        f"{config_path_prefix}model_output/hosp/000000001.105.hosp.parquet"
     ).to_pandas()
     hosp_wrote = pq.read_table(
-        "model_output/hosp/000000001.106.hosp.parquet"
+        f"{config_path_prefix}model_output/hosp/000000001.106.hosp.parquet"
     ).to_pandas()
     assert (hosp_read == hosp_wrote).all().all()
 
@@ -1151,7 +1157,7 @@ def test_outcomes_read_write_hnpi2_custom_pname():
     stoch_traj_flag = False
 
     hnpi_read = pq.read_table(
-        "model_output/hnpi/000000001.105.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
     ).to_pandas()
     hnpi_read["reduction"] = np.random.random(len(hnpi_read)) * 2 - 1
     out_hnpi = pa.Table.from_pandas(hnpi_read, preserve_index=False)
@@ -1174,10 +1180,10 @@ def test_outcomes_read_write_hnpi2_custom_pname():
     )
 
     hnpi_read = pq.read_table(
-        "model_output/hnpi/000000001.105.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
     ).to_pandas()
     hnpi_wrote = pq.read_table(
-        "model_output/hnpi/000000001.106.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet"
     ).to_pandas()
     assert (hnpi_read == hnpi_wrote).all().all()
 
@@ -1195,24 +1201,24 @@ def test_outcomes_read_write_hnpi2_custom_pname():
     )
 
     hpar_read = pq.read_table(
-        "model_output/hpar/000000001.106.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.106.hpar.parquet"
     ).to_pandas()
     hpar_wrote = pq.read_table(
-        "model_output/hpar/000000001.107.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.107.hpar.parquet"
     ).to_pandas()
     assert (hpar_read == hpar_wrote).all().all()
     hnpi_read = pq.read_table(
-        "model_output/hnpi/000000001.106.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet"
     ).to_pandas()
     hnpi_wrote = pq.read_table(
-        "model_output/hnpi/000000001.107.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.107.hnpi.parquet"
     ).to_pandas()
     assert (hnpi_read == hnpi_wrote).all().all()
     hosp_read = pq.read_table(
-        "model_output/hosp/000000001.106.hosp.parquet"
+        f"{config_path_prefix}model_output/hosp/000000001.106.hosp.parquet"
     ).to_pandas()
     hosp_wrote = pq.read_table(
-        "model_output/hosp/000000001.107.hosp.parquet"
+        f"{config_path_prefix}model_output/hosp/000000001.107.hosp.parquet"
     ).to_pandas()
     assert (hosp_read == hosp_wrote).all().all()
 
@@ -1229,7 +1235,7 @@ def test_outcomes_pcomp():
     stoch_traj_flag = False
     p_compmult = [1, 3]
 
-    seir = pq.read_table("model_output/seir/000000001.105.seir.parquet").to_pandas()
+    seir = pq.read_table(f"{config_path_prefix}model_output/seir/000000001.105.seir.parquet").to_pandas()
     seir2 = seir.copy()
     seir2["mc_vaccination_stage"] = "first_dose"
     for pl in geoid:
@@ -1253,7 +1259,7 @@ def test_outcomes_pcomp():
         stoch_traj_flag=stoch_traj_flag,
     )
 
-    hosp_f = pq.read_table("model_output/hosp/000000001.111.hosp.parquet").to_pandas()
+    hosp_f = pq.read_table(f"{config_path_prefix}model_output/hosp/000000001.111.hosp.parquet").to_pandas()
     hosp_f.set_index("time", drop=True, inplace=True)
     # same as config.yaml (doubled, then NPI halve it)
     for k, p_comp in enumerate(["unvaccinated", "first_dose"]):
@@ -1342,7 +1348,7 @@ def test_outcomes_pcomp():
                         == 0
                     )
                     assert hosp[hosp["geoid"] == place]["incidICU"][dt] == 0
-    hpar_f = pq.read_table("model_output/hpar/000000001.111.hpar.parquet").to_pandas()
+    hpar_f = pq.read_table(f"{config_path_prefix}model_output/hpar/000000001.111.hpar.parquet").to_pandas()
     # Doubled everything from previous config.yaml
     for k, p_comp in enumerate(["unvaccinated", "first_dose"]):
         hpar = hpar_f[hpar_f["mc_vaccination_stage"] == p_comp]
@@ -1442,24 +1448,24 @@ def test_outcomes_pcomp_read_write():
         stoch_traj_flag=stoch_traj_flag,
     )
     hpar_read = pq.read_table(
-        "model_output/hpar/000000001.111.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.111.hpar.parquet"
     ).to_pandas()
     hpar_wrote = pq.read_table(
-        "model_output/hpar/000000001.112.hpar.parquet"
+        f"{config_path_prefix}model_output/hpar/000000001.112.hpar.parquet"
     ).to_pandas()
     assert (hpar_read == hpar_wrote).all().all()
     hnpi_read = pq.read_table(
-        "model_output/hnpi/000000001.111.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.111.hnpi.parquet"
     ).to_pandas()
     hnpi_wrote = pq.read_table(
-        "model_output/hnpi/000000001.112.hnpi.parquet"
+        f"{config_path_prefix}model_output/hnpi/000000001.112.hnpi.parquet"
     ).to_pandas()
     assert (hnpi_read == hnpi_wrote).all().all()
     hosp_read = pq.read_table(
-        "model_output/hosp/000000001.111.hosp.parquet"
+        f"{config_path_prefix}model_output/hosp/000000001.111.hosp.parquet"
     ).to_pandas()
     hosp_wrote = pq.read_table(
-        "model_output/hosp/000000001.112.hosp.parquet"
+        f"{config_path_prefix}model_output/hosp/000000001.112.hosp.parquet"
     ).to_pandas()
     assert (hosp_read == hosp_wrote).all().all()
 

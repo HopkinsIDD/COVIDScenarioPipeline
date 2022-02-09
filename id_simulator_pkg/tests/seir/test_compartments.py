@@ -15,6 +15,7 @@ from id_simulator import compartments, seir, NPI, file_paths, setup
 from id_simulator.utils import config
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
+os.chdir(os.path.dirname(__file__))
 
 
 def test_check_transitions_parquet_creation():

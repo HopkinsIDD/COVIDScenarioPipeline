@@ -12,6 +12,7 @@ from id_simulator.utils import config
 TEST_SETUP_NAME = "minimal_test"
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
+os.chdir(os.path.dirname(__file__))
 
 
 class TestSpatialSetup:
