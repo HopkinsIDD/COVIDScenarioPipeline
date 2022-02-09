@@ -37,7 +37,7 @@ class Timer(object):
         self.tstart = time.time()
 
     def __exit__(self, type, value, traceback):
-        logging.info(f"[{self.name}] completed in {time.time() - self.tstart} s")
+        logging.info(f"[{self.name}] completed in {time.time() - self.tstart:,.2f} s")
 
 
 class ISO8601Date(confuse.Template):
