@@ -29,8 +29,8 @@ jobs:
       - name: Set up Rprofile
         run: cp Docker.Rprofile $HOME/.Rprofile
         shell: bash
-      - name: Install id_simulation package
-          /home/app/python_venv/bin/python -m pip install --upgrade pip # needs new pip for toml file
+      - name: Install id simulation package
+          /home/app/python_venv/bin/python -m pip install --upgrade pip
           pip install -e id_simulator_pkg/
         shell: bash
       - name: Install local R packages
