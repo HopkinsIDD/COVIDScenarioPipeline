@@ -32,7 +32,7 @@ jobs:
       - name: Install id simulation package
         run: |
           /home/app/python_venv/bin/python -m pip install --upgrade pip
-          pip install -e id_simulator_pkg/
+          /home/app/python_venv/bin/pip install -e id_simulator_pkg/
         shell: bash
       - name: Install local R packages
         run: Rscript local_install.R
