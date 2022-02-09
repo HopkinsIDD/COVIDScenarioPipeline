@@ -463,7 +463,7 @@ def compute_all_multioutcomes(
     all_data = {}
 
     outcomes = dataframe_from_array(
-        np.zeros((len(dates), len(places)), dtype=np.int), places, dates, "zeros"
+        np.zeros((len(dates), len(places)), dtype=int), places, dates, "zeros"
     ).drop("zeros", axis=1)
 
     for new_comp in parameters:
@@ -692,7 +692,7 @@ def compute_all_multioutcomes(
 
 def backward_compatibility_incidI(diffI, dates, places):
     # We store them as numpy matrices. Dimensions is dates X places
-    incidI_arr = np.zeros((len(dates), len(places)), dtype=np.int)
+    incidI_arr = np.zeros((len(dates), len(places)), dtype=int)
     mc_vaccination_stages = diffI["mc_vaccination_stage"].unique()
     for p_comp in mc_vaccination_stages:
         incidI = diffI[
@@ -715,7 +715,7 @@ def backward_compatibility_incidI(diffI, dates, places):
 
 
 def get_filtered_incidI(diffI, dates, places, filters):
-    incidI_arr = np.zeros((len(dates), len(places)), dtype=np.int)
+    incidI_arr = np.zeros((len(dates), len(places)), dtype=int)
     df = diffI.copy()
     for mc_type, mc_value in filters.items():
         if isinstance(mc_value, str):
