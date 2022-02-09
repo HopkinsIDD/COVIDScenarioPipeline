@@ -12,7 +12,7 @@ import sys
 import tarfile
 from datetime import datetime, timezone, date
 import yaml
-from SEIR import file_paths
+from id_simulator import file_paths
 
 
 @click.command()

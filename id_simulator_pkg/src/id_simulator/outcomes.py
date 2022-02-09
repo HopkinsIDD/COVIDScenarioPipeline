@@ -9,13 +9,13 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from SEIR.utils import config, Timer
-import SEIR.NPI as NPI
+from id_simulator.utils import config, Timer
+import id_simulator.NPI as NPI
 import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
-from SEIR import file_paths
-from SEIR.setup import _parameter_reduce, npi_load
+from id_simulator import file_paths
+from id_simulator.setup import _parameter_reduce, npi_load
 
 import logging
 

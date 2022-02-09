@@ -55,9 +55,9 @@ import time, os
 
 import click
 
-from SEIR import file_paths
-from SEIR.utils import config
-from Outcomes import outcomes
+from id_simulator import file_paths
+from id_simulator.utils import config
+from id_simulator import outcomes
 
 
 @click.command()

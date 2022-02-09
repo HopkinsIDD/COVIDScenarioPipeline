@@ -9,9 +9,9 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from functools import reduce
 
-from SEIR import setup, seir, NPI, file_paths, compartments
+from id_simulator import setup, seir, NPI, file_paths, compartments
 
-from ..utils import config
+from id_simulator.utils import config
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
 

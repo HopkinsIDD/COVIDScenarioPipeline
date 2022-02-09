@@ -16,8 +16,8 @@ import datetime
 
 import pytest
 
-from Outcomes import outcomes
-from SEIR.utils import config
+from id_simulator import outcomes
+from id_simulator.utils import config
 
 import pandas as pd
 import numpy as np
@@ -30,7 +30,7 @@ from pathlib import Path
 import pyarrow.parquet as pq
 import click
 import pyarrow as pa
-from SEIR import file_paths
+from id_simulator import file_paths
 
 run_id = 110
 prefix = ""

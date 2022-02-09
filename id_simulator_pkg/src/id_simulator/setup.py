@@ -124,7 +124,7 @@ class Setup:
                     f"Unknow integration method {self.integration_method}."
                 )
         else:
-            self.integration_method = "legacy"
+            self.integration_method = "rk4.jit"
             logging.info(
                 f"Integration method not provided, assuming type {self.integration_method}"
             )

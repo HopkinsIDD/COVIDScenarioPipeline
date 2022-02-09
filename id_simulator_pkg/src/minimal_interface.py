@@ -24,11 +24,11 @@
 #
 
 import pathlib
-from SEIR import seir, setup, file_paths
-from SEIR.utils import config, Timer
+from id_simulator import seir, setup, file_paths
+from id_simulator.utils import config, Timer
 
-# from SEIR.profile import profile_options
-from Outcomes import outcomes
+# from id_simulator.profile import profile_options
+from id_simulator import outcomes
 import numpy as np
 
 
