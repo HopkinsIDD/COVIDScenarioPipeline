@@ -234,7 +234,7 @@ class SpatialSetup:
                 "Mobility files as matrices are not recommended. Please switch soon to long form csv files."
             )
             self.mobility = scipy.sparse.csr_matrix(
-                np.loadtxt(mobility_file), dtype=np.int
+                np.loadtxt(mobility_file), dtype=int
             )  # K x K matrix of people moving
             # Validate mobility data
             if self.mobility.shape != (self.nnodes, self.nnodes):
@@ -257,11 +257,11 @@ class SpatialSetup:
             self.mobility = scipy.sparse.coo_matrix(
                 (mobility_data.amount, (mobility_data.ori_idx, mobility_data.dest_idx)),
                 shape=(self.nnodes, self.nnodes),
-                dtype=np.int,
+                dtype=int,
             ).tocsr()
 
         elif mobility_file.suffix == ".npz":
-            self.mobility = scipy.sparse.load_npz(mobility_file).astype(np.int)
+            self.mobility = scipy.sparse.load_npz(mobility_file).astype(int)
             # Validate mobility data
             if self.mobility.shape != (self.nnodes, self.nnodes):
                 raise ValueError(
