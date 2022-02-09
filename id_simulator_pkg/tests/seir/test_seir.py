@@ -17,6 +17,7 @@ os.chdir(os.path.dirname(__file__))
 
 
 def test_check_values():
+    os.chdir(os.path.dirname(__file__))
     config.set_file(f"{DATA_DIR}/config.yml")
 
     ss = setup.SpatialSetup(
@@ -146,11 +147,12 @@ def test_constant_population():
         totalpop = 0
         for i in range(s.nnodes):
             totalpop += states[0].sum(axis=1)[it, i]
-            assert origpop[i] == states[0].sum(axis=1)[it, i]
-        assert completepop == totalpop
+            assert states[0].sum(axis=1)[it, i] - 1e-3 < origpop[i] < states[0].sum(axis=1)[it, i] + 1e-3
+        assert completepop - 1e-3 < totalpop < completepop + 1e-3
 
 
 def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     print("test mobility with txt matrices")
@@ -265,6 +267,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
 
 
 def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{DATA_DIR}/config.yml")
@@ -329,6 +332,7 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
 
 
 def test_steps_SEIR_no_spread():
+    os.chdir(os.path.dirname(__file__))
     print("test mobility with no spread")
     config.set_file(f"{DATA_DIR}/config.yml")
 
@@ -432,6 +436,7 @@ def test_steps_SEIR_no_spread():
 
 
 def test_continuation_resume():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file("data/config.yml")
@@ -556,6 +561,7 @@ def test_continuation_resume():
 
 
 def test_inference_resume():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file("data/config.yml")
@@ -672,6 +678,7 @@ def test_inference_resume():
 
 
 def test_parallel_compartments_with_vacc():
+    os.chdir(os.path.dirname(__file__))
     config.set_file(f"{DATA_DIR}/config_parallel.yml")
 
     ss = setup.SpatialSetup(
@@ -779,6 +786,7 @@ def test_parallel_compartments_with_vacc():
 
 
 def test_parallel_compartments_no_vacc():
+    os.chdir(os.path.dirname(__file__))
     config.set_file(f"{DATA_DIR}/config_parallel.yml")
 
     ss = setup.SpatialSetup(

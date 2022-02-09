@@ -246,7 +246,7 @@ class Parameters:
         p_reduced = copy.deepcopy(p_draw)
 
         for idx, pn in enumerate(self.pnames):
-            p_reduced[idx] = SEIR.setup._parameter_reduce(
+            p_reduced[idx] = id_simulator.setup._parameter_reduce(
                 parameter=p_draw[idx],
                 modification=npi.getReduction(pn.lower()),
                 method=self.pdata[pn]["intervention_overlap_operation"],
