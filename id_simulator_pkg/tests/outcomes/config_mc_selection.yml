@@ -58,7 +58,7 @@ outcomes:
             value: 7
           name: hosp_curr
     ### 3. Same thing as before but using the new syntax, but explicitely.
-      incidH_from_all_explicit:                              
+    incidH_from_all_explicit:                              
         source: 
           incidence:
             infection_stage: "I1"
