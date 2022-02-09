@@ -20,6 +20,8 @@ import click
 import pyarrow as pa
 from id_simulator import file_paths
 
+config_path_prefix = 'tests/outcomes/'
+
 ### To generate files for this test, see notebook Test Outcomes  playbook.ipynb in COVID19_Maryland
 
 geoid = ["15005", "15007", "15009", "15001", "15003"]
@@ -31,7 +33,7 @@ subclasses = ["_A", "_B"]
 def test_outcomes_scenario():
     config.clear()
     config.read(user=False)
-    config.set_file("config.yml")
+    config.set_file(f"{config_path_prefix}config.yml")
     run_id = 1
     index = 1
     deathrate = "high_death_rate"
@@ -191,7 +193,7 @@ def test_outcomes_scenario():
 def test_outcomes_scenario_with_load():
     config.clear()
     config.read(user=False)
-    config.set_file("config_load.yml")
+    config.set_file(f"{config_path_prefix}config_load.yml")
 
     run_id = 1
     index = 1
@@ -238,7 +240,7 @@ def test_outcomes_scenario_with_load():
 def test_outcomes_read_write_hpar():
     config.clear()
     config.read(user=False)
-    config.set_file("config_load.yml")
+    config.set_file(f"{config_path_prefix}config_load.yml")
 
     run_id = 1
     index = 1
@@ -263,7 +265,7 @@ def test_outcomes_read_write_hpar():
 def test_outcomes_scenario_subclasses():
     config.clear()
     config.read(user=False)
-    config.set_file("config_subclasses.yml")
+    config.set_file(f"{config_path_prefix}config_subclasses.yml")
 
     run_id = 1
     index = 1
@@ -493,7 +495,7 @@ def test_outcomes_scenario_subclasses():
 def test_outcomes_scenario_with_load_subclasses():
     config.clear()
     config.read(user=False)
-    config.set_file("config_load_subclasses.yml")
+    config.set_file(f"{config_path_prefix}config_load_subclasses.yml")
 
     run_id = 1
     index = 1
@@ -553,7 +555,7 @@ def test_outcomes_scenario_with_load_subclasses():
 def test_outcomes_read_write_hpar_subclasses():
     config.clear()
     config.read(user=False)
-    config.set_file("config_load.yml")
+    config.set_file(f"{config_path_prefix}config_load.yml")
 
     run_id = 1
     index = 1
@@ -575,7 +577,7 @@ def test_outcomes_read_write_hpar_subclasses():
     )
     config.clear()
     config.read(user=False)
-    config.set_file("config_load.yml")
+    config.set_file(f"{config_path_prefix}config_load.yml")
 
     run_id = 1
     index = 1
@@ -648,7 +650,7 @@ def test_multishift_notstochdelays():
 def test_outcomes_npi():
     config.clear()
     config.read(user=False)
-    config.set_file("config_npi.yml")
+    config.set_file(f"{config_path_prefix}config_npi.yml")
     run_id = 1
     index = 1
     deathrate = "high_death_rate"
@@ -810,7 +812,7 @@ def test_outcomes_npi():
 def test_outcomes_read_write_hnpi():
     config.clear()
     config.read(user=False)
-    config.set_file("config_npi.yml")
+    config.set_file(f"{config_path_prefix}config_npi.yml")
 
     run_id = 1
     index = 1
@@ -855,7 +857,7 @@ def test_outcomes_read_write_hnpi():
 def test_outcomes_read_write_hnpi2():
     config.clear()
     config.read(user=False)
-    config.set_file("config_npi.yml")
+    config.set_file(f"{config_path_prefix}config_npi.yml")
 
     run_id = 1
     index = 1
@@ -933,7 +935,7 @@ def test_outcomes_read_write_hnpi2():
 def test_outcomes_npi_custom_pname():
     config.clear()
     config.read(user=False)
-    config.set_file("config_npi_custom_pnames.yml")
+    config.set_file(f"{config_path_prefix}config_npi_custom_pnames.yml")
     run_id = 1
     index = 1
     deathrate = "high_death_rate"
@@ -1095,7 +1097,7 @@ def test_outcomes_npi_custom_pname():
 def test_outcomes_read_write_hnpi_custom_pname():
     config.clear()
     config.read(user=False)
-    config.set_file("config_npi_custom_pnames.yml")
+    config.set_file(f"{config_path_prefix}config_npi_custom_pnames.yml")
 
     run_id = 1
     index = 1
@@ -1140,7 +1142,7 @@ def test_outcomes_read_write_hnpi_custom_pname():
 def test_outcomes_read_write_hnpi2_custom_pname():
     config.clear()
     config.read(user=False)
-    config.set_file("config_npi_custom_pnames.yml")
+    config.set_file(f"{config_path_prefix}config_npi_custom_pnames.yml")
 
     run_id = 1
     index = 1
@@ -1218,7 +1220,7 @@ def test_outcomes_read_write_hnpi2_custom_pname():
 def test_outcomes_pcomp():
     config.clear()
     config.read(user=False)
-    config.set_file("config_mc_selection.yml")
+    config.set_file(f"{config_path_prefix}config_mc_selection.yml")
 
     run_id = 1
     index = 1
@@ -1420,7 +1422,7 @@ def test_outcomes_pcomp():
 def test_outcomes_pcomp_read_write():
     config.clear()
     config.read(user=False)
-    config.set_file("config_npi.yml")
+    config.set_file(f"{config_path_prefix}config_npi.yml")
 
     run_id = 1
     index = 1
