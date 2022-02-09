@@ -20,10 +20,6 @@ import click
 import pyarrow as pa
 from id_simulator import file_paths
 
-print(os.getcwd())
-os.chdir(os.path.dirname(__file__))
-print(os.getcwd())
-
 config_path_prefix = ""  #'tests/outcomes/'
 
 ### To generate files for this test, see notebook Test Outcomes  playbook.ipynb in COVID19_Maryland
@@ -33,6 +29,7 @@ diffI = np.arange(5) * 2
 date_data = datetime.date(2020, 4, 15)
 subclasses = ["_A", "_B"]
 
+os.chdir(os.path.dirname(__file__))
 
 def test_outcomes_scenario():
     os.chdir(os.path.dirname(__file__))  ## this is redundant but necessary. Why ?
@@ -201,6 +198,7 @@ def test_outcomes_scenario():
 
 
 def test_outcomes_scenario_with_load():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_load.yml")
@@ -250,6 +248,7 @@ def test_outcomes_scenario_with_load():
 
 
 def test_outcomes_read_write_hpar():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_load.yml")
@@ -287,6 +286,7 @@ def test_outcomes_read_write_hpar():
 
 
 def test_outcomes_scenario_subclasses():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_subclasses.yml")
@@ -521,6 +521,7 @@ def test_outcomes_scenario_subclasses():
 
 
 def test_outcomes_scenario_with_load_subclasses():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_load_subclasses.yml")
@@ -585,6 +586,7 @@ def test_outcomes_scenario_with_load_subclasses():
 
 
 def test_outcomes_read_write_hpar_subclasses():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_load.yml")
@@ -646,6 +648,7 @@ def test_outcomes_read_write_hpar_subclasses():
 
 
 def test_multishift_notstochdelays():
+    os.chdir(os.path.dirname(__file__))
     shp = (10, 2)  # dateXplace
     array = np.array(
         [
@@ -684,6 +687,7 @@ def test_multishift_notstochdelays():
 
 
 def test_outcomes_npi():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_npi.yml")
@@ -850,6 +854,7 @@ def test_outcomes_npi():
 
 
 def test_outcomes_read_write_hnpi():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_npi.yml")
@@ -895,6 +900,7 @@ def test_outcomes_read_write_hnpi():
 
 
 def test_outcomes_read_write_hnpi2():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_npi.yml")
@@ -973,6 +979,7 @@ def test_outcomes_read_write_hnpi2():
 
 
 def test_outcomes_npi_custom_pname():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_npi_custom_pnames.yml")
@@ -1139,6 +1146,7 @@ def test_outcomes_npi_custom_pname():
 
 
 def test_outcomes_read_write_hnpi_custom_pname():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_npi_custom_pnames.yml")
@@ -1184,6 +1192,7 @@ def test_outcomes_read_write_hnpi_custom_pname():
 
 
 def test_outcomes_read_write_hnpi2_custom_pname():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_npi_custom_pnames.yml")
@@ -1262,6 +1271,7 @@ def test_outcomes_read_write_hnpi2_custom_pname():
 
 
 def test_outcomes_pcomp():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_mc_selection.yml")
@@ -1304,31 +1314,31 @@ def test_outcomes_pcomp():
     ).to_pandas()
     hosp_f.set_index("time", drop=True, inplace=True)
     # same as config.yaml (doubled, then NPI halve it)
-    for k, p_comp in enumerate(["unvaccinated", "first_dose"]):
-        hosp = hosp_f[hosp_f["mc_vaccination_stage"] == p_comp]
+    for k, p_comp in enumerate(["0dose", "1dose"]):
+        hosp = hosp_f
         for i, place in enumerate(geoid):
             for dt in hosp.index:
                 if dt == date_data:
                     assert (
-                        hosp[hosp["geoid"] == place]["incidI"][dt]
+                        hosp[hosp["geoid"] == place][f"incidI_{p_comp}"][dt]
                         == diffI[i] * p_compmult[k]
                     )
                     assert (
-                        hosp[hosp["geoid"] == place]["incidH"][
+                        hosp[hosp["geoid"] == place][f"incidH_{p_comp}"][
                             dt + datetime.timedelta(7)
                         ]
                         - diffI[i] * 0.1 * p_compmult[k]
                         < 1e-8
                     )
                     assert (
-                        hosp[hosp["geoid"] == place]["incidD"][
+                        hosp[hosp["geoid"] == place][f"incidD_{p_comp}"][
                             dt + datetime.timedelta(2)
                         ]
                         - diffI[i] * 0.01 * p_compmult[k]
                         < 1e-8
                     )
                     assert (
-                        hosp[hosp["geoid"] == place]["incidICU"][
+                        hosp[hosp["geoid"] == place][f"incidICU_{p_comp}"][
                             dt + datetime.timedelta(7)
                         ]
                         - diffI[i] * 0.1 * 0.4 * p_compmult[k]
@@ -1336,14 +1346,14 @@ def test_outcomes_pcomp():
                     )
                     for j in range(7):
                         assert (
-                            hosp[hosp["geoid"] == place]["hosp_curr"][
+                            hosp[hosp["geoid"] == place][f"incidH_{p_comp}_curr"][
                                 dt + datetime.timedelta(7 + j)
                             ]
                             - diffI[i] * 0.1 * p_compmult[k]
                             < 1e-8
                         )
                     assert (
-                        hosp[hosp["geoid"] == place]["hosp_curr"][
+                        hosp[hosp["geoid"] == place][f"incidH_{p_comp}_curr"][
                             dt + datetime.timedelta(7 + 8)
                         ]
                         == 0
@@ -1351,45 +1361,45 @@ def test_outcomes_pcomp():
 
                 elif dt < date_data:
                     assert (
-                        hosp[hosp["geoid"] == place]["incidH"][
+                        hosp[hosp["geoid"] == place][f"incidH_{p_comp}"][
                             dt + datetime.timedelta(7)
                         ]
                         == 0
                     )
-                    assert hosp[hosp["geoid"] == place]["incidI"][dt] == 0
+                    assert hosp[hosp["geoid"] == place][f"incidI_{p_comp}"][dt] == 0
                     assert (
-                        hosp[hosp["geoid"] == place]["incidD"][
+                        hosp[hosp["geoid"] == place][f"incidD_{p_comp}"][
                             dt + datetime.timedelta(2)
                         ]
                         == 0
                     )
                     assert (
-                        hosp[hosp["geoid"] == place]["incidICU"][
+                        hosp[hosp["geoid"] == place][f"incidICU_{p_comp}"][
                             dt + datetime.timedelta(7)
                         ]
                         == 0
                     )
                     assert (
-                        hosp[hosp["geoid"] == place]["hosp_curr"][
+                        hosp[hosp["geoid"] == place][f"incidH_{p_comp}_curr"][
                             dt + datetime.timedelta(7)
                         ]
                         == 0
                     )
                 elif dt > (date_data + datetime.timedelta(7)):
-                    assert hosp[hosp["geoid"] == place]["incidH"][dt] == 0
+                    assert hosp[hosp["geoid"] == place][f"incidH_{p_comp}"][dt] == 0
                     assert (
-                        hosp[hosp["geoid"] == place]["incidI"][
+                        hosp[hosp["geoid"] == place][f"incidI_{p_comp}"][
                             dt - datetime.timedelta(7)
                         ]
                         == 0
                     )
                     assert (
-                        hosp[hosp["geoid"] == place]["incidD"][
+                        hosp[hosp["geoid"] == place][f"incidD_{p_comp}"][
                             dt - datetime.timedelta(4)
                         ]
                         == 0
                     )
-                    assert hosp[hosp["geoid"] == place]["incidICU"][dt] == 0
+                    assert hosp[hosp["geoid"] == place][f"incidICU_{p_comp}"][dt] == 0
     hpar_f = pq.read_table(
         f"{config_path_prefix}model_output/hpar/000000001.111.hpar.parquet"
     ).to_pandas()
@@ -1470,6 +1480,7 @@ def test_outcomes_pcomp():
 
 
 def test_outcomes_pcomp_read_write():
+    os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
     config.set_file(f"{config_path_prefix}config_npi.yml")

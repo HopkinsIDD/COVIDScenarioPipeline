@@ -15,6 +15,76 @@ spatial_setup:
   modeled_states:
     - HI
 
+interventions:
+  scenarios:
+    - None
+  settings:
+    None:
+      template: ReduceR0
+      value:
+        distribution: fixed
+        value: 0
+    Hduration:
+      template: Reduce
+      parameter: "incidH_duration"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    Hdelay:
+      template: Reduce
+      parameter: "incidH_delay"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    Hprobability:
+      template: Reduce
+      parameter: "incidH_probability"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: 0.5
+    Ddelay:
+      template: Reduce
+      parameter: "incidD_delay"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    Dprobability:
+      template: Reduce
+      parameter: "incidD_probability"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    ICUprobability:
+      template: Reduce
+      parameter: "incidICU_probability"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    times2D:
+      template: Stacked
+      scenarios: ["Ddelay", "Dprobability"]
+    times2H:
+      template: Stacked
+      scenarios: ["Hdelay", "Hprobability", "Hduration"]
+
 outcomes:
   method: delayframe
   param_from_file: False
@@ -80,61 +150,126 @@ outcomes:
   ### 3 different incidH for each dose, and then a sum that combine them together. Here it's possible 
   ### to have different NPIs and probabilities for e.g different doses.
     high_death_rate:
+      incidI_0dose:
+        source: 
+          incidence:
+            infection_stage: ["I1"]                             
+            vaccination_stage: ["unvaccinated"]
+        probability:
+          value:
+            distribution: fixed
+            value: 1
+        delay:
+          value:
+            distribution: fixed
+            value: 0
+      incidI_1dose:
+        source: 
+          incidence:
+            infection_stage: ["I1"]
+            vaccination_stage: "first_dose"
+        probability:
+          value:
+            distribution: fixed
+            value: 1
+        delay:
+          value:
+            distribution: fixed
+            value: 0
       incidH_0dose:
         source: 
           incidence:
             infection_stage: ["I1"]                             
-            vaccination_stage: ["0dose"]
+            vaccination_stage: ["unvaccinated"]
         probability:
+          intervention_param_name: incidH_probability
           value:
             distribution: fixed
             value: .1
         delay:
+          intervention_param_name: incidH_delay
           value:
             distribution: fixed
-            value: 7
+            value: 14
         duration:
+          intervention_param_name: incidH_duration
           value:
             distribution: fixed
-            value: 7
+            value: 14
           name: incidH_0dose_curr
       incidH_1dose:
         source: 
           incidence:
             infection_stage: ["I1"]
-            vaccination_stage: "1dose"
+            vaccination_stage: "first_dose"
         probability:
+          intervention_param_name: incidH_probability
           value:
             distribution: fixed
             value: .1
         delay:
+          intervention_param_name: incidH_delay
           value:
             distribution: fixed
-            value: 7
+            value: 14
         duration:
+          intervention_param_name: incidH_duration
           value:
             distribution: fixed
-            value: 7
+            value: 14
           name: incidH_1dose_curr
-      incidH_2dose:
-        source: 
-          incidence:
-            infection_stage: ["I1"]
-            vaccination_stage: ["2dose"]
+      incidICU_0dose:
+        source: incidH_0dose
         probability:
+          intervention_param_name: incidICU_probability
           value:
             distribution: fixed
-            value: .1
+            value: .8
         delay:
           value:
             distribution: fixed
-            value: 7
-        duration:
+            value: 0
+      incidICU_1dose:
+        source: incidH_1dose
+        probability:
+          intervention_param_name: incidICU_probability
           value:
             distribution: fixed
-            value: 7
-          name: incidH_2dose_curr
+            value: .8
+        delay:
+          value:
+            distribution: fixed
+            value: 0
+      incidD_0dose:
+        source: incidI_0dose
+        probability:
+          intervention_param_name: incidD_probability
+          value:
+            distribution: fixed
+            value: .02
+        delay:
+          intervention_param_name: incidD_delay
+          value:
+            distribution: fixed
+            value: 4
+      incidD_1dose:
+        source: incidI_1dose
+        probability:
+          intervention_param_name: incidD_probability
+          value:
+            distribution: fixed
+            value: .02
+        delay:
+          intervention_param_name: incidD_delay
+          value:
+            distribution: fixed
+            value: 4
       incidH_from_sum:                                              
-        sum: ['incidH_2dose', 'incidH_1dose', 'incidH_0dose']
+        sum: [ 'incidH_1dose', 'incidH_0dose']
+  interventions:
+      settings:
+        high_death_rate:
+          template: Stacked
+          scenarios: ["times2H", "ICUprobability", "times2D"]      
       
 
