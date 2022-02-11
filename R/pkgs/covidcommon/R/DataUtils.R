@@ -782,7 +782,11 @@ get_groundtruth_from_source <- function(source = "csse", scale = "US county", va
   }
 
   if (adjust_for_variant) {
-    rc <- adjust_for_variant(rc, variant_props_file)
+    tryCatch({
+      rc <- adjust_for_variant(rc, variant_props_file)
+    }, error = function(e) {
+      stop(paste0("Could not use variant file |", variant_props_file, "|, with error message", e$message()))
+    })
   }
 
   return(rc)
