@@ -3,9 +3,9 @@
 # @brief Generates importation data
 #
 # @details
-# 
+#
 # ## Configuration Options
-# 
+#
 # ```yaml
 # start_date: <date>
 # end_date: <date>
@@ -25,7 +25,7 @@
 #   update_case_data: <logical>
 #   cache_work: <logical>
 #   maximum_destinations: <integer or Inf>
-#   travel_dispersion: 
+#   travel_dispersion:
 #   travelers_threshold:
 #   airports_cluster_distance:
 #   draw_travel_from_distribution: <logical>
@@ -158,7 +158,7 @@ if (!file.exists(file.path(outdir, paste0(sprintf("%09d",num_simulations), ".imp
     cores=opts$j,
     n_sim=num_simulations
   )
-} 
+}
 
 ## Move files
 for(simulation in seq_len(num_simulations)){
@@ -177,6 +177,101 @@ for(simulation in seq_len(num_simulations)){
   if(!dir.exists(dirname(dest_file))){
     dir.create(dest_file)
   }
-  file.rename(source_file,dest_file)
+  cases_deaths <- read.csv(source_file)
+
+  required_column_names <- NULL
+  check_required_names <- function(df, cols, msg) {
+      if (!all(cols %in% names(df))) {
+          stop(msg)
+      }
+  }
+
+  if ("compartments" %in% names(config[["seir"]])) {
+
+    if (all(names(config$seeding$seeding_compartments) %in% names(cases_deaths))) {
+      required_column_names <- c("place", "date", names(config$seeding$seeding_compartments))
+      check_required_names(
+        cases_deaths,
+        required_column_names,
+        paste(
+          "To create the seeding, we require the following columns to exist in the case data",
+          paste(required_column_names, collapse = ", ")
+        )
+      )
+      incident_cases <- cases_deaths[, required_column_names] %>%
+        tidyr::pivot_longer(!!names(config$seeding$seeding_compartments), names_to = "seeding_group") %>%
+        dplyr::mutate(
+          source_column = sapply(
+            config$seeding$seeding_compartments[seeding_group],
+            function(x){
+              paste(x$source_compartment, collapse = "_")
+            }
+          ),
+          destination_column = sapply(
+            config$seeding$seeding_compartments[seeding_group],
+            function(x){
+              paste(x$destination_compartment, collapse = "_")
+            }
+          )
+        ) %>%
+        tidyr::separate(source_column, paste("source", names(config$seir$compartments), sep = "_")) %>%
+        tidyr::separate(destination_column, paste("destination", names(config$seir$compartments), sep = "_"))
+      required_column_names <- c("place", "date", "value", paste("source", names(config$seir$compartments), sep = "_"), paste("destination", names(config$seir$compartments), sep = "_"))
+      incident_cases <- incident_cases[, required_column_names]
+
+      if (!is.null(config$smh_roun)) {
+        if (config$smh_round=="R11"){
+          incident_cases_om <- incident_cases %>%
+            dplyr::filter(Update==lubridate::as_date("2021-12-01")) %>%
+            dplyr::group_by(FIPS, Update, source_infection_stage, source_vaccination_stage, source_age_strata,
+              destination_vaccination_stage, destination_age_strata, destination_infection_stage) %>%
+            dplyr::summarise(value = sum(value, na.rm=TRUE)) %>%
+            dplyr::mutate(source_variant_type = "WILD", destination_variant_type = "OMICRON") %>%
+            dplyr::mutate(value = round(ifelse(FIPS %in% c("06000","36000"), 10,
+                                        ifelse(FIPS %in% c("53000","12000"), 5, 1)))) %>%
+            tibble::as_tibble()
+        }
+      }
+
+
+    } else if ("seeding_compartments" %in% names(config$seeding) ) {
+      stop(paste(
+        "Could not find all compartments.  Looking for",
+        paste(names(config$seeding$seeding_compartments), collapse = ", "),
+        "from selection",
+        paste(names(cases_deaths), collapse = ", ")
+      ))
+    } else {
+      stop("Please add a seeding_compartments section to the config")
+    }
+  } else {
+    required_column_names <- c("place", "date", "amount")
+    check_required_names(
+      cases_deaths,
+      required_column_names,
+      paste(
+        "To create the seeding, we require the following columns to exist in the case data",
+        paste(required_column_names, collapse = ", ")
+      )
+    )
+    incident_cases <- cases_deaths[, required_column_names] %>%
+      tidyr::pivot_longer(cols = "amount", names_to = "source_infection_stage", values_to = "value")
+    incident_cases$destination_infection_stage <- "E"
+    incident_cases$source_infection_stage <- "S"
+    required_column_names <- c("place", "date", "value", "source_infection_stage", "destination_infection_stage")
+
+    if ("parallel_structure" %in% names(config[["seir"]][["parameters"]])) {
+      parallel_compartments <- config[["seir"]][["parameters"]][["parallel_structure"]][["compartments"]]
+    } else {
+      parallel_compartments <- setNames(NA, "unvaccinated")
+    }
+    incident_cases[["source_vaccination_stage"]] <- names(parallel_compartments)[[1]]
+    incident_cases[["destination_vaccination_stage"]] <- names(parallel_compartments)[[1]]
+    incident_cases$amount <- incident_cases$value
+    required_column_names <- c(required_column_names, "amount", "source_vaccination_stage", "destination_vaccination_stage")
+  }
+
+  incident_cases <- incident_cases[, required_column_names]
+  write.csv(incident_cases, file = dest_file, row.names = FALSE)
 }
 ## @endcond
