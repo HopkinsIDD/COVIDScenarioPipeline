@@ -75,6 +75,7 @@ def profile(
 
     return inner
 
+
 ### A little timer class
 class Timer(object):
     def __init__(self, name):

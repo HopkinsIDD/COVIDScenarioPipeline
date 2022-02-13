@@ -420,25 +420,23 @@ for (test in tests) {
   
   file.remove(first_hpar_file)
   file.copy(config$outcomes$param_place_file, first_hpar_file)
-  
+
   reticulate::use_python(Sys.which(opt$python),require=TRUE)
-  ## python configuration for minimal_interface.py
-  reticulate::py_run_string(paste0("config_path = '", config_file_out_generation,"'"))
-  reticulate::py_run_string(paste0("run_id = '", test$runid, "'"))
-  #reticulate::import_from_path("SEIR", path=opt$pipepath)
-  #reticulate::import_from_path("Outcomes", path=opt$pipepath)
-  reticulate::py_run_string(paste0("index = ", 1))
-  reticulate::py_run_string(paste0("scenario = '", "test", "'"))
-  reticulate::py_run_string(paste0("stoch_traj_flag = ", 1))
-  ## pass prefix to python and use
-  reticulate::py_run_string(paste0("deathrate = '", "med", "'"))
-  reticulate::py_run_string(paste0("prefix = '", global_block_prefix, "'"))
-  reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
-  
-  py$onerun_SEIR(0, py$s)
-  py$onerun_SEIR_loadID(0, py$s, 0)
-  py$onerun_OUTCOMES(0)
-  
+  id_simulator <- reticulate::import("id_simulator")
+  id_simulator_inference_runner <- id_simulator$Simulator(
+                                                config_path=config_file_out_generation,
+                                                run_id=test$runid,
+                                                prefix=global_block_prefix,
+                                                first_sim_index=1,
+                                                scenario="test",
+                                                deathrate="med",
+                                                stoch_traj_flag=1,
+                                                initialize=TRUE  # Shall we pre-compute now things that are not pertubed by inference
+)
+
+id_simulator_inference_runner$one_simulation(0)
+id_simulator_inference_runner$one_simulation_loadID(sim_id2write=0, sim_id2load=0)
+
   for (i in 1:opt$n_slots) {
     slot_prefix <- covidcommon::create_prefix(config$name, test$scenario, "med",test$runid,sep='/',trailing_separator='/')
     ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/')

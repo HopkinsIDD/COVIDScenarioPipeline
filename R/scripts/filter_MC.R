@@ -205,22 +205,10 @@ data_stats <- lapply(
 
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 
-## python configuration for minimal_interface.py
-reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
-reticulate::py_run_string(paste0("run_id = '", opt$run_id, "'"))
-#reticulate::import_from_path("SEIR", path=opt$pipepath)
-#reticulate::import_from_path("Outcomes", path=opt$pipepath)
-reticulate::py_run_string(paste0("index = ", 1))
-if(opt$stoch_traj_flag) {
-  reticulate::py_run_string(paste0("stoch_traj_flag = True"))
-} else {
-  reticulate::py_run_string(paste0("stoch_traj_flag = False"))
-}
+# Load id_simulator module
+id_simulator <- reticulate::import("id_simulator")
 
 for(scenario in scenarios) {
-
-  reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
-
   for(deathrate in deathrates) {
     # Data -------------------------------------------------------------------------
     # Load
@@ -229,7 +217,7 @@ for(scenario in scenarios) {
 
     gf_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','final',sep='/',trailing_separator='/')
     ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/')
-    gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/')
+    gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/') # nolint
 
 
     chimeric_block_prefix <- covidcommon::create_prefix(prefix=ci_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
@@ -238,13 +226,16 @@ for(scenario in scenarios) {
     global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
     global_local_prefix <- covidcommon::create_prefix(prefix=global_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
 
-
-    ## pass prefix to python and use
-    reticulate::py_run_string(paste0("deathrate = '", deathrate, "'"))
-    reticulate::py_run_string(paste0("prefix = '", global_block_prefix, "'"))
-    reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
-
-
+    ## python configuration: build simulator model initialized with compartment and all.
+    id_simulator_inference_runner <- id_simulator$Simulator(
+                                                    config_path=opt$config,
+                                                    run_id=opt$run_id,
+                                                    prefix=global_block_prefix,
+                                                    scenario=scenario,
+                                                    deathrate=deathrate,
+                                                    stoch_traj_flag=opt$stoch_traj_flag,
+                                                    initialize=TRUE  # Shall we pre-compute now things that are not pertubed by inference
+    )
 
     first_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block - 1)
     first_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block - 1)
@@ -254,7 +245,7 @@ for(scenario in scenarios) {
       opt$this_block,
       global_block_prefix,
       chimeric_block_prefix,
-      py,
+      id_simulator_inference_runner,
       function(sim_hosp){
         sim_hosp <- dplyr::filter(sim_hosp,sim_hosp$time >= min(obs$date),sim_hosp$time <= max(obs$date))
         lhs <- unique(sim_hosp[[obs_nodename]])
@@ -305,16 +296,12 @@ for(scenario in scenarios) {
 ### initial means accepted/current
 
 #####Loop over simulations in this block
-   for( this_index in seq_len(opt$simulations_per_slot)) {
+   for(this_index in seq_len(opt$simulations_per_slot)) {
       print(paste("Running simulation", this_index))
 
       ## Create filenames
       this_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
       this_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_local_prefix, this_index)
-
-      ## Setup python
-      reticulate::py_run_string(paste0("prefix = '", global_local_prefix, "'"))
-      reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
       ## Do perturbations from accepted
       proposed_seeding <- inference::perturb_seeding(
@@ -339,18 +326,15 @@ for(scenario in scenarios) {
       arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
       arrow::write_parquet(proposed_hpar,this_global_files[['hpar_filename']])
 
-      ## Run SEIR
-      err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
-      err <- ifelse(err == 1,0,1)
+      
+      ## Update the prefix
+      id_simulator_inference_runner$update_prefix(new_prefix=global_local_prefix)
+      ## Run the simulator
+      err <- id_simulator_inference_runner$one_simulation_loadID(
+        sim_id2write=this_index, 
+        sim_id2load=this_index)
       if(err != 0){
-        stop("SEIR failed to run")
-      }
-
-      err <- py$onerun_OUTCOMES_loadID(this_index)
-      print(err)
-      err <- ifelse(err == 1,0,1)
-      if(err != 0){
-        stop("HOSP failed to run")
+        stop("Simulator failed to run")
       }
 
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_global_files[['hosp_filename']]))(this_global_files[['hosp_filename']]) %>%
