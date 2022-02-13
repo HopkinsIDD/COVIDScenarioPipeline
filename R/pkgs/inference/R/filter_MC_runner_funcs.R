@@ -390,14 +390,14 @@ create_filename_list <- function(
 ##'@param run_id what is the id of this run
 ##'@param global_prefix the prefix to use for global files
 ##'@param chimeric_prefix the prefix to use for chimeric files
-##'@param python_reticulate An already initialized copy of python set up to do hospitalization runs
+##'@param id_simulator_inference_runner An already initialized copy of python inference runner
 ##' @export
 initialize_mcmc_first_block <- function(
   run_id,
   block,
   global_prefix,
   chimeric_prefix,
-  python_reticulate,
+  id_simulator_inference_runner,
   likelihood_calculation_function,
   is_resume = FALSE
 ) {
@@ -498,36 +498,27 @@ initialize_mcmc_first_block <- function(
   }
 
   ## seir, snpi, spar
-  if (any(c("snpi_filename", "spar_filename") %in% global_file_names)) {
-    if (!all(c("snpi_filename", "spar_filename") %in% global_file_names)) {
-      stop("Provided some SEIR input, but not all")
+  checked_par_files <- c("snpi_filename", "spar_filename", "hnpi_filename", "hpar_filename")
+  checked_sim_files <- c("seir_filename", "hosp_filename")
+  if (any(checked_par_files %in% global_file_names)) {
+    if (!all(checked_par_files %in% global_file_names)) {
+      stop("Provided some Simulator input, but not all")
     }
-    if ("seir_filename" %in% global_file_names) {
-      python_reticulate$onerun_SEIR(block - 1, python_reticulate$s)
+    if (any(checked_sim_files %in% global_file_names)) {
+      if (!all(checked_sim_files %in% global_file_names)) {
+        stop("Provided only one of hosp or seir input file, with some output files. Not supported anymore")
+      }
+      id_simulator_inference_runner$one_simulation(sim_id2write = block - 1)
     } else {
-      stop("Provided SEIR output, but not SEIR input")
+      stop("Provided some Simulator output(seir, hosp), but not Simulator input")
     }
   } else {
-    if ("seir_filename" %in% global_file_names) {
-      warning("SEIR input provided, but output not found. This is unstable for stochastic runs")
-      python_reticulate$onerun_SEIR_loadID(block - 1, python_reticulate$s, block - 1)
-    }
-  }
-
-  ## hpar
-  if (any(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
-    if (!all(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
-      stop("Provided some Outcomes input, but not all")
-    }
-    if ("hosp_filename" %in% global_file_names) {
-      python_reticulate$onerun_OUTCOMES(block - 1)
-    } else {
-      stop("Provided Outcomes output, but not Outcomes input")
-    }
-  } else {
-    if ("hosp_filename" %in% global_file_names) {
-      warning("Outcomes input provided, but output not found. This is unstable for stochastic runs")
-      python_reticulate$onerun_OUTCOMES_loadID(block - 1)
+    if (any(checked_sim_files %in% global_file_names)) {
+      if (!all(checked_sim_files %in% global_file_names)) {
+        stop("Provided only one of hosp or seir input file, not supported anymore")
+      }
+        warning("SEIR and Hosp input provided, but output not found. This is unstable for stochastic runs")
+        id_simulator_inference_runner$one_simulation_loadID(sim_id2write=block - 1, sim_id2load=block - 1)
     }
   }
 
