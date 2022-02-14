@@ -3,6 +3,7 @@ import sys
 import inspect
 import pkgutil
 from importlib import import_module
+from .helpers import *
 
 from .base import NPIBase
 

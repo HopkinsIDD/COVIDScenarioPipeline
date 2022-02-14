@@ -588,7 +588,7 @@ def test_continuation_resume():
         .all()
     )
 
-    seir.onerun_SEIR_loadID(
+    seir.onerun_SEIR(
         sim_id2write=sim_id2write + 1, s=s, sim_id2load=sim_id2write, load_ID=True
     )
     states_new = pq.read_table(
@@ -695,7 +695,7 @@ def test_inference_resume():
         out_prefix=prefix,
     )
 
-    seir.onerun_SEIR_loadID(
+    seir.onerun_SEIR(
         sim_id2write=sim_id2write + 1, s=s, sim_id2load=sim_id2write, load_ID=True
     )
     npis_new = pq.read_table(

@@ -15,7 +15,6 @@ import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
 from gempyor import file_paths
-from gempyor.setup import _parameter_reduce, npi_load
 
 import logging
 
@@ -110,11 +109,11 @@ def onerun_delayframe_outcomes_load_hpar(
                 npi_config=npi_config[0],
                 global_config=npi_config[1],
                 geoids=places,
-                loaded_df=npi_load(
-                    file_paths.create_file_name_without_extension(
+                loaded_df=NPI.npi_fileload(
+                    fname = file_paths.create_file_name_without_extension(
                         in_run_id, in_prefix, in_sim_id, "hnpi"
                     ),
-                    "parquet",
+                    extension="parquet",
                 ),
             )
     else:
@@ -556,16 +555,16 @@ def compute_all_multioutcomes(
                 axis=0,
             )
             if npi is not None:
-                delays = _parameter_reduce(
-                    delays,
-                    npi.getReduction(
+                delays = NPI.reduce_parameter(
+                    parameter=delays,
+                    modification=npi.getReduction(
                         parameters[new_comp]["delay::npi_param_name"].lower()
                     ),
                 )
                 delays = np.round(delays).astype(int)
-                probabilities = _parameter_reduce(
-                    probabilities,
-                    npi.getReduction(
+                probabilities = NPI.reduce_parameter(
+                    parameter=probabilities,
+                    modification=npi.getReduction(
                         parameters[new_comp]["probability::npi_param_name"].lower()
                     ),
                 )
@@ -639,9 +638,9 @@ def compute_all_multioutcomes(
                     # plt.savefig('Dbef'+new_comp + '-' + source)
                     # plt.close()
                     # print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
-                    durations = _parameter_reduce(
-                        durations,
-                        npi.getReduction(
+                    durations = NPI.reduce_parameter(
+                        parameter=durations,
+                        modification=npi.getReduction(
                             parameters[new_comp]["duration::npi_param_name"].lower()
                         ),
                     )  # npi.getReduction(f"{new_comp}::duration".lower()))

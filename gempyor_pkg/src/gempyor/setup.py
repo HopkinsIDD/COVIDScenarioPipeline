@@ -5,15 +5,12 @@ import datetime
 import os
 import scipy.sparse
 import pyarrow as pa
-import pyarrow.parquet as pq
 import copy
 from . import compartments
 from . import parameters
 from . import seeding_ic
 from .utils import config
 from . import file_paths
-from functools import reduce
-import typing
 import logging
 
 logger = logging.getLogger(__name__)
@@ -294,34 +291,3 @@ class SpatialSetup:
             raise ValueError(
                 f"The following rows in the mobility data exceed the source node populations in geodata:{errmsg}"
             )
-
-
-def npi_load(fname, extension):
-    # Quite ugly and should be in class NPI
-    if extension == "csv":
-        in_df = pd.read_csv(f"{fname}.{extension}")
-    elif extension == "parquet":
-        in_df = pa.parquet.read_table(f"{fname}.{extension}").to_pandas()
-    else:
-        raise NotImplementedError(
-            f"Invalid extension {extension}. Must be 'csv' or 'parquet'"
-        )
-    return in_df
-
-
-# Helper function
-def _parameter_reduce(
-    parameter: np.ndarray,
-    modification: typing.Union[pd.DataFrame, float],
-    method: str = "prod",
-) -> np.ndarray:
-    if isinstance(modification, pd.DataFrame):
-        modification = modification.T
-        modification.index = pd.to_datetime(modification.index.astype(str))
-        modification = (
-            modification.resample("1D").ffill().to_numpy()
-        )  # Type consistency:
-    if method == "prod":
-        return parameter * (1 - modification)
-    elif method == "sum":
-        return parameter + modification
