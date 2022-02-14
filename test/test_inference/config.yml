@@ -181,7 +181,7 @@ filtering:
       aggregator: sum
       period: "1 weeks"
       sim_var: incidD
-      data_var: death_incid
+      data_var: incidDeath
       remove_na: TRUE
       add_one: FALSE
       likelihood:
@@ -192,7 +192,7 @@ filtering:
       aggregator: sum
       period: "1 days"
       sim_var: incidH
-      data_var : confirmed_incid
+      data_var : incidI
       remove_na: TRUE
       add_one: FALSE
       likelihood:
