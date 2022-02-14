@@ -14,7 +14,7 @@ get_ground_truth_file <- function(data_path, cache = TRUE, gt_source = "csse", g
   }
   if(!(file.exists(data_path) & cache)){
     message(paste("*** Loading Data from", gt_source, "\n"))
-    cases_deaths <- suppressMessages(covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = ifelse(gt_scale == "US state", TRUE, FALSE), adjust_for_variant = TRUE, variant_props_file = variant_filename))
+    cases_deaths <- suppressMessages(covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), incl_unass = ifelse(gt_scale == "US state", TRUE, FALSE), adjust_for_variant = !is.null(variant_filename), variant_props_file = variant_filename))
     cases_deaths  <- dplyr::arrange(
       dplyr::rename(
         dplyr::mutate(
