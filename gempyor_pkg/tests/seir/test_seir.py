@@ -8,9 +8,9 @@ import pathlib
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from id_simulator import setup, seir, NPI, file_paths
+from gempyor import setup, seir, NPI, file_paths
 
-from id_simulator.utils import config
+from gempyor.utils import config
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
 os.chdir(os.path.dirname(__file__))

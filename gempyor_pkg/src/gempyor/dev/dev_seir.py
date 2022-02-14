@@ -11,10 +11,10 @@ import filecmp
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import id_simulator.seir
-from id_simulator import compartments, seir, NPI, file_paths, setup
+import gempyor.seir
+from gempyor import compartments, seir, NPI, file_paths, setup
 
-from id_simulator.utils import config
+from gempyor.utils import config
 
 DATA_DIR = "data"
 

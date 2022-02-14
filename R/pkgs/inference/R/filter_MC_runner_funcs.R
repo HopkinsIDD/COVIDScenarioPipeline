@@ -390,14 +390,14 @@ create_filename_list <- function(
 ##'@param run_id what is the id of this run
 ##'@param global_prefix the prefix to use for global files
 ##'@param chimeric_prefix the prefix to use for chimeric files
-##'@param id_simulator_inference_runner An already initialized copy of python inference runner
+##'@param gempyor_inference_runner An already initialized copy of python inference runner
 ##' @export
 initialize_mcmc_first_block <- function(
   run_id,
   block,
   global_prefix,
   chimeric_prefix,
-  id_simulator_inference_runner,
+  gempyor_inference_runner,
   likelihood_calculation_function,
   is_resume = FALSE
 ) {
@@ -502,15 +502,15 @@ initialize_mcmc_first_block <- function(
   checked_sim_files <- c("seir_filename", "hosp_filename")
   if (any(checked_par_files %in% global_file_names)) {
     if (!all(checked_par_files %in% global_file_names)) {
-      stop("Provided some Simulator input, but not all")
+      stop("Provided some InferenceSimulator input, but not all")
     }
     if (any(checked_sim_files %in% global_file_names)) {
       if (!all(checked_sim_files %in% global_file_names)) {
         stop("Provided only one of hosp or seir input file, with some output files. Not supported anymore")
       }
-      id_simulator_inference_runner$one_simulation(sim_id2write = block - 1)
+      gempyor_inference_runner$one_simulation(sim_id2write = block - 1)
     } else {
-      stop("Provided some Simulator output(seir, hosp), but not Simulator input")
+      stop("Provided some InferenceSimulator output(seir, hosp), but not InferenceSimulator input")
     }
   } else {
     if (any(checked_sim_files %in% global_file_names)) {
@@ -518,7 +518,7 @@ initialize_mcmc_first_block <- function(
         stop("Provided only one of hosp or seir input file, not supported anymore")
       }
         warning("SEIR and Hosp input provided, but output not found. This is unstable for stochastic runs")
-        id_simulator_inference_runner$one_simulation_loadID(sim_id2write=block - 1, sim_id2load=block - 1)
+        gempyor_inference_runner$one_simulation_loadID(sim_id2write=block - 1, sim_id2load=block - 1)
     }
   }
 

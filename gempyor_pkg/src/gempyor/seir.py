@@ -8,13 +8,13 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from id_simulator import NPI, setup, file_paths
-from id_simulator.utils import config, Timer
+from gempyor import NPI, setup, file_paths
+from gempyor.utils import config, Timer
 import pyarrow.parquet as pq
 import pyarrow as pa
 import logging
-import id_simulator.steps_rk4 as steps_rk4
-import id_simulator.dev.steps as steps_experimental
+import gempyor.steps_rk4 as steps_rk4
+import gempyor.dev.steps as steps_experimental
 
 logger = logging.getLogger(__name__)
 

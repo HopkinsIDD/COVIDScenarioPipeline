@@ -124,10 +124,10 @@ import time
 
 import click
 
-from id_simulator import seir, setup, file_paths
-from id_simulator.utils import config
+from gempyor import seir, setup, file_paths
+from gempyor.utils import config
 
-# from id_simulator.profile import profile_options
+# from gempyor.profile import profile_options
 
 
 @click.command()

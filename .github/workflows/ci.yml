@@ -32,14 +32,14 @@ jobs:
       - name: Install id simulation package
         run: |
           /home/app/python_venv/bin/python -m pip install --upgrade pip
-          /home/app/python_venv/bin/pip install -e id_simulator_pkg/
+          /home/app/python_venv/bin/pip install -e gempyor_pkg/
         shell: bash
       - name: Install local R packages
         run: Rscript local_install.R
         shell: bash
-      - name: Run id_simulator tests
+      - name: Run gempyor tests
         run: |
-          cd id_simulator_pkg
+          cd gempyor_pkg
           /home/app/python_venv/bin/pytest -s
         shell: bash
       - name: Run covidcommon tests

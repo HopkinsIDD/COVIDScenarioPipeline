@@ -5,9 +5,9 @@ import pandas as pd
 import pytest
 import confuse
 
-from id_simulator import setup
+from gempyor import setup
 
-from id_simulator.utils import config
+from gempyor.utils import config
 
 TEST_SETUP_NAME = "minimal_test"
 

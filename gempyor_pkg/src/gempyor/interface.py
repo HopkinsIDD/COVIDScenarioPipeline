@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 ##
-# interface.py defines handlers to the id_simulator epidemic module
+# interface.py defines handlers to the gempyor epidemic module
 # (both (SEIR) and the pipeline outcomes module (Outcomes))
 # so they can be used from R for inference.
 # R folks needs to define start a python, and set some variable as follow
 # ```R`
 #   reticulate::use_python(Sys.which(opt$python),require=TRUE)
-#   id_simulator <- reticulate::import("id_simulator")
-#   id_simulator_inference_runner <- id_simulator$Simulator(
+#   gempyor <- reticulate::import("gempyor")
+#   gempyor_inference_runner <- gempyor$InferenceSimulator(
 #                                                 config_path=config_file_out_generation,
 #                                                 run_id=test$runid,
 #                                                 prefix=global_block_prefix,
@@ -19,19 +19,19 @@
 #                                                 initialize=TRUE  # Shall we pre-compute now things that are not pertubed by inference
 # )
 # 
-# err <- id_simulator_inference_runner$one_simulation(0)
-# err <- id_simulator_inference_runner$one_simulation_loadID(sim_id2write=0, sim_id2load=0)
+# err <- gempyor_inference_runner$one_simulation(0)
+# err <- gempyor_inference_runner$one_simulation_loadID(sim_id2write=0, sim_id2load=0)
 # ```
 # This populate the namespace with four functions, with return value 0 if the
 # function terminated successfully
 
 
 import pathlib
-from id_simulator import seir, setup, file_paths
-from id_simulator.utils import config, Timer, profile
+from gempyor import seir, setup, file_paths
+from gempyor.utils import config, Timer, profile
 
-# from id_simulator.profile import profile_options
-from id_simulator import outcomes
+# from gempyor.profile import profile_options
+from gempyor import outcomes
 import numpy as np
 
 ### Logger configuration
@@ -49,7 +49,7 @@ formatter = logging.Formatter(
 handler.setFormatter(formatter)
 
 
-class Simulator:
+class InferenceSimulator:
     def __init__(
         self,
         config_path,
@@ -117,8 +117,6 @@ class Simulator:
         >> prefix: {self.prefix};"""  # ti: {s.ti}; tf: {s.tf};
         )
 
-        setup_name = self.s.setup_name
-
     # profile()
     def one_simulation(self, sim_id2write):
         with Timer("onerun_SEIR"):
@@ -166,3 +164,6 @@ class Simulator:
             )
 
         return 0
+
+
+
