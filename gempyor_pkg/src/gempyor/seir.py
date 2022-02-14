@@ -1,6 +1,5 @@
 import itertools
 import time
-import warnings
 from matplotlib.pyplot import step
 
 import numpy as np
@@ -10,7 +9,6 @@ import tqdm.contrib.concurrent
 
 from gempyor import NPI, setup, file_paths
 from gempyor.utils import config, Timer, aws_disk_diagnosis
-import pyarrow.parquet as pq
 import pyarrow as pa
 import logging
 import gempyor.steps_rk4 as steps_rk4
@@ -39,11 +37,8 @@ def steps_SEIR(
     assert s.n_days > 1
     assert parsed_parameters.shape[1:3] == (s.n_days, s.nnodes)
     assert type(s.dt) == float
-    # assert (transition_array.shape == (5, 5))
     assert type(transition_array[0][0]) == np.int64
-    # assert (proportion_array.shape == (9,))
     assert type(proportion_array[0]) == np.int64
-    # assert (proportion_info.shape == (3, 6))
     assert type(proportion_info[0][0]) == np.int64
     assert initial_conditions.shape == (s.compartments.compartments.shape[0], s.nnodes)
     assert type(initial_conditions[0][0]) == np.float64
@@ -61,9 +56,8 @@ def steps_SEIR(
         if key == "day_start_idx":
             assert len(item) == s.n_days + 1
             # assert (item == np.zeros(s.n_days + 1, dtype=np.int64)).all()
-        else:
-            # assert item.size == np.array([], dtype=np.int64)
-            assert 0 == 0
+        # else:
+        #     assert item.size == np.array([], dtype=np.int64)
         assert item.dtype == np.int64
 
     assert len(mobility_data) > 0
@@ -165,14 +159,14 @@ def onerun_SEIR(
                 npi_config=s.npi_config,
                 global_config=config,
                 geoids=s.spatset.nodenames,
-                loaded_df=setup.npi_load(
-                    file_paths.create_file_name_without_extension(
+                loaded_df=NPI.npi_fileload(
+                    fname = file_paths.create_file_name_without_extension(
                         s.in_run_id,  # Not sure about this one
                         s.in_prefix,  # Not sure about this one
                         sim_id2load + s.first_sim_index - 1,
                         "snpi",
                     ),
-                    extension,
+                    extension=extension,
                 ),
             )
         else:
