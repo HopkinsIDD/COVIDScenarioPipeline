@@ -174,3 +174,28 @@ def as_random_distribution(self):
         ).rvs
     else:
         raise NotImplementedError(f"unknown distribution [got: {dist}]")
+
+
+def aws_disk_diagnosis():
+    import os
+    from os import path
+    from shutil import disk_usage
+
+    def bash(command):
+        output = os.popen(command).read()
+        return output
+
+    print("START AWS DIAGNOSIS ================================")
+    total_bytes, used_bytes, free_bytes = disk_usage(path.realpath("/"))
+    print(
+        f"shutil.disk_usage: {total_bytes/ 1000000} Mb total, {used_bytes / 1000000} Mb used, {free_bytes / 1000000} Mb free..."
+    )
+    print("------------")
+    print(f"df -hT: {bash('df -hT')}")
+    print("------------")
+    print(f"df -i: {bash('df -i')}")
+    print("------------")
+    print(f"free -h: {bash('free -h')}")
+    print("------------")
+    print(f"lsblk: {bash('lsblk')}")
+    print("END AWS DIAGNOSIS ================================")

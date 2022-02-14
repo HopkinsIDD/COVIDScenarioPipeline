@@ -18,7 +18,7 @@
 #                                                 stoch_traj_flag=1,
 #                                                 initialize=TRUE  # Shall we pre-compute now things that are not pertubed by inference
 # )
-# 
+#
 # err <- gempyor_inference_runner$one_simulation(0)
 # err <- gempyor_inference_runner$one_simulation_loadID(sim_id2write=0, sim_id2load=0)
 # ```
@@ -60,7 +60,7 @@ class InferenceSimulator:
         deathrate="med",
         stoch_traj_flag=False,
         rng_seed=None,
-        initialize=True
+        initialize=True,
     ):
         self.scenario = scenario
         self.deathrate = deathrate
@@ -120,7 +120,7 @@ class InferenceSimulator:
     # profile()
     def one_simulation(self, sim_id2write):
         with Timer("onerun_SEIR"):
-            seir.onerun_SEIR(int(sim_id2write), self.s, self.stoch_traj_flag)
+            seir.onerun_SEIR(sim_id2write = int(sim_id2write), s=self.s, load_ID=False, stoch_traj_flag=self.stoch_traj_flag)
 
         with Timer("onerun_OUTCOMES"):
             outcomes.run_delayframe_outcomes(
@@ -140,14 +140,14 @@ class InferenceSimulator:
 
     def update_prefix(self, new_prefix):
         self.prefix = new_prefix
-        self.s.in_prefix= new_prefix
+        self.s.in_prefix = new_prefix
         self.s.out_prefix = new_prefix
 
     # profile()
     def one_simulation_loadID(self, sim_id2write, sim_id2load):
         with Timer("onerun_SEIR_loadID"):
-            seir.onerun_SEIR_loadID(
-                int(sim_id2write), self.s, int(sim_id2load), self.stoch_traj_flag
+            seir.onerun_SEIR(
+                sim_id2write = int(sim_id2write), s=self.s, load_ID=True, sim_id2load=int(sim_id2load), stoch_traj_flag = self.stoch_traj_flag
             )
 
         with Timer("onerun_OUTCOMES_loadID"):
@@ -164,6 +164,3 @@ class InferenceSimulator:
             )
 
         return 0
-
-
-

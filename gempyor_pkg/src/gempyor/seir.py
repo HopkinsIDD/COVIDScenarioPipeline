@@ -9,7 +9,7 @@ import scipy
 import tqdm.contrib.concurrent
 
 from gempyor import NPI, setup, file_paths
-from gempyor.utils import config, Timer
+from gempyor.utils import config, Timer, aws_disk_diagnosis
 import pyarrow.parquet as pq
 import pyarrow as pa
 import logging
@@ -141,29 +141,81 @@ def steps_SEIR(
     return seir_sim
 
 
-def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
+def onerun_SEIR(
+    sim_id2write: int,
+    s: setup.Setup,
+    load_ID: bool = False,
+    sim_id2load: int = None,
+    stoch_traj_flag: bool = True,
+):
+    if s.write_parquet and s.write_csv:
+        print(
+            "Confused between reading .csv or parquet. Assuming input file is .parquet"
+        )
+    if s.write_parquet:
+        extension = "parquet"
+    elif s.write_csv:
+        extension = "csv"
+
     scipy.random.seed()
 
     with Timer("onerun_SEIR.NPI"):
-        npi = NPI.NPIBase.execute(
-            npi_config=s.npi_config,
-            global_config=config,
-            geoids=s.spatset.nodenames,
-            pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
-                "sum"
-            ],
-        )
+        if load_ID:
+            npi = NPI.NPIBase.execute(
+                npi_config=s.npi_config,
+                global_config=config,
+                geoids=s.spatset.nodenames,
+                loaded_df=setup.npi_load(
+                    file_paths.create_file_name_without_extension(
+                        s.in_run_id,  # Not sure about this one
+                        s.in_prefix,  # Not sure about this one
+                        sim_id2load + s.first_sim_index - 1,
+                        "snpi",
+                    ),
+                    extension,
+                ),
+            )
+        else:
+            npi = NPI.NPIBase.execute(
+                npi_config=s.npi_config,
+                global_config=config,
+                geoids=s.spatset.nodenames,
+                pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
+                    "sum"
+                ],
+            )
 
     with Timer("onerun_SEIR.seeding"):
-        initial_conditions = s.seedingAndIC.draw_ic(sim_id, setup=s)
-        seeding_data, seeding_amounts = s.seedingAndIC.draw_seeding(sim_id, setup=s)
+        if load_ID:
+            initial_conditions = s.seedingAndIC.load_ic(sim_id2load, setup=s)
+            seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(
+                sim_id2load, setup=s
+            )
+        else:
+            initial_conditions = s.seedingAndIC.draw_ic(sim_id2write, setup=s)
+            seeding_data, seeding_amounts = s.seedingAndIC.draw_seeding(
+                sim_id2write, setup=s
+            )
 
     mobility_geoid_indices = s.mobility.indices
     mobility_data_indices = s.mobility.indptr
     mobility_data = s.mobility.data
 
     with Timer("onerun_SEIR.pdraw"):
-        p_draw = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
+        if load_ID:
+            p_draw = s.parameters.parameters_load(
+                file_paths.create_file_name_without_extension(
+                    s.in_run_id,  # Not sure about this one
+                    s.in_prefix,  # Not sure about this one
+                    sim_id2load + s.first_sim_index - 1,
+                    "spar",
+                ),
+                s.n_days,
+                s.nnodes,
+                extension,
+            )
+        else:
+            p_draw = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
 
     with Timer("onerun_SEIR.reduce"):
         parameters = s.parameters.parameters_reduce(p_draw, npi)
@@ -198,110 +250,10 @@ def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
 
     with Timer("onerun_SEIR.postprocess"):
         if s.write_csv or s.write_parquet:
-            postprocess_and_write(sim_id, s, states, p_draw, npi, seeding_data)
-
-    return 1
-
-
-def log_debug_parameters(params, prefix):
-    if logging.getLogger().isEnabledFor(logging.DEBUG):
-        logging.debug(prefix)
-        for parameter in params:
-            try:
-                logging.debug(
-                    f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]"""
-                )
-            except:
-                logging.debug(f"""    value {parameter}""")
-
-
-def onerun_SEIR_loadID(sim_id2write, s, sim_id2load, stoch_traj_flag=True):
-    if s.write_parquet and s.write_csv:
-        print(
-            "Confused between reading .csv or parquet. Assuming input file is .parquet"
-        )
-    if s.write_parquet:
-        extension = "parquet"
-    elif s.write_csv:
-        extension = "csv"
-
-    sim_id_str = str(sim_id2load + s.first_sim_index - 1).zfill(9)
-
-    scipy.random.seed()
-
-    with Timer("onerun_SEIR_loadID.NPI"):
-        npi = NPI.NPIBase.execute(
-            npi_config=s.npi_config,
-            global_config=config,
-            geoids=s.spatset.nodenames,
-            loaded_df=setup.npi_load(
-                file_paths.create_file_name_without_extension(
-                    s.in_run_id,  # Not sure about this one
-                    s.in_prefix,  # Not sure about this one
-                    sim_id2load + s.first_sim_index - 1,
-                    "snpi",
-                ),
-                extension,
-            ),
-        )
-    with Timer("onerun_SEIR_loadID.seeding"):
-        initial_conditions = s.seedingAndIC.load_ic(sim_id2load, setup=s)
-        seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(
-            sim_id2load, setup=s
-        )
-
-    mobility_geoid_indices = s.mobility.indices
-    mobility_data_indices = s.mobility.indptr
-    mobility_data = s.mobility.data
-    with Timer("onerun_SEIR_loadID.pdraw"):
-        p_draw = s.parameters.parameters_load(
-            file_paths.create_file_name_without_extension(
-                s.in_run_id,  # Not sure about this one
-                s.in_prefix,  # Not sure about this one
-                sim_id2load + s.first_sim_index - 1,
-                "spar",
-            ),
-            s.n_days,
-            s.nnodes,
-            extension,
-        )
-    with Timer("onerun_SEIR_loadID.reduce"):
-        parameters = s.parameters.parameters_reduce(p_draw, npi)
-        log_debug_parameters(p_draw, "Parameters without interventions")
-        log_debug_parameters(parameters, "Parameters with interventions")
-
-    with Timer("onerun_SEIR.compartments"):
-        (
-            parsed_parameters,
-            unique_strings,
-            transition_array,
-            proportion_array,
-            proportion_info,
-        ) = s.compartments.get_transition_array(parameters, s.parameters.pnames)
-
-    with Timer("onerun_SEIR.compute"):
-        states = steps_SEIR(
-            s,
-            parsed_parameters,
-            transition_array,
-            proportion_array,
-            proportion_info,
-            initial_conditions,
-            seeding_data,
-            seeding_amounts,
-            mobility_data,
-            mobility_geoid_indices,
-            mobility_data_indices,
-            stoch_traj_flag,
-        )
-
-    with Timer("onerun_SEIR_loadID.postprocess"):
-        if s.write_csv or s.write_parquet:
             out_df = postprocess_and_write(
                 sim_id2write, s, states, p_draw, npi, seeding_data
             )
-
-    return 1
+    return out_df
 
 
 def run_parallel(s, *, n_jobs=1):
@@ -377,35 +329,10 @@ def states2Df(s, states):
     return out_df
 
 
-def aws_diagnosis():
-    import os
-    from os import path
-    from shutil import disk_usage
-
-    def bash(command):
-        output = os.popen(command).read()
-        return output
-
-    print("START AWS DIAGNOSIS ================================")
-    total_bytes, used_bytes, free_bytes = disk_usage(path.realpath("/"))
-    print(
-        f"shutil.disk_usage: {total_bytes/ 1000000} Mb total, {used_bytes / 1000000} Mb used, {free_bytes / 1000000} Mb free..."
-    )
-    print("------------")
-    print(f"df -hT: {bash('df -hT')}")
-    print("------------")
-    print(f"df -i: {bash('df -i')}")
-    print("------------")
-    print(f"free -h: {bash('free -h')}")
-    print("------------")
-    print(f"lsblk: {bash('lsblk')}")
-    print("END AWS DIAGNOSIS ================================")
-
-
 def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
 
     # print(f"before postprocess_and_write for id {s.out_run_id}, {s.out_prefix}, {sim_id + s.first_sim_index - 1}")
-    # aws_diagnosis()
+    # aws_disk_diagnosis()
     out_df = states2Df(s, states)
     if s.write_csv:
         npi.writeReductions(
@@ -462,8 +389,16 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
                 "parquet",
             ),
         )
-
-    # print(f"after postprocess_and_write for id {s.out_run_id}, {s.out_prefix}, {sim_id + s.first_sim_index - 1}")
-    # aws_diagnosis()
-
     return out_df
+
+
+def log_debug_parameters(params, prefix):
+    if logging.getLogger().isEnabledFor(logging.DEBUG):
+        logging.debug(prefix)
+        for parameter in params:
+            try:
+                logging.debug(
+                    f"""    shape {parameter.shape}, type {parameter.dtype}, range [{parameter.min()}, {parameter.mean()}, {parameter.max()}]"""
+                )
+            except:
+                logging.debug(f"""    value {parameter}""")
