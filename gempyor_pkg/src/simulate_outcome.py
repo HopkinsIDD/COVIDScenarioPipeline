@@ -55,9 +55,9 @@ import time, os
 
 import click
 
-from id_simulator import file_paths
-from id_simulator.utils import config
-from id_simulator import outcomes
+from gempyor import file_paths
+from gempyor.utils import config
+from gempyor import outcomes
 
 
 @click.command()

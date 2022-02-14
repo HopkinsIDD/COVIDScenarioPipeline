@@ -6,12 +6,12 @@ import pandas as pd
 import pyarrow.parquet as pq
 from numba.typed import Dict
 
-import id_simulator.compartments
+import gempyor.compartments
 from . import file_paths
 import confuse
 import logging
-from id_simulator import compartments
-from id_simulator import setup
+from gempyor import compartments
+from gempyor import setup
 import numba as nb
 
 logger = logging.getLogger(__name__)

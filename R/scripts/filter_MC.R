@@ -205,8 +205,8 @@ data_stats <- lapply(
 
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 
-# Load id_simulator module
-id_simulator <- reticulate::import("id_simulator")
+# Load gempyor module
+gempyor <- reticulate::import("gempyor")
 
 for(scenario in scenarios) {
   for(deathrate in deathrates) {
@@ -227,7 +227,7 @@ for(scenario in scenarios) {
     global_local_prefix <- covidcommon::create_prefix(prefix=global_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
 
     ## python configuration: build simulator model initialized with compartment and all.
-    id_simulator_inference_runner <- id_simulator$Simulator(
+    gempyor_inference_runner <- gempyor$InferenceSimulator(
                                                     config_path=opt$config,
                                                     run_id=opt$run_id,
                                                     prefix=global_block_prefix,
@@ -245,7 +245,7 @@ for(scenario in scenarios) {
       opt$this_block,
       global_block_prefix,
       chimeric_block_prefix,
-      id_simulator_inference_runner,
+      gempyor_inference_runner,
       function(sim_hosp){
         sim_hosp <- dplyr::filter(sim_hosp,sim_hosp$time >= min(obs$date),sim_hosp$time <= max(obs$date))
         lhs <- unique(sim_hosp[[obs_nodename]])
@@ -328,13 +328,13 @@ for(scenario in scenarios) {
 
       
       ## Update the prefix
-      id_simulator_inference_runner$update_prefix(new_prefix=global_local_prefix)
+      gempyor_inference_runner$update_prefix(new_prefix=global_local_prefix)
       ## Run the simulator
-      err <- id_simulator_inference_runner$one_simulation_loadID(
+      err <- gempyor_inference_runner$one_simulation_loadID(
         sim_id2write=this_index, 
         sim_id2load=this_index)
       if(err != 0){
-        stop("Simulator failed to run")
+        stop("InferenceSimulator failed to run")
       }
 
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_global_files[['hosp_filename']]))(this_global_files[['hosp_filename']]) %>%

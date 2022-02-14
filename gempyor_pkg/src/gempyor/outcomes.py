@@ -9,13 +9,13 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from id_simulator.utils import config, Timer
-import id_simulator.NPI as NPI
+from gempyor.utils import config, Timer
+import gempyor.NPI as NPI
 import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
-from id_simulator import file_paths
-from id_simulator.setup import _parameter_reduce, npi_load
+from gempyor import file_paths
+from gempyor.setup import _parameter_reduce, npi_load
 
 import logging
 

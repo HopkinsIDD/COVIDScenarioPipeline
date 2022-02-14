@@ -2,8 +2,8 @@ import setuptools
 
 # that's to make steps exist in the directory, though it needs the right numba version
 # right away
-from id_simulator.steps_source import cc as steps_cc
-from id_simulator.dev.steps import cc as steps_ode
+from gempyor.steps_source import cc as steps_cc
+from gempyor.dev.steps import cc as steps_ode
 
 
 with open("requirements.txt") as f:

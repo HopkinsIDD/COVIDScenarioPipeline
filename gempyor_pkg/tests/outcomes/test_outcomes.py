@@ -4,8 +4,8 @@ import datetime
 
 import pytest
 
-from id_simulator import outcomes
-from id_simulator.utils import config
+from gempyor import outcomes
+from gempyor.utils import config
 
 import pandas as pd
 import numpy as np
@@ -18,7 +18,7 @@ from pathlib import Path
 import pyarrow.parquet as pq
 import click
 import pyarrow as pa
-from id_simulator import file_paths
+from gempyor import file_paths
 
 config_path_prefix = ""  #'tests/outcomes/'
 

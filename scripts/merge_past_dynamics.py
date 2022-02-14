@@ -14,7 +14,7 @@ import pathlib
 import time
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
-from id_simulator.utils import config
+from gempyor.utils import config
 import click
 
 

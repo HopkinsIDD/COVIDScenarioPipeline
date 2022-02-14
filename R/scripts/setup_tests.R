@@ -422,8 +422,8 @@ for (test in tests) {
   file.copy(config$outcomes$param_place_file, first_hpar_file)
 
   reticulate::use_python(Sys.which(opt$python),require=TRUE)
-  id_simulator <- reticulate::import("id_simulator")
-  id_simulator_inference_runner <- id_simulator$Simulator(
+  gempyor <- reticulate::import("gempyor")
+  gempyor_inference_runner <- gempyor$InferenceSimulator(
                                                 config_path=config_file_out_generation,
                                                 run_id=test$runid,
                                                 prefix=global_block_prefix,
@@ -434,8 +434,8 @@ for (test in tests) {
                                                 initialize=TRUE  # Shall we pre-compute now things that are not pertubed by inference
 )
 
-id_simulator_inference_runner$one_simulation(0)
-id_simulator_inference_runner$one_simulation_loadID(sim_id2write=0, sim_id2load=0)
+gempyor_inference_runner$one_simulation(0)
+gempyor_inference_runner$one_simulation_loadID(sim_id2write=0, sim_id2load=0)
 
   for (i in 1:opt$n_slots) {
     slot_prefix <- covidcommon::create_prefix(config$name, test$scenario, "med",test$runid,sep='/',trailing_separator='/')
