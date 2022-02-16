@@ -110,7 +110,7 @@ def onerun_delayframe_outcomes_load_hpar(
                 global_config=npi_config[1],
                 geoids=places,
                 loaded_df=NPI.npi_fileload(
-                    fname = file_paths.create_file_name_without_extension(
+                    fname=file_paths.create_file_name_without_extension(
                         in_run_id, in_prefix, in_sim_id, "hnpi"
                     ),
                     extension="parquet",

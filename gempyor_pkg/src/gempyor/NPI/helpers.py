@@ -1,23 +1,7 @@
 import pandas as pd
-import pyarrow as pa
 import numpy as np
 import typing
 
-def npi_fileload(fname: str, extension: str = "") -> pd.DataFrame:
-    """ Extension: could be empty if the filename already countains it """
-    # Quite ugly and should be in class NPI
-    if extension: # Empty strings are falsy in python
-        fname = f"{fname}.{extension}"
-    extension = fname.split('.')[-1]
-    if extension == "csv":
-        out_df = pd.read_csv(fname)
-    elif extension == "parquet":
-        out_df = pa.parquet.read_table(fname).to_pandas()
-    else:
-        raise NotImplementedError(
-            f"Invalid extension {extension}. Must be 'csv' or 'parquet'"
-        )
-    return out_df
 
 # Helper function
 def reduce_parameter(

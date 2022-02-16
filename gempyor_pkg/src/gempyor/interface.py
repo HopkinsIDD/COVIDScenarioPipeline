@@ -120,7 +120,12 @@ class InferenceSimulator:
     # profile()
     def one_simulation(self, sim_id2write):
         with Timer("onerun_SEIR"):
-            seir.onerun_SEIR(sim_id2write = int(sim_id2write), s=self.s, load_ID=False, stoch_traj_flag=self.stoch_traj_flag)
+            seir.onerun_SEIR(
+                sim_id2write=int(sim_id2write),
+                s=self.s,
+                load_ID=False,
+                stoch_traj_flag=self.stoch_traj_flag,
+            )
 
         with Timer("onerun_OUTCOMES"):
             outcomes.run_delayframe_outcomes(
@@ -147,7 +152,11 @@ class InferenceSimulator:
     def one_simulation_loadID(self, sim_id2write, sim_id2load):
         with Timer("onerun_SEIR_loadID"):
             seir.onerun_SEIR(
-                sim_id2write = int(sim_id2write), s=self.s, load_ID=True, sim_id2load=int(sim_id2load), stoch_traj_flag = self.stoch_traj_flag
+                sim_id2write=int(sim_id2write),
+                s=self.s,
+                load_ID=True,
+                sim_id2load=int(sim_id2load),
+                stoch_traj_flag=self.stoch_traj_flag,
             )
 
         with Timer("onerun_OUTCOMES_loadID"):
