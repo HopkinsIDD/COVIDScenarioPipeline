@@ -165,7 +165,12 @@ class MultiTimeReduce(NPIBase):
         self.parameters = self.parameters.loc[self.affected_geoids]
         # self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids) ]
         # self.parameters = self.parameters[self.affected_geoids]
-        self.param_name = self.parameters["parameter"].unique()[0]          # [0] to convert ndarray to str
+
+        # parameter name is picked from config too: (before: )
+        #self.param_name = self.parameters["parameter"].unique()[0]  # [0] to convert ndarray to str
+        #now:
+        self.param_name = npi_config["parameter"].as_str().lower().replace(" ", "")
+        self.parameters["parameter"] = self.param_name
 
     def __get_affected_geoids(self, npi_config):
         # Optional config field "affected_geoids"
