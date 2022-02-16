@@ -37,19 +37,16 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
         if row['place'] not in setup.spatset.nodenames:
             raise ValueError(
                 f"Invalid place '{row['place']}' in row {row_index + 1} of seeding::lambda_file. Not found in geodata.")
-        
-        if (row['date'].date() - setup.ti).days >= 0:
-            nb_seed_perday[(row['date'].date() - setup.ti).days] = nb_seed_perday[
-                                                                    (row['date'].date() - setup.ti).days] + 1
 
-            source_dict = {grp_name: row[f'source_{grp_name}'] for grp_name in cmp_grp_names}
-            destination_dict = {grp_name: row[f'destination_{grp_name}'] for grp_name in cmp_grp_names}
-            seeding_dict['seeding_sources'][idx] = setup.compartments.get_comp_idx(source_dict)
-            seeding_dict['seeding_destinations'][idx] = setup.compartments.get_comp_idx(destination_dict)
-            seeding_dict['seeding_places'][idx] = setup.spatset.nodenames.index(row['place'])
-            seeding_amounts[idx] = amounts[idx]
-        else:
-            print("WARNING IGNORING SEEDING DATE PRIOR TO START_DATE. Probably caused by a bug in create seeding")
+        nb_seed_perday[(row['date'].date() - setup.ti).days] = nb_seed_perday[
+                                                                   (row['date'].date() - setup.ti).days] + 1
+
+        source_dict = {grp_name: row[f'source_{grp_name}'] for grp_name in cmp_grp_names}
+        destination_dict = {grp_name: row[f'destination_{grp_name}'] for grp_name in cmp_grp_names}
+        seeding_dict['seeding_sources'][idx] = setup.compartments.get_comp_idx(source_dict)
+        seeding_dict['seeding_destinations'][idx] = setup.compartments.get_comp_idx(destination_dict)
+        seeding_dict['seeding_places'][idx] = setup.spatset.nodenames.index(row['place'])
+        seeding_amounts[idx] = amounts[idx]
 
     day_start_idx =np.zeros(setup.n_days + 1, dtype=np.int64)
     day_start_idx[1:] = np.cumsum(nb_seed_perday)

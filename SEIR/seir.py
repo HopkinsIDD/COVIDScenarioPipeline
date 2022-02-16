@@ -284,31 +284,8 @@ def states2Df(s, states):
 
     return out_df
 
-def aws_diagnosis():
-    import os
-    from os import path
-    from shutil import disk_usage
-    def bash(command):
-        output = os.popen(command).read()
-        return output
-    print("START AWS DIAGNOSIS ================================")
-    total_bytes, used_bytes, free_bytes = disk_usage(path.realpath('/'))
-    print(f"shutil.disk_usage: {total_bytes/ 1000000} Mb total, {used_bytes / 1000000} Mb used, {free_bytes / 1000000} Mb free...")
-    print('------------')
-    print(f"df -hT: {bash('df -hT')}")
-    print('------------')
-    print(f"df -i: {bash('df -i')}")  
-    print('------------')
-    print(f"free -h: {bash('free -h')}")
-    print('------------')
-    print(f"lsblk: {bash('lsblk')}")  
-    print("END AWS DIAGNOSIS ================================")
-
 
 def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
-
-    print(f"before postprocess_and_write for id {s.out_run_id}, {s.out_prefix}, {sim_id + s.first_sim_index - 1}")
-    aws_diagnosis()
     out_df = states2Df(s, states)
     if s.write_csv:
         npi.writeReductions(
@@ -349,8 +326,5 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
             file_paths.create_file_name(s.out_run_id, s.out_prefix, sim_id + s.first_sim_index - 1, "seir",
                                         "parquet")
         )
-
-    print(f"after postprocess_and_write for id {s.out_run_id}, {s.out_prefix}, {sim_id + s.first_sim_index - 1}")
-    aws_diagnosis()
 
     return out_df

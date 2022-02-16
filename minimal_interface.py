@@ -122,7 +122,6 @@ s = setup.Setup(
     npi_scenario=scenario,
     npi_config=config["interventions"]["settings"][scenario],
     seeding_config=config["seeding"],
-    initial_conditions_config=config["initial_conditions"],
     parameters_config=config["seir"]["parameters"],
     compartments_config=config["seir"],
     ti=config["start_date"].as_date(),

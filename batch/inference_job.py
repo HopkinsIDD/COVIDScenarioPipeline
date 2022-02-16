@@ -43,13 +43,11 @@ from SEIR import file_paths
               help="The location of an S3 run to use as the initial to the first block of the current run")
 @click.option("--stochastic/--non-stochastic", "--stochastic/--non-stochastic", "stochastic", envvar="COVID_STOCHASTIC", type=bool, default=True,
               help="Flag determining whether to run stochastic simulations or not")
-@click.option("--resume-discard-seeding/--resume-carry-seeding", "--resume-discard-seeding/--resume-carry-seeding", "resume_discard_seeding", envvar="RESUME_DISCARD_SEEDING", type=bool, default=False,
-              help="Flag determining whether to keep seeding in resume runs")
 @click.option("--stacked-max","--stacked-max", "max_stacked_interventions", envvar="COVID_MAX_STACK_SIZE", type=click.IntRange(min=350), default=350,
               help="Maximum number of interventions to allow in a stacked intervention")
 @click.option("--validation-end-date","--validation-end-date", "last_validation_date", envvar="VALIDATION_DATE", type=click.DateTime(formats=["%Y-%m-%d"]), default=str(date.today()),
               help="Last date to pull for ground truth data")
-def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, resume_discard_seeding, max_stacked_interventions, last_validation_date):
+def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, job_queue_prefix, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
 
     config = None
     with open(config_file) as f:
@@ -73,16 +71,13 @@ def launch_batch(config_file, run_id, num_jobs, sims_per_job, num_blocks, output
 
     if restart_from_run_id is None:
         restart_from_run_id = run_id
-    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, resume_discard_seeding, max_stacked_interventions, last_validation_date)
+    handler = BatchJobHandler(run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date)
 
     job_queues = get_job_queues(job_queue_prefix)
     scenarios = config['interventions']['scenarios']
     p_death_names = config['outcomes']['scenarios']
 
     handler.launch(job_name, config_file, scenarios, p_death_names, job_queues)
-    
-    # Set job_name as environmental variable so it can be pulled for pushing to git
-    os.environ['job_name'] = job_name
 
     (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")
     print(txt)
@@ -142,7 +137,7 @@ def get_job_queues(job_queue_prefix):
 
 
 class BatchJobHandler(object):
-    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, resume_discard_seeding, max_stacked_interventions, last_validation_date):
+    def __init__(self, run_id, num_jobs, sims_per_job, num_blocks, outputs, s3_bucket, batch_job_definition, vcpus, memory, restart_from_s3_bucket, restart_from_run_id, stochastic, max_stacked_interventions, last_validation_date):
         self.run_id = run_id
         self.num_jobs = num_jobs
         self.sims_per_job = sims_per_job
@@ -155,7 +150,6 @@ class BatchJobHandler(object):
         self.restart_from_s3_bucket = restart_from_s3_bucket
         self.restart_from_run_id = restart_from_run_id
         self.stochastic = stochastic
-        self.resume_discard_seeding = resume_discard_seeding
         self.max_stacked_interventions = max_stacked_interventions
         self.last_validation_date = last_validation_date
 
@@ -215,7 +209,6 @@ class BatchJobHandler(object):
                 {"name": "VALIDATION_DATE", "value": str(self.last_validation_date)},
                 {"name": "SIMS_PER_JOB", "value": str(self.sims_per_job) },
                 {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job) },
-                {"name": "RESUME_DISCARD_SEEDING", "value": str(self.resume_discard_seeding) },
                 {"name": "COVID_STOCHASTIC", "value": str(self.stochastic) }
         ]
 

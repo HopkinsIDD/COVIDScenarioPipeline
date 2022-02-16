@@ -5,15 +5,15 @@ on:
     branches:
       - master
       - dev
+      - dataseed
       - inference
-      - compartment_dev
   pull_request:
     branches:
       - master
       - dev
       - dataseed
       - inference
-      - compartment_dev
+      - inference_state
 
 jobs:
   unit-tests:
