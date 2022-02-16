@@ -81,7 +81,11 @@ DVC_OUTPUTS_ARRAY=($DVC_OUTPUTS)
 if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 	if [ $COVID_BLOCK_INDEX -eq 1 ]; then
 		export RESUME_RUN_INDEX=$COVID_OLD_RUN_INDEX
-		export PARQUET_TYPES="seed cont spar snpi hpar hnpi"
+		if [ $RESUME_DISCARD_SEEDING ]; then
+			export PARQUET_TYPES="cont spar snpi hpar hnpi"
+		else
+			export PARQUET_TYPES="seed cont spar snpi hpar hnpi"
+		fi
 	else
 		export RESUME_RUN_INDEX=$COVID_RUN_INDEX
 		export PARQUET_TYPES="seed cont spar snpi seir hpar hnpi hosp llik"

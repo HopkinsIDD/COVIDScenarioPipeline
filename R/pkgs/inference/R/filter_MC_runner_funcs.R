@@ -456,7 +456,7 @@ initialize_mcmc_first_block <- function(
   if (is_resume) {
     print(global_check)
     important_global_check <- global_check[
-      !(names(global_check) %in% c("llik_filename", "hosp_filename", "seir_filename"))
+      !(names(global_check) %in% c("llik_filename", "hosp_filename", "seir_filename", "seed_filename"))
     ]
     if (!all(important_global_check)) {
       all_file_types <- names(important_global_check)
