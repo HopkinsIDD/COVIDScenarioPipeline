@@ -9,7 +9,7 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from gempyor.utils import config, Timer
+from gempyor.utils import config, Timer, read_df, write_df
 import gempyor.NPI as NPI
 import pyarrow.parquet
 import pyarrow as pa
@@ -109,7 +109,7 @@ def onerun_delayframe_outcomes_load_hpar(
                 npi_config=npi_config[0],
                 global_config=npi_config[1],
                 geoids=places,
-                loaded_df=NPI.npi_fileload(
+                loaded_df=read_df(
                     fname=file_paths.create_file_name_without_extension(
                         in_run_id, in_prefix, in_sim_id, "hnpi"
                     ),
@@ -399,14 +399,11 @@ def write_outcome_hpar(hpar, run_id, prefix, sim_id):
     )
 
 
-def write_outcome_hnpi(npi, run_id, prefix, sim_id):
+def write_outcome_hnpi(npi: NPI, run_id, prefix, sim_id):
     if npi is not None:
-        npi.writeReductions(
-            file_paths.create_file_name_without_extension(
-                run_id, prefix, sim_id, "hnpi"
-            ),
-            "parquet",
-        )
+        write_df(fname=file_paths.create_file_name_without_extension(
+                run_id, prefix, sim_id, "hnpi"), df=npi.getReductionDF() , extension="parquet"
+            )
     else:
         hnpi = pd.DataFrame(
             columns=[

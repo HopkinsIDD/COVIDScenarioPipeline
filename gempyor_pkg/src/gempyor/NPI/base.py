@@ -1,5 +1,4 @@
 import abc
-from signal import valid_signals
 import pyarrow as pa
 
 
