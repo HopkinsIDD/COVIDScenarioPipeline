@@ -11,9 +11,12 @@ dev-versions/
 reports/
 doc/html
 doc/latex
-
+*.*.so
+*.egg-info/
 # ^Joseph's stuff
 
+Outcomes/test/model_output
+model_output/
 
 # History files
 .Rhistory

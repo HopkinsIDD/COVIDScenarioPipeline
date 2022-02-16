@@ -1,6 +1,7 @@
 import itertools
 import time
 import warnings
+from matplotlib.pyplot import step
 
 import numpy as np
 import pandas as pd
@@ -12,6 +13,8 @@ from SEIR.utils import config, Timer
 import pyarrow.parquet as pq
 import pyarrow as pa
 import logging
+import SEIR.steps_rk4 as steps_rk4
+import SEIR.dev.steps as steps_experimental
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +41,6 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
     # assert (transition_array.shape == (5, 5))
     assert (type(transition_array[0][0]) == np.int64)
     # assert (proportion_array.shape == (9,))
-    print("START")
-    print(proportion_array)
-    print(type(proportion_array))
-    print("END")
     assert (type(proportion_array[0]) == np.int64)
     # assert (proportion_info.shape == (3, 6))
     assert (type(proportion_info[0][0]) == np.int64)
@@ -72,7 +71,8 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
     assert (len(s.popnodes) == s.nnodes)
     assert (type(s.popnodes[0]) == np.int64)
 
-    return(steps_SEIR_nb(
+
+    fnct_args = (
         s.compartments.compartments.shape[0],
         s.nnodes,
         s.n_days,
@@ -88,7 +88,40 @@ def steps_SEIR(s, parsed_parameters, transition_array, proportion_array, proport
         mobility_geoid_indices,
         mobility_data_indices,
         s.popnodes,
-        stoch_traj_flag))
+        stoch_traj_flag) # TODO make it a dict, it's safer
+
+    logging.info(f"Integrating with method {s.integration_method}")
+
+    if s.integration_method == 'legacy':
+        seir_sim = steps_SEIR_nb(*fnct_args)
+    elif s.integration_method == 'rk4.jit':
+        seir_sim = steps_rk4.rk4_integration(*fnct_args)
+    else:
+        logging.critical("Experimental !!! These methods are not ready for production ! ")
+        if s.integration_method in ['scipy.solve_ivp', 'scipy.odeint', 'scipy.solve_ivp2', 'scipy.odeint2']:
+            if stoch_traj_flag == True:
+                raise ValueError(f"with method {s.integration_method}, only deterministic"
+                                f"integration is possible (got stoch_straj_flag={stoch_traj_flag}")
+            seir_sim = steps_experimental.ode_integration(*fnct_args, integration_method=s.integration_method)
+        elif s.integration_method == 'rk4.jit1':
+            seir_sim = steps_experimental.rk4_integration1(*fnct_args)
+        elif s.integration_method == 'rk4.jit2':
+            seir_sim = steps_experimental.rk4_integration2(*fnct_args)
+        elif s.integration_method == 'rk4.jit3':
+            seir_sim = steps_experimental.rk4_integration3(*fnct_args)
+        elif s.integration_method == 'rk4.jit4':
+            seir_sim = steps_experimental.rk4_integration4(*fnct_args)
+        elif s.integration_method == 'rk4.jit5':
+            seir_sim = steps_experimental.rk4_integration5(*fnct_args)
+        elif s.integration_method == 'rk4.jit6':
+            seir_sim = steps_experimental.rk4_integration6(*fnct_args)
+        elif s.integration_method == 'rk4.jit.smart':
+            seir_sim = steps_experimental.rk4_integration2_smart(*fnct_args)
+        elif s.integration_method == 'rk4_aot':
+            seir_sim = steps_experimental.rk4_aot(*fnct_args)
+        else:
+            raise ValueError(f"Unknow integration scheme, got {s.integration_method}")
+    return seir_sim
 
 def onerun_SEIR(sim_id: int, s: setup.Setup, stoch_traj_flag: bool = True):
     scipy.random.seed()
@@ -307,8 +340,8 @@ def aws_diagnosis():
 
 def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
 
-    print(f"before postprocess_and_write for id {s.out_run_id}, {s.out_prefix}, {sim_id + s.first_sim_index - 1}")
-    aws_diagnosis()
+    #print(f"before postprocess_and_write for id {s.out_run_id}, {s.out_prefix}, {sim_id + s.first_sim_index - 1}")
+    #aws_diagnosis()
     out_df = states2Df(s, states)
     if s.write_csv:
         npi.writeReductions(
@@ -350,7 +383,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
                                         "parquet")
         )
 
-    print(f"after postprocess_and_write for id {s.out_run_id}, {s.out_prefix}, {sim_id + s.first_sim_index - 1}")
-    aws_diagnosis()
+    #print(f"after postprocess_and_write for id {s.out_run_id}, {s.out_prefix}, {sim_id + s.first_sim_index - 1}")
+    #aws_diagnosis()
 
     return out_df
