@@ -86,7 +86,6 @@ class Setup:
         write_csv=False,
         write_parquet=False,
         dt=1 / 6,  # step size, in days
-        nbetas=None,  # # of betas, which are rates of infection
         first_sim_index=1,
         in_run_id=None,
         in_prefix=None,
@@ -142,10 +141,6 @@ class Setup:
         if out_prefix is None:
             out_prefix = f"model_output/{setup_name}/{npi_scenario}/{out_run_id}/"
         self.out_prefix = out_prefix
-
-        if nbetas is None:
-            nbetas = nsim
-        self.nbetas = nbetas
 
         self.spatset = spatial_setup
 
