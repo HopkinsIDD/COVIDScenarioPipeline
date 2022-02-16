@@ -41,7 +41,9 @@ def test_parameters_from_config_plus_read_write():
     rhs = parameters.Parameters(
         parameter_config=config["seir"]["parameters"], config_version="v2"
     )
-    p_load = rhs.parameters_load(param_df=read_df("test_pwrite.parquet"), nt_inter=nt_inter, nnodes=nnodes)
+    p_load = rhs.parameters_load(
+        param_df=read_df("test_pwrite.parquet"), nt_inter=nt_inter, nnodes=nnodes
+    )
 
     assert (p_draw == p_load).all()
 

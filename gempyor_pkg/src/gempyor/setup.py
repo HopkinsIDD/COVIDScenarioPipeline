@@ -221,7 +221,7 @@ class Setup:
         self, ftype: str, sim_id: int, input: bool, extension_override: str = ""
     ):
         """return a CSP formated filename."""
-        
+
         if extension_override:  # empty strings are Falsy
             extension = extension_override
         else:  # Constructed like this because in some test, extension is not defined

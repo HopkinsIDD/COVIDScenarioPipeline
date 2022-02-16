@@ -133,7 +133,8 @@ class SeedingAndIC:
                 ftype=self.initial_conditions_config["initial_file_type"], sim_id=sim_id
             )
             ic_df = ic_df[
-                (ic_df["date"] == str(setup.ti)) & (ic_df["value_type"] == "prevalence")
+                (ic_df["date"] == str(setup.ti))
+                & (ic_df["mc_value_type"] == "prevalence")
             ]
             if ic_df.empty:
                 raise ValueError(

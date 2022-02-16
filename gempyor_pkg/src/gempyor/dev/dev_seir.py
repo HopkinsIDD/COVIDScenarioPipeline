@@ -95,7 +95,7 @@ states = seir.steps_SEIR_nb(
 )
 df = seir.states2Df(s, states)
 assert (
-    df[(df["value_type"] == "prevalence") & (df["mc_infection_stage"] == "R")].loc[
+    df[(df["mc_value_type"] == "prevalence") & (df["mc_infection_stage"] == "R")].loc[
         str(s.tf), "20002"
     ]
     > 1
@@ -103,8 +103,8 @@ assert (
 print(df)
 ts = df
 cp = "R"
-ts = ts[(ts["mc_infection_stage"] == cp) & (ts["value_type"] == "prevalence")]
-ts = ts.drop(["value_type", "mc_infection_stage", "mc_name"], axis=1)
+ts = ts[(ts["mc_infection_stage"] == cp) & (ts["mc_value_type"] == "prevalence")]
+ts = ts.drop(["mc_value_type", "mc_infection_stage", "mc_name"], axis=1)
 ts = ts.pivot(columns="mc_vaccination_stage").sum(axis=1, level=1)
 ts["unvaccinated"].plot()
 
