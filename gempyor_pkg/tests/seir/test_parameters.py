@@ -12,7 +12,7 @@ import filecmp
 
 from gempyor import setup, seir, NPI, file_paths, parameters
 
-from gempyor.utils import config
+from gempyor.utils import config, write_df, read_df
 
 DATA_DIR = os.path.dirname(__file__) + "/data"
 os.chdir(os.path.dirname(__file__))
@@ -36,12 +36,12 @@ def test_parameters_from_config_plus_read_write():
     # test shape
     assert p_draw.shape == (len(config["seir"]["parameters"].keys()), nt_inter, nnodes)
 
-    p.parameters_write(p_draw=p_draw, fname="test_pwrite")
+    write_df(fname="test_pwrite.parquet", df=p.getParameterDF(p_draw=p_draw))
 
     rhs = parameters.Parameters(
         parameter_config=config["seir"]["parameters"], config_version="v2"
     )
-    p_load = rhs.parameters_load(fname="test_pwrite", nt_inter=nt_inter, nnodes=nnodes)
+    p_load = rhs.parameters_load(param_df=read_df("test_pwrite.parquet"), nt_inter=nt_inter, nnodes=nnodes)
 
     assert (p_draw == p_load).all()
 

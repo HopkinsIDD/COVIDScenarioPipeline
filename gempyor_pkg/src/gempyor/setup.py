@@ -1,4 +1,6 @@
+from distutils import extension
 import pathlib
+import re
 import numpy as np
 import pandas as pd
 import datetime
@@ -9,7 +11,7 @@ import copy
 from . import compartments
 from . import parameters
 from . import seeding_ic
-from .utils import config
+from .utils import config, read_df, write_df
 from . import file_paths
 import logging
 
@@ -187,12 +189,94 @@ class Setup:
                 self.out_run_id, self.out_prefix, "snpi"
             )
             os.makedirs(self.npidir, exist_ok=True)
+            if self.write_parquet and self.write_csv:
+                print(
+                    "Confused between reading .csv or parquet. Assuming input file is .parquet"
+                )
+            if self.write_parquet:
+                self.extension = "parquet"
+            elif self.write_csv:
+                self.extension = "csv"
 
     def build_setup(self):
         self.n_days = (self.tf - self.ti).days + 1  # because we include s.ti and s.tf
         self.nnodes = self.spatset.nnodes
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
+
+    def get_input_filename(self, ftype: str, sim_id: int, extension_override: str = ""):
+        return self.get_filename(
+            ftype=ftype,
+            sim_id=sim_id,
+            input=True,
+            extension_override=extension_override,
+        )
+
+    def get_output_filename(
+        self, ftype: str, sim_id: int, extension_override: str = ""
+    ):
+        return self.get_filename(
+            ftype=ftype,
+            sim_id=sim_id,
+            input=False,
+            extension_override=extension_override,
+        )
+
+    def get_filename(
+        self, ftype: str, sim_id: int, input: bool, extension_override: str = ""
+    ):
+        """return a CSP formated filename."""
+        
+        if extension_override:  # empty strings are Falsy
+            extension = extension_override
+        else:  # Constructed like this because in some test, extension is not defined
+            extension = self.extension
+
+        if input:
+            run_id = self.in_run_id
+            prefix = self.in_prefix
+        else:
+            run_id = self.out_run_id
+            prefix = self.out_prefix
+
+        fn = file_paths.create_file_name(
+            run_id=run_id,
+            prefix=prefix,
+            index=sim_id + self.first_sim_index - 1,
+            ftype=ftype,
+            extension=extension,
+        )
+        return fn
+
+    def read_simID(
+        self, ftype: str, sim_id: int, input: bool = True, extension_override: str = ""
+    ):
+        return read_df(
+            fname=self.get_filename(
+                ftype=ftype,
+                sim_id=sim_id,
+                input=input,
+                extension_override=extension_override,
+            )
+        )
+
+    def write_simID(
+        self,
+        ftype: str,
+        sim_id: int,
+        df: pd.DataFrame,
+        input: bool = False,
+        extension_override: str = "",
+    ):
+        write_df(
+            fname=self.get_filename(
+                ftype=ftype,
+                sim_id=sim_id,
+                input=input,
+                extension_override=extension_override,
+            ),
+            df=df,
+        )
 
 
 class SpatialSetup:

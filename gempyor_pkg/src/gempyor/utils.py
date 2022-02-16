@@ -4,6 +4,8 @@ import numbers
 import time
 import confuse
 import numpy as np
+import pandas as pd
+import pyarrow as pa
 import scipy.stats
 import sympy.parsing.sympy_parser
 import logging
@@ -11,6 +13,37 @@ import logging
 logger = logging.getLogger(__name__)
 
 config = confuse.Configuration("COVIDScenarioPipeline", read=False)
+
+def write_df(fname: str, df: pd.DataFrame,extension: str = ""):
+    """ write without index, so assume the index has been put a column"""
+    if extension:  # Empty strings are falsy in python
+        fname = f"{fname}.{extension}"
+    extension = fname.split(".")[-1]
+    if extension == "csv":
+        df.to_csv(fname, index=False)
+    elif extension == "parquet":
+        df = pa.Table.from_pandas(df, preserve_index=False)
+        pa.parquet.write_table(df, fname)
+    else:
+        raise NotImplementedError(
+            f"Invalid extension {extension}. Must be 'csv' or 'parquet'"
+        )
+
+def read_df(fname: str, extension: str = "") -> pd.DataFrame:
+    """Load a dataframe from a file, agnostic to whether it is a parquet or a csv. The extension
+    can be provided as an argument or it is infered"""
+    if extension:  # Empty strings are falsy in python
+        fname = f"{fname}.{extension}"
+    extension = fname.split(".")[-1]
+    if extension == "csv":
+        df = pd.read_csv(fname)
+    elif extension == "parquet":
+        df = pa.parquet.read_table(fname).to_pandas()
+    else:
+        raise NotImplementedError(
+            f"Invalid extension {extension}. Must be 'csv' or 'parquet'"
+        )
+    return df
 
 
 def add_method(cls):

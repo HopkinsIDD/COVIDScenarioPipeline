@@ -1,4 +1,5 @@
 import abc
+from signal import valid_signals
 import pyarrow as pa
 
 
@@ -21,18 +22,8 @@ class NPIBase(abc.ABC):
     def getReductionToWrite(self):
         pass
 
-    def writeReductions(self, fname, extension):
-        out_df = self.getReductionToWrite()
-
-        if extension == "csv":
-            out_df.to_csv(f"{fname}.{extension}", index=False)
-        elif extension == "parquet":
-            out_df = pa.Table.from_pandas(out_df, preserve_index=False)
-            pa.parquet.write_table(out_df, f"{fname}.{extension}")
-        else:
-            raise NotImplementedError(
-                f"Invalid extension {extension}. Must be 'csv' or 'parquet'"
-            )
+    def getReductionDF(self):
+        return self.getReductionToWrite()
 
     def execute(
         *,

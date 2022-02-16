@@ -521,7 +521,9 @@ def test_continuation_resume():
         out_run_id=run_id,
         out_prefix=prefix,
     )
-    seir.onerun_SEIR(sim_id2write=int(sim_id2write), s=s, stoch_traj_flag=stoch_traj_flag)
+    seir.onerun_SEIR(
+        sim_id2write=int(sim_id2write), s=s, stoch_traj_flag=stoch_traj_flag
+    )
 
     states_old = pq.read_table(
         file_paths.create_file_name(s.in_run_id, s.in_prefix, 100, "seir", "parquet"),
@@ -645,7 +647,9 @@ def test_inference_resume():
         out_run_id=run_id,
         out_prefix=prefix,
     )
-    seir.onerun_SEIR(sim_id2write=int(sim_id2write), s=s, stoch_traj_flag=stoch_traj_flag)
+    seir.onerun_SEIR(
+        sim_id2write=int(sim_id2write), s=s, stoch_traj_flag=stoch_traj_flag
+    )
     npis_old = pq.read_table(
         file_paths.create_file_name(
             s.in_run_id, s.in_prefix, sim_id2write, "snpi", "parquet"

@@ -129,15 +129,9 @@ class SeedingAndIC:
                     )
 
         elif method == "InitialConditionsFolderDraw":
-            fp = file_paths.create_file_name(
-                setup.in_run_id,
-                setup.in_prefix,
-                sim_id + setup.first_sim_index - 1,
-                self.initial_conditions_config["initial_file_type"],
-                "parquet",
-                create_directory=False,
+            ic_df = setup.read_simID(
+                ftype=self.initial_conditions_config["initial_file_type"], sim_id=sim_id
             )
-            ic_df = pq.read_table(fp).to_pandas()
             ic_df = ic_df[
                 (ic_df["date"] == str(setup.ti)) & (ic_df["value_type"] == "prevalence")
             ]
@@ -187,12 +181,10 @@ class SeedingAndIC:
                 )
         elif method == "FolderDraw":
             seeding = pd.read_csv(
-                file_paths.create_file_name(
-                    setup.in_run_id,
-                    setup.in_prefix,
-                    sim_id + setup.first_sim_index - 1,
-                    setup.seeding_config["seeding_file_type"],
-                    "csv",
+                setup.get_input_filename(
+                    ftype=setup.seeding_config["seeding_file_type"],
+                    sim_id=sim_id,
+                    extension_override="csv",
                 ),
                 converters={"place": lambda x: str(x)},
                 parse_dates=["date"],

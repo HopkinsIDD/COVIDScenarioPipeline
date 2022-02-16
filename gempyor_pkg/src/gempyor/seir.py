@@ -8,7 +8,7 @@ import scipy
 import tqdm.contrib.concurrent
 
 from gempyor import NPI, setup, file_paths
-from gempyor.utils import config, Timer, aws_disk_diagnosis
+from gempyor.utils import config, Timer, aws_disk_diagnosis, read_df
 import pyarrow as pa
 import logging
 import gempyor.steps_rk4 as steps_rk4
@@ -135,6 +135,26 @@ def steps_SEIR(
     return seir_sim
 
 
+def build_npi_SEIR(s, load_ID, sim_id2load):
+    if load_ID:
+        npi = NPI.NPIBase.execute(
+            npi_config=s.npi_config,
+            global_config=config,
+            geoids=s.spatset.nodenames,
+            loaded_df=s.read_simID(ftype="snpi", sim_id=sim_id2load),
+        )
+    else:
+        npi = NPI.NPIBase.execute(
+            npi_config=s.npi_config,
+            global_config=config,
+            geoids=s.spatset.nodenames,
+            pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
+                "sum"
+            ],
+        )
+    return npi
+
+
 def onerun_SEIR(
     sim_id2write: int,
     s: setup.Setup,
@@ -142,42 +162,10 @@ def onerun_SEIR(
     sim_id2load: int = None,
     stoch_traj_flag: bool = True,
 ):
-    if s.write_parquet and s.write_csv:
-        print(
-            "Confused between reading .csv or parquet. Assuming input file is .parquet"
-        )
-    if s.write_parquet:
-        extension = "parquet"
-    elif s.write_csv:
-        extension = "csv"
-
     scipy.random.seed()
 
     with Timer("onerun_SEIR.NPI"):
-        if load_ID:
-            npi = NPI.NPIBase.execute(
-                npi_config=s.npi_config,
-                global_config=config,
-                geoids=s.spatset.nodenames,
-                loaded_df=NPI.npi_fileload(
-                    fname = file_paths.create_file_name_without_extension(
-                        s.in_run_id,  # Not sure about this one
-                        s.in_prefix,  # Not sure about this one
-                        sim_id2load + s.first_sim_index - 1,
-                        "snpi",
-                    ),
-                    extension=extension,
-                ),
-            )
-        else:
-            npi = NPI.NPIBase.execute(
-                npi_config=s.npi_config,
-                global_config=config,
-                geoids=s.spatset.nodenames,
-                pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
-                    "sum"
-                ],
-            )
+        npi = build_npi_SEIR(s=s, load_ID=load_ID, sim_id2load=sim_id2load)
 
     with Timer("onerun_SEIR.seeding"):
         if load_ID:
@@ -198,18 +186,14 @@ def onerun_SEIR(
     with Timer("onerun_SEIR.pdraw"):
         if load_ID:
             p_draw = s.parameters.parameters_load(
-                file_paths.create_file_name_without_extension(
-                    s.in_run_id,  # Not sure about this one
-                    s.in_prefix,  # Not sure about this one
-                    sim_id2load + s.first_sim_index - 1,
-                    "spar",
-                ),
-                s.n_days,
-                s.nnodes,
-                extension,
+                param_df=s.read_simID(ftype="spar", sim_id=sim_id2load),
+                nt_inter=s.n_days,
+                nnodes=s.nnodes,
             )
         else:
-            p_draw = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
+            p_draw = s.parameters.parameters_quick_draw(
+                nt_inter=s.n_days, nnodes=s.nnodes
+            )
 
     with Timer("onerun_SEIR.reduce"):
         parameters = s.parameters.parameters_reduce(p_draw, npi)
@@ -320,6 +304,8 @@ def states2Df(s, states):
 
     out_df = pd.concat((incid_df, prev_df), axis=0).set_index("date")
 
+    out_df["date"] = out_df.index
+
     return out_df
 
 
@@ -327,62 +313,16 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
 
     # print(f"before postprocess_and_write for id {s.out_run_id}, {s.out_prefix}, {sim_id + s.first_sim_index - 1}")
     # aws_disk_diagnosis()
+
+    # NPIs
+    s.write_simID(ftype="snpi", sim_id=sim_id, df=npi.getReductionDF())
+    # Parameters
+    s.write_simID(
+        ftype="spar", sim_id=sim_id, df=s.parameters.getParameterDF(p_draw=p_draw)
+    )
     out_df = states2Df(s, states)
-    if s.write_csv:
-        npi.writeReductions(
-            file_paths.create_file_name_without_extension(
-                s.out_run_id, s.out_prefix, sim_id + s.first_sim_index - 1, "snpi"
-            ),
-            "csv",
-        )
-        s.parameters.parameters_write(
-            p_draw,
-            file_paths.create_file_name_without_extension(
-                s.out_run_id, s.out_prefix, sim_id + s.first_sim_index - 1, "spar"
-            ),
-            "csv",
-        )
+    s.write_simID(ftype="seir", sim_id=sim_id, df=out_df)
 
-        out_df.to_csv(
-            file_paths.create_file_name(
-                s.out_run_id,
-                s.prefix,
-                sim_id + s.out_first_sim_index - 1,
-                "seir",
-                "csv",
-            ),
-            index="date",
-            index_label="date",
-        )
-
-    if s.write_parquet:
-        npi.writeReductions(
-            file_paths.create_file_name_without_extension(
-                s.out_run_id, s.out_prefix, sim_id + s.first_sim_index - 1, "snpi"
-            ),
-            "parquet",
-        )
-
-        s.parameters.parameters_write(
-            p_draw,
-            file_paths.create_file_name_without_extension(
-                s.out_run_id, s.out_prefix, sim_id + s.first_sim_index - 1, "spar"
-            ),
-            "parquet",
-        )
-
-        out_df["date"] = out_df.index
-        pa_df = pa.Table.from_pandas(out_df, preserve_index=False)
-        pa.parquet.write_table(
-            pa_df,
-            file_paths.create_file_name(
-                s.out_run_id,
-                s.out_prefix,
-                sim_id + s.first_sim_index - 1,
-                "seir",
-                "parquet",
-            ),
-        )
     return out_df
 
 
