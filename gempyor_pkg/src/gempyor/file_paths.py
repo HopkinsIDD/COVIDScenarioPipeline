@@ -4,7 +4,7 @@ import datetime
 
 def create_file_name(run_id, prefix, index, ftype, extension, create_directory=True):
     if create_directory:
-        os.makedirs(create_dir_name(run_id, prefix, type), exist_ok=True)
+        os.makedirs(create_dir_name(run_id, prefix, ftype), exist_ok=True)
     return "model_output/%s/%s%09d.%s.%s.%s" % (
         ftype,
         prefix,
