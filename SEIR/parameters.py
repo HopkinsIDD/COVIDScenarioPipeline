@@ -164,7 +164,11 @@ class Parameters:
         param_arr[:] = np.nan  # fill with NaNs so we don't fail silently
 
         for idx, pn in enumerate(self.pnames):
-            pval = float(param_df[param_df['parameter'] == pn].value)
+            if pn in param_df['parameter'].values:
+                pval = float(param_df[param_df['parameter'] == pn].value)
+            else:
+                print(f"PARAM: parameter {pn} NOT found in loadID file. Drawing from config distribution")
+                pval = self.pdata[pn]['dist']()
             param_arr[idx] = np.full((nt_inter, nnodes), pval)
 
         return param_arr
