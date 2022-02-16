@@ -374,8 +374,8 @@ def read_seir_sim(run_id, prefix, sim_id):
         file_paths.create_file_name(run_id, prefix, sim_id, "seir", "parquet")
     )
 
-    diffI = diffI[diffI["value_type"] == "incidence"]
-    diffI.drop(["value_type"], inplace=True, axis=1)
+    diffI = diffI[diffI["mc_value_type"] == "incidence"]
+    diffI.drop(["mc_value_type"], inplace=True, axis=1)
     dates = diffI["date"].unique()
     todrop = [c for c in diffI.columns if c[:3] == "mc_"]
     todrop.append("date")
@@ -401,9 +401,13 @@ def write_outcome_hpar(hpar, run_id, prefix, sim_id):
 
 def write_outcome_hnpi(npi: NPI, run_id, prefix, sim_id):
     if npi is not None:
-        write_df(fname=file_paths.create_file_name_without_extension(
-                run_id, prefix, sim_id, "hnpi"), df=npi.getReductionDF() , extension="parquet"
-            )
+        write_df(
+            fname=file_paths.create_file_name_without_extension(
+                run_id, prefix, sim_id, "hnpi"
+            ),
+            df=npi.getReductionDF(),
+            extension="parquet",
+        )
     else:
         hnpi = pd.DataFrame(
             columns=[

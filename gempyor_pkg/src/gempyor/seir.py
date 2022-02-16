@@ -282,7 +282,7 @@ def states2Df(s, states):
         how="right",
         on="mc_name",
     )
-    prev_df.insert(loc=0, column="value_type", value="prevalence")
+    prev_df.insert(loc=0, column="mc_value_type", value="prevalence")
 
     ts_index = pd.MultiIndex.from_product(
         [pd.date_range(s.ti, s.tf, freq="D"), s.compartments.compartments["name"]],
@@ -300,7 +300,7 @@ def states2Df(s, states):
         how="right",
         on="mc_name",
     )
-    incid_df.insert(loc=0, column="value_type", value="incidence")
+    incid_df.insert(loc=0, column="mc_value_type", value="incidence")
 
     out_df = pd.concat((incid_df, prev_df), axis=0).set_index("date")
 

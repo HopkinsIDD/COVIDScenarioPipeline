@@ -234,13 +234,15 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
         df = seir.states2Df(s, states)
         assert (
             df[
-                (df["value_type"] == "prevalence") & (df["mc_infection_stage"] == "R")
+                (df["mc_value_type"] == "prevalence")
+                & (df["mc_infection_stage"] == "R")
             ].loc[str(s.tf), "10001"]
             > 1
         )
         assert (
             df[
-                (df["value_type"] == "prevalence") & (df["mc_infection_stage"] == "R")
+                (df["mc_value_type"] == "prevalence")
+                & (df["mc_infection_stage"] == "R")
             ].loc[str(s.tf), "20002"]
             > 1
         )
@@ -262,19 +264,22 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
         df = seir.states2Df(s, states)
         assert (
             df[
-                (df["value_type"] == "prevalence") & (df["mc_infection_stage"] == "R")
+                (df["mc_value_type"] == "prevalence")
+                & (df["mc_infection_stage"] == "R")
             ].loc[str(s.tf), "20002"]
             > 1
         )
         assert (
             df[
-                (df["value_type"] == "incidence") & (df["mc_infection_stage"] == "I1")
+                (df["mc_value_type"] == "incidence")
+                & (df["mc_infection_stage"] == "I1")
             ].max()["20002"]
             > 0
         )
         assert (
             df[
-                (df["value_type"] == "incidence") & (df["mc_infection_stage"] == "I1")
+                (df["mc_value_type"] == "incidence")
+                & (df["mc_infection_stage"] == "I1")
             ].max()["10001"]
             > 0
         )
@@ -360,13 +365,15 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
 
         assert (
             df[
-                (df["value_type"] == "incidence") & (df["mc_infection_stage"] == "I1")
+                (df["mc_value_type"] == "incidence")
+                & (df["mc_infection_stage"] == "I1")
             ].max()["20002"]
             > 0
         )
         assert (
             df[
-                (df["value_type"] == "incidence") & (df["mc_infection_stage"] == "I1")
+                (df["mc_value_type"] == "incidence")
+                & (df["mc_infection_stage"] == "I1")
             ].max()["10001"]
             > 0
         )
@@ -448,7 +455,8 @@ def test_steps_SEIR_no_spread():
         df = seir.states2Df(s, states)
         assert (
             df[
-                (df["value_type"] == "prevalence") & (df["mc_infection_stage"] == "R")
+                (df["mc_value_type"] == "prevalence")
+                & (df["mc_infection_stage"] == "R")
             ].loc[str(s.tf), "20002"]
             == 0.0
         )
@@ -470,7 +478,8 @@ def test_steps_SEIR_no_spread():
         df = seir.states2Df(s, states)
         assert (
             df[
-                (df["value_type"] == "prevalence") & (df["mc_infection_stage"] == "R")
+                (df["mc_value_type"] == "prevalence")
+                & (df["mc_infection_stage"] == "R")
             ].loc[str(s.tf), "20002"]
             == 0.0
         )
@@ -583,8 +592,8 @@ def test_continuation_resume():
     states_new = states_new[states_new["date"] == "2020-03-15"].reset_index(drop=True)
     assert (
         (
-            states_old[states_old["value_type"] == "prevalence"]
-            == states_new[states_new["value_type"] == "prevalence"]
+            states_old[states_old["mc_value_type"] == "prevalence"]
+            == states_new[states_new["mc_value_type"] == "prevalence"]
         )
         .all()
         .all()
@@ -798,7 +807,7 @@ def test_parallel_compartments_with_vacc():
         df = seir.states2Df(s, states)
         assert (
             df[
-                (df["value_type"] == "prevalence")
+                (df["mc_value_type"] == "prevalence")
                 & (df["mc_infection_stage"] == "R")
                 & (df["mc_vaccination_stage"] == "first_dose")
             ].max()["10001"]
@@ -822,7 +831,7 @@ def test_parallel_compartments_with_vacc():
         df = seir.states2Df(s, states)
         assert (
             df[
-                (df["value_type"] == "prevalence")
+                (df["mc_value_type"] == "prevalence")
                 & (df["mc_infection_stage"] == "R")
                 & (df["mc_vaccination_stage"] == "first_dose")
             ].max()["10001"]
@@ -907,7 +916,7 @@ def test_parallel_compartments_no_vacc():
         df = seir.states2Df(s, states)
         assert (
             df[
-                (df["value_type"] == "prevalence")
+                (df["mc_value_type"] == "prevalence")
                 & (df["mc_infection_stage"] == "R")
                 & (df["mc_vaccination_stage"] == "first_dose")
             ].max()["10001"]
@@ -931,7 +940,7 @@ def test_parallel_compartments_no_vacc():
         df = seir.states2Df(s, states)
         assert (
             df[
-                (df["value_type"] == "prevalence")
+                (df["mc_value_type"] == "prevalence")
                 & (df["mc_infection_stage"] == "R")
                 & (df["mc_vaccination_stage"] == "first_dose")
             ].max()["10001"]

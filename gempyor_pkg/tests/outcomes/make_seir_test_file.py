@@ -57,7 +57,7 @@ diffI = np.arange(5) * 2
 date_data = datetime.date(2020, 4, 15)
 for i in range(5):
     b.loc[
-        (b["value_type"] == "incidence") & (b["date"] == str(date_data)), geoid[i]
+        (b["mc_value_type"] == "incidence") & (b["date"] == str(date_data)), geoid[i]
     ] = diffI[i]
 
 pa_df = pa.Table.from_pandas(b, preserve_index=False)
@@ -76,7 +76,7 @@ b1d["mc_name"] = b1d["mc_name"].str.replace("unvaccinated", "1_dose")
 b = pd.concat((b, b1d))
 for i in range(5):
     b.loc[
-        (b["value_type"] == "incidence")
+        (b["mc_value_type"] == "incidence")
         & (b["date"] == str(date_data))
         & (b["mc_vaccination_stage"] == "first_dose"),
         geoid[i],

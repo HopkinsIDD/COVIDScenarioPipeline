@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 
 config = confuse.Configuration("COVIDScenarioPipeline", read=False)
 
-def write_df(fname: str, df: pd.DataFrame,extension: str = ""):
-    """ write without index, so assume the index has been put a column"""
+
+def write_df(fname: str, df: pd.DataFrame, extension: str = ""):
+    """write without index, so assume the index has been put a column"""
     if extension:  # Empty strings are falsy in python
         fname = f"{fname}.{extension}"
     extension = fname.split(".")[-1]
@@ -28,6 +29,7 @@ def write_df(fname: str, df: pd.DataFrame,extension: str = ""):
         raise NotImplementedError(
             f"Invalid extension {extension}. Must be 'csv' or 'parquet'"
         )
+
 
 def read_df(fname: str, extension: str = "") -> pd.DataFrame:
     """Load a dataframe from a file, agnostic to whether it is a parquet or a csv. The extension
