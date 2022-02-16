@@ -151,7 +151,11 @@ class ReduceIntervention(NPIBase):
         #    self.parameters["start_date"] = self.end_date
 
         self.affected_geoids = set(self.parameters.index)
-        self.param_name = self.parameters["parameter"].unique()[0]  # [0] to convert ndarray to str
+        # parameter name is picked from config too: (before: )
+        #self.param_name = self.parameters["parameter"].unique()[0]  # [0] to convert ndarray to str
+        #now:
+        self.param_name = npi_config["parameter"].as_str().lower().replace(" ", "")
+        self.parameters["parameter"] = self.param_name
 
     def __createFromConfig(self, npi_config):
         # Get name of the parameter to reduce
