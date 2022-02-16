@@ -78,7 +78,7 @@ class Setup:
                  seeding_config={},
                  initial_conditions_config={},
                  parameters_config={},
-                 compartments_config={},
+                 seir_config={},
                  interactive=True,
                  write_csv=False,
                  write_parquet=False,
@@ -92,7 +92,7 @@ class Setup:
                  ):
         self.setup_name = setup_name
         self.nsim = nsim
-        self.dt = dt
+        self.dt = float(dt)
         self.ti = ti  ## we start at 00:00 on ti
         self.tf = tf  ## we end on 23:59 on tf
         if self.tf <= self.ti:
@@ -102,12 +102,23 @@ class Setup:
         self.seeding_config = seeding_config
         self.initial_conditions_config = initial_conditions_config
         self.parameters_config = parameters_config
-        self.compartments_config = compartments_config
+        self.seir_config = seir_config
         self.interactive = interactive
         self.write_csv = write_csv
         self.write_parquet = write_parquet
         self.first_sim_index = first_sim_index
-
+        if  "integration_method" in self.seir_config.keys():
+            self.integration_method = self.seir_config["integration_method"].get()
+            if self.integration_method == 'best.current':
+                self.integration_method = 'rk4.jit'
+            if self.integration_method == 'rk4':
+                self.integration_method = 'rk4.jit'
+            if self.integration_method not in ['rk4.jit', 'legacy']:
+                raise ValueError(f"Unknow integration method {self.integration_method}.")
+        else:
+            self.integration_method = 'legacy'
+            logging.info(f"Integration method not provided, assuming type {self.integration_method}")
+            
         if in_run_id is None:
             in_run_id = file_paths.run_id()
         self.in_run_id = in_run_id
@@ -132,7 +143,7 @@ class Setup:
         self.build_setup()
 
         if config_version is None:
-            if "compartments" in self.compartments_config.keys():
+            if "compartments" in self.seir_config.keys():
                 config_version = 'v2'
             else:
                 config_version = 'old'
@@ -149,7 +160,7 @@ class Setup:
                                                 config_version=config_version)
         self.seedingAndIC = seeding_ic.SeedingAndIC(seeding_config=self.seeding_config,
                                                       initial_conditions_config=self.initial_conditions_config)
-        self.compartments = compartments.Compartments(self.compartments_config)
+        self.compartments = compartments.Compartments(self.seir_config)
 
         if self.write_csv or self.write_parquet:
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
