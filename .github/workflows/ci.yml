@@ -29,7 +29,7 @@ jobs:
       - name: Set up Rprofile
         run: cp Docker.Rprofile $HOME/.Rprofile
         shell: bash
-      - name: Install id simulation package
+      - name: Install the gempyor package
         run: |
           /home/app/python_venv/bin/python -m pip install --upgrade pip
           /home/app/python_venv/bin/pip install -e gempyor_pkg/

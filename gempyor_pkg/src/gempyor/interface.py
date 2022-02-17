@@ -53,13 +53,14 @@ class InferenceSimulator:
     def __init__(
         self,
         config_path,
-        run_id="testrun",
-        prefix="prefix",
+        run_id="test_run_id",
+        prefix="test_prefix",
         first_sim_index=1,
         scenario="inference",
         deathrate="med",
         stoch_traj_flag=False,
         rng_seed=None,
+        nsim = 1,
         initialize=True,
     ):
         self.scenario = scenario
@@ -77,7 +78,7 @@ class InferenceSimulator:
         spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
 
         np.random.seed(rng_seed)
-        nsim = 1
+        
         interactive = False
         write_csv = False
         write_parquet = True
@@ -116,6 +117,8 @@ class InferenceSimulator:
         >> Setup {self.s.setup_name}; index: {self.s.first_sim_index}; run_id: {self.run_id}, 
         >> prefix: {self.prefix};"""  # ti: {s.ti}; tf: {s.tf};
         )
+
+        return self.s
 
     # profile()
     def one_simulation(self, sim_id2write):

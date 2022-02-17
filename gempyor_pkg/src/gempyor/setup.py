@@ -17,51 +17,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
-def build_smart_setup(
-    config, npi_scenario="inference", nsim=1, index=1, run_id="", prefix=""
-):
-    """
-    a setup class where most choices are made for you already, for test or development.
-    Do not rely on this.
-    """
-    interactive = False
-    write_csv = False
-    write_parquet = True
-    stoch_traj_flag = True
-
-    spatial_config = config["spatial_setup"]
-    spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
-    s = Setup(
-        setup_name=config["name"].get() + "_" + str(npi_scenario),
-        spatial_setup=setup.SpatialSetup(
-            setup_name=spatial_config["setup_name"].get(),
-            geodata_file=spatial_base_path / spatial_config["geodata"].get(),
-            mobility_file=spatial_base_path / spatial_config["mobility"].get(),
-            popnodes_key=spatial_config["popnodes"].get(),
-            nodenames_key=spatial_config["nodenames"].get(),
-        ),
-        nsim=nsim,
-        npi_scenario=npi_scenario,
-        npi_config=config["interventions"]["settings"][npi_scenario],
-        seeding_config=config["seeding"],
-        initial_conditions_config=config["initial_conditions"],
-        parameters_config=config["seir"]["parameters"],
-        ti=config["start_date"].as_date(),
-        tf=config["end_date"].as_date(),
-        interactive=interactive,
-        write_csv=write_csv,
-        write_parquet=write_parquet,
-        dt=config["dt"].as_number(),
-        first_sim_index=index,
-        in_run_id=run_id,
-        in_prefix=prefix,
-        out_run_id=run_id,
-        out_prefix=prefix,
-    )
-    return s
-
-
 class Setup:
     """
     This class hold a setup model setup.
