@@ -683,8 +683,8 @@ class Compartments:
 
     def parse_parameters(self, parameters, parameter_names, unique_strings):
         parsed_parameters = self.parse_parameter_strings_to_numpy_arrays(
-                parameters, parameter_names, unique_strings
-            )
+            parameters, parameter_names, unique_strings
+        )
         return parsed_parameters
 
     def parse_parameter_strings_to_numpy_arrays(

@@ -17,6 +17,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class Setup:
     """
     This class hold a setup model setup.
@@ -116,6 +117,7 @@ class Setup:
                 f"Should be either non-specified (default: 'old'), or set to 'old' or 'v2'."
             )
 
+        # Think if we really want to hold this up.
         self.parameters = parameters.Parameters(
             parameter_config=self.parameters_config, config_version=config_version
         )

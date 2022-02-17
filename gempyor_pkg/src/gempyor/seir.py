@@ -70,23 +70,23 @@ def steps_SEIR(
     assert type(s.popnodes[0]) == np.int64
 
     fnct_args = {
-        'ncompartments':s.compartments.compartments.shape[0],
-        'nspatial_nodes':s.nnodes,
-        'ndays':s.n_days,
-        'parameters':parsed_parameters,
-        'dt':s.dt,
-        'transitions':transition_array,
-        'proportion_info':proportion_info,
-        'transition_sum_compartments':proportion_array,
-        'initial_conditions':initial_conditions,
-        'seeding_data':seeding_data,
-        'seeding_amounts':seeding_amounts,
-        'mobility_data':mobility_data,
-        'mobility_row_indices':s.mobility.indices,
-        'mobility_data_indices':s.mobility.indptr,
-        'population':s.popnodes,
-        'stochastic_p':stoch_traj_flag,
-      }
+        "ncompartments": s.compartments.compartments.shape[0],
+        "nspatial_nodes": s.nnodes,
+        "ndays": s.n_days,
+        "parameters": parsed_parameters,
+        "dt": s.dt,
+        "transitions": transition_array,
+        "proportion_info": proportion_info,
+        "transition_sum_compartments": proportion_array,
+        "initial_conditions": initial_conditions,
+        "seeding_data": seeding_data,
+        "seeding_amounts": seeding_amounts,
+        "mobility_data": mobility_data,
+        "mobility_row_indices": s.mobility.indices,
+        "mobility_data_indices": s.mobility.indptr,
+        "population": s.popnodes,
+        "stochastic_p": stoch_traj_flag,
+    }
 
     logging.info(f"Integrating with method {s.integration_method}")
 
@@ -166,6 +166,14 @@ def onerun_SEIR(
     with Timer("onerun_SEIR.NPI"):
         npi = build_npi_SEIR(s=s, load_ID=load_ID, sim_id2load=sim_id2load)
 
+    with Timer("onerun_SEIR.compartments"):
+        (
+            unique_strings,
+            transition_array,
+            proportion_array,
+            proportion_info,
+        ) = s.compartments.get_transition_array()
+
     with Timer("onerun_SEIR.seeding"):
         if load_ID:
             initial_conditions = s.seedingAndIC.load_ic(sim_id2load, setup=s)
@@ -178,7 +186,8 @@ def onerun_SEIR(
                 sim_id2write, setup=s
             )
 
-    with Timer("onerun_SEIR.pdraw"):
+    with Timer("onerun_SEIR.parameters"):
+        # Draw or load parameters
         if load_ID:
             p_draw = s.parameters.parameters_load(
                 param_df=s.read_simID(ftype="spar", sim_id=sim_id2load),
@@ -189,21 +198,15 @@ def onerun_SEIR(
             p_draw = s.parameters.parameters_quick_draw(
                 nt_inter=s.n_days, nnodes=s.nnodes
             )
-
-    with Timer("onerun_SEIR.reduce"):
+        # reduce them
         parameters = s.parameters.parameters_reduce(p_draw, npi)
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
 
-    with Timer("onerun_SEIR.compartments"):
-        (
-            unique_strings,
-            transition_array,
-            proportion_array,
-            proportion_info,
-        ) = s.compartments.get_transition_array()
-
-        parsed_parameters = s.compartments.parse_parameters(parameters, s.parameters.pnames, unique_strings)
+        # Parse them
+        parsed_parameters = s.compartments.parse_parameters(
+            parameters, s.parameters.pnames, unique_strings
+        )
         log_debug_parameters(parsed_parameters, "Unique Parameters used by transitions")
 
     with Timer("onerun_SEIR.compute"):
