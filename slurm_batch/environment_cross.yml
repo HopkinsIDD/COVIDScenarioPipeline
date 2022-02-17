@@ -1,0 +1,37 @@
+name: covidSProd6
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - click
+  - r-essentials
+  - numpy
+  - ipykernel
+  - pyarrow
+  - sympy
+  - jupyterlab
+  - networkx
+  - fastparquet
+  - tqdm
+  - dask
+  - matplotlib
+  - python
+  - pandas
+  - seaborn
+  - pytest
+  - scipy
+  - graphviz
+  - confuse
+  - numba[version='>=0.53']
+  - r-devtools
+  - r-doparallel
+  - r-flextable
+  - r-gridextra
+  - r-truncnorm
+  - r-reticulate
+  - r-ggfortify
+  - r-arrow
+  - r-tigris
+  - r-tidycensus
+  - r-optparse
+prefix: /Users/chadi/opt/miniconda3/envs/covidSProd6
