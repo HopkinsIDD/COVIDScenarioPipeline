@@ -1,14 +1,9 @@
-import pathlib
 import numpy as np
 import pandas as pd
-import datetime
-import os
-import scipy.sparse
 import pyarrow as pa
 import pyarrow.parquet as pq
-import copy
 
-from .utils import config
+from .utils import config, Timer
 from . import file_paths
 from functools import reduce
 import logging
@@ -574,9 +569,10 @@ class Compartments:
             lambda a, b: a and b, [(x.find(" ") == -1) for x in unique_strings]
         )
 
-        parsed_parameters = self.parse_parameter_strings_to_numpy_arrays(
-            parameters, parameter_names, unique_strings
-        )
+        with Timer("parse_parame"):
+            parsed_parameters = self.parse_parameter_strings_to_numpy_arrays(
+                parameters, parameter_names, unique_strings
+            )
 
         for it, elem in enumerate(self.transitions["rate"]):
             candidate = reduce(lambda a, b: a + "*" + b, elem)

@@ -17,7 +17,7 @@ proportion_sum_stops_col = 1
 proportion_exponent_col = 2
 
 
-def rk4_integration(
+def rk4_integration(*,
     ncompartments,  # 1
     nspatial_nodes,  # 2
     ndays,  # 3
@@ -35,7 +35,6 @@ def rk4_integration(
     population,  # 15
     stochastic_p,  # 16
 ):
-
     states = np.zeros((ndays, ncompartments, nspatial_nodes))
     states_daily_incid = np.zeros((ndays, ncompartments, nspatial_nodes))
     states_current = np.zeros((ncompartments, nspatial_nodes))

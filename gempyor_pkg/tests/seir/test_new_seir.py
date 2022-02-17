@@ -47,10 +47,6 @@ def test_constant_population():
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=0, setup=s)
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
 
-    mobility_geoid_indices = s.mobility.indices
-    mobility_data_indices = s.mobility.indptr
-    mobility_data = s.mobility.data
-
     npi = NPI.NPIBase.execute(
         npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
     )
@@ -78,8 +74,5 @@ def test_constant_population():
         initial_conditions,
         seeding_data,
         seeding_amounts,
-        mobility_data,
-        mobility_geoid_indices,
-        mobility_data_indices,
         True,
     )
