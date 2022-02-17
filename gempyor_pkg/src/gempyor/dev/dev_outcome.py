@@ -16,8 +16,8 @@ import datetime
 
 import pytest
 
-from gempyor import outcomes
-from gempyor.utils import config
+from . import outcomes
+from .utils import config
 
 import pandas as pd
 import numpy as np
@@ -30,7 +30,7 @@ from pathlib import Path
 import pyarrow.parquet as pq
 import click
 import pyarrow as pa
-from gempyor import file_paths
+from . import file_paths
 
 config.clear()
 config.read(user=False)

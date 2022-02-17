@@ -2,7 +2,7 @@ import numpy as np
 from numba import jit
 import numba
 import tqdm
-from gempyor.utils import Timer
+from .utils import Timer
 
 (
     transition_source_col,

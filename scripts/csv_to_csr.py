@@ -5,7 +5,7 @@ import pandas as pd
 import os
 import scipy.sparse
 
-from gempyor.utils import config
+from .utils import config
 
 
 @click.command()

@@ -12,7 +12,7 @@ import sys
 import tarfile
 from datetime import datetime, timezone, date
 import yaml
-from gempyor import file_paths
+from . import file_paths
 
 
 @click.command()

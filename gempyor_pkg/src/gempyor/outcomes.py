@@ -5,12 +5,11 @@ from numba import jit
 import numpy as np
 import pandas as pd
 import tqdm.contrib.concurrent
-from gempyor.utils import config, Timer, read_df, write_df
-import gempyor.NPI as NPI
+from .utils import config, Timer, read_df, write_df
 import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
-from . import file_paths
+from . import file_paths, NPI
 
 import logging
 

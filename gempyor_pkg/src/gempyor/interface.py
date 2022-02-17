@@ -27,11 +27,11 @@
 
 
 import pathlib
-from gempyor import seir, setup, file_paths
-from gempyor.utils import config, Timer, profile
+from . import seir, setup, file_paths
+from .utils import config, Timer, profile
 
-# from gempyor.profile import profile_options
-from gempyor import outcomes
+# from .profile import profile_options
+from . import outcomes
 import numpy as np
 
 ### Logger configuration

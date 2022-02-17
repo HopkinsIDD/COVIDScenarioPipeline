@@ -124,10 +124,10 @@ import time
 
 import click
 
-from gempyor import seir, setup, file_paths
-from gempyor.utils import config
+from . import seir, setup, file_paths
+from .utils import config
 
-# from gempyor.profile import profile_options
+# from .profile import profile_options
 
 
 @click.command()

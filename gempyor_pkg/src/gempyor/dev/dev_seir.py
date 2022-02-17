@@ -10,11 +10,9 @@ import pyarrow.parquet as pq
 import filecmp
 import pandas as pd
 import matplotlib.pyplot as plt
+from . import compartments, seir, NPI, file_paths, setup
 
-import gempyor.seir
-from gempyor import compartments, seir, NPI, file_paths, setup
-
-from gempyor.utils import config
+from .utils import config
 
 DATA_DIR = "data"
 

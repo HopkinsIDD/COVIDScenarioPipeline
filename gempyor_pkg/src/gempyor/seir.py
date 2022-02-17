@@ -7,12 +7,11 @@ import pandas as pd
 import scipy
 import tqdm.contrib.concurrent
 
-from gempyor import NPI, setup, file_paths
-from gempyor.utils import config, Timer, aws_disk_diagnosis, read_df
+from . import NPI, setup, file_paths, steps_rk4
+from .utils import config, Timer, aws_disk_diagnosis, read_df
 import pyarrow as pa
 import logging
-import gempyor.steps_rk4 as steps_rk4
-import gempyor.dev.steps as steps_experimental
+from .dev import steps as steps_experimental
 
 logger = logging.getLogger(__name__)
 

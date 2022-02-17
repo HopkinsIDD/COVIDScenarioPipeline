@@ -7,7 +7,7 @@ import multiprocessing
 import datetime
 import hashlib
 
-from gempyor import file_paths
+from . import file_paths
 
 
 # assert helpers

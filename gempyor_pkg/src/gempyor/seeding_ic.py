@@ -5,13 +5,11 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 from numba.typed import Dict
-
-import gempyor.compartments
 from . import file_paths
 import confuse
 import logging
-from gempyor import compartments
-from gempyor import setup
+from . import compartments
+from . import setup
 import numba as nb
 
 logger = logging.getLogger(__name__)
