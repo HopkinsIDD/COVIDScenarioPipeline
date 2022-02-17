@@ -120,7 +120,9 @@ def test_constant_population():
         proportion_array,
         proportion_info,
     ) = s.compartments.get_transition_array()
-    parsed_parameters = s.compartments.parse_parameters(params, s.parameters.pnames, unique_strings)
+    parsed_parameters = s.compartments.parse_parameters(
+        params, s.parameters.pnames, unique_strings
+    )
 
     states = seir.steps_SEIR(
         s,
@@ -202,7 +204,9 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
         proportion_array,
         proportion_info,
     ) = s.compartments.get_transition_array()
-    parsed_parameters = s.compartments.parse_parameters(params, s.parameters.pnames, unique_strings)
+    parsed_parameters = s.compartments.parse_parameters(
+        params, s.parameters.pnames, unique_strings
+    )
 
     for i in range(10):
         states = seir.steps_SEIR(
@@ -322,7 +326,9 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
         proportion_array,
         proportion_info,
     ) = s.compartments.get_transition_array()
-    parsed_parameters = s.compartments.parse_parameters(params, s.parameters.pnames, unique_strings)
+    parsed_parameters = s.compartments.parse_parameters(
+        params, s.parameters.pnames, unique_strings
+    )
 
     for i in range(10):
         states = seir.steps_SEIR(
@@ -408,7 +414,9 @@ def test_steps_SEIR_no_spread():
         proportion_array,
         proportion_info,
     ) = s.compartments.get_transition_array()
-    parsed_parameters = s.compartments.parse_parameters(params, s.parameters.pnames, unique_strings)
+    parsed_parameters = s.compartments.parse_parameters(
+        params, s.parameters.pnames, unique_strings
+    )
 
     for i in range(10):
         states = seir.steps_SEIR(
@@ -750,7 +758,9 @@ def test_parallel_compartments_with_vacc():
         proportion_array,
         proportion_info,
     ) = s.compartments.get_transition_array()
-    parsed_parameters = s.compartments.parse_parameters(params, s.parameters.pnames, unique_strings)
+    parsed_parameters = s.compartments.parse_parameters(
+        params, s.parameters.pnames, unique_strings
+    )
 
     for i in range(5):
         states = seir.steps_SEIR(
@@ -848,7 +858,9 @@ def test_parallel_compartments_no_vacc():
         proportion_array,
         proportion_info,
     ) = s.compartments.get_transition_array()
-    parsed_parameters = s.compartments.parse_parameters(params, s.parameters.pnames, unique_strings)
+    parsed_parameters = s.compartments.parse_parameters(
+        params, s.parameters.pnames, unique_strings
+    )
 
     for i in range(5):
         s.npi_config = config["interventions"]["settings"]["Scenario_vacc"]

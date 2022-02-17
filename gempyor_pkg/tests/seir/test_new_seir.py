@@ -3,7 +3,6 @@ import os
 import pytest
 import warnings
 import shutil
-
 import pathlib
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -61,7 +60,9 @@ def test_constant_population():
         proportion_array,
         proportion_info,
     ) = s.compartments.get_transition_array()
-    parsed_parameters = s.compartments.parse_parameters(parameters, s.parameters.pnames, unique_strings)
+    parsed_parameters = s.compartments.parse_parameters(
+        parameters, s.parameters.pnames, unique_strings
+    )
     print("RUN_FUN_END")
     print(proportion_array)
 
