@@ -36,7 +36,7 @@ s = setup.Setup(
     spatial_setup=ss,
     nsim=1,
     npi_scenario="None",
-    npi_config=config["interventions"]["settings"]["None"],
+    npi_config_seir=config["interventions"]["settings"]["None"],
     parameters_config=config["seir"]["parameters"],
     seeding_config=config["seeding"],
     ti=config["start_date"].as_date(),
@@ -59,7 +59,7 @@ mobility_data_indices = s.mobility.indptr
 mobility_data = s.mobility.data
 
 npi = NPI.NPIBase.execute(
-    npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
+    npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames
 )
 
 params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)

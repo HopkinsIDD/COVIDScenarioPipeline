@@ -33,7 +33,7 @@ def test_check_values():
         spatial_setup=ss,
         nsim=1,
         npi_scenario="None",
-        npi_config=config["interventions"]["settings"]["None"],
+        npi_config_seir=config["interventions"]["settings"]["None"],
         parameters_config=config["seir"]["parameters"],
         ti=config["start_date"].as_date(),
         tf=config["end_date"].as_date(),
@@ -89,7 +89,7 @@ def test_constant_population():
         spatial_setup=ss,
         nsim=1,
         npi_scenario="None",
-        npi_config=config["interventions"]["settings"]["None"],
+        npi_config_seir=config["interventions"]["settings"]["None"],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
         ti=config["start_date"].as_date(),
@@ -108,7 +108,7 @@ def test_constant_population():
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     npi = NPI.NPIBase.execute(
-        npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
+        npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames
     )
 
     params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
@@ -173,7 +173,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
         spatial_setup=ss,
         nsim=1,
         npi_scenario="None",
-        npi_config=config["interventions"]["settings"]["None"],
+        npi_config_seir=config["interventions"]["settings"]["None"],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
         ti=config["start_date"].as_date(),
@@ -192,7 +192,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     npi = NPI.NPIBase.execute(
-        npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
+        npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames
     )
 
     params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
@@ -295,7 +295,7 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
         spatial_setup=ss,
         nsim=1,
         npi_scenario="None",
-        npi_config=config["interventions"]["settings"]["None"],
+        npi_config_seir=config["interventions"]["settings"]["None"],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
         ti=config["start_date"].as_date(),
@@ -314,7 +314,7 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     npi = NPI.NPIBase.execute(
-        npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
+        npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames
     )
 
     params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
@@ -381,7 +381,7 @@ def test_steps_SEIR_no_spread():
         spatial_setup=ss,
         nsim=1,
         npi_scenario="None",
-        npi_config=config["interventions"]["settings"]["None"],
+        npi_config_seir=config["interventions"]["settings"]["None"],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
         ti=config["start_date"].as_date(),
@@ -402,7 +402,7 @@ def test_steps_SEIR_no_spread():
     s.mobility.data = s.mobility.data * 0
 
     npi = NPI.NPIBase.execute(
-        npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
+        npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames
     )
 
     params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
@@ -489,7 +489,7 @@ def test_continuation_resume():
         ),
         nsim=nsim,
         npi_scenario=scenario,
-        npi_config=config["interventions"]["settings"][scenario],
+        npi_config_seir=config["interventions"]["settings"][scenario],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
         initial_conditions_config=config["initial_conditions"],
@@ -541,7 +541,7 @@ def test_continuation_resume():
         ),
         nsim=nsim,
         npi_scenario=scenario,
-        npi_config=config["interventions"]["settings"][scenario],
+        npi_config_seir=config["interventions"]["settings"][scenario],
         seeding_config=config["seeding"],
         initial_conditions_config=config["initial_conditions"],
         parameters_config=config["seir"]["parameters"],
@@ -616,7 +616,7 @@ def test_inference_resume():
         ),
         nsim=nsim,
         npi_scenario=scenario,
-        npi_config=config["interventions"]["settings"][scenario],
+        npi_config_seir=config["interventions"]["settings"][scenario],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
         ti=config["start_date"].as_date(),
@@ -666,7 +666,7 @@ def test_inference_resume():
         ),
         nsim=nsim,
         npi_scenario=scenario,
-        npi_config=config["interventions"]["settings"][scenario],
+        npi_config_seir=config["interventions"]["settings"][scenario],
         seeding_config=config["seeding"],
         initial_conditions_config=config["initial_conditions"],
         parameters_config=config["seir"]["parameters"],
@@ -726,7 +726,7 @@ def test_parallel_compartments_with_vacc():
         spatial_setup=ss,
         nsim=1,
         npi_scenario="Scenario_vacc",
-        npi_config=config["interventions"]["settings"]["Scenario_vacc"],
+        npi_config_seir=config["interventions"]["settings"]["Scenario_vacc"],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
         ti=config["start_date"].as_date(),
@@ -746,7 +746,7 @@ def test_parallel_compartments_with_vacc():
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     npi = NPI.NPIBase.execute(
-        npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
+        npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames
     )
 
     params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
@@ -826,7 +826,7 @@ def test_parallel_compartments_no_vacc():
         spatial_setup=ss,
         nsim=1,
         npi_scenario="Scenario_novacc",
-        npi_config=config["interventions"]["settings"]["Scenario_novacc"],
+        npi_config_seir=config["interventions"]["settings"]["Scenario_novacc"],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
         ti=config["start_date"].as_date(),
@@ -846,7 +846,7 @@ def test_parallel_compartments_no_vacc():
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
     npi = NPI.NPIBase.execute(
-        npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
+        npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames
     )
 
     params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
@@ -863,7 +863,7 @@ def test_parallel_compartments_no_vacc():
     )
 
     for i in range(5):
-        s.npi_config = config["interventions"]["settings"]["Scenario_vacc"]
+        s.npi_config_seir = config["interventions"]["settings"]["Scenario_vacc"]
         states = seir.steps_SEIR(
             s,
             parsed_parameters,

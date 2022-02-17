@@ -32,7 +32,7 @@ def test_constant_population():
         spatial_setup=ss,
         nsim=1,
         npi_scenario="None",
-        npi_config=config["interventions"]["settings"]["None"],
+        npi_config_seir=config["interventions"]["settings"]["None"],
         parameters_config=config["seir"]["parameters"],
         seeding_config={},
         initial_conditions_config=config["initial_conditions"],
@@ -47,7 +47,7 @@ def test_constant_population():
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
 
     npi = NPI.NPIBase.execute(
-        npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
+        npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames
     )
 
     parameters = s.parameters.parameters_quick_draw(nt_inter=s.n_days, nnodes=s.nnodes)
