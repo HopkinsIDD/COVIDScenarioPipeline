@@ -522,7 +522,7 @@ class Compartments:
         self.parse_compartments(seir_config)
         self.transitions = self.parse_transitions(seir_config, False)
 
-    def get_transition_array(self, parameters, parameter_names):
+    def get_transition_array(self):
         transition_array = np.zeros(
             (self.transitions.shape[1], self.transitions.shape[0]), dtype="int"
         )
@@ -568,11 +568,6 @@ class Compartments:
         assert reduce(
             lambda a, b: a and b, [(x.find(" ") == -1) for x in unique_strings]
         )
-
-        with Timer("parse_parame"):
-            parsed_parameters = self.parse_parameter_strings_to_numpy_arrays(
-                parameters, parameter_names, unique_strings
-            )
 
         for it, elem in enumerate(self.transitions["rate"]):
             candidate = reduce(lambda a, b: a + "*" + b, elem)
@@ -680,12 +675,17 @@ class Compartments:
         #         proportion_array[it]
 
         return (
-            parsed_parameters,
             unique_strings,
             transition_array,
             proportion_array,
             proportion_info,
         )
+
+    def parse_parameters(self, parameters, parameter_names, unique_strings):
+        parsed_parameters = self.parse_parameter_strings_to_numpy_arrays(
+                parameters, parameter_names, unique_strings
+            )
+        return parsed_parameters
 
     def parse_parameter_strings_to_numpy_arrays(
         self,
