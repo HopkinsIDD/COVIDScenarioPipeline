@@ -55,9 +55,9 @@ import time, os
 
 import click
 
-from gempyor import file_paths
-from gempyor.utils import config
-from gempyor import outcomes
+from . import file_paths
+from .utils import config
+from . import outcomes
 
 
 @click.command()

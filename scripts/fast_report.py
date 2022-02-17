@@ -16,7 +16,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
-from gempyor.utils import config
+from .utils import config
 
 years = mdates.YearLocator()  # every year
 months = mdates.MonthLocator()  # every month
