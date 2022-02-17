@@ -2,19 +2,15 @@ import itertools
 import time, random
 import warnings
 from numba import jit
-import confuse
-
 import numpy as np
 import pandas as pd
-import scipy
 import tqdm.contrib.concurrent
-
 from gempyor.utils import config, Timer, read_df, write_df
 import gempyor.NPI as NPI
 import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
-from gempyor import file_paths
+from . import file_paths
 
 import logging
 
@@ -494,15 +490,11 @@ def compute_all_multioutcomes(
                 ## This may be unnecessary
                 probabilities = loaded_values[
                     (loaded_values["quantity"] == "probability")
-                    & (loaded_values["outcome"] == new_comp)  # &
-                    # (loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
-                    # (loaded_values['source'] == source_name)
+                    & (loaded_values["outcome"] == new_comp)
                 ]["value"].to_numpy()
                 delays = loaded_values[
                     (loaded_values["quantity"] == "delay")
-                    & (loaded_values["outcome"] == new_comp)  # &
-                    # (loaded_values['mc_vaccination_stage'] == 'unvaccinated') &
-                    # (loaded_values['source'] == source_name)
+                    & (loaded_values["outcome"] == new_comp)
                 ]["value"].to_numpy()
             else:
                 probabilities = parameters[new_comp][
@@ -535,20 +527,16 @@ def compute_all_multioutcomes(
                     pd.DataFrame.from_dict(
                         {
                             "geoid": places,
-                            # 'mc_vaccination_stage': [p_comp] * len(places),
                             "quantity": ["probability"] * len(places),
                             "outcome": [new_comp] * len(places),
-                            # 'source': [source_name] * len(places),
                             "value": probabilities[0] * np.ones(len(places)),
                         }
                     ),
                     pd.DataFrame.from_dict(
                         {
                             "geoid": places,
-                            # 'mc_vaccination_stage': [p_comp] * len(places),
                             "quantity": ["delay"] * len(places),
                             "outcome": [new_comp] * len(places),
-                            # 'source': [source_name] * len(places),
                             "value": delays[0] * np.ones(len(places)),
                         }
                     ),
@@ -599,9 +587,7 @@ def compute_all_multioutcomes(
                 ):
                     durations = loaded_values[
                         (loaded_values["quantity"] == "duration")
-                        & (loaded_values["outcome"] == new_comp)  # &
-                        # (loaded_values['mc_vaccination_stage'] == p_comps[0]) &
-                        # (loaded_values['source'] == source_name)
+                        & (loaded_values["outcome"] == new_comp)
                     ]["value"].to_numpy()
                 else:
                     durations = parameters[new_comp][
@@ -620,10 +606,8 @@ def compute_all_multioutcomes(
                         pd.DataFrame.from_dict(
                             {
                                 "geoid": places,
-                                # 'mc_vaccination_stage': [p_comp] * len(places),
                                 "quantity": ["duration"] * len(places),
                                 "outcome": [new_comp] * len(places),
-                                # 'source': [source_name] * len(places),
                                 "value": durations[0] * np.ones(len(places)),
                             }
                         ),
@@ -652,7 +636,6 @@ def compute_all_multioutcomes(
                     # plt.savefig('Daft'+new_comp + '-' + source)
                     # plt.close()
 
-                # df = pd.DataFrame()
                 all_data[parameters[new_comp]["duration_name"]] = np.cumsum(
                     all_data[new_comp], axis=0
                 ) - multishift(
@@ -667,8 +650,6 @@ def compute_all_multioutcomes(
                     dates,
                     parameters[new_comp]["duration_name"],
                 )
-                # df_p['mc_vaccination_stage'] = p_comp
-                # df = pd.concat([df, df_p])
                 outcomes = pd.merge(outcomes, df_p)
 
         elif "sum" in parameters[new_comp]:
@@ -682,10 +663,6 @@ def compute_all_multioutcomes(
             all_data[new_comp] = sum_outcome
             df_p = dataframe_from_array(sum_outcome, places, dates, new_comp)
             outcomes = pd.merge(outcomes, df_p)
-            # print(df_p)
-            # print(outcomes[parameters[new_comp]['sum']].sum(axis=1))
-
-            # assert ((df_p['incidH'] == outcomes[parameters[new_comp]['sum']].sum(axis=1).values).all().all())
 
     return outcomes, hpar
 
@@ -730,12 +707,12 @@ def get_filtered_incidI(diffI, dates, places, filters):
     return incidI_arr
 
 
-""" Quite fast shift implementation, along the first axis,
-    which is date. num is an integer not negative nor zero """
-
-
 @jit(nopython=True)
 def shift(arr, num, fill_value=0):
+    """
+    Quite fast shift implementation, along the first axis,
+    which is date. num is an integer not negative nor zero
+    """
     if num == 0:
         return arr
     else:
