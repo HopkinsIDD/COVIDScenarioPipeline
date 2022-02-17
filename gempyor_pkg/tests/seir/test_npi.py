@@ -56,16 +56,16 @@ class TestInterventionsReduceR0:
         config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         global_config = config["month_global"]
-        npi_config = config["daterange"]
+        npi_config_seir = config["daterange"]
         test_result = ReduceR0(
-            global_config=global_config, npi_config=npi_config, geoids=["10001"]
+            global_config=global_config, npi_config=npi_config_seir, geoids=["10001"]
         )
         reduction = test_result.getReduction("r0")
 
         global_start_date = global_config["start_date"].as_date()
         global_end_date = global_config["end_date"].as_date()
-        period_start_date = npi_config["period_start_date"].as_date()
-        period_end_date = npi_config["period_end_date"].as_date()
+        period_start_date = npi_config_seir["period_start_date"].as_date()
+        period_end_date = npi_config_seir["period_end_date"].as_date()
         assert type(reduction).__module__ == "pandas.core.frame"
         assert reduction.shape == (1, 32)
         assert (
@@ -94,10 +94,10 @@ class TestInterventionsReduceR0:
         config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         global_config = config["month_global"]
-        npi_config = config["fullrange"]
+        npi_config_seir = config["fullrange"]
         test_result = ReduceR0(
             global_config=global_config,
-            npi_config=npi_config,
+            npi_config=npi_config_seir,
             geoids=["10001", "2020", "40"],
         )
         reduction = test_result.getReduction("r0")
@@ -116,8 +116,8 @@ class TestInterventionsReduceR0:
             reduction.loc[
                 ["10001", "2020"],
                 pd.date_range(
-                    npi_config["period_start_date"].as_date(),
-                    npi_config["period_end_date"].as_date(),
+                    npi_config_seir["period_start_date"].as_date(),
+                    npi_config_seir["period_end_date"].as_date(),
                 ),
             ]
             == 0.5
@@ -162,16 +162,16 @@ class TestInterventionsReduce:
         config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         global_config = config["month_global"]
-        npi_config = config["daterange"]
+        npi_config_seir = config["daterange"]
         test_result = Reduce(
-            global_config=global_config, npi_config=npi_config, geoids=["10001"]
+            global_config=global_config, npi_config=npi_config_seir, geoids=["10001"]
         )
         reduction = test_result.getReduction("gamma")
 
         global_start_date = global_config["start_date"].as_date()
         global_end_date = global_config["end_date"].as_date()
-        period_start_date = npi_config["period_start_date"].as_date()
-        period_end_date = npi_config["period_end_date"].as_date()
+        period_start_date = npi_config_seir["period_start_date"].as_date()
+        period_end_date = npi_config_seir["period_end_date"].as_date()
 
         assert type(reduction).__module__ == "pandas.core.frame"
         assert reduction.shape == (1, 32)
@@ -200,10 +200,10 @@ class TestInterventionsReduce:
         config.read(user=False)
         config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
         global_config = config["month_global"]
-        npi_config = config["fullrange"]
+        npi_config_seir = config["fullrange"]
         test_result = Reduce(
             global_config=global_config,
-            npi_config=npi_config,
+            npi_config=npi_config_seir,
             geoids=["10001", "2020", "40"],
         )
         reduction = test_result.getReduction("gamma")
@@ -222,8 +222,8 @@ class TestInterventionsReduce:
             reduction.loc[
                 ["10001", "2020"],
                 pd.date_range(
-                    npi_config["period_start_date"].as_date(),
-                    npi_config["period_end_date"].as_date(),
+                    npi_config_seir["period_start_date"].as_date(),
+                    npi_config_seir["period_end_date"].as_date(),
                 ),
             ]
             == 0.5
@@ -246,7 +246,7 @@ class TestInterventionsReduce:
     #     config.set_file(f"{DATA_DIR}/test_ReduceR0_trivial.yml")
     #     with pytest.raises(ValueError, match=r'Invalid parameter name.*'):
     #         test_result = Reduce(global_config = config["trivial_global"],
-    #                                 npi_config = config["invalid_parameter"],
+    #                                 npi_config_seir = config["invalid_parameter"],
     #                                 geoids = ["10001","2020","40"])
 
     def test_Reduce_bad_start_date(self):
@@ -279,7 +279,7 @@ class TestInterventionsReduce:
         baseline_config = global_config["interventions"]["settings"][
             "baseline_daterange"
         ]
-        npi_config = config["trivial_reduction"]
+        npi_config_seir = config["trivial_reduction"]
         test_result_baseline = Reduce(
             global_config=global_config,
             npi_config=baseline_config,
@@ -287,7 +287,7 @@ class TestInterventionsReduce:
         )
         test_result_reduced = ReduceIntervention(
             global_config=global_config,
-            npi_config=npi_config,
+            npi_config=npi_config_seir,
             geoids=["10001", "2020", "40"],
         )
         reduction_baseline = test_result_baseline.getReduction("r0")
@@ -303,7 +303,7 @@ class TestInterventionsReduce:
         baseline_config = global_config["interventions"]["settings"][
             "baseline_daterange"
         ]
-        npi_config = config["full_reduction"]
+        npi_config_seir = config["full_reduction"]
         test_result_baseline = Reduce(
             global_config=global_config,
             npi_config=baseline_config,
@@ -311,14 +311,15 @@ class TestInterventionsReduce:
         )
         test_result_reduced = ReduceIntervention(
             global_config=global_config,
-            npi_config=npi_config,
+            npi_config=npi_config_seir,
             geoids=["10001", "2020", "40"],
         )
         reduction_baseline = test_result_baseline.getReduction("r0")
         reduction_reduced = test_result_reduced.getReduction("r0")
 
         relevant_dates = pd.date_range(
-            npi_config["period_start_date"].get(), npi_config["period_end_date"].get()
+            npi_config_seir["period_start_date"].get(),
+            npi_config_seir["period_end_date"].get(),
         )
         relevant_baseline = reduction_baseline.loc[:, relevant_dates]
         relevant_reduced = reduction_reduced.loc[:, relevant_dates]
@@ -332,7 +333,7 @@ class TestInterventionsReduce:
         baseline_config = global_config["interventions"]["settings"][
             "baseline_daterange"
         ]
-        npi_config = config["partial_reduction"]
+        npi_config_seir = config["partial_reduction"]
         test_result_baseline = Reduce(
             global_config=global_config,
             npi_config=baseline_config,
@@ -340,14 +341,15 @@ class TestInterventionsReduce:
         )
         test_result_reduced = ReduceIntervention(
             global_config=global_config,
-            npi_config=npi_config,
+            npi_config=npi_config_seir,
             geoids=["10001", "2020", "40"],
         )
         reduction_baseline = test_result_baseline.getReduction("r0")
         reduction_reduced = test_result_reduced.getReduction("r0")
 
         relevant_dates = pd.date_range(
-            npi_config["period_start_date"].get(), npi_config["period_end_date"].get()
+            npi_config_seir["period_start_date"].get(),
+            npi_config_seir["period_end_date"].get(),
         )
         relevant_baseline = reduction_baseline.loc[:, relevant_dates]
         relevant_reduced = reduction_reduced.loc[:, relevant_dates]

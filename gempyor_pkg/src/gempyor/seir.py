@@ -136,14 +136,14 @@ def steps_SEIR(
 def build_npi_SEIR(s, load_ID, sim_id2load):
     if load_ID:
         npi = NPI.NPIBase.execute(
-            npi_config=s.npi_config,
+            npi_config=s.npi_config_seir,
             global_config=config,
             geoids=s.spatset.nodenames,
             loaded_df=s.read_simID(ftype="snpi", sim_id=sim_id2load),
         )
     else:
         npi = NPI.NPIBase.execute(
-            npi_config=s.npi_config,
+            npi_config=s.npi_config_seir,
             global_config=config,
             geoids=s.spatset.nodenames,
             pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[

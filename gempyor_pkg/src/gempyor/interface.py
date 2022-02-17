@@ -93,7 +93,7 @@ class InferenceSimulator:
             ),
             nsim=nsim,
             npi_scenario=scenario,
-            npi_config=config["interventions"]["settings"][scenario],
+            npi_config_seir=config["interventions"]["settings"][scenario],
             seeding_config=config["seeding"],
             initial_conditions_config=config["initial_conditions"],
             parameters_config=config["seir"]["parameters"],
@@ -112,10 +112,9 @@ class InferenceSimulator:
         )
 
         print(
-            f"""
-        >> Running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** simulation;
-        >> Setup {self.s.setup_name}; index: {self.s.first_sim_index}; run_id: {self.run_id}, 
-        >> prefix: {self.prefix};"""  # ti: {s.ti}; tf: {s.tf};
+            f"""gempyor >> Running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** simulation;\n"""
+            f"""gempyor >> Setup {self.s.setup_name}; index: {self.s.first_sim_index}; run_id: {self.run_id},\n"""
+            f"""gempyor >> prefix: {self.prefix};"""  # ti: {s.ti}; tf: {s.tf};
         )
 
     # profile()
