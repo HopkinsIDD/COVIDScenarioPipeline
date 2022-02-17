@@ -197,12 +197,13 @@ def onerun_SEIR(
 
     with Timer("onerun_SEIR.compartments"):
         (
-            parsed_parameters,
             unique_strings,
             transition_array,
             proportion_array,
             proportion_info,
-        ) = s.compartments.get_transition_array(parameters, s.parameters.pnames)
+        ) = s.compartments.get_transition_array()
+
+        parsed_parameters = s.compartments.parse_parameters(parameters, s.parameters.pnames, unique_strings)
         log_debug_parameters(parsed_parameters, "Unique Parameters used by transitions")
 
     with Timer("onerun_SEIR.compute"):

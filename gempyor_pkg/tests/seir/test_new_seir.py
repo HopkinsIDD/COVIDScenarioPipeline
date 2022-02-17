@@ -56,12 +56,12 @@ def test_constant_population():
 
     print("RUN_FUN_START")
     (
-        parsed_parameters,
         unique_strings,
         transition_array,
         proportion_array,
         proportion_info,
-    ) = s.compartments.get_transition_array(parameters, parameter_names)
+    ) = s.compartments.get_transition_array()
+    parsed_parameters = s.compartments.parse_parameters(parameters, s.parameters.pnames, unique_strings)
     print("RUN_FUN_END")
     print(proportion_array)
 
