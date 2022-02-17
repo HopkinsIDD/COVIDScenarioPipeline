@@ -107,10 +107,6 @@ def test_constant_population():
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
-    mobility_geoid_indices = s.mobility.indices
-    mobility_data_indices = s.mobility.indptr
-    mobility_data = s.mobility.data
-
     npi = NPI.NPIBase.execute(
         npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
     )
@@ -135,9 +131,6 @@ def test_constant_population():
         initial_conditions,
         seeding_data,
         seeding_amounts,
-        mobility_data,
-        mobility_geoid_indices,
-        mobility_data_indices,
         True,
     )
 
@@ -196,11 +189,6 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
-    mobility_geoid_indices = s.mobility.indices
-    mobility_data_indices = s.mobility.indptr
-    mobility_data = s.mobility.data
-    print(mobility_data)
-
     npi = NPI.NPIBase.execute(
         npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
     )
@@ -226,9 +214,6 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            mobility_data,
-            mobility_geoid_indices,
-            mobility_data_indices,
             True,
         )
         df = seir.states2Df(s, states)
@@ -256,9 +241,6 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            mobility_data,
-            mobility_geoid_indices,
-            mobility_data_indices,
             True,
         )
         df = seir.states2Df(s, states)
@@ -327,10 +309,6 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
-    mobility_geoid_indices = s.mobility.indices
-    mobility_data_indices = s.mobility.indptr
-    mobility_data = s.mobility.data
-
     npi = NPI.NPIBase.execute(
         npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
     )
@@ -356,9 +334,6 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            mobility_data,
-            mobility_geoid_indices,
-            mobility_data_indices,
             True,
         )
         df = seir.states2Df(s, states)
@@ -418,9 +393,7 @@ def test_steps_SEIR_no_spread():
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
-    mobility_geoid_indices = s.mobility.indices
-    mobility_data_indices = s.mobility.indptr
-    mobility_data = s.mobility.data * 0
+    s.mobility.data = s.mobility.data * 0
 
     npi = NPI.NPIBase.execute(
         npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
@@ -447,9 +420,6 @@ def test_steps_SEIR_no_spread():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            mobility_data,
-            mobility_geoid_indices,
-            mobility_data_indices,
             True,
         )
         df = seir.states2Df(s, states)
@@ -470,9 +440,6 @@ def test_steps_SEIR_no_spread():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            mobility_data,
-            mobility_geoid_indices,
-            mobility_data_indices,
             True,
         )
         df = seir.states2Df(s, states)
@@ -770,10 +737,6 @@ def test_parallel_compartments_with_vacc():
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
-    mobility_geoid_indices = s.mobility.indices
-    mobility_data_indices = s.mobility.indptr
-    mobility_data = s.mobility.data
-
     npi = NPI.NPIBase.execute(
         npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
     )
@@ -799,9 +762,6 @@ def test_parallel_compartments_with_vacc():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            mobility_data,
-            mobility_geoid_indices,
-            mobility_data_indices,
             True,
         )
         df = seir.states2Df(s, states)
@@ -823,9 +783,6 @@ def test_parallel_compartments_with_vacc():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            mobility_data,
-            mobility_geoid_indices,
-            mobility_data_indices,
             True,
         )
         df = seir.states2Df(s, states)
@@ -878,10 +835,6 @@ def test_parallel_compartments_no_vacc():
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)
 
-    mobility_geoid_indices = s.mobility.indices
-    mobility_data_indices = s.mobility.indptr
-    mobility_data = s.mobility.data
-
     npi = NPI.NPIBase.execute(
         npi_config=s.npi_config, global_config=config, geoids=s.spatset.nodenames
     )
@@ -908,9 +861,6 @@ def test_parallel_compartments_no_vacc():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            mobility_data,
-            mobility_geoid_indices,
-            mobility_data_indices,
             True,
         )
         df = seir.states2Df(s, states)
@@ -932,9 +882,6 @@ def test_parallel_compartments_no_vacc():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            mobility_data,
-            mobility_geoid_indices,
-            mobility_data_indices,
             False,
         )
         df = seir.states2Df(s, states)

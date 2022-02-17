@@ -18,7 +18,7 @@ proportion_sum_stops_col = 1
 proportion_exponent_col = 2
 
 
-def ode_integration(
+def ode_integration(*,
     ncompartments,  # 1
     nspatial_nodes,  # 2
     ndays,  # 3
@@ -261,7 +261,7 @@ def ode_integration(
 
 
 @jit(nopython=True)
-def rk4_integration1(
+def rk4_integration1(*,
     ncompartments,  # 1
     nspatial_nodes,  # 2
     ndays,  # 3
@@ -489,7 +489,7 @@ def rk4_integration1(
     return states, states_daily_incid
 
 
-def rk4_integration2(
+def rk4_integration2(*,
     ncompartments,  # 1
     nspatial_nodes,  # 2
     ndays,  # 3
@@ -719,7 +719,7 @@ def rk4_integration2(
     return states, states_daily_incid
 
 
-def rk4_integration3(
+def rk4_integration3(*,
     ncompartments,  # 1
     nspatial_nodes,  # 2
     ndays,  # 3
@@ -952,7 +952,7 @@ def rk4_integration3(
     return states, states_daily_incid
 
 
-def rk4_integration4(
+def rk4_integration4(*,
     ncompartments,  # 1
     nspatial_nodes,  # 2
     ndays,  # 3
@@ -1183,7 +1183,7 @@ def rk4_integration4(
 
 
 @jit(nopython=True)  # , fastmath=True, parallel=True)
-def rk4_integration5(
+def rk4_integration5(*,
     ncompartments,  # 1
     nspatial_nodes,  # 2
     ndays,  # 3
@@ -1433,7 +1433,7 @@ def rk4_integration5(
     return states, states_daily_incid
 
 
-def rk4_integration2_smart(
+def rk4_integration2_smart(*,
     ncompartments,  # 1
     nspatial_nodes,  # 2
     ndays,  # 3
@@ -1749,7 +1749,7 @@ cc.verbose = True
     "boolean"  # stochastic_p
     ")",
 )
-def rk4_integration_aot(
+def rk4_integration_aot(*,
     ncompartments,  # 1
     nspatial_nodes,  # 2
     ndays,  # 3

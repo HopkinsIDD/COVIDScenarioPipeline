@@ -26,11 +26,10 @@ def steps_SEIR(
     initial_conditions,
     seeding_data,
     seeding_amounts,
-    mobility_data,
-    mobility_geoid_indices,
-    mobility_data_indices,
     stoch_traj_flag,
 ):
+
+    mobility_data = s.mobility.data
     mobility_data = mobility_data.astype("float64")
     assert type(s.compartments.compartments.shape[0]) == int
     assert type(s.nnodes) == int
@@ -63,39 +62,39 @@ def steps_SEIR(
     assert len(mobility_data) > 0
 
     assert type(mobility_data[0]) == np.float64
-    assert len(mobility_data) == len(mobility_geoid_indices)
-    assert type(mobility_geoid_indices[0]) == np.int32
-    assert len(mobility_data_indices) == s.nnodes + 1
-    assert type(mobility_data_indices[0]) == np.int32
+    assert len(mobility_data) == len(s.mobility.indices)
+    assert type(s.mobility.indices[0]) == np.int32
+    assert len(s.mobility.indptr) == s.nnodes + 1
+    assert type(s.mobility.indptr[0]) == np.int32
     assert len(s.popnodes) == s.nnodes
     assert type(s.popnodes[0]) == np.int64
 
-    fnct_args = (
-        s.compartments.compartments.shape[0],
-        s.nnodes,
-        s.n_days,
-        parsed_parameters,
-        s.dt,
-        transition_array,
-        proportion_info,
-        proportion_array,
-        initial_conditions,
-        seeding_data,
-        seeding_amounts,
-        mobility_data,
-        mobility_geoid_indices,
-        mobility_data_indices,
-        s.popnodes,
-        stoch_traj_flag,
-    )  # TODO make it a dict, it's safer
+    fnct_args = {
+        'ncompartments':s.compartments.compartments.shape[0],
+        'nspatial_nodes':s.nnodes,
+        'ndays':s.n_days,
+        'parameters':parsed_parameters,
+        'dt':s.dt,
+        'transitions':transition_array,
+        'proportion_info':proportion_info,
+        'transition_sum_compartments':proportion_array,
+        'initial_conditions':initial_conditions,
+        'seeding_data':seeding_data,
+        'seeding_amounts':seeding_amounts,
+        'mobility_data':mobility_data,
+        'mobility_row_indices':s.mobility.indices,
+        'mobility_data_indices':s.mobility.indptr,
+        'population':s.popnodes,
+        'stochastic_p':stoch_traj_flag,
+      }
 
     logging.info(f"Integrating with method {s.integration_method}")
 
     if s.integration_method == "legacy":
         raise ValueError("AOT legacy method not available on this version")
-        # seir_sim = steps_SEIR_nb(*fnct_args)
+        # seir_sim = steps_SEIR_nb(**fnct_args)
     elif s.integration_method == "rk4.jit":
-        seir_sim = steps_rk4.rk4_integration(*fnct_args)
+        seir_sim = steps_rk4.rk4_integration(**fnct_args)
     else:
         logging.critical(
             "Experimental !!! These methods are not ready for production ! "
@@ -112,24 +111,24 @@ def steps_SEIR(
                     f"integration is possible (got stoch_straj_flag={stoch_traj_flag}"
                 )
             seir_sim = steps_experimental.ode_integration(
-                *fnct_args, integration_method=s.integration_method
+                **fnct_args, integration_method=s.integration_method
             )
         elif s.integration_method == "rk4.jit1":
-            seir_sim = steps_experimental.rk4_integration1(*fnct_args)
+            seir_sim = steps_experimental.rk4_integration1(**fnct_args)
         elif s.integration_method == "rk4.jit2":
-            seir_sim = steps_experimental.rk4_integration2(*fnct_args)
+            seir_sim = steps_experimental.rk4_integration2(**fnct_args)
         elif s.integration_method == "rk4.jit3":
-            seir_sim = steps_experimental.rk4_integration3(*fnct_args)
+            seir_sim = steps_experimental.rk4_integration3(**fnct_args)
         elif s.integration_method == "rk4.jit4":
-            seir_sim = steps_experimental.rk4_integration4(*fnct_args)
+            seir_sim = steps_experimental.rk4_integration4(**fnct_args)
         elif s.integration_method == "rk4.jit5":
-            seir_sim = steps_experimental.rk4_integration5(*fnct_args)
+            seir_sim = steps_experimental.rk4_integration5(**fnct_args)
         elif s.integration_method == "rk4.jit6":
-            seir_sim = steps_experimental.rk4_integration6(*fnct_args)
+            seir_sim = steps_experimental.rk4_integration6(**fnct_args)
         elif s.integration_method == "rk4.jit.smart":
-            seir_sim = steps_experimental.rk4_integration2_smart(*fnct_args)
+            seir_sim = steps_experimental.rk4_integration2_smart(**fnct_args)
         elif s.integration_method == "rk4_aot":
-            seir_sim = steps_experimental.rk4_aot(*fnct_args)
+            seir_sim = steps_experimental.rk4_aot(**fnct_args)
         else:
             raise ValueError(f"Unknow integration scheme, got {s.integration_method}")
     return seir_sim
@@ -179,10 +178,6 @@ def onerun_SEIR(
                 sim_id2write, setup=s
             )
 
-    mobility_geoid_indices = s.mobility.indices
-    mobility_data_indices = s.mobility.indptr
-    mobility_data = s.mobility.data
-
     with Timer("onerun_SEIR.pdraw"):
         if load_ID:
             p_draw = s.parameters.parameters_load(
@@ -220,9 +215,6 @@ def onerun_SEIR(
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            mobility_data,
-            mobility_geoid_indices,
-            mobility_data_indices,
             stoch_traj_flag,
         )
 
