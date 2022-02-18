@@ -68,7 +68,6 @@ class InferenceSimulator:
         self.stoch_traj_flag = stoch_traj_flag  # Truthy: stochastic simulation, Falsy: determnistic mean of the binomial draws
         self.run_id = run_id
         self.prefix = prefix
-        self.deathrate = deathrate
 
         # Config prep
         config.clear()
@@ -98,6 +97,8 @@ class InferenceSimulator:
             initial_conditions_config=config["initial_conditions"],
             parameters_config=config["seir"]["parameters"],
             seir_config=config["seir"],
+            outcomes_config=config["outcomes"],
+            outcomes_scenario=deathrate,
             ti=config["start_date"].as_date(),
             tf=config["end_date"].as_date(),
             interactive=interactive,
@@ -112,34 +113,25 @@ class InferenceSimulator:
         )
 
         print(
-            f"""gempyor >> Running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** simulation;\n"""
-            f"""gempyor >> Setup {self.s.setup_name}; index: {self.s.first_sim_index}; run_id: {self.run_id},\n"""
-            f"""gempyor >> prefix: {self.prefix};"""  # ti: {s.ti}; tf: {s.tf};
+            f"""  gempyor >> Running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** simulation;\n"""
+            f"""  gempyor >> Setup {self.s.setup_name}; index: {self.s.first_sim_index}; run_id: {self.run_id},\n"""
+            f"""  gempyor >> prefix: {self.prefix};"""  # ti: {s.ti}; tf: {s.tf};
         )
 
     # profile()
     def one_simulation(self, sim_id2write):
+        sim_id2write = int(sim_id2write)
         with Timer("onerun_SEIR"):
             seir.onerun_SEIR(
-                sim_id2write=int(sim_id2write),
+                sim_id2write=sim_id2write,
                 s=self.s,
                 load_ID=False,
                 stoch_traj_flag=self.stoch_traj_flag,
             )
 
         with Timer("onerun_OUTCOMES"):
-            outcomes.run_delayframe_outcomes(
-                config,
-                int(sim_id2write),
-                self.run_id,
-                self.prefix,  # input
-                int(sim_id2write),
-                self.run_id,
-                self.prefix,  # output
-                self.deathrate,
-                nsim=1,
-                n_jobs=1,
-                stoch_traj_flag=self.stoch_traj_flag,
+            outcomes.onerun_delayframe_outcomes(
+                sim_id2write=sim_id2write, s=self.s, load_ID=False
             )
         return 0
 
@@ -150,6 +142,8 @@ class InferenceSimulator:
 
     # profile()
     def one_simulation_loadID(self, sim_id2write, sim_id2load):
+        sim_id2write = int(sim_id2write)
+        sim_id2load = int(sim_id2load)
         with Timer("onerun_SEIR_loadID"):
             seir.onerun_SEIR(
                 sim_id2write=int(sim_id2write),
@@ -160,16 +154,11 @@ class InferenceSimulator:
             )
 
         with Timer("onerun_OUTCOMES_loadID"):
-            outcomes.onerun_delayframe_outcomes_load_hpar(
-                config,
-                int(sim_id2write),
-                self.run_id,
-                self.prefix,  # input
-                int(sim_id2write),  # TODO: check that this does the correct thing
-                self.run_id,
-                self.prefix,  # output
-                self.deathrate,
-                self.stoch_traj_flag,
+            outcomes.onerun_delayframe_outcomes(
+                sim_id2write=sim_id2write,
+                s=self.s,
+                load_ID=True,
+                sim_id2load=sim_id2load,
             )
 
         return 0
