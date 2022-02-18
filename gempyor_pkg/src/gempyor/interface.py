@@ -62,12 +62,18 @@ class InferenceSimulator:
         rng_seed=None,
         nsim=1,
         initialize=True,
+        out_run_id=None,  #if out_run_id is different from in_run_id, fill this
+        out_prefix=None,  #if out_prefix is different from in_prefix, fill this
     ):
         self.scenario = scenario
         self.deathrate = deathrate
-        self.stoch_traj_flag = stoch_traj_flag  # Truthy: stochastic simulation, Falsy: determnistic mean of the binomial draws
-        self.run_id = run_id
-        self.prefix = prefix
+        
+        in_run_id = run_id
+        if out_run_id is None:
+            out_run_id = in_run_id
+        in_prefix = prefix
+        if out_prefix is None:
+            out_prefix = in_prefix
 
         # Config prep
         config.clear()
@@ -106,17 +112,17 @@ class InferenceSimulator:
             write_parquet=write_parquet,
             dt=config["dt"].as_number(),
             first_sim_index=first_sim_index,
-            in_run_id=self.run_id,
-            in_prefix=self.prefix,
-            out_run_id=self.run_id,
-            out_prefix=self.prefix,
+            in_run_id=in_run_id,
+            in_prefix=in_prefix,
+            out_run_id=out_run_id,
+            out_prefix=out_prefix,
             stoch_traj_flag=stoch_traj_flag
         )
 
         print(
             f"""  gempyor >> Running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** simulation;\n"""
-            f"""  gempyor >> Setup {self.s.setup_name}; index: {self.s.first_sim_index}; run_id: {self.run_id},\n"""
-            f"""  gempyor >> prefix: {self.prefix};"""  # ti: {s.ti}; tf: {s.tf};
+            f"""  gempyor >> Setup {self.s.setup_name}; index: {self.s.first_sim_index}; run_id: {in_run_id},\n"""
+            f"""  gempyor >> prefix: {in_prefix};"""  # ti: {s.ti}; tf: {s.tf};
         )
 
     # profile()
@@ -134,10 +140,13 @@ class InferenceSimulator:
             )
         return 0
 
-    def update_prefix(self, new_prefix):
-        self.prefix = new_prefix
+    def update_prefix(self, new_prefix, new_out_prefix=None):
         self.s.in_prefix = new_prefix
-        self.s.out_prefix = new_prefix
+        if new_out_prefix is None:
+            self.s.out_prefix = new_prefix
+        else:
+            self.s.out_prefix = new_out_prefix
+
 
     # profile()
     def one_simulation_loadID(self, sim_id2write, sim_id2load):
