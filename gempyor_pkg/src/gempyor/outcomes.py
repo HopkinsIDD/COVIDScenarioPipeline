@@ -310,7 +310,7 @@ def postprocess_and_write(sim_id, s, outcomes, hpar, npi):
         )
     else:
         hnpi = npi.getReductionDF()
-    s.write_simID(ftype="snpi", sim_id=sim_id, df=hnpi)
+    s.write_simID(ftype="hnpi", sim_id=sim_id, df=hnpi)
 
 
 def dataframe_from_array(data, places, dates, comp_name):
