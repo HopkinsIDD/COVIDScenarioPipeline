@@ -49,6 +49,7 @@ class Setup:
         in_prefix=None,
         out_run_id=None,
         out_prefix=None,
+        stoch_traj_flag=True,
     ):
 
         # 1. Important global variables
@@ -61,7 +62,6 @@ class Setup:
             raise ValueError(
                 "tf (time to finish) is less than or equal to ti (time to start)"
             )
-
         self.npi_scenario = npi_scenario
         self.npi_config_seir = npi_config_seir
         self.seeding_config = seeding_config
@@ -76,8 +76,16 @@ class Setup:
         self.first_sim_index = first_sim_index
         self.outcomes_scenario = outcomes_scenario
 
+        self.spatset = spatial_setup
+        self.n_days = (self.tf - self.ti).days + 1  # because we include s.ti and s.tf
+        self.nnodes = self.spatset.nnodes
+        self.popnodes = self.spatset.popnodes
+        self.mobility = self.spatset.mobility
+        
+        self.stoch_traj_flag = stoch_traj_flag
+
         # SEIR part
-        if seir_config:
+        if config["seir"].exists():
             if "integration_method" in self.seir_config.keys():
                 self.integration_method = self.seir_config["integration_method"].get()
                 if self.integration_method == "best.current":
@@ -94,6 +102,43 @@ class Setup:
                     f"Integration method not provided, assuming type {self.integration_method}"
                 )
 
+            if config_version is None:
+                if "compartments" in self.seir_config.keys():
+                    config_version = "v2"
+                else:
+                    config_version = "old"
+
+                logging.debug(
+                    f"Config version not provided, infering type {config_version}"
+                )
+
+            if config_version != "old" and config_version != "v2":
+                raise ValueError(
+                    f"Configuration version unknown: {config_version}. "
+                    f"Should be either non-specified (default: 'old'), or set to 'old' or 'v2'."
+                )
+
+            # Think if we really want to hold this up.
+            self.parameters = parameters.Parameters(
+                parameter_config=self.parameters_config, config_version=config_version
+            )
+            self.seedingAndIC = seeding_ic.SeedingAndIC(
+                seeding_config=self.seeding_config,
+                initial_conditions_config=self.initial_conditions_config,
+            )
+            self.compartments = compartments.Compartments(self.seir_config)
+
+        # 3. Outcomes
+        self.npi_config_outcomes = None
+        if self.outcomes_config:
+            if self.outcomes_config["interventions"]["settings"][
+                self.outcomes_scenario
+            ].exists():
+                self.npi_config_outcomes = self.outcomes_config["interventions"][
+                    "settings"
+                ][self.outcomes_scenario]
+
+        # 4. Inputs and outputs
         if in_run_id is None:
             in_run_id = file_paths.run_id()
         self.in_run_id = in_run_id
@@ -108,62 +153,20 @@ class Setup:
         if out_prefix is None:
             out_prefix = f"model_output/{setup_name}/{npi_scenario}/{out_run_id}/"
         self.out_prefix = out_prefix
-
-        self.spatset = spatial_setup
-
-        self.build_setup()
-
-        if config_version is None:
-            if "compartments" in self.seir_config.keys():
-                config_version = "v2"
-            else:
-                config_version = "old"
-
-            logging.debug(
-                f"Config version not provided, infering type {config_version}"
-            )
-
-        if config_version != "old" and config_version != "v2":
-            raise ValueError(
-                f"Configuration version unknown: {config_version}. "
-                f"Should be either non-specified (default: 'old'), or set to 'old' or 'v2'."
-            )
-
-        # Think if we really want to hold this up.
-        self.parameters = parameters.Parameters(
-            parameter_config=self.parameters_config, config_version=config_version
-        )
-        self.seedingAndIC = seeding_ic.SeedingAndIC(
-            seeding_config=self.seeding_config,
-            initial_conditions_config=self.initial_conditions_config,
-        )
-        self.compartments = compartments.Compartments(self.seir_config)
-
-        # Outcomes
-        self.npi_config_outcomes = None
-        if self.outcomes_config:
-            if self.outcomes_config["interventions"]["settings"][
-                self.outcomes_scenario
-            ].exists():
-                self.npi_config_outcomes = self.outcomes_config["interventions"][
-                    "settings"
-                ][self.outcomes_scenario]
-
-        # Inputs and outputs
+        
         if self.write_csv or self.write_parquet:
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-            self.datadir = file_paths.create_dir_name(
-                self.out_run_id, self.out_prefix, "seir"
-            )
-            os.makedirs(self.datadir, exist_ok=True)
-            self.paramdir = file_paths.create_dir_name(
-                self.out_run_id, self.out_prefix, "spar"
-            )
-            os.makedirs(self.paramdir, exist_ok=True)
-            self.npidir = file_paths.create_dir_name(
-                self.out_run_id, self.out_prefix, "snpi"
-            )
-            os.makedirs(self.npidir, exist_ok=True)
+            ftypes = []
+            if config["seir"].exists():
+                ftypes.extend(["seir", "spar", "snpi"])
+            if outcomes_config:
+                ftypes.extend(["hosp", "hpar", "hnpi"])
+            for ftype in ftypes:
+                datadir = file_paths.create_dir_name(
+                    self.out_run_id, self.out_prefix, ftype
+                )
+                os.makedirs(datadir, exist_ok=True)
+ 
             if self.write_parquet and self.write_csv:
                 print(
                     "Confused between reading .csv or parquet. Assuming input file is .parquet"
@@ -173,11 +176,6 @@ class Setup:
             elif self.write_csv:
                 self.extension = "csv"
 
-    def build_setup(self):
-        self.n_days = (self.tf - self.ti).days + 1  # because we include s.ti and s.tf
-        self.nnodes = self.spatset.nnodes
-        self.popnodes = self.spatset.popnodes
-        self.mobility = self.spatset.mobility
 
     def get_input_filename(self, ftype: str, sim_id: int, extension_override: str = ""):
         return self.get_filename(
@@ -243,15 +241,17 @@ class Setup:
         input: bool = False,
         extension_override: str = "",
     ):
-        write_df(
-            fname=self.get_filename(
+        fname=self.get_filename(
                 ftype=ftype,
                 sim_id=sim_id,
                 input=input,
                 extension_override=extension_override,
-            ),
+            )
+        write_df(
+            fname=fname,
             df=df,
         )
+        return fname
 
 
 class SpatialSetup:

@@ -110,6 +110,7 @@ class InferenceSimulator:
             in_prefix=self.prefix,
             out_run_id=self.run_id,
             out_prefix=self.prefix,
+            stoch_traj_flag=stoch_traj_flag
         )
 
         print(
@@ -125,9 +126,7 @@ class InferenceSimulator:
             seir.onerun_SEIR(
                 sim_id2write=sim_id2write,
                 s=self.s,
-                load_ID=False,
-                stoch_traj_flag=self.stoch_traj_flag,
-            )
+                load_ID=False,)
 
         with Timer("onerun_OUTCOMES"):
             outcomes.onerun_delayframe_outcomes(
@@ -149,9 +148,7 @@ class InferenceSimulator:
                 sim_id2write=int(sim_id2write),
                 s=self.s,
                 load_ID=True,
-                sim_id2load=int(sim_id2load),
-                stoch_traj_flag=self.stoch_traj_flag,
-            )
+                sim_id2load=int(sim_id2load))
 
         with Timer("onerun_OUTCOMES_loadID"):
             outcomes.onerun_delayframe_outcomes(

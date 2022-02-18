@@ -74,6 +74,5 @@ def test_constant_population():
         proportion_info,
         initial_conditions,
         seeding_data,
-        seeding_amounts,
-        True,
+        seeding_amounts
     )

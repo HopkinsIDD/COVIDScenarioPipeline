@@ -25,7 +25,6 @@ def steps_SEIR(
     initial_conditions,
     seeding_data,
     seeding_amounts,
-    stoch_traj_flag,
 ):
 
     mobility_data = s.mobility.data
@@ -84,7 +83,7 @@ def steps_SEIR(
         "mobility_row_indices": s.mobility.indices,
         "mobility_data_indices": s.mobility.indptr,
         "population": s.popnodes,
-        "stochastic_p": stoch_traj_flag,
+        "stochastic_p": s.stoch_traj_flag,
     }
 
     logging.info(f"Integrating with method {s.integration_method}")
@@ -104,10 +103,10 @@ def steps_SEIR(
             "scipy.solve_ivp2",
             "scipy.odeint2",
         ]:
-            if stoch_traj_flag == True:
+            if s.stoch_traj_flag == True:
                 raise ValueError(
                     f"with method {s.integration_method}, only deterministic"
-                    f"integration is possible (got stoch_straj_flag={stoch_traj_flag}"
+                    f"integration is possible (got stoch_straj_flag={s.stoch_traj_flag}"
                 )
             seir_sim = steps_experimental.ode_integration(
                 **fnct_args, integration_method=s.integration_method
@@ -158,7 +157,6 @@ def onerun_SEIR(
     s: setup.Setup,
     load_ID: bool = False,
     sim_id2load: int = None,
-    stoch_traj_flag: bool = True,
 ):
     scipy.random.seed()
 
@@ -218,7 +216,6 @@ def onerun_SEIR(
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            stoch_traj_flag,
         )
 
     with Timer("onerun_SEIR.postprocess"):
