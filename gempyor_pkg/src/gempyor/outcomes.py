@@ -73,9 +73,6 @@ def build_npi_Outcomes(s: setup.Setup, load_ID: bool, sim_id2load: int):
             npi_config=s.npi_config_outcomes,
             global_config=config,
             geoids=s.spatset.nodenames,
-            pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
-                "sum"
-            ],
         )
     return npi
 
@@ -107,8 +104,6 @@ def onerun_delayframe_outcomes(
             loaded_values=loaded_values,
             npi=npi,
         )
-        print(outcomes)
-        print(parameters)
 
     with Timer("onerun_delayframe_outcomes.postprocess"):
         postprocess_and_write(sim_id=sim_id2write, s=s, outcomes=outcomes, hpar=hpar, npi=npi)
@@ -361,12 +356,10 @@ def compute_all_multioutcomes(
             # 1. compute incidence from binomial draw
             # 2. compute duration if needed
             source_name = parameters[new_comp]["source"]
-            print(f"doing {new_comp}")
             if source_name == "incidI" and "incidI" not in all_data:  # create incidI
                 source_array = get_filtered_incidI(
                     diffI, dates, s.spatset.nodenames, {"infection_stage": "I1"}
                 )
-                print(source_array.max(), "sdsdasda")
                 all_data["incidI"] = source_array
                 outcomes = pd.merge(
                     outcomes,
@@ -408,7 +401,6 @@ def compute_all_multioutcomes(
                 delays = parameters[new_comp]["delay"].as_random_distribution()(
                     size=len(s.spatset.nodenames)
                 )  # one draw per geoid
-            print(probabilities)
             probabilities[probabilities > 1] = 1
             probabilities[probabilities < 0] = 0
             probabilities = np.repeat(
@@ -567,11 +559,6 @@ def compute_all_multioutcomes(
                 sum_outcome, s.spatset.nodenames, dates, new_comp
             )
             outcomes = pd.merge(outcomes, df_p)
-    print(outcomes)
-    print(outcomes['incidI'].values)
-    print(outcomes['incidH'].values)
-    print(hpar)
-    print('fds')
 
     return outcomes, hpar
 

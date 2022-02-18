@@ -188,14 +188,14 @@ def test_outcomes_scenario_with_load():
     os.chdir(os.path.dirname(__file__))
     inference_simulator = gempyor.InferenceSimulator(
         config_path=f"{config_path_prefix}config_load.yml",
-        run_id=1,
+        run_id=2,
         prefix="",
         first_sim_index=1,
         deathrate="high_death_rate",
         stoch_traj_flag=False,
     )
 
-    outcomes.onerun_delayframe_outcomes(sim_id2write=2, s=inference_simulator.s, load_ID=False)
+    outcomes.onerun_delayframe_outcomes(sim_id2write=1, s=inference_simulator.s, load_ID=False)
 
     hpar_config = pq.read_table(
         f"{config_path_prefix}model_output/hpar/000000001.1.hpar.parquet"
@@ -230,15 +230,14 @@ def test_outcomes_read_write_hpar():
 
     inference_simulator = gempyor.InferenceSimulator(
         config_path=f"{config_path_prefix}config_load.yml",
-        run_id=1,
+        run_id=2,
         prefix="",
         first_sim_index=1,
         deathrate="high_death_rate",
         stoch_traj_flag=False,
+        out_run_id=3
     )
-    outcomes.onerun_delayframe_outcomes_load_hpar(
-        config, int(index), 2, prefix, int(index), 3, prefix, deathrate, stoch_traj_flag
-    )
+    outcomes.onerun_delayframe_outcomes(sim_id2write=1,s=inference_simulator.s,load_ID=True, sim_id2load=1)
 
     hpar_read = pq.read_table(
         f"{config_path_prefix}model_output/hpar/000000001.2.hpar.parquet"
@@ -273,20 +272,11 @@ def test_outcomes_scenario_subclasses():
         first_sim_index=1,
         deathrate="high_death_rate",
         stoch_traj_flag=False,
+        out_run_id=10
     )
-    outcomes.run_delayframe_outcomes(
-        config,
-        int(index),
-        run_id,
-        prefix,
-        int(index),
-        10,
-        prefix,
-        deathrate,
-        nsim=1,
-        n_jobs=1,
-        stoch_traj_flag=stoch_traj_flag,
-    )
+
+    outcomes.onerun_delayframe_outcomes(sim_id2write=1,s=inference_simulator.s)
+
     hosp = pq.read_table(
         f"{config_path_prefix}model_output/hosp/000000001.10.hosp.parquet"
     ).to_pandas()
@@ -508,20 +498,10 @@ def test_outcomes_scenario_with_load_subclasses():
         first_sim_index=1,
         deathrate="high_death_rate",
         stoch_traj_flag=False,
+        out_run_id=11
     )
-    outcomes.run_delayframe_outcomes(
-        config,
-        int(index),
-        run_id,
-        prefix,
-        int(index),
-        11,
-        prefix,
-        deathrate,
-        nsim=1,
-        n_jobs=1,
-        stoch_traj_flag=stoch_traj_flag,
-    )
+
+    outcomes.onerun_delayframe_outcomes(sim_id2write=1,s=inference_simulator.s)
 
     hpar_config = pq.read_table(
         f"{config_path_prefix}model_output/hpar/000000001.10.hpar.parquet"
@@ -573,41 +553,23 @@ def test_outcomes_read_write_hpar_subclasses():
         first_sim_index=1,
         deathrate="high_death_rate",
         stoch_traj_flag=False,
+        out_run_id=12
     )
-    outcomes.run_delayframe_outcomes(
-        config,
-        int(index),
-        run_id,
-        prefix,
-        int(index),
-        12,
-        prefix,
-        deathrate,
-        nsim=1,
-        n_jobs=1,
-        stoch_traj_flag=stoch_traj_flag,
-    )
+
+    outcomes.onerun_delayframe_outcomes(sim_id2write=1,s=inference_simulator.s)
+
 
     inference_simulator = gempyor.InferenceSimulator(
         config_path=f"{config_path_prefix}config_load.yml",
-        run_id=1,
+        run_id=12,
         prefix="",
         first_sim_index=1,
         deathrate="high_death_rate",
         stoch_traj_flag=False,
+        out_run_id=13
     )
 
-    outcomes.onerun_delayframe_outcomes_load_hpar(
-        config,
-        int(index),
-        12,
-        prefix,
-        int(index),
-        13,
-        prefix,
-        deathrate,
-        stoch_traj_flag,
-    )
+    outcomes.onerun_delayframe_outcomes(sim_id2write=1,s=inference_simulator.s,load_ID=True, sim_id2load=1)
 
     hpar_read = pq.read_table(
         f"{config_path_prefix}model_output/hpar/000000001.12.hpar.parquet"
@@ -675,20 +637,9 @@ def test_outcomes_npi():
         first_sim_index=1,
         deathrate="high_death_rate",
         stoch_traj_flag=False,
+        out_run_id=105
     )
-    outcomes.run_delayframe_outcomes(
-        config,
-        int(index),
-        run_id,
-        prefix,
-        int(index),
-        105,
-        prefix,
-        deathrate,
-        nsim=1,
-        n_jobs=1,
-        stoch_traj_flag=stoch_traj_flag,
-    )
+    outcomes.onerun_delayframe_outcomes(sim_id2write=1,s=inference_simulator.s)
 
     hosp = pq.read_table(
         f"{config_path_prefix}model_output/hosp/000000001.105.hosp.parquet"
