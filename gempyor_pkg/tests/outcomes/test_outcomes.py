@@ -1,10 +1,9 @@
+import gempyor
 import numpy as np
 import pandas as pd
 import datetime
-
 import pytest
 
-from gempyor import outcomes
 from gempyor.utils import config
 
 import pandas as pd
@@ -16,9 +15,8 @@ from pathlib import Path
 
 # import seaborn as sns
 import pyarrow.parquet as pq
-import click
 import pyarrow as pa
-from gempyor import file_paths
+from gempyor import file_paths, setup, outcomes
 
 config_path_prefix = ""  #'tests/outcomes/'
 
@@ -34,28 +32,16 @@ os.chdir(os.path.dirname(__file__))
 
 def test_outcomes_scenario():
     os.chdir(os.path.dirname(__file__))  ## this is redundant but necessary. Why ?
-    config.clear()
-    config.read(user=False)
-    print(os.getcwd())
-    config.set_file(f"{config_path_prefix}config.yml")
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
-    outcomes.run_delayframe_outcomes(
-        config,
-        int(index),
-        run_id,
-        prefix,
-        int(index),
-        run_id,
-        prefix,
-        deathrate,
-        nsim=1,
-        n_jobs=1,
-        stoch_traj_flag=stoch_traj_flag,
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
     )
+
+    outcomes.onerun_delayframe_outcomes(sim_id2write=1, s=inference_simulator.s, load_ID=False)
 
     hosp = pq.read_table(
         f"{config_path_prefix}model_output/hosp/000000001.1.hosp.parquet"
@@ -200,15 +186,15 @@ def test_outcomes_scenario():
 
 def test_outcomes_scenario_with_load():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_load.yml")
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_load.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
     outcomes.run_delayframe_outcomes(
         config,
         int(index),
@@ -252,13 +238,15 @@ def test_outcomes_read_write_hpar():
     os.chdir(os.path.dirname(__file__))
     config.clear()
     config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_load.yml")
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_load.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
     outcomes.onerun_delayframe_outcomes_load_hpar(
         config, int(index), 2, prefix, int(index), 3, prefix, deathrate, stoch_traj_flag
     )
@@ -288,15 +276,15 @@ def test_outcomes_read_write_hpar():
 
 def test_outcomes_scenario_subclasses():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_subclasses.yml")
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_subclasses.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
     outcomes.run_delayframe_outcomes(
         config,
         int(index),
@@ -523,15 +511,15 @@ def test_outcomes_scenario_subclasses():
 
 def test_outcomes_scenario_with_load_subclasses():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_load_subclasses.yml")
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_load_subclasses.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
     outcomes.run_delayframe_outcomes(
         config,
         int(index),
@@ -588,15 +576,15 @@ def test_outcomes_scenario_with_load_subclasses():
 
 def test_outcomes_read_write_hpar_subclasses():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_load.yml")
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_load.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
     outcomes.run_delayframe_outcomes(
         config,
         int(index),
@@ -610,15 +598,16 @@ def test_outcomes_read_write_hpar_subclasses():
         n_jobs=1,
         stoch_traj_flag=stoch_traj_flag,
     )
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_load.yml")
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_load.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
+
     outcomes.onerun_delayframe_outcomes_load_hpar(
         config,
         int(index),
@@ -689,14 +678,15 @@ def test_multishift_notstochdelays():
 
 def test_outcomes_npi():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_npi.yml")
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_npi.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
     outcomes.run_delayframe_outcomes(
         config,
         int(index),
@@ -856,15 +846,15 @@ def test_outcomes_npi():
 
 def test_outcomes_read_write_hnpi():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_npi.yml")
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_npi.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
     outcomes.onerun_delayframe_outcomes_load_hpar(
         config,
         int(index),
@@ -902,15 +892,15 @@ def test_outcomes_read_write_hnpi():
 
 def test_outcomes_read_write_hnpi2():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_npi.yml")
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_npi.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
 
     hnpi_read = pq.read_table(
         f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
@@ -981,14 +971,15 @@ def test_outcomes_read_write_hnpi2():
 
 def test_outcomes_npi_custom_pname():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_npi_custom_pnames.yml")
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_npi_custom_pnames.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
     outcomes.run_delayframe_outcomes(
         config,
         int(index),
@@ -1148,15 +1139,15 @@ def test_outcomes_npi_custom_pname():
 
 def test_outcomes_read_write_hnpi_custom_pname():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_npi_custom_pnames.yml")
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_npi_custom_pnames.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
     outcomes.onerun_delayframe_outcomes_load_hpar(
         config,
         int(index),
@@ -1194,15 +1185,15 @@ def test_outcomes_read_write_hnpi_custom_pname():
 
 def test_outcomes_read_write_hnpi2_custom_pname():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_npi_custom_pnames.yml")
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_npi_custom_pnames.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
 
     hnpi_read = pq.read_table(
         f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
@@ -1273,15 +1264,15 @@ def test_outcomes_read_write_hnpi2_custom_pname():
 
 def test_outcomes_pcomp():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_mc_selection.yml")
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_mc_selection.yml.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
     p_compmult = [1, 3]
 
     seir = pq.read_table(
@@ -1483,15 +1474,15 @@ def test_outcomes_pcomp():
 
 def test_outcomes_pcomp_read_write():
     os.chdir(os.path.dirname(__file__))
-    config.clear()
-    config.read(user=False)
-    config.set_file(f"{config_path_prefix}config_mc_selection.yml")
 
-    run_id = 1
-    index = 1
-    deathrate = "high_death_rate"
-    prefix = ""
-    stoch_traj_flag = False
+    inference_simulator = gempyor.InferenceSimulator(
+        config_path=f"{config_path_prefix}config_mc_selection.yml",
+        run_id=1,
+        prefix="",
+        first_sim_index=1,
+        deathrate="high_death_rate",
+        stoch_traj_flag=False,
+    )
 
     outcomes.onerun_delayframe_outcomes_load_hpar(
         config,
