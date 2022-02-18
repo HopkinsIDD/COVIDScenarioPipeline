@@ -133,7 +133,7 @@ def test_constant_population():
         initial_conditions,
         seeding_data,
         seeding_amounts,
-        True,
+        
     )
 
     completepop = s.popnodes.sum()
@@ -218,7 +218,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            True,
+            
         )
         df = seir.states2Df(s, states)
         assert (
@@ -245,7 +245,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            True,
+            
         )
         df = seir.states2Df(s, states)
         assert (
@@ -340,7 +340,7 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            True,
+            
         )
         df = seir.states2Df(s, states)
 
@@ -428,7 +428,7 @@ def test_steps_SEIR_no_spread():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            True,
+            
         )
         df = seir.states2Df(s, states)
         assert (
@@ -448,7 +448,7 @@ def test_steps_SEIR_no_spread():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            True,
+            
         )
         df = seir.states2Df(s, states)
         assert (
@@ -506,7 +506,7 @@ def test_continuation_resume():
         out_prefix=prefix,
     )
     seir.onerun_SEIR(
-        sim_id2write=int(sim_id2write), s=s, stoch_traj_flag=stoch_traj_flag
+        sim_id2write=int(sim_id2write), s=s
     )
 
     states_old = pq.read_table(
@@ -557,7 +557,7 @@ def test_continuation_resume():
         out_run_id=run_id,
         out_prefix=prefix,
     )
-    seir.onerun_SEIR(sim_id2write=sim_id2write, s=s, stoch_traj_flag=stoch_traj_flag)
+    seir.onerun_SEIR(sim_id2write=sim_id2write, s=s)
 
     states_new = pq.read_table(
         file_paths.create_file_name(
@@ -632,7 +632,7 @@ def test_inference_resume():
         out_prefix=prefix,
     )
     seir.onerun_SEIR(
-        sim_id2write=int(sim_id2write), s=s, stoch_traj_flag=stoch_traj_flag
+        sim_id2write=int(sim_id2write), s=s
     )
     npis_old = pq.read_table(
         file_paths.create_file_name(
@@ -772,7 +772,6 @@ def test_parallel_compartments_with_vacc():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            True,
         )
         df = seir.states2Df(s, states)
         assert (
@@ -793,7 +792,6 @@ def test_parallel_compartments_with_vacc():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            True,
         )
         df = seir.states2Df(s, states)
         assert (
@@ -873,7 +871,6 @@ def test_parallel_compartments_no_vacc():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            True,
         )
         df = seir.states2Df(s, states)
         assert (
@@ -894,7 +891,6 @@ def test_parallel_compartments_no_vacc():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            False,
         )
         df = seir.states2Df(s, states)
         assert (

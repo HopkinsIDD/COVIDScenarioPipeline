@@ -195,19 +195,8 @@ def test_outcomes_scenario_with_load():
         stoch_traj_flag=False,
     )
 
-    outcomes.run_delayframe_outcomes(
-        config,
-        int(index),
-        run_id,
-        prefix,
-        int(index),
-        2,
-        prefix,
-        deathrate,
-        nsim=1,
-        n_jobs=1,
-        stoch_traj_flag=stoch_traj_flag,
-    )
+    outcomes.onerun_delayframe_outcomes(sim_id2write=2, s=inference_simulator.s, load_ID=False)
+
     hpar_config = pq.read_table(
         f"{config_path_prefix}model_output/hpar/000000001.1.hpar.parquet"
     ).to_pandas()

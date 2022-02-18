@@ -20,8 +20,7 @@ def run_parallel_Outcomes(
     sim_id2load,
     sim_id2write,
     nsim=1,
-    n_jobs=1,
-    stoch_traj_flag=True,
+    n_jobs=1
 ):
     raise NotImplementedError(
         "This method to run many simulation needs to be updated, to preload the slow setup"
@@ -41,7 +40,6 @@ def run_parallel_Outcomes(
                 s,
                 sim_id2writes[sim_offset],
                 parameters,
-                stoch_traj_flag,
             )
     else:
         tqdm.contrib.concurrent.process_map(
@@ -51,7 +49,6 @@ def run_parallel_Outcomes(
             sim_id2writes,
             itertools.repeat(parameters),
             itertools.repeat(loaded_values),
-            itertools.repeat(stoch_traj_flag),
             max_workers=n_jobs,
         )
 
@@ -102,7 +99,6 @@ def onerun_delayframe_outcomes(
         loaded_values = s.read_simID(ftype="hpar", sim_id=sim_id2load)
 
     # Compute outcomes
-    # outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag, npi)
     with Timer("onerun_delayframe_outcomes.compute"):
         outcomes, hpar = compute_all_multioutcomes(
             s=s,
@@ -111,6 +107,8 @@ def onerun_delayframe_outcomes(
             loaded_values=loaded_values,
             npi=npi,
         )
+        print(outcomes)
+        print(parameters)
 
     with Timer("onerun_delayframe_outcomes.postprocess"):
         postprocess_and_write(sim_id=sim_id2write, s=s, outcomes=outcomes, hpar=hpar, npi=npi)
@@ -341,7 +339,7 @@ def read_incidences_sim(s, sim_id):
 
 
 def compute_all_multioutcomes(
-    *, s, sim_id2write, parameters, loaded_values=None, stoch_traj_flag=True, npi=None
+    *, s, sim_id2write, parameters, loaded_values=None, npi=None
 ):
     """Compute delay frame based on temporally varying input. We load the seir sim corresponding to sim_id to write"""
     hpar = pd.DataFrame(columns=["geoid", "quantity", "outcome", "value"])
@@ -368,6 +366,7 @@ def compute_all_multioutcomes(
                 source_array = get_filtered_incidI(
                     diffI, dates, s.spatset.nodenames, {"infection_stage": "I1"}
                 )
+                print(source_array.max(), "sdsdasda")
                 all_data["incidI"] = source_array
                 outcomes = pd.merge(
                     outcomes,
@@ -409,7 +408,7 @@ def compute_all_multioutcomes(
                 delays = parameters[new_comp]["delay"].as_random_distribution()(
                     size=len(s.spatset.nodenames)
                 )  # one draw per geoid
-
+            print(probabilities)
             probabilities[probabilities > 1] = 1
             probabilities[probabilities < 0] = 0
             probabilities = np.repeat(
@@ -461,7 +460,7 @@ def compute_all_multioutcomes(
             # Create new compartment incidence:
             all_data[new_comp] = np.empty_like(source_array)
             # Draw with from source compartment
-            if stoch_traj_flag:
+            if s.stoch_traj_flag:
                 all_data[new_comp] = np.random.binomial(
                     source_array.astype(np.int32), probabilities
                 )
@@ -568,33 +567,13 @@ def compute_all_multioutcomes(
                 sum_outcome, s.spatset.nodenames, dates, new_comp
             )
             outcomes = pd.merge(outcomes, df_p)
+    print(outcomes)
+    print(outcomes['incidI'].values)
+    print(outcomes['incidH'].values)
+    print(hpar)
+    print('fds')
 
     return outcomes, hpar
-
-
-def backward_compatibility_incidI(diffI, dates, places):
-    # We store them as numpy matrices. Dimensions is dates X places
-    incidI_arr = np.zeros((len(dates), len(places)), dtype=int)
-    mc_vaccination_stages = diffI["mc_vaccination_stage"].unique()
-    for p_comp in mc_vaccination_stages:
-        incidI = diffI[
-            (diffI["mc_vaccination_stage"] == p_comp)
-            & (diffI["mc_infection_stage"] == "I1")
-        ]
-
-        # additional_mcs = [c for c in incidI.drop(['date', 'mc_vaccination_stage', 'mc_infection_stage', 'mc_name'], axis=1).columns if 'mc_' in c]
-        # if not additional_mcs:
-        #    incidI = incidI.drop(['date', 'mc_vaccination_stage', 'mc_infection_stage', 'mc_name'], axis=1)
-        #    all_data[p_comp]['incidI'] = incidI.to_numpy()
-        # else:
-
-        for mcn in incidI["mc_name"].unique():
-            new_df = incidI[incidI["mc_name"] == mcn]
-            new_df = new_df.drop([c for c in new_df.columns if "mc_" in c], axis=1)
-            new_df = new_df.drop("date", axis=1)
-            incidI_arr = incidI_arr + new_df.to_numpy()
-    return incidI_arr
-
 
 def get_filtered_incidI(diffI, dates, places, filters):
     incidI_arr = np.zeros((len(dates), len(places)), dtype=int)
