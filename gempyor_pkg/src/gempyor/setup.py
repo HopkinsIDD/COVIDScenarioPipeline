@@ -38,6 +38,8 @@ class Setup:
         initial_conditions_config={},
         parameters_config={},
         seir_config={},
+        outcomes_config={},
+        outcomes_scenario=None,
         interactive=True,
         write_csv=False,
         write_parquet=False,
@@ -48,6 +50,8 @@ class Setup:
         out_run_id=None,
         out_prefix=None,
     ):
+
+        # 1. Important global variables
         self.setup_name = setup_name
         self.nsim = nsim
         self.dt = float(dt)
@@ -57,31 +61,38 @@ class Setup:
             raise ValueError(
                 "tf (time to finish) is less than or equal to ti (time to start)"
             )
+
         self.npi_scenario = npi_scenario
         self.npi_config_seir = npi_config_seir
         self.seeding_config = seeding_config
         self.initial_conditions_config = initial_conditions_config
         self.parameters_config = parameters_config
+        self.outcomes_config = outcomes_config
+
         self.seir_config = seir_config
         self.interactive = interactive
         self.write_csv = write_csv
         self.write_parquet = write_parquet
         self.first_sim_index = first_sim_index
-        if "integration_method" in self.seir_config.keys():
-            self.integration_method = self.seir_config["integration_method"].get()
-            if self.integration_method == "best.current":
+        self.outcomes_scenario = outcomes_scenario
+
+        # SEIR part
+        if seir_config:
+            if "integration_method" in self.seir_config.keys():
+                self.integration_method = self.seir_config["integration_method"].get()
+                if self.integration_method == "best.current":
+                    self.integration_method = "rk4.jit"
+                if self.integration_method == "rk4":
+                    self.integration_method = "rk4.jit"
+                if self.integration_method not in ["rk4.jit", "legacy"]:
+                    raise ValueError(
+                        f"Unknow integration method {self.integration_method}."
+                    )
+            else:
                 self.integration_method = "rk4.jit"
-            if self.integration_method == "rk4":
-                self.integration_method = "rk4.jit"
-            if self.integration_method not in ["rk4.jit", "legacy"]:
-                raise ValueError(
-                    f"Unknow integration method {self.integration_method}."
+                logging.info(
+                    f"Integration method not provided, assuming type {self.integration_method}"
                 )
-        else:
-            self.integration_method = "rk4.jit"
-            logging.info(
-                f"Integration method not provided, assuming type {self.integration_method}"
-            )
 
         if in_run_id is None:
             in_run_id = file_paths.run_id()
@@ -128,6 +139,17 @@ class Setup:
         )
         self.compartments = compartments.Compartments(self.seir_config)
 
+        # Outcomes
+        self.npi_config_outcomes = None
+        if self.outcomes_config:
+            if self.outcomes_config["interventions"]["settings"][
+                self.outcomes_scenario
+            ].exists():
+                self.npi_config_outcomes = self.outcomes_config["interventions"][
+                    "settings"
+                ][self.outcomes_scenario]
+
+        # Inputs and outputs
         if self.write_csv or self.write_parquet:
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             self.datadir = file_paths.create_dir_name(

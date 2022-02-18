@@ -229,7 +229,10 @@ def onerun_SEIR(
     return out_df
 
 
-def run_parallel(s, *, n_jobs=1):
+def run_parallel_SEIR(s, *, n_jobs=1):
+    raise NotImplementedError(
+        "This method to run many simulation needs to be updated, to preload the slow setup"
+    )
     start = time.monotonic()
     sim_ids = np.arange(1, s.nsim + 1)
 
@@ -242,7 +245,7 @@ def run_parallel(s, *, n_jobs=1):
         )
 
     logging.info(
-        f""">> {s.nsim} simulations completed in {time.monotonic() - start:.1f} seconds"""
+        f""">> {s.nsim} seir simulations completed in {time.monotonic() - start:.1f} seconds"""
     )
 
 

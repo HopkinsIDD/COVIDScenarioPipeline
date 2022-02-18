@@ -1,57 +1,73 @@
 import itertools
 import time, random
+import warnings
 from numba import jit
 import numpy as np
 import pandas as pd
 import tqdm.contrib.concurrent
-from .utils import config, Timer
+from gempyor.utils import config, Timer, read_df, write_df
+import gempyor.NPI as NPI
+import pyarrow.parquet
 import pyarrow as pa
 import pandas as pd
-from . import NPI, setup
+from . import file_paths
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def run_parallel_Outcomes(
-    s,
-    *,
-    sim_id2load,
-    sim_id2write,
+def run_delayframe_outcomes(
+    config,
+    in_sim_id,
+    in_run_id,
+    in_prefix,
+    out_sim_id,
+    out_run_id,
+    out_prefix,
+    scenario_outcomes,
     nsim=1,
     n_jobs=1,
     stoch_traj_flag=True,
 ):
-    raise NotImplementedError(
-        "This method to run many simulation needs to be updated, to preload the slow setup"
-    )
     start = time.monotonic()
+    in_sim_ids = np.arange(in_sim_id, in_sim_id + nsim)
+    out_sim_ids = np.arange(out_sim_id, out_sim_id + nsim)
 
-    sim_id2loads = np.arange(sim_id2load, sim_id2load + s.nsim)
-    sim_id2writes = np.arange(sim_id2write, sim_id2write + s.nsim)
+    parameters, npi_config = read_parameters_from_config(
+        config, in_run_id, in_prefix, in_sim_ids, scenario_outcomes
+    )
 
     loaded_values = None
     if (n_jobs == 1) or (
-        s.nsim == 1
+        nsim == 1
     ):  # run single process for debugging/profiling purposes
         for sim_offset in np.arange(nsim):
             onerun_delayframe_outcomes(
-                sim_id2loads[sim_offset],
-                s,
-                sim_id2writes[sim_offset],
+                in_sim_ids[sim_offset],
+                in_run_id,
+                in_prefix,
+                out_sim_ids[sim_offset],
+                out_run_id,
+                out_prefix,
                 parameters,
+                loaded_values,
                 stoch_traj_flag,
+                npi_config,
             )
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
-            sim_id2loads,
-            s,
-            sim_id2writes,
+            in_sim_ids,
+            itertools.repeat(in_run_id),
+            itertools.repeat(in_prefix),
+            out_sim_ids,
+            itertools.repeat(out_run_id),
+            itertools.repeat(out_prefix),
             itertools.repeat(parameters),
             itertools.repeat(loaded_values),
             itertools.repeat(stoch_traj_flag),
+            itertools.repeat(npi_config),
             max_workers=n_jobs,
         )
 
@@ -63,67 +79,71 @@ def run_parallel_Outcomes(
     return 1
 
 
-def build_npi_Outcomes(s: setup.Setup, load_ID: bool, sim_id2load: int):
-    if load_ID:
-        npi = NPI.NPIBase.execute(
-            npi_config=s.npi_config_outcomes,
-            global_config=config,
-            geoids=s.spatset.nodenames,
-            loaded_df=s.read_simID(ftype="hnpi", sim_id=sim_id2load),
-        )
-    else:
-        npi = NPI.NPIBase.execute(
-            npi_config=s.npi_config_outcomes,
-            global_config=config,
-            geoids=s.spatset.nodenames,
-            pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
-                "sum"
-            ],
-        )
-    return npi
-
-
-def onerun_delayframe_outcomes(
-    *,
-    sim_id2write: int,
-    s: setup.Setup,
-    load_ID: bool = False,
-    sim_id2load: int = None,
+def onerun_delayframe_outcomes_load_hpar(
+    config,
+    in_sim_id,
+    in_run_id,
+    in_prefix,
+    out_sim_id,
+    out_run_id,
+    out_prefix,
+    scenario_outcomes,
+    stoch_traj_flag=True,
 ):
-    with Timer("buildOutcome.structure"):
-        parameters = read_parameters_from_config(s)
+    parameters, npi_config = read_parameters_from_config(
+        config, in_run_id, in_prefix, [in_sim_id], scenario_outcomes
+    )
 
-    npi = None
-    if s.npi_config_outcomes:
-        npi = build_npi_Outcomes(s=s, load_ID=load_ID, sim_id2load=sim_id2load)
+    loaded_values = pyarrow.parquet.read_table(
+        file_paths.create_file_name(in_run_id, in_prefix, in_sim_id, "hpar", "parquet")
+    ).to_pandas()
 
-    loaded_values = None
-    if load_ID:
-        loaded_values = s.read_simID(ftype="hpar", sim_id=sim_id2load)
+    if npi_config is not None:
+        with Timer("onerun_delayframe_outcomes_load_hpar.NPI"):
+            diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
+            npi = NPI.NPIBase.execute(
+                npi_config=npi_config[0],
+                global_config=npi_config[1],
+                geoids=places,
+                loaded_df=read_df(
+                    fname=file_paths.create_file_name_without_extension(
+                        in_run_id, in_prefix, in_sim_id, "hnpi"
+                    ),
+                    extension="parquet",
+                ),
+            )
+    else:
+        npi = None
 
-    # Compute outcomes
-    # outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag, npi)
-    with Timer("onerun_delayframe_outcomes.compute"):
-        outcomes, hpar = compute_all_multioutcomes(
-            s=s,
-            sim_id2write=sim_id2write,
-            parameters=parameters,
-            loaded_values=loaded_values,
-            npi=npi,
-        )
+    onerun_delayframe_outcomes(
+        in_sim_id,
+        in_run_id,
+        in_prefix,
+        out_sim_id,
+        out_run_id,
+        out_prefix,
+        parameters,
+        loaded_values,
+        stoch_traj_flag,
+        npi,
+    )
+    return 1
 
-    with Timer("onerun_delayframe_outcomes.postprocess"):
-        postprocess_and_write(sim_id=sim_id2write, s=s, outcomes=outcomes, hpar=hpar, npi=npi)
 
-
-def read_parameters_from_config(s: setup.Setup):
+def read_parameters_from_config(config, run_id, prefix, sim_ids, scenario_outcomes):
     # Prepare the probability table:
     # Either mean of probabilities given or from the file... This speeds up a bit the process.
     # However needs an ordered dict, here we're abusing a bit the spec.
-    outcomes_config = s.outcomes_config["settings"][s.outcomes_scenario]
-    if s.outcomes_config["param_from_file"].get():
+    config_outcomes = config["outcomes"]["settings"][scenario_outcomes]
+    if config["outcomes"]["param_from_file"].get():
+        # load a file from the seir model, to know how to filter the provided csv file
+        diffI, places, dates = read_seir_sim(
+            run_id=run_id, prefix=prefix, sim_id=sim_ids[0]
+        )
+
         # Load the actual csv file
-        branching_file = s.outcomes_config["param_place_file"].as_str()
+        # Load the actual csv file
+        branching_file = config["outcomes"]["param_place_file"].as_str()
         branching_data = pa.parquet.read_table(branching_file).to_pandas()
         if "relative_probability" not in list(branching_data["quantity"]):
             raise ValueError(
@@ -136,32 +156,30 @@ def read_parameters_from_config(s: setup.Setup):
             "",
             end="",
         )
-        branching_data = branching_data[
-            branching_data["geoid"].isin(s.spatset.nodenames)
-        ]
+        branching_data = branching_data[branching_data["geoid"].isin(places)]
         print(
             "Intersect with seir simulation: ",
             len(branching_data.geoid.unique()),
             "keeped",
         )
 
-        if len(branching_data.geoid.unique()) != len(s.spatset.nodenames):
+        if len(branching_data.geoid.unique()) != places.shape[0]:
             raise ValueError(
                 f"Places in seir input files does not correspond to places in outcome probability file {branching_file}"
             )
 
     subclasses = [""]
-    if s.outcomes_config["subclasses"].exists():
-        subclasses = s.outcomes_config["subclasses"].get()
+    if config["outcomes"]["subclasses"].exists():
+        subclasses = config["outcomes"]["subclasses"].get()
 
     parameters = {}
-    for new_comp in outcomes_config:
-        if outcomes_config[new_comp]["source"].exists():
+    for new_comp in config_outcomes:
+        if config_outcomes[new_comp]["source"].exists():
             for subclass in subclasses:
                 class_name = new_comp + subclass
                 parameters[class_name] = {}
                 # Read the config for this compartement
-                src_name = outcomes_config[new_comp]["source"].get()
+                src_name = config_outcomes[new_comp]["source"].get()
                 if isinstance(src_name, str):
                     if src_name != "incidI":
                         parameters[class_name]["source"] = src_name + subclass
@@ -173,14 +191,14 @@ def read_parameters_from_config(s: setup.Setup):
                     else:
                         parameters[class_name]["source"] = dict(src_name["incidence"])
 
-                parameters[class_name]["probability"] = outcomes_config[new_comp][
+                parameters[class_name]["probability"] = config_outcomes[new_comp][
                     "probability"
                 ]["value"]
-                if outcomes_config[new_comp]["probability"][
+                if config_outcomes[new_comp]["probability"][
                     "intervention_param_name"
                 ].exists():
                     parameters[class_name]["probability::npi_param_name"] = (
-                        outcomes_config[new_comp]["probability"][
+                        config_outcomes[new_comp]["probability"][
                             "intervention_param_name"
                         ]
                         .as_str()
@@ -196,14 +214,14 @@ def read_parameters_from_config(s: setup.Setup):
                         "probability::npi_param_name"
                     ] = f"{new_comp}::probability".lower()
 
-                parameters[class_name]["delay"] = outcomes_config[new_comp]["delay"][
+                parameters[class_name]["delay"] = config_outcomes[new_comp]["delay"][
                     "value"
                 ]
-                if outcomes_config[new_comp]["delay"][
+                if config_outcomes[new_comp]["delay"][
                     "intervention_param_name"
                 ].exists():
                     parameters[class_name]["delay::npi_param_name"] = (
-                        outcomes_config[new_comp]["delay"]["intervention_param_name"]
+                        config_outcomes[new_comp]["delay"]["intervention_param_name"]
                         .as_str()
                         .lower()
                     )
@@ -217,15 +235,15 @@ def read_parameters_from_config(s: setup.Setup):
                         "delay::npi_param_name"
                     ] = f"{new_comp}::delay".lower()
 
-                if outcomes_config[new_comp]["duration"].exists():
-                    parameters[class_name]["duration"] = outcomes_config[new_comp][
+                if config_outcomes[new_comp]["duration"].exists():
+                    parameters[class_name]["duration"] = config_outcomes[new_comp][
                         "duration"
                     ]["value"]
-                    if outcomes_config[new_comp]["duration"][
+                    if config_outcomes[new_comp]["duration"][
                         "intervention_param_name"
                     ].exists():
                         parameters[class_name]["duration::npi_param_name"] = (
-                            outcomes_config[new_comp]["duration"][
+                            config_outcomes[new_comp]["duration"][
                                 "intervention_param_name"
                             ]
                             .as_str()
@@ -241,9 +259,9 @@ def read_parameters_from_config(s: setup.Setup):
                             "duration::npi_param_name"
                         ] = f"{new_comp}::duration".lower()
 
-                    if outcomes_config[new_comp]["duration"]["name"].exists():
+                    if config_outcomes[new_comp]["duration"]["name"].exists():
                         parameters[class_name]["duration_name"] = (
-                            outcomes_config[new_comp]["duration"]["name"].as_str()
+                            config_outcomes[new_comp]["duration"]["name"].as_str()
                             + subclass
                         )
                     else:
@@ -251,8 +269,9 @@ def read_parameters_from_config(s: setup.Setup):
                             new_comp + "_curr" + subclass
                         )
 
-                if s.outcomes_config["param_from_file"].get():
+                if config["outcomes"]["param_from_file"].get():
                     rel_probability = branching_data[
+                        # (branching_data['source'] == parameters[class_name]['source']) &
                         (branching_data["outcome"] == class_name)
                         & (branching_data["quantity"] == "relative_probability")
                     ].copy(deep=True)
@@ -260,10 +279,12 @@ def read_parameters_from_config(s: setup.Setup):
                         print(
                             f"Using 'param_from_file' for relative probability in outcome {class_name}"
                         )
-                        # Sort it in case the relative probablity file is mispecified
+                        # Sort it in case the relative probablity file is misecified
+                        print(diffI.drop("date", axis=1).columns, s.spatset.nodenames)
+
                         rel_probability.geoid = rel_probability.geoid.astype("category")
                         rel_probability.geoid.cat.set_categories(
-                            s.spatset.nodenames, inplace=True
+                            diffI.drop("date", axis=1).columns, inplace=True
                         )
                         rel_probability = rel_probability.sort_values(["geoid"])
                         parameters[class_name]["rel_probability"] = rel_probability[
@@ -278,10 +299,10 @@ def read_parameters_from_config(s: setup.Setup):
             if subclasses != [""]:
                 parameters[new_comp] = {}
                 parameters[new_comp]["sum"] = [new_comp + c for c in subclasses]
-                if outcomes_config[new_comp]["duration"].exists():
+                if config_outcomes[new_comp]["duration"].exists():
                     duration_name = new_comp + "_curr"
-                    if outcomes_config[new_comp]["duration"]["name"].exists():
-                        duration_name = outcomes_config[new_comp]["duration"][
+                    if config_outcomes[new_comp]["duration"]["name"].exists():
+                        duration_name = config_outcomes[new_comp]["duration"][
                             "name"
                         ].as_str()
                     parameters[duration_name] = {}
@@ -289,21 +310,103 @@ def read_parameters_from_config(s: setup.Setup):
                         duration_name + c for c in subclasses
                     ]
 
-        elif outcomes_config[new_comp]["sum"].exists():
+        elif config_outcomes[new_comp]["sum"].exists():
             parameters[new_comp] = {}
-            parameters[new_comp]["sum"] = outcomes_config[new_comp]["sum"].get()
+            parameters[new_comp]["sum"] = config_outcomes[new_comp]["sum"].get()
         else:
             raise ValueError(f"No 'source' or 'sum' specified for comp {new_comp}")
 
-    return parameters
+    npi_config = None
+    if config["outcomes"]["interventions"]["settings"][scenario_outcomes].exists():
+        npi_config = [
+            config["outcomes"]["interventions"]["settings"][scenario_outcomes],
+            config,
+        ]
+
+    return parameters, npi_config
 
 
-def postprocess_and_write(sim_id, s, outcomes, hpar, npi):
+def onerun_delayframe_outcomes(
+    in_sim_id,
+    in_run_id,
+    in_prefix,
+    out_sim_id,
+    out_run_id,
+    out_prefix,
+    parameters,
+    loaded_values=None,
+    stoch_traj_flag=True,
+    npi_config=None,
+):
+    # Read files
+    diffI, places, dates = read_seir_sim(in_run_id, in_prefix, in_sim_id)
+
+    # If a list, then it's just the config from run confing, so build the NPI
+    # otherwise it's None (no NPI) or an NPI already loaded
+    if isinstance(npi_config, list):
+        npi = NPI.NPIBase.execute(
+            npi_config=npi_config[0], global_config=npi_config[1], geoids=places
+        )
+    elif npi_config is not None:
+        npi = npi_config
+    else:
+        npi = None
+
+    # Compute outcomes
+    # outcomes, hpar = compute_all_delayframe_outcomes(parameters, diffI, places, dates, loaded_values, stoch_traj_flag, npi)
+    with Timer("onerun_delayframe_outcomes.compute"):
+        outcomes, hpar = compute_all_multioutcomes(
+            parameters, diffI, places, dates, loaded_values, stoch_traj_flag, npi
+        )
+
+    with Timer("onerun_delayframe_outcomes.postprocess"):
+        # Write output
+        write_outcome_sim(outcomes, out_run_id, out_prefix, out_sim_id)
+        write_outcome_hpar(hpar, out_run_id, out_prefix, out_sim_id)
+        # if npi is not None:
+        write_outcome_hnpi(npi, out_run_id, out_prefix, out_sim_id)
+
+
+def read_seir_sim(run_id, prefix, sim_id):
+    diffI = pd.read_parquet(
+        file_paths.create_file_name(run_id, prefix, sim_id, "seir", "parquet")
+    )
+
+    diffI = diffI[diffI["mc_value_type"] == "incidence"]
+    diffI.drop(["mc_value_type"], inplace=True, axis=1)
+    dates = diffI["date"].unique()
+    todrop = [c for c in diffI.columns if c[:3] == "mc_"]
+    todrop.append("date")
+    places = diffI.drop(todrop, axis=1).columns
+    return diffI, places, dates
+
+
+def write_outcome_sim(outcomes, run_id, prefix, sim_id):
     outcomes["time"] = outcomes["date"]
-    s.write_simID(ftype="hosp", sim_id=sim_id, df=outcomes)
-    s.write_simID(ftype="hpar", sim_id=sim_id, df=hpar)
+    out_df = pa.Table.from_pandas(outcomes, preserve_index=False)
 
-    if npi is None:
+    pa.parquet.write_table(
+        out_df, file_paths.create_file_name(run_id, prefix, sim_id, "hosp", "parquet")
+    )
+
+
+def write_outcome_hpar(hpar, run_id, prefix, sim_id):
+    out_hpar = pa.Table.from_pandas(hpar, preserve_index=False)
+    pa.parquet.write_table(
+        out_hpar, file_paths.create_file_name(run_id, prefix, sim_id, "hpar", "parquet")
+    )
+
+
+def write_outcome_hnpi(npi: NPI, run_id, prefix, sim_id):
+    if npi is not None:
+        write_df(
+            fname=file_paths.create_file_name_without_extension(
+                run_id, prefix, sim_id, "hnpi"
+            ),
+            df=npi.getReductionDF(),
+            extension="parquet",
+        )
+    else:
         hnpi = pd.DataFrame(
             columns=[
                 "geoid",
@@ -314,9 +417,11 @@ def postprocess_and_write(sim_id, s, outcomes, hpar, npi):
                 "reduction",
             ]
         )
-    else:
-        hnpi = npi.getReductionDF()
-    s.write_simID(ftype="snpi", sim_id=sim_id, df=hnpi)
+        out_hnpi = pa.Table.from_pandas(hnpi, preserve_index=False)
+        pa.parquet.write_table(
+            out_hnpi,
+            file_paths.create_file_name(run_id, prefix, sim_id, "hnpi", "parquet"),
+        )
 
 
 def dataframe_from_array(data, places, dates, comp_name):
@@ -332,30 +437,32 @@ def dataframe_from_array(data, places, dates, comp_name):
     return df
 
 
-def read_incidences_sim(s, sim_id):
-    seir_df = s.read_simID(ftype="seir", sim_id=sim_id)
-
-    incidences = seir_df[seir_df["mc_value_type"] == "incidence"]
-    incidences.drop(["mc_value_type"], inplace=True, axis=1)
-    return incidences
+""" Compute delay frame based on temporally varying input"""
 
 
+##
+# @function
+# @brief Compute delay frame based on temporally varying input
+# ## Parameters
+# @parameters[new_comp] Parameters from a yaml config in the form of a dictionary
+# ```yaml
+# outcomes:
+#   output_var_name:
+#     source: input_var_name
+#     ... # finish later
+# @source_data numpy matrix of dates x places
+# @places Index for the places dimension of source_data
+# @dates Index for dates dimension of source_data.  dates should be one day apart a closed interval
+# @loaded_values A numpy array of dimensions place x time with values containing the probabilities
 def compute_all_multioutcomes(
-    *, s, sim_id2write, parameters, loaded_values=None, stoch_traj_flag=True, npi=None
+    parameters, diffI, places, dates, loaded_values=None, stoch_traj_flag=True, npi=None
 ):
-    """Compute delay frame based on temporally varying input. We load the seir sim corresponding to sim_id to write"""
     hpar = pd.DataFrame(columns=["geoid", "quantity", "outcome", "value"])
     all_data = {}
-    dates = pd.date_range(s.ti, s.tf, freq="D")
 
     outcomes = dataframe_from_array(
-        np.zeros((len(dates), len(s.spatset.nodenames)), dtype=int),
-        s.spatset.nodenames,
-        dates,
-        "zeros",
+        np.zeros((len(dates), len(places)), dtype=int), places, dates, "zeros"
     ).drop("zeros", axis=1)
-
-    diffI = read_incidences_sim(s, sim_id=sim_id2write)
 
     for new_comp in parameters:
         if "source" in parameters[new_comp]:
@@ -366,19 +473,15 @@ def compute_all_multioutcomes(
             print(f"doing {new_comp}")
             if source_name == "incidI" and "incidI" not in all_data:  # create incidI
                 source_array = get_filtered_incidI(
-                    diffI, dates, s.spatset.nodenames, {"infection_stage": "I1"}
+                    diffI, dates, places, {"infection_stage": "I1"}
                 )
                 all_data["incidI"] = source_array
                 outcomes = pd.merge(
                     outcomes,
-                    dataframe_from_array(
-                        source_array, s.spatset.nodenames, dates, "incidI"
-                    ),
+                    dataframe_from_array(source_array, places, dates, "incidI"),
                 )
             elif isinstance(source_name, dict):
-                source_array = get_filtered_incidI(
-                    diffI, dates, s.spatset.nodenames, source_name
-                )
+                source_array = get_filtered_incidI(diffI, dates, places, source_name)
                 # we don't keep source in this cases
             else:  # already defined outcomes
                 source_array = all_data[source_name]
@@ -399,7 +502,7 @@ def compute_all_multioutcomes(
                 probabilities = parameters[new_comp][
                     "probability"
                 ].as_random_distribution()(
-                    size=len(s.spatset.nodenames)
+                    size=len(places)
                 )  # one draw per geoid
                 if "rel_probability" in parameters[new_comp]:
                     probabilities = (
@@ -407,7 +510,7 @@ def compute_all_multioutcomes(
                     )
 
                 delays = parameters[new_comp]["delay"].as_random_distribution()(
-                    size=len(s.spatset.nodenames)
+                    size=len(places)
                 )  # one draw per geoid
 
             probabilities[probabilities > 1] = 1
@@ -425,19 +528,18 @@ def compute_all_multioutcomes(
                     hpar,
                     pd.DataFrame.from_dict(
                         {
-                            "geoid": s.spatset.nodenames,
-                            "quantity": ["probability"] * len(s.spatset.nodenames),
-                            "outcome": [new_comp] * len(s.spatset.nodenames),
-                            "value": probabilities[0]
-                            * np.ones(len(s.spatset.nodenames)),
+                            "geoid": places,
+                            "quantity": ["probability"] * len(places),
+                            "outcome": [new_comp] * len(places),
+                            "value": probabilities[0] * np.ones(len(places)),
                         }
                     ),
                     pd.DataFrame.from_dict(
                         {
-                            "geoid": s.spatset.nodenames,
-                            "quantity": ["delay"] * len(s.spatset.nodenames),
-                            "outcome": [new_comp] * len(s.spatset.nodenames),
-                            "value": delays[0] * np.ones(len(s.spatset.nodenames)),
+                            "geoid": places,
+                            "quantity": ["delay"] * len(places),
+                            "outcome": [new_comp] * len(places),
+                            "value": delays[0] * np.ones(len(places)),
                         }
                     ),
                 ],
@@ -477,9 +579,7 @@ def compute_all_multioutcomes(
                 all_data[new_comp], delays, stoch_delay_flag=stoch_delay_flag
             )
             # Produce a dataframe an merge it
-            df_p = dataframe_from_array(
-                all_data[new_comp], s.spatset.nodenames, dates, new_comp
-            )
+            df_p = dataframe_from_array(all_data[new_comp], places, dates, new_comp)
             outcomes = pd.merge(outcomes, df_p)
 
             # Make duration
@@ -495,7 +595,7 @@ def compute_all_multioutcomes(
                     durations = parameters[new_comp][
                         "duration"
                     ].as_random_distribution()(
-                        size=len(s.spatset.nodenames)
+                        size=len(places)
                     )  # one draw per geoid
                 durations = np.repeat(
                     durations[:, np.newaxis], len(dates), axis=1
@@ -507,11 +607,10 @@ def compute_all_multioutcomes(
                         hpar,
                         pd.DataFrame.from_dict(
                             {
-                                "geoid": s.spatset.nodenames,
-                                "quantity": ["duration"] * len(s.spatset.nodenames),
-                                "outcome": [new_comp] * len(s.spatset.nodenames),
-                                "value": durations[0]
-                                * np.ones(len(s.spatset.nodenames)),
+                                "geoid": places,
+                                "quantity": ["duration"] * len(places),
+                                "outcome": [new_comp] * len(places),
+                                "value": durations[0] * np.ones(len(places)),
                             }
                         ),
                     ],
@@ -549,7 +648,7 @@ def compute_all_multioutcomes(
 
                 df_p = dataframe_from_array(
                     all_data[parameters[new_comp]["duration_name"]],
-                    s.spatset.nodenames,
+                    places,
                     dates,
                     parameters[new_comp]["duration_name"],
                 )
@@ -557,16 +656,14 @@ def compute_all_multioutcomes(
 
         elif "sum" in parameters[new_comp]:
             sum_outcome = np.zeros(
-                (len(dates), len(s.spatset.nodenames)),
+                (len(dates), len(places)),
                 dtype=all_data[parameters[new_comp]["sum"][0]].dtype,
             )
             # Sum all concerned compartment.
             for cmp in parameters[new_comp]["sum"]:
                 sum_outcome += all_data[cmp]
             all_data[new_comp] = sum_outcome
-            df_p = dataframe_from_array(
-                sum_outcome, s.spatset.nodenames, dates, new_comp
-            )
+            df_p = dataframe_from_array(sum_outcome, places, dates, new_comp)
             outcomes = pd.merge(outcomes, df_p)
 
     return outcomes, hpar
