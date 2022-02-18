@@ -89,6 +89,7 @@ def onerun_delayframe_outcomes(
 
     npi = None
     if s.npi_config_outcomes:
+        print('build npi with loadID::', load_ID)
         npi = build_npi_Outcomes(s=s, load_ID=load_ID, sim_id2load=sim_id2load)
 
     loaded_values = None
