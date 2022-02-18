@@ -789,23 +789,16 @@ def test_outcomes_read_write_hnpi():
 
     inference_simulator = gempyor.InferenceSimulator(
         config_path=f"{config_path_prefix}config_npi.yml",
-        run_id=1,
+        run_id=105,
         prefix="",
         first_sim_index=1,
         deathrate="high_death_rate",
         stoch_traj_flag=False,
+        out_run_id=106
     )
-    outcomes.onerun_delayframe_outcomes_load_hpar(
-        config,
-        int(index),
-        105,
-        prefix,
-        int(index),
-        106,
-        prefix,
-        deathrate,
-        stoch_traj_flag,
-    )
+
+    outcomes.onerun_delayframe_outcomes(sim_id2write=1,s=inference_simulator.s,load_ID=True, sim_id2load=1)
+    
 
     hpar_read = pq.read_table(
         f"{config_path_prefix}model_output/hpar/000000001.105.hpar.parquet"
@@ -820,6 +813,10 @@ def test_outcomes_read_write_hnpi():
     hnpi_wrote = pq.read_table(
         f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet"
     ).to_pandas()
+    print('red')
+    print(hnpi_read)
+    print('rot')
+    print(hnpi_wrote)
     assert (hnpi_read == hnpi_wrote).all().all()
     hosp_read = pq.read_table(
         f"{config_path_prefix}model_output/hosp/000000001.105.hosp.parquet"
