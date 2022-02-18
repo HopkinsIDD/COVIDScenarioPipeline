@@ -3,6 +3,7 @@ import setuptools
 #that's to make steps exist in the directory, though it needs the right numba version
 #right away
 from SEIR.steps_source import cc as steps_cc
+from SEIR.dev.steps import cc as steps_ode
 
 
 with open("requirements.txt") as f:
@@ -15,7 +16,7 @@ setuptools.setup(
     author_email="jo.lemaitresamra@gmail.com",
     description="SEIR simulation",
     packages=setuptools.find_packages(exclude=["*.test*"]),
-    ext_modules=[steps_cc.distutils_extension()], # LazyExtensions(),#
+    ext_modules=[steps_cc.distutils_extension()],#, steps_ode.distutils_extension()], # LazyExtensions(),#
     license="LICENSE",
     install_requires=requirements,
     #setup_requires=['numba==0.53.1'],

@@ -579,11 +579,6 @@ class Compartments:
         #             if self.compartments["name"][compartment] == elem2:
         #                 rc = compartment
         #         proportion_array[it]
-        print("HERE")
-        print(proportion_array)
-        print(proportion_array[0])
-        print(type(proportion_array[0]))
-        print("THERE")
 
         return parsed_parameters, unique_strings, transition_array, proportion_array, proportion_info
 

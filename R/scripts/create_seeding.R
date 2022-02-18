@@ -90,8 +90,23 @@ if (is.null(config$seeding$ratio_incidC)) {
 }
 
 if (!is.null(gt_source)) {
-    cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = "US county")
+    # cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = "US county")
+    
+    # Aggregation to state level if in config
+    if (is_US_run) {
+        state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
+        if (state_level) {
+            gt_scale <- "US state"
+            cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = TRUE)
+        } else{
+            gt_scale <- "US county"
+            cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale)
+        }
+        cases_deaths <- cases_deaths %>%
+            mutate(FIPS = stringr::str_pad(FIPS, width = 5, side = "right", pad = "0"))
+    }
     print(paste("Successfully pulled", gt_source, "data for seeding."))
+    
 } else {
     data_path <- config$filtering$data_path
     if (is.null(data_path)) {
@@ -107,19 +122,7 @@ if (!is.null(gt_source)) {
     print(paste("Successfully loaded data from ", data_path, "for seeding."))
 }
 
-# Aggregation to state level if in config
-if (is_US_run) {
-    state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
-    if (state_level) {
-        gt_scale <- "US state"
-        cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = TRUE)
-    } else{
-        gt_scale <- "US county"
-        cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale)
-    }
-    cases_deaths <- cases_deaths %>%
-        mutate(FIPS = stringr::str_pad(FIPS, width = 5, side = "right", pad = "0"))
-}
+
 
 if (seed_variants) {
     variant_data <- readr::read_csv(config$seeding$variant_filename)
@@ -150,6 +153,7 @@ check_required_names <- function(df, cols, msg) {
 }
 
 if ("compartments" %in% names(config[["seir"]])) {
+    
     if (all(names(config$seeding$seeding_compartments) %in% names(cases_deaths))) {
         required_column_names <- c("FIPS", "Update", names(config$seeding$seeding_compartments))
         check_required_names(
@@ -180,6 +184,22 @@ if ("compartments" %in% names(config[["seir"]])) {
             tidyr::separate(destination_column, paste("destination", names(config$seir$compartments), sep = "_"))
         required_column_names <- c("FIPS", "Update", "value", paste("source", names(config$seir$compartments), sep = "_"), paste("destination", names(config$seir$compartments), sep = "_"))
         incident_cases <- incident_cases[, required_column_names]
+        
+        if (!is.null(config$smh_roun)) {
+          if (config$smh_round=="R11"){
+              incident_cases_om <- incident_cases %>%
+                  dplyr::filter(Update==lubridate::as_date("2021-12-01")) %>%
+                  dplyr::group_by(FIPS, Update, source_infection_stage, source_vaccination_stage, source_age_strata,
+                                  destination_vaccination_stage, destination_age_strata, destination_infection_stage) %>%
+                  dplyr::summarise(value = sum(value, na.rm=TRUE)) %>%
+                  dplyr::mutate(source_variant_type = "WILD", destination_variant_type = "OMICRON") %>%
+                  dplyr::mutate(value = round(ifelse(FIPS %in% c("06000","36000"), 10, 
+                                                     ifelse(FIPS %in% c("53000","12000"), 5, 1)))) %>% 
+                  tibble::as_tibble()
+          }
+        }
+        
+        
     } else if ("seeding_compartments" %in% names(config$seeding) ) {
         stop(paste(
             "Could not find all compartments.  Looking for",
@@ -215,6 +235,7 @@ if ("compartments" %in% names(config[["seir"]])) {
     incident_cases[["destination_vaccination_stage"]] <- names(parallel_compartments)[[1]]
     required_column_names <- c(required_column_names, "source_vaccination_stage", "destination_vaccination_stage")
 }
+
 print(required_column_names)
 incident_cases <- incident_cases[, required_column_names]
 
@@ -230,6 +251,7 @@ geodata <- report.generation:::load_geodata_file(
 )
 
 all_geoids <- geodata[[config$spatial_setup$nodenames]]
+
 
 
 incident_cases <- incident_cases %>%
@@ -286,6 +308,7 @@ if ("compartments" %in% names(config[["seir"]]) & "pop_seed_file" %in% names(con
         dplyr::bind_rows(seeding_pop) %>% 
         dplyr::arrange(place, date)
 }
+
 
 
 # Limit seeding to on or after the config start date and before the config end date
