@@ -14,14 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def run_parallel_Outcomes(
-    s,
-    *,
-    sim_id2load,
-    sim_id2write,
-    nsim=1,
-    n_jobs=1
-):
+def run_parallel_Outcomes(s, *, sim_id2load, sim_id2write, nsim=1, n_jobs=1):
     raise NotImplementedError(
         "This method to run many simulation needs to be updated, to preload the slow setup"
     )
@@ -89,7 +82,6 @@ def onerun_delayframe_outcomes(
 
     npi = None
     if s.npi_config_outcomes:
-        print('build npi with loadID::', load_ID)
         npi = build_npi_Outcomes(s=s, load_ID=load_ID, sim_id2load=sim_id2load)
 
     loaded_values = None
@@ -107,7 +99,9 @@ def onerun_delayframe_outcomes(
         )
 
     with Timer("onerun_delayframe_outcomes.postprocess"):
-        postprocess_and_write(sim_id=sim_id2write, s=s, outcomes=outcomes, hpar=hpar, npi=npi)
+        postprocess_and_write(
+            sim_id=sim_id2write, s=s, outcomes=outcomes, hpar=hpar, npi=npi
+        )
 
 
 def read_parameters_from_config(s: setup.Setup):
@@ -180,7 +174,7 @@ def read_parameters_from_config(s: setup.Setup):
                         .as_str()
                         .lower()
                     )
-                    print(
+                    logging.info(
                         f"probability of outcome {new_comp} is affected by intervention "
                         f"named {parameters[class_name]['probability::npi_param_name']} "
                         f"instead of {new_comp}::probability"
@@ -201,7 +195,7 @@ def read_parameters_from_config(s: setup.Setup):
                         .as_str()
                         .lower()
                     )
-                    print(
+                    logging.info(
                         f"delay of outcome {new_comp} is affected by intervention "
                         f"named {parameters[class_name]['delay::npi_param_name']} "
                         f"instead of {new_comp}::delay"
@@ -225,7 +219,7 @@ def read_parameters_from_config(s: setup.Setup):
                             .as_str()
                             .lower()
                         )
-                        print(
+                        logging.info(
                             f"duration of outcome {new_comp} is affected by intervention "
                             f"named {parameters[class_name]['duration::npi_param_name']} "
                             f"instead of {new_comp}::duration"
@@ -251,7 +245,7 @@ def read_parameters_from_config(s: setup.Setup):
                         & (branching_data["quantity"] == "relative_probability")
                     ].copy(deep=True)
                     if len(rel_probability) > 0:
-                        print(
+                        logging.info(
                             f"Using 'param_from_file' for relative probability in outcome {class_name}"
                         )
                         # Sort it in case the relative probablity file is mispecified
@@ -264,7 +258,7 @@ def read_parameters_from_config(s: setup.Setup):
                             "value"
                         ].to_numpy()
                     else:
-                        print(
+                        logging.debug(
                             f"*NOT* Using 'param_from_file' for relative probability in outcome  {class_name}"
                         )
 
@@ -562,6 +556,7 @@ def compute_all_multioutcomes(
             outcomes = pd.merge(outcomes, df_p)
 
     return outcomes, hpar
+
 
 def get_filtered_incidI(diffI, dates, places, filters):
     incidI_arr = np.zeros((len(dates), len(places)), dtype=int)

@@ -141,7 +141,7 @@ def build_npi_SEIR(s, load_ID, sim_id2load):
             loaded_df=s.read_simID(ftype="snpi", sim_id=sim_id2load),
             pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
                 "sum"
-            ]
+            ],
         )
     else:
         npi = NPI.NPIBase.execute(
