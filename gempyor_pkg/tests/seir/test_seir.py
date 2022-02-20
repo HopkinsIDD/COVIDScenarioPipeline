@@ -133,7 +133,6 @@ def test_constant_population():
         initial_conditions,
         seeding_data,
         seeding_amounts,
-        
     )
 
     completepop = s.popnodes.sum()
@@ -218,7 +217,6 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            
         )
         df = seir.states2Df(s, states)
         assert (
@@ -245,7 +243,6 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            
         )
         df = seir.states2Df(s, states)
         assert (
@@ -340,7 +337,6 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            
         )
         df = seir.states2Df(s, states)
 
@@ -428,7 +424,6 @@ def test_steps_SEIR_no_spread():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            
         )
         df = seir.states2Df(s, states)
         assert (
@@ -448,7 +443,6 @@ def test_steps_SEIR_no_spread():
             initial_conditions,
             seeding_data,
             seeding_amounts,
-            
         )
         df = seir.states2Df(s, states)
         assert (
@@ -505,9 +499,7 @@ def test_continuation_resume():
         out_run_id=run_id,
         out_prefix=prefix,
     )
-    seir.onerun_SEIR(
-        sim_id2write=int(sim_id2write), s=s
-    )
+    seir.onerun_SEIR(sim_id2write=int(sim_id2write), s=s)
 
     states_old = pq.read_table(
         file_paths.create_file_name(s.in_run_id, s.in_prefix, 100, "seir", "parquet"),
@@ -631,9 +623,7 @@ def test_inference_resume():
         out_run_id=run_id,
         out_prefix=prefix,
     )
-    seir.onerun_SEIR(
-        sim_id2write=int(sim_id2write), s=s
-    )
+    seir.onerun_SEIR(sim_id2write=int(sim_id2write), s=s)
     npis_old = pq.read_table(
         file_paths.create_file_name(
             s.in_run_id, s.in_prefix, sim_id2write, "snpi", "parquet"

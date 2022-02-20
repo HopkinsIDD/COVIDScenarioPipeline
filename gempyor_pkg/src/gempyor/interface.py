@@ -62,12 +62,12 @@ class InferenceSimulator:
         rng_seed=None,
         nsim=1,
         initialize=True,
-        out_run_id=None,  #if out_run_id is different from in_run_id, fill this
-        out_prefix=None,  #if out_prefix is different from in_prefix, fill this
+        out_run_id=None,  # if out_run_id is different from in_run_id, fill this
+        out_prefix=None,  # if out_prefix is different from in_prefix, fill this
     ):
         self.scenario = scenario
         self.deathrate = deathrate
-        
+
         in_run_id = run_id
         if out_run_id is None:
             out_run_id = in_run_id
@@ -116,7 +116,7 @@ class InferenceSimulator:
             in_prefix=in_prefix,
             out_run_id=out_run_id,
             out_prefix=out_prefix,
-            stoch_traj_flag=stoch_traj_flag
+            stoch_traj_flag=stoch_traj_flag,
         )
 
         print(
@@ -132,7 +132,8 @@ class InferenceSimulator:
             seir.onerun_SEIR(
                 sim_id2write=sim_id2write,
                 s=self.s,
-                load_ID=False,)
+                load_ID=False,
+            )
 
         with Timer("onerun_OUTCOMES"):
             outcomes.onerun_delayframe_outcomes(
@@ -147,7 +148,6 @@ class InferenceSimulator:
         else:
             self.s.out_prefix = new_out_prefix
 
-
     # profile()
     def one_simulation_loadID(self, sim_id2write, sim_id2load):
         sim_id2write = int(sim_id2write)
@@ -157,7 +157,8 @@ class InferenceSimulator:
                 sim_id2write=int(sim_id2write),
                 s=self.s,
                 load_ID=True,
-                sim_id2load=int(sim_id2load))
+                sim_id2load=int(sim_id2load),
+            )
 
         with Timer("onerun_OUTCOMES_loadID"):
             outcomes.onerun_delayframe_outcomes(

@@ -81,7 +81,7 @@ class Setup:
         self.nnodes = self.spatset.nnodes
         self.popnodes = self.spatset.popnodes
         self.mobility = self.spatset.mobility
-        
+
         self.stoch_traj_flag = stoch_traj_flag
 
         # SEIR part
@@ -153,7 +153,7 @@ class Setup:
         if out_prefix is None:
             out_prefix = f"model_output/{setup_name}/{npi_scenario}/{out_run_id}/"
         self.out_prefix = out_prefix
-        
+
         if self.write_csv or self.write_parquet:
             self.timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             ftypes = []
@@ -166,7 +166,7 @@ class Setup:
                     self.out_run_id, self.out_prefix, ftype
                 )
                 os.makedirs(datadir, exist_ok=True)
- 
+
             if self.write_parquet and self.write_csv:
                 print(
                     "Confused between reading .csv or parquet. Assuming input file is .parquet"
@@ -175,7 +175,6 @@ class Setup:
                 self.extension = "parquet"
             elif self.write_csv:
                 self.extension = "csv"
-
 
     def get_input_filename(self, ftype: str, sim_id: int, extension_override: str = ""):
         return self.get_filename(
@@ -241,12 +240,12 @@ class Setup:
         input: bool = False,
         extension_override: str = "",
     ):
-        fname=self.get_filename(
-                ftype=ftype,
-                sim_id=sim_id,
-                input=input,
-                extension_override=extension_override,
-            )
+        fname = self.get_filename(
+            ftype=ftype,
+            sim_id=sim_id,
+            input=input,
+            extension_override=extension_override,
+        )
         write_df(
             fname=fname,
             df=df,
