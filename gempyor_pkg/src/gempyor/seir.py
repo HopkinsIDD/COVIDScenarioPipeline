@@ -133,25 +133,26 @@ def steps_SEIR(
 
 
 def build_npi_SEIR(s, load_ID, sim_id2load):
-    if load_ID:
-        npi = NPI.NPIBase.execute(
-            npi_config=s.npi_config_seir,
-            global_config=config,
-            geoids=s.spatset.nodenames,
-            loaded_df=s.read_simID(ftype="snpi", sim_id=sim_id2load),
-            pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
-                "sum"
-            ],
-        )
-    else:
-        npi = NPI.NPIBase.execute(
-            npi_config=s.npi_config_seir,
-            global_config=config,
-            geoids=s.spatset.nodenames,
-            pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
-                "sum"
-            ],
-        )
+    with Timer("SEIR.NPI"):
+        if load_ID:
+            npi = NPI.NPIBase.execute(
+                npi_config=s.npi_config_seir,
+                global_config=config,
+                geoids=s.spatset.nodenames,
+                loaded_df=s.read_simID(ftype="snpi", sim_id=sim_id2load),
+                pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
+                    "sum"
+                ],
+            )
+        else:
+            npi = NPI.NPIBase.execute(
+                npi_config=s.npi_config_seir,
+                global_config=config,
+                geoids=s.spatset.nodenames,
+                pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
+                    "sum"
+                ],
+            )
     return npi
 
 
@@ -163,8 +164,8 @@ def onerun_SEIR(
 ):
     scipy.random.seed()
 
-    with Timer("onerun_SEIR.NPI"):
-        npi = build_npi_SEIR(s=s, load_ID=load_ID, sim_id2load=sim_id2load)
+
+    npi = build_npi_SEIR(s=s, load_ID=load_ID, sim_id2load=sim_id2load)
 
     with Timer("onerun_SEIR.compartments"):
         (

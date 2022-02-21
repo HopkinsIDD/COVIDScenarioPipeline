@@ -523,156 +523,157 @@ class Compartments:
         self.transitions = self.parse_transitions(seir_config, False)
 
     def get_transition_array(self):
-        transition_array = np.zeros(
-            (self.transitions.shape[1], self.transitions.shape[0]), dtype="int"
-        )
-        for cit, colname in enumerate(("source", "destination")):
-            for it, elem in enumerate(self.transitions[colname]):
-                elem = reduce(lambda a, b: a + "_" + b, elem)
-                rc = -1
-                for compartment in range(self.compartments.shape[0]):
-                    if self.compartments["name"][compartment] == elem:
-                        rc = compartment
-                if rc == -1:
-                    print(self.compartments)
-                    raise ValueError(
-                        f"Could find {colname} defined by {elem} in compartments"
-                    )
-                transition_array[cit, it] = rc
+        with Timer("SEIR.compartments"):
+            transition_array = np.zeros(
+                (self.transitions.shape[1], self.transitions.shape[0]), dtype="int"
+            )
+            for cit, colname in enumerate(("source", "destination")):
+                for it, elem in enumerate(self.transitions[colname]):
+                    elem = reduce(lambda a, b: a + "_" + b, elem)
+                    rc = -1
+                    for compartment in range(self.compartments.shape[0]):
+                        if self.compartments["name"][compartment] == elem:
+                            rc = compartment
+                    if rc == -1:
+                        print(self.compartments)
+                        raise ValueError(
+                            f"Could find {colname} defined by {elem} in compartments"
+                        )
+                    transition_array[cit, it] = rc
 
-        unique_strings = []
-        for x in self.transitions["proportion_exponent"]:
-            for y in x:
-                candidate = reduce(lambda a, b: a + "*" + b, y)
+            unique_strings = []
+            for x in self.transitions["proportion_exponent"]:
+                for y in x:
+                    candidate = reduce(lambda a, b: a + "*" + b, y)
+                    candidate = candidate.replace(" ", "")
+                    candidate = candidate.replace("*1", "")
+                    if not candidate in unique_strings:
+                        unique_strings.append(candidate)
+
+            for x in self.transitions["rate"]:
+                candidate = reduce(lambda a, b: a + "*" + b, x)
                 candidate = candidate.replace(" ", "")
                 candidate = candidate.replace("*1", "")
                 if not candidate in unique_strings:
                     unique_strings.append(candidate)
 
-        for x in self.transitions["rate"]:
-            candidate = reduce(lambda a, b: a + "*" + b, x)
-            candidate = candidate.replace(" ", "")
-            candidate = candidate.replace("*1", "")
-            if not candidate in unique_strings:
-                unique_strings.append(candidate)
+            assert reduce(
+                lambda a, b: a and b, [(x.find("(") == -1) for x in unique_strings]
+            )
+            assert reduce(
+                lambda a, b: a and b, [(x.find(")") == -1) for x in unique_strings]
+            )
+            assert reduce(
+                lambda a, b: a and b, [(x.find("%") == -1) for x in unique_strings]
+            )
+            assert reduce(
+                lambda a, b: a and b, [(x.find(" ") == -1) for x in unique_strings]
+            )
 
-        assert reduce(
-            lambda a, b: a and b, [(x.find("(") == -1) for x in unique_strings]
-        )
-        assert reduce(
-            lambda a, b: a and b, [(x.find(")") == -1) for x in unique_strings]
-        )
-        assert reduce(
-            lambda a, b: a and b, [(x.find("%") == -1) for x in unique_strings]
-        )
-        assert reduce(
-            lambda a, b: a and b, [(x.find(" ") == -1) for x in unique_strings]
-        )
-
-        for it, elem in enumerate(self.transitions["rate"]):
-            candidate = reduce(lambda a, b: a + "*" + b, elem)
-            candidate = candidate.replace(" ", "")
-            candidate = candidate.replace("*1", "")
-            if not candidate in unique_strings:
-                raise ValueError("Something went wrong")
-            rc = [it for it, x in enumerate(unique_strings) if x == candidate][0]
-            transition_array[2][it] = rc
-
-        current_proportion_start = 0
-        for it, elem in enumerate(self.transitions["proportional_to"]):
-            transition_array[3][it] = current_proportion_start
-            transition_array[4][it] = current_proportion_start + len(elem)
-            current_proportion_start += len(elem)
-
-        proportion_info = np.zeros((3, transition_array[4].max()), dtype="int")
-        current_proportion_sum_start = 0
-        current_proportion_sum_it = 0
-        for it, elem in enumerate(self.transitions["proportional_to"]):
-            for it2, elem2 in enumerate(elem):
-                elem_tmp = [
-                    w
-                    for w in pd.DataFrame(index=pd.MultiIndex.from_product(elem2))
-                    .reset_index()
-                    .apply(lambda z: reduce(lambda x, y: f"{x}_{y}", z), axis=1)
-                ]
-
-                # for it3, elem3 in enumerate(elem_tmp):
-                #     rc = -1
-                #     for compartment in range(self.compartments.shape[0]):
-                #         if self.compartments["name"][compartment] == elem3:
-                #             rc = compartment
-                #     if rc == -1:
-                #         raise ValueError(f"Could not find match for {elem3} in compartments")
-                proportion_info[0][
-                    current_proportion_sum_it
-                ] = current_proportion_sum_start
-                proportion_info[1][
-                    current_proportion_sum_it
-                ] = current_proportion_sum_start + len(elem_tmp)
-                current_proportion_sum_it += 1
-                current_proportion_sum_start += len(elem_tmp)
-        proportion_compartment_index = 0
-        for it, elem in enumerate(self.transitions["proportion_exponent"]):
-            for y in elem:
-                candidate = reduce(lambda a, b: a + "*" + b, y)
+            for it, elem in enumerate(self.transitions["rate"]):
+                candidate = reduce(lambda a, b: a + "*" + b, elem)
                 candidate = candidate.replace(" ", "")
                 candidate = candidate.replace("*1", "")
                 if not candidate in unique_strings:
                     raise ValueError("Something went wrong")
                 rc = [it for it, x in enumerate(unique_strings) if x == candidate][0]
-                proportion_info[2][proportion_compartment_index] = rc
-                proportion_compartment_index += 1
+                transition_array[2][it] = rc
 
-        assert proportion_compartment_index == current_proportion_sum_it
+            current_proportion_start = 0
+            for it, elem in enumerate(self.transitions["proportional_to"]):
+                transition_array[3][it] = current_proportion_start
+                transition_array[4][it] = current_proportion_start + len(elem)
+                current_proportion_start += len(elem)
 
-        proportion_array = np.zeros((current_proportion_sum_start), dtype="int64")
+            proportion_info = np.zeros((3, transition_array[4].max()), dtype="int")
+            current_proportion_sum_start = 0
+            current_proportion_sum_it = 0
+            for it, elem in enumerate(self.transitions["proportional_to"]):
+                for it2, elem2 in enumerate(elem):
+                    elem_tmp = [
+                        w
+                        for w in pd.DataFrame(index=pd.MultiIndex.from_product(elem2))
+                        .reset_index()
+                        .apply(lambda z: reduce(lambda x, y: f"{x}_{y}", z), axis=1)
+                    ]
 
-        proportion_index = 0
-        for it, elem in enumerate(self.transitions["proportional_to"]):
-            for it2, elem2 in enumerate(elem):
-                elem_tmp = [
-                    w
-                    for w in pd.DataFrame(index=pd.MultiIndex.from_product(elem2))
-                    .reset_index()
-                    .apply(lambda z: reduce(lambda x, y: f"{x}_{y}", z), axis=1)
-                ]
+                    # for it3, elem3 in enumerate(elem_tmp):
+                    #     rc = -1
+                    #     for compartment in range(self.compartments.shape[0]):
+                    #         if self.compartments["name"][compartment] == elem3:
+                    #             rc = compartment
+                    #     if rc == -1:
+                    #         raise ValueError(f"Could not find match for {elem3} in compartments")
+                    proportion_info[0][
+                        current_proportion_sum_it
+                    ] = current_proportion_sum_start
+                    proportion_info[1][
+                        current_proportion_sum_it
+                    ] = current_proportion_sum_start + len(elem_tmp)
+                    current_proportion_sum_it += 1
+                    current_proportion_sum_start += len(elem_tmp)
+            proportion_compartment_index = 0
+            for it, elem in enumerate(self.transitions["proportion_exponent"]):
+                for y in elem:
+                    candidate = reduce(lambda a, b: a + "*" + b, y)
+                    candidate = candidate.replace(" ", "")
+                    candidate = candidate.replace("*1", "")
+                    if not candidate in unique_strings:
+                        raise ValueError("Something went wrong")
+                    rc = [it for it, x in enumerate(unique_strings) if x == candidate][0]
+                    proportion_info[2][proportion_compartment_index] = rc
+                    proportion_compartment_index += 1
 
-                for it3, elem3 in enumerate(elem_tmp):
-                    rc = -1
-                    for compartment in range(self.compartments.shape[0]):
-                        if self.compartments["name"][compartment] == elem3:
-                            rc = compartment
-                    if rc == -1:
-                        raise ValueError(
-                            f"Could find proportional_to {elem3} in compartments"
-                        )
+            assert proportion_compartment_index == current_proportion_sum_it
 
-                    proportion_array[proportion_index] = rc
-                    proportion_index += 1
+            proportion_array = np.zeros((current_proportion_sum_start), dtype="int64")
 
-        ## This will need to be reworked to deal with the summing bit
-        ## There will be changes needed in the steps_source too
-        ## They are doable though
-        # for it, elem in enumerate(self.transitions['proportional_to']):
-        #     elem = [y for y in map(
-        #         lambda x: reduce(
-        #             lambda a, b: str(a) + "_" + str(b),
-        #             map(
-        #                 lambda x: reduce(
-        #                     lambda a, b: str(a) + "+" + str(b),
-        #                     as_list(x)
-        #                 ),
-        #                 x
-        #             )
-        #         ),
-        #         elem
-        #     )]
-        #     for it2, elem2 in enumerate(elem):
-        #         rc = -1
-        #         for compartment in range(self.compartments.shape[0]):
-        #             if self.compartments["name"][compartment] == elem2:
-        #                 rc = compartment
-        #         proportion_array[it]
+            proportion_index = 0
+            for it, elem in enumerate(self.transitions["proportional_to"]):
+                for it2, elem2 in enumerate(elem):
+                    elem_tmp = [
+                        w
+                        for w in pd.DataFrame(index=pd.MultiIndex.from_product(elem2))
+                        .reset_index()
+                        .apply(lambda z: reduce(lambda x, y: f"{x}_{y}", z), axis=1)
+                    ]
+
+                    for it3, elem3 in enumerate(elem_tmp):
+                        rc = -1
+                        for compartment in range(self.compartments.shape[0]):
+                            if self.compartments["name"][compartment] == elem3:
+                                rc = compartment
+                        if rc == -1:
+                            raise ValueError(
+                                f"Could find proportional_to {elem3} in compartments"
+                            )
+
+                        proportion_array[proportion_index] = rc
+                        proportion_index += 1
+
+            ## This will need to be reworked to deal with the summing bit
+            ## There will be changes needed in the steps_source too
+            ## They are doable though
+            # for it, elem in enumerate(self.transitions['proportional_to']):
+            #     elem = [y for y in map(
+            #         lambda x: reduce(
+            #             lambda a, b: str(a) + "_" + str(b),
+            #             map(
+            #                 lambda x: reduce(
+            #                     lambda a, b: str(a) + "+" + str(b),
+            #                     as_list(x)
+            #                 ),
+            #                 x
+            #             )
+            #         ),
+            #         elem
+            #     )]
+            #     for it2, elem2 in enumerate(elem):
+            #         rc = -1
+            #         for compartment in range(self.compartments.shape[0]):
+            #             if self.compartments["name"][compartment] == elem2:
+            #                 rc = compartment
+            #         proportion_array[it]
 
         return (
             unique_strings,

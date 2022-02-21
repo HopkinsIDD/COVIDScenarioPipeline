@@ -28,15 +28,16 @@
 
 import pathlib
 from . import seir, setup, file_paths
-from .utils import config, Timer, profile
-
-# from .profile import profile_options
-from . import outcomes
+from . import  outcomes
+from .utils import config, Timer
 import numpy as np
 
 ### Logger configuration
 import logging
 import os
+import functools
+import multiprocessing as mp
+
 
 logging.basicConfig(level=os.environ.get("COVID_LOGLEVEL", "INFO").upper())
 logger = logging.getLogger()
@@ -125,6 +126,8 @@ class InferenceSimulator:
             f"""  gempyor >> Setup {self.s.setup_name}; index: {self.s.first_sim_index}; run_id: {in_run_id},\n"""
             f"""  gempyor >> prefix: {in_prefix};"""  # ti: {s.ti}; tf: {s.tf};
         )
+
+        self.already_built = False # whether we have already build the costly object we just build once.
     
     def update_prefix(self, new_prefix, new_out_prefix=None):
         self.s.in_prefix = new_prefix
@@ -134,7 +137,7 @@ class InferenceSimulator:
             self.s.out_prefix = new_out_prefix
 
     # profile()
-    def one_simulation(self, sim_id2write: int, load_ID: bool = False, sim_id2load: int = None):
+    def one_simulation_legacy(self, sim_id2write: int, load_ID: bool = False, sim_id2load: int = None):
         sim_id2write = int(sim_id2write)
         if load_ID:
             sim_id2load =  int(sim_id2load)
@@ -151,3 +154,109 @@ class InferenceSimulator:
                 sim_id2write=sim_id2write, s=self.s, load_ID=load_ID, sim_id2load=sim_id2load
             )
         return 0
+
+    def one_simulation(self, sim_id2write: int, load_ID: bool = False, sim_id2load: int = None):
+        sim_id2write = int(sim_id2write)
+        if load_ID:
+            sim_id2load =  int(sim_id2load)
+        
+        outcomes_parameters = outcomes.read_parameters_from_config(self.s)
+        npi_outcomes = None
+        if self.s.npi_config_outcomes:
+             npi_outcomes = outcomes.build_npi_Outcomes(s=self.s, load_ID=load_ID, sim_id2load=sim_id2load)
+
+        (
+            unique_strings,
+            transition_array,
+            proportion_array,
+            proportion_info,
+        ) = self.s.compartments.get_transition_array() 
+        npi_seir = seir.build_npi_SEIR(s=self.s, load_ID=load_ID, sim_id2load=sim_id2load)
+        
+        parallel_func = [seir.build_npi_SEIR(s=self.s, load_ID=load_ID, sim_id2load=sim_id2load)]
+
+        #f_seir_npi = functools.partial(seir.build_npi_SEIR, self.s, load_ID, sim_id2load)
+        #f_outcomes_npi = functools.partial(outcomes.build_npi_Outcomes, self.s, load_ID, sim_id2load)
+        #func2 = functools.partial(b, 1, 2)
+#
+        #pool = mp.Pool(processes=mp.cpu_count())
+        #res = pool.map(smap, [func1, func2])
+        #pool.close()
+        #pool.join()
+
+
+        ### Run every time:
+
+        with Timer("onerun_SEIR.seeding"):
+            if load_ID:
+                initial_conditions = self.s.seedingAndIC.load_ic(sim_id2load, setup=self.s)
+                seeding_data, seeding_amounts = self.s.seedingAndIC.load_seeding(
+                    sim_id2load, setup=self.s
+                )
+            else:
+                initial_conditions = self.s.seedingAndIC.draw_ic(sim_id2write, setup=self.s)
+                seeding_data, seeding_amounts = self.s.seedingAndIC.draw_seeding(
+                    sim_id2write, setup=self.s
+                )
+
+        with Timer("SEIR.parameters"):
+            # Draw or load parameters
+            if load_ID:
+                p_draw = self.s.parameters.parameters_load(
+                    param_df=self.s.read_simID(ftype="spar", sim_id=sim_id2load),
+                    nt_inter=self.s.n_days,
+                    nnodes=self.s.nnodes,
+                )
+            else:
+                p_draw = self.s.parameters.parameters_quick_draw(
+                    nt_inter=self.s.n_days, nnodes=self.s.nnodes
+                )
+            # reduce them
+            parameters = self.s.parameters.parameters_reduce(p_draw, npi_seir)
+
+            # Parse them
+            parsed_parameters = self.s.compartments.parse_parameters(
+                parameters, self.s.parameters.pnames, unique_strings
+            )
+
+
+        with Timer("SEIR.compute"):
+            states = seir.steps_SEIR(
+                self.s,
+                parsed_parameters,
+                transition_array,
+                proportion_array,
+                proportion_info,
+                initial_conditions,
+                seeding_data,
+                seeding_amounts,
+            )
+
+        with Timer("SEIR.postprocess"):
+            if self.s.write_csv or self.s.write_parquet:
+                out_df = seir.postprocess_and_write(
+                    sim_id2write, self.s, states, p_draw, npi_seir, seeding_data
+                )
+
+        loaded_values = None
+        if load_ID:
+            loaded_values = self.s.read_simID(ftype="hpar", sim_id=sim_id2load)
+
+        # Compute outcomes
+        with Timer("onerun_delayframe_outcomes.compute"):
+            outcomes_df, hpar_df = outcomes.compute_all_multioutcomes(
+                s=self.s,
+                sim_id2write=sim_id2write,
+                parameters=outcomes_parameters,
+                loaded_values=loaded_values,
+                npi=npi_outcomes,
+            )
+
+        with Timer("onerun_delayframe_outcomes.postprocess"):
+            outcomes.postprocess_and_write(
+                sim_id=sim_id2write, s=self.s, outcomes=outcomes_df, hpar=hpar_df, npi=npi_outcomes
+            )
+
+        return 0
+
+
