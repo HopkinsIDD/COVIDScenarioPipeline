@@ -518,7 +518,7 @@ initialize_mcmc_first_block <- function(
         stop("Provided only one of hosp or seir input file, not supported anymore")
       }
         warning("SEIR and Hosp input provided, but output not found. This is unstable for stochastic runs")
-        gempyor_inference_runner$one_simulation_loadID(sim_id2write=block - 1, sim_id2load=block - 1)
+        gempyor_inference_runner$one_simulation(sim_id2write=block - 1, load_ID=TRUE, sim_id2load=block - 1)
     }
   }
 
