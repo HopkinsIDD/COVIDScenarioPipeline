@@ -175,15 +175,18 @@ class InferenceSimulator:
                             ret_outcomes = executor.submit(outcomes.build_npi_Outcomes, self.s, load_ID, sim_id2load, config)
                         if not self.already_built:
                             ret_comparments = executor.submit(self.s.compartments.get_transition_array)
+                            
 
 
                 #print("expections:", ret_seir.exception(), ret_outcomes.exception(), ret_comparments.exception())
 
-                (self.unique_strings,
-                    self.transition_array,
-                    self.proportion_array,
-                    self.proportion_info,
-                ) = ret_comparments.result()
+                if not self.already_built:
+                    (self.unique_strings,
+                        self.transition_array,
+                        self.proportion_array,
+                        self.proportion_info,
+                    ) = ret_comparments.result()
+                    self.already_built=True
                 npi_seir = ret_seir.result()
                 if self.s.npi_config_outcomes: 
                     npi_outcomes = ret_outcomes.result()
