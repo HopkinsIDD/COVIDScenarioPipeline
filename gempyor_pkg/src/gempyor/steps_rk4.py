@@ -60,7 +60,7 @@ def rk4_integration(
             1,
         )
 
-    @jit(nopython=True, cache=True, fastmath=True)
+    @jit(nopython=True)#, cache=True, fastmath=True)
     def rhs(t, x, today):
         states_current = np.reshape(x, (2, ncompartments, nspatial_nodes))[0]
         states_diff = np.zeros(
@@ -176,7 +176,7 @@ def rk4_integration(
 
     yesterday = -1
     times = np.arange(0, (ndays - 1) + 1e-7, dt)
-    for time_index, time in tqdm.tqdm(enumerate(times)):  # TODO: get rid of dt
+    for time_index, time in tqdm.tqdm(enumerate(times)):  # , total=len(times)
         today = int(np.floor(time))
         is_a_new_day = today != yesterday
         yesterday = today

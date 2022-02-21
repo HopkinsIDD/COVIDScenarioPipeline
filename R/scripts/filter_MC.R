@@ -330,8 +330,9 @@ for(scenario in scenarios) {
       ## Update the prefix
       gempyor_inference_runner$update_prefix(new_prefix=global_local_prefix)
       ## Run the simulator
-      err <- gempyor_inference_runner$one_simulation_loadID(
-        sim_id2write=this_index, 
+      err <- gempyor_inference_runner$one_simulation(
+        sim_id2write=this_index,
+        load_ID=TRUE,
         sim_id2load=this_index)
       if(err != 0){
         stop("InferenceSimulator failed to run")
