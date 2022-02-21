@@ -13,7 +13,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 def run_parallel_Outcomes(s, *, sim_id2load, sim_id2write, nsim=1, n_jobs=1):
     raise NotImplementedError(
         "This method to run many simulation needs to be updated, to preload the slow setup"
@@ -174,7 +173,7 @@ def read_parameters_from_config(s: setup.Setup):
                         .as_str()
                         .lower()
                     )
-                    logging.info(
+                    logging.debug(
                         f"probability of outcome {new_comp} is affected by intervention "
                         f"named {parameters[class_name]['probability::npi_param_name']} "
                         f"instead of {new_comp}::probability"

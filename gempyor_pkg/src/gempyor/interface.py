@@ -42,11 +42,12 @@ logging.basicConfig(level=os.environ.get("COVID_LOGLEVEL", "INFO").upper())
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 # '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
-formatter = logging.Formatter(
-    "%(asctime)s [%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
+formatter = logging.Formatter(' %(name)s :: %(levelname)-8s :: %(message)s'
+    #"%(asctime)s [%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
 )
 
 handler.setFormatter(formatter)
+#logger.addHandler(handler)
 
 
 class InferenceSimulator:
@@ -124,23 +125,7 @@ class InferenceSimulator:
             f"""  gempyor >> Setup {self.s.setup_name}; index: {self.s.first_sim_index}; run_id: {in_run_id},\n"""
             f"""  gempyor >> prefix: {in_prefix};"""  # ti: {s.ti}; tf: {s.tf};
         )
-
-    # profile()
-    def one_simulation(self, sim_id2write):
-        sim_id2write = int(sim_id2write)
-        with Timer("onerun_SEIR"):
-            seir.onerun_SEIR(
-                sim_id2write=sim_id2write,
-                s=self.s,
-                load_ID=False,
-            )
-
-        with Timer("onerun_OUTCOMES"):
-            outcomes.onerun_delayframe_outcomes(
-                sim_id2write=sim_id2write, s=self.s, load_ID=False
-            )
-        return 0
-
+    
     def update_prefix(self, new_prefix, new_out_prefix=None):
         self.s.in_prefix = new_prefix
         if new_out_prefix is None:
@@ -149,23 +134,20 @@ class InferenceSimulator:
             self.s.out_prefix = new_out_prefix
 
     # profile()
-    def one_simulation_loadID(self, sim_id2write, sim_id2load):
+    def one_simulation(self, sim_id2write: int, load_ID: bool = False, sim_id2load: int = None):
         sim_id2write = int(sim_id2write)
-        sim_id2load = int(sim_id2load)
-        with Timer("onerun_SEIR_loadID"):
+        if load_ID:
+            sim_id2load =  int(sim_id2load)
+        with Timer("onerun_SEIR"):
             seir.onerun_SEIR(
-                sim_id2write=int(sim_id2write),
-                s=self.s,
-                load_ID=True,
-                sim_id2load=int(sim_id2load),
-            )
-
-        with Timer("onerun_OUTCOMES_loadID"):
-            outcomes.onerun_delayframe_outcomes(
                 sim_id2write=sim_id2write,
                 s=self.s,
-                load_ID=True,
-                sim_id2load=sim_id2load,
+                load_ID=load_ID,
+                sim_id2load=sim_id2load
             )
 
+        with Timer("onerun_OUTCOMES"):
+            outcomes.onerun_delayframe_outcomes(
+                sim_id2write=sim_id2write, s=self.s, load_ID=load_ID, sim_id2load=sim_id2load
+            )
         return 0

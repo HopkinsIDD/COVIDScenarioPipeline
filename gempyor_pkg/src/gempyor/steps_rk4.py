@@ -59,16 +59,6 @@ def rk4_integration(
             / population[spatial_node],
             1,
         )
-    from sys import getsizeof
-
-    print("transitions", round(getsizeof(transitions) / 1024, 2))
-    print(
-        "transition_sum_compartments",
-        round(getsizeof(transition_sum_compartments) / 1024, 2),
-    )
-    print("mobility_data", round(getsizeof(mobility_data) / 1024, 2))
-    print("mobility_row_indices", round(getsizeof(mobility_row_indices) / 1024, 2))
-    print("mobility_data_indices", round(getsizeof(mobility_data_indices) / 1024, 2))
 
     @jit(nopython=True, cache=True, fastmath=True)
     def rhs(t, x, today):
@@ -225,8 +215,7 @@ def rk4_integration(
             x_ = np.zeros((2, ncompartments, nspatial_nodes))
             x_[0] = states_next
             x_ = np.reshape(x_, x_.size)
-            with Timer("iter"):
-                sol = rk4_integrate(today, x_, today)
+            sol = rk4_integrate(today, x_, today)
             x_ = np.reshape(sol, (2, ncompartments, nspatial_nodes))
             states_daily_incid[today] = x_[1]
             states_next = x_[0]

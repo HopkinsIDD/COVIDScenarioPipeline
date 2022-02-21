@@ -435,7 +435,7 @@ for (test in tests) {
 )
 
 gempyor_inference_runner$one_simulation(0)
-gempyor_inference_runner$one_simulation_loadID(sim_id2write=0, sim_id2load=0)
+gempyor_inference_runner$one_simulation(sim_id2write=0, load_ID=TRUE, sim_id2load=0)
 
   for (i in 1:opt$n_slots) {
     slot_prefix <- covidcommon::create_prefix(config$name, test$scenario, "med",test$runid,sep='/',trailing_separator='/')
