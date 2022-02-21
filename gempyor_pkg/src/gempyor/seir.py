@@ -132,7 +132,7 @@ def steps_SEIR(
     return seir_sim
 
 
-def build_npi_SEIR(s, load_ID, sim_id2load):
+def build_npi_SEIR(s, load_ID, sim_id2load, config):
     with Timer("SEIR.NPI"):
         if load_ID:
             npi = NPI.NPIBase.execute(
@@ -165,7 +165,7 @@ def onerun_SEIR(
     scipy.random.seed()
 
 
-    npi = build_npi_SEIR(s=s, load_ID=load_ID, sim_id2load=sim_id2load)
+    npi = build_npi_SEIR(s=s, load_ID=load_ID, sim_id2load=sim_id2load, config=config)
 
     with Timer("onerun_SEIR.compartments"):
         (

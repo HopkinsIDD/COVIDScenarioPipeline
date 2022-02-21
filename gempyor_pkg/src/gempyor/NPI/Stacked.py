@@ -62,6 +62,7 @@ class Stacked(NPIBase):
                 geoids=geoids,
                 loaded_df=loaded_df,
             )
+
             new_params = sub_npi.param_name  # either a list (if stacked) or a string
             new_params = (
                 [new_params] if isinstance(new_params, str) else new_params
@@ -76,10 +77,6 @@ class Stacked(NPIBase):
                         self.reductions[new_p] = 0
                     else:
                         self.reductions[new_p] = 1
-
-            if debug_print:
-                for param in self.param_name:
-                    print(f"""{self.name} : param is {param}""")
 
             for param in self.param_name:
                 reduction = sub_npi.getReduction(param, default=0.0)
