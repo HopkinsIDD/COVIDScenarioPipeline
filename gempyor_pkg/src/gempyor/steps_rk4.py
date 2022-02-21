@@ -60,7 +60,7 @@ def rk4_integration(
             1,
         )
 
-    @jit(nopython=True)#, cache=True, fastmath=True)
+    @jit(nopython=True, fastmath=True)
     def rhs(t, x, today):
         states_current = np.reshape(x, (2, ncompartments, nspatial_nodes))[0]
         states_diff = np.zeros(
@@ -163,7 +163,7 @@ def rk4_integration(
         # states_current = states_next.copy()
         return np.reshape(states_diff, states_diff.size)  # return a 1D vector
 
-    # @jit(nopython=True, fastmath=True, cache=True)
+    @jit(nopython=True, fastmath=True)
     def rk4_integrate(t, x, today):
         dt = 1  # day by day rk integration. TODO: Should support smaller dt !
         k1 = rhs(t, x, today)

@@ -52,7 +52,7 @@ def run_parallel_Outcomes(s, *, sim_id2load, sim_id2write, nsim=1, n_jobs=1):
     return 1
 
 
-def build_npi_Outcomes(s: setup.Setup, load_ID: bool, sim_id2load: int):
+def build_npi_Outcomes(s: setup.Setup, load_ID: bool, sim_id2load: int, config):
     with Timer("Outcomes.NPI"):
         if load_ID:
             npi = NPI.NPIBase.execute(
@@ -82,7 +82,7 @@ def onerun_delayframe_outcomes(
 
     npi_outcomes = None
     if s.npi_config_outcomes:
-        npi_outcomes = build_npi_Outcomes(s=s, load_ID=load_ID, sim_id2load=sim_id2load)
+        npi_outcomes = build_npi_Outcomes(s=s, load_ID=load_ID, sim_id2load=sim_id2load, config=config)
 
     loaded_values = None
     if load_ID:
