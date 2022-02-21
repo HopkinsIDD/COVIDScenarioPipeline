@@ -63,6 +63,8 @@ if [ $local_install_ret -ne 0 ]; then
 	error_handler "Error code returned from running local_install.R: $local_install_ret"
 fi
 
+python -m pip install --upgrade pip # needs new pip for toml file
+
 (cd COVIDScenarioPipeline && pip install gempyor_pkg/)
 python_install_ret=$?
 if [ $python_install_ret -ne 0 ]; then
