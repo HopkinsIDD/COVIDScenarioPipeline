@@ -620,7 +620,9 @@ class Compartments:
                     candidate = candidate.replace("*1", "")
                     if not candidate in unique_strings:
                         raise ValueError("Something went wrong")
-                    rc = [it for it, x in enumerate(unique_strings) if x == candidate][0]
+                    rc = [it for it, x in enumerate(unique_strings) if x == candidate][
+                        0
+                    ]
                     proportion_info[2][proportion_compartment_index] = rc
                     proportion_compartment_index += 1
 

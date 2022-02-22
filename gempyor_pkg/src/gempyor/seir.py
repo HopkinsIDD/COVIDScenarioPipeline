@@ -164,7 +164,6 @@ def onerun_SEIR(
 ):
     scipy.random.seed()
 
-
     npi = build_npi_SEIR(s=s, load_ID=load_ID, sim_id2load=sim_id2load, config=config)
 
     with Timer("onerun_SEIR.compartments"):

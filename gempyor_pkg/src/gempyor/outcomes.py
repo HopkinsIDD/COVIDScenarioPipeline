@@ -13,6 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def run_parallel_Outcomes(s, *, sim_id2load, sim_id2write, nsim=1, n_jobs=1):
     raise NotImplementedError(
         "This method to run many simulation needs to be updated, to preload the slow setup"
@@ -82,7 +83,9 @@ def onerun_delayframe_outcomes(
 
     npi_outcomes = None
     if s.npi_config_outcomes:
-        npi_outcomes = build_npi_Outcomes(s=s, load_ID=load_ID, sim_id2load=sim_id2load, config=config)
+        npi_outcomes = build_npi_Outcomes(
+            s=s, load_ID=load_ID, sim_id2load=sim_id2load, config=config
+        )
 
     loaded_values = None
     if load_ID:
@@ -158,9 +161,17 @@ def read_parameters_from_config(s: setup.Setup):
                             parameters[class_name]["source"] = src_name
                     else:
                         if subclasses != [""]:
-                            raise ValueError("Subclasses not compatible with outcomes ")
+                            raise ValueError(
+                                "Subclasses not compatible with outcomes from compartments "
+                            )
+                        elif ("incidence" in src_name.keys()) or (
+                            "prevalence" in src_name.keys()
+                        ):
+                            parameters[class_name]["source"] = dict(src_name)
                         else:
-                            parameters[class_name]["source"] = dict(src_name["incidence"])
+                            raise ValueError(
+                                f"unsure how to read outcome {class_name}: not a str, nor an incidence or prevalence: {src_name}"
+                            )
 
                     parameters[class_name]["probability"] = outcomes_config[new_comp][
                         "probability"
@@ -185,14 +196,16 @@ def read_parameters_from_config(s: setup.Setup):
                             "probability::npi_param_name"
                         ] = f"{new_comp}::probability".lower()
 
-                    parameters[class_name]["delay"] = outcomes_config[new_comp]["delay"][
-                        "value"
-                    ]
+                    parameters[class_name]["delay"] = outcomes_config[new_comp][
+                        "delay"
+                    ]["value"]
                     if outcomes_config[new_comp]["delay"][
                         "intervention_param_name"
                     ].exists():
                         parameters[class_name]["delay::npi_param_name"] = (
-                            outcomes_config[new_comp]["delay"]["intervention_param_name"]
+                            outcomes_config[new_comp]["delay"][
+                                "intervention_param_name"
+                            ]
                             .as_str()
                             .lower()
                         )
@@ -250,7 +263,9 @@ def read_parameters_from_config(s: setup.Setup):
                                 f"Using 'param_from_file' for relative probability in outcome {class_name}"
                             )
                             # Sort it in case the relative probablity file is mispecified
-                            rel_probability.geoid = rel_probability.geoid.astype("category")
+                            rel_probability.geoid = rel_probability.geoid.astype(
+                                "category"
+                            )
                             rel_probability.geoid.cat.set_categories(
                                 s.spatset.nodenames, inplace=True
                             )
@@ -321,12 +336,10 @@ def dataframe_from_array(data, places, dates, comp_name):
     return df
 
 
-def read_incidences_sim(s, sim_id):
+def read_seir_sim(s, sim_id):
     seir_df = s.read_simID(ftype="seir", sim_id=sim_id)
 
-    incidences = seir_df[seir_df["mc_value_type"] == "incidence"]
-    incidences.drop(["mc_value_type"], inplace=True, axis=1)
-    return incidences
+    return seir_df
 
 
 def compute_all_multioutcomes(
@@ -344,7 +357,7 @@ def compute_all_multioutcomes(
         "zeros",
     ).drop("zeros", axis=1)
 
-    diffI = read_incidences_sim(s, sim_id=sim_id2write)
+    seir_sim = read_seir_sim(s, sim_id=sim_id2write)
 
     for new_comp in parameters:
         if "source" in parameters[new_comp]:
@@ -354,7 +367,10 @@ def compute_all_multioutcomes(
             source_name = parameters[new_comp]["source"]
             if source_name == "incidI" and "incidI" not in all_data:  # create incidI
                 source_array = get_filtered_incidI(
-                    diffI, dates, s.spatset.nodenames, {"infection_stage": "I1"}
+                    seir_sim,
+                    dates,
+                    s.spatset.nodenames,
+                    {"incidence": {"infection_stage": "I1"}},
                 )
                 all_data["incidI"] = source_array
                 outcomes = pd.merge(
@@ -365,7 +381,7 @@ def compute_all_multioutcomes(
                 )
             elif isinstance(source_name, dict):
                 source_array = get_filtered_incidI(
-                    diffI, dates, s.spatset.nodenames, source_name
+                    seir_sim, dates, s.spatset.nodenames, source_name
                 )
                 # we don't keep source in this cases
             else:  # already defined outcomes
@@ -560,6 +576,16 @@ def compute_all_multioutcomes(
 
 
 def get_filtered_incidI(diffI, dates, places, filters):
+
+    if list(filters.keys()) == ["incidence"]:
+        vtype = "incidence"
+    elif list(filters.keys()) == ["prevalence"]:
+        vtype = "prevalence"
+
+    diffI = diffI[diffI["mc_value_type"] == vtype]
+    diffI.drop(["mc_value_type"], inplace=True, axis=1)
+    filters = filters[vtype]
+
     incidI_arr = np.zeros((len(dates), len(places)), dtype=int)
     df = diffI.copy()
     for mc_type, mc_value in filters.items():

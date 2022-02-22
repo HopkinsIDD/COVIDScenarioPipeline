@@ -28,7 +28,7 @@
 
 import pathlib
 from . import seir, setup, file_paths
-from . import  outcomes
+from . import outcomes
 from .utils import config, Timer
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
@@ -44,12 +44,13 @@ logging.basicConfig(level=os.environ.get("COVID_LOGLEVEL", "INFO").upper())
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 # '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
-formatter = logging.Formatter(' %(name)s :: %(levelname)-8s :: %(message)s'
-    #"%(asctime)s [%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
+formatter = logging.Formatter(
+    " %(name)s :: %(levelname)-8s :: %(message)s"
+    # "%(asctime)s [%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
 )
 
 handler.setFormatter(formatter)
-#logger.addHandler(handler)
+# logger.addHandler(handler)
 
 
 class InferenceSimulator:
@@ -128,8 +129,10 @@ class InferenceSimulator:
             f"""  gempyor >> prefix: {in_prefix};"""  # ti: {s.ti}; tf: {s.tf};
         )
 
-        self.already_built = False # whether we have already build the costly object we just build once.
-    
+        self.already_built = (
+            False  # whether we have already build the costly object we just build once.
+        )
+
     def update_prefix(self, new_prefix, new_out_prefix=None):
         self.s.in_prefix = new_prefix
         if new_out_prefix is None:
@@ -138,78 +141,115 @@ class InferenceSimulator:
             self.s.out_prefix = new_out_prefix
 
     # profile()
-    def one_simulation_legacy(self, sim_id2write: int, load_ID: bool = False, sim_id2load: int = None):
+    def one_simulation_legacy(
+        self, sim_id2write: int, load_ID: bool = False, sim_id2load: int = None
+    ):
         sim_id2write = int(sim_id2write)
         if load_ID:
-            sim_id2load =  int(sim_id2load)
-        with Timer(f">>> GEMPYOR onesim {'(loading file)' if load_ID else '(from config)'}"):
+            sim_id2load = int(sim_id2load)
+        with Timer(
+            f">>> GEMPYOR onesim {'(loading file)' if load_ID else '(from config)'}"
+        ):
             with Timer("onerun_SEIR"):
                 seir.onerun_SEIR(
                     sim_id2write=sim_id2write,
                     s=self.s,
                     load_ID=load_ID,
-                    sim_id2load=sim_id2load
+                    sim_id2load=sim_id2load,
                 )
 
             with Timer("onerun_OUTCOMES"):
                 outcomes.onerun_delayframe_outcomes(
-                    sim_id2write=sim_id2write, s=self.s, load_ID=load_ID, sim_id2load=sim_id2load
+                    sim_id2write=sim_id2write,
+                    s=self.s,
+                    load_ID=load_ID,
+                    sim_id2load=sim_id2load,
                 )
         return 0
 
-    def one_simulation(self, sim_id2write: int, load_ID: bool = False, sim_id2load: int = None, parallel=True):
+    def one_simulation(
+        self,
+        sim_id2write: int,
+        load_ID: bool = False,
+        sim_id2load: int = None,
+        parallel=True,
+    ):
         sim_id2write = int(sim_id2write)
         if load_ID:
-            sim_id2load =  int(sim_id2load)
+            sim_id2load = int(sim_id2load)
 
-        with Timer(f">>> GEMPYOR onesim {'(loading file)' if load_ID else '(from config)'}"):
+        with Timer(
+            f">>> GEMPYOR onesim {'(loading file)' if load_ID else '(from config)'}"
+        ):
             if not self.already_built:
                 self.outcomes_parameters = outcomes.read_parameters_from_config(self.s)
-            
+
             npi_outcomes = None
             if parallel:
-                with Timer('//things'):
-                    with ProcessPoolExecutor(max_workers=max(mp.cpu_count(), 3)) as executor:
-                        ret_seir = executor.submit(seir.build_npi_SEIR, self.s, load_ID, sim_id2load, config)
+                with Timer("//things"):
+                    with ProcessPoolExecutor(
+                        max_workers=max(mp.cpu_count(), 3)
+                    ) as executor:
+                        ret_seir = executor.submit(
+                            seir.build_npi_SEIR, self.s, load_ID, sim_id2load, config
+                        )
                         if self.s.npi_config_outcomes:
-                            ret_outcomes = executor.submit(outcomes.build_npi_Outcomes, self.s, load_ID, sim_id2load, config)
+                            ret_outcomes = executor.submit(
+                                outcomes.build_npi_Outcomes,
+                                self.s,
+                                load_ID,
+                                sim_id2load,
+                                config,
+                            )
                         if not self.already_built:
-                            ret_comparments = executor.submit(self.s.compartments.get_transition_array)
-                            
+                            ret_comparments = executor.submit(
+                                self.s.compartments.get_transition_array
+                            )
 
-
-                #print("expections:", ret_seir.exception(), ret_outcomes.exception(), ret_comparments.exception())
+                # print("expections:", ret_seir.exception(), ret_outcomes.exception(), ret_comparments.exception())
 
                 if not self.already_built:
-                    (self.unique_strings,
+                    (
+                        self.unique_strings,
                         self.transition_array,
                         self.proportion_array,
                         self.proportion_info,
                     ) = ret_comparments.result()
-                    self.already_built=True
+                    self.already_built = True
                 npi_seir = ret_seir.result()
-                if self.s.npi_config_outcomes: 
+                if self.s.npi_config_outcomes:
                     npi_outcomes = ret_outcomes.result()
             else:
                 (
-                self.unique_strings,
-                self.transition_array,
-                self.proportion_array,
-                self.proportion_info,
+                    self.unique_strings,
+                    self.transition_array,
+                    self.proportion_array,
+                    self.proportion_info,
                 ) = self.s.compartments.get_transition_array()
-                npi_seir = seir.build_npi_SEIR(s=self.s, load_ID=load_ID, sim_id2load=sim_id2load, config=config)
-                if self.s.npi_config_outcomes: 
-                    npi_outcomes = outcomes.build_npi_Outcomes(s=self.s, load_ID=load_ID, sim_id2load=sim_id2load, config=config)
-            
+                npi_seir = seir.build_npi_SEIR(
+                    s=self.s, load_ID=load_ID, sim_id2load=sim_id2load, config=config
+                )
+                if self.s.npi_config_outcomes:
+                    npi_outcomes = outcomes.build_npi_Outcomes(
+                        s=self.s,
+                        load_ID=load_ID,
+                        sim_id2load=sim_id2load,
+                        config=config,
+                    )
+
             ### Run every time:
             with Timer("onerun_SEIR.seeding"):
                 if load_ID:
-                    initial_conditions = self.s.seedingAndIC.load_ic(sim_id2load, setup=self.s)
+                    initial_conditions = self.s.seedingAndIC.load_ic(
+                        sim_id2load, setup=self.s
+                    )
                     seeding_data, seeding_amounts = self.s.seedingAndIC.load_seeding(
                         sim_id2load, setup=self.s
                     )
                 else:
-                    initial_conditions = self.s.seedingAndIC.draw_ic(sim_id2write, setup=self.s)
+                    initial_conditions = self.s.seedingAndIC.draw_ic(
+                        sim_id2write, setup=self.s
+                    )
                     seeding_data, seeding_amounts = self.s.seedingAndIC.draw_seeding(
                         sim_id2write, setup=self.s
                     )
@@ -233,7 +273,6 @@ class InferenceSimulator:
                 parsed_parameters = self.s.compartments.parse_parameters(
                     parameters, self.s.parameters.pnames, self.unique_strings
                 )
-
 
             with Timer("SEIR.compute"):
                 states = seir.steps_SEIR(
@@ -269,9 +308,11 @@ class InferenceSimulator:
 
             with Timer("onerun_delayframe_outcomes.postprocess"):
                 outcomes.postprocess_and_write(
-                    sim_id=sim_id2write, s=self.s, outcomes=outcomes_df, hpar=hpar_df, npi=npi_outcomes
+                    sim_id=sim_id2write,
+                    s=self.s,
+                    outcomes=outcomes_df,
+                    hpar=hpar_df,
+                    npi=npi_outcomes,
                 )
 
         return 0
-
-

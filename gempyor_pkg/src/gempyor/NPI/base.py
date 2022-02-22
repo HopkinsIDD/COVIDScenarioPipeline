@@ -39,5 +39,5 @@ class NPIBase(abc.ABC):
             global_config=global_config,
             geoids=geoids,
             loaded_df=loaded_df,
-            pnames_overlap_operation_sum=pnames_overlap_operation_sum
+            pnames_overlap_operation_sum=pnames_overlap_operation_sum,
         )
