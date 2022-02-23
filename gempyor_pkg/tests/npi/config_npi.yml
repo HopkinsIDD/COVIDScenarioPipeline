@@ -1,0 +1,186 @@
+name: test_inference
+start_date: 2020-04-01
+end_date: 2020-05-15
+nsimulations: 1
+dt: 0.25
+
+spatial_setup:
+  base_path: data
+  setup_name: test1
+  geodata: geodata.csv
+  mobility: mobility.csv
+  popnodes: population
+  nodenames: geoid
+  census_year: 2018
+  modeled_states:
+    - HI
+
+interventions:
+  scenarios:
+    - Scenario1
+  settings:
+    None:
+      template: Reduce
+      parameter: r0
+      period_start_date: 2020-04-02
+      period_end_date: 2020-05-16
+      value:
+        distribution: fixed
+        value: 0
+    Wuhan:
+      template: MultiTimeReduce
+      parameter: r0
+      groups:
+        - periods:
+            - start_date: 2020-04-02
+              end_date: 2020-05-16
+          affected_geoids: "all"
+      value:
+        distribution: uniform
+        low: .14
+        high: .33
+    KansasCity:
+      template: MultiTimeReduce
+      parameter: r0
+      groups:
+        - periods:
+            - start_date: 2020-04-02
+              end_date: 2020-05-16
+          affected_geoids: "all"
+      value:
+        distribution: uniform
+        low: .04
+        high: .23
+    BrandNew:
+      template: MultiTimeReduce
+      parameter: r0
+      groups:
+        - periods:
+            - start_date: 2020-04-02
+              end_date: 2020-05-16
+          affected_geoids: "all"
+      value:
+        distribution: uniform
+        low: .2
+        high: .25
+    Scenario1:
+      template: Stacked
+      scenarios:
+        - BrandNew
+        - KansasCity
+        - Wuhan
+        - None
+    Scenario2:
+      template: Stacked
+      scenarios:
+        - Wuhan
+    Hduration:
+      template: Reduce
+      parameter: "incidH::duration"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    Hdelay:
+      template: Reduce
+      parameter: "incidH::delay"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    Hprobability:
+      template: Reduce
+      parameter: "incidH::probability"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: 0.5
+    Ddelay:
+      template: Reduce
+      parameter: "incidD::delay"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    Dprobability:
+      template: Reduce
+      parameter: "incidD::probability"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    ICUprobability:
+      template: Reduce
+      parameter: "incidICU::probability"
+      affected_geoids: "all"
+      period_start_date: 2020-04-01
+      period_end_date: 2020-05-15
+      value:
+        distribution: fixed
+        value: .5
+    times2D:
+      template: Stacked
+      scenarios: ["Ddelay", "Dprobability"]
+    times2H:
+      template: Stacked
+      scenarios: ["Hdelay", "Hprobability", "Hduration"]
+
+
+
+outcomes:
+  method: delayframe
+  param_from_file: False
+  scenarios:
+    - high_death_rate
+  settings:
+    high_death_rate:
+      incidH:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: .2
+        delay:
+          value:
+            distribution: fixed
+            value: 14
+        duration:
+          value:
+            distribution: fixed
+            value: 14
+          name: hosp_curr
+      incidD:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: .02
+        delay:
+          value:
+            distribution: fixed
+            value: 4
+      incidICU:
+        source: incidH
+        probability:
+          value:
+            distribution: fixed
+            value: .8
+        delay:
+          value:
+            distribution: fixed
+            value: 0
+  interventions:
+    settings:
+      high_death_rate:
+        template: Stacked
+        scenarios: ["times2H", "ICUprobability", "times2D"]
