@@ -94,7 +94,7 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 		else
 			export extension="parquet"
 		fi
-		for liketype in "global" "chimeric"
+		for liketype in "global"# "chimeric"
 		do
 			export OUT_FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/$liketype/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX-1,'$filetype','$extension'))")
 			if [ $COVID_BLOCK_INDEX -eq 1 ]; then
@@ -116,51 +116,19 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 	ls -ltr model_output
 fi
 
-echo "State of directory before we start"
-echo "==="
-find model_output
-echo "---"
-find data
-echo "==="
+### Above this line: same as inference runner, or quite close
 
 # NOTE(jwills): hard coding this for now
-Rscript COVIDScenarioPipeline/R/scripts/filter_MC.R -p COVIDScenarioPipeline
+python COVIDScenarioPipeline/scripts/batch_postprocess.py
 
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then
-        error_handler "Error code returned from full_filter.R: $dvc_ret"
+        error_handler "Error code returned from batch_postprocess.py: $dvc_ret"
 fi
 
-	for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
-do
-	export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','parquet'))")
-	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
-done
-	for type in "seed"
-	do
-		export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','csv'))")
-	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
-done
-	for type in "seed"
-	do
-		export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','csv'))")
-	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
-done
-	for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
-do
-	export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','parquet'))")
-	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
-done
-	for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
-do
-	export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/final/', $COVID_SLOT_INDEX,'$type','parquet'))")
-	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
-done
-	for type in "seed"
-do
-	export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/final/', $COVID_SLOT_INDEX,'$type','csv'))")
-	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
-done
+export FILENAME="plot.pdf"
+aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/post/$FILENAME
+
 
 echo "Done"
 exit 0
