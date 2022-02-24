@@ -852,46 +852,33 @@ print_outcomes <- function (resume_modifier = NULL,
 
 #' Print SEIR Section
 #' @description Print seir section with specified parameters.
-#'
-#' @param sigma_val inverse of the incubation period in days - fraction or probability
-#' @param gamma_dist specify if gamma is fixed or distributional
-#' @param gamma_val inverse of the infectious period in days - fraction or probability
-#' @param gamma_a minimum value of gamma - required if distribution is not "fixed"
-#' @param gamma_b maximum value of gamma - required if distribution is not "fixed"
-#' @param alpha_val transmission dampening parameter; reasonable values for respiratory viruses range from 0.88-0.99
-#' @param R0s_val basic reproduction number
-#' @param R0s_dist specify if R0 is fixed or distributional
-#' @param R0s_a minimum value of R0 - required if distribution is not "fixed"
-#' @param R0s_b maximum value of R0 - required if distribution is not "fixed"
-#' @param nu_1_val value of transition from the unvaccinated to the 1st vaccine compartment
-#' @param nu_1_dist distribution of nu_1
-#' @param nu_1_overlap_operation
-#' @param nu_2_val value of transition from the 1st to the 2nd vaccine compartment
-#' @param nu_2_dist distribution of nu_2
-#' @param nu_2_overlap_operation
-#' @param epsilon_val rate at which immunity wanes (i.e. movement from R --> S)
-#' @param epsilon_dist distribution of epsilon
+#' 
+#' @param resume_modifier 
 #' @param seir_csv 
-#' @param gamma_sd 
-#' @param R0s_sd 
+#' @param integration_method 
+#' @param params 
 #' @param ve_data 
 #' @param theta_dist 
+#' @param nu_1_val value of transition from the unvaccinated to the 1st vaccine compartment
+#' @param nu_1_dist distribution of nu_1
+#' @param nu_1_overlap_operation 
+#' @param nu_2_val value of transition from the 1st to the 2nd vaccine compartment
+#' @param nu_2_dist distribution of nu_2
+#' @param nu_2_overlap_operation 
 #' @param nu_3_val 
 #' @param nu_3_dist 
 #' @param nu_3_overlap_operation 
-#' @param chi_vals 
-#' @param chi_dist 
+#' @param vaccine_compartments names of vaccination compartments: defaults to "unvaccinated", "first dose" and "second dose"
 #' @param variant_compartments 
 #' @param age_strata 
 #' @param age_strata_boosters 
 #' @param inf_stages 
 #' @param use_descriptions 
-#' @param vaccine_compartments names of vaccination compartments: defaults to "unvaccinated", "first dose" and "second dose"
 #'
 #' @export
 #'
 #' @examples
-#' print_seir(seir_csv = "seir_R11.csv",
+#' print_seir(seir_csv = "seir_R12.csv",
 #'            alpha_val=0.99,
 #'            sigma_val = 1/5.2,
 #'            gamma_dist = "uniform",
@@ -901,178 +888,126 @@ print_outcomes <- function (resume_modifier = NULL,
 #'            r0_val = 2.3,
 #'            incl_vacc = FALSE)
 #'
-print_seir <- function(resume_modifier = NULL,
-                       seir_csv = "seir_R11.csv", 
-                       sigma_val = 1/5.2, 
-                       gamma_dist = "fixed", gamma_val = 1/3.83, gamma_sd = NULL, gamma_a = 1/4.5, gamma_b = 1/3, 
-                       alpha_val = 0.99,
-                       R0s_val = 2.3, R0s_dist = "uniform", R0s_sd = NULL, R0s_a = 2, R0s_b = 3,
-                       ve_data = ve_data,
-                       theta_dist = "fixed",
-                       nu_1_val = 0, nu_1_dist = "fixed", nu_1_overlap_operation = "sum",
-                       nu_2_val = 1/(3.5 * 7), nu_2_dist = "fixed", nu_2_overlap_operation = "sum",
-                       nu_3_val = 0, nu_3_dist = "fixed", nu_3_overlap_operation = "sum",
-                       chi_vals = c(1.5, 1.5*1.6, 1.5*1.6*1.25), chi_dist = "fixed",
-                       epsilon_val = 0 * 1/(365 * 1.5), epsilon_dist = "fixed",
-                       vaccine_compartments = c("unvaccinated", "1dose", "2dose", "waned"),
-                       variant_compartments = c("WILD", "ALPHA", "DELTA", "OMICRON"),
-                       age_strata = c("age0to17", "age18to64", "age65to100"),
-                       age_strata_boosters = c("age0to17", "age18to64","age65to100"),
-                       inf_stages = c("S", "E", "I1", "I2", "I3", "R", "W"),
-                       use_descriptions = TRUE) {
-    
-    # get csv of transitions and remove errors (remove quotations and spaces, which screw up parsing)
-    seir_dat <- suppressWarnings(suppressMessages(read_csv(seir_csv, lazy = FALSE, progress = FALSE)))
-    seir_dat[colnames(seir_dat!="description")] <- apply(seir_dat[colnames(seir_dat!="description")], 2, gsub, pattern=" ", replacement="")
-    seir_dat[colnames(seir_dat!="description")] <- apply(seir_dat[colnames(seir_dat!="description")], 2, gsub, pattern='"', replacement='')
-    
-    
-    # Modify names if resume and overwriting
-    if (!any(is.na(resume_modifier) | is.null(resume_modifier) | resume_modifier=="")){
-        
-        resume_mod_rates <- function(rate){
-            
-            if (rate !="1" & !is.na(rate)){
-                rate_ <- strsplit(rate, ",")[[1]]
-                
-                rate_new <- NULL
-                for (i in 1:length(rate_)){
-                    rate_new <- c(rate_new, ifelse(rate_[i]=="1", "1", paste0(rate_[i], resume_modifier)))
-                }
-            } else {
-                rate_new <- rate
-            }
-            rate_new <- paste(rate_new,collapse=",")
-            return(rate_new)
+print_seir <- function (resume_modifier = NULL, 
+                         seir_csv = "seir_R12_v2.csv", 
+                         integration_method = "legacy",
+                         params = params_list,
+                         ve_data = ve_data, theta_dist = "fixed", 
+                         nu_1_val = 0, nu_1_dist = "fixed", nu_1_overlap_operation = "sum", 
+                         nu_2_val = 1/(3.5 *  7), nu_2_dist = "fixed", nu_2_overlap_operation = "sum", 
+                         nu_3_val = 0, nu_3_dist = "fixed", nu_3_overlap_operation = "sum", 
+                         vaccine_compartments = c("unvaccinated", "1dose", "2dose", "waned"), 
+                         variant_compartments = c("WILD", "ALPHA", "DELTA", "OMICRON"), 
+                         age_strata = c("age0to17", "age18to64", "age65to100"), 
+                         age_strata_boosters = c("age0to17", "age18to64", "age65to100"), 
+                         inf_stages = c("S", "E", "I1", "I2", "I3", "R", "W"), 
+                         use_descriptions = TRUE){
+  
+  seir_dat <- suppressWarnings(suppressMessages(read_csv(seir_csv, lazy = FALSE, progress = FALSE)))
+  seir_dat[colnames(seir_dat != "description")] <- apply(seir_dat[colnames(seir_dat != "description")], 2, gsub, pattern = " ", replacement = "")
+  seir_dat[colnames(seir_dat != "description")] <- apply(seir_dat[colnames(seir_dat != "description")], 2, gsub, pattern = "\"", replacement = "")
+  
+  if (!any(is.na(resume_modifier) | is.null(resume_modifier) | 
+           resume_modifier == "")) {
+    resume_mod_rates <- function(rate) {
+      if (rate != "1" & !is.na(rate)) {
+        rate_ <- strsplit(rate, ",")[[1]]
+        rate_new <- NULL
+        for (i in 1:length(rate_)) {
+          rate_new <- c(rate_new, ifelse(rate_[i] == "1", "1", paste0(rate_[i], resume_modifier)))
         }
-        
-        #cbind(seir_dat$rate_seir, as.vector(sapply(seir_dat$rate_seir, resume_mod_rates)))
-        
-        
-        seir_dat <- seir_dat %>%
-            mutate(rate_seir = as.vector(sapply(rate_seir, resume_mod_rates)),
-                   rate_vacc = as.vector(sapply(rate_vacc, resume_mod_rates)),
-                   rate_var = as.vector(sapply(rate_var, resume_mod_rates)),
-                   rate_age = as.vector(sapply(rate_age, resume_mod_rates))) %>%
-            ungroup() %>%
-            mutate(rate_seir = gsub("r0", paste0("r0", resume_modifier), rate_seir))
-        
-        
+      }
+      else {
+        rate_new <- rate
+      }
+      rate_new <- paste(rate_new, collapse = ",")
+      return(rate_new)
     }
-    
-    resume_modifier <- ifelse(is.na(resume_modifier) | is.null(resume_modifier), "", resume_modifier)
-    
-    seir <- ""
-    
-    seir <- paste0("seir:\n", 
-                   "  parameters:\n", 
-                   "    sigma", resume_modifier, ": \n", 
-                   print_value(value_dist = "fixed", value_mean = sigma_val), 
-                   "    alpha", resume_modifier, ": \n", 
-                   print_value(value_dist = "fixed", 
-                               value_mean = alpha_val), 
-                   "    r0", resume_modifier, ": \n", 
-                   print_value(value_dist = R0s_dist, 
-                               value_mean = R0s_val, 
-                               value_sd = R0s_sd, 
-                               value_a = R0s_a, 
-                               value_b = R0s_b), 
-                   "    gamma", resume_modifier, ": \n", 
-                   print_value(value_dist = gamma_dist, value_mean = gamma_val, 
-                               value_sd = gamma_sd, value_a = gamma_a, value_b = gamma_b))
-    
-    thetas <- ve_data %>% pull(theta_name)
-    theta_vals <- ve_data %>% pull(VE)
-    
-    
-    if (!(length(theta_dist) %in% c(1, length(thetas)))) {
-        stop("theta_dist must be assigned 1 value only or a vector of values corresponding to the number of thetas.")
-    }
-    if (length(theta_dist)==1){
-        theta_dist <- rep(theta_dist, length(thetas))
-    }
-    
-    # Add thetas (VEs)
-    for (i in 1:length(thetas)) {
-        seir <- paste0(seir, 
-                       "    ", thetas[i], resume_modifier, ":\n", 
-                       print_value(value_dist = theta_dist[i], value_mean = paste0(1, " - ", theta_vals[i])))
-    }
-    
-    # Add nus (vaccination rates)
-    for (i in 1:length(age_strata)) {
-        seir <- paste0(seir, 
-                       "    nu1", age_strata[i], resume_modifier, ": \n", 
-                       "      intervention_overlap_operation: ", nu_1_overlap_operation, "\n", 
-                       print_value(value_dis = nu_1_dist, value_mean = nu_1_val))
-        
-        if (all(nu_2_val==0)){
-            seir <- paste0(seir, 
-                           "    nu2", age_strata[i], resume_modifier, ": \n", 
-                           "      intervention_overlap_operation: ", nu_2_overlap_operation, "\n", 
-                           print_value(value_dis = nu_2_dist, value_mean = nu_2_val))
-        }
-        if (any(!is.na(nu_3_val))){
-            seir <- paste0(seir, 
-                           "    nu3", age_strata[i], resume_modifier, ": \n", 
-                           "      intervention_overlap_operation: ", nu_3_overlap_operation, "\n", 
-                           print_value(value_dis = nu_3_dist, value_mean = nu_3_val))
-        }
-    }
-    if (any(nu_2_val!=0)){
-        seir <- paste0(seir, 
-                       "    nu2", resume_modifier, ": \n", 
-                       "      intervention_overlap_operation: ", nu_2_overlap_operation, "\n", 
-                       print_value(value_dis = nu_2_dist, value_mean = nu_2_val))
-    }
-    
-    
-    for (i in 1:(length(variant_compartments)-1)) {
-        seir <- paste0(seir, 
-                       paste0("    chi",i), resume_modifier, ": \n", 
-                       print_value(value_dist = chi_dist, value_mean = chi_vals[i]))
-    }
+    seir_dat <- seir_dat %>% 
+      mutate(rate_seir = as.vector(sapply(rate_seir, resume_mod_rates)), 
+             rate_vacc = as.vector(sapply(rate_vacc, resume_mod_rates)), 
+             rate_var = as.vector(sapply(rate_var, resume_mod_rates)), 
+             rate_age = as.vector(sapply(rate_age, resume_mod_rates))) %>%
+      ungroup() %>% 
+      mutate(rate_seir = gsub("r0", paste0("r0", resume_modifier), rate_seir))
+  }
+  resume_modifier <- ifelse(is.na(resume_modifier) | is.null(resume_modifier), "", resume_modifier)
+  
+  seir <- paste0("seir:\n", 
+                 "  integration_method: ", integration_method, "\n",
+                 "  parameters:\n")
+  for (i in 1:length(params)) {
     seir <- paste0(seir, 
-                   "    epsilon", resume_modifier, ": \n", 
-                   print_value(value_dist = epsilon_dist, value_mean = epsilon_val))
-    
-    
-    
-    # Define Compartments ...........................................
-    seir <- paste0(seir, 
-                   "  compartments:\n", 
-                   "    infection_stage: [", cmprt_list(inf_stages),"] \n", 
-                   "    vaccination_stage: [", cmprt_list(vaccine_compartments),"] \n", 
-                   "    variant_type: [", cmprt_list(variant_compartments),"] \n", 
-                   "    age_strata: [", cmprt_list(age_strata),"]\n", 
-                   "  transitions:\n")
-    
-    
-    # Define Transitions .............................................
-    
-    for (i in 1:nrow(seir_dat)){
-        
-        seir <- paste0(seir, 
-                       ifelse(use_descriptions & 
-                                  !(is.na(seir_dat$description[i]) | is.null(seir_dat$description[i]) | seir_dat$description[i]==""), 
-                              paste0("# ", seir_dat$transition[i], " - ", seir_dat$description[i], "\n"),""),
-                       
-                       seir_chunk(resume_modifier = resume_modifier,
-                                  SEIR_source = strsplit(seir_dat$SEIR_source[i],",")[[1]],
-                                  SEIR_dest = strsplit(seir_dat$SEIR_dest[i],",")[[1]],
-                                  vaccine_compartments_source = strsplit(seir_dat$vaccine_compartments_source[i],",")[[1]],
-                                  vaccine_compartments_dest = strsplit(seir_dat$vaccine_compartments_dest[i],",")[[1]],
-                                  vaccine_infector = strsplit(seir_dat$vaccine_infector[i],",")[[1]],
-                                  variant_compartments_source = strsplit(seir_dat$variant_compartments_source[i],",")[[1]],
-                                  variant_compartments_dest = strsplit(seir_dat$variant_compartments_dest[i],",")[[1]],
-                                  age_strata = strsplit(seir_dat$age_strata[i],",")[[1]],
-                                  rate_seir = strsplit(seir_dat$rate_seir[i],",")[[1]],
-                                  rate_vacc = strsplit(seir_dat$rate_vacc[i],",")[[1]], 
-                                  rate_var = strsplit(seir_dat$rate_var[i],",")[[1]],
-                                  rate_age = strsplit(seir_dat$rate_age[i],",")[[1]]))
+                   "    ", params[[i]]$param, resume_modifier, ":\n", 
+                   print_value(value_dist = params[[i]]$dist, 
+                               value_mean = params[[i]]$value, 
+                               value_sd = params[[i]]$sd, 
+                               value_a = params[[i]]$a, 
+                               value_b = params[[i]]$b))
+  }
+  
+  thetas <- ve_data %>% pull(theta_name)
+  theta_vals <- ve_data %>% pull(VE)
+  if (!(length(theta_dist) %in% c(1, length(thetas)))) {
+    stop("theta_dist must be assigned 1 value only or a vector of values corresponding to the number of thetas.")
+  }
+  if (length(theta_dist) == 1) {
+    theta_dist <- rep(theta_dist, length(thetas))
+  }
+  for (i in 1:length(thetas)) {
+    seir <- paste0(seir, "    ", thetas[i], resume_modifier, 
+                   ":\n", print_value(value_dist = theta_dist[i], value_mean = paste0(1, 
+                                                                                      " - ", theta_vals[i])))
+  }
+  for (i in 1:length(age_strata)) {
+    seir <- paste0(seir, "    nu1", age_strata[i], resume_modifier, 
+                   ": \n", "      intervention_overlap_operation: ", 
+                   nu_1_overlap_operation, "\n", print_value(value_dis = nu_1_dist, 
+                                                             value_mean = nu_1_val))
+    if (all(nu_2_val == 0)) {
+      seir <- paste0(seir, "    nu2", age_strata[i], resume_modifier, ": \n", 
+                     "      intervention_overlap_operation: ", 
+                     nu_2_overlap_operation, "\n", 
+                     print_value(value_dis = nu_2_dist, value_mean = nu_2_val))
     }
-    
-    cat(seir)
+    if (any(!is.na(nu_3_val))) {
+      seir <- paste0(seir, "    nu3", age_strata[i], resume_modifier, ": \n", 
+                     "      intervention_overlap_operation: ", 
+                     nu_3_overlap_operation, "\n", print_value(value_dis = nu_3_dist, 
+                                                               value_mean = nu_3_val))
+    }
+  }
+  if (any(nu_2_val != 0)) {
+    seir <- paste0(seir, "    nu2", resume_modifier, ": \n", 
+                   "      intervention_overlap_operation: ", nu_2_overlap_operation, "\n", 
+                   print_value(value_dis = nu_2_dist, value_mean = nu_2_val))
+  }
+  seir <- paste0(seir, "  compartments:\n", 
+                 "    infection_stage: [", cmprt_list(inf_stages), "] \n", 
+                 "    vaccination_stage: [", cmprt_list(vaccine_compartments), "] \n", 
+                 "    variant_type: [", cmprt_list(variant_compartments), "] \n", 
+                 "    age_strata: [", cmprt_list(age_strata), "]\n", 
+                 "  transitions:\n")
+  for (i in 1:nrow(seir_dat)) {
+    seir <- paste0(seir, 
+                   ifelse(use_descriptions & !(is.na(seir_dat$description[i]) | 
+                                                 is.null(seir_dat$description[i]) | seir_dat$description[i] == ""),
+                          paste0("# ", seir_dat$transition[i], " - ", seir_dat$description[i], "\n"), ""), 
+                   seir_chunk(resume_modifier = resume_modifier, 
+                              SEIR_source = strsplit(seir_dat$SEIR_source[i], ",")[[1]], 
+                              SEIR_dest = strsplit(seir_dat$SEIR_dest[i], ",")[[1]], 
+                              vaccine_compartments_source = strsplit(seir_dat$vaccine_compartments_source[i], ",")[[1]], 
+                              vaccine_compartments_dest = strsplit(seir_dat$vaccine_compartments_dest[i], ",")[[1]], 
+                              vaccine_infector = strsplit(seir_dat$vaccine_infector[i], ",")[[1]], 
+                              variant_compartments_source = strsplit(seir_dat$variant_compartments_source[i], ",")[[1]], 
+                              variant_compartments_dest = strsplit(seir_dat$variant_compartments_dest[i], ",")[[1]], 
+                              age_strata = strsplit(seir_dat$age_strata[i], ",")[[1]], 
+                              rate_seir = strsplit(seir_dat$rate_seir[i], ",")[[1]], 
+                              rate_vacc = strsplit(seir_dat$rate_vacc[i], ",")[[1]], 
+                              rate_var = strsplit(seir_dat$rate_var[i], ",")[[1]], 
+                              rate_age = strsplit(seir_dat$rate_age[i], ",")[[1]]))
+  }
+  cat(seir)
 }
 
 
