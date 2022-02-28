@@ -9,6 +9,7 @@ suppressMessages(library(xts))
 suppressMessages(library(reticulate))
 suppressMessages(library(truncnorm))
 suppressMessages(library(parallel))
+suppressMessages(library(purrr))
 options(warn = 1)
 options(readr.num_columns = 0)
 

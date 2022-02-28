@@ -172,7 +172,7 @@ class InferenceSimulator:
         sim_id2write: int,
         load_ID: bool = False,
         sim_id2load: int = None,
-        parallel=True,
+        parallel=False,
     ):
         sim_id2write = int(sim_id2write)
         if load_ID:
@@ -220,12 +220,14 @@ class InferenceSimulator:
                 if self.s.npi_config_outcomes:
                     npi_outcomes = ret_outcomes.result()
             else:
-                (
-                    self.unique_strings,
-                    self.transition_array,
-                    self.proportion_array,
-                    self.proportion_info,
-                ) = self.s.compartments.get_transition_array()
+                if not self.already_built:
+                    (
+                        self.unique_strings,
+                        self.transition_array,
+                        self.proportion_array,
+                        self.proportion_info,
+                    ) = self.s.compartments.get_transition_array()
+                    self.already_built = True
                 npi_seir = seir.build_npi_SEIR(
                     s=self.s, load_ID=load_ID, sim_id2load=sim_id2load, config=config
                 )
