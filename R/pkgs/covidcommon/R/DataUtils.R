@@ -1184,7 +1184,7 @@ get_groundtruth_from_source <- function(source = "csse",
     } else if(source == "csse_lm" & scale == "US state"){
         
         variables_ <- variables[!grepl("incidh|hosp", tolower(variables))] 
-        rc <- get_rawcoviddata_state_data(incl_unassigned=incl_unass, fix_negatives=fix_negatives) %>%
+        rc <- get_rawcoviddata_state_data(fix_negatives=fix_negatives) %>%
             dplyr::select(Update, FIPS, source, !!variables_) %>%
             tidyr::drop_na(tidyselect::everything())
         

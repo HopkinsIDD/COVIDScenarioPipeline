@@ -1,10 +1,6 @@
 Package: covidcommon
 Title: Common R code shared across packages
-Version: 0.0.1
-Imports:
-    methods,
-    yaml,
-    purrr
+Version: 0.0.2
 Authors@R:
     person(given = "Joshua",
            family = "Kaminsky",
@@ -13,6 +9,19 @@ Authors@R:
 Description: Common R code shared across all local packages
 License: What license it uses
 Encoding: UTF-8
+Imports:
+    methods,
+    yaml,
+    purrr,
+    rawcoviddata,
+    dplyr,
+    readr,
+    tidyr,
+    data.table,
+    magrittr,
+    lubridate
 Suggests: 
     testthat (>= 2.1.0)
+Remotes: 
+    lmullany/rawcoviddata
 RoxygenNote: 7.1.2.9000

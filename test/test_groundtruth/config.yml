@@ -8,7 +8,7 @@ dt: 1.000
 
 spatial_setup:
   census_year: 2019
-  base_path: data
+  base_path: test/test_groundtruth/data
   modeled_states:
     - AK
     - AL
@@ -70,7 +70,7 @@ spatial_setup:
   state_level: TRUE
 
 seeding:
-  variant_filename: data/variant/variant_props_long.csv
+  variant_filename: test/test_groundtruth/data/variant_props_long.csv
   seeding_compartments:
     WILD:
       source_compartment: ["S", "unvaccinated", "WILD", "age18to64"]
@@ -87,8 +87,8 @@ seeding:
   method: FolderDraw
   seeding_file_type: seed
   folder_path: importation/minimal/
-  lambda_file: data/seeding_territories.csv
-  pop_seed_file: data/seeding_agestrat.csv
+  lambda_file: test/test_groundtruth/data/seeding_territories.csv
+  pop_seed_file: test/test_groundtruth/data/seeding_agestrat.csv
   date_sd: 1
   amount_sd: 1
 
@@ -51041,14 +51041,14 @@ outcomes:
 filtering:
   simulations_per_slot: 20
   do_filtering: TRUE
-  data_path: data/us_data.csv
-  gt_source: "csse"
+  data_path: test/test_groundtruth/data/us_data.csv
+  gt_source: "csse_lm"
   statistics:
     sum_deaths:
       name: sum_deaths
       aggregator: sum
       period: "1 weeks"
-      gt_source: "csse"
+      gt_source: "csse_lm"
       sim_var: incidD
       data_var: incidDeath
       remove_na: TRUE
@@ -51059,7 +51059,7 @@ filtering:
       name: sum_confirmed_WILD
       aggregator: sum
       period: "1 weeks"
-      gt_source: "csse"
+      gt_source: "csse_lm"
       sim_var: incidC_WILD
       data_var: incidI_WILD
       remove_na: TRUE
@@ -51070,7 +51070,7 @@ filtering:
       name: sum_confirmed_ALPHA
       aggregator: sum
       period: "1 weeks"
-      gt_source: "csse"
+      gt_source: "csse_lm"
       sim_var: incidC_ALPHA
       data_var: incidI_ALPHA
       remove_na: TRUE
@@ -51081,7 +51081,7 @@ filtering:
       name: sum_confirmed_DELTA
       aggregator: sum
       period: "1 weeks"
-      gt_source: "csse"
+      gt_source: "csse_lm"
       sim_var: incidC_DELTA
       data_var: incidI_DELTA
       remove_na: TRUE
@@ -51092,7 +51092,7 @@ filtering:
       name: sum_confirmed_OMICRON
       aggregator: sum
       period: "1 weeks"
-      gt_source: "csse"
+      gt_source: "csse_lm"
       sim_var: incidC_OMICRON
       data_var: incidI_OMICRON
       remove_na: TRUE

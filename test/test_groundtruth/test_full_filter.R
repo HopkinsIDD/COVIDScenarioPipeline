@@ -1,3 +1,112 @@
+
+# Test `filter_MC.R` ------------------------------------------------------
+
+
+
+# SETUP -------------------------------------------------------------------
+
+library(tidyverse)
+
+Sys.setenv(CONFIG_PATH="test/test_groundtruth/config.yml")
+Sys.getenv("CONFIG_PATH")
+
+# from full_filter.R ------------------------------------------------------
+
+
+suppressMessages(library(parallel))
+suppressMessages(library(foreach))
+suppressMessages(library(parallel))
+suppressMessages(library(doParallel))
+options(readr.num_columns = 0)
+
+option_list = list(
+    optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
+    optparse::make_option(c("-u","--run_id"), action="store", type='character', help="Unique identifier for this run", default = Sys.getenv("COVID_RUN_INDEX",covidcommon::run_id())),
+    optparse::make_option(c("-s", "--scenarios"), action="store", default=Sys.getenv("COVID_SCENARIOS", 'all'), type='character', help="name of the intervention to run, or 'all' to run all of them"),
+    optparse::make_option(c("-d", "--deathrates"), action="store", default=Sys.getenv("COVID_DEATHRATES", 'all'), type='character', help="name of the death scenarios to run, or 'all' to run all of them"),
+    optparse::make_option(c("-j", "--jobs"), action="store", default=Sys.getenv("COVID_NJOBS", parallel::detectCores()), type='integer', help="Number of jobs to run in parallel"),
+    optparse::make_option(c("-k", "--sims_per_slot"), action="store", default=Sys.getenv("COVID_SIMULATIONS_PER_SLOT", NA), type='integer', help = "Number of simulations to run per slot"),
+    optparse::make_option(c("-n", "--slots"), action="store", default=Sys.getenv("COVID_NSIMULATIONS", as.numeric(NA)), type='integer', help = "Number of slots to run."),
+    optparse::make_option(c("-b", "--this_block"), action="store", default=Sys.getenv("COVID_BLOCK_INDEX",1), type='integer', help = "id of this block"),
+    optparse::make_option(c("-p", "--pipepath"), action="store", type='character', help="path to the COVIDScenarioPipeline directory", default = Sys.getenv("COVID_PATH", "COVIDScenarioPipeline/")),
+    optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
+    optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable")
+)
+
+parser=optparse::OptionParser(option_list=option_list)
+opt = optparse::parse_args(parser)
+
+
+# not full_filter.R
+
+# load test config
+config = covidcommon::load_config(opt$config)
+config$seeding$variant_filename <- "test/test_groundtruth/data/variant_props_long.csv"
+
+##Load infromationon geographic locations from geodata file.
+suppressMessages(geodata <- report.generation::load_geodata_file(
+    paste(
+        config$spatial_setup$base_path,
+        config$spatial_setup$geodata, sep = "/"
+    ),
+    geoid_len=5 #Is this hardcode a good idea.
+))
+obs_nodename <- config$spatial_setup$nodenames
+
+#############
+
+
+
+
+
+
+print("Starting")
+if(opt$config == ""){
+    optparse::print_help(parser)
+    stop(paste(
+        "Please specify a config YAML file with either -c option or CONFIG_PATH environment variable."
+    ))
+}
+
+#config <- covidcommon::load_config(opt$config)
+
+deathrates <- opt$deathrates
+if(all(deathrates == "all")) {
+    deathrates<- config$outcomes$scenarios
+} else if (!(deathrates %in% config$outcomes$scenarios)){
+    message(paste("Invalid death rate argument:", deathrate, "did not match any of the named args in", paste( p_death, collapse = ", "), "\n"))
+    quit("yes", status=1)
+}
+
+scenarios <- opt$scenarios
+if (all(scenarios == "all")){
+    scenarios <- config$interventions$scenarios
+} else if (!all(scenarios %in% config$interventions$scenarios)) {
+    message(paste("Invalid scenario arguments: [",paste(setdiff(scenarios, config$interventions$scenarios)), "] did not match any of the named args in ", paste(config$interventions$scenarios, collapse = ", "), "\n"))
+    quit("yes", status=1)
+}
+
+if(is.na(opt$sims_per_slot)) {
+    opt$sims_per_slot <- config$filtering$simulations_per_slot
+}
+
+if(is.na(opt$slots)) {
+    opt$slots <- config$nsimulations
+}
+
+if(is.null(opt$fix_negatives)) {
+    opt$fix_negatives <- TRUE
+}
+
+covidcommon::prettyprint_optlist(list(scenarios=scenarios,deathrates=deathrates,slots=seq_len(opt$slots)))
+
+
+
+
+
+# FROM filter_MC.R --------------------------------------------------------
+
+
 ## Preamble ---------------------------------------------------------------------
 suppressMessages(library(readr))
 suppressWarnings(suppressMessages(library(covidcommon)))
@@ -47,7 +156,7 @@ if(opt[["is-interactive"]]) {
 }
 covidcommon::prettyprint_optlist(opt)
 
-reticulate::use_python(Sys.which(opt$python),require=TRUE)
+#reticulate::use_python(Sys.which(opt$python),require=TRUE)
 ## Block loads the config file and geodata
 if(opt$config == ""){
     optparse::print_help(parser)
@@ -88,6 +197,8 @@ state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spati
 if(is.null(opt$fix_negatives)) {
   opt$fix_negatives <- TRUE
 }
+
+
 
 ##Load infromationon geographic locations from geodata file.
 suppressMessages(geodata <- report.generation::load_geodata_file(
@@ -200,6 +311,53 @@ obs <- inference::get_ground_truth(
     fix_negatives = opt$fix_negatives,
     variant_filename = config$seeding$variant_filename
 )
+
+
+
+# CURRENTLY BROKEN - do manual
+data_path = data_path;
+fips_codes = fips_codes_;
+fips_column_name = obs_nodename;
+start_date = gt_start_date;
+end_date = gt_end_date;
+cache = opt$cache_gt;
+gt_source = gt_source;
+gt_scale = gt_scale;
+targets = gt_targets; 
+fix_negatives = opt$fix_negatives;
+variant_filename = config$seeding$variant_filename
+
+  inference::get_ground_truth_file(data_path = data_path, cache = cache, 
+                          gt_source = gt_source, gt_scale = gt_scale, 
+                          targets = targets, 
+                          fix_negatives = fix_negatives,
+                          variant_filename = variant_filename)
+    
+    rc <- suppressMessages(readr::read_csv(
+        data_path,
+        col_types = list(FIPS = readr::col_character()),
+    ))
+    rc <- dplyr::filter(
+        rc,
+        FIPS %in% fips_codes,
+        date >= start_date,
+        date <= end_date
+    )
+    rc <- dplyr::right_join(
+        rc,
+        tidyr::expand_grid(
+            FIPS = unique(rc$FIPS),
+            date = unique(rc$date)
+        )
+    )
+    rc <- dplyr::mutate_if(rc, is.numeric, dplyr::coalesce, 0)
+    names(rc)[names(rc) == "FIPS"] <- fips_column_name
+
+##
+
+
+
+
 
 geonames <- unique(obs[[obs_nodename]])
 
@@ -478,3 +636,5 @@ for(scenario in scenarios) {
         file.copy(last_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
     }
 }
+
+
