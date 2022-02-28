@@ -16,7 +16,8 @@ generate_config <- function(){
                  mobility = "mobility_territories_2011-2015_statelevel.csv")
 
     print_seeding(lambda_file = "data/minimal/seeding_territories.csv",
-                  perturbation_sd = 3)
+                  perturbation_sd = 3,
+                  compartment = FALSE)
 
     print_seir(gamma_dist = "uniform",
                gamma_a = 1/4.5,
@@ -24,23 +25,33 @@ generate_config <- function(){
                R0s_dist = "fixed",
                R0s_val = 2.3,
                incl_vacc = TRUE,
-               dose_susceptibility_val = c(0, 0.5, 0.90),
-               transitions_val = c(0, 0.04))
+               theta_1_val = 0.5,
+               theta_1_dist = "fixed", 
+               theta_2_val = 0.9,
+               theta_2_dist = "fixed",
+               nu_2_val = 0.04,
+               compartment = FALSE,
+               vaccine_compartments = c("unvaccinated", "first_dose", "second_dose"))
 
-    print_transmission_interventions(interventions,
-                                     scenario = "inference")
+    print_interventions(interventions,
+                        scenario = "inference",
+                        compartment = FALSE)
 
     print_outcomes(dat = interventions,
                    ifr = "med",
                    outcomes_parquet_file="usa-geoid-params-output_statelevel.parquet",
-                   incidC_prob_value = 0.4)
+                   incidC_prob_value = c(0.4, 0.4, 0.4),
+                   compartment = FALSE)
 
-    print_filtering_statistics(sims_per_slot = 1000)
+    print_filtering_statistics(sims_per_slot = 1000,
+                               compartment = FALSE,
+                               gt_column_name = c("death_incid", "confirmed_incid"))
 
     print_filtering_hierarchical(npi_name = c("local_variance", "probability_incidI_incidC"),
                                  module = c("seir", "hospitalization"),
                                  geo_group_col = "USPS",
-                                 transform = c("none", "logit"))
+                                 transform = c("none", "logit"),
+                                 compartment = FALSE)
 
     print_filtering_prior(dat = interventions,
                           npi_name = c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar",
