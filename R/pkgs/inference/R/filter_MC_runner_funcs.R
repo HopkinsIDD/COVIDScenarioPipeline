@@ -131,7 +131,7 @@ aggregate_and_calc_loc_likelihoods <- function(
 
 
     ##probably a more efficient what to do this, but unclear...
-    likelihood_data <- dplyr::left_join(likelihood_data, ll_adjs) %>%
+    likelihood_data <- dplyr::left_join(likelihood_data, ll_adjs, by="geoid") %>%
       tidyr::replace_na(list(likadj = 0)) %>% ##avoid unmatched location problems
       dplyr::mutate(ll = ll + likadj) %>%
       dplyr::select(-likadj)
@@ -177,7 +177,7 @@ aggregate_and_calc_loc_likelihoods <- function(
     }
 
     ##probably a more efficient what to do this, but unclear...
-    likelihood_data<- dplyr::left_join(likelihood_data, ll_adjs) %>%
+    likelihood_data<- dplyr::left_join(likelihood_data, ll_adjs, by="geoid") %>%
       dplyr::mutate(ll = ll + likadj) %>%
       dplyr::select(-likadj)
   }
