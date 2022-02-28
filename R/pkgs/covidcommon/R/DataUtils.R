@@ -1188,7 +1188,7 @@ get_groundtruth_from_source <- function(source = "csse",
             dplyr::select(Update, FIPS, source, !!variables_) %>%
             tidyr::drop_na(tidyselect::everything())
         
-        if (any(grepl("hosp|incid", tolower(variables)))){
+        if (any(grepl("hosp|incidh", tolower(variables)))){
             
             variables_hosp <- variables[grepl("incidh|hosp", tolower(variables))] 
             rc_hosp <- get_covidcast_data(geo_level = "state",
