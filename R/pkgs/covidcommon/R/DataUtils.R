@@ -279,6 +279,20 @@ fix_negative_counts_single_geoid <- function(.x,.y, incid_col_name, date_col_nam
 #
 # See fix_negative_counts_single_geoid() for more details on the algorithm,
 # specified by argument "type"
+#' Title
+#'
+#' @param df 
+#' @param cum_col_name 
+#' @param incid_col_name 
+#' @param date_col_name 
+#' @param min_date 
+#' @param max_date 
+#' @param type 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 fix_negative_counts <- function(
     df,
     cum_col_name,
@@ -812,16 +826,17 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 
 
 
-#' Title
+#' get_rawcoviddata_state_data
 #'
 #' @param incl_unassigned 
 #' @param fix_negatives 
 #'
 #' @return
+#' @import data.table rawcoviddata
 #' @export
 #'
 #' @examples
-get_rawcoviddata_state_data <- function(incl_unassigned=TRUE, fix_negatives = TRUE){
+get_rawcoviddata_state_data <- function(fix_negatives = TRUE){
     
     # install the required package if not already
     is_rawcoviddata_available <- require("rawcoviddata")
@@ -831,12 +846,12 @@ get_rawcoviddata_state_data <- function(incl_unassigned=TRUE, fix_negatives = TR
     
     # Pull CSSE data using `rawcoviddata` package from Luke Mullany
     us_data <- rawcoviddata::us_empirical_by_level()
-    loc_dictionary <- read_csv("https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-locations/locations.csv") %>%
+    loc_dictionary <- readr::read_csv("https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-locations/locations.csv") %>%
         dplyr::rename(fips = location, USPS=abbreviation, state=location_name, Pop2 = population) %>%
         dplyr::filter(stringr::str_length(fips)==2 & fips!="US") %>% 
         data.table::as.data.table()
     
-    state_dat <- us_data$state 
+    state_dat <- us_data[["state"]]
     state_dat <- state_dat[loc_dictionary, on = .(USPS)]
     
     state_dat <- state_dat %>%
@@ -864,9 +879,7 @@ get_rawcoviddata_state_data <- function(incl_unassigned=TRUE, fix_negatives = TR
     }
     
     return(state_dat)
-    
 }
-
 
 
 
