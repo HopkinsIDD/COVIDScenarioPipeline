@@ -22,6 +22,6 @@ Imports:
   reticulate,
   truncnorm,
   arrow
-RoxygenNote: 7.1.2.9000
+RoxygenNote: 7.1.1
 Suggests: 
     testthat
