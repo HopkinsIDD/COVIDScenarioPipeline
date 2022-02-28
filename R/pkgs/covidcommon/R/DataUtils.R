@@ -812,6 +812,15 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 
 
 
+#' Title
+#'
+#' @param incl_unassigned 
+#' @param fix_negatives 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 get_rawcoviddata_state_data <- function(incl_unassigned=TRUE, fix_negatives = TRUE){
     
     # install the required package if not already
@@ -1015,6 +1024,14 @@ get_covidcast_data <- function(
 
 ## >>>>>>  NEED TO FINISH THIS FUNCTION AND TEST <<<<<<<<<<<<<<<<<<<<<
 
+#' Title
+#'
+#' @param source_file 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 get_gt_file_data <- function(source_file){
     
     if (grepl(".parquet", source_file)){
