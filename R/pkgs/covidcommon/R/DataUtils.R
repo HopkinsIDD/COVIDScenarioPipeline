@@ -691,58 +691,6 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 
   return(rlab_cty_data)
 
-#' get_rawcoviddata_state_data
-#'
-#' @param fix_negatives 
-#'
-#' @return
-#' @import data.table rawcoviddata
-#' @export
-#'
-#' @examples
-get_rawcoviddata_state_data <- function(fix_negatives = TRUE){
-    
-    # install the required package if not already
-    is_rawcoviddata_available <- require("rawcoviddata")
-    if (!is_rawcoviddata_available){
-        devtools::install_github("lmullany/rawcoviddata")
-    }
-    
-    # Pull CSSE data using `rawcoviddata` package from Luke Mullany
-    us_data <- rawcoviddata::us_empirical_by_level()
-    loc_dictionary <- readr::read_csv("https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-locations/locations.csv") %>%
-        dplyr::rename(fips = location, USPS=abbreviation, state=location_name, Pop2 = population) %>%
-        dplyr::filter(stringr::str_length(fips)==2 & fips!="US") %>% 
-        data.table::as.data.table()
-    
-    state_dat <- us_data[["state"]]
-    state_dat <- state_dat[loc_dictionary, on = .(USPS)]
-    
-    state_dat <- state_dat %>%
-        dplyr::select(Update = Date, FIPS = fips, source = USPS, 
-                      Confirmed = cumConfirmed, Deaths = cumDeaths, 
-                      incidI = Confirmed, incidDeath = Deaths)
-    
-    state_dat <- state_dat %>%
-        dplyr::mutate(Update=lubridate::as_date(Update),
-                      FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
-                      FIPS = paste0(FIPS, "000")) %>%
-        dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>%
-        dplyr::distinct()
-    
-    validation_date <- Sys.getenv("VALIDATION_DATE")
-    if ( validation_date != '' ) {
-        print(paste("(DataUtils.R) Limiting CSSE US data to:", validation_date, sep=" "))
-        state_dat <- dplyr::filter(state_dat, Update < validation_date)
-    }
-    
-    # Fix incidence counts that go negative and NA values or missing dates
-    if (fix_negatives){
-        state_dat <- fix_negative_counts(state_dat, "Confirmed", "incidI") %>%
-            fix_negative_counts("Deaths", "incidDeath")
-    }
-    
-    return(state_dat)
 }
 
 ##'
