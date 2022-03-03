@@ -26,11 +26,11 @@ reticulate::use_condaenv('covidSProd6')
 gempyor <- reticulate::import("gempyor")
 ```
 
-### Inference runs
+### Building a simulator
 We create an InferenceSimulator object here, using a config filepath. The code in this section is very much like what is present in filter_MC.R for the inference runs. It may take a while to run all of that. First build the object
 ```{r}
 config_filepath = '../tests/npi/config_npi.yml'
-gempyor_inference_runner <- gempyor$InferenceSimulator(
+gempyor_simulator <- gempyor$InferenceSimulator(
                                                 config_path=config_filepath,
                                                 run_id="test_run_id",
                                                 prefix="test_prefix/",
@@ -42,11 +42,14 @@ gempyor_inference_runner <- gempyor$InferenceSimulator(
 )
 ```
 
+
+### Simulate
+
 These functions take as input a `seed` file with sim_id `sim_id2write`, and outputs files hpar, spar, snpi, hnpi, seir, hosp with sim_id `sim_id2write`. In case the flag load_ID is set as true, the function will also load from file the parameters and the NPIs (hnpi, snpi, hpar, spar) from the simulation with sim_id `sim_id2load`
 
 ```{r}
-gempyor_inference_runner$one_simulation(0)
-gempyor_inference_runner$one_simulation(sim_id2write=0, load_ID=TRUE, sim_id2load=0)
+gempyor_simulator$one_simulation(sim_id2write=0)
+gempyor_simulator$one_simulation(sim_id2write=0, load_ID=TRUE, sim_id2load=0)
 ```
 
 An additional method is provided to update the prefix, which is done by e.g filter_mc_MC.R
@@ -65,22 +68,25 @@ Applies to both snpi and hnpi
 
 ## Get compartment graph image
 
-```
-gempyor_inference_runner$get_compartment_graph("compartment_graph.png", filters=
-        [
-            [lambda x : x[3] == "age0to17", "source"],
-            [lambda x : (x[2] == "OMICRON") or (x[2] == "WILD"), "source"],
-            [lambda x : (x[2] == "OMICRON") or (x[2] == "WILD"), "destination"]
-        ]
+```{r}
+gempyor_simulator$plot_transition_graph(output_file="full_graph")
+gempyor_simulator$plot_transition_graph(output_file="readable_graph", source_filters= list(list("age0to17"), list("OMICRON", "WILD")), destination_filters= list(list("OMICRON", "WILD")))
 
 ```
+here if source_filters is [["age0to17"], ["OMICRON", "WILD"]], it means filter (keep) all transitions that have as source: age0to17 AND (OMICRON OR WILD).
+
+![full_graph look like this, scroll to the left to see that it's too big indeed](./full_graph.pdf){width=100% height=200}
+
+![while readable_graph look like this](./readable_graph.pdf){width=100% height=200}
+
+
 
 ### Get parameters
 
 
 
 ## Installation
-You need a working python3.7 installation with the gempyor the package dependencies installed
+You need a working python3.7 installation with the gempyor the package dependencies installed.
 ```
  numba >=0.53.1
  pandas
@@ -121,14 +127,14 @@ If you use conda, let's create a conda enviroment with the versions
 ```
 conda create -n covidSProd6 python=3.7
 conda activate covidSProd6
-conda install -c conda-forge jupyterlab ipykernel  dask click confuse matplotlib numba">=0.53" numpy pandas pyarrow pytest scipy seaborn sympy  tqdm
+conda install -c conda-forge jupyterlab ipykernel  dask click confuse matplotlib numba">=0.53" numpy pandas pyarrow pytest scipy seaborn sympy tqdm python-graphviz
 pip install --no-deps -e gempyor_pkg/
 ```
 
 ### Conda (complicated)
 This conda environment allows you to run both the R and the python code. It is not recommened except to run on HPCs.
 ```
-conda create -n covidSProd6 -c conda-forge python jupyterlab ipykernel dask graphviz fastparquet click confuse matplotlib networkx numba">=0.53" numpy pandas pyarrow pytest scipy seaborn sympy  tqdm r-essentials
+conda create -n covidSProd6 -c conda-forge python jupyterlab ipykernel dask graphviz fastparquet click confuse matplotlib networkx numba">=0.53" numpy pandas pyarrow pytest scipy seaborn sympy  tqdm r-essentials python-graphviz
 conda activate covidSProd6
 python -m ipykernel install --user --name covidSProd6 --display-name "Python (covidSProd6)"
 export R_PROFILE=$COVID_PATH/slurm_batch/Rprofile
