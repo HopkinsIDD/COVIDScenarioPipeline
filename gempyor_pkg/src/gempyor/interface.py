@@ -310,3 +310,6 @@ class InferenceSimulator:
                 )
 
         return 0
+
+    def plot_transition_graph(self, output_file="transition_graph", source_filters=[] , destination_filters=[]):
+        self.s.compartments.plot(output_file=output_file, source_filters=source_filters, destination_filters=destination_filters)
