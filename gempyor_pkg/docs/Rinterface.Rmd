@@ -70,7 +70,9 @@ Applies to both snpi and hnpi
 
 ```{r}
 gempyor_simulator$plot_transition_graph(output_file="full_graph")
-gempyor_simulator$plot_transition_graph(output_file="readable_graph", source_filters= list(list("age0to17"), list("OMICRON", "WILD")), destination_filters= list(list("OMICRON", "WILD")))
+gempyor_simulator$plot_transition_graph(output_file="readable_graph", 
+                                        source_filters= list(list("age0to17"), list("OMICRON", "WILD")), 
+                                        destination_filters= list(list("OMICRON", "WILD")))
 
 ```
 here if source_filters is [["age0to17"], ["OMICRON", "WILD"]], it means filter (keep) all transitions that have as source: age0to17 AND (OMICRON OR WILD).
@@ -78,7 +80,6 @@ here if source_filters is [["age0to17"], ["OMICRON", "WILD"]], it means filter (
 ![full_graph look like this, scroll to the left to see that it's too big indeed](./full_graph.pdf){width=100% height=200}
 
 ![while readable_graph look like this](./readable_graph.pdf){width=100% height=200}
-
 
 
 ### Get parameters
