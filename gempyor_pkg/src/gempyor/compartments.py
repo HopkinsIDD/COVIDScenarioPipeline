@@ -756,7 +756,7 @@ class Compartments:
         return df
 
     def plot(
-        self, output_file="transition_graph", source_filters=[] , destination_filters=[]
+        self, output_file="transition_graph", source_filters=[], destination_filters=[]
     ):
         """
         if source_filters is [["age0to17"], ["OMICRON", "WILD"]], it means filter all transitions that have
@@ -765,7 +765,6 @@ class Compartments:
         import graphviz
         from functools import reduce, partial
 
-    
         some_graph = self.parse_transitions(config["seir"])
 
         def filter_func(lst, this_filter=[]):
@@ -776,13 +775,24 @@ class Compartments:
                     return False
             return True
 
-        
         some_graph = some_graph[
-                [x for x in map(partial(filter_func, this_filter=source_filters), some_graph["source"])]
+            [
+                x
+                for x in map(
+                    partial(filter_func, this_filter=source_filters),
+                    some_graph["source"],
+                )
             ]
+        ]
         some_graph = some_graph[
-                        [x for x in map(partial(filter_func, this_filter=destination_filters), some_graph["destination"])]
-                    ]
+            [
+                x
+                for x in map(
+                    partial(filter_func, this_filter=destination_filters),
+                    some_graph["destination"],
+                )
+            ]
+        ]
 
         graph_description = (
             "digraph {\n  overlap = false;"
@@ -797,8 +807,6 @@ class Compartments:
         )
         src = graphviz.Source(graph_description)
         src.render(output_file, view=True)
-
-    
 
 
 def get_list_dimension(thing):
