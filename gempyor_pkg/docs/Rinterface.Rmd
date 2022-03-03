@@ -1,0 +1,142 @@
+---
+title: "gempyor/R interface tutorial"
+output:
+  html_notebook:
+    toc: true
+    toc_depth: 5
+---
+
+
+The General Epidemics Modeling Pipeline with Yterventions and Outcome Reporting, GEMPYOR is a large scale infectious disease dynamics model with configurable compartmental graph structure and interventions, to mulate metapopulation disease spread and health outcomes.
+
+## Introduction:
+
+
+![Fig. 1: The gempyor package (in Yellow) and the rest of the pipeline.](figs/context.png)
+
+## Usage
+
+### Import
+Load reticulate, the python/R interface, and choose the python enviroment or executable where the gempyor package is installed (go to the Installation section at the end), then import the package
+
+```{r}
+library(reticulate)
+# reticulate::use_python(Sys.which('python'),require=TRUE)
+reticulate::use_condaenv('covidSProd6')   
+gempyor <- reticulate::import("gempyor")
+```
+
+### Inference runs
+We create an InferenceSimulator object here, using a config filepath. The code in this section is very much like what is present in filter_MC.R for the inference runs. It may take a while to run all of that. First build the object
+```{r}
+config_filepath = '../tests/npi/config_npi.yml'
+gempyor_inference_runner <- gempyor$InferenceSimulator(
+                                                config_path=config_filepath,
+                                                run_id="test_run_id",
+                                                prefix="test_prefix/",
+                                                first_sim_index=1,
+                                                scenario="inference",   # NPIs scenario to use
+                                                deathrate="med",        # Outcome scenario to use
+                                                stoch_traj_flag=1,      
+                                                spatial_path_prefix = '../tests/npi/' # prefix where to find the folder indicated in spatial_setup
+)
+```
+
+These functions take as input a `seed` file with sim_id `sim_id2write`, and outputs files hpar, spar, snpi, hnpi, seir, hosp with sim_id `sim_id2write`. In case the flag load_ID is set as true, the function will also load from file the parameters and the NPIs (hnpi, snpi, hpar, spar) from the simulation with sim_id `sim_id2load`
+
+```{r}
+gempyor_inference_runner$one_simulation(0)
+gempyor_inference_runner$one_simulation(sim_id2write=0, load_ID=TRUE, sim_id2load=0)
+```
+
+An additional method is provided to update the prefix, which is done by e.g filter_mc_MC.R
+```{r}
+gempyor_inference_runner$update_prefix(new_prefix="my new prefix")
+```
+
+## Additional functions
+
+### NPIs
+Applies to both snpi and hnpi
+
+#### Draw NPIs from config
+
+#### Build NPI
+
+## Get compartment graph image
+
+```
+gempyor_inference_runner$get_compartment_graph("compartment_graph.png", filters=
+        [
+            [lambda x : x[3] == "age0to17", "source"],
+            [lambda x : (x[2] == "OMICRON") or (x[2] == "WILD"), "source"],
+            [lambda x : (x[2] == "OMICRON") or (x[2] == "WILD"), "destination"]
+        ]
+
+```
+
+### Get parameters
+
+
+
+## Installation
+You need a working python3.7 installation with the gempyor the package dependencies installed
+```
+ numba >=0.53.1
+ pandas
+ numpy
+ seaborn
+ tqdm
+ matplotlib
+ seaborn
+ click
+ confuse
+ pyarrow
+ sympy
+ dask
+ pytest ## only to run test
+ scipy
+ graphviz
+```
+
+### Normal python
+This command will install the package and all it's dependencies (the `-e` makes so that when you pull the pipeline again, there is no need for re-installing)
+```
+pip install -e gempyor_pkg/
+```
+If the dependencies are already there and you don't want to risk to update them because of other python project, do
+```
+pip install --no-deps -e gempyor_pkg/
+```
+
+
+### python in the docker
+```
+/home/app/python_venv/bin/python3.7 -m pip install --upgrade pip # needs new pip for toml file
+pip install  -e gempyor_pkg/
+```
+
+### Conda (simple)
+If you use conda, let's create a conda enviroment with the versions
+```
+conda create -n covidSProd6 python=3.7
+conda activate covidSProd6
+conda install -c conda-forge jupyterlab ipykernel  dask click confuse matplotlib numba">=0.53" numpy pandas pyarrow pytest scipy seaborn sympy  tqdm
+pip install --no-deps -e gempyor_pkg/
+```
+
+### Conda (complicated)
+This conda environment allows you to run both the R and the python code. It is not recommened except to run on HPCs.
+```
+conda create -n covidSProd6 -c conda-forge python jupyterlab ipykernel dask graphviz fastparquet click confuse matplotlib networkx numba">=0.53" numpy pandas pyarrow pytest scipy seaborn sympy  tqdm r-essentials
+conda activate covidSProd6
+python -m ipykernel install --user --name covidSProd6 --display-name "Python (covidSProd6)"
+export R_PROFILE=$COVID_PATH/slurm_batch/Rprofile
+conda install r-devtools  r-gridExtra r-ggfortify r-flextable r-doparallel r-reticulate r-truncnorm r-arrow
+conda install r-tigris
+conda install r-tidycensus r-optparse
+conda env export --from-history > environment_cross.yml
+conda env export > environment.yml
+```
+
+
