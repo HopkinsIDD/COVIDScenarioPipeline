@@ -4,24 +4,7 @@
 # interface.py defines handlers to the gempyor epidemic module
 # (both (SEIR) and the pipeline outcomes module (Outcomes))
 # so they can be used from R for inference.
-# R folks needs to define start a python, and set some variable as follow
-# ```R`
-#   reticulate::use_python(Sys.which(opt$python),require=TRUE)
-#   gempyor <- reticulate::import("gempyor")
-#   gempyor_inference_runner <- gempyor$InferenceSimulator(
-#                                                 config_path=config_file_out_generation,
-#                                                 run_id=test$runid,
-#                                                 prefix=global_block_prefix,
-#                                                 first_sim_index=1,
-#                                                 scenario="test",
-#                                                 deathrate="med",
-#                                                 stoch_traj_flag=1,
-#                                                 initialize=TRUE  # Shall we pre-compute now things that are not pertubed by inference
-# )
-#
-# err <- gempyor_inference_runner$one_simulation(0)
-# err <- gempyor_inference_runner$one_simulation_loadID(sim_id2write=0, sim_id2load=0)
-# ```
+# R folks needs to define start a python, and set some variable as describe in the notebook
 # This populate the namespace with four functions, with return value 0 if the
 # function terminated successfully
 
@@ -68,6 +51,7 @@ class InferenceSimulator:
         initialize=True,
         out_run_id=None,  # if out_run_id is different from in_run_id, fill this
         out_prefix=None,  # if out_prefix is different from in_prefix, fill this
+        spatial_path_prefix="",  # in case the data folder is on another directory
     ):
         self.scenario = scenario
         self.deathrate = deathrate
@@ -84,7 +68,8 @@ class InferenceSimulator:
         config.read(user=False)
         config.set_file(config_path)
         spatial_config = config["spatial_setup"]
-        spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
+        spatial_base_path = spatial_config["base_path"].get()
+        spatial_base_path = pathlib.Path(spatial_path_prefix + spatial_base_path)
 
         np.random.seed(rng_seed)
 
@@ -139,6 +124,13 @@ class InferenceSimulator:
             self.s.out_prefix = new_prefix
         else:
             self.s.out_prefix = new_out_prefix
+
+    def update_run_id(self, new_run_id, new_out_run_id=None):
+        self.s.in_run_id = new_run_id
+        if new_out_run_id is None:
+            self.s.out_run_id = new_run_id
+        else:
+            self.s.out_run_id = new_out_run_id
 
     # profile()
     def one_simulation_legacy(

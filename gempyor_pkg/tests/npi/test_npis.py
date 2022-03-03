@@ -18,7 +18,7 @@ import pyarrow.parquet as pq
 import pyarrow as pa
 from gempyor import file_paths, setup, outcomes, seir
 
-config_path_prefix = "" 
+config_path_prefix = ""
 
 ### To generate files for this test, see notebook Test Outcomes  playbook.ipynb in COVID19_Maryland
 
@@ -30,7 +30,7 @@ subclasses = ["_A", "_B"]
 os.chdir(os.path.dirname(__file__))
 
 
-def test_npis_read_write():
+def test_full_npis_read_write():
     os.chdir(os.path.dirname(__file__))
 
     inference_simulator = gempyor.InferenceSimulator(
@@ -38,14 +38,18 @@ def test_npis_read_write():
         run_id=105,
         prefix="",
         first_sim_index=1,
-        deathrate="high_death_rate",
-        scenario="Scenario1",
+        deathrate="med",
+        scenario="inference",
         stoch_traj_flag=False,
         out_run_id=106,
     )
 
-    npi_outcomes = outcomes.build_npi_Outcomes(inference_simulator.s, load_ID=False, sim_id2load=None, config=config)
-    npi_seir = seir.build_npi_SEIR(inference_simulator.s, load_ID=False, sim_id2load=None, config=config)
+    npi_outcomes = outcomes.build_npi_Outcomes(
+        inference_simulator.s, load_ID=False, sim_id2load=None, config=config
+    )
+    npi_seir = seir.build_npi_SEIR(
+        inference_simulator.s, load_ID=False, sim_id2load=None, config=config
+    )
 
     hnpi_read = pq.read_table(
         f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"

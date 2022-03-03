@@ -755,6 +755,32 @@ class Compartments:
         df = df.rename(columns=rename_dict)
         return df
 
+    def plot(
+        self, output_file="compartment_graph.png", filters=[[lambda x: True, "source"]]
+    ):
+        import graphviz
+        from functools import reduce
+
+        some_graph = self.parse_transitions(config["seir"])
+        for this_filter in filters:
+            print(some_graph)
+            some_graph = some_graph[
+                [x for x in map(this_filter[0], some_graph[this_filter[1]])]
+            ]
+        graph_description = (
+            "digraph {\n  overlap = false;"
+            + reduce(
+                lambda a, b: a + "\n" + b,
+                some_graph.apply(
+                    lambda x: f"""{reduce(lambda a,b : a + "_" + b, x["source"])} -> {reduce(lambda a,b: a + "_" + b, x["destination"])} [label="{reduce(lambda a,b: a + "*" + b, x["rate"])}"];""",
+                    axis=1,
+                ),
+            )
+            + "\n}"
+        )
+        src = graphviz.Source(graph_description)
+        src.render(output_file)
+
 
 def get_list_dimension(thing):
     if type(thing) == list:
