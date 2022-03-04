@@ -17,7 +17,7 @@ def create_file_name_without_extension(
 ):
     if create_directory:
         os.makedirs(create_dir_name(run_id, prefix, ftype), exist_ok=True)
-    return "model_output/%s/%s/sim_id=%09d/%s.%s" % (ftype, prefix, index, run_id, ftype)
+    return "model_output/%s/%ssim_id=%09d/%s.%s" % (ftype, prefix, index, run_id, ftype)
 
 
 def run_id():
