@@ -89,9 +89,13 @@ def steps_SEIR(
     logging.info(f"Integrating with method {s.integration_method}")
 
     if s.integration_method == "legacy":
-        raise ValueError("AOT legacy method not available on this version")
-        # seir_sim = steps_SEIR_nb(**fnct_args)
+        seir_sim = seir_sim = steps_rk4.rk4_integration(**fnct_args, method="legacy")
     elif s.integration_method == "rk4.jit":
+        if s.stoch_traj_flag == True:
+            raise ValueError(
+                f"with method {s.integration_method}, only deterministic"
+                f"integration is possible (got stoch_straj_flag={s.stoch_traj_flag}"
+            )
         seir_sim = steps_rk4.rk4_integration(**fnct_args)
     else:
         logging.critical(

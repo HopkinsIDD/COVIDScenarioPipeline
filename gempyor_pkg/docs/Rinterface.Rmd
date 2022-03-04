@@ -37,7 +37,7 @@ gempyor_simulator <- gempyor$InferenceSimulator(
                                                 first_sim_index=1,
                                                 scenario="inference",   # NPIs scenario to use
                                                 deathrate="med",        # Outcome scenario to use
-                                                stoch_traj_flag=1,      
+                                                stoch_traj_flag=FALSE,      
                                                 spatial_path_prefix = '../tests/npi/' # prefix where to find the folder indicated in spatial_setup
 )
 ```

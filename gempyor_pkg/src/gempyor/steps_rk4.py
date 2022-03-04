@@ -35,6 +35,7 @@ def rk4_integration(
     mobility_data_indices,  # 14
     population,  # 15
     stochastic_p,  # 16
+    method="rk4",
 ):
     states = np.zeros((ndays, ncompartments, nspatial_nodes))
     states_daily_incid = np.zeros((ndays, ncompartments, nspatial_nodes))
@@ -63,6 +64,7 @@ def rk4_integration(
     @jit(nopython=True, fastmath=True)
     def rhs(t, x, today):
         states_current = np.reshape(x, (2, ncompartments, nspatial_nodes))[0]
+        st_next = states_current.copy() # this is used to make sure stochastic integration never goes below zero
         states_diff = np.zeros(
             (2, ncompartments, nspatial_nodes)
         )  # first dim: 0 -> states_diff, 1: states_cum
@@ -148,7 +150,34 @@ def rk4_integration(
                         total_rate[spatial_node] *= (
                             rate_keep_compartment + rate_change_compartment.sum()
                         )
-            number_move = source_number * total_rate  # * compound_adjusted_rate
+
+            if method == "rk4":
+                number_move = source_number * total_rate  # * compound_adjusted_rate
+            elif method == "legacy":
+                compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
+                if stochastic_p:
+                    number_move = source_number * compound_adjusted_rate ## to initialize typ
+                    for spatial_node in range(nspatial_nodes):
+                        number_move[spatial_node] = np.random.binomial(
+                            source_number[spatial_node],
+                            compound_adjusted_rate[spatial_node],
+                        )
+                        if (number_move[spatial_node]
+                                > st_next[transitions[transition_source_col][transition_index]][
+                                    spatial_node
+                                ]
+                            ):
+                            number_move[spatial_node] = st_next[
+                                transitions[transition_source_col][transition_index]
+                            ][spatial_node]
+                    st_next[
+                        transitions[transition_source_col][transition_index]
+                    ] -= number_move
+                    st_next[
+                        transitions[transition_destination_col][transition_index]
+                    ] += number_move
+                else:
+                    number_move = source_number * compound_adjusted_rate
 
             states_diff[
                 0, transitions[transition_source_col][transition_index]
@@ -160,19 +189,15 @@ def rk4_integration(
                 1, transitions[transition_destination_col][transition_index], :
             ] += number_move  # Cumumlative
 
-        # states_current = states_next.copy()
         return np.reshape(states_diff, states_diff.size)  # return a 1D vector
 
     @jit(nopython=True, fastmath=True)
     def rk4_integrate(t, x, today):
-        dt = 1  # day by day rk integration. TODO: Should support smaller dt !
         k1 = rhs(t, x, today)
-        k2 = rhs(t, x + dt / 2 * k1, today)
-        k3 = rhs(t, x + dt / 2 * k2, today)
-        k4 = rhs(t, x + dt * k3, today)
+        k2 = rhs(t + dt / 2, x + dt / 2 * k1, today)
+        k3 = rhs(t + dt / 2, x + dt / 2 * k2, today)
+        k4 = rhs(t + dt, x + dt * k3, today)
         return x + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
-        # ell_next = dt / 6 * (k1ell + 2 * k2ell + 2 * k3ell + k4ell)
-        # return x_next, ell_next
 
     yesterday = -1
     times = np.arange(0, (ndays - 1) + 1e-7, dt)
@@ -212,12 +237,15 @@ def rk4_integration(
                     seeding_places
                 ] += this_seeding_amounts
 
-            x_ = np.zeros((2, ncompartments, nspatial_nodes))
-            x_[0] = states_next
-            x_ = np.reshape(x_, x_.size)
-            sol = rk4_integrate(today, x_, today)
-            x_ = np.reshape(sol, (2, ncompartments, nspatial_nodes))
-            states_daily_incid[today] = x_[1]
-            states_next = x_[0]
+        x_ = np.zeros((2, ncompartments, nspatial_nodes))
+        x_[0] = states_next
+        x_ = np.reshape(x_, x_.size)
+        if method == "rk4":
+            sol = rk4_integrate(time, x_, today)
+        elif method == "legacy":
+            sol = x_ + rhs(time, x_, today)
+        x_ = np.reshape(sol, (2, ncompartments, nspatial_nodes))
+        states_daily_incid[today] += x_[1]
+        states_next = x_[0]
 
     return states, states_daily_incid

@@ -430,7 +430,7 @@ for (test in tests) {
                                                 first_sim_index=1,
                                                 scenario="test",
                                                 deathrate="med",
-                                                stoch_traj_flag=TRUE,
+                                                stoch_traj_flag=FALSE,
                                                 initialize=TRUE  # Shall we pre-compute now things that are not pertubed by inference
 )
 
