@@ -219,11 +219,17 @@ for(scenario in scenarios) {
     ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/') #] "USA/inference/med/2022.03.04.10:18:42.CET/chimeric/intermediate/"
     gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/')  # USA/inference/med/2022.03.04.10:21:44.CET/global/intermediate/"
 
-    chimeric_block_prefix <- covidcommon::create_prefix(prefix=ci_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')  # "USA/inference/med/2022.03.04.10:18:42.CET/chimeric/intermediate/000000001."
-    chimeric_local_prefix <- covidcommon::create_prefix(prefix=chimeric_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.') # "USA/inference/med/2022.03.04.10:18:42.CET/chimeric/intermediate/000000001.000000001."
+    chimeric_block_prefix <- covidcommon::create_prefix(prefix=ci_prefix, slot=list(opt$this_slot,"slot=%09d"), sep='/', trailing_separator='/')
+    #chimeric_block_prefix <- covidcommon::create_prefix(prefix=chimeric_block_prefix_temp, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')  # "USA/inference/med/2022.03.04.10:18:42.CET/chimeric/intermediate/000000001."
+    
+    chimeric_local_prefix <- covidcommon::create_prefix(prefix=chimeric_block_prefix, slot=list(opt$this_block,"block=%09d"), sep='/', trailing_separator='/') # "USA/inference/med/2022.03.04.10:18:42.CET/chimeric/intermediate/000000001.000000001."
+    #chimeric_local_prefix <- covidcommon::create_prefix(prefix=chimeric_local_prefix_temp, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.') # "USA/inference/med/2022.03.04.10:18:42.CET/chimeric/intermediate/000000001.000000001."
 
-    global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.') #  "USA/inference/med/2022.03.04.10:18:42.CET/global/intermediate/000000001."
-    global_local_prefix <- covidcommon::create_prefix(prefix=global_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.') # "USA/inference/med/2022.03.04.10:18:42.CET/global/intermediate/000000001.000000001."
+    global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(opt$this_slot,"slot=%09d"), sep='/', trailing_separator='/')
+    #global_block_prefix <- covidcommon::create_prefix(prefix=global_block_prefix_temp, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.') #  "USA/inference/med/2022.03.04.10:18:42.CET/global/intermediate/000000001."
+    
+    global_local_prefix <- covidcommon::create_prefix(prefix=global_block_prefix, slot=list(opt$this_block,"block=%09d"), sep='/', trailing_separator='/')
+    #global_local_prefix <- covidcommon::create_prefix(prefix=global_local_prefix_temp, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.') # "USA/inference/med/2022.03.04.10:18:42.CET/global/intermediate/000000001.000000001."
 
     ## python configuration: build simulator model initialized with compartment and all.
     gempyor_inference_runner <- gempyor$InferenceSimulator(
