@@ -301,7 +301,7 @@ fix_negative_counts <- function(
     min_date = min(df[[date_col_name]]),
     max_date = max(df[[date_col_name]]),
     type="mid" # "low" or "high"
-) {
+){
     
     if(nrow(dplyr::filter(df, !!incid_col_name < 0)) > 0) {
         return(df)
@@ -358,7 +358,7 @@ fix_negative_counts_global <- function(
 aggregate_counties_to_state <- function(df, state_fips){
     aggregated <- dplyr::filter(df, grepl(paste0("^", state_fips), FIPS))
     aggregated <- dplyr::group_by(aggregated, source, Update)
-    aggregated <- dplyr::summarise(aggregated, Confirmed = sum(Confirmed), Deaths = sum(Deaths), incidI = sum(incidI), incidDeath = sum(incidDeath))
+    aggregated <- dplyr::summarise(aggregated, Confirmed = sum(Confirmed, na.rm = TRUE), Deaths = sum(Deaths, na.rm = TRUE), incidI = sum(incidI, na.rm = TRUE), incidDeath = sum(incidDeath, na.rm = TRUE))
     aggregated <- dplyr::mutate(aggregated, FIPS = paste0(state_fips, "000"))
     aggregated <- dplyr::ungroup(aggregated)
     nonaggregated <- dplyr::filter(df, !grepl(paste0("^", state_fips), FIPS))
@@ -446,20 +446,24 @@ get_USAFacts_data <- function(case_data_filename = "data/case_data/USAFacts_case
 download_CSSE_US_data <- function(filename, url, value_col_name, incl_unassigned = FALSE){
     
     dir.create(dirname(filename), showWarnings = FALSE, recursive = TRUE)
-    message(paste("Downloading", url, "to", filename))
-    download.file(url, filename, "auto")
+    # message(paste("Downloading", url, "to", filename))
+    # download.file(url, filename, "auto")
+    # csse_data <- readr::read_csv(filename, col_types = list("FIPS" = readr::col_character())) %>%
+    #     tibble::as_tibble()
     
-    csse_data <- readr::read_csv(filename, col_types = list("FIPS" = readr::col_character())) %>%
+    message(paste0("Downloading CSSE data from ", url, "."))
+    csse_data <- readr::read_csv(url, col_types = list("FIPS" = readr::col_character())) %>%
         tibble::as_tibble()
+    
     if (incl_unassigned){
-        csse_data <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
-                                       !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
-                                       !is.na(FIPS))
+        csse_data <- csse_data %>% dplyr::filter(!grepl("out of", Admin2, ignore.case = TRUE) & ## out of state records
+                                                     !grepl("princess", Province_State, ignore.case = TRUE) & ## cruise ship cases
+                                                     !is.na(FIPS))
     } else{
-        csse_data2 <- dplyr::filter(csse_data, !grepl("out of", Admin2, ignore.case = TRUE),  ## out of state records
-                                    !grepl("unassigned", Admin2, ignore.case = TRUE),  ## probable cases
-                                    !grepl("princess", Province_State, ignore.case = TRUE),  ## cruise ship cases
-                                    !is.na(FIPS))
+        csse_data2 <- csse_data %>% dplyr::filter(!grepl("out of", Admin2, ignore.case = TRUE),  ## out of state records
+                                                  !grepl("unassigned", Admin2, ignore.case = TRUE),  ## probable cases
+                                                  !grepl("princess", Province_State, ignore.case = TRUE),  ## cruise ship cases
+                                                  !is.na(FIPS))
         ## include unassigned PR cases & deaths because they are being aggregated to territory level in get_CSSE_US_data
         pr_unassigned <- dplyr::filter(csse_data, grepl("unassigned", Admin2, ignore.case = TRUE),
                                        Province_State == "Puerto Rico")
@@ -516,7 +520,8 @@ download_CSSE_US_data <- function(filename, url, value_col_name, incl_unassigned
 ##'
 get_CSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_case_data_crude.csv",
                              death_data_filename = "data/case_data/jhucsse_us_death_data_crude.csv",
-                             incl_unassigned = FALSE){
+                             incl_unassigned = TRUE,
+                             fix_negatives = TRUE){
     
     CSSE_US_CASE_DATA_URL <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
     CSSE_US_DEATH_DATA_URL <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"
@@ -540,12 +545,15 @@ get_CSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_cas
         }
     )
     
-    # Fix incidence counts that go negative and NA values or missing dates
-    csse_us_data <- fix_negative_counts(csse_us_data, "Confirmed", "incidI") %>%
-        fix_negative_counts("Deaths", "incidDeath")
-    
     # Aggregate county-level data for Puerto Rico
     csse_us_data <- aggregate_counties_to_state(csse_us_data, "72")
+    csse_us_data <- csse_us_data %>% as_tibble()
+    
+    if(fix_negatives){
+        # Fix incidence counts that go negative and NA values or missing dates
+        csse_us_data <- fix_negative_counts(csse_us_data, "Confirmed", "incidI") %>%
+            fix_negative_counts("Deaths", "incidDeath")
+    }
     
     return(csse_us_data)
 }
@@ -826,7 +834,7 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 
 
 
-#' get_rawcoviddata_state_data
+#' get_rawcoviddata_state_data_old
 #'
 #' @param fix_negatives 
 #'
@@ -840,17 +848,18 @@ get_rawcoviddata_state_data <- function(fix_negatives = TRUE){
     # install the required package if not already
     is_rawcoviddata_available <- require("rawcoviddata")
     if (!is_rawcoviddata_available){
-        devtools::install_github("lmullany/rawcoviddata")
+        devtools::install_github("lmullany/rawcoviddata", force = TRUE)
     }
     
     # Pull CSSE data using `rawcoviddata` package from Luke Mullany
-    us_data <- rawcoviddata::us_empirical_by_level()
+    cdp <- rawcoviddata::cssedata(return_compact=T)
+    state_dat <- rawcoviddata::get_state_from_cdp(cdp=cdp, state = NULL, fix_cumul = fix_negatives, type = c("mid"))
+    
     loc_dictionary <- readr::read_csv("https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-locations/locations.csv") %>%
-        dplyr::rename(fips = location, USPS=abbreviation, state=location_name, Pop2 = population) %>%
+        dplyr::rename(fips = location, USPS=abbreviation, Province_State=location_name, Pop2 = population) %>%
         dplyr::filter(stringr::str_length(fips)==2 & fips!="US") %>% 
         data.table::as.data.table()
     
-    state_dat <- us_data[["state"]]
     state_dat <- state_dat[loc_dictionary, on = .(USPS)]
     
     state_dat <- state_dat %>%
@@ -879,7 +888,6 @@ get_rawcoviddata_state_data <- function(fix_negatives = TRUE){
     
     return(state_dat)
 }
-
 
 
 
@@ -1023,6 +1031,8 @@ get_covidcast_data <- function(
         print(paste("(DataUtils.R) Limiting CSSE US data to:", validation_date, sep=" "))
         res <- dplyr::filter(res, Update < validation_date)
     }
+    
+    res <- res %>% as_tibble()
     
     # Fix incidence counts that go negative and NA values or missing dates
     if (fix_negatives & any(c("Confirmed", "incidI", "Deaths", "incidDeath") %in% colnames(res))){
