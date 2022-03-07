@@ -196,20 +196,22 @@ if (!("gt_start_date" %in% colnames(gt_info))){
     gt_info$gt_start_date <- lubridate::as_date(gt_start_date_)
 } else {
     gt_info <- gt_info %>% 
-        mutate(gt_start_date = lubridate::as_date(gt_start_date)) %>%
-        mutate(gt_start_date = replace(gt_start_date, is.na(gt_info$gt_start_date), gt_start_date_))
+        dplyr::mutate(gt_start_date = lubridate::as_date(gt_start_date)) %>%
+        dplyr::mutate(gt_start_date = replace(gt_start_date, is.na(gt_info$gt_start_date), gt_start_date_))
 }
 if (!("gt_end_date" %in% colnames(gt_info))){
     gt_info$gt_end_date <- lubridate::as_date(gt_end_date_)
 } else {
     gt_info <- gt_info %>% 
-        mutate(gt_end_date = lubridate::as_date(gt_end_date)) %>%
-        mutate(gt_end_date = replace(gt_end_date, is.na(gt_info$gt_end_date), gt_end_date_))
+        dplyr::mutate(gt_end_date = lubridate::as_date(gt_end_date)) %>%
+        dplyr::mutate(gt_end_date = replace(gt_end_date, is.na(gt_info$gt_end_date), gt_end_date_))
 }
 
 
 gt_sources <- unique(gt_info$gt_source)
 gt_targets_all <- unique(gsub("_(.*)", "", gt_info$data_var))
+
+print(gt_info)
 
 obs <- tibble::tibble(geoid = fips_codes_)
 if (length(gt_sources)>1 | length(unique(gt_info$gt_start_date))>1 | length(unique(gt_info$gt_end_date))>1){
@@ -218,7 +220,8 @@ if (length(gt_sources)>1 | length(unique(gt_info$gt_start_date))>1 | length(uniq
         for (g in 1:length(gt_sources)){
             
             # ground truth targets to pull
-            gt_tmp <- gt_info %>% filter(gt_source == gt_sources[g])
+            gt_tmp <- gt_info %>% dplyr::filter(gt_source == gt_sources[g])
+            print(gt_tmp)
             gt_targets <- unique(gsub("_(.*)", "", gt_tmp$data_var))
             if (("incidDeath" %in% gt_targets) & !("incidI" %in% gt_targets_all)) gt_targets <- c(gt_targets, "incidI")
             if (("incidI" %in% gt_targets) & !("incidI" %in% gt_targets_all)) gt_targets <- c(gt_targets, "incidDeath")
@@ -263,10 +266,10 @@ if (length(gt_sources)>1 | length(unique(gt_info$gt_start_date))>1 | length(uniq
     
     # limit dates
     gt_infofull <- gt_info %>%
-        bind_rows(gt_info %>%
-                      mutate(data_var = gsub("incidI", "Confirmed", data_var), 
-                             data_var = gsub("incidH", "Hospitalizations", data_var), 
-                             data_var = gsub("incidDeath", "Deaths", data_var)))
+        dplyr::bind_rows(gt_info %>%
+                             dplyr::mutate(data_var = gsub("incidI", "Confirmed", data_var), 
+                                           data_var = gsub("incidH", "Hospitalizations", data_var), 
+                                           data_var = gsub("incidDeath", "Deaths", data_var)))
     target_ <- gt_infofull$data_var
     
     for (s in 1:nrow(gt_infofull)){
@@ -285,7 +288,7 @@ if (length(gt_sources)>1 | length(unique(gt_info$gt_start_date))>1 | length(uniq
         cache = opt$cache_gt,
         gt_source = gt_sources,
         gt_scale = gt_scale,
-        targets = gt_targets, 
+        targets = gt_targets_all, 
         fix_negatives = opt$fix_negatives,
         variant_filename = config$seeding$variant_filename
     )    
