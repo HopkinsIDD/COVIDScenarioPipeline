@@ -222,14 +222,13 @@ obs <- tibble::tibble(geoid = fips_codes_)
 # if (length(gt_sources)>1 | length(unique(gt_info$gt_start_date))>1 | length(unique(gt_info$gt_end_date))>1){
 
 if(!(file.exists(data_path) & opt$cache_gt)){
-
+    
     for (g in 1:length(gt_sources)){
         
         # ground truth targets to pull
-                print(paste0("Pulling new data from ", gt_sources[g]))
-        print(gt_tmp)
-        
+        print(paste0("Pulling new data from ", gt_sources[g]))
         gt_tmp <- gt_info %>% dplyr::filter(gt_source == gt_sources[g])
+        print(gt_tmp)
         gt_targets <- unique(gsub("_(.*)", "", gt_tmp$data_var))
         if (("incidDeath" %in% gt_targets) & !("incidI" %in% gt_targets_all)) gt_targets <- c(gt_targets, "incidI")
         if (("incidI" %in% gt_targets) & !("incidI" %in% gt_targets_all)) gt_targets <- c(gt_targets, "incidDeath")
@@ -272,11 +271,11 @@ if(!(file.exists(data_path) & opt$cache_gt)){
     for (s in 1:nrow(gt_infofull)){
         na_inds <- !(obs$date >= gt_infofull$gt_start_date[s]) & (obs$date <= gt_infofull$gt_end_date[s])
         obs[na_inds, target_[s]] <- NA
-
+        
     }
     # save merged
     readr::write_csv(obs, data_path)
-
+    
 } else {
     message("*** USING CACHED Data\n")
     obs <- suppressMessages(readr::read_csv(
