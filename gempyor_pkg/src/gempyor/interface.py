@@ -405,9 +405,9 @@ class InferenceSimulator:
             )
             a["geoid"] = geoid
             full_df = pd.concat([full_df, a])
-        
+
         # for R, duplicate names are not allowed in index:
-        full_df['date'] = full_df.index
+        full_df["date"] = full_df.index
         full_df = full_df.reset_index(drop=True)
 
         return full_df
