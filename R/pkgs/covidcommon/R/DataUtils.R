@@ -547,7 +547,7 @@ get_CSSE_US_data <- function(case_data_filename = "data/case_data/jhucsse_us_cas
     
     # Aggregate county-level data for Puerto Rico
     csse_us_data <- aggregate_counties_to_state(csse_us_data, "72")
-    csse_us_data <- csse_us_data %>% as_tibble()
+    csse_us_data <- csse_us_data %>% tibble::as_tibble()
     
     if(fix_negatives){
         # Fix incidence counts that go negative and NA values or missing dates
@@ -1032,7 +1032,7 @@ get_covidcast_data <- function(
         res <- dplyr::filter(res, Update < validation_date)
     }
     
-    res <- res %>% as_tibble()
+    res <- res %>% tibble::as_tibble()
     
     # Fix incidence counts that go negative and NA values or missing dates
     if (fix_negatives & any(c("Confirmed", "incidI", "Deaths", "incidDeath") %in% colnames(res))){

@@ -190,7 +190,7 @@ if (gt_end_date_ > lubridate::ymd(config$end_date)) {
 
 gt_info <- as.list(config$filtering$statistics) %>%
     data.table::rbindlist(fill=TRUE) %>% as.data.frame() %>%
-    dplyr::select(-likelihood) %>% as_tibble() 
+    dplyr::select(-likelihood) %>% tibble::as_tibble() 
 
 if (!("gt_start_date" %in% colnames(gt_info))){
     gt_info$gt_start_date <- lubridate::as_date(gt_start_date_)
