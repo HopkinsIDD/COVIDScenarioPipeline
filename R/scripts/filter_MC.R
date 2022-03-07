@@ -257,12 +257,13 @@ if(!(file.exists(data_path) & opt$cache_gt)){
     print(paste0("Existing targets: ",gt_targets_all, "."))
     print(head(obs))
     print(head(readr::read_csv(variant_props_file)))
-
+    print(do_variant_adjustment2)
+    print(covidcommon::do_variant_adjustment2)
     
     # do variant adjustment
     if (!is.null(variant_props_file) & any(c("incidI", "Confirmed") %in% gt_targets_all)) {
         tryCatch({
-            obs <- do_variant_adjustment2(obs, variant_props_file, var_targets = c("incidI","Confirmed"))
+            obs <- covidcommon::do_variant_adjustment2(obs, variant_props_file, var_targets = c("incidI","Confirmed"))
         }, error = function(e) {
             stop(paste0("Could not use variant file |", variant_props_file, "|, with error message", e$message()))
         })
