@@ -21,6 +21,9 @@ Load reticulate, the python/R interface, and choose the python enviroment or exe
 
 ```{r}
 library(reticulate)
+library(tidyverse)
+library(ggplot2)
+library(tibble)
 # reticulate::use_python(Sys.which('python'),require=TRUE)
 reticulate::use_condaenv('covidSProd6')   
 gempyor <- reticulate::import("gempyor")
@@ -42,29 +45,59 @@ gempyor_simulator <- gempyor$InferenceSimulator(
 )
 ```
 
-
-### Simulate
-
-These functions take as input a `seed` file with sim_id `sim_id2write`, and outputs files hpar, spar, snpi, hnpi, seir, hosp with sim_id `sim_id2write`. In case the flag load_ID is set as true, the function will also load from file the parameters and the NPIs (hnpi, snpi, hpar, spar) from the simulation with sim_id `sim_id2load`
-
-```{r}
-gempyor_simulator$one_simulation(sim_id2write=0)
-gempyor_simulator$one_simulation(sim_id2write=0, load_ID=TRUE, sim_id2load=0)
-```
-
-An additional method is provided to update the prefix, which is done by e.g filter_mc_MC.R
-```{r}
-gempyor_inference_runner$update_prefix(new_prefix="my new prefix")
-```
-
 ## Additional functions
+Some additional functions are provided for investigation of debug purpose:
 
-### NPIs
-Applies to both snpi and hnpi
+### Parameters
+```{r}
+params_draw_df = gempyor_simulator$get_seir_parametersDF()   # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
 
-#### Draw NPIs from config
+## The array will be usefull later in the tutorial, to use it with the npi
+params_draw_arr = gempyor_simulator$get_seir_parameters()    # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
 
-#### Build NPI
+params_draw_df
+```
+
+## NPIs
+
+```{r}
+npi_seir = gempyor_simulator$get_seir_npi()                  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_snpi_df>) or (bypass_FN=<some_snpi_filename>)
+npi_outcome = gempyor_simulator$get_outcome_npi()            # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_hnpi_df>) or (bypass_FN=<some_hnpi_filename>)
+```
+```{r}
+npi_seir$getReductionDF()
+```
+
+```{r, fig.show=TRUE}
+reduc <- npi_seir$getReduction(param = 'r0')
+reduc <- reduc %>% rownames_to_column(var = 'geoid') 
+reduc <- reduc %>% pivot_longer(cols=colnames(reduc %>% select(-geoid)), names_to = "date", values_to = "reduction")%>% mutate(date=as.Date(date))  # probably a very ugly way way to to this
+reduc %>% ggplot(aes(x=date, y=reduction)) + geom_path() + facet_wrap(~ geoid)
+```
+
+```{r}
+npi_outcome$getReductionDF() %>% select('parameter') %>% unique()
+```
+
+```{r, fig.show=TRUE}
+reduc <- npi_outcome$getReduction(param = 'inciditoc_all')
+reduc <- reduc %>% rownames_to_column(var = 'geoid') 
+reduc <- reduc %>% pivot_longer(cols=colnames(reduc %>% select(-geoid)), names_to = "date", values_to = "reduction")%>% mutate(date=as.Date(date))  # probably a very ugly way way to to this
+reduc %>% ggplot(aes(x=date, y=reduction)) + geom_path() + facet_wrap(~ geoid)
+```
+ ### SEIR Parameters
+```{r,  fig.show=TRUE}
+param_reduc = gempyor_simulator$get_seir_parameter_reduced(npi_seir=npi_seir) # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
+param_reduc_from = gempyor_simulator$get_seir_parameter_reduced(npi_seir=npi_seir, p_draw=params_draw_arr) # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
+param_reduc <- param_reduc %>% pivot_longer(cols = param_reduc %>% select(-date, -geoid) %>% colnames(), names_to = 'parameter')
+
+param_reduc %>% filter(parameter=='r0') %>% ggplot(aes(x=date, y=value)) + geom_line() + facet_wrap(~geoid)
+```
+
+
+```{r,  fig.show=TRUE}
+param_reduc %>% filter(parameter=='nu1age18to64') %>% ggplot(aes(x=date, y=value)) + geom_path() + facet_wrap(~ geoid)
+````
 
 ## Get compartment graph image
 
@@ -82,7 +115,28 @@ here if source_filters is [["age0to17"], ["OMICRON", "WILD"]], it means filter (
 ![while readable_graph look like this](./readable_graph.pdf){width=100% height=200}
 
 
-### Get parameters
+
+### Simulate
+
+These functions take as input a `seed` file with sim_id `sim_id2write`, and outputs files hpar, spar, snpi, hnpi, seir, hosp with sim_id `sim_id2write`. In case the flag load_ID is set as true, the function will also load from file the parameters and the NPIs (hnpi, snpi, hpar, spar) from the simulation with sim_id `sim_id2load`
+
+```{r}
+gempyor_simulator$one_simulation(sim_id2write=0)
+gempyor_simulator$one_simulation(sim_id2write=1, load_ID=TRUE, sim_id2load=0)
+```
+
+An additional method is provided to update the prefix, which is done by e.g filter_mc_MC.R
+```{r}
+gempyor_simulator$update_prefix(new_prefix="my new prefix")
+```
+
+### Little redudant example:
+
+```{r,  fig.show=TRUE}
+
+
+param_reduc %>% filter(parameter=='nu1age18to64') %>% ggplot(aes(x=date, y=value)) + geom_path() + facet_wrap(~ geoid)
+````
 
 
 
