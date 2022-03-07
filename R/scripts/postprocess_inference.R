@@ -355,7 +355,7 @@ if (!file.exists(outfile_hpar) | redo) {
                                 y = names(config$outcomes$settings$med)),
                            function(x, y) {
                              if ("perturbation" %in% names(x$probability)) {
-                               tibble(outcome = y, source = x$source)
+                               tibble::tibble(outcome = y, source = x$source)
                              }
                            })%>% 
       mutate(os = str_c(outcome, source, sep = "-")) 

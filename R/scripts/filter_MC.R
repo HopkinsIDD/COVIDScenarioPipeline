@@ -190,7 +190,7 @@ if (gt_end_date_ > lubridate::ymd(config$end_date)) {
 
 gt_info <- as.list(config$filtering$statistics) %>%
     data.table::rbindlist(fill=TRUE) %>% as.data.frame() %>%
-    dplyr::select(-likelihood) %>% as_tibble() 
+    dplyr::select(-likelihood) %>% tibble::as_tibble() 
 
 if (!("gt_start_date" %in% colnames(gt_info))){
     gt_info$gt_start_date <- lubridate::as_date(gt_start_date_)
@@ -211,7 +211,7 @@ if (!("gt_end_date" %in% colnames(gt_info))){
 gt_sources <- unique(gt_info$gt_source)
 gt_targets_all <- unique(gsub("_(.*)", "", gt_info$data_var))
 
-obs <- tibble(geoid = fips_codes_)
+obs <- tibble::tibble(geoid = fips_codes_)
 if (length(gt_sources)>1 | length(unique(gt_info$gt_start_date))>1 | length(unique(gt_info$gt_end_date))>1){
     
     if(!(file.exists(data_path) & opt$cache_gt)){
