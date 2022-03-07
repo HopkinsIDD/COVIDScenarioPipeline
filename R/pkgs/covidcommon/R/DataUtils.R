@@ -1115,7 +1115,7 @@ get_gt_file_data <- function(source_file){
 ##' @export
 ##'
 get_groundtruth_from_source <- function(source = "csse", 
-                                        scale = "US county", 
+                                        scale = "US state", 
                                         source_file = NULL,
                                         variables = c("Confirmed", "Deaths", "incidI", "incidDeath"), 
                                         incl_unass = TRUE, 
@@ -1193,31 +1193,19 @@ get_groundtruth_from_source <- function(source = "csse",
         
     } else if(source == "csse_lm" & scale == "US state"){
         
-        variables_ <- variables[!grepl("incidh|hosp", tolower(variables))] 
+        variables_ <- variables[!grepl("incidh|hosp", tolower(variables))] # hosp not available 
         rc <- get_rawcoviddata_state_data(fix_negatives=fix_negatives) %>%
             dplyr::select(Update, FIPS, source, !!variables_) %>%
             tidyr::drop_na(tidyselect::everything())
         
-        if (any(grepl("hosp|incidh", tolower(variables)))){
-            
-            variables_hosp <- variables[grepl("incidh|hosp", tolower(variables))] 
-            rc_hosp <- get_covidcast_data(geo_level = "state",
-                                          signals = "confirmed_admissions_covid_1d",
-                                          limit_date = Sys.Date(),
-                                          fix_negatives = fix_negatives,
-                                          run_parallel = FALSE) %>%
-                dplyr::select(Update, FIPS, source, !!variables_hosp) %>%
-                tidyr::drop_na(tidyselect::everything())
-            rc <- rc %>% dplyr::full_join(rc_hosp)
-        }
-        
     } else if(source == "covidcast" & scale == "US state"){
         
         # define covidcast signals
-        signals <- c("deaths_incidence_num", "deaths_cumulative_num", "confirmed_incidence_num", "confirmed_cumulative_num")
-        if (any(grepl("hosp", variables))){
-            signals <- c(signals,"confirmed_admissions_covid_1d")
-        }   
+        
+        signals <- NULL
+        if (any(c("incidDeath", "Deaths") %in% variables)) signals <- c(signals, "deaths_incidence_num", "deaths_cumulative_num")
+        if (any(c("incidI", "Confirmed") %in% variables)) signals <- c(signals, "confirmed_incidence_num", "confirmed_cumulative_num")
+        if (any(grepl("hosp|incidH", variables))) signals <- c(signals, "confirmed_admissions_covid_1d")
         
         rc <- get_covidcast_data(geo_level = "state",
                                  signals = signals,
@@ -1229,7 +1217,13 @@ get_groundtruth_from_source <- function(source = "csse",
         
     } else if(source == "file"){
         
-        rc <- get_gt_file_data(source_file) %>%
+        rc <- get_gt_file_data(source_file)
+        
+        # check that it has correct columns
+        check_cols <- all(c("Update", "FIPS", "source", variables) %in% colnames(rc))
+        stopifnot("Columns missing in source file. Must have [Update, FIPS, source] and desired variables." = all(check_cols))
+        
+        rc <- rc %>%
             dplyr::select(rc, Update, FIPS, source, !!variables) %>%
             tidyr::drop_na(rc, tidyselect::everything())
         
@@ -1238,7 +1232,7 @@ get_groundtruth_from_source <- function(source = "csse",
         rc <- NULL
     }
     
-    if (adjust_for_variant) {
+    if (adjust_for_variant & any(c("incidI", "Confirmed") %in% variables)) {
         tryCatch({
             rc <- do_variant_adjustment(rc, variant_props_file)
         }, error = function(e) {
@@ -1252,7 +1246,7 @@ get_groundtruth_from_source <- function(source = "csse",
 
 
 
-#' Title
+#' Do variant adjustment 
 #'
 #' @param rc 
 #' @param variant_props_file 
@@ -1262,26 +1256,57 @@ get_groundtruth_from_source <- function(source = "csse",
 #' @export
 #'
 #' @examples
-do_variant_adjustment <- function(rc, 
-                                  variant_props_file = "data/variant/variant_props_long.csv", 
-                                  var_targets = c("incidI","Confirmed")){
+do_variant_adjustment <- function (rc, 
+                                   variant_props_file = "data/variant/variant_props_long.csv", 
+                                   var_targets = c("incidI", "Confirmed")) {
+    outcome_column_names <- names(rc)[(names(rc) %in% var_targets)]
+    variant_data <- readr::read_csv(variant_props_file)
+    rc <- rc %>% tidyr::pivot_longer(!!outcome_column_names, names_to = "outcome") %>% 
+        dplyr::left_join(variant_data) %>% 
+        dplyr::mutate(value = value * prop) %>% dplyr::select(-prop) %>% 
+        dplyr::bind_rows(dplyr::mutate(tidyr::pivot_longer(rc, !!outcome_column_names, names_to = "outcome"), variant = "all variants")) %>% 
+        tidyr::pivot_wider(names_from = c("outcome", "variant"), values_from = "value") %>% dplyr::bind_rows(rc)
+    return(rc)
+}
+
+
+#' Do variant adjustment - version 2
+#'
+#' @param rc 
+#' @param variant_props_file 
+#' @param var_targets 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+do_variant_adjustment2 <- function(rc, 
+                                     variant_props_file = "data/variant/variant_props_long.csv", 
+                                     var_targets = c("incidI","Confirmed")){
     #non_outcome_column_names <- c("FIPS", "Update", "source", )
     #outcome_column_names <- names(rc)[!(names(rc) %in% non_outcome_column_names)]
     outcome_column_names <- names(rc)[(names(rc) %in% var_targets)]
-    variant_data <- readr::read_csv(variant_props_file)
+    
+    variant_data <- readr::read_csv(variant_props_file) %>% 
+        rename(date = Update) %>%
+        tidyr::pivot_wider(names_from = variant, values_from = prop, names_prefix = "prop_")
+    
     rc <- rc %>%
-        tidyr::pivot_longer(!!outcome_column_names, names_to = "outcome") %>%
-        dplyr::left_join(variant_data) %>%
-        dplyr::mutate(value = value * prop) %>%
-        dplyr::select(-prop) %>%
+        dplyr::select(geoid, date, source, !!outcome_column_names) %>%
+        dplyr::left_join(variant_data, by=c("date", "source")) %>%
+        tidyr::pivot_longer(cols = tidyselect::starts_with("prop"), names_to = "variant", values_to = "prop") %>%
+        tidyr::pivot_longer(cols = !!outcome_column_names, names_to = "outcome", values_to = "value") %>% 
+        dplyr::mutate(value = round(value*prop,0)) %>%
         dplyr::bind_rows(
             dplyr::mutate(
-                tidyr::pivot_longer(rc, !!outcome_column_names, names_to = "outcome"),
-                variant = "all variants"
-            )
-        ) %>%
-        tidyr::pivot_wider(names_from = c("outcome", "variant"), values_from = "value") %>%
-        dplyr::bind_rows(rc)
+                rc %>%
+                    # dplyr::select(geoid, date, source, !!outcome_column_names) %>%
+                    tidyr::pivot_longer(-c(geoid, date, source), names_to = "outcome"),
+                variant = "")) %>%
+        dplyr::mutate(outcome = paste0(outcome, gsub("prop", "", variant))) %>%
+        dplyr::select(-prop, -variant) %>%
+        tidyr::pivot_wider(names_from = outcome, values_from = value)
+
     return(rc)
 }
 

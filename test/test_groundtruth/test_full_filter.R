@@ -294,7 +294,7 @@ if (gt_end_date > lubridate::ymd(config$end_date)) {
 # ground truth targets to pull
 gt_targets <- c("Confirmed", "Deaths", "incidI", "incidDeath")
 if(any(grepl("hosp", tolower(names(config$filtering$statistics))))){
-    gt_targets <- c(gt_targets, "Hospitalizations", "incidHospitalizations")
+    gt_targets <- c(gt_targets, "Hospitalizations", "incidH")
 }
 
 opt$cache_gt <- FALSE

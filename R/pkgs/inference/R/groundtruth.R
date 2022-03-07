@@ -11,7 +11,7 @@
 #' @export
 get_ground_truth_file <- function(data_path, cache = TRUE, 
                                   gt_source = "csse", 
-                                  gt_scale = "US county", 
+                                  gt_scale = "US state", 
                                   gt_source_file = NULL,
                                   targets = c("Confirmed", "Deaths", "incidI", "incidDeath"), 
                                   fix_negatives=TRUE, 
@@ -84,6 +84,60 @@ get_ground_truth <- function(data_path,
                           targets = targets, 
                           fix_negatives = fix_negatives,
                           variant_filename = variant_filename)
+    
+    rc <- suppressMessages(readr::read_csv(
+        data_path,
+        col_types = list(FIPS = readr::col_character()),
+    ))
+    rc <- dplyr::filter(
+        rc,
+        FIPS %in% fips_codes,
+        date >= start_date,
+        date <= end_date
+    )
+    rc <- dplyr::right_join(
+        rc,
+        tidyr::expand_grid(
+            FIPS = unique(rc$FIPS),
+            date = unique(rc$date)
+        )
+    )
+    rc <- rc %>% arrange(FIPS, source, date)
+    #rc <- dplyr::mutate_if(rc, is.numeric, dplyr::coalesce, 0) # causing issues. and may be invalid if there are NAs because of technical issues (like with MD hack)
+    names(rc)[names(rc) == "FIPS"] <- fips_column_name
+    return(rc)
+}
+
+#' Function to load US COVID data from USAfacts
+#'
+#' @param data_path Path where to write the data
+#' @param fips_codes 
+#' @param fips_column_name 
+#' @param start_date 
+#' @param end_date 
+#' @param cache 
+#' @param gt_source 
+#' @param gt_scale 
+#' @param variant_filename 
+#'
+#' @export
+get_ground_truth_target <- function(gt_data, 
+                             fips_codes, 
+                             fips_column_name, 
+                             start_date, 
+                             end_date, 
+                             cache = TRUE, 
+                             gt_source = "csse", 
+                             gt_scale = "US county", 
+                             targets = c("Confirmed", "Deaths", "incidI", "incidDeath"), 
+                             fix_negatives = TRUE,
+                             variant_filename = "data/variant/variant_props_long.csv"){
+    # 
+    # get_ground_truth_file(data_path = data_path, cache = cache, 
+    #                       gt_source = gt_source, gt_scale = gt_scale, 
+    #                       targets = targets, 
+    #                       fix_negatives = fix_negatives,
+    #                       variant_filename = variant_filename)
     
     rc <- suppressMessages(readr::read_csv(
         data_path,

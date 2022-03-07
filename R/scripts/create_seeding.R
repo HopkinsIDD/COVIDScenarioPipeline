@@ -118,19 +118,19 @@ if (!is.null(gt_source)) {
             ))
         }
     }
-    cases_deaths <- read.csv(data_path)
+    cases_deaths <- readr::read_csv(data_path)
     print(paste("Successfully loaded data from ", data_path, "for seeding."))
 }
 
 
 
 if (seed_variants) {
-    variant_data <- readr::read_csv(config$seeding$variant_filename)
+    variant_data <- readr::read_csv(config$seeding$variant_filename) %>% dplyr::rename(date = Update)
     cases_deaths <- cases_deaths %>%
-        left_join(variant_data) %>%
-        mutate(incidI = incidI * prop) %>%
-        select(-prop) %>%
-        pivot_wider(names_from = variant, values_from = incidI)
+        dplyr::left_join(variant_data) %>%
+        dplyr::mutate(incidI = incidI * prop) %>%
+        dplyr::select(-prop) %>%
+        tidyr::pivot_wider(names_from = variant, values_from = incidI)
 }
 
 ## Check some data attributes:

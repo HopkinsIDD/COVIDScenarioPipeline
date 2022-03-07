@@ -1,8 +1,8 @@
 name: USA
 smh_round: R12
 start_date: 2020-01-01
-end_date: 2021-03-27
-end_date_groundtruth: 2021-03-27
+end_date: 2022-03-27
+end_date_groundtruth: 2022-03-27
 nsimulations: 300
 dt: 1.000
 
@@ -51060,6 +51060,7 @@ filtering:
       aggregator: sum
       period: "1 weeks"
       gt_source: "csse_lm"
+      gt_start_date: 2020-07-05
       sim_var: incidC_WILD
       data_var: incidI_WILD
       remove_na: TRUE
@@ -51071,6 +51072,7 @@ filtering:
       aggregator: sum
       period: "1 weeks"
       gt_source: "csse_lm"
+      gt_start_date: 2020-07-05
       sim_var: incidC_ALPHA
       data_var: incidI_ALPHA
       remove_na: TRUE
@@ -51082,6 +51084,7 @@ filtering:
       aggregator: sum
       period: "1 weeks"
       gt_source: "csse_lm"
+      gt_start_date: 2020-07-05
       sim_var: incidC_DELTA
       data_var: incidI_DELTA
       remove_na: TRUE
@@ -51093,8 +51096,21 @@ filtering:
       aggregator: sum
       period: "1 weeks"
       gt_source: "csse_lm"
+      gt_start_date: 2020-07-05
       sim_var: incidC_OMICRON
       data_var: incidI_OMICRON
+      remove_na: TRUE
+      add_one: TRUE
+      likelihood:
+        dist: pois
+    sum_hospitalizations:
+      name: sum_hospitalizations
+      aggregator: sum
+      period: "1 weeks"
+      gt_source: "covidcast"
+      gt_start_date: 2020-09-01
+      sim_var: incidH
+      data_var: incidH
       remove_na: TRUE
       add_one: TRUE
       likelihood:

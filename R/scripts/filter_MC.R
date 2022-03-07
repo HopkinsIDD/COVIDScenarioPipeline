@@ -86,7 +86,7 @@ if(!(config$seeding$method %in% c('FolderDraw','InitialConditionsFolderDraw'))){
 state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
 
 if(is.null(opt$fix_negatives)) {
-  opt$fix_negatives <- TRUE
+    opt$fix_negatives <- TRUE
 }
 
 ##Load infromationon geographic locations from geodata file.
@@ -150,6 +150,10 @@ if("priors"%in%names(config$filtering)) {
 
 ## Runner Script---------------------------------------------------------------------
 
+
+
+# ~ Ground-Truth Data -----------------------------------------------------
+
 ## backwards compatibility with configs that don't have filtering$gt_source parameter will use the previous default data source (USA Facts)
 if(is.null(config$filtering$gt_source)){
     gt_source <- "usafacts"
@@ -160,50 +164,140 @@ if(is.null(config$filtering$gt_source)){
 gt_scale <- ifelse(state_level, "US state", "US county")
 fips_codes_ <- geodata[[obs_nodename]]
 
-gt_start_date <- lubridate::ymd(config$start_date)
+gt_start_date_ <- lubridate::ymd(config$start_date)
 if (opt$ground_truth_start != "") {
-    gt_start_date <- lubridate::ymd(opt$ground_truth_start)
+    gt_start_date_ <- lubridate::ymd(opt$ground_truth_start)
 } else if (!is.null(config$start_date_groundtruth)) {
-    gt_start_date <- lubridate::ymd(config$start_date_groundtruth)
+    gt_start_date_ <- lubridate::ymd(config$start_date_groundtruth)
 }
-if (gt_start_date < lubridate::ymd(config$start_date)) {
-    gt_start_date <- lubridate::ymd(config$start_date)
+if (gt_start_date_ < lubridate::ymd(config$start_date)) {
+    gt_start_date_ <- lubridate::ymd(config$start_date)
 }
 
-gt_end_date <- lubridate::ymd(config$end_date)
+gt_end_date_ <- lubridate::ymd(config$end_date)
 if (opt$ground_truth_end != "") {
-    gt_end_date <- lubridate::ymd(opt$ground_truth_end)
+    gt_end_date_ <- lubridate::ymd(opt$ground_truth_end)
 } else if (!is.null(config$end_date_groundtruth)) {
-    gt_end_date <- lubridate::ymd(config$end_date_groundtruth)
+    gt_end_date_ <- lubridate::ymd(config$end_date_groundtruth)
 }
-if (gt_end_date > lubridate::ymd(config$end_date)) {
-    gt_end_date <- lubridate::ymd(config$end_date)
-}
-
-# ground truth targets to pull
-gt_targets <- c("Confirmed", "Deaths", "incidI", "incidDeath")
-if(any(grepl("hosp", tolower(names(config$filtering$statistics))))){
-    gt_targets <- c(gt_targets, "Hospitalizations", "incidHospitalizations")
+if (gt_end_date_ > lubridate::ymd(config$end_date)) {
+    gt_end_date_ <- lubridate::ymd(config$end_date)
 }
 
 
-obs <- inference::get_ground_truth(
-    data_path = data_path,
-    fips_codes = fips_codes_,
-    fips_column_name = obs_nodename,
-    start_date = gt_start_date,
-    end_date = gt_end_date,
-    cache = opt$cache_gt,
-    gt_source = gt_source,
-    gt_scale = gt_scale,
-    targets = gt_targets, 
-    fix_negatives = opt$fix_negatives,
-    variant_filename = config$seeding$variant_filename
-)
+
+# ~ Target-Specific Ground Truth ------------------------------------------
+
+gt_info <- as.list(config$filtering$statistics) %>%
+    data.table::rbindlist(fill=TRUE) %>% as.data.frame() %>%
+    dplyr::select(-likelihood) %>% as_tibble() 
+
+if (!("gt_start_date" %in% colnames(gt_info))){
+    gt_info$gt_start_date <- lubridate::as_date(gt_start_date_)
+} else {
+    gt_info <- gt_info %>% 
+        mutate(gt_start_date = lubridate::as_date(gt_start_date)) %>%
+        mutate(gt_start_date = replace(gt_start_date, is.na(gt_info$gt_start_date), gt_start_date_))
+}
+if (!("gt_end_date" %in% colnames(gt_info))){
+    gt_info$gt_end_date <- lubridate::as_date(gt_end_date_)
+} else {
+    gt_info <- gt_info %>% 
+        mutate(gt_end_date = lubridate::as_date(gt_end_date)) %>%
+        mutate(gt_end_date = replace(gt_end_date, is.na(gt_info$gt_end_date), gt_end_date_))
+}
+
+
+gt_sources <- unique(gt_info$gt_source)
+gt_targets_all <- unique(gsub("_(.*)", "", gt_info$data_var))
+
+obs <- tibble(geoid = fips_codes_)
+if (length(gt_sources)>1 | length(unique(gt_info$gt_start_date))>1 | length(unique(gt_info$gt_end_date))>1){
+    
+    if(!(file.exists(data_path) & opt$cache_gt)){
+        for (g in 1:length(gt_sources)){
+            
+            # ground truth targets to pull
+            gt_tmp <- gt_info %>% filter(gt_source == gt_sources[g])
+            gt_targets <- unique(gsub("_(.*)", "", gt_tmp$data_var))
+            if (("incidDeath" %in% gt_targets) & !("incidI" %in% gt_targets_all)) gt_targets <- c(gt_targets, "incidI")
+            if (("incidI" %in% gt_targets) & !("incidI" %in% gt_targets_all)) gt_targets <- c(gt_targets, "incidDeath")
+            if ("incidDeath" %in% gt_targets) gt_targets <- c(gt_targets, "Deaths")
+            if ("incidI" %in% gt_targets) gt_targets <- c(gt_targets, "Confirmed")
+            # if ("incidH" %in% gt_targets) gt_targets <- c(gt_targets, "Hospitalizations")
+            
+            obs_ <- inference::get_ground_truth(
+                data_path = data_path,
+                fips_codes = fips_codes_,
+                fips_column_name = obs_nodename,
+                start_date = gt_start_date_,
+                end_date = gt_end_date_,
+                cache = FALSE, # cache later
+                gt_source = gt_sources[g],
+                gt_scale = gt_scale,
+                targets = gt_targets, 
+                fix_negatives = opt$fix_negatives,
+                variant_filename = NULL
+            )    
+            obs <- obs %>% dplyr::full_join(obs_)
+        }
+        # save merged
+        readr::write_csv(obs, data_path)
+        
+    } else {
+        message("*** USING CACHED Data\n")
+        obs <- suppressMessages(readr::read_csv(
+            data_path,
+            col_types = list(geoid = readr::col_character()),
+        ))
+    }
+    
+    # do variant adjustment
+    if (adjust_for_variant & any(c("incidI", "Confirmed") %in% variables)) {
+        tryCatch({
+            obs <- do_variant_adjustment2(obs, variant_props_file, var_targets = c("incidI","Confirmed"))
+        }, error = function(e) {
+            stop(paste0("Could not use variant file |", variant_props_file, "|, with error message", e$message()))
+        })
+    }
+    
+    # limit dates
+    gt_infofull <- gt_info %>%
+        bind_rows(gt_info %>%
+                      mutate(data_var = gsub("incidI", "Confirmed", data_var), 
+                             data_var = gsub("incidH", "Hospitalizations", data_var), 
+                             data_var = gsub("incidDeath", "Deaths", data_var)))
+    target_ <- gt_infofull$data_var
+    
+    for (s in 1:nrow(gt_infofull)){
+        na_inds <- !(obs$date >= gt_infofull$gt_start_date[s]) & (obs$date <= gt_infofull$gt_end_date[s])
+        obs[na_inds, target_[s]] <- NA
+    }
+    
+} else {
+    
+    obs <- inference::get_ground_truth(
+        data_path = data_path,
+        fips_codes = fips_codes_,
+        fips_column_name = obs_nodename,
+        start_date = gt_start_date_,
+        end_date = gt_end_date_,
+        cache = opt$cache_gt,
+        gt_source = gt_sources,
+        gt_scale = gt_scale,
+        targets = gt_targets, 
+        fix_negatives = opt$fix_negatives,
+        variant_filename = config$seeding$variant_filename
+    )    
+}
+
 
 geonames <- unique(obs[[obs_nodename]])
 
-## Compute statistics
+
+
+# Compute Statistics ------------------------------------------------------
+
 data_stats <- lapply(
     geonames,
     function(x) {
