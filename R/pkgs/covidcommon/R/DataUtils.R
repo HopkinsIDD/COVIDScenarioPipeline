@@ -1288,7 +1288,7 @@ do_variant_adjustment2 <- function(rc,
     outcome_column_names <- names(rc)[(names(rc) %in% var_targets)]
     
     variant_data <- readr::read_csv(variant_props_file) %>% 
-        dpylr::rename(date = Update) %>%
+        dplyr::rename(date = Update) %>%
         tidyr::pivot_wider(names_from = variant, values_from = prop, names_prefix = "prop_")
     
     rc <- rc %>%
