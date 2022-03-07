@@ -64,7 +64,9 @@ def rk4_integration(
     @jit(nopython=True, fastmath=True)
     def rhs(t, x, today):
         states_current = np.reshape(x, (2, ncompartments, nspatial_nodes))[0]
-        st_next = states_current.copy() # this is used to make sure stochastic integration never goes below zero
+        st_next = (
+            states_current.copy()
+        )  # this is used to make sure stochastic integration never goes below zero
         states_diff = np.zeros(
             (2, ncompartments, nspatial_nodes)
         )  # first dim: 0 -> states_diff, 1: states_cum
@@ -156,17 +158,20 @@ def rk4_integration(
             elif method == "legacy":
                 compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
                 if stochastic_p:
-                    number_move = source_number * compound_adjusted_rate ## to initialize typ
+                    number_move = (
+                        source_number * compound_adjusted_rate
+                    )  ## to initialize typ
                     for spatial_node in range(nspatial_nodes):
                         number_move[spatial_node] = np.random.binomial(
                             source_number[spatial_node],
                             compound_adjusted_rate[spatial_node],
                         )
-                        if (number_move[spatial_node]
-                                > st_next[transitions[transition_source_col][transition_index]][
-                                    spatial_node
-                                ]
-                            ):
+                        if (
+                            number_move[spatial_node]
+                            > st_next[
+                                transitions[transition_source_col][transition_index]
+                            ][spatial_node]
+                        ):
                             number_move[spatial_node] = st_next[
                                 transitions[transition_source_col][transition_index]
                             ][spatial_node]

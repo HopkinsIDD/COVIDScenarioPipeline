@@ -4,7 +4,7 @@ from numba import jit
 import numpy as np
 import pandas as pd
 import tqdm.contrib.concurrent
-from .utils import config, Timer
+from .utils import config, Timer, read_df
 import pyarrow as pa
 import pandas as pd
 from . import NPI, setup
@@ -53,14 +53,29 @@ def run_parallel_Outcomes(s, *, sim_id2load, sim_id2write, nsim=1, n_jobs=1):
     return 1
 
 
-def build_npi_Outcomes(s: setup.Setup, load_ID: bool, sim_id2load: int, config):
+def build_npi_Outcomes(
+    s: setup.Setup,
+    load_ID: bool,
+    sim_id2load: int,
+    config,
+    bypass_DF=None,
+    bypass_FN=None,
+):
     with Timer("Outcomes.NPI"):
-        if load_ID:
+        loaded_df = None
+        if bypass_DF is not None:
+            loaded_df = bypass_DF
+        elif bypass_FN is not None:
+            loaded_df = read_df(fname=bypass_FN)
+        elif load_ID == True:
+            loaded_df = s.read_simID(ftype="hnpi", sim_id=sim_id2load)
+
+        if loaded_df is not None:
             npi = NPI.NPIBase.execute(
                 npi_config=s.npi_config_outcomes,
                 global_config=config,
                 geoids=s.spatset.nodenames,
-                loaded_df=s.read_simID(ftype="hnpi", sim_id=sim_id2load),
+                loaded_df=loaded_df,
             )
         else:
             npi = NPI.NPIBase.execute(
