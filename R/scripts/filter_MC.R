@@ -214,8 +214,8 @@ variant_props_file <- config$seeding$variant_filename
 
 
 print(paste0("Using variant file: ",variant_props_file, "."))
+print(paste0("Getting data for the following targets: ", gt_targets_all))
 print(gt_info)
-
 
 
 obs <- tibble::tibble(geoid = fips_codes_)
@@ -226,7 +226,6 @@ if(!(file.exists(data_path) & opt$cache_gt)){
     for (g in 1:length(gt_sources)){
         
         # ground truth targets to pull
-        print(paste0("Pulling new data from ", gt_sources[g]))
         gt_tmp <- gt_info %>% dplyr::filter(gt_source == gt_sources[g])
         print(gt_tmp)
         gt_targets <- unique(gsub("_(.*)", "", gt_tmp$data_var))
@@ -250,6 +249,7 @@ if(!(file.exists(data_path) & opt$cache_gt)){
             variant_filename = NULL
         )    
         obs <- obs %>% dplyr::full_join(obs_)
+        print(paste0("Pulled new data from ", gt_sources[g]))
     }
     
     # do variant adjustment
@@ -284,14 +284,7 @@ if(!(file.exists(data_path) & opt$cache_gt)){
     ))
 }
 
-# do variant adjustment
-if (!is.null(variant_props_file) & any(c("incidI", "Confirmed") %in% gt_targets_all)) {
-    tryCatch({
-        obs <- do_variant_adjustment2(obs, variant_props_file, var_targets = c("incidI","Confirmed"))
-    }, error = function(e) {
-        stop(paste0("Could not use variant file |", variant_props_file, "|, with error message", e$message()))
-    })
-}
+
 
 # limit dates
 gt_infofull <- gt_info %>%
