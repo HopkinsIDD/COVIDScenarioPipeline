@@ -275,7 +275,7 @@ compute_cumulative_counts <- function(sim_hosp) {
     tidyr::gather(var, value, -time, -geoid) %>%
     dplyr::group_by(geoid, var) %>%
     dplyr::arrange(time) %>%
-    dplyr:: mutate(cumul = cumsum(value)) %>%
+    dplyr::mutate(cumul = cumsum(value)) %>%
     dplyr::ungroup() %>%
     tidyr::pivot_wider(names_from = "var", values_from = c("value", "cumul")) %>%
     dplyr::select(-(tidyselect::contains("cumul") & contains("curr")))

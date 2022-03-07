@@ -298,6 +298,8 @@ if (length(gt_sources)>1 | length(unique(gt_info$gt_start_date))>1 | length(uniq
 geonames <- unique(obs[[obs_nodename]])
 
 
+print("Successfully pull ground truth.")
+
 
 # Compute Statistics ------------------------------------------------------
 

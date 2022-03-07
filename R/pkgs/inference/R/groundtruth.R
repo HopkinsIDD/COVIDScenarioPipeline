@@ -102,7 +102,7 @@ get_ground_truth <- function(data_path,
             date = unique(rc$date)
         )
     )
-    rc <- rc %>% arrange(FIPS, source, date)
+    rc <- rc %>% dplyr::arrange(FIPS, source, date)
     #rc <- dplyr::mutate_if(rc, is.numeric, dplyr::coalesce, 0) # causing issues. and may be invalid if there are NAs because of technical issues (like with MD hack)
     names(rc)[names(rc) == "FIPS"] <- fips_column_name
     return(rc)

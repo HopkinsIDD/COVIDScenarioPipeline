@@ -406,13 +406,13 @@ if(!file.exists(outfile_globliks) | redo) {
   # 
   # glob_liks <- map_df(glob_lik_files, 
   #                     function(x) {
-  #                       read_csv(x) %>% 
-  #                         mutate(it = as.numeric(str_extract(x, glue::glue("(?<=0)[0-9]+(?=\\.{runid})"))),
+  #                       readr::read_csv(x) %>% 
+  #                         dplyr::mutate(it = as.numeric(str_extract(x, glue::glue("(?<=0)[0-9]+(?=\\.{runid})"))),
   #                                sim = as.numeric(str_extract(x, "(?<=0)[0-9]+(?=\\.)"))) 
   #                     }) 
   # 
   # 
-  # final_glob_liks <- glob_liks %>% group_by(sim) %>% arrange(desc(it)) %>% slice(1)
+  # final_glob_liks <- glob_liks %>% dplyr::group_by(sim) %>% dplyr::arrange(desc(it)) %>% dplyr::slice(1)
   # 
   # write_csv(glob_liks, outfile_globliks)
   
@@ -420,12 +420,12 @@ if(!file.exists(outfile_globliks) | redo) {
                    full.names = T, 
                    recursive = T,
                    pattern = "parquet") %>% 
-    .[str_detect(., "final")] 
+    .[stringr::str_detect(., "final")] 
   
   liks <- map_df(lik_files, 
                  function(x) {
                    arrow::read_parquet(x) %>% 
-                     mutate(sim = as.numeric(str_extract(x, "(?<=0)[0-9]+(?=\\.)")),
+                     dplyr::mutate(sim = as.numeric(stringr::str_extract(x, "(?<=0)[0-9]+(?=\\.)")),
                             geoid = as.character(geoid)) 
                  }) 
   
@@ -456,14 +456,14 @@ if(!file.exists(outfile_globliks) | redo) {
         map_df(files, 
                function(x) {
                  arrow::read_parquet(x) %>% 
-                   mutate(it = as.numeric(str_extract(x, glue::glue("(?<=0)[0-9]+(?=\\.{runid})"))),
+                   dplyr::mutate(it = as.numeric(str_extract(x, glue::glue("(?<=0)[0-9]+(?=\\.{runid})"))),
                           sim = as.numeric(str_extract(x, glue::glue("(?<=/0)[0-9]+(?=\\.)"))),
                           geoid = as.character(geoid))
                })
       }
     parallel::stopCluster(cl)
     
-    write_csv(all_liks, path = outfile_all_liks)
+    readr::write_csv(all_liks, path = outfile_all_liks)
   }
 }
 
