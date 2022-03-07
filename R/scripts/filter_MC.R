@@ -257,7 +257,6 @@ if(!(file.exists(data_path) & opt$cache_gt)){
     print(paste0("Existing targets: ",gt_targets_all, "."))
     print(head(obs))
     print(head(readr::read_csv(variant_props_file)))
-    
     print(!is.null(variant_props_file) & any(c("incidI", "Confirmed") %in% gt_targets_all))
     
     
