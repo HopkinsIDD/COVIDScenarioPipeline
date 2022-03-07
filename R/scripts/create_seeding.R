@@ -125,7 +125,7 @@ if (!is.null(gt_source)) {
 
 
 if (seed_variants) {
-    variant_data <- readr::read_csv(config$seeding$variant_filename) %>% dplyr::rename(date = Update)
+    variant_data <- readr::read_csv(config$seeding$variant_filename)
     cases_deaths <- cases_deaths %>%
         dplyr::left_join(variant_data) %>%
         dplyr::mutate(incidI = incidI * prop) %>%
@@ -186,17 +186,17 @@ if ("compartments" %in% names(config[["seir"]])) {
         incident_cases <- incident_cases[, required_column_names]
         
         if (!is.null(config$smh_roun)) {
-          if (config$smh_round=="R11"){
-              incident_cases_om <- incident_cases %>%
-                  dplyr::filter(Update==lubridate::as_date("2021-12-01")) %>%
-                  dplyr::group_by(FIPS, Update, source_infection_stage, source_vaccination_stage, source_age_strata,
-                                  destination_vaccination_stage, destination_age_strata, destination_infection_stage) %>%
-                  dplyr::summarise(value = sum(value, na.rm=TRUE)) %>%
-                  dplyr::mutate(source_variant_type = "WILD", destination_variant_type = "OMICRON") %>%
-                  dplyr::mutate(value = round(ifelse(FIPS %in% c("06000","36000"), 10, 
-                                                     ifelse(FIPS %in% c("53000","12000"), 5, 1)))) %>% 
-                  tibble::as_tibble()
-          }
+            if (config$smh_round=="R11"){
+                incident_cases_om <- incident_cases %>%
+                    dplyr::filter(Update==lubridate::as_date("2021-12-01")) %>%
+                    dplyr::group_by(FIPS, Update, source_infection_stage, source_vaccination_stage, source_age_strata,
+                                    destination_vaccination_stage, destination_age_strata, destination_infection_stage) %>%
+                    dplyr::summarise(value = sum(value, na.rm=TRUE)) %>%
+                    dplyr::mutate(source_variant_type = "WILD", destination_variant_type = "OMICRON") %>%
+                    dplyr::mutate(value = round(ifelse(FIPS %in% c("06000","36000"), 10, 
+                                                       ifelse(FIPS %in% c("53000","12000"), 5, 1)))) %>% 
+                    tibble::as_tibble()
+            }
         }
         
         
