@@ -12,7 +12,7 @@
 import pathlib
 from . import seir, setup, file_paths
 from . import outcomes
-from .utils import config, Timer
+from .utils import config, Timer, read_df
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
 
@@ -21,6 +21,7 @@ import logging
 import os
 import functools
 import multiprocessing as mp
+import pandas as pd
 
 
 logging.basicConfig(level=os.environ.get("COVID_LOGLEVEL", "INFO").upper())
@@ -250,16 +251,10 @@ class InferenceSimulator:
 
             with Timer("SEIR.parameters"):
                 # Draw or load parameters
-                if load_ID:
-                    p_draw = self.s.parameters.parameters_load(
-                        param_df=self.s.read_simID(ftype="spar", sim_id=sim_id2load),
-                        nt_inter=self.s.n_days,
-                        nnodes=self.s.nnodes,
-                    )
-                else:
-                    p_draw = self.s.parameters.parameters_quick_draw(
-                        nt_inter=self.s.n_days, nnodes=self.s.nnodes
-                    )
+                p_draw = self.get_seir_parameters(
+                    load_ID=load_ID, sim_id2load=sim_id2load
+                )
+
                 # reduce them
                 parameters = self.s.parameters.parameters_reduce(p_draw, npi_seir)
 
@@ -319,3 +314,100 @@ class InferenceSimulator:
             source_filters=source_filters,
             destination_filters=destination_filters,
         )
+
+    def get_outcome_npi(
+        self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None
+    ):
+        npi_outcomes = None
+        if self.s.npi_config_outcomes:
+            npi_outcomes = outcomes.build_npi_Outcomes(
+                s=self.s,
+                load_ID=load_ID,
+                sim_id2load=sim_id2load,
+                config=config,
+                bypass_DF=bypass_DF,
+                bypass_FN=bypass_FN,
+            )
+        return npi_outcomes
+
+    def get_seir_npi(
+        self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None
+    ):
+        npi_seir = seir.build_npi_SEIR(
+            s=self.s,
+            load_ID=load_ID,
+            sim_id2load=sim_id2load,
+            config=config,
+            bypass_DF=bypass_DF,
+            bypass_FN=bypass_FN,
+        )
+        return npi_seir
+
+    def get_seir_parameters(
+        self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None
+    ):
+        param_df = None
+        if bypass_DF is not None:
+            param_df = bypass_DF
+        elif bypass_FN is not None:
+            param_df = read_df(fname=bypass_FN)
+        elif load_ID == True:
+            param_df = self.s.read_simID(ftype="spar", sim_id=sim_id2load)
+
+        if param_df is not None:
+            p_draw = self.s.parameters.parameters_load(
+                param_df=param_df,
+                nt_inter=self.s.n_days,
+                nnodes=self.s.nnodes,
+            )
+        else:
+            p_draw = self.s.parameters.parameters_quick_draw(
+                nt_inter=self.s.n_days, nnodes=self.s.nnodes
+            )
+        return p_draw
+
+    def get_seir_parametersDF(
+        self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None
+    ):
+        p_draw = self.get_seir_parameters(
+            load_ID=load_ID,
+            sim_id2load=sim_id2load,
+            bypass_DF=bypass_DF,
+            bypass_FN=bypass_FN,
+        )
+        return self.s.parameters.getParameterDF(p_draw=p_draw)
+
+    def get_seir_parameter_reduced(
+        self,
+        npi_seir,
+        p_draw=None,
+        load_ID=False,
+        sim_id2load=None,
+        bypass_DF=None,
+        bypass_FN=None,
+    ):
+        if p_draw is None:
+            p_draw = self.get_seir_parameters(
+                load_ID=load_ID,
+                sim_id2load=sim_id2load,
+                bypass_DF=bypass_DF,
+                bypass_FN=bypass_FN,
+            )
+
+        parameters = self.s.parameters.parameters_reduce(p_draw, npi_seir)
+
+        full_df = pd.DataFrame()
+        for i, geoid in enumerate(self.s.spatset.nodenames):
+            a = pd.DataFrame(
+                parameters[:, :, i].T,
+                columns=self.s.parameters.pnames,
+                index=pd.date_range(self.s.ti, self.s.tf, freq="D"),
+            )
+            a["geoid"] = geoid
+            full_df = pd.concat([full_df, a])
+        
+        # for R, duplicate names are not allowed in index:
+        full_df['date'] = full_df.index
+        full_df = full_df.reset_index(drop=True)
+
+        return full_df

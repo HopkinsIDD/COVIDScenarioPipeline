@@ -93,7 +93,7 @@ def steps_SEIR(
     elif s.integration_method == "rk4.jit":
         if s.stoch_traj_flag == True:
             raise ValueError(
-                f"with method {s.integration_method}, only deterministic"
+                f"with method {s.integration_method}, only deterministic "
                 f"integration is possible (got stoch_straj_flag={s.stoch_traj_flag}"
             )
         seir_sim = steps_rk4.rk4_integration(**fnct_args)
@@ -109,7 +109,7 @@ def steps_SEIR(
         ]:
             if s.stoch_traj_flag == True:
                 raise ValueError(
-                    f"with method {s.integration_method}, only deterministic"
+                    f"with method {s.integration_method}, only deterministic "
                     f"integration is possible (got stoch_straj_flag={s.stoch_traj_flag}"
                 )
             seir_sim = steps_experimental.ode_integration(
@@ -136,14 +136,22 @@ def steps_SEIR(
     return seir_sim
 
 
-def build_npi_SEIR(s, load_ID, sim_id2load, config):
+def build_npi_SEIR(s, load_ID, sim_id2load, config, bypass_DF=None, bypass_FN=None):
     with Timer("SEIR.NPI"):
-        if load_ID:
+        loaded_df = None
+        if bypass_DF is not None:
+            loaded_df = bypass_DF
+        elif bypass_FN is not None:
+            loaded_df = read_df(fname=bypass_FN)
+        elif load_ID == True:
+            loaded_df = s.read_simID(ftype="snpi", sim_id=sim_id2load)
+
+        if loaded_df is not None:
             npi = NPI.NPIBase.execute(
                 npi_config=s.npi_config_seir,
                 global_config=config,
                 geoids=s.spatset.nodenames,
-                loaded_df=s.read_simID(ftype="snpi", sim_id=sim_id2load),
+                loaded_df=loaded_df,
                 pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
                     "sum"
                 ],
