@@ -35,9 +35,9 @@ tmp4 <- lapply(names(tmp[[1]]), function(state_name, start_date = lubridate::ymd
       .x$name[.x$name == "total_sequences"] <- "WILD"
       return(.x)}
     ) %>%
-    ungroup() %>%
-    group_by(name) %>%
-    arrange(week) %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(name) %>%
+    dplyr::arrange(week) %>%
     group_modify(function(.x,.y){
       
       date_range <- start_date + 0:(end_date - start_date)

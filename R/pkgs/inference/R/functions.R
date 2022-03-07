@@ -272,15 +272,15 @@ calc_prior_likadj  <- function(params,
 ##'
 compute_cumulative_counts <- function(sim_hosp) {
   res <- sim_hosp %>%
-    gather(var, value, -time, -geoid) %>%
-    group_by(geoid, var) %>%
-    arrange(time) %>%
-    mutate(cumul = cumsum(value)) %>%
-    ungroup() %>%
-    pivot_wider(names_from = "var", values_from = c("value", "cumul")) %>%
-    select(-(contains("cumul") & contains("curr")))
+    tidyr::gather(var, value, -time, -geoid) %>%
+    dplyr::group_by(geoid, var) %>%
+    dplyr::arrange(time) %>%
+    dplyr:: mutate(cumul = cumsum(value)) %>%
+    dplyr::ungroup() %>%
+    tidyr::pivot_wider(names_from = "var", values_from = c("value", "cumul")) %>%
+    dplyr::select(-(tidyselect::contains("cumul") & contains("curr")))
 
-  colnames(res) <- str_replace_all(colnames(res), c("value_" = "", "cumul_incid" = "cumul"))
+  colnames(res) <- stringr::str_replace_all(colnames(res), c("value_" = "", "cumul_incid" = "cumul"))
   return(res)
 }
 
@@ -296,10 +296,10 @@ compute_cumulative_counts <- function(sim_hosp) {
 ##'
 compute_totals <- function(sim_hosp) {
   sim_hosp %>%
-    group_by(time) %>%
-    summarise_if(is.numeric, sum, na.rm = TRUE) %>%
-    mutate(geoid = "all") %>%
-    select(all_of(colnames(sim_hosp))) %>%
+    dplyr::group_by(time) %>%
+    dplyr::summarise_if(is.numeric, sum, na.rm = TRUE) %>%
+    dplyr::mutate(geoid = "all") %>%
+    dplyr::select(tidyselect::all_of(colnames(sim_hosp))) %>%
     rbind(sim_hosp)
 }
 
