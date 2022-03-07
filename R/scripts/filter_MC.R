@@ -222,13 +222,14 @@ obs <- tibble::tibble(geoid = fips_codes_)
 # if (length(gt_sources)>1 | length(unique(gt_info$gt_start_date))>1 | length(unique(gt_info$gt_end_date))>1){
 
 if(!(file.exists(data_path) & opt$cache_gt)){
-    
+
     for (g in 1:length(gt_sources)){
         
         # ground truth targets to pull
-        gt_tmp <- gt_info %>% dplyr::filter(gt_source == gt_sources[g])
-        print(paste0("Pulling new data from ", gt_sources[g]))
+                print(paste0("Pulling new data from ", gt_sources[g]))
         print(gt_tmp)
+        
+        gt_tmp <- gt_info %>% dplyr::filter(gt_source == gt_sources[g])
         gt_targets <- unique(gsub("_(.*)", "", gt_tmp$data_var))
         if (("incidDeath" %in% gt_targets) & !("incidI" %in% gt_targets_all)) gt_targets <- c(gt_targets, "incidI")
         if (("incidI" %in% gt_targets) & !("incidI" %in% gt_targets_all)) gt_targets <- c(gt_targets, "incidDeath")
@@ -271,12 +272,11 @@ if(!(file.exists(data_path) & opt$cache_gt)){
     for (s in 1:nrow(gt_infofull)){
         na_inds <- !(obs$date >= gt_infofull$gt_start_date[s]) & (obs$date <= gt_infofull$gt_end_date[s])
         obs[na_inds, target_[s]] <- NA
+
     }
-    
     # save merged
     readr::write_csv(obs, data_path)
-    
-    
+
 } else {
     message("*** USING CACHED Data\n")
     obs <- suppressMessages(readr::read_csv(
@@ -285,10 +285,27 @@ if(!(file.exists(data_path) & opt$cache_gt)){
     ))
 }
 
+# do variant adjustment
+if (!is.null(variant_props_file) & any(c("incidI", "Confirmed") %in% gt_targets_all)) {
+    tryCatch({
+        obs <- do_variant_adjustment2(obs, variant_props_file, var_targets = c("incidI","Confirmed"))
+    }, error = function(e) {
+        stop(paste0("Could not use variant file |", variant_props_file, "|, with error message", e$message()))
+    })
+}
 
+# limit dates
+gt_infofull <- gt_info %>%
+    dplyr::bind_rows(gt_info %>%
+                         dplyr::mutate(data_var = gsub("incidI", "Confirmed", data_var), 
+                                       data_var = gsub("incidH", "Hospitalizations", data_var), 
+                                       data_var = gsub("incidDeath", "Deaths", data_var)))
+target_ <- gt_infofull$data_var
 
-
-
+for (s in 1:nrow(gt_infofull)){
+    na_inds <- !(obs$date >= gt_infofull$gt_start_date[s]) & (obs$date <= gt_infofull$gt_end_date[s])
+    obs[na_inds, target_[s]] <- NA
+}
 
 # } else {
 #     
@@ -306,6 +323,7 @@ if(!(file.exists(data_path) & opt$cache_gt)){
 #         variant_filename = config$seeding$variant_filename
 #     )    
 # }
+
 
 geonames <- unique(obs[[obs_nodename]])
 
