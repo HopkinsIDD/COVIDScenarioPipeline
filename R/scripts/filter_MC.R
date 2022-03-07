@@ -252,6 +252,13 @@ if(!(file.exists(data_path) & opt$cache_gt)){
         print(paste0("Pulled new data from ", gt_sources[g]))
     }
     
+    
+    print(paste0("Using variant file: ",variant_props_file, "."))
+    print(paste0("Existing targets: ",gt_targets_all, "."))
+    print(head(obs))
+    print(head(readr::read_csv(variant_props_file)))
+    
+    
     # do variant adjustment
     if (!is.null(variant_props_file) & any(c("incidI", "Confirmed") %in% gt_targets_all)) {
         tryCatch({
