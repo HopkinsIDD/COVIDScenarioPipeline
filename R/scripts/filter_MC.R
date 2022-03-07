@@ -257,19 +257,14 @@ if(!(file.exists(data_path) & opt$cache_gt)){
     print(paste0("Existing targets: ",gt_targets_all, "."))
     print(head(obs))
     print(head(readr::read_csv(variant_props_file)))
-    print(!is.null(variant_props_file) & any(c("incidI", "Confirmed") %in% gt_targets_all))
-    
-    
+
     # do variant adjustment
     if (!is.null(variant_props_file) & any(c("incidI", "Confirmed") %in% gt_targets_all)) {
-        obs <- covidcommon::do_variant_adjustment2(rc=obs, 
-                                                   variant_props_file = variant_props_file, 
-                                                   var_targets = c("incidI","Confirmed"))
-        # tryCatch({
-        #     obs <- covidcommon::do_variant_adjustment2(obs, variant_props_file, var_targets = c("incidI","Confirmed"))
-        # }, error = function(e) {
-        #     stop(paste0("Could not use variant file |", variant_props_file, "|, with error message", e$message()))
-        # })
+        tryCatch({
+            obs <- covidcommon::do_variant_adjustment2(obs, variant_props_file, var_targets = c("incidI","Confirmed"))
+        }, error = function(e) {
+            stop(paste0("Could not use variant file |", variant_props_file, "|, with error message", e$message()))
+        })
     }
     
     # limit dates
@@ -332,7 +327,7 @@ print("Successfully limited dates of ground truth.")
 
 geonames <- unique(obs[[obs_nodename]])
 
-print("Successfully pulled and processed ground truth.")
+print("Successfully pulled and processed all ground truth.")
 
 
 
