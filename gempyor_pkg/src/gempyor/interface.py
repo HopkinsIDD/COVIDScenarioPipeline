@@ -12,7 +12,7 @@
 import pathlib
 from . import seir, setup, file_paths
 from . import outcomes
-from .utils import config, Timer, read_df
+from .utils import config, Timer, read_df, profile
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
 
@@ -133,7 +133,6 @@ class InferenceSimulator:
         else:
             self.s.out_run_id = new_out_run_id
 
-    # profile()
     def one_simulation_legacy(
         self, sim_id2write: int, load_ID: bool = False, sim_id2load: int = None
     ):
@@ -160,6 +159,7 @@ class InferenceSimulator:
                 )
         return 0
 
+    #@profile()
     def one_simulation(
         self,
         sim_id2write: int,
