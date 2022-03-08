@@ -159,7 +159,7 @@ class InferenceSimulator:
                 )
         return 0
 
-    #@profile()
+    # @profile()
     def one_simulation(
         self,
         sim_id2write: int,

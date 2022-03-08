@@ -211,8 +211,6 @@ def rk4_integration(
         is_a_new_day = today != yesterday
         yesterday = today
 
-        total_seeded = 0
-        times_seeded = 0
         if is_a_new_day:
             # Prevalence is saved at the begining of the day, while incidence is during the day
             states[today, :, :] = states_next
@@ -235,8 +233,6 @@ def rk4_integration(
                     seeding_places
                 ] += this_seeding_amounts
 
-                total_seeded += this_seeding_amounts
-                times_seeded += 1
                 # ADD TO cumulative, this is debatable,
                 states_daily_incid[today][seeding_destinations][
                     seeding_places
