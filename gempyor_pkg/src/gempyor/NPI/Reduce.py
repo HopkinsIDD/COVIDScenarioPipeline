@@ -66,7 +66,7 @@ class Reduce(NPIBase):
             self.parameters["reduction"][:], (len(period_range), 1)
         ).T
 
-        #self.__checkErrors()
+        # self.__checkErrors()
 
     def __checkErrors(self):
         min_start_date = self.parameters["start_date"].min()

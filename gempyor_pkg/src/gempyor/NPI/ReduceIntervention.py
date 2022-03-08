@@ -125,7 +125,7 @@ class ReduceIntervention(NPIBase):
                     1 - self.parameters["reduction"][index]
                 )
 
-        #self.__checkErrors()
+        # self.__checkErrors()
 
     def __checkErrors(self):
         min_start_date = self.parameters["start_date"].min()
