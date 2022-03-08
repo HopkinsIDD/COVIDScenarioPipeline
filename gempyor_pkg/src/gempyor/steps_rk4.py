@@ -1,7 +1,6 @@
 import numpy as np
 from numba import jit
-import numba
-import tqdm
+import tqdm, scipy
 from .utils import Timer
 
 (
@@ -206,6 +205,7 @@ def rk4_integration(
 
     yesterday = -1
     times = np.arange(0, (ndays - 1) + 1e-7, dt)
+
     for time_index, time in tqdm.tqdm(enumerate(times)):  # , total=len(times)
         today = int(np.floor(time))
         is_a_new_day = today != yesterday
@@ -216,7 +216,11 @@ def rk4_integration(
             states[today, :, :] = states_next
             for seeding_instance_idx in range(
                 seeding_data["day_start_idx"][today],
-                seeding_data["day_start_idx"][today + 1],
+                seeding_data["day_start_idx"][
+                    min(
+                        today + int(np.ceil(dt)), len(seeding_data["day_start_idx"]) - 1
+                    )
+                ],
             ):
                 this_seeding_amounts = seeding_amounts[seeding_instance_idx]
                 seeding_places = seeding_data["seeding_places"][seeding_instance_idx]
@@ -248,5 +252,22 @@ def rk4_integration(
         x_ = np.reshape(sol, (2, ncompartments, nspatial_nodes))
         states_daily_incid[today] += x_[1]
         states_next = x_[0]
+
+    if dt == 2.0:  # smooth prevalence:
+        states_f = scipy.interpolate.interp1d(
+            np.arange(ndays, step=2),
+            states[::2, :, :],
+            axis=0,
+            kind="linear",
+            bounds_error=False,  # necessary in some case, for some ti and tf
+            fill_value="extrapolate",  # necessary in some case, for some ti and tf
+        )
+        states = states_f(np.arange(ndays))
+
+        # states_i_f = scipy.interpolate.interp1d(np.arange(ndays, step=2), states_daily_incid[::2, :, :], axis=0, kind="linear")
+        # states_daily_incid = states_i_f(np.arange(ndays)) / 2
+        ## error is smaller with this bellow, but there should be even smarter ways of doing this TODO
+        states_daily_incid = states_daily_incid / 2
+        states_daily_incid[1::2, :, :] = states_daily_incid[:-1:2, :, :]
 
     return states, states_daily_incid
