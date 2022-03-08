@@ -67,6 +67,8 @@ def steps_SEIR(
     assert len(s.popnodes) == s.nnodes
     assert type(s.popnodes[0]) == np.int64
 
+    assert s.dt <= 1.0 or s.dt == 2.0
+
     fnct_args = {
         "ncompartments": s.compartments.compartments.shape[0],
         "nspatial_nodes": s.nnodes,
