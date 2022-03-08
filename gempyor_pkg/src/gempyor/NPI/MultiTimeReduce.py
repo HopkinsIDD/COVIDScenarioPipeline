@@ -89,7 +89,7 @@ class MultiTimeReduce(NPIBase):
         #        self.npi_old.loc[index, period_range] = np.tile(self.parameters["reduction"][index], (len(period_range), 1)).T
         # print(f'{self.name}, : {(self.npi_old == self.npi).all().all()}')
 
-        self.__checkErrors()
+        #self.__checkErrors()
 
     def __checkErrors(self):
         if not self.sanitize:
