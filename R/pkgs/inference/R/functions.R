@@ -319,12 +319,18 @@ compute_totals <- function(sim_hosp) {
 ##' @export
 perturb_seeding <- function(seeding, date_sd, date_bounds, amount_sd = 1, continuous = FALSE) {
 
+  if (!("no_perturb" %in% colnames(seeding))){
+      perturb <- !logical(nrow(seeding))
+  } else {
+      perturb <- !seeding$no_perturb
+  }
+
   if (date_sd > 0) {
-    seeding$date <- pmin(pmax(seeding$date + round(rnorm(nrow(seeding),0,date_sd)), date_bounds[1]), date_bounds[2])
+    seeding$date[perturb] <- pmin(pmax(seeding$date + round(rnorm(nrow(seeding),0,date_sd)), date_bounds[1]), date_bounds[2])[perturb]
   }
   if (amount_sd > 0) {
     round_func <- ifelse(continuous, function(x){return(x)}, round)
-    seeding$amount <- round_func(pmax(rnorm(nrow(seeding),seeding$amount, amount_sd),0))
+    seeding$amount[perturb] <- round_func(pmax(rnorm(nrow(seeding),seeding$amount, amount_sd),0))[perturb]
   }
 
   return(seeding)

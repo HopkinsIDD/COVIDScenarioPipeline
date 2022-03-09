@@ -295,6 +295,11 @@ if (!dir.exists(lambda_dir)) {
 }
 
 
+# Add "no_perturb" flag
+if (!("no_perturb" %in% colnames(incident_cases))){
+    incident_cases$no_perturb <- FALSE
+}
+
 
 # Combine with population seeding for compartments (current hack to get population in)
 
@@ -305,7 +310,7 @@ if ("compartments" %in% names(config[["seir"]]) & "pop_seed_file" %in% names(con
         dplyr::select(!!!colnames(incident_cases))
     
     incident_cases <- incident_cases %>%
-        dplyr::bind_rows(seeding_pop) %>% 
+        dplyr::bind_rows(seeding_pop %>% dplyr::mutate(no_perturb = TRUE)) %>% 
         dplyr::arrange(place, date)
 }
 

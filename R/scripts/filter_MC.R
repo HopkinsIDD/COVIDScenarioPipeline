@@ -329,7 +329,8 @@ geonames <- unique(obs[[obs_nodename]])
 
 print("Successfully pulled and processed all ground truth.")
 
-
+gt_start_date <- gt_start_date_
+gt_end_date <- gt_end_date_
 
 
 
