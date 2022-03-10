@@ -838,8 +838,6 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 #'
 #' @param fix_negatives 
 #'
-#' @return
-#' @import data.table rawcoviddata
 #' @export
 #'
 #' @examples

@@ -18,10 +18,10 @@ Imports:
     tidyr,
     data.table,
     magrittr,
-    lubridate
+    lubridate,
+    vroom
 Suggests: 
     testthat (>= 2.1.0),
-    rawcoviddata
-Remotes: 
-    lmullany/rawcoviddata
+    rawcoviddata,
+    covidcast
 RoxygenNote: 7.1.2.9000

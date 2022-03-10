@@ -1,6 +1,7 @@
 # File naming ------------------------------------------------------------------
 
 ##' Create a unique identifier for a run via time stamp
+##' 
 ##' @export
 ##' 
 run_id <- function(){
