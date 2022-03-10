@@ -13,7 +13,6 @@ Imports:
     methods,
     yaml,
     purrr,
-    rawcoviddata,
     dplyr,
     readr,
     tidyr,
@@ -21,7 +20,8 @@ Imports:
     magrittr,
     lubridate
 Suggests: 
-    testthat (>= 2.1.0)
+    testthat (>= 2.1.0),
+    rawcoviddata
 Remotes: 
     lmullany/rawcoviddata
 RoxygenNote: 7.1.2.9000
