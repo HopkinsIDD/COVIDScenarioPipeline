@@ -91,7 +91,7 @@ collapse_intervention<- function(dat
         dplyr::group_by(dplyr::across(-geoid)) %>%
         dplyr::summarize(geoid = paste0(geoid, collapse='", "')) %>%
         dplyr::mutate(period = paste0("            ", period))
-
+    
     reduce <- dat %>%
         dplyr::select(USPS, geoid, start_date, end_date, name, template, type, category, parameter, baseline_scenario, starts_with("value_"), starts_with("pert_")) %>%
         dplyr::filter(template %in% c("ReduceR0", "Reduce", "ReduceIntervention")) %>%
@@ -108,7 +108,7 @@ collapse_intervention<- function(dat
                                               template!="ReduceIntervention" ~ paste0(geoid, name),
                                               TRUE ~ name),
                       name = stringr::str_remove(name, "^_"))
-
+    
     dat <- dplyr::bind_rows(mtr,
                             reduce) %>%
         dplyr::ungroup() %>%
@@ -116,7 +116,7 @@ collapse_intervention<- function(dat
         dplyr::arrange(period)  %>%
         dplyr::ungroup() %>%
         dplyr::arrange(category, geoid)
-
+    
     return(dat)
 }
 
@@ -134,7 +134,7 @@ yaml_mtr_template <- function(dat){
     template <- unique(dat$template)
     geoid_all <- any(unique(dat$geoid)=="all")
     inference <- !any(is.na(dat$pert_dist))
-
+    
     if(template=="MultiTimeReduce" & geoid_all){
         cat(paste0(
             "    ", dat$name, ":\n",
@@ -143,14 +143,14 @@ yaml_mtr_template <- function(dat){
             "      groups:\n",
             '        - affected_geoids: "all"\n'
         ))
-
+        
         for(j in 1:nrow(dat)){
             cat(paste0('          periods:\n',
                        dat$period[j], '\n'
             ))
         }
     }
-
+    
     if(template=="MultiTimeReduce" & !geoid_all){
         cat(paste0(
             "    ", dat$name[1], ":\n",
@@ -158,7 +158,7 @@ yaml_mtr_template <- function(dat){
             "      parameter: ", dat$parameter[1], "\n",
             "      groups:\n"
         ))
-
+        
         for(j in 1:nrow(dat)){
             cat(paste0(
                 '        - affected_geoids: ["', dat$geoid[j], '"]\n',
@@ -167,7 +167,7 @@ yaml_mtr_template <- function(dat){
             ))
         }
     }
-
+    
     cat(
         print_value(value_dist = dat$value_dist[1],
                     value_mean = dat$value_mean[1],
@@ -175,7 +175,7 @@ yaml_mtr_template <- function(dat){
                     value_a = dat$value_a[1],
                     value_b = dat$value_b[1])
     )
-
+    
     if(inference){
         cat(
             print_value(value_dist = dat$pert_dist[1],
@@ -210,10 +210,10 @@ print_value <- function(value_dist,
                         value_b,
                         param_name = "value",
                         indent_space = 6){
-
+    
     space <- rep(" ", indent_space) %>% paste0(collapse="")
     space2 <- rep(" ", indent_space+2) %>% paste0(collapse="")
-
+    
     if(value_dist=="fixed"){
         if(is.na(value_mean)){stop('Intervention value must be specified for "fixed" distributions')}
         print_val <- paste0(
@@ -222,7 +222,7 @@ print_value <- function(value_dist,
             space2, "value: ", value_mean, "\n"
         )
     }
-
+    
     if(value_dist=="truncnorm"){
         if(any(is.na(value_mean), is.na(value_sd), is.na(value_a), is.na(value_b))){stop('Intervention mean, sd, a, and b must be specified for "truncnorm" distributions')}
         print_val <- paste0(
@@ -234,7 +234,7 @@ print_value <- function(value_dist,
             space2, "b: ", value_b, "\n"
         )
     }
-
+    
     if(value_dist=="uniform"){
         if(any(is.na(value_a), is.na(value_b))){stop('Intervention a and b must be specified for "uniform" distributions')}
         print_val <- paste0(
@@ -244,11 +244,11 @@ print_value <- function(value_dist,
             space2, "high: ", value_b, "\n"
         )
     }
-
+    
     if(is.na(value_dist)){
         print_val = ""
     }
-
+    
     return(print_val)
 }
 
@@ -264,7 +264,7 @@ print_value <- function(value_dist,
 yaml_reduce_template<- function(dat
 ){
     #if(!dat$template %in% c("ReduceR0", "ReduceIntervention", "Reduce")){stop(paste0("Intervention template should be 'ReduceR0' or 'ReduceIntervention', but is ", dat$template))}
-
+    
     if(dat$template == "ReduceR0" & dat$geoid != "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
@@ -273,7 +273,7 @@ yaml_reduce_template<- function(dat
             dat$period
         ))
     }
-
+    
     if(dat$template == "ReduceR0" & dat$geoid == "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
@@ -282,7 +282,7 @@ yaml_reduce_template<- function(dat
             dat$period
         ))
     }
-
+    
     if(dat$template == "Reduce" & dat$geoid != "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
@@ -292,7 +292,7 @@ yaml_reduce_template<- function(dat
             dat$period
         ))
     }
-
+    
     if(dat$template == "Reduce" & dat$geoid == "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
@@ -302,7 +302,7 @@ yaml_reduce_template<- function(dat
             dat$period
         ))
     }
-
+    
     if(dat$template == "ReduceIntervention" & dat$geoid != "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
@@ -313,7 +313,7 @@ yaml_reduce_template<- function(dat
             "      baseline_scenario: ", dat$baseline_scenario, "\n"
         ))
     }
-
+    
     if(dat$template == "ReduceIntervention" & dat$geoid == "all"){
         cat(paste0(
             "    ", dat$name, ":\n",
@@ -324,7 +324,7 @@ yaml_reduce_template<- function(dat
             "      baseline_scenario: ", dat$baseline_scenario, "\n"
         ))
     }
-
+    
     cat(
         print_value(value_dist = dat$value_dist[1],
                     value_mean = dat$value_mean[1],
@@ -332,7 +332,7 @@ yaml_reduce_template<- function(dat
                     value_a = dat$value_a[1],
                     value_b = dat$value_b[1])
     )
-
+    
     if(!is.na(dat$pert_dist)){
         cat(
             print_value(value_dist = dat$pert_dist[1],
@@ -343,7 +343,7 @@ yaml_reduce_template<- function(dat
                         param_name = "perturbation")
         )
     }
-
+    
 }
 
 
@@ -351,52 +351,64 @@ yaml_reduce_template<- function(dat
 #'
 #' @param dat dataframe with processed intervention name/periods; see collapsed_interventions.
 #' @param scenario intervention scenario name
+#' @param stack Whether to stack interventions; default TRUE
 #'
 #' @return
 #' @export
 #'
 #' @examples
 #'
-yaml_stack <- function(dat,
-                       scenario = "Inference"
-){
-
-    dat<-dat %>%
-        dplyr::group_by(category, USPS, geoid) %>%
-        dplyr::filter(category == "NPI_redux" & period == max(period)) %>%
-        dplyr::bind_rows(dat %>%
-                             dplyr::filter(category != "NPI_redux")) %>%
-        dplyr::distinct(name, category) %>%
-        dplyr::group_by(category) %>%
-        dplyr::summarize(name = paste0(name, collapse = '", "'))
-
-    for(i in 1:nrow(dat)){
-        if(dat$category[i] %in% c("local_variance", "NPI_redux")){next}
-        cat(paste0(
-            "    ", dat$category[i], ":\n",
-            "      template: Stacked\n",
-            '      scenarios: ["', dat$name[i], '"]\n'
-        ))
-
+yaml_stack <- function (dat, scenario = "Inference", stack=TRUE) {
+    
+    if (stack){
+        dat <- dat %>% dplyr::group_by(category, USPS, geoid) %>% 
+            dplyr::filter(category == "NPI_redux" & period == max(period)) %>% 
+            dplyr::bind_rows(dat %>% dplyr::filter(category != "NPI_redux")) %>% 
+            dplyr::distinct(name, category) %>% dplyr::group_by(category) %>% 
+            dplyr::summarize(name = paste0(name, collapse = "\", \""))
+        duplicate_names <- dat %>% dplyr::count(name) %>% dplyr::filter(n > 1) %>% nrow()
+        if (duplicate_names > 1) {
+            stop("At least one intervention name is shared by distinct NPIs.")
+        }
+        for (i in 1:nrow(dat)) {
+            if (dat$category[i] %in% c("local_variance", "NPI_redux")) {
+                next
+            }
+            cat(paste0("    ", dat$category[i], ":\n", 
+                       "      template: Stacked\n", 
+                       "      scenarios: [\"", dat$name[i], "\"]\n"))
+        }
+        dat <- dat %>% dplyr::filter(category != "base_npi") %>% 
+            dplyr::mutate(category = dplyr::if_else(category == "NPI_redux", name, category))
+        cat(paste0("    ", scenario, ":\n", 
+                   "      template: Stacked\n", 
+                   "      scenarios: [\"", paste0(dat$category, collapse = "\", \""), "\"]\n"))
+        
+    } else {
+        dat <- dat %>% dplyr::group_by(category, USPS, geoid) %>% 
+            dplyr::filter(category == "NPI_redux" & period == max(period)) %>% 
+            dplyr::bind_rows(dat %>% dplyr::filter(category != "NPI_redux")) %>% 
+            dplyr::distinct(name, category) %>% as_tibble() %>% dplyr::select(name) %>% 
+            pull(name) 
+        duplicate_names <- sum(duplicated(dat))
+        if (duplicate_names > 1) {
+            stop("At least one intervention name is shared by distinct NPIs.")
+        } 
+        cat(paste0("    ", scenario, ":\n", 
+                   "      template: Stacked\n", 
+                   "      scenarios: [\"", paste0(dat, collapse = "\", \""), "\"]\n"))
     }
-
-    dat <- dat %>%
-        dplyr::filter(category != "base_npi") %>%
-        dplyr::mutate(category = dplyr::if_else(category == "NPI_redux", name, category))
-
-    cat(paste0(
-        "    ", scenario, ":\n",
-        "      template: Stacked\n",
-        '      scenarios: ["', paste0(dat$category, collapse='", "'), '"]\n'
-    ))
 }
+
 
 #' Print Interventions Section
 #'
-#' @description Print transmission interventions and stack them
+#' @description Print transmission and outcomes interventions and stack them
 #'
 #' @param dat dataframe with processed intervention names/periods; see collapsed_interventions
 #' @param scenario name of the scenario
+#' @param compartment
+#' @param stack 
 #'
 #' @return
 #' @export
@@ -404,71 +416,61 @@ yaml_stack <- function(dat,
 #' @examples
 #'
 
-print_transmission_interventions <- function(dat,
-                                             scenario = "Inference"
-){
-
-    cat(paste0(
-        'interventions:\n',
-        '  scenarios:\n',
-        '    - ', scenario, '\n',
-        '  settings:\n'
-    ))
-
-    dat <- collapse_intervention(dat) %>%
-        dplyr::filter(type == "transmission")
-
-
-    for(i in 1:nrow(dat)){
-
-        if(i > nrow(dat)) break
-
-        if(dat$template[i]=="MultiTimeReduce"){
-            dat %>%
-                dplyr::filter(name == dat$name[i]) %>%
-                yaml_mtr_template(.)
-
-            dat <- dat %>%
-                dplyr::filter(name != dat$name[i] | dplyr::row_number() == i)
-        } else{
-            yaml_reduce_template(dat[i,])
+print_interventions <- function (dat, 
+                                 scenario = "Inference", 
+                                 stack=TRUE, 
+                                 compartment = TRUE) {
+    
+    cat(paste0("\ninterventions:\n", 
+               "  scenarios:\n", 
+               "    - ", scenario, "\n", 
+               "  settings:\n"))
+    
+    outcome_dat <- dat %>% collapse_intervention() %>% dplyr::filter(type == "outcome")
+    dat <- collapse_intervention(dat) %>% dplyr::filter(type == "transmission")
+    for (i in 1:nrow(dat)) {
+        if (i > nrow(dat)) 
+            break
+        if (dat$template[i] == "MultiTimeReduce") {
+            dat %>% dplyr::filter(name == dat$name[i]) %>% yaml_mtr_template(.)
+            dat <- dat %>% dplyr::filter(name != dat$name[i] | dplyr::row_number() == i)
         }
-
-
+        else {
+            yaml_reduce_template(dat[i, ])
+        }
     }
-
-    # reduce <- dat %>%
-    #     dplyr::filter(template != "MultiTimeReduce")
-    #
-    # if(nrow(reduce) > 0 ){
-    #     for(i in 1:nrow(reduce)){
-    #
-    #         yaml_reduce_template(reduce[i,])
-    #
-    #     }
-    # }
-    #
-    # mtr <- dat %>%
-    #     dplyr::filter(template=="MultiTimeReduce")
-    #
-    # npi_names <- mtr %>% dplyr::distinct(name) %>% dplyr::pull()
-    # if(nrow(mtr) > 0){
-    #     for(i in 1:length(npi_names)){
-    #         npi <- mtr %>%
-    #             dplyr::filter(name == npi_names[i])
-    #
-    #         yaml_mtr_template(npi)
-    #     }
-    #
-    # }
-
-    yaml_stack(dat,
-               scenario)
+    
+    yaml_stack(dat, scenario, stack)
+    
+    if (nrow(outcome_dat) > 0) {
+        if (compartment) {
+            yaml_stack(outcome_dat, "outcome_interventions", stack)
+            cat(paste0("\n"))
+        }
+        for (i in 1:nrow(outcome_dat)) {
+            if (i > nrow(outcome_dat)) 
+                break
+            if (outcome_dat$template[i] == "MultiTimeReduce") {
+                outcome_dat %>% dplyr::filter(name == outcome_dat$name[i]) %>% yaml_mtr_template(.)
+                outcome_dat <- outcome_dat %>% dplyr::filter(name != outcome_dat$name[i] | dplyr::row_number() == i)
+            }
+            else {
+                yaml_reduce_template(outcome_dat[i, ])
+            }
+        }
+        cat(paste0("\n"))
+    }
 }
+
+
+
+
+
+
 
 #' Print Outcomes Section
 #'
-#' @param dat=NULL df with outcome interventions
+#' @param resume_modifier text that will be added to outcomes so they overwrite existing outcomes in run resumed from; if not a resume or the same outcome, leave NULL
 #' @param ifr name of ifr scenario
 #' @param outcomes_parquet_file path to outcomes parquet file
 #' @param incidH_prob_dist distribution for incidH probability
@@ -506,6 +508,16 @@ print_transmission_interventions <- function(dat,
 #' @param incidC_prob_b_pert minimum perturbation value for incidC probability
 #' @param incidC_delay_value time to case detection since infection in days
 #' @param incidC_delay_dist distribution of incidC delay
+#' @param compartment
+#' @param variant_compartments
+#' @param vaccine_compartments
+#' @param age_strata
+#' @param intervention_params
+#' @param outcomes_included which outcomes to include, options: incidH, incidC, incidD, incidICU, incidVent.
+#' @param incl_interventions
+#' @param dat 
+#' @param outcomes_base_data 
+#' @param incl_hosp_curr 
 #'
 #' @details
 #' The settings for each scenario correspond to a set of different health outcome risks, most often just differences in the probability of death given infection (Pr(incidD|incidI)) and the probability of hospitalization given infection (Pr(incidH|incidI)). Each health outcome risk is referenced in relation to the outcome indicated in source. For example, the probability and delay in becoming a confirmed case (incidC) is most likely to be indexed off of the number and timing of infection (incidI).
@@ -518,288 +530,498 @@ print_transmission_interventions <- function(dat,
 #' @export
 #'
 #'
-
-print_outcomes <- function(dat=NULL,
-                          ifr=NULL,
-                          outcomes_parquet_file="usa-geoid-params-output_statelevel.parquet",
-                          incidH_prob_dist="fixed",
-                          incidH_prob_value=0.0175,
-                          incidH_delay_dist="fixed",
-                          incidH_delay_value=7,
-                          incidH_duration_dist="fixed",
-                          incidH_duration_value=7,
-                          incidD_prob_dist="fixed",
-                          incidD_prob_value=0.005,
-                          incidD_delay_dist="fixed",
-                          incidD_delay_value=20,
-                          incidICU_prob_dist="fixed",
-                          incidICU_prob_value=0.167,
-                          incidICU_delay_dist="fixed",
-                          incidICU_delay_value=3,
-                          incidICU_duration_dist="fixed",
-                          incidICU_duration_value=8,
-                          incidVent_prob_dist="fixed",
-                          incidVent_prob_value=0.463,
-                          incidVent_delay_dist="fixed",
-                          incidVent_delay_value=1,
-                          incidVent_duration_dist="fixed",
-                          incidVent_duration_value=7,
-                          incidC_prob_dist="truncnorm",
-                          incidC_prob_value=0.2,
-                          incidC_prob_sd=.1,
-                          incidC_prob_a=0,
-                          incidC_prob_b=1,
-                          incidC_perturbation = TRUE,
-                          incidC_prob_dist_pert="truncnorm",
-                          incidC_prob_value_pert=0,
-                          incidC_prob_sd_pert=0.05,
-                          incidC_prob_a_pert=-1,
-                          incidC_prob_b_pert=1,
-                          incidC_delay_value=7,
-                          incidC_delay_dist="fixed"
-){
-
-    if(is.null(ifr)){stop("You must specify a scenario/IFR name.")}
-
-    if(!is.null(dat)){
-        dat <- dat %>%
-            collapse_intervention() %>%
-            dplyr::filter(type=="outcome")
-
-        if(nrow(dat) > 0){
-            cat(paste0("\n"))
-            for(i in 1:nrow(dat)){
-                if(dat$template[i]=="Reduce"){
-                    yaml_reduce_template(dat[i,])
+print_outcomes <- function (resume_modifier = NULL, 
+                            dat = NULL, ifr = NULL, outcomes_base_data = NULL, 
+                            outcomes_parquet_file = "usa-geoid-params-output_statelevel.parquet", 
+                            incidH_prob_dist = "fixed", incidH_prob_value = 0.0175, 
+                            incidH_delay_dist = "fixed", incidH_delay_value = 7, incidH_duration_dist = "fixed", 
+                            incidH_duration_value = 7, incidD_prob_dist = "fixed", incidD_prob_value = 0.005, 
+                            incidD_delay_dist = "fixed", incidD_delay_value = 20, incidICU_prob_dist = "fixed", 
+                            incidICU_prob_value = 0.167, incidICU_delay_dist = "fixed", 
+                            incidICU_delay_value = 3, incidICU_duration_dist = "fixed", 
+                            incidICU_duration_value = 8, incidVent_prob_dist = "fixed", 
+                            incidVent_prob_value = 0.463, incidVent_delay_dist = "fixed", 
+                            incidVent_delay_value = 1, incidVent_duration_dist = "fixed", 
+                            incidVent_duration_value = 7, incidC_prob_dist = "truncnorm", 
+                            incidC_prob_value = 0.2, incidC_prob_sd = 0.1, incidC_prob_a = 0, 
+                            incidC_prob_b = 1, incidC_perturbation = TRUE, incidC_prob_dist_pert = "truncnorm", 
+                            incidC_prob_value_pert = 0, incidC_prob_sd_pert = 0.05, 
+                            incidC_prob_a_pert = -1, incidC_prob_b_pert = 1, incidC_delay_value = 7, 
+                            incidC_delay_dist = "fixed", compartment = TRUE, variant_compartments = c("WILD", "ALPHA", "DELTA"), 
+                            vaccine_compartments = c("unvaccinated","1dose", "2dose", "waned"), age_strata = c("0_64", "65_100"), 
+                            outcomes_included = c("incidH", "incidD", "incidC", "incidI"), 
+                            incidItoCparam = "incidItoC_all",
+                            intervention_params = NULL, 
+                            incl_interventions = TRUE,
+                            incl_hosp_curr = FALSE) {
+    if (is.null(ifr)) {
+        stop("You must specify a scenario/IFR name.")
+    }
+    
+    
+    #age_strata <- dplyr::if_else(stringr::str_detect(age_strata, "^age\\_"), age_strata, paste0("age_", age_strata))
+    incidC_pert <- ""
+    if (compartment) {
+        pert_repeat <- length(variant_compartments) * length(vaccine_compartments) * length(age_strata)
+        #incidC_perturbation <- rep(incidC_perturbation, length(incidC_perturbation)/pert_repeat)
+    } else {
+        pert_repeat <- length(incidC_perturbation)
+    }
+    for (i in 1:pert_repeat) {
+        if (incidC_perturbation) {
+            incidC_pert[i] <- print_value(value_dist = incidC_prob_dist_pert, 
+                                          value_mean = incidC_prob_value_pert, value_sd = incidC_prob_sd_pert, 
+                                          value_a = incidC_prob_a_pert, value_b = incidC_prob_b_pert, 
+                                          param_name = "perturbation", indent_space = 10)
+        }  else {
+            incidC_pert[i] <- ""
+        }
+    }
+    if (compartment) {
+        incidH <- ""
+        incidD <- ""
+        incidC <- ""
+        incidI <- ""
+        
+        outcomes_base_data <- outcomes_base_data %>% 
+            dplyr::mutate(age_strata = dplyr::if_else(stringr::str_detect(age_strata, "^age"), age_strata, paste0("age", age_strata)), 
+                          var_compartment = paste(vacc, variant, age_strata,  sep = "_"))
+        
+        # modify if resuming and want to overwrite all outcomes
+        if (!is.null(resume_modifier)){
+            outcomes_base_data <- outcomes_base_data %>% mutate(var_compartment = paste0(var_compartment, resume_modifier))
+        }
+        
+        if (!("incidD" %in% colnames(outcomes_base_data))){
+            outcomes_base_data <- outcomes_base_data %>% mutate(incidD = 1) 
+        }
+        if (!("incidH" %in% colnames(outcomes_base_data))){
+            outcomes_base_data <- outcomes_base_data %>% mutate(incidH = 1) 
+        }
+        if (!("incidC" %in% colnames(outcomes_base_data))){
+            outcomes_base_data <- outcomes_base_data %>% mutate(incidC = 1) 
+        }
+        if (!("incidI" %in% colnames(outcomes_base_data))){
+            outcomes_base_data <- outcomes_base_data %>% mutate(incidI = 1) 
+        }
+        
+        outcomes <- paste0(
+            "outcomes:\n", 
+            "  method: delayframe\n", 
+            "  param_from_file: TRUE\n", 
+            "  param_place_file: \"", outcomes_parquet_file, "\"\n", 
+            "  scenarios:\n", 
+            "    - ", ifr, "\n", 
+            "  settings:\n", 
+            "    ", ifr, ":\n")
+        
+        for (i in 1:nrow(outcomes_base_data)){
+            if ("incidH" %in% outcomes_included){
+                incidH <- paste0(incidH, 
+                                 "      incidH_", outcomes_base_data$var_compartment[i], ":\n", 
+                                 "        source: incidI_", outcomes_base_data$var_compartment[i], "\n", 
+                                 "        probability:\n", 
+                                 if ("incidH" %in% intervention_params) paste0("          intervention_param_name: \"incidH_total\"\n"), 
+                                 print_value(value_dist = incidH_prob_dist, 
+                                             value_mean = incidH_prob_value * outcomes_base_data$incidH[i], 
+                                             indent_space = 10), 
+                                 "        delay:\n", print_value(value_dist = incidH_delay_dist, value_mean = incidH_delay_value, indent_space = 10), 
+                                 ifelse(incl_hosp_curr, 
+                                        paste0(
+                                            "        duration:\n", print_value(value_dist = incidH_duration_dist, value_mean = incidH_duration_value, indent_space = 10), 
+                                            "          name: hosp_curr_", paste0(outcomes_base_data$var_compartment[i]), "\n"), ""))
+            }
+            
+            if ("incidI" %in% outcomes_included){
+                incidD <- paste0(incidD, 
+                                 "      incidD_", outcomes_base_data$var_compartment[i], ":\n", 
+                                 "        source: incidI_", outcomes_base_data$var_compartment[i], "\n", 
+                                 "        probability:\n", 
+                                 if ("incidD" %in% intervention_params) paste0("          intervention_param_name: \"incidD_total\"\n"), 
+                                 print_value(value_dist = incidD_prob_dist, 
+                                             value_mean = incidD_prob_value * outcomes_base_data$incidD[i], 
+                                             indent_space = 10), 
+                                 "        delay:\n", print_value(value_dist = incidD_delay_dist, value_mean = incidD_delay_value, indent_space = 10))
+            } else {
+                incidD <- paste0(incidD,
+                                 "      incidD_", outcomes_base_data$var_compartment[i],
+                                 ":\n", "        source:\n", "          incidence:\n",
+                                 "            infection_stage: \"I1\"\n",
+                                 "            vaccination_stage: \"", paste0(outcomes_base_data$vacc[i], collapse = "\", \""), "\"\n",
+                                 "            variant_type: \"", paste0(outcomes_base_data$variant[i], collapse = "\", \""), "\"\n",
+                                 "            age_strata: \"", paste0(outcomes_base_data$age_strata[i]), "\"\n",
+                                 "        probability:\n",
+                                 if ("incidD" %in% intervention_params) paste0("          intervention_param_name: \"incidD_total\"\n"),
+                                 print_value(value_dist = incidD_prob_dist,
+                                             value_mean = incidD_prob_value * outcomes_base_data$incidD[i],
+                                             indent_space = 10),
+                                 "        delay:\n", print_value(value_dist = incidD_delay_dist, value_mean = incidD_delay_value, indent_space = 10))
+            }
+            
+            
+            if ("incidI" %in% outcomes_included){
+                incidC <- paste0(incidC, 
+                                 "      incidC_", outcomes_base_data$var_compartment[i], ":\n", 
+                                 "        source: incidI_", outcomes_base_data$var_compartment[i],  "\n", 
+                                 "        probability:\n", 
+                                 if ("incidC" %in% intervention_params) paste0("          intervention_param_name: \"", incidItoCparam, "\"\n"), 
+                                 print_value(value_dist = incidC_prob_dist, 
+                                             value_mean = incidC_prob_value * outcomes_base_data$incidC[i], 
+                                             value_sd = incidC_prob_sd, 
+                                             value_a = incidC_prob_a, 
+                                             value_b = incidC_prob_b, 
+                                             indent_space = 10), 
+                                 incidC_pert[i], 
+                                 "        delay:\n", print_value(value_dist = incidC_delay_dist, value_mean = incidC_delay_value, indent_space = 10))
+            } else {
+                incidC <- paste0(incidC,
+                                 "      incidC_", outcomes_base_data$var_compartment[i], ":\n",
+                                 "        source:\n",
+                                 "          incidence:\n",
+                                 "            infection_stage: \"I1\"\n",
+                                 "            vaccination_stage: \"", paste0(outcomes_base_data$vacc[i], collapse = "\", \""), "\"\n",
+                                 "            variant_type: \"", paste0(outcomes_base_data$variant[i], collapse = "\", \""), "\"\n",
+                                 "            age_strata: \"", paste0(outcomes_base_data$age_strata[i]), "\"\n",
+                                 "        probability:\n",
+                                 if ("incidC" %in% intervention_params) paste0("          intervention_param_name: \"", incidItoCparam, "\"\n"),
+                                 print_value(value_dist = incidC_prob_dist,
+                                             value_mean = incidC_prob_value * outcomes_base_data$incidC[i],
+                                             value_sd = incidC_prob_sd,
+                                             value_a = incidC_prob_a,
+                                             value_b = incidC_prob_b,
+                                             indent_space = 10),
+                                 incidC_pert[i],
+                                 "        delay:\n", print_value(value_dist = incidC_delay_dist, value_mean = incidC_delay_value, indent_space = 10))
+            }
+            
+            if ("incidI" %in% outcomes_included){
+                incidI <- paste0(incidI, 
+                                 "      incidI_", outcomes_base_data$var_compartment[i], ":\n", 
+                                 "        source:\n", 
+                                 "          incidence:\n", 
+                                 "            infection_stage: \"I1\"\n", 
+                                 "            vaccination_stage: \"", paste0(outcomes_base_data$vacc[i], collapse = "\", \""), "\"\n", 
+                                 "            variant_type: \"", paste0(outcomes_base_data$variant[i], collapse = "\", \""), "\"\n", 
+                                 "            age_strata: \"", paste0(outcomes_base_data$age_strata[i]), "\"\n", 
+                                 "        probability:\n",                           
+                                 if("incidI" %in% intervention_params) paste0('          intervention_param_name: "incidI_total"\n'),
+                                 print_value(value_dist = "fixed", 
+                                             value_mean = 1, 
+                                             indent_space = 10),
+                                 "        delay:\n", print_value(value_dist = "fixed", value_mean = 0, indent_space = 10))
+            }
+        }
+        
+        
+        for (i in 1:length(variant_compartments)) {
+            if ("incidH" %in% outcomes_included){
+                incidH <- paste0(incidH, 
+                                 "      ", paste0("incidH_", variant_compartments[i]), ":\n", 
+                                 "        sum: [\n", 
+                                 paste0(paste0("          incidH_", outcomes_base_data$var_compartment[outcomes_base_data$variant == variant_compartments[i]]), collapse = ",\n"), "\n", 
+                                 "        ]\n")
+                
+                if (incl_hosp_curr){
+                    incidH <- paste0(incidH, 
+                                     "      ", paste0("hosp_curr_", variant_compartments[i]), ":\n", 
+                                     "        sum: [\n", 
+                                     paste0(paste0("          hosp_curr_", outcomes_base_data$var_compartment[outcomes_base_data$variant == variant_compartments[i]]), collapse = ",\n"), "\n", 
+                                     "        ]\n")
+                }
+            }
+            incidD <- paste0(incidD, 
+                             "      ", paste0("incidD_", variant_compartments[i]), ":\n", 
+                             "        sum: [\n", 
+                             paste0(paste0("          incidD_", outcomes_base_data$var_compartment[outcomes_base_data$variant == variant_compartments[i]]), collapse = ",\n"), "\n", 
+                             "        ]\n")
+            incidC <- paste0(incidC, 
+                             "      ", paste0("incidC_", variant_compartments[i]), ":\n", 
+                             "        sum: [\n", 
+                             paste0(paste0("          incidC_", outcomes_base_data$var_compartment[outcomes_base_data$variant == variant_compartments[i]]), collapse = ",\n"), "\n", 
+                             "        ]\n")
+            if ("incidI" %in% outcomes_included){
+                incidI <- paste0(incidI, 
+                                 "      ", paste0("incidI_", variant_compartments[i]), ":\n", 
+                                 "        sum: [\n", 
+                                 paste0(paste0("          incidI_", outcomes_base_data$var_compartment[outcomes_base_data$variant == variant_compartments[i]]), collapse = ",\n"), "\n", 
+                                 "        ]\n")
+            }
+            
+            if (i == length(variant_compartments)) {
+                if ("incidH" %in% outcomes_included){
+                    incidH <- paste0(incidH, 
+                                     "      incidH:\n", 
+                                     "        sum: ['", paste0("incidH_", variant_compartments, collapse = "', '"), "']\n")
+                    if (incl_hosp_curr){
+                        incidH <- paste0(incidH, 
+                                         "      hosp_curr:\n", 
+                                         "        sum: ['", paste0("hosp_curr_", variant_compartments, collapse = "', '"), "']\n")
+                    }
+                }
+                incidD <- paste0(incidD, 
+                                 "      incidD:\n", 
+                                 "        sum: ['", paste0("incidD_", variant_compartments, collapse = "', '"), "']\n")
+                incidC <- paste0(incidC, "      incidC:\n", 
+                                 "        sum: ['", paste0("incidC_", variant_compartments, collapse = "', '"), "']\n")
+                if ("incidI" %in% outcomes_included){
+                    incidI <- paste0(incidI, 
+                                     "      incidI:\n", 
+                                     "        sum: ['", paste0("incidI_", variant_compartments, collapse = "', '"), "']\n")
                 }
             }
         }
-    }
-
-    if(incidC_perturbation){
-        incidC_pert <- print_value(value_dist = incidC_prob_dist_pert,
-                                   value_mean = incidC_prob_value_pert,
-                                   value_sd = incidC_prob_sd_pert,
-                                   value_a = incidC_prob_a_pert,
-                                   value_b = incidC_prob_b_pert,
-                                   param_name = "perturbation",
-                                   indent_space=10)
-    } else{
-        incidC_pert <- ""
-    }
-
-    cat(paste0(
-        '\n',
-        'outcomes:\n',
-        '  method: delayframe\n',
-        '  param_from_file: TRUE\n',
-        '  param_place_file: "', outcomes_parquet_file, '"\n',
-        '  scenarios:\n',
-        '    - ',ifr,'\n',
-        '  settings:\n',
-        '    ',ifr,':\n',
-        '      incidH:\n',
-        '        source: incidI\n',
-        '        probability:\n',
-        '          value:\n',
-        '            distribution: ',incidH_prob_dist,'\n',
-        '            value: ',incidH_prob_value,'\n',
-        '        delay:\n',
-        '          value:\n',
-        '            distribution: ', incidH_delay_dist,'\n',
-        '            value: ',incidH_delay_value,'\n',
-        '        duration:\n', # TODO: optional
-        '          value:\n',
-        '            distribution: ',incidH_duration_dist,'\n',
-        '            value: ',incidH_duration_value,'\n',
-        '          name: hosp_curr\n',
-        '      incidD:\n',
-        '        source: incidI\n',
-        '        probability:\n',
-        '          value:\n',
-        '            distribution: ',incidD_prob_dist,'\n',
-        '            value: ',incidD_prob_value,'\n',
-        '        delay:\n',
-        '          value:\n',
-        '            distribution: ',incidD_delay_dist,'\n',
-        '            value: ',incidD_delay_value,'\n',
-        '      incidICU:\n',
-        '        source: incidH\n',
-        '        probability:\n',
-        '          value:\n',
-        '            distribution: ',incidICU_prob_dist,'\n',
-        '            value: ',incidICU_prob_value,'\n',
-        '        delay:\n',
-        '          value:\n',
-        '            distribution: ',incidICU_delay_dist,'\n',
-        '            value: ',incidICU_delay_value,'\n',
-        '        duration:\n',
-        '          value:\n',
-        '            distribution: ',incidICU_duration_dist,'\n',
-        '            value: ',incidICU_duration_value,'\n',
-        '          name: icu_curr\n',
-        '      incidVent:\n',
-        '        source: incidICU\n',
-        '        probability: \n',
-        '          value:\n',
-        '            distribution: ',incidVent_prob_dist,'\n',
-        '            value: ',incidVent_prob_value,'\n',
-        '        delay:\n',
-        '          value:\n',
-        '            distribution: ',incidVent_delay_dist,'\n',
-        '            value: ',incidVent_delay_value,'\n',
-        '        duration:\n',
-        '          value:\n',
-        '            distribution: ',incidVent_duration_dist,'\n',
-        '            value: ',incidVent_duration_value,'\n',
-        '          name: vent_curr\n',
-        '      incidC:\n',
-        '        source: incidI\n',
-        '        probability:\n',
-        print_value(value_dist = incidC_prob_dist,
-                    value_mean = incidC_prob_value,
-                    value_sd = incidC_prob_sd,
-                    value_a = incidC_prob_a,
-                    value_b = incidC_prob_b,
-                    indent_space=10),
-        incidC_pert,
-        '        delay:\n',
-        '          value:\n',
-        '            distribution: ',incidC_delay_dist,'\n',
-        '            value: ',incidC_delay_value,'\n'
-    ))
-
-    if(!is.null(dat)){
-        cat(paste0(
-            '  interventions:\n',
-            '    settings:\n',
-            '      ', ifr, ':\n',
-            '        template: Stacked\n',
-            '        scenarios: ["', paste0(unique(dat$name), collapse = '", "'), '"]\n'
-        ))
-
+        
+        if (any(outcomes_included == "incidICU")) {
+            if (any(outcomes_included == "incidVent")) {
+                order_outcomes <- c("incidH", "incidICU", "incidVent")
+                outcomes_included <- c(order_outcomes, outcomes_included[!outcomes_included %in% order_outcomes])
+            }
+            else {
+                order_outcomes <- c("incidH", "incidICU")
+                outcomes_included <- c(order_outcomes, outcomes_included[!outcomes_included %in% order_outcomes])
+            }
+        }
+        cat(paste0(outcomes, mget(outcomes_included) %>% unlist() %>% paste0(collapse = "")))
+        
+        if (incl_interventions) {
+            cat(paste0("  interventions:\n", 
+                       "    settings:\n", 
+                       "      ", ifr, ":\n", 
+                       "        template: Stacked\n", 
+                       "        scenarios: [\"outcome_interventions\"]\n"))
+        }
+        
+        
+    }    else {
+        cat(paste0("\n", "outcomes:\n", 
+                   "  method: delayframe\n", 
+                   "  param_from_file: TRUE\n", 
+                   "  param_place_file: \"", outcomes_parquet_file, "\"\n", 
+                   "  scenarios:\n", 
+                   "    - ", ifr, "\n", 
+                   "  settings:\n", 
+                   "    ", ifr, ":\n", 
+                   "      incidH:\n", 
+                   "        source: incidI\n", 
+                   "        probability:\n", print_value(value_dist = incidH_prob_dist[1], value_mean = incidH_prob_value[1], indent_space = 10), 
+                   "        delay:\n", print_value(value_dist = incidH_delay_dist[1], value_mean = incidH_delay_value[1], indent_space = 10), 
+                   "        duration:\n", print_value(value_dist = incidH_duration_dist[1], value_mean = incidH_duration_value[1], indent_space = 10), 
+                   "          name: hosp_curr\n", 
+                   "      incidD:\n", 
+                   "        source: incidI\n", 
+                   "        probability:\n", print_value(value_dist = incidD_prob_dist[1], value_mean = incidD_prob_value[1], indent_space = 10), 
+                   "        delay:\n", print_value(value_dist = incidD_delay_dist[1], value_mean = incidD_delay_value[1], indent_space = 10), 
+                   "      incidICU:\n", 
+                   "        source: incidH\n", 
+                   "        probability:\n", print_value(value_dist = incidICU_prob_dist[1], value_mean = incidICU_prob_value[1], indent_space = 10), 
+                   "        delay:\n", print_value(value_dist = incidICU_delay_dist[1], value_mean = incidICU_delay_value[1], indent_space = 10), 
+                   "        duration:\n", print_value(value_dist = incidICU_duration_dist[1], value_mean = incidICU_duration_value[1], indent_space = 10), 
+                   "          name: icu_curr\n", 
+                   "      incidVent:\n", 
+                   "        source: incidICU\n", 
+                   "        probability: \n", print_value(value_dist = incidVent_prob_dist[1], value_mean = incidVent_prob_value[1], indent_space = 10), 
+                   "        delay:\n", print_value(value_dist = incidVent_delay_dist[1], value_mean = incidVent_delay_value[1], indent_space = 10), 
+                   "        duration:\n", print_value(value_dist = incidVent_duration_dist[1], value_mean = incidVent_duration_value[1], indent_space = 10), 
+                   "          name: vent_curr\n", 
+                   "      incidC:\n", 
+                   "        source: incidI\n", 
+                   "        probability:\n", print_value(value_dist = incidC_prob_dist[1], value_mean = incidC_prob_value[1], 
+                                                         value_sd = incidC_prob_sd[1], value_a = incidC_prob_a[1], value_b = incidC_prob_b[1], indent_space = 10), incidC_pert[1], 
+                   "        delay:\n", print_value(value_dist = incidC_delay_dist[1], value_mean = incidC_delay_value[1], indent_space = 10)))
+        
+        if (!is.null(dat)) {
+            dat <- dat %>% collapse_intervention() %>% dplyr::filter(type == "outcome")
+            if (nrow(dat) > 0) {
+                outcome_interventions <- paste0(unique(dat$name), collapse = "\", \"")
+                
+                cat(paste0("  interventions:\n", 
+                           "    settings:\n", 
+                           "      ", ifr, ":\n", 
+                           "        template: Stacked\n", 
+                           "        scenarios: [\"", outcome_interventions, "\"]\n"))
+            }
+        } 
     }
 }
 
+
+
+
+
+
+
 #' Print SEIR Section
 #' @description Print seir section with specified parameters.
+#' 
+#' @param resume_modifier 
+#' @param seir_csv 
+#' @param integration_method 
+#' @param params 
+#' @param ve_data 
+#' @param theta_dist 
+#' @param nu_1_val value of transition from the unvaccinated to the 1st vaccine compartment
+#' @param nu_1_dist distribution of nu_1
+#' @param nu_1_overlap_operation 
+#' @param nu_2_val value of transition from the 1st to the 2nd vaccine compartment
+#' @param nu_2_dist distribution of nu_2
+#' @param nu_2_overlap_operation 
+#' @param nu_3_val 
+#' @param nu_3_dist 
+#' @param nu_3_overlap_operation 
+#' @param vaccine_compartments names of vaccination compartments: defaults to "unvaccinated", "first dose" and "second dose"
+#' @param variant_compartments 
+#' @param age_strata 
+#' @param age_strata_boosters 
+#' @param inf_stages 
+#' @param use_descriptions 
 #'
-#' @param sigma_val inverse of the incubation period in days - fraction or probability
-#' @param gamma_dist specify if gamma is fixed or distributional
-#' @param gamma_val inverse of the infectious period in days - fraction or probability
-#' @param gamma_a minimum value of gamma - required if distribution is not "fixed"
-#' @param gamma_b maximum value of gamma - required if distribution is not "fixed"
-#' @param alpha_val transmission dampening parameter; reasonable values for respiratory viruses range from 0.88-0.99
-#' @param R0_val basic reproduction number
-#' @param R0_dist specify if R0 is fixed or distributional
-#' @param R0_a minimum value of R0 - required if distribution is not "fixed"
-#' @param R0_b maximum value of R0 - required if distribution is not "fixed"
-#' @param incl_vacc specify whether to include vaccination compartments. If TRUE, must specify dose transmission/susceptibility parameters for each compartment and transition across compartments
-#' @param dose_transmission_dist vector specifying whether transmission in each compartment is fixed; distributional is not yet supported
-#' @param dose_transmission_val vector specifying transmission rates per compartment
-#' @param dose_susceptibility_dist vector specifying whether susceptibility in each compartment is fixed; distributional is not yet supported
-#' @param dose_susceptibility_val vector specifying reduction in risk per compartment
-#' @param transitions_dist vector specifying whether transition rate between compartments is fixed; distributional is not yet supported
-#' @param transitions_val vector specifying base transition rate between compartments
-#' @param compartment_names names of vaccination compartments: defaults to "unvaccinated", "first dose" and "second dose"
 #' @export
 #'
 #' @examples
-#' print_seir(alpha_val=0.99,
+#' print_seir(seir_csv = "seir_R12.csv",
+#'            alpha_val=0.99,
 #'            sigma_val = 1/5.2,
 #'            gamma_dist = "uniform",
 #'            gamma_a = 1/6,
 #'            gamma_b = 1/2.6,
-#'            R0s_dist = "fixed",
-#'            R0s_val = 2.3,
+#'            r0_dist = "fixed",
+#'            r0_val = 2.3,
 #'            incl_vacc = FALSE)
 #'
-
-print_seir <- function(sigma_val = 1/5.2,
-                       gamma_dist = "fixed",
-                       gamma_val = 1/3.83,
-                       gamma_sd = NULL,
-                       gamma_a = 1/4.5,
-                       gamma_b = 1/3,
-                       alpha_val = 0.99,
-                       R0s_val = 2.3,
-                       R0s_dist = "uniform",
-                       R0s_sd = NULL,
-                       R0s_a = 2,
-                       R0s_b = 3,
-                       incl_vacc = TRUE,
-                       dose_transmission_dist = c("fixed","fixed", "fixed"),
-                       dose_transmission_val = c(0, 0, 0),
-                       dose_susceptibility_dist = c("fixed","fixed", "fixed"),
-                       dose_susceptibility_val = c(0, 0.75, 0.90),
-                       transitions_dist = c("fixed", "fixed"),
-                       transitions_val = c(0, 0.04),
-                       compartment_names = c("unvaccinated", "first_dose", "second_dose")
-){
-    # TODO: add checks to compartment length
-
-
-        seir <- paste0("seir:\n",
-                       "  parameters:\n",
-                       print_value(value_dist = R0s_dist,
-                                   value_mean = R0s_val,
-                                   value_sd = R0s_sd,
-                                   value_a = R0s_a,
-                                   value_b = R0s_b,
-                                   indent_space = 4,
-                                   param_name = "R0s"),
-                       print_value(value_dist = gamma_dist,
-                                   value_mean = gamma_val,
-                                   value_sd = gamma_sd,
-                                   value_a = gamma_a,
-                                   value_b = gamma_b,
-                                   indent_space = 4,
-                                   param_name = "gamma"),
-                       "    sigma: ", sigma_val, "\n",
-                       "    alpha: ", alpha_val, "\n"
-                       )
-
-        if(incl_vacc){
-            vacc <- paste0("    parallel_structure:\n",
-                           "      compartments:\n")
-            for(i in 1:length(compartment_names)){
-                vacc <- paste0(vacc,
-                               "        ", compartment_names[i], ":\n",
-                               print_value(value_dist = dose_transmission_dist[i],
-                                           value_mean = dose_transmission_val[i],
-                                           indent_space = 10,
-                                           param_name = "transmissibility_reduction"),
-                               print_value(value_dist = dose_susceptibility_dist[i],
-                                           value_mean = dose_susceptibility_val[i],
-                                           indent_space = 10,
-                                           param_name = "susceptibility_reduction")
-                               )
-            }
-            vacc <- paste0(vacc,
-                           "      transitions:\n")
-
-            for(i in 2:length(compartment_names)){
-                vacc <- paste0(vacc,
-                               "        - from: ", compartment_names[i-1], "\n",
-                               "          to: ", compartment_names[i], "\n",
-                               print_value(value_dist = transitions_dist[i-1],
-                                           value_mean = transitions_val[i-1],
-                                           indent_space = 10,
-                                           param_name = "rate"))
-            }
-            vacc
-        } else{ vacc <- ""}
-
-        cat(paste0(seir, vacc, "\n"))
-
+print_seir <- function (resume_modifier = NULL, 
+                         seir_csv = "seir_R12_v2.csv", 
+                         integration_method = "legacy",
+                         params = params_list,
+                         ve_data = ve_data, theta_dist = "fixed", 
+                         nu_1_val = 0, nu_1_dist = "fixed", nu_1_overlap_operation = "sum", 
+                         nu_2_val = 1/(3.5 *  7), nu_2_dist = "fixed", nu_2_overlap_operation = "sum", 
+                         nu_3_val = 0, nu_3_dist = "fixed", nu_3_overlap_operation = "sum", 
+                         vaccine_compartments = c("unvaccinated", "1dose", "2dose", "waned"), 
+                         variant_compartments = c("WILD", "ALPHA", "DELTA", "OMICRON"), 
+                         age_strata = c("age0to17", "age18to64", "age65to100"), 
+                         age_strata_boosters = c("age0to17", "age18to64", "age65to100"), 
+                         inf_stages = c("S", "E", "I1", "I2", "I3", "R", "W"), 
+                         use_descriptions = TRUE){
+  
+  seir_dat <- suppressWarnings(suppressMessages(read_csv(seir_csv, lazy = FALSE, progress = FALSE)))
+  seir_dat[colnames(seir_dat != "description")] <- apply(seir_dat[colnames(seir_dat != "description")], 2, gsub, pattern = " ", replacement = "")
+  seir_dat[colnames(seir_dat != "description")] <- apply(seir_dat[colnames(seir_dat != "description")], 2, gsub, pattern = "\"", replacement = "")
+  
+  if (!any(is.na(resume_modifier) | is.null(resume_modifier) | 
+           resume_modifier == "")) {
+    resume_mod_rates <- function(rate) {
+      if (rate != "1" & !is.na(rate)) {
+        rate_ <- strsplit(rate, ",")[[1]]
+        rate_new <- NULL
+        for (i in 1:length(rate_)) {
+          rate_new <- c(rate_new, ifelse(rate_[i] == "1", "1", paste0(rate_[i], resume_modifier)))
+        }
+      }
+      else {
+        rate_new <- rate
+      }
+      rate_new <- paste(rate_new, collapse = ",")
+      return(rate_new)
+    }
+    seir_dat <- seir_dat %>% 
+      mutate(rate_seir = as.vector(sapply(rate_seir, resume_mod_rates)), 
+             rate_vacc = as.vector(sapply(rate_vacc, resume_mod_rates)), 
+             rate_var = as.vector(sapply(rate_var, resume_mod_rates)), 
+             rate_age = as.vector(sapply(rate_age, resume_mod_rates))) %>%
+      ungroup() %>% 
+      mutate(rate_seir = gsub("r0", paste0("r0", resume_modifier), rate_seir))
+  }
+  resume_modifier <- ifelse(is.na(resume_modifier) | is.null(resume_modifier), "", resume_modifier)
+  
+  seir <- paste0("seir:\n", 
+                 "  integration_method: ", integration_method, "\n",
+                 "  parameters:\n")
+  for (i in 1:length(params)) {
+    seir <- paste0(seir, 
+                   "    ", params[[i]]$param, resume_modifier, ":\n", 
+                   print_value(value_dist = params[[i]]$dist, 
+                               value_mean = params[[i]]$value, 
+                               value_sd = params[[i]]$sd, 
+                               value_a = params[[i]]$a, 
+                               value_b = params[[i]]$b))
+  }
+  
+  thetas <- ve_data %>% pull(theta_name)
+  theta_vals <- ve_data %>% pull(VE)
+  if (!(length(theta_dist) %in% c(1, length(thetas)))) {
+    stop("theta_dist must be assigned 1 value only or a vector of values corresponding to the number of thetas.")
+  }
+  if (length(theta_dist) == 1) {
+    theta_dist <- rep(theta_dist, length(thetas))
+  }
+  for (i in 1:length(thetas)) {
+    seir <- paste0(seir, "    ", thetas[i], resume_modifier, 
+                   ":\n", print_value(value_dist = theta_dist[i], value_mean = paste0(1, 
+                                                                                      " - ", theta_vals[i])))
+  }
+  for (i in 1:length(age_strata)) {
+    seir <- paste0(seir, "    nu1", age_strata[i], resume_modifier, 
+                   ": \n", "      intervention_overlap_operation: ", 
+                   nu_1_overlap_operation, "\n", print_value(value_dis = nu_1_dist, 
+                                                             value_mean = nu_1_val))
+    if (all(nu_2_val == 0)) {
+      seir <- paste0(seir, "    nu2", age_strata[i], resume_modifier, ": \n", 
+                     "      intervention_overlap_operation: ", 
+                     nu_2_overlap_operation, "\n", 
+                     print_value(value_dis = nu_2_dist, value_mean = nu_2_val))
+    }
+    if (any(!is.na(nu_3_val))) {
+      seir <- paste0(seir, "    nu3", age_strata[i], resume_modifier, ": \n", 
+                     "      intervention_overlap_operation: ", 
+                     nu_3_overlap_operation, "\n", print_value(value_dis = nu_3_dist, 
+                                                               value_mean = nu_3_val))
+    }
+  }
+  if (any(nu_2_val != 0)) {
+    seir <- paste0(seir, "    nu2", resume_modifier, ": \n", 
+                   "      intervention_overlap_operation: ", nu_2_overlap_operation, "\n", 
+                   print_value(value_dis = nu_2_dist, value_mean = nu_2_val))
+  }
+  seir <- paste0(seir, "  compartments:\n", 
+                 "    infection_stage: [", cmprt_list(inf_stages), "] \n", 
+                 "    vaccination_stage: [", cmprt_list(vaccine_compartments), "] \n", 
+                 "    variant_type: [", cmprt_list(variant_compartments), "] \n", 
+                 "    age_strata: [", cmprt_list(age_strata), "]\n", 
+                 "  transitions:\n")
+  for (i in 1:nrow(seir_dat)) {
+    seir <- paste0(seir, 
+                   ifelse(use_descriptions & !(is.na(seir_dat$description[i]) | 
+                                                 is.null(seir_dat$description[i]) | seir_dat$description[i] == ""),
+                          paste0("# ", seir_dat$transition[i], " - ", seir_dat$description[i], "\n"), ""), 
+                   seir_chunk(resume_modifier = resume_modifier, 
+                              SEIR_source = strsplit(seir_dat$SEIR_source[i], ",")[[1]], 
+                              SEIR_dest = strsplit(seir_dat$SEIR_dest[i], ",")[[1]], 
+                              vaccine_compartments_source = strsplit(seir_dat$vaccine_compartments_source[i], ",")[[1]], 
+                              vaccine_compartments_dest = strsplit(seir_dat$vaccine_compartments_dest[i], ",")[[1]], 
+                              vaccine_infector = strsplit(seir_dat$vaccine_infector[i], ",")[[1]], 
+                              variant_compartments_source = strsplit(seir_dat$variant_compartments_source[i], ",")[[1]], 
+                              variant_compartments_dest = strsplit(seir_dat$variant_compartments_dest[i], ",")[[1]], 
+                              age_strata = strsplit(seir_dat$age_strata[i], ",")[[1]], 
+                              rate_seir = strsplit(seir_dat$rate_seir[i], ",")[[1]], 
+                              rate_vacc = strsplit(seir_dat$rate_vacc[i], ",")[[1]], 
+                              rate_var = strsplit(seir_dat$rate_var[i], ",")[[1]], 
+                              rate_age = strsplit(seir_dat$rate_age[i], ",")[[1]]))
+  }
+  cat(seir)
 }
+
+
+
+
 
 #' Print Header Section
 #' @description Prints the global options and the spatial setup section of the configuration files. These typically sit at the top of the configuration file.
 #'
 #' @param sim_name name of simulation, typically named after the region/location you are modeling
+#' @param smh_round round of Scenario Modeling Hub, for special adjustments. NA if not SMH.
 #' @param sim_start_date simulation start date, should match that of interventions, with format YYYY-MM-DD (e.g., 2020-01-31)
 #' @param sim_end_date simulation end date with format YYYY-MM-DD (e.g., 2020-01-31)
+#' @param end_date_groundtruth end date of the ground truth that is fit to. NA if not limiting ground truth date
 #' @param n_simulations number of simulations to run
 #' @param dt simulation time step in days
 #' @param census_year integer(year)
@@ -818,44 +1040,46 @@ print_seir <- function(sigma_val = 1/5.2,
 #'
 #' @examples
 #'
-print_header <- function(sim_name,
-                        sim_start_date,
-                        sim_end_date,
-                        n_simulations,
-                        dt = 0.025,
-                        census_year = 2019,
-                        base_path = "data",
-                        sim_states,
-                        setup_name,
-                        geodata_file = "geodata.csv",
-                        mobility_file = "mobility.csv",
-                        popnodes = "pop2019est",
-                        nodenames = "geoid",
-                        include_in_report = "include_in_report",
-                        state_level = TRUE
-){
-    cat(paste0(
-        "name: ", sim_name,"\n",
-        "start_date: ", sim_start_date,"\n",
-        "end_date: ", sim_end_date, "\n",
-        "nsimulations: ", n_simulations,"\n",
-        "dt: ", dt, "\n",
-        "\n",
-        "spatial_setup:\n",
-        "  census_year: ", census_year,"\n",
-        "  base_path: ", base_path,"\n",
-        "  modeled_states:\n"),
-        paste0('   - ',sim_states, '\n'),
-        paste0(
-            " setup_name: ", setup_name, "\n",
-            "  geodata: ",geodata_file,"\n",
-            "  mobility: ", mobility_file,"\n",
-            "  popnodes: ", popnodes,"\n",
-            "  nodenames: ", nodenames,"\n",
-            "  include_in_report: ",include_in_report,"\n",
-            "  state_level: ", state_level,"\n")
-    )
+print_header <- function (sim_name, 
+                          smh_round = NA,
+                          sim_start_date, sim_end_date, 
+                          end_date_groundtruth = NA, 
+                          n_simulations, 
+                          dt = 0.025, 
+                          census_year = 2019, 
+                          base_path = "data",
+                          sim_states, 
+                          setup_name, 
+                          geodata_file = "geodata.csv", 
+                          mobility_file = "mobility.csv", 
+                          popnodes = "pop2019est", 
+                          nodenames = "geoid",
+                          include_in_report = "include_in_report", 
+                          state_level = TRUE) 
+{
+    cat(paste0("name: ", sim_name, "\n", 
+               ifelse(!is.na(smh_round), paste0("smh_round: ", smh_round, "\n"), ""),
+               "start_date: ", sim_start_date, "\n", 
+               "end_date: ", sim_end_date, "\n", 
+               ifelse(!is.na(end_date_groundtruth), paste0("end_date_groundtruth: ", end_date_groundtruth, "\n"), ""),
+               "nsimulations: ", n_simulations, "\n", 
+               "dt: ", sprintf(fmt="%#.3f",as.numeric(dt)), "\n", 
+               "\n", 
+               "spatial_setup:\n", 
+               "  census_year: ", census_year, "\n", 
+               "  base_path: ", base_path, "\n", 
+               "  modeled_states:\n"), 
+        paste0("   - ", sim_states, "\n"), 
+        paste0(" setup_name: ", setup_name, "\n", 
+               "  geodata: ", geodata_file, "\n", 
+               "  mobility: ", mobility_file, "\n", 
+               "  popnodes: ", popnodes, "\n", 
+               "  nodenames: ", nodenames, "\n", 
+               "  include_in_report: ", include_in_report, "\n", 
+               "  state_level: ", state_level, "\n"))
 }
+
+
 
 #' Print seeding section
 #' @description Prints the seeding section of the configuration file
@@ -863,7 +1087,11 @@ print_header <- function(sim_name,
 #' @param seeding_file_type indicates which seeding file type the SEIR model will look for, "seed", which is generated from inference::create_seeding.R, or "impa", which refers to importation
 #' @param folder_path path to folder where importation inference files will be saved
 #' @param lambda_file path to seeding file
-#' @param perturbation_sd standard deviation for the proposal value of the seeding date, in number of days
+#' @param date_sd standard deviation for the proposal value of the seeding date, in number of days (date_sd )
+#' @param amount_sd
+#' @param variant_filename path to file with variant proportions per day per variant. Variant names: 'wild', 'alpha', 'delta'
+#' @param compartment whether to print config with compartments
+#' @param variant_compartments vector of variant compartment names
 #'
 #' @details
 #' ## The model performns inference on the seeding date and initial number of seeding infections in each geoid with the default settings
@@ -873,24 +1101,45 @@ print_header <- function(sim_name,
 #'
 #' @examples
 #'
-print_seeding <- function(method = "FolderDraw",
-                         seeding_file_type = "seed",
-                         folder_path = "importation/minimal/",
-                         lambda_file = "data/minimal/seeding.csv",
-                         perturbation_sd = 1
-){
-
-    cat(paste0(
-        "\n",
-        "seeding:\n",
-        "  method: ", method,"\n",
-        "  seeding_file_type: ", seeding_file_type,"\n",
-        "  folder_path: ", folder_path,"\n",
-        "  lambda_file: ", lambda_file,"\n",
-        "  perturbation_sd: ", perturbation_sd, "\n",
-        "\n"
-    ))
+print_seeding <- function (method = "FolderDraw", 
+                           seeding_file_type = "seed", 
+                           folder_path = "importation/minimal/", 
+                           lambda_file = "data/minimal/seeding.csv", 
+                           population_file = "data/seeding_agestrat.csv", 
+                           date_sd = 1, 
+                           amount_sd = 1, 
+                           variant_filename = "data/variant/variant_props_long.csv", 
+                           compartment = TRUE, 
+                           variant_compartments = c("WILD", "ALPHA", "DELTA"), 
+                           vaccine_compartments = c("unvaccinated", "1dose", "2dose", "waned"), 
+                           age_strata_seed = "0_64"){
+    
+    variant_compartments <- stringr::str_to_upper(variant_compartments)
+    seeding_comp <- "\nseeding:\n"
+    if (compartment) {
+        age_strata_seed <- paste0("age", age_strata_seed)
+        seeding_comp <- paste0(seeding_comp, 
+                               "  variant_filename: ", variant_filename, "\n", 
+                               "  seeding_compartments:\n")
+        for (i in 1:length(variant_compartments)) {
+            seeding_comp <- paste0(seeding_comp, "    ", variant_compartments[i], ":\n", 
+                                   "      source_compartment: [\"S\", \"unvaccinated\", \"", stringr::str_to_upper(variant_compartments[1]), "\", \"", age_strata_seed, "\"]\n", 
+                                   "      destination_compartment: [\"E\", \"unvaccinated\", \"", stringr::str_to_upper(variant_compartments[i]), "\", \"", age_strata_seed, "\"]\n")
+        }
+    }
+    seeding <- paste0(seeding_comp, 
+                      "  method: ", method, "\n", 
+                      "  seeding_file_type: ", seeding_file_type, "\n", 
+                      "  folder_path: ", folder_path, "\n", 
+                      "  lambda_file: ", lambda_file, "\n", 
+                      if (compartment) paste0("  pop_seed_file: ", population_file, "\n"),
+                      "  date_sd: ", date_sd, "\n", 
+                      "  amount_sd: ", amount_sd, "\n", 
+                      "\n")
+    cat(seeding)
 }
+
+
 
 #' Print filtering and filtering::statistics
 #' @description Set settings for the filtering section and its statistics component
@@ -899,16 +1148,23 @@ print_seeding <- function(method = "FolderDraw",
 #' @param do_filtering whether to perform inference
 #' @param data_path file path where observed data are saved
 #' @param gt_source source of data
+#' @param gt_source_statistics
+#' @param misc_data_filename
 #' @param stat_names the names of the statistics used to calibrate the model to empirical data
 #' @param aggregator function used to aggregate data over the period, usually sum or mean
 #' @param period duration over which data should be aggregated prior to use in the likelihood, may be specified in any number of days, weeks, months (e.g., "1 weeks")
 #' @param sim_var column name where model data can be found, from the hospitalization outcomes files
-#' @param data_var column where data can be found in data_path file
+#' @param data_var column where data can be found in data_path file; used in inference
 #' @param remove_na logical
 #' @param add_one logical, TRUE if evaluating the log likelihood
 #' @param ll_dist distribution of the likelihood: "sqrtnorm" or "pois"
 #' @param ll_param parameter value(s) for the likelihood distribution; not used if ll_dist = "pois". See [inference::logLikStat()]
 #' @param final_print whether this is the final section of the config to print an empty space; set to FALSE if running [print_hierarchical()] and/or [print_prior()]
+#' @param compartment
+#' @param stat_names_compartment 
+#' @param sim_var_compartment 
+#' @param data_var_compartment 
+#' @param variant_compartments 
 #'
 #' @details
 #' The filtering section configures the settings for the inference algorithm, while the statistics component determines how the model is calibrated.
@@ -919,86 +1175,152 @@ print_seeding <- function(method = "FolderDraw",
 #' @examples
 #' print_filtering_statistics()
 #'
-print_filtering_statistics <- function(sims_per_slot = 300,
-                                       do_filtering = TRUE,
-                            data_path = "data/us_data.csv",
-                            gt_source = "csse",
-                            stat_names = c("sum_deaths", "sum_confirmed"),
-                            aggregator = "sum",
-                            period = "1 weeks",
-                            sim_var = c("incidD", "incidC"),
-                            data_var = c("death_incid", "confirmed_incid"),
-                            remove_na = FALSE,
-                            add_one = c(FALSE, TRUE),
-                            ll_dist = c("sqrtnorm", "pois"),
-                            ll_param = .4,
-                            final_print = FALSE){
-
-    if(length(stat_names)!=length(data_var)) stop("stat_names and data_var must be the same length")
-
-    cat(paste0(
-        "\n",
-        "filtering:\n",
-        "  simulations_per_slot: ", sims_per_slot, "\n",
-        "  do_filtering: ", do_filtering,"\n",
-        "  data_path: ", data_path, "\n",
-        '  gt_source: "', gt_source, '"\n',
-        "  statistics:\n"
-    ))
-
+print_filtering_statistics <- function(sims_per_slot = 300, 
+                                       do_filtering = TRUE, 
+                                       data_path = "data/us_data.csv", 
+                                       gt_source = "csse", 
+                                       gt_source_statistics = NULL, misc_data_filename = NULL, 
+                                       aggregator = "sum", 
+                                       period = "1 weeks", 
+                                       stat_names = c("sum_deaths", "sum_confirmed"), 
+                                       stat_names_compartment = c("sum_confirmed"),
+                                       sim_var = c("incidD", "incidC"), 
+                                       sim_var_compartment = c("incidC"), 
+                                       data_var = c("incidDeath","incidI"), 
+                                       data_var_compartment = c("incidI"), 
+                                       remove_na = FALSE, add_one = c(FALSE, TRUE), 
+                                       ll_dist = c("sqrtnorm", "pois"), 
+                                       ll_param = 0.4, final_print = FALSE, 
+                                       compartment = TRUE, 
+                                       variant_compartments = c("WILD", "ALPHA", "DELTA")) {
+    
+    if (length(stat_names) != length(data_var)) stop("stat_names and data_var must be the same length")
+    
+    cat(paste0("\n", 
+               "filtering:\n", 
+               "  simulations_per_slot: ", sims_per_slot, "\n", 
+               "  do_filtering: ", do_filtering, "\n", 
+               "  data_path: ", data_path, "\n", 
+               "  gt_source: \"", gt_source, "\"\n", {
+                   if (!is.null(misc_data_filename)) 
+                       paste0("  misc_data_filename: ", misc_data_filename, "\n")
+                   else (paste0(""))
+               }, "  statistics:\n"))
+    
+    if (compartment) {
+        
+        #which outcome is not compartment disaggregated
+        not_compartment <- which(!(stat_names %in% stat_names_compartment))
+        yes_compartment <- which((stat_names %in% stat_names_compartment))
+        
+        stat_names_orig <- stat_names
+        
+        stat_names <- stat_names[!(stat_names %in% stat_names_compartment)]
+        sim_var <- sim_var[!(sim_var %in% sim_var_compartment)]
+        data_var <- data_var[!(data_var %in% data_var_compartment)]
+        
+        variant_compartments <- stringr::str_to_upper(variant_compartments)
+        
+        if (!(any(c(is.null(stat_names_compartment), is.na(stat_names_compartment))))){
+            stat_names_compartment <- paste(rep(stat_names_compartment, each = length(variant_compartments)), variant_compartments, sep = "_")
+            sim_var_compartment <- paste(rep(sim_var_compartment, each = length(variant_compartments)), stringr::str_to_upper(variant_compartments), sep = "_")
+            data_var_compartment <- paste(rep(data_var_compartment, each = length(variant_compartments)), variant_compartments, sep = "_")
+            for (i in 1:length(variant_compartments)) {
+                stat_names_compartment <- c(stat_names_compartment[stringr::str_detect(stat_names_compartment, variant_compartments[i], negate = TRUE)], 
+                                            stat_names_compartment[stringr::str_detect(stat_names_compartment, variant_compartments[i], negate = FALSE)])
+                sim_var_compartment <- c(sim_var_compartment[stringr::str_detect(sim_var_compartment, stringr::str_to_upper(variant_compartments[i]), negate = TRUE)], 
+                                         sim_var_compartment[stringr::str_detect(sim_var_compartment, stringr::str_to_upper(variant_compartments[i]), negate = FALSE)])
+                data_var_compartment <- c(data_var_compartment[stringr::str_detect(data_var_compartment, variant_compartments[i], negate = TRUE)], 
+                                          data_var_compartment[stringr::str_detect(data_var_compartment, variant_compartments[i], negate = FALSE)])
+            }
+        }
+        
+        n_vars <- length(stat_names)
+        aggregator_nocomp <- rep(aggregator, n_vars)
+        period_nocomp <- rep(period, n_vars)
+        remove_na_nocomp <- rep(remove_na, n_vars)
+        add_one_nocomp <- rep(add_one[not_compartment], n_vars)
+        ll_dist_nocomp <- rep(ll_dist[not_compartment], n_vars)
+        ll_param_nocomp <- rep(ll_param[not_compartment], n_vars)
+        gt_source_statistics_nocomp <- rep(gt_source_statistics, n_vars)
+        
+        n_vars <- length(stat_names_compartment)
+        aggregator_comp <- rep(aggregator, n_vars)
+        period_comp <- rep(period, n_vars)
+        remove_na_comp <- rep(remove_na, n_vars)
+        add_one_comp <- rep(add_one[yes_compartment], n_vars)
+        ll_dist_comp <- rep(ll_dist[yes_compartment], n_vars)
+        ll_param_comp <- rep(ll_param[yes_compartment], n_vars)
+        gt_source_statistics_comp <- rep(gt_source_statistics, n_vars)
+        
+        if (is.null(gt_source_statistics)) {
+            gt_source_statistics <- gt_source
+        }
+        
+        aggregator <- c(aggregator_nocomp, aggregator_comp)
+        period <- c(period_nocomp, period_comp)
+        remove_na <- c(remove_na_nocomp, remove_na_comp)
+        add_one <- c(add_one_nocomp, add_one_comp)
+        ll_dist <- c(ll_dist_nocomp, ll_dist_comp)
+        ll_param <- c(ll_param_nocomp, ll_param_comp)
+        gt_source_statistics <- c(gt_source_statistics_nocomp, gt_source_statistics_comp)
+        
+        stat_names <- c(stat_names, stat_names_compartment)
+        sim_var <- c(sim_var, sim_var_compartment)
+        data_var <- c(data_var, data_var_compartment)
+        
+    }
+    
+    
     n_vars <- length(stat_names)
-
-    if(length(aggregator)!=n_vars & length(aggregator)==1){
+    if (length(aggregator) != n_vars) {
         aggregator <- rep(aggregator, n_vars)
     }
-
-    if(length(period)!=n_vars & length(period)==1){
+    if (length(period) != n_vars) {
         period <- rep(period, n_vars)
     }
-
-    if(length(remove_na)!=n_vars & length(remove_na)==1){
+    if (length(remove_na) != n_vars) {
         remove_na <- rep(remove_na, n_vars)
     }
-
-    if(length(add_one)!=n_vars & length(add_one)==1){
+    if (length(add_one) != n_vars) {
         add_one <- rep(add_one, n_vars)
     }
-
-    if(length(ll_dist)!=n_vars & length(ll_dist)==1){
+    if (length(ll_dist) != n_vars) {
         ll_dist <- rep(ll_dist, n_vars)
     }
-
-    if(length(ll_param)!=n_vars & length(ll_param)==1){
+    if (length(ll_param) != n_vars) {
         ll_param <- rep(ll_param, n_vars)
-
     }
-
-    for(i in 1:length(stat_names)){
-        cat(paste0(
-            "    ", stat_names[i], ":\n",
-            "      name: ", stat_names[i], "\n",
-            "      aggregator: ", aggregator[i], "\n",
-            '      period: "', period[i], '"\n',
-            "      sim_var: ", sim_var[i], "\n",
-            "      data_var: ", data_var[i], "\n",
-            "      remove_na: ", remove_na[i], "\n",
-            "      add_one: ", add_one[i], "\n",
-            "      likelihood:\n",
-            "        dist: ", ll_dist[i], "\n"
-        ))
-
-        if(ll_dist[i]!="pois"){
-            cat(paste0(
-                "        param: [", ll_param[i], "]\n"
-            ))
+    if (is.null(gt_source_statistics)) {
+        gt_source_statistics <- gt_source
+    }
+    if (length(gt_source_statistics) != n_vars) {
+        gt_source_statistics <- rep(gt_source_statistics, n_vars)
+    }
+    for (i in 1:length(stat_names)) {
+        cat(paste0("    ", stat_names[i], ":\n", 
+                   "      name: ", stat_names[i], "\n", 
+                   "      aggregator: ", aggregator[i], "\n", 
+                   "      period: \"", period[i], "\"\n", 
+                   "      gt_source: \"", gt_source_statistics[i], "\"\n", 
+                   "      sim_var: ", sim_var[i], "\n", 
+                   "      data_var: ", data_var[i], "\n", 
+                   "      remove_na: ", remove_na[i], "\n", 
+                   "      add_one: ", add_one[i], "\n", 
+                   "      likelihood:\n", 
+                   "        dist: ", ll_dist[i], "\n"))
+        if (ll_dist[i] != "pois") {
+            cat(paste0("        param: [", ll_param[i], "]\n"))
         }
     }
-
-    if(final_print){
+    if (final_print) {
         cat(paste0("\n"))
     }
-
 }
+
+
+
+
 
 #' Print filtering::hierarchical_stats_geo
 #' @description Specify and print hierarchical settings as part of the filtering section of the configuration file.
@@ -1007,6 +1329,8 @@ print_filtering_statistics <- function(sims_per_slot = 300,
 #' @param geo_group_col geodata column name that should be used to group parameter estimation
 #' @param transform type of transform that should be applied to the likelihood: "none" or "logit"
 #' @param final_print whether this is the final section of the config to print an empty space; set to FALSE if running [print_hierarchical()] and/or [print_prior()]
+#' @param compartment
+#' @param variant_compartments
 #'
 #' @details
 #' This function should only be called after [print_hierarchical()].
@@ -1018,43 +1342,61 @@ print_filtering_statistics <- function(sims_per_slot = 300,
 #' print_filtering_hierarchical()
 
 print_filtering_hierarchical <- function(npi_name = c("local_variance", "probability_incidI_incidC"),
+                                         compartment = TRUE,
+                                         variant_compartments = c("WILD", "ALPHA", "DELTA"),
                                          module = c("seir", "hospitalization"),
                                          geo_group_col = "USPS",
                                          transform = c("none", "logit"),
+                                         empty_print = FALSE,
                                          final_print = FALSE){
-
+    
+    variant_compartments <- stringr::str_to_upper(variant_compartments)
+    
+    if(compartment){
+        not_variance <- npi_name!="local_variance"
+        
+        npi_name <- c(npi_name[!not_variance], paste0(rep(npi_name[not_variance], each = length(variant_compartments)), "_", variant_compartments))
+        
+        transform <- c(transform[!not_variance], rep(transform[not_variance], each = length(variant_compartments)))
+        
+        module <- c(module[!not_variance], rep(module[not_variance], each = length(variant_compartments)))
+        
+    }
+    
     cat(paste0(
         "  hierarchical_stats_geo:\n"
     ))
-
+    
     n_vars <- length(npi_name)
-
+    
     if(length(module)!=n_vars & length(module==1)){
         module <- rep(module, n_vars)
     }
-
+    
     if(length(geo_group_col)!=n_vars & length(geo_group_col)==1){
         geo_group_col <- rep(geo_group_col, n_vars)
     }
-
+    
     if(length(transform)!=n_vars & length(transform)==1){
         transform <- rep(transform, n_vars)
     }
-
-    for(i in 1:n_vars){
-        cat(paste0(
-            "    ", paste0(npi_name[i], "_hierarchy:\n"),
-            "      name: ", npi_name[i], "\n",
-            "      module: ", module[i], "\n",
-            "      geo_group_col: ", geo_group_col[i], "\n",
-            "      transform: ", transform[i], "\n"
-        ))
+    
+    if(!empty_print){
+        for(i in 1:n_vars){
+            cat(paste0(
+                "    ", paste0(npi_name[i], "_hierarchy:\n"),
+                "      name: ", npi_name[i], "\n",
+                "      module: ", module[i], "\n",
+                "      geo_group_col: ", geo_group_col[i], "\n",
+                "      transform: ", transform[i], "\n"
+            ))
+        }
     }
-
+    
     if(final_print){
         cat(paste0("\n"))
     }
-
+    
 }
 #' print_filtering_prior
 #'
@@ -1073,7 +1415,7 @@ print_filtering_hierarchical <- function(npi_name = c("local_variance", "probabi
 #'
 #' @examples
 #' print_filtering_prior()
-
+#' 
 print_filtering_prior <- function(npi_name = c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar", "Seas_apr",
                                                "Seas_may", "Seas_jun", "Seas_jul", "Seas_aug", "Seas_sep",
                                                "Seas_oct", "Seas_nov", "Seas_dec"),
@@ -1081,43 +1423,48 @@ print_filtering_prior <- function(npi_name = c("local_variance", "Seas_jan", "Se
                                   dist = "normal",
                                   param_mean = c(0.000, -0.200, -0.133, -0.067, 0.00,  0.067, 0.133,  0.200, 0.133,  0.067,  0.000, -0.067, -0.133),
                                   param_sd = 1,
+                                  empty_print = FALSE, 
                                   dat=NULL
 ){
     module <- repeat_string(module, npi_name)
     dist <- repeat_string(dist, npi_name)
     param_sd <- repeat_string(param_sd, npi_name)
     param_mean <- repeat_string(param_mean, npi_name)
-
+    
     if(is.null(param_mean)){ # TODO: allow to specify priors for some, take NPI means for others
         if(is.null(dat)) stop("Dataframe with intervention names (npi_name) and means (value_mean) must be provided if param_mean is NULL")
-
+        
         dat <- dat %>%
             collapse_intervention() %>%
             dplyr::filter(name %in% npi_name) %>%
             dplyr::mutate(value_mean = dplyr::if_else(is.na(value_mean), 0, value_mean))
-
+        
         for(i in 1:length(npi_name)){
             param_mean[i] <- dat %>%
                 dplyr::filter(name == npi_name[i]) %>%
                 dplyr::pull(value_mean)
-
+            
         }
     }
-
+    
     cat(paste0(
         "  priors:\n"))
-
-    for(i in 1:length(npi_name)){
-        cat(paste0(
-            "    ", paste0(npi_name[i], "_prior"),":\n",
-            "      name: ", npi_name[i], "\n",
-            "      module: ", module[i], "\n",
-            "      likelihood:\n",
-            "        dist: ", dist[i], "\n",
-            "        param:\n",
-            "        - ", param_mean[i], "\n",
-            "        - ", param_sd[i], "\n"
-        ))
+    
+    if(!empty_print){
+        for(i in 1:length(npi_name)){
+            cat(paste0(
+                "    ", paste0(npi_name[i], "_prior"),":\n",
+                "      name: ", npi_name[i], "\n",
+                "      module: ", module[i], "\n",
+                "      likelihood:\n",
+                "        dist: ", dist[i], "\n",
+                "        param:\n",
+                "        - ", param_mean[i], "\n",
+                "        - ", param_sd[i], "\n"
+            ))
+        }
+    } else{
+        cat(paste0("\n"))
     }
 }
 
@@ -1131,7 +1478,6 @@ print_filtering_prior <- function(npi_name = c("local_variance", "Seas_jan", "Se
 #'
 #' @examples
 #'
-
 repeat_string <- function(x,
                           y){
     if(length(x)==length(y) | is.null(x)){
@@ -1139,247 +1485,154 @@ repeat_string <- function(x,
     } else if(length(x)!=length(y) & length(x)==1){
         z <- rep(x, length(y))
     } else {
-            stop(paste0("x must be of length 1 or a vector of equal length as y"))
+        stop(paste0("x must be of length 1 or a vector of equal length as y"))
     }
-
+    
     return(z)
 }
 
-#' #' Convenience function to generate/save config
-#' #'
-#' generate_config <- function(intervention_path,
-#'                             config_name = "config.yml",
-#'                             save_path = NULL,
-#'                             header_sim_name = "USA",
-#'                             header_sim_start_date = "2020-01-01",
-#'                             header_sim_end_date = "2021-08-07",
-#'                             header_n_simulations = 300,
-#'                             header_dt = 0.25,
-#'                             header_census_year = 2019,
-#'                             header_base_path = "data",
-#'                             header_setup_name = "USA",
-#'                             header_geodata = "geodata.csv",
-#'                             header_mobility = "mobility.csv",
-#'                             header_popnodes = "pop2019est",
-#'                             header_nodenames = "geoid",
-#'                             header_include_in_report = "include_in_report",
-#'                             header_state_level = TRUE,
-#'                             seeding_method = "FolderDraw",
-#'                             seeding_file_type = "seed",
-#'                             seeding_folder_path = "importation/minimal/",
-#'                             seeding_lambda_file = "data/minimal/seeding.csv",
-#'                             seeding_perturbation_sd = 1,
-#'                             seir_alpha_val = 0.99,
-#'                             seir_sigma_val = 1/5.2 ,
-#'                             seir_gamma_dist = "fixed",
-#'                             seir_gamma_val = 1/3.83,
-#'                             seir_gamma_sd = NULL,
-#'                             seir_gamma_a = 1/4.5,
-#'                             seir_gamma_b = 1/3,
-#'                             seir_R0s_dist = "uniform",
-#'                             seir_R0s_val = 2.3,
-#'                             seir_R0s_sd = NULL,
-#'                             seir_R0s_a = 2,
-#'                             seir_R0s_b = 3,
-#'                             seir_incl_vacc = TRUE,
-#'                             seir_dose_transmission_dist = c("fixed", "fixed", "fixed"),
-#'                             seir_dose_transmission_val = c(0, 0, 0),
-#'                             seir_dose_susceptibility_dist = c("fixed", "fixed", "fixed"),
-#'                             seir_dose_susceptibility_val = c(0, 0.75, 0.90),
-#'                             seir_transitions_dist = c("fixed", "fixed"),
-#'                             seir_transitions_val = c(0, 0.04),
-#'                             transmission_scenario = "inference",
-#'                             outcomes_ifr="med",
-#'                             outcomes_parquet_file="usa-geoid-params-output_statelevel.parquet",
-#'                             outcomes_incidH_prob_dist="fixed",
-#'                             outcomes_incidH_prob_value=0.0175,
-#'                             outcomes_incidH_delay_dist="fixed",
-#'                             outcomes_incidH_delay_value=7,
-#'                             outcomes_incidH_duration_dist="fixed",
-#'                             outcomes_incidH_duration_value=7,
-#'                             outcomes_incidD_prob_dist="fixed",
-#'                             outcomes_incidD_prob_value=0.005,
-#'                             outcomes_incidD_delay_dist="fixed",
-#'                             outcomes_incidD_delay_value=20,
-#'                             outcomes_incidICU_prob_dist="fixed",
-#'                             outcomes_incidICU_prob_value=0.167,
-#'                             outcomes_incidICU_delay_dist="fixed",
-#'                             outcomes_incidICU_delay_value=3,
-#'                             outcomes_incidICU_duration_dist="fixed",
-#'                             outcomes_incidICU_duration_value=8,
-#'                             outcomes_incidVent_prob_dist="fixed",
-#'                             outcomes_incidVent_prob_value=0.463,
-#'                             outcomes_incidVent_delay_dist="fixed",
-#'                             outcomes_incidVent_delay_value=1,
-#'                             outcomes_incidVent_duration_dist="fixed",
-#'                             outcomes_incidVent_duration_value=7,
-#'                             outcomes_incidC_prob_dist="truncnorm",
-#'                             outcomes_incidC_prob_mean=0.2,
-#'                             outcomes_incidC_prob_sd=.1,
-#'                             outcomes_incidC_prob_a=0,
-#'                             outcomes_incidC_prob_b=1,
-#'                             outcomes_incidC_prob_dist_pert="truncnorm",
-#'                             outcomes_incidC_prob_mean_pert=0,
-#'                             outcomes_incidC_prob_sd_pert=0.05,
-#'                             outcomes_incidC_prob_a_pert=-1,
-#'                             outcomes_incidC_prob_b_pert=1,
-#'                             outcomes_incidC_delay_value=7,
-#'                             outcomes_incidC_delay_dist="fixed",
-#'                             filtering_sims_per_slot = 300,
-#'                             filtering_data_path = "data/us_data.csv",
-#'                             filtering_gt_source = "csse",
-#'                             filtering_stat_names = c("sum_deaths", "sum_confirmed"),
-#'                             filtering_aggregator = "sum",
-#'                             filtering_period = "1 weeks",
-#'                             filtering_sim_var = c("incidD", "incidC"),
-#'                             filtering_data_var = c("death_incid", "confirmed_incid"),
-#'                             filtering_remove_na = FALSE,
-#'                             filtering_add_one = c(FALSE, TRUE),
-#'                             filtering_ll_dist = c("sqrtnorm", "pois"),
-#'                             filtering_ll_param = .4,
-#'                             filtering_final_print = FALSE,
-#'                             hierarchical_npi_name = c("local_variance", "probability_incidI_incidC"),
-#'                             hierarchical_module = c("seir", "hospitalization"),
-#'                             hierarchical_geo_group_col = "USPS",
-#'                             hierarchical_transform = c("none", "logit"),
-#'                             hierarchical_final_print = FALSE,
-#'                             prior_npi_name = c("local_variance", "Seas_jan", "Seas_feb", "Seas_mar", "Seas_apr",
-#'                                                "Seas_may", "Seas_jun", "Seas_jul", "Seas_aug", "Seas_sep",
-#'                                                "Seas_oct", "Seas_nov", "Seas_dec"),
-#'                             prior_module = "seir",
-#'                             prior_dist = "normal",
-#'                             prior_param_low = NULL,
-#'                             prior_param_high = 1){
-#'
-#'     interventions <- readr::read_csv(intervention_path)
-#'
-#'     if(is.null(save_path)){
-#'         config_name <- file.path(tempdir(), config_name)
-#'     } else{
-#'         config_name <- file.path(save_path, config_name)
-#'         print(paste0("Config saved in ", config_name))
-#'     }
-#'
-#'     sink(config_name)
-#'
-#'     print_header(sim_name = header_sim_name,
-#'                  sim_start_date = header_sim_start_date,
-#'                  sim_end_date = header_sim_end_date,
-#'                  n_simulations = header_n_simulations,
-#'                  dt = header_dt,
-#'                  census_year = header_census_year,
-#'                  base_path = header_census_year,
-#'                  sim_states = unique(interventions$USPS[!interventions$USPS %in% c("", "all") & !is.na(interventions$USPS)]),
-#'                  setup_name = header_setup_name,
-#'                  geodata = header_geodata,
-#'                  mobility = header_mobility,
-#'                  popnodes = header_popnodes,
-#'                  nodenames = header_nodenames,
-#'                  include_in_report = header_include_in_report,
-#'                  state_level = header_state_level)
-#'
-#'     print_seeding(method = seeding_method,
-#'                   seeding_file_type = seeding_file_type,
-#'                   folder_path = seeding_folder_path,
-#'                   lambda_file = seeding_lambda_file ,
-#'                   perturbation_sd = seeding_perturbation_sd)
-#'
-#'     print_seir(alpha_val = seir_alpha_val,
-#'                sigma_val = seir_sigma_val,
-#'                gamma_dist = seir_gamma_dist,
-#'                gamma_val = seir_gamma_val,
-#'                gamma_sd = seir_gamma_sd,
-#'                gamma_a = seir_gamma_a,
-#'                gamma_b = seir_gamma_b,
-#'                R0s_dist = seir_R0s_dist,
-#'                R0s_val = seir_R0s_val,
-#'                R0s_sd = seir_R0s_sd,
-#'                R0s_a = seir_R0s_a,
-#'                R0s_b = seir_R0s_b,
-#'                incl_vacc = seir_incl_vacc,
-#'                dose_transmission_dist = seir_dose_transmission_dist,
-#'                dose_transmission_val = seir_dose_transmission_val,
-#'                dose_susceptibility_dist = seir_dose_susceptibility_dist,
-#'                dose_susceptibility_val = seir_dose_susceptibility_val,
-#'                transitions_dist = seir_transitions_dist,
-#'                transitions_val = seir_transitions_val)
-#'
-#'     print_transmission_interventions(dat = interventions,
-#'                                      scenario = transmission_scenario)
-#'
-#'     print_outcomes(dat = interventions,
-#'                    ifr = outcomes_ifr,
-#'                    outcomes_parquet_file = outcomes_parquet_file,
-#'                    incidH_prob_dist= outcomes_incidH_prob_dist,
-#'                    incidH_prob_value= outcomes_incidH_prob_value,
-#'                    incidH_delay_dist= outcomes_incidH_delay_dist,
-#'                    incidH_delay_value= outcomes_incidH_delay_value,
-#'                    incidH_duration_dist= outcomes_incidH_duration_dist,
-#'                    incidH_duration_value= outcomes_incidH_duration_value,
-#'                    incidD_prob_dist= outcomes_incidD_prob_dist,
-#'                    incidD_prob_value= outcomes_incidD_prob_value,
-#'                    incidD_delay_dist= outcomes_incidD_delay_dist,
-#'                    incidD_delay_value= outcomes_incidD_delay_value,
-#'                    incidICU_prob_dist= outcomes_incidICU_prob_dist,
-#'                    incidICU_prob_value= outcomes_incidICU_prob_value,
-#'                    incidICU_delay_dist= outcomes_incidICU_delay_dist,
-#'                    incidICU_delay_value= outcomes_incidICU_delay_value,
-#'                    incidICU_duration_dist= outcomes_incidICU_duration_dist,
-#'                    incidICU_duration_value= outcomes_incidICU_duration_value,
-#'                    incidVent_prob_dist= outcomes_incidVent_prob_dist,
-#'                    incidVent_prob_value= outcomes_incidVent_prob_value,
-#'                    incidVent_delay_dist= outcomes_incidVent_delay_dist,
-#'                    incidVent_delay_value= outcomes_incidVent_delay_value,
-#'                    incidVent_duration_dist= outcomes_incidVent_duration_dist,
-#'                    incidVent_duration_value= outcomes_incidVent_duration_value,
-#'                    incidC_prob_dist= outcomes_incidC_prob_dist,
-#'                    incidC_prob_mean= outcomes_incidC_prob_mean,
-#'                    incidC_prob_sd= outcomes_incidC_prob_sd,
-#'                    incidC_prob_a= outcomes_incidC_prob_a,
-#'                    incidC_prob_b= outcomes_incidC_prob_b,
-#'                    incidC_prob_dist_pert= outcomes_incidC_prob_dist_pert,
-#'                    incidC_prob_mean_pert= outcomes_incidC_prob_mean_pert,
-#'                    incidC_prob_sd_pert= outcomes_incidC_prob_sd_pert,
-#'                    incidC_prob_a_pert = outcomes_incidC_prob_a_pert,
-#'                    incidC_prob_b_pert= outcomes_incidC_prob_b_pert,
-#'                    incidC_delay_value= outcomes_incidC_delay_value,
-#'                    incidC_delay_dist= outcomes_incidC_delay_dist)
-#'
-#'     print_filtering(sims_per_slot = filtering_sims_per_slot,
-#'                     data_path = filtering_data_path,
-#'                     gt_source = filtering_gt_source,
-#'                     stat_names = filtering_stat_names,
-#'                     aggregator = filtering_aggregator,
-#'                     period = filtering_period,
-#'                     sim_var = filtering_sim_var,
-#'                     data_var = filtering_data_var,
-#'                     remove_na = filtering_remove_na,
-#'                     add_one = filtering_add_one,
-#'                     ll_dist = filtering_ll_dist,
-#'                     ll_param = filtering_ll_param,
-#'                     final_print = filtering_final_print)
-#'
-#'     print_hierarchical(npi_name = hierarchical_npi_name,
-#'                        module = hierarchical_module,
-#'                        geo_group_col = hierarchical_geo_group_col,
-#'                        transform = hierarchical_transform,
-#'                        final_print = hierarchical_final_print)
-#'
-#'     print_prior(dat = interventions,
-#'                 npi_name = prior_npi_name,
-#'                 module = prior_module,
-#'                 dist = prior_dist,
-#'                 param_low = prior_param_low,
-#'                 param_high = prior_param_high)
-#'
-#'     sink()
-#'
-#'     config <- yaml::read_yaml(config_name)
-#'
-#'     if(is.null(save_path)){
-#'         unlink(config_name)
-#'     }
-#'
-#'     return(config)
-#' }
 
+
+
+#' Title
+#'
+#' @param compartments 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+cmprt_list <- function(compartments = c("S","E","I","R")){
+    return(paste0("\"", paste(compartments, collapse = "\", \""),"\""))
+}
+
+
+#' Title
+#'
+#' @param source 
+#' @param dest 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+cmprt_bracketing <- function(source, dest){
+    
+    source_part <- cmprt_list(source)
+    dest_part <- cmprt_list(dest)
+    if(length(source)>=length(dest)){
+        source_part <- paste0("[", source_part,"]")
+    }
+    if(length(dest)>=length(source)){
+        dest_part <- paste0("[", dest_part,"]")
+    }
+    return(list(source_part, dest_part))
+}
+
+
+#' Title
+#'
+#' @param rate 
+#' @param length_comprt 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+cmprt_rate_bracketing <- function(rate, length_comprt){
+    rate_part <- cmprt_list(rate)
+    if(length(rate)==length_comprt){
+        rate_part <- paste0("[", rate_part,"]")
+    }
+    return(rate_part)
+}
+
+
+#' Title
+#'
+#' @param SEIR_source 
+#' @param SEIR_dest 
+#' @param vaccine_compartments_source 
+#' @param vaccine_compartments_dest 
+#' @param variant_compartments_source 
+#' @param variant_compartments_dest 
+#' @param age_strata 
+#' @param vaccine_infector 
+#' @param rate_seir 
+#' @param rate_vacc 
+#' @param rate_var 
+#' @param rate_age 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+seir_chunk <- function(resume_modifier = NULL,
+                       SEIR_source = c("R","W"),
+                       SEIR_dest = "E",
+                       vaccine_compartments_source = c("2dose", "previousinfection"),
+                       vaccine_compartments_dest = c("2dose", "previousinfection"),
+                       variant_compartments_source = c("WILD", "ALPHA", "DELTA"),
+                       variant_compartments_dest = c("OMICRON"),
+                       age_strata=c("age0to17", "age18to64", "age65to100"),
+                       vaccine_infector = c("unvaccinated", "1dose", "2dose", "waned", "previousinfection"),
+                       rate_seir=rep("r0 * gamma", 2),
+                       rate_vacc=c("theta2_OMICRON", "theta2_OMICRON"), 
+                       rate_var=c("chi3","chi3","chi3"),
+                       rate_age=rep(1,3)){
+    
+    seir_parts <- cmprt_bracketing(SEIR_source, SEIR_dest)
+    vacc_parts <- cmprt_bracketing(vaccine_compartments_source, vaccine_compartments_dest)
+    variant_parts <- cmprt_bracketing(variant_compartments_source, variant_compartments_dest)
+    
+    rate_propexp_parts <- cmprt_rate_bracketing(rep("1",length(SEIR_source)), max(length(SEIR_source), length(SEIR_dest)))
+    rate_alpha_parts <- cmprt_rate_bracketing(rep(paste0("alpha", resume_modifier),length(SEIR_source)), max(length(SEIR_source), length(SEIR_dest)))
+    
+    rate_seir_parts <- cmprt_rate_bracketing(rate_seir, max(length(SEIR_source), length(SEIR_dest)))
+    rate_vacc_parts <- cmprt_rate_bracketing(rate_vacc, max(length(vaccine_compartments_source), length(vaccine_compartments_dest)))
+    rate_var_parts <- cmprt_rate_bracketing(rate_var, max(length(variant_compartments_source), length(variant_compartments_dest)))
+    rate_age_parts <- cmprt_rate_bracketing(rate_age, max(length(age_strata), length(1)))
+    
+    incl_agestrat <- any(!is.na(age_strata) & !is.null(age_strata))
+    
+    # check rates
+    if(!(length(rate_vacc) %in% c(1, length(vaccine_compartments_source), length(vaccine_compartments_dest)))){
+        stop("rate_vacc needs to be length==1 or the same length\nas vaccine_compartments_source or vaccine_compartments_dest")}
+    if(!(length(rate_var) %in% c(1, length(variant_compartments_source), length(variant_compartments_dest)))){
+        stop("rate_var needs to be length==1 or the same length\nas variant_compartments_source or variant_compartments_dest")}
+    if(!(length(rate_age) %in% c(1, length(age_strata)))){
+        stop("rate_age needs to be length==1 or the same length as age_strata")}
+    
+    tmp <- paste0(
+        "    - source: [", seir_parts[[1]], ", ", vacc_parts[[1]], ", ", variant_parts[[1]], ifelse(incl_agestrat, paste0(", ", "[", cmprt_list(age_strata),"]"), ""), "] \n", 
+        "      destination: [", seir_parts[[2]], ", ", vacc_parts[[2]], ", ", variant_parts[[2]], ifelse(incl_agestrat, paste0(", ", "[", cmprt_list(age_strata),"]"), ""), "] \n", 
+        ifelse(any(!is.null(vaccine_infector) & !is.na(vaccine_infector)),
+               paste0(
+                   "      proportional_to: [\n", 
+                   "        \"source\",\n", 
+                   "        [\n",
+                   "          [",paste(rep("[\"I1\",\"I2\",\"I3\"]", length(SEIR_source)), collapse = ",\n           "),"],\n", 
+                   "          [",paste(rep(paste0("[",cmprt_list(vaccine_infector),"]"), length(vaccine_compartments_source)), collapse=",\n           "),"],\n", 
+                   "          [",paste(rep(paste0("[\"",paste(variant_compartments_dest, collapse = "\"], [\""),"\"]"), 
+                                           ifelse(length(variant_compartments_dest)>=length(variant_compartments_source), 
+                                                  1, max(c(length(variant_compartments_source),length(variant_compartments_dest))))), collapse=", "),"],\n", 
+                   "          [",paste(rep(paste0("[",cmprt_list(age_strata),"]"), length(age_strata)), collapse=",\n           "),"]\n", 
+                   "        ]\n", 
+                   "      ]\n", 
+                   "      proportion_exponent: [\n",
+                   "        [",rate_propexp_parts, ",\"1\",\"1\",\"1\"],\n",
+                   "        [",rate_alpha_parts, ",\"1\",\"1\",\"1\"]]\n", 
+                   "      rate: [\n",
+                   "        ",rate_seir_parts,",\n",
+                   "        ",rate_vacc_parts,",\n",
+                   "        ",rate_var_parts,",\n",
+                   "        ",rate_age_parts,"\n",
+                   "      ]\n"),
+               paste0(
+                   "      proportional_to: [\"source\"]\n", 
+                   "      proportion_exponent: [[\"1\",\"1\",\"1\",\"1\"]]\n",
+                   "      rate: [",rate_seir_parts,", ", rate_vacc_parts,", ", rate_var_parts,", ", rate_age_parts,"]\n")), 
+        "\n")
+    
+    return(tmp)
+}
