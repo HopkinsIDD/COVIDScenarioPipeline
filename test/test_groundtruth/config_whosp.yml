@@ -51060,7 +51060,6 @@ filtering:
       aggregator: sum
       period: "1 weeks"
       gt_source: "csse_lm"
-      gt_start_date: 2020-07-05
       sim_var: incidC_WILD
       data_var: incidI_WILD
       remove_na: TRUE
@@ -51072,7 +51071,6 @@ filtering:
       aggregator: sum
       period: "1 weeks"
       gt_source: "csse_lm"
-      gt_start_date: 2020-07-05
       sim_var: incidC_ALPHA
       data_var: incidI_ALPHA
       remove_na: TRUE
@@ -51084,7 +51082,6 @@ filtering:
       aggregator: sum
       period: "1 weeks"
       gt_source: "csse_lm"
-      gt_start_date: 2020-07-05
       sim_var: incidC_DELTA
       data_var: incidI_DELTA
       remove_na: TRUE
@@ -51096,7 +51093,6 @@ filtering:
       aggregator: sum
       period: "1 weeks"
       gt_source: "csse_lm"
-      gt_start_date: 2020-07-05
       sim_var: incidC_OMICRON
       data_var: incidI_OMICRON
       remove_na: TRUE
@@ -51108,10 +51104,10 @@ filtering:
       aggregator: sum
       period: "1 weeks"
       gt_source: "covidcast"
-      gt_start_date: 2020-09-01
+      gt_start_date: 2022-01-02
       sim_var: incidH
       data_var: incidH
-      remove_na: TRUE
+      remove_na: FALSE
       add_one: TRUE
       likelihood:
         dist: pois

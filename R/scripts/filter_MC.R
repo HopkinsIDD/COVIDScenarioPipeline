@@ -277,7 +277,6 @@ if(!(file.exists(data_path) & opt$cache_gt)){
     for (s in 1:nrow(gt_infofull)){
         na_inds <- !(obs$date >= gt_infofull$gt_start_date[s]) & (obs$date <= gt_infofull$gt_end_date[s])
         obs[na_inds, target_[s]] <- NA
-        
     }
     # save merged
     readr::write_csv(obs, data_path)
