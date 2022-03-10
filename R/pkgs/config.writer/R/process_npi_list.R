@@ -63,6 +63,38 @@ load_geodata_file <- function(filename,
     return(geodata)
 }
 
+##' find_truncnorm_mean_parameter
+##'
+##' Convenience function that estimates the mean value for a truncnorm distribution given a, b, and sd that will have the expected value of the input mean.
+##'
+##' @param a lower bound
+##' @param b upper bound
+##' @param mean desired expected value from truncnorm given a, sd, and sd.
+##' @param sd standard deviation
+##'
+##'
+##' @export
+##'
+find_truncnorm_mean_parameter <- function(a, b, mean, sd) {
+    return(
+        optim(
+            mean,
+            purrr::partial(
+                function(a, b, mean, sd, x) {
+                    abs(truncnorm::etruncnorm(a,b,x,sd) - mean)
+                },
+                a = a,
+                b = b,
+                mean = mean,
+                sd = sd
+            ),
+            method = "Brent",
+            upper = b + 6 * sd,
+            lower = a - 6 * sd
+        )$par
+    )
+}
+
 #' ScenarioHub: Recode scenario hub interventions for "ReduceR0" template
 #'
 #' @param data intervention list for the national forecast or the scenariohub
@@ -95,17 +127,18 @@ npi_recode_scenario <- function(data
 #' @export
 #'
 
-npi_recode_scenario_mult <- function(data
-                                     ){
-    data %>%
-        dplyr::mutate(scenario_mult = action_new,
-                      scenario_mult = ifelse(grepl("stay at home", scenario_mult), "lockdown", scenario_mult),
-                      scenario_mult = gsub("paste", "open_p", scenario_mult),
-                      scenario_mult = gsub("phase", "open_p", scenario_mult),
-                      scenario_mult = ifelse(grepl("open_p", scenario_mult), stringr::str_extract(scenario_mult, "open_p[[:digit:]]"), scenario_mult),
-                      scenario_mult = dplyr::recode(scenario_mult,
-                                                    "social distancing" = "sd"))
+npi_recode_scenario_mult <- function(data){
+    data %>% dplyr::mutate(scenario_mult = action_new, 
+                           scenario_mult = ifelse(grepl("stay at home", scenario_mult), "lockdown", scenario_mult),
+                           scenario_mult = gsub("paste", "open_p", scenario_mult), 
+                           scenario_mult = gsub("phase", "open_p", scenario_mult), 
+                           scenario_mult = ifelse(grepl("open_p", scenario_mult),
+                                                  stringr::str_extract(scenario_mult, "open_p[[:digit:]]+"), scenario_mult), 
+                           scenario_mult = dplyr::recode(scenario_mult, `social distancing` = "sd"))
 }
+
+
+
 
 #' ScenarioHub: Process scenario hub npi list
 #'
@@ -128,49 +161,38 @@ npi_recode_scenario_mult <- function(data
 #' npi_dat <- process_npi_shub(intervention_path = system.file("extdata", "intervention_data.csv", package = "config.writer"), geodata)
 #'
 #' npi_dat
-process_npi_shub <- function(intervention_path,
-                             geodata,
-                             prevent_overlap = TRUE,
-                             prevent_gaps = TRUE
-){
-
-    ## read intervention estimates
-    og <- readr::read_csv(intervention_path) %>%
-        dplyr::left_join(geodata) %>%
-        dplyr::filter(GEOID == "all") %>%
-        npi_recode_scenario() %>% # recode action variable into scenario
-        npi_recode_scenario_mult() # recode action_new variable into scenario_mult
-
-    if(!all(lubridate::is.Date(og$start_date), lubridate::is.Date(og$end_date))){
-        og <- og %>%
-            dplyr::mutate(dplyr::across(tidyselect::ends_with("_date"), ~ lubridate::mdy(.x)))
+process_npi_usa <- function (intervention_path, 
+                               geodata, 
+                               prevent_overlap = TRUE, 
+                               prevent_gaps = TRUE) {
+    
+    og <- readr::read_csv(intervention_path) %>% dplyr::left_join(geodata) %>% 
+        dplyr::filter(GEOID == "all") %>% 
+        npi_recode_scenario() %>% 
+        npi_recode_scenario_mult()
+    
+    if (!all(lubridate::is.Date(og$start_date), lubridate::is.Date(og$end_date))) {
+        og <- og %>% dplyr::mutate(dplyr::across(tidyselect::ends_with("_date"), ~lubridate::mdy(.x)))
     }
-
-    if("template" %in% colnames(og)){
-        og <- og %>%
-            dplyr::mutate(name = dplyr::if_else(template=="MultiTimeReduce", scenario_mult, scenario)) %>%
+    if ("template" %in% colnames(og)) {
+        og <- og %>% dplyr::mutate(name = dplyr::if_else(template == "MultiTimeReduce", scenario_mult, scenario)) %>% 
             dplyr::select(USPS, geoid, start_date, end_date, name, template)
-    } else{
-        og <- og %>%
-            dplyr::mutate(template = "MultiTimeReduce") %>%
-            dplyr::select(USPS, geoid, start_date, end_date, name=scenario_mult, template)
+    } else {
+        og <- og %>% dplyr::mutate(template = "MultiTimeReduce") %>% 
+            dplyr::select(USPS, geoid, start_date, end_date, name = scenario_mult, template)
     }
-
-    if(prevent_overlap){
-        og <- og %>%
-            dplyr::group_by(USPS, geoid) %>%
-            dplyr::mutate(end_date = dplyr::if_else(end_date >= dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
+    if (prevent_overlap) {
+        og <- og %>% dplyr::group_by(USPS, geoid) %>% 
+            dplyr::mutate(end_date = dplyr::if_else(end_date >= dplyr::lead(start_date), dplyr::lead(start_date) - 1, end_date))
     }
-
-    if(prevent_gaps){
-        og <- og %>%
-            dplyr::group_by(USPS, geoid) %>%
-            dplyr::mutate(end_date = dplyr::if_else(end_date < dplyr::lead(start_date), dplyr::lead(start_date)-1, end_date))
+    if (prevent_gaps) {
+        og <- og %>% dplyr::group_by(USPS, geoid) %>% 
+            dplyr::mutate(end_date = dplyr::if_else(end_date < dplyr::lead(start_date), dplyr::lead(start_date) - 1, end_date))
     }
-
     return(og)
-
 }
+
+
 
 #' Process California intervention data
 #'
@@ -496,15 +518,21 @@ generate_multiple_variants_state <- function(variant_path_1,
                       end_date = dplyr::if_else(end_date > sim_end_date, sim_end_date, end_date))
 
     variant_data <- variant_data %>%
-        dplyr::mutate(R_ratio = round(R_ratio, 2)) %>%
+        #dplyr::mutate(R_ratio = round(R_ratio, 2)) %>%
         dplyr::select(location, week, start_date, end_date, variant, param, R_ratio) %>%
         dplyr::group_by(location, week, start_date, end_date) %>%
         dplyr::summarise(R_ratio = round(prod(R_ratio)*(1/0.05))*0.05
                          #, sd_variant = sum(sd_variant)
-                         ) %>% # THIS IS NOT THE RIGHT SD BUT DOESN'T MATTER B/C WE DON'T USE IT
+        ) %>% # THIS IS NOT THE RIGHT SD BUT DOESN'T MATTER B/C WE DON'T USE IT
         dplyr::ungroup() %>%
-        dplyr::mutate(final_week = dplyr::if_else(start_date >= lubridate::floor_date(projection_start_date-14, "week") & start_date < projection_start_date,
-                                                  1, NA_real_)) %>%
+        dplyr::mutate(final_week = dplyr::case_when(start_date >= lubridate::floor_date(projection_start_date-14, "week") & start_date < projection_start_date ~ 1,
+                                                    start_date >= projection_start_date ~ 0,
+                                                    TRUE ~ NA_real_), 
+                      sequential = dplyr::case_when(R_ratio == dplyr::lead(R_ratio) & R_ratio != dplyr::lag(R_ratio) ~ 1,  
+                                                    R_ratio == dplyr::lag(R_ratio) ~ 0,
+                                                    R_ratio != dplyr::lag(R_ratio) ~ 1)) %>%
+        dplyr::group_by(location) %>%
+        dplyr::mutate(sequential=cumsum(sequential)) %>%
         dplyr::group_by(location, final_week) %>%
         dplyr::mutate(final_week = cumsum(final_week)) %>%
         dplyr::group_by(R_ratio, location, final_week) %>%
@@ -521,5 +549,91 @@ generate_multiple_variants_state <- function(variant_path_1,
         dplyr::ungroup()
 }
 
-
+#' Function to process variant data with variant compartments
+#'
+#' Generate state-level variant interventions
+#'
+#' @param variant_path_1 path to variant data with columns matching variant_compartments
+#' @param sim_start_date simulation start date
+#' @param sim_end_date simulation end date
+#' @param projection_start_date specified to ensure interventions in the two weeks before the projection start are not aggregated
+#' @param variant_lb
+#' @param varian_effect change in transmission for variant default is 50% from Davies et al 2021
+#' @param transmission_increase transmission increase in B1617 relative to B117
+#' @param geodata
+#'
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+#' variant <- generate_multiple_variants(variant_path_1 = system.file("extdata", "B117-fits.csv", package = "config.writer"),
+#'                                       variant_path_2 = system.file("extdata", "B617-fits.csv", package = "config.writer"))
+#' variant
+#'
+generate_compartment_variant <- function(variant_path = "../COVID19_USA/data/variant/variant_props_long.csv",
+                                         variant_compartments = c("WILD", "ALPHA", "DELTA"), 
+                                         transmission_increase = c(1, 1.45, (1.6*1.6)),
+                                         geodata, 
+                                         sim_start_date = as.Date("2020-03-31"),
+                                         sim_end_date = Sys.Date()+60){
+    trans_incr <- dplyr::tibble(variant_compartments, 
+                                transmission_increase)
+    
+    variant_data <- readr::read_csv(variant_path)
+    
+    if(!("source" %in% colnames(variant_data))){
+        variant_data$source <- ""
+    }
+    variant_data <- variant_data %>% dplyr::full_join(trans_incr) %>%
+        dplyr::rename(date = Update, USPS = source) %>%
+        dplyr::mutate(trans_mult = (trans_incr * prop)) %>% 
+        dplyr::group_by(date, USPS) %>%
+        dplyr::summarise(trans_mult = sum(trans_mult))
+    
+    sim_start_date <- as.Date(sim_start_date)
+    sim_end_date <- as.Date(sim_end_date)
+    
+    variant_data <- variant_data %>%
+        dplyr::mutate(week = MMWRweek::MMWRweek(date)$MMWRweek,
+                      year = MMWRweek::MMWRweek(date)$MMWRyear,
+                      start_date = MMWRweek::MMWRweek2Date(MMWRyear=year, MMWRweek=week),
+                      end_date = (start_date+6)) %>%
+        dplyr::filter(!(start_date>sim_end_date)) %>%
+        dplyr::filter(date==end_date) %>%
+        dplyr::mutate(date=start_date) %>%
+        dplyr::mutate(param = "ReduceR0") %>%
+        dplyr::rename(R_ratio = trans_mult) %>%
+        dplyr::mutate(sd_variant = (sqrt(R_ratio)-1)/5)
+    
+    variant_data <- variant_data %>%
+        dplyr::filter(end_date >= sim_start_date) %>%
+        dplyr::mutate(start_date = dplyr::if_else(start_date < sim_start_date &
+                                                      end_date > sim_start_date, sim_start_date, start_date),
+                      end_date = dplyr::if_else(end_date > sim_end_date, sim_end_date, end_date))
+    
+    variant_data <- variant_data %>%
+        dplyr::mutate(R_ratio = round(R_ratio, 2)) %>%
+        dplyr::select(USPS, week, start_date, end_date, param, R_ratio, sd_variant) %>%
+        dplyr::mutate(R_ratio = round(R_ratio*(1/0.05))*0.05, sd_variant = mean(sd_variant)) # THIS IS NOT THE RIGHT SD BUT DOESN'T MATTER B/C WE DON'T USE IT
+    
+    # Combine interventions
+    dates_start_ <- sort(unique(variant_data$start_date))
+    for (d in 1:length(dates_start_)){
+        variant_data <- variant_data %>%
+            dplyr::mutate(date_curr = (start_date==dates_start_[d] | end_date==(dates_start_[d]-1)),
+                          date_comb = ifelse(date_curr==TRUE, "comb_group", as.character(start_date))) %>%
+            dplyr::group_by(USPS, param, R_ratio, date_comb) %>%
+            dplyr::summarise(start_date=min(start_date), end_date=max(end_date),
+                             sd_variant = round(mean(sd_variant,na.rm=TRUE),4))
+    }
+    variant_data <- variant_data %>% dplyr::as_tibble() %>% dplyr::select(-date_comb) %>% dplyr::distinct() 
+    variant_data <- variant_data %>% 
+        dplyr::filter(R_ratio>1) %>%
+        dplyr::filter(USPS != "US") %>%
+        dplyr::left_join(geodata %>% dplyr::select(USPS, geoid))
+    
+    return(variant_data)
+}
 
