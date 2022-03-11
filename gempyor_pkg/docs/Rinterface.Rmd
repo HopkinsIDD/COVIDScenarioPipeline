@@ -44,7 +44,7 @@ gempyor <- reticulate::import("gempyor")
 
 ### Building a simulator
 
-We create an `InferenceSimulator` object by providing the path of config file.  It may take a while to run all of that. First build the object. The config used here, from the npi continuous integration tests, is derived from our recent forcast hub config: `config_FCH_R12_optSev_lowIE_blk5_Mar6.yml` on March 6, 2022.
+We create an `InferenceSimulator` object by providing the path of config file. The config used here, from the npi continuous integration tests, is derived from our recent forcast hub config: `config_FCH_R12_optSev_lowIE_blk5_Mar6.yml` on March 6, 2022.
 ```{r}
 config_filepath = '../tests/npi/config_npi.yml'
 gempyor_simulator <- gempyor$InferenceSimulator(
@@ -58,7 +58,7 @@ gempyor_simulator <- gempyor$InferenceSimulator(
                           spatial_path_prefix = '../tests/npi/' # prefix where to find the folder indicated in spatial_setup
 )
 ```
-Here we specify that the data folder specified in the config lies in the `test/npi/` folder, not in the current directory. The only mandatory arguments is the `config_path`. The default values of the other arguments are
+Here we specified that the data folder specified in the config lies in the `test/npi/` folder, not in the current directory. The only mandatory arguments is the `config_path`. The default values of the other arguments are
 ```
   run_id="test_run_id",   # an ommited argument will be left at its default value
   prefix="test_prefix",
@@ -220,8 +220,14 @@ You'll need a working python3.7 installation. The gempyor package dependencies a
  dask
  pytest ## only to run test
  scipy
- graphviz
+ graphviz 
 ```
+
+one liner for copy paste. For pandas this is python-graphviz
+```
+numba pandas numpy seaborn tqdm matplotlib seaborn click confuse pyarrow sympy dask pytest  scipy graphviz
+```
+
 
 ### Normal python
 This command will install the package and all its dependencies (the `-e` makes so that when you pull the pipeline repository again, there is no need for re-installing).
