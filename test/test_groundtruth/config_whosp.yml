@@ -51042,13 +51042,13 @@ filtering:
   simulations_per_slot: 20
   do_filtering: TRUE
   data_path: test/test_groundtruth/data/us_data.csv
-  gt_source: "csse_lm"
+  gt_source: "covidcast"
   statistics:
     sum_deaths:
       name: sum_deaths
       aggregator: sum
       period: "1 weeks"
-      gt_source: "csse_lm"
+      gt_source: "covidcast"
       sim_var: incidD
       data_var: incidDeath
       remove_na: TRUE
@@ -51059,7 +51059,7 @@ filtering:
       name: sum_confirmed_WILD
       aggregator: sum
       period: "1 weeks"
-      gt_source: "csse_lm"
+      gt_source: "covidcast"
       sim_var: incidC_WILD
       data_var: incidI_WILD
       remove_na: TRUE
@@ -51070,7 +51070,7 @@ filtering:
       name: sum_confirmed_ALPHA
       aggregator: sum
       period: "1 weeks"
-      gt_source: "csse_lm"
+      gt_source: "covidcast"
       sim_var: incidC_ALPHA
       data_var: incidI_ALPHA
       remove_na: TRUE
@@ -51081,7 +51081,7 @@ filtering:
       name: sum_confirmed_DELTA
       aggregator: sum
       period: "1 weeks"
-      gt_source: "csse_lm"
+      gt_source: "covidcast"
       sim_var: incidC_DELTA
       data_var: incidI_DELTA
       remove_na: TRUE
@@ -51092,7 +51092,7 @@ filtering:
       name: sum_confirmed_OMICRON
       aggregator: sum
       period: "1 weeks"
-      gt_source: "csse_lm"
+      gt_source: "covidcast"
       sim_var: incidC_OMICRON
       data_var: incidI_OMICRON
       remove_na: TRUE

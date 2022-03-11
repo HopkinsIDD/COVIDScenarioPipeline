@@ -448,7 +448,7 @@ gt_start_date <- gt_start_date_
 gt_end_date <- gt_end_date_
 
 
-
+# obs$remove <- rowSums(!is.na(obs[,gt_tmp$data_var]))
 
 
 # Compute Statistics ------------------------------------------------------

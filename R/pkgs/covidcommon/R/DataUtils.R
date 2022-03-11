@@ -1153,8 +1153,9 @@ get_groundtruth_from_source <- function(source = "csse",
     } else if(source == "csse" & scale == "US county"){
         
         rc <- get_CSSE_US_data(tempfile(), tempfile(), incl_unassigned = incl_unass) %>%
-            dplyr::select(Update, FIPS, source, !!variables) %>%
-            tidyr::drop_na(tidyselect::everything())
+            dplyr::select(Update, FIPS, source, !!variables)
+        rc <- tidyr::drop_na(rc, c(Update, FIPS, source))
+        #rc <- tidyr::drop_na(rc, tidyselect::everything())
         
     } else if(source == "csse" & scale == "US state"){
         
@@ -1163,14 +1164,16 @@ get_groundtruth_from_source <- function(source = "csse",
             dplyr::mutate(FIPS = paste0(stringr::str_sub(FIPS, 1, 2), "000")) %>%
             dplyr::group_by(Update, FIPS, source) %>%
             dplyr::summarise_if(is.numeric, sum) %>%
-            tidyr::drop_na(tidyselect::everything()) %>%
             dplyr::ungroup()
+        rc <- tidyr::drop_na(rc, c(Update, FIPS, source))
+        #rc <- tidyr::drop_na(rc, tidyselect::everything())
         
     } else if(source == "csse" & scale == "country"){
         
         rc <- get_CSSE_global_data()
         rc <- dplyr::select(rc, UID, iso2, iso3, Province_State, Country_Region, Latitude, Longitude, Update, source, !!variables)
-        rc <- tidyr::drop_na(rc, tidyselect::everything())
+        rc <- tidyr::drop_na(rc, c(Update, FIPS, source))
+        #rc <- tidyr::drop_na(rc, tidyselect::everything())
         
     } else if(source == "csse" & scale == "complete"){
         
@@ -1193,8 +1196,9 @@ get_groundtruth_from_source <- function(source = "csse",
         
         variables_ <- variables[!grepl("incidh|hosp", tolower(variables))] # hosp not available 
         rc <- get_rawcoviddata_state_data(fix_negatives=fix_negatives) %>%
-            dplyr::select(Update, FIPS, source, !!variables_) %>%
-            tidyr::drop_na(tidyselect::everything())
+            dplyr::select(Update, FIPS, source, !!variables_)
+        rc <- tidyr::drop_na(rc, c(Update, FIPS, source))
+        #rc <- tidyr::drop_na(rc, tidyselect::everything())
         
     } else if(source == "covidcast" & scale == "US state"){
         
@@ -1210,8 +1214,9 @@ get_groundtruth_from_source <- function(source = "csse",
                                  limit_date = Sys.Date(),
                                  fix_negatives = fix_negatives,
                                  run_parallel = FALSE) %>%
-            dplyr::select(Update, FIPS, source, !!variables) %>%
-            tidyr::drop_na(tidyselect::everything())
+            dplyr::select(Update, FIPS, source, !!variables)
+        rc <- tidyr::drop_na(rc, c(Update, FIPS, source))
+        #rc <- tidyr::drop_na(rc, tidyselect::everything()) 
         
     } else if(source == "file"){
         
@@ -1222,13 +1227,19 @@ get_groundtruth_from_source <- function(source = "csse",
         stopifnot("Columns missing in source file. Must have [Update, FIPS, source] and desired variables." = all(check_cols))
         
         rc <- rc %>%
-            dplyr::select(rc, Update, FIPS, source, !!variables) %>%
-            tidyr::drop_na(rc, tidyselect::everything())
+            dplyr::select(rc, Update, FIPS, source, !!variables)
+        rc <- tidyr::drop_na(rc, c(Update, FIPS, source))
+        #rc <- tidyr::drop_na(rc, tidyselect::everything()) 
         
     } else{
         warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning NULL object.")))
         rc <- NULL
     }
+    
+    # Drop NA rows (where all rows are NA for the outcomes of interest)
+    drop_cols <- c("incidI", "incidDeath", "incidH") [c("incidI", "incidDeath", "incidH") %in% colnames(rc)]
+    rc <- rc[rowSums(is.na(rc[,drop_cols])) != length(drop_cols), ]
+
     
     if (adjust_for_variant & any(c("incidI", "Confirmed") %in% variables)) {
         tryCatch({
@@ -1279,8 +1290,8 @@ do_variant_adjustment <- function (rc,
 #'
 #' @examples
 do_variant_adjustment2 <- function(rc, 
-                                     variant_props_file = "data/variant/variant_props_long.csv", 
-                                     var_targets = c("incidI","Confirmed")){
+                                   variant_props_file = "data/variant/variant_props_long.csv", 
+                                   var_targets = c("incidI","Confirmed")){
     #non_outcome_column_names <- c("FIPS", "Update", "source", )
     #outcome_column_names <- names(rc)[!(names(rc) %in% non_outcome_column_names)]
     outcome_column_names <- names(rc)[(names(rc) %in% var_targets)]
@@ -1304,7 +1315,7 @@ do_variant_adjustment2 <- function(rc,
         dplyr::mutate(outcome = paste0(outcome, gsub("prop", "", variant))) %>%
         dplyr::select(-prop, -variant) %>%
         tidyr::pivot_wider(names_from = outcome, values_from = value)
-
+    
     return(rc)
 }
 
