@@ -200,7 +200,10 @@ data_stats <- lapply(
       df,
       "date",
       "data_var",
-      stat_list = config$filtering$statistics)
+      stat_list = config$filtering$statistics,
+      start_date = gt_start_date,
+      end_date = gt_end_date
+    )
   }) %>%
     set_names(geonames)
 
@@ -251,11 +254,12 @@ for(scenario in scenarios) {
         rhs <- unique(names(data_stats))
         all_locations <- rhs[rhs %in% lhs]
 
+        ## No references to config$filtering$statistics
         inference::aggregate_and_calc_loc_likelihoods(
           all_locations = all_locations, # technically different
           modeled_outcome = sim_hosp,
           obs_nodename = obs_nodename,
-          config = config,
+          targets_config = config[["filtering"]][["statistics"]],
           obs = obs,
           ground_truth_data = data_stats,
           hosp_file = first_global_files[['llik_filename']],
@@ -264,7 +268,9 @@ for(scenario in scenarios) {
           geodata = geodata,
           snpi = arrow::read_parquet(first_global_files[['snpi_filename']]),
           hnpi = arrow::read_parquet(first_global_files[['hnpi_filename']]),
-          hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,!!rlang::sym(obs_nodename),outcome,sep='_'))
+          hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,!!rlang::sym(obs_nodename),outcome,sep='_')),
+          start_date = gt_start_date,
+          end_date = gt_end_date
         )
       },
       is_resume = opt[['is-resume']]
@@ -325,7 +331,7 @@ for(scenario in scenarios) {
       arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
       arrow::write_parquet(proposed_hpar,this_global_files[['hpar_filename']])
 
-      
+
       ## Update the prefix
       gempyor_inference_runner$update_prefix(new_prefix=global_local_prefix)
       ## Run the simulator
@@ -350,7 +356,7 @@ for(scenario in scenarios) {
         all_locations = all_locations,
         modeled_outcome = sim_hosp,
         obs_nodename = obs_nodename,
-        config = config,
+        targets_config = config[["filtering"]][["statistics"]],
         obs = obs,
         ground_truth_data = data_stats,
         hosp_file = this_global_files[["llik_filename"]],
@@ -362,7 +368,9 @@ for(scenario in scenarios) {
         hpar = dplyr::mutate(
           proposed_hpar,
           parameter = paste(quantity, !!rlang::sym(obs_nodename), outcome, sep = "_")
-        )
+        ),
+        start_date = gt_start_date,
+        end_date = gt_end_date
       )
 
 
