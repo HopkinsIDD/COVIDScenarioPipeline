@@ -5,6 +5,7 @@
 ##'
 ##' @param data Vector of data to aggregate
 ##' @param dates Vector of dates
+##' @param start_date First date to consider
 ##' @param end_date Last date to consider
 ##' @param period_unit Unit of period over which to aggregate
 ##' @param period_k Number of time units defining period over which to aggregate
@@ -12,7 +13,7 @@
 ##' @param na.rm Remove Nas?
 ##' @return NULL
 #' @export
-periodAggregate <- function(data, dates, end_date = NULL, period_unit_function, period_unit_validator, aggregator, na.rm = F) {
+periodAggregate <- function(data, dates, start_date = NULL, end_date = NULL, period_unit_function, period_unit_validator, aggregator, na.rm = F) {
   if (na.rm) {
     dates <- dates[!is.na(data)]
     data <- data[!is.na(data)]
@@ -23,6 +24,11 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit_function, 
   if (!is.null(end_date)) {
     data <- data[dates <= end_date]
     dates <- dates[dates <= end_date]
+  }
+
+  if (!is.null(start_date)) {
+    data <- data[dates >= start_date]
+    dates <- dates[dates >= start_date]
   }
 
   tmp <- data.frame(date = dates, value = data)
@@ -45,14 +51,21 @@ periodAggregate <- function(data, dates, end_date = NULL, period_unit_function, 
 ##' @param df Data frame with data
 ##' @param time_col Name of the column with time
 ##' @param var_col Name of the variable with name of the  column with data to process
+##' @param start_date First date to consider
 ##' @param end_date Last date to consider
 ##' @param stat_list List with specifications of statistics to compute
 ##' @return NULL
 #' @export
-getStats <- function(df, time_col, var_col, end_date = NULL, stat_list, debug_mode = FALSE) {
+getStats <- function(df, time_col, var_col, start_date = NULL, end_date = NULL, stat_list, debug_mode = FALSE) {
   rc <- list()
   for (stat in names(stat_list)) {
     s <- stat_list[[stat]]
+    if (!is.null(start_date)) {
+      stat_list[[stat]][["gt_start_date"]] <- max(c(start_date, stat_list[[stat]][["gt_start_date"]]))
+    }
+    if (!is.null(end_date)) {
+      stat_list[[stat]][["gt_end_date"]] <- min(c(end_date, stat_list[[stat]][["gt_end_date"]]))
+    }
     aggregator <- match.fun(s$aggregator)
     ## Get the time period over whith to apply aggregation
     period_info <- strsplit(s$period, " ")[[1]]
@@ -121,7 +134,8 @@ getStats <- function(df, time_col, var_col, end_date = NULL, stat_list, debug_mo
 
     res <- inference::periodAggregate(df[[s[[var_col]]]],
                                       df[[time_col]],
-                                      end_date,
+                                      stat_list[[stat]][["gt_start_date"]],
+                                      stat_list[[stat]][["gt_end_date"]],
                                       period_unit_function,
                                       period_unit_validator,
                                       aggregator,
