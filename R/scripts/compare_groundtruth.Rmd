@@ -1,0 +1,517 @@
+---
+title: "Comparing Ground Truth Sources"
+author: "Shaun Truelove"
+date: "3/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(covidcommon)
+library(inference)
+
+source("R/pkgs/covidcommon/R/DataUtils.R")
+source("R/scripts/old_groundtruth_functs.R")
+
+
+```
+
+
+# PULL DATA ---------------------------------------------------------------
+
+```{r pulldata, eval=FALSE}
+signals <- c("deaths_incidence_num", "deaths_cumulative_num", "confirmed_incidence_num", "confirmed_cumulative_num")
+#signals <- c(signals,"confirmed_admissions_covid_1d")
+variables = c("Confirmed", "Deaths", "incidI", "incidDeath")#, "incidH","Hospitalizations")
+
+geo_level = "state"
+signals = signals
+limit_date = Sys.Date()
+run_parallel = TRUE
+n_cores=4
+fix_negatives <- TRUE
+incl_unass <- TRUE
+
+
+
+# Location data for matching
+
+loc_dictionary <- readr::read_csv("https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-locations/locations.csv") %>%
+    dplyr::rename(fips = location, USPS=abbreviation, Province_State=location_name, Pop2 = population) %>%
+    dplyr::filter(stringr::str_length(fips)==2 & fips!="US") %>% 
+    data.table::as.data.table()
+
+
+
+# CSSe
+rc_CSSE1 <- get_CSSE_US_data(tempfile(), tempfile(), incl_unassigned = incl_unass, fix_negatives = FALSE) %>%
+    dplyr::select(Update, FIPS, source, !!variables) %>%
+    dplyr::mutate(FIPS = paste0(stringr::str_sub(FIPS, 1, 2), "000")) %>%
+    dplyr::group_by(Update, FIPS, source) %>%
+    dplyr::summarise_if(is.numeric, sum) %>%
+    tidyr::drop_na(tidyselect::everything()) %>%
+    dplyr::ungroup()
+
+# CSSe - IDD with state-level negatives fix
+rc_CSSE1_fixnegs <- get_CSSE_US_data(tempfile(), tempfile(), incl_unassigned = incl_unass, fix_negatives = TRUE) %>%
+    dplyr::select(Update, FIPS, source, !!variables) %>%
+    dplyr::mutate(FIPS = paste0(stringr::str_sub(FIPS, 1, 2), "000")) %>%
+    dplyr::group_by(Update, FIPS, source) %>%
+    dplyr::summarise_if(is.numeric, sum) %>%
+    tidyr::drop_na(tidyselect::everything()) %>%
+    dplyr::ungroup()
+
+# CSSe - IDD old version
+rc_CSSE1_old <- get_CSSE_US_data_OLD(tempfile(), tempfile(), incl_unassigned = incl_unass, fix_negatives = FALSE) %>%
+    dplyr::select(Update, FIPS, source, !!variables) %>%
+    dplyr::mutate(FIPS = paste0(stringr::str_sub(FIPS, 1, 2), "000")) %>%
+    dplyr::group_by(Update, FIPS, source) %>%
+    dplyr::summarise_if(is.numeric, sum) %>%
+    tidyr::drop_na(tidyselect::everything()) %>%
+    dplyr::ungroup()
+
+# CSSe - - IDD old version with state-level negatives fix
+rc_CSSE1_fixnegs_old <- get_CSSE_US_data_OLD(tempfile(), tempfile(), incl_unassigned = incl_unass, fix_negatives = TRUE) %>%
+    dplyr::select(Update, FIPS, source, !!variables) %>%
+    dplyr::mutate(FIPS = paste0(stringr::str_sub(FIPS, 1, 2), "000")) %>%
+    dplyr::group_by(Update, FIPS, source) %>%
+    dplyr::summarise_if(is.numeric, sum) %>%
+    tidyr::drop_na(tidyselect::everything()) %>%
+    dplyr::ungroup()
+
+# csse LM - rawcoviddata - 
+variables_ <- variables[!grepl("incidh|hosp", tolower(variables))] 
+rc_csselm <- get_rawcoviddata_state_data(fix_negatives=TRUE) %>%
+    dplyr::select(Update, FIPS, source, !!variables_) %>%
+    tidyr::drop_na(tidyselect::everything())
+
+
+cdp <- rawcoviddata::cssedata(return_compact=T)
+state_dat_fixneg_pkg <- rawcoviddata::get_state_from_cdp(cdp=cdp, state = NULL, fix_cumul = TRUE, type = c("mid"))
+state_dat <- rawcoviddata::get_state_from_cdp(cdp=cdp, state = NULL, fix_cumul = FALSE, type = c("mid"))
+
+state_dat_fixneg_pkg <- state_dat_fixneg_pkg[loc_dictionary, on = .(USPS)]
+state_dat_fixneg_pkg <- state_dat_fixneg_pkg %>%
+    dplyr::select(Update = Date, FIPS = fips, source = USPS, 
+                  Confirmed = cumConfirmed, Deaths = cumDeaths, 
+                  incidI = Confirmed, incidDeath = Deaths) %>%
+    dplyr::mutate(Update=lubridate::as_date(Update),
+                  FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
+                  FIPS = paste0(FIPS, "000")) %>%
+    dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>%
+    dplyr::distinct()
+
+state_dat <- state_dat[loc_dictionary, on = .(USPS)]
+state_dat <- state_dat %>%
+    dplyr::select(Update = Date, FIPS = fips, source = USPS, 
+                  Confirmed = cumConfirmed, Deaths = cumDeaths, 
+                  incidI = Confirmed, incidDeath = Deaths) %>%
+    dplyr::mutate(Update=lubridate::as_date(Update),
+                  FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
+                  FIPS = paste0(FIPS, "000")) %>%
+    dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>%
+    dplyr::distinct()
+
+state_dat_nofixneg <- state_dat
+state_dat_fixneg_jh <- state_dat %>% as_tibble() %>%
+    fix_negative_counts("Confirmed", "incidI") %>%
+    fix_negative_counts("Deaths", "incidDeath")
+
+state_dat_nofixneg <- state_dat_nofixneg %>%
+    dplyr::select(Update, FIPS, source, !!variables) %>%
+    dplyr::mutate(FIPS = paste0(stringr::str_sub(FIPS, 1, 2), "000")) %>%
+    dplyr::group_by(Update, FIPS, source) %>%
+    dplyr::summarise_if(is.numeric, sum) %>%
+    tidyr::drop_na(tidyselect::everything()) %>%
+    dplyr::ungroup()
+state_dat_fixneg_jh <- state_dat_fixneg_jh %>%
+    dplyr::select(Update, FIPS, source, !!variables) %>%
+    dplyr::mutate(FIPS = paste0(stringr::str_sub(FIPS, 1, 2), "000")) %>%
+    dplyr::group_by(Update, FIPS, source) %>%
+    dplyr::summarise_if(is.numeric, sum) %>%
+    tidyr::drop_na(tidyselect::everything()) %>%
+    dplyr::ungroup()
+state_dat_fixneg_pkg <- state_dat_fixneg_pkg %>%
+    dplyr::select(Update, FIPS, source, !!variables) %>%
+    dplyr::mutate(FIPS = paste0(stringr::str_sub(FIPS, 1, 2), "000")) %>%
+    dplyr::group_by(Update, FIPS, source) %>%
+    dplyr::summarise_if(is.numeric, sum) %>%
+    tidyr::drop_na(tidyselect::everything()) %>%
+    dplyr::ungroup()
+
+
+
+# COVIDcast
+# define covidcast signals
+signals <- c("deaths_incidence_num", "deaths_cumulative_num", "confirmed_incidence_num", "confirmed_cumulative_num")
+rc_covidcast <- get_covidcast_data(geo_level = "state",
+                                   signals = signals,
+                                   limit_date = Sys.Date(),
+                                   fix_negatives = fix_negatives,
+                                   run_parallel = TRUE) %>%
+    dplyr::select(Update, FIPS, source, !!variables) %>%
+    tidyr::drop_na(tidyselect::everything())
+
+rc_covidcast_nofixnegs <- get_covidcast_data(geo_level = "state",
+                                             signals = signals,
+                                             limit_date = Sys.Date(),
+                                             fix_negatives = FALSE,
+                                             run_parallel = TRUE) %>%
+    dplyr::select(Update, FIPS, source, !!variables) %>%
+    tidyr::drop_na(tidyselect::everything())
+
+```
+
+
+## Compare    
+
+```{r combine, eval=FALSE}
+# COMPARE -----------------------------------------------------------------
+
+
+rc_comp <- bind_rows(
+    rc_CSSE1_fixnegs %>% mutate(type = "cssejh_fixnegs"),
+    rc_CSSE1 %>% mutate(type = "cssejh_nofixnegs"),
+    rc_CSSE1_fixnegs_old %>% mutate(type = "cssejh_fixnegs_old"),
+    rc_CSSE1_old %>% mutate(type = "cssejh_nofixnegs_old"),
+    rc_covidcast %>% mutate(type = "covidcast_fixnegs"),
+    rc_covidcast_nofixnegs %>% mutate(type = "covidcast_nofixnegs"),
+    state_dat_fixneg_pkg %>% mutate(type = "csselm_fixnegs"),
+    #state_dat_fixneg_jh %>% mutate(type = "csselm_jhfixnegs"),
+    state_dat_nofixneg %>% mutate(type = "csselm_nofixnegs")
+)
+
+write_csv(rc_comp, "outputs/rc_comp.csv")
+
+# Look at negative fixes
+
+rc_comp2 <- bind_rows(
+    rc_CSSE1_fixnegs %>% mutate(type = "cssejh", fixnegs = TRUE),
+    rc_CSSE1 %>% mutate(type = "cssejh", fixnegs = FALSE),
+    rc_CSSE1_fixnegs_old %>% mutate(type = "cssejh_old", fixnegs = TRUE),
+    rc_CSSE1_old %>% mutate(type = "cssejh_old", fixnegs = FALSE),
+    rc_covidcast %>% mutate(type = "covidcast", fixnegs = TRUE),
+    rc_covidcast_nofixnegs %>% mutate(type = "covidcast", fixnegs = FALSE),
+    state_dat_fixneg_pkg %>% mutate(type = "csselm", fixnegs = TRUE),
+    state_dat_nofixneg %>% mutate(type = "csselm", fixnegs = FALSE)
+) %>%
+    pivot_longer(cols=c(Confirmed, Deaths, incidI, incidDeath), names_to = "target", values_to = "value") %>%
+    group_by(FIPS, source, Update, type, target) %>%
+    arrange(fixnegs) %>%
+    summarise(value_prefix = value[fixnegs==FALSE],
+              value_postfix = value[fixnegs==TRUE],
+              value_diffs = value[fixnegs==TRUE] - value[fixnegs==FALSE])
+
+write_csv(rc_comp2, "outputs/rc_comp2.csv")
+
+
+```
+
+```{r}
+rc_comp <- read_csv("outputs/rc_comp.csv")
+rc_comp2 <- read_csv("outputs/rc_comp2.csv")
+```
+
+
+```{r}
+
+
+
+plot_negatives <- function(states = c("FL", "TN","MO","OK")){
+    
+    tmp_dat <- rc_comp2 %>%
+        filter(source %in% states) %>%
+        mutate(value_prefix = ifelse(value_prefix>0, 0, value_prefix))
+    
+    print(
+        cowplot::plot_grid(
+            tmp_dat %>% filter(target == "incidI") %>%
+                filter(value_prefix<0) %>%
+                ggplot(aes(x=Update, y=value_prefix, color=type)) +
+                scale_color_discrete("Data source") +
+                ggtitle("Negatives in IncidI data") +
+                geom_jitter(width=5)+
+                theme_bw() +
+                facet_wrap(~source, nrow = 5, scales = "free_y"),
+            tmp_dat %>% filter(target == "incidDeath") %>%
+                filter(value_prefix<0) %>%
+                ggplot(aes(x=Update, y=value_prefix, color=type)) +
+                scale_color_discrete("Data source") +
+                ggtitle("Negatives in IncidDeath data") +
+                geom_jitter(width=5)+
+                theme_bw() +
+                facet_wrap(~source, nrow = 5, scales = "free_y"),
+            nrow=2,
+            align = "hv", axis = "lr")
+    )
+}
+
+compare_fixnegs <- function(outcome = "incidI", data_source = "csselm", states = c("FL", "TN","MO","OK")){
+    
+    tmp_dat <- rc_comp2 %>%
+        filter(source %in% states) %>%
+        filter(type==data_source, target==outcome)
+    
+    print(
+        cowplot::plot_grid(
+            tmp_dat %>%
+                pivot_longer(cols=c(value_prefix, value_postfix), names_to = "prepost", values_to = "value") %>%
+                ggplot(aes(x=Update, y=value, color=prepost)) +
+                scale_color_discrete("Fixing Negatives") +
+                ggtitle(paste0(outcome, " - ", data_source, " - Compare pre/post fix")) +
+                geom_point() +
+                theme_bw() +
+                facet_wrap(~source, nrow = 2, scales = "free_y"),
+            tmp_dat %>%
+                ggplot(aes(x=Update, y=value_diffs)) +
+                ggtitle(paste0("Differences after fixing negatives - ", outcome, " - ", data_source)) +
+                geom_point() +
+                theme_bw() +
+                facet_wrap(~source, nrow = 2, scales = "free_y"),
+            nrow=2,
+            align = "hv", axis = "lr")
+    )
+}
+
+
+compare_daily <- function(outcome = "incidI", 
+                          data_source1="cssejh", 
+                          states = c("FL", "TN","MO","OK")){
+    
+    tmp_dat <- rc_comp2 %>%
+        filter(source %in% states) %>%
+        filter(target==outcome) %>%
+        group_by(FIPS, source, Update, target) %>%
+        mutate(value_prefix = value_prefix[type==data_source1] - value_prefix,
+               value_postfix = value_postfix[type==data_source1] - value_postfix) %>%
+        ungroup()
+        
+        print(
+            cowplot::plot_grid(
+                tmp_dat %>%
+                    ggplot(aes(x=Update, y=value_prefix, color=type)) +
+                    scale_color_discrete("Data Source") +
+                    ggtitle(paste0(outcome, " daily difference between sources, pre-negative fix (Ref source = ", data_source1,")")) +
+                    ylab("daily difference") +
+                    geom_point() +
+                    theme_bw() +
+                    facet_wrap(~source, nrow = 2, scales = "free_y"),
+                tmp_dat %>%
+                    ggplot(aes(x=Update, y=value_postfix, color=type)) +
+                    scale_color_discrete("Data Source") +
+                    ggtitle(paste0(outcome, " daily difference between sources, post-negative fix (Ref source = ", data_source1,")")) +
+                    ylab("daily difference") +
+                    geom_point() +
+                    theme_bw() +
+                    facet_wrap(~source, nrow = 2, scales = "free_y"),     
+                nrow=2,
+                align = "hv", axis = "lr")
+        )
+    
+}
+
+
+```
+
+
+
+## COMPARE ACROSS SOURCES    
+
+
+
+### Before fixing Negatives
+
+```{r, fig.height=8}
+rc_us <- rc_comp2 %>%
+    group_by(Update, type, target) %>%
+    summarise(value_prefix=sum(value_prefix, na.rm=TRUE),
+              value_postfix=sum(value_postfix, na.rm=TRUE),
+              value_diffs=sum(value_diffs, na.rm=TRUE)) %>%
+    mutate(source="US", FIPS="US") %>%
+    pivot_longer(cols=c(value_prefix, value_postfix), names_to = "prepost", values_to = "value")
+
+
+rc_us %>% 
+    filter(prepost == "value_prefix") %>%
+    ggplot(aes(x=Update, y=value, color=type)) +
+    geom_point() +
+    theme_bw() +
+    ggtitle("United Stats") +
+    facet_wrap(~target, nrow=2, scales="free_y")
+```
+
+### After fixing Negatives
+
+```{r, fig.height=8}
+rc_us %>% 
+    filter(prepost == "value_postfix") %>%
+    ggplot(aes(x=Update, y=value, color=type)) +
+    geom_point() +
+    theme_bw() +
+    ggtitle("United Stats") +
+    facet_wrap(~target, nrow=2, scales="free_y")
+
+```
+
+
+
+
+
+    
+
+
+## Negatives in Incident Data
+
+```{r, fig.height=8, fig.width=7}
+plot_negatives(states = c("FL", "TN","MO","OK"))
+```    
+    
+    
+
+
+
+
+
+## Incident Cases    
+
+
+```{r, fig.height=8}
+compare_fixnegs(outcome = "incidI", data_source = "cssejh", states = c("FL", "TN","MO","OK"))
+
+```
+
+
+### CURRENT IDD - Incid Cases
+
+```{r, fig.height=8}
+compare_fixnegs(outcome = "incidI", data_source = "cssejh", states = c("FL", "TN","MO","OK"))
+
+```
+
+### Old version IDD - Incid Cases, old version
+
+```{r, fig.height=8}
+compare_fixnegs(outcome = "incidI", data_source = "cssejh_old", states = c("FL", "TN","MO","OK"))
+
+```
+
+### rawcoviddata package (csselm) - Incid Cases
+
+```{r, fig.height=8}
+compare_fixnegs(outcome = "incidI", data_source = "csselm", states = c("FL", "TN","MO","OK"))
+
+```
+
+### covidcast package - Incid Cases
+
+```{r, fig.height=8}
+compare_fixnegs(outcome = "incidI", data_source = "covidcast", states = c("FL", "TN","MO","OK"))
+
+```
+
+      
+
+
+
+## Incident Death    
+
+### CURRENT IDD - Incid Death
+
+```{r, fig.height=8}
+compare_fixnegs(outcome = "incidDeath", data_source = "cssejh", states = c("FL", "TN","MO","OK"))
+
+```
+
+### Old version IDD - Incid Death, old version
+
+```{r, fig.height=8}
+compare_fixnegs(outcome = "incidDeath", data_source = "cssejh_old", states = c("FL", "TN","MO","OK"))
+
+```
+
+### rawcoviddata package (csselm) - Incid Death
+
+```{r, fig.height=8}
+compare_fixnegs(outcome = "incidDeath", data_source = "csselm", states = c("FL", "TN","MO","OK"))
+
+```
+
+### rawcoviddata package (csselm) - Incid Death
+
+```{r, fig.height=8}
+compare_fixnegs(outcome = "incidDeath", data_source = "covidcast", states = c("FL", "TN","MO","OK"))
+
+```
+
+
+
+
+## Differences between sources    
+
+```{r, fig.height=8}
+compare_daily(outcome = "incidI", 
+              data_source1="cssejh", 
+              states = c("FL", "TN","MO","OK"))
+```
+
+
+```{r, fig.height=8}
+compare_daily(outcome = "incidI", 
+              data_source1="covidcast", 
+              states = c("FL", "TN","MO","OK"))
+
+```
+
+
+```{r, fig.height=8}
+compare_daily(outcome = "incidDeath", 
+              data_source1="cssejh", 
+              states = c("FL", "TN","MO","OK"))
+```
+
+
+```{r, fig.height=8}
+compare_daily(outcome = "incidDeath", 
+              data_source1="covidcast", 
+              states = c("FL", "TN","MO","OK"))
+
+```
+
+
+```{r, fig.height=8}
+compare_daily(outcome = "Deaths", 
+              data_source1="cssejh", 
+              states = c("FL", "TN","MO","OK"))
+```
+
+
+```{r, fig.height=8}
+compare_daily(outcome = "Deaths", 
+              data_source1="covidcast", 
+              states = c("FL", "TN","MO","OK"))
+
+```
+
+```{r, fig.height=8}
+compare_daily(outcome = "Confirmed", 
+              data_source1="cssejh", 
+              states = c("FL", "TN","MO","OK"))
+```
+
+
+```{r, fig.height=8}
+compare_daily(outcome = "Confirmed", 
+              data_source1="covidcast", 
+              states = c("FL", "TN","MO","OK"))
+
+```
+
+
+# Summary
+
+Our current data pulling code has issues both with the raw data pulled (e.g., MO, TN) and with the `fix_negatives` function algorithm. These issues are seen with the updated functions, which fix negatives after aggregating to state. Interestingly, when applied to COVIDCAST data, the `fix_negatives` function performs well. COVIDCAST and Rawcoviddata produce almost identical outputs, and thus demonstrate that JHU IDD functions must be the problematic ones.
+
+These issues have likely cause substantial mis-estimation for some states, especially FL, OK, MO, and TN.
+

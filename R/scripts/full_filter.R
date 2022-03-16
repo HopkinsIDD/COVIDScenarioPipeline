@@ -55,6 +55,11 @@ if(is.na(opt$slots)) {
   opt$slots <- config$nsimulations
 }
 
+if(is.null(opt$fix_negatives)) {
+  opt$fix_negatives <- TRUE
+}
+
+
 cl <- parallel::makeCluster(opt$j)
 doParallel::registerDoParallel(cl)
 covidcommon::prettyprint_optlist(list(scenarios=scenarios,deathrates=deathrates,slots=seq_len(opt$slots)))

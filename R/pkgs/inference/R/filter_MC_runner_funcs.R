@@ -73,7 +73,7 @@ aggregate_and_calc_loc_likelihoods <- function(
           dist = config$filtering$statistics[[var]]$likelihood$dist,
           param = config$filtering$statistics[[var]]$likelihood$param,
           add_one = config$filtering$statistics[[var]]$add_one
-        ))
+        ), na.rm = TRUE)
     }
 
     ## Compute log-likelihoods
