@@ -14,9 +14,6 @@ debug_print = False
 
 "Cap on # of reduction metadata entries to store in memory"
 
-REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE", 5000))
-
-
 class ReduceIntervention(NPIBase):
     def __init__(
         self,
