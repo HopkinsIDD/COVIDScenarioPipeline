@@ -11,7 +11,7 @@ debug_print = False
 
 "Cap on # of reduction metadata entries to store in memory"
 
-REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE", 5000))
+REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE", 50000))
 
 
 class Stacked(NPIBase):
@@ -35,10 +35,12 @@ class Stacked(NPIBase):
         self.reduction_params = collections.deque()
         self.reduction_cap_exceeded = False
         self.reduction_number = 0
+        sub_npis_unique_names = []
 
         # the confuse library's config resolution mechanism makes slicing the configuration object expensive; instead,
         # just preload all settings
         settings_map = global_config["interventions"]["settings"].get()
+
         for scenario in npi_config["scenarios"].get():
             # if it's a string, look up the scenario name's config
             if isinstance(scenario, str):
@@ -92,8 +94,11 @@ class Stacked(NPIBase):
             # verify there are no downstream consumers of the dataframe. in the meantime, limit the amount
             # of data we'll pin in memory
             if not self.reduction_cap_exceeded:
-                if len(self.reduction_params) < int(REDUCTION_METADATA_CAP):
-                    self.reduction_params.append(sub_npi.getReductionToWrite())
+                if len(self.reduction_params) < REDUCTION_METADATA_CAP:
+                    sub_npi_df = sub_npi.getReductionToWrite()
+                    # build a list of unique npi names
+                    sub_npis_unique_names.extend(sub_npi_df["npi_name"].unique())
+                    self.reduction_params.append(sub_npi_df)
                     self.reduction_number += len(self.reduction_params)
                 else:
                     self.reduction_cap_exceeded = True
@@ -104,6 +109,10 @@ class Stacked(NPIBase):
                 not param in pnames_overlap_operation_sum
             ):  # re.match("^transition_rate \d+$",param):
                 self.reductions[param] = 1 - self.reductions[param]
+
+        # check that no NPI is called several times, and retourn them
+        if len(sub_npis_unique_names) != len(set(sub_npis_unique_names)):
+            raise ValueError(f"Stacked NPI {self.name} calls a NPI, which calls another NPI. The NPI that is called multiple time is/are: {set([x for x in sub_npis_unique_names if sub_npis_unique_names.count(x) > 1])}")
 
         self.__checkErrors()
 
