@@ -1,6 +1,6 @@
 library(devtools)
 
-install.packages(c("covidcast","data.table","vroom"))
+install.packages(c("covidcast","data.table","vroom","dplyr"), force=TRUE)
 #devtools::install_github("lmullany/rawcoviddata", force = TRUE)
 
 initial.options <- commandArgs(trailingOnly = FALSE)
