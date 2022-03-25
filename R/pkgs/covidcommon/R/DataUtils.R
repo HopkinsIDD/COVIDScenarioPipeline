@@ -168,13 +168,13 @@ fix_negative_counts_single_geoid <- function(.x,.y, incid_col_name, date_col_nam
 # specified by argument "type"
 #' Title
 #'
-#' @param df 
-#' @param cum_col_name 
-#' @param incid_col_name 
-#' @param date_col_name 
-#' @param min_date 
-#' @param max_date 
-#' @param type 
+#' @param df
+#' @param cum_col_name
+#' @param incid_col_name
+#' @param date_col_name
+#' @param min_date
+#' @param max_date
+#' @param type
 #'
 #' @return
 #' @export
@@ -719,14 +719,14 @@ get_reichlab_cty_data <- function(cum_case_filename = "data/case_data/rlab_cum_c
 
 #' get_covidcast_data
 #'
-#' @param data_source 
-#' @param geo_level 
-#' @param signals 
-#' @param limit_date 
-#' @param fix_negatives 
-#' @param weekly_data 
-#' @param run_parallel 
-#' @param n_cores 
+#' @param data_source
+#' @param geo_level
+#' @param signals
+#' @param limit_date
+#' @param fix_negatives
+#' @param weekly_data
+#' @param run_parallel
+#' @param n_cores
 #'
 #' @return
 #' @export
@@ -737,45 +737,45 @@ get_covidcast_data <- function(
     signals = c("deaths_incidence_num", "deaths_cumulative_num", "confirmed_incidence_num", "confirmed_cumulative_num", "confirmed_admissions_covid_1d"),
     limit_date = Sys.Date(),
     fix_negatives = TRUE,
-    run_parallel = FALSE, 
+    run_parallel = FALSE,
     n_cores = 4){
-    
+
     # Create dictionary
     # From the GitHub: https://github.com/reichlab/covid19-forecast-hub
     loc_dictionary <- readr::read_csv("https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-locations/locations.csv")
     loc_abbr <- loc_dictionary %>% dplyr::filter(!is.na(abbreviation))
-    loc_dictionary <- loc_dictionary %>% 
+    loc_dictionary <- loc_dictionary %>%
         dplyr::mutate(state_fips = substr(location, 1, 2)) %>%
         dplyr::select(-abbreviation) %>%
         dplyr::full_join(loc_abbr %>% dplyr::select(abbreviation, state_fips=location))
-    
+
     # in folder data-locations
     loc_dictionary_name <- suppressWarnings(
-        setNames(c(rep(loc_dictionary$location_name, 2), "US", 
+        setNames(c(rep(loc_dictionary$location_name, 2), "US",
                    rep(loc_dictionary$location_name[-1], 2),
-                   rep(loc_dictionary$location_name, 2), 
+                   rep(loc_dictionary$location_name, 2),
                    "New York"),
-                 c(loc_dictionary$location, 
-                   tolower(loc_dictionary$abbreviation), "US", 
+                 c(loc_dictionary$location,
+                   tolower(loc_dictionary$abbreviation), "US",
                    na.omit(as.numeric(loc_dictionary$location)),
                    as.character(na.omit(
                        as.numeric(loc_dictionary$location))),
                    tolower(loc_dictionary$location_name),
                    toupper(loc_dictionary$location_name),
                    "new york state")))
-    
+
     loc_dictionary_abbr <- setNames(loc_dictionary$abbreviation, loc_dictionary$location)
     loc_dictionary_pop <- setNames(loc_dictionary$population, loc_dictionary$location)
-    
+
     # Set up start and end dates of data to pull
     # -- we pull the data in 6-month chunks to speed up and not overwhelm API for county-level
-    
+
     if (geo_level=="county"){
         years_ <- lubridate::year("2020-01-01"):lubridate::year(limit_date)
-        start_dates <- sort(c(lubridate::as_date(paste0(years_, "-01-01")), 
+        start_dates <- sort(c(lubridate::as_date(paste0(years_, "-01-01")),
                               lubridate::as_date(paste0(years_, "-07-01"))))
         start_dates <- start_dates[start_dates<=limit_date]
-        
+
         end_dates <- sort(c(lubridate::as_date(paste0(years_, "-06-30")),
                             lubridate::as_date(paste0(years_, "-12-31")), limit_date))
         end_dates <- end_dates[end_dates<=limit_date]
@@ -783,7 +783,7 @@ get_covidcast_data <- function(
         start_dates <- lubridate::as_date("2020-01-01")
         end_dates <- lubridate::as_date(limit_date)
     }
-    
+
     # Set up parallelization to speed up
     if (run_parallel){
         doParallel::registerDoParallel(cores=n_cores)
@@ -791,36 +791,36 @@ get_covidcast_data <- function(
     } else {
         `%do_fun%` <- foreach::`%do%`
     }
-    
-    res <- foreach::foreach(x = signals, 
-                            .combine = rbind, 
+
+    res <- foreach::foreach(x = signals,
+                            .combine = rbind,
                             .packages = c("covidcast","dplyr","lubridate", "doParallel","foreach","vroom","purrr"),
                             .verbose = TRUE) %do_fun% {
-                                
+
                                 start_dates_ <- start_dates
                                 if (x == "confirmed_admissions_covid_1d"){
                                     start_dates_[1] <- lubridate::as_date("2020-02-01")
-                                } 
-                                
+                                }
+
                                 # Call API to generate gold standard data from COVIDCast
-                                df <- lapply(1:length(start_dates), 
+                                df <- lapply(1:length(start_dates),
                                              FUN = function(y=x){
-                                                 covidcast::covidcast_signal(data_source = ifelse(grepl("admissions", x), "hhs", "jhu-csse"), 
+                                                 covidcast::covidcast_signal(data_source = ifelse(grepl("admissions", x), "hhs", "jhu-csse"),
                                                                              signal = x,
-                                                                             geo_type = geo_level, 
-                                                                             start_day = lubridate::as_date(start_dates_[y]), 
+                                                                             geo_type = geo_level,
+                                                                             start_day = lubridate::as_date(start_dates_[y]),
                                                                              end_day = lubridate::as_date(end_dates[y]))})
                                 df <- data.table::rbindlist(df)
-                                
+
                                 if (geo_level=="state"){
                                     df <- df %>% mutate(state_abbr = toupper(geo_value)) %>%
                                         dplyr::select(-geo_value) %>%
-                                        dplyr::left_join(loc_dictionary %>% 
-                                                             dplyr::select(state_abbr=abbreviation, geo_value=location) %>% 
+                                        dplyr::left_join(loc_dictionary %>%
+                                                             dplyr::select(state_abbr=abbreviation, geo_value=location) %>%
                                                              dplyr::filter(stringr::str_length(geo_value)==2))
                                 }
                                 df <- df %>% dplyr::rename(date = time_value)
-                                
+
                                 # Get cum hospitalizations
                                 if (x == "confirmed_admissions_covid_1d"){
                                     df_cum <- df %>%
@@ -829,43 +829,43 @@ get_covidcast_data <- function(
                                         dplyr::group_by(data_source, signal, geo_value, state_abbr) %>%
                                         dplyr::mutate(value = cumsum(value)) %>%
                                         dplyr::ungroup() %>%
-                                        dplyr::mutate(signal = "confirmed_admissions_cum") 
+                                        dplyr::mutate(signal = "confirmed_admissions_cum")
                                     df <- rbind(df, df_cum)
                                 }
-                                
+
                                 df %>% dplyr::select(signal, Update=date, source=state_abbr, FIPS=geo_value, value)
                             }
-    
+
     res <- res %>%
-        dplyr::mutate(signal = recode(signal, 
-                                      "deaths_incidence_num"="incidDeath", 
-                                      "deaths_cumulative_num"="Deaths", 
-                                      "confirmed_incidence_num"="incidI", 
+        dplyr::mutate(signal = recode(signal,
+                                      "deaths_incidence_num"="incidDeath",
+                                      "deaths_cumulative_num"="Deaths",
+                                      "confirmed_incidence_num"="incidI",
                                       "confirmed_cumulative_num"="Confirmed",
                                       "confirmed_admissions_covid_1d"="incidH",
                                       "confirmed_admissions_cum"="Hospitalizations")) %>%
-        
+
         tidyr::pivot_wider(names_from = signal, values_from = value) %>%
         dplyr::mutate(Update=lubridate::as_date(Update),
                       FIPS = stringr::str_replace(FIPS, stringr::fixed(".0"), ""), # clean FIPS if numeric
                       FIPS = paste0(FIPS, "000")) %>%
         dplyr::filter(as.Date(Update) <= as.Date(Sys.time())) %>%
         dplyr::distinct()
-    
+
     validation_date <- Sys.getenv("VALIDATION_DATE")
     if ( validation_date != '' ) {
         print(paste("(DataUtils.R) Limiting CSSE US data to:", validation_date, sep=" "))
         res <- dplyr::filter(res, Update < validation_date)
     }
-    
+
     res <- res %>% tibble::as_tibble()
-    
+
     # Fix incidence counts that go negative and NA values or missing dates
     if (fix_negatives & any(c("Confirmed", "incidI", "Deaths", "incidDeath") %in% colnames(res))){
         res <- fix_negative_counts(res, "Confirmed", "incidI") %>%
             fix_negative_counts("Deaths", "incidDeath")
     }
-    
+
     return(res)
 }
 ##'
@@ -884,7 +884,7 @@ get_covidcast_data <- function(
 ##'
 get_groundtruth_from_source <- function(
   source = "csse",
-  scale = "US state", 
+  scale = "US state",
   source_file = NULL,
   variables = c("Confirmed", "Deaths", "incidI", "incidDeath"),
   incl_unass = TRUE,
@@ -951,38 +951,38 @@ get_groundtruth_from_source <- function(
     rc <- get_hhsCMU_cleanHosp_st_data()
     rc <- dplyr::select(rc, Update, FIPS, source, !!variables)
     } else if(source == "csse_lm" & scale == "US state"){
-        
-        variables_ <- variables[!grepl("incidh|hosp", tolower(variables))] # hosp not available 
+
+        variables_ <- variables[!grepl("incidh|hosp", tolower(variables))] # hosp not available
         rc <- get_rawcoviddata_state_data(fix_negatives=fix_negatives) %>%
             dplyr::select(Update, FIPS, source, !!variables_)
-        
+
     } else if(source == "covidcast" & scale == "US state"){
-        
+
         # define covidcast signals
-        
+
         signals <- NULL
         if (any(c("incidDeath", "Deaths") %in% variables)) signals <- c(signals, "deaths_incidence_num", "deaths_cumulative_num")
         if (any(c("incidI", "Confirmed") %in% variables)) signals <- c(signals, "confirmed_incidence_num", "confirmed_cumulative_num")
         if (any(grepl("hosp|incidH", variables))) signals <- c(signals, "confirmed_admissions_covid_1d")
-        
+
         rc <- get_covidcast_data(geo_level = "state",
                                  signals = signals,
                                  limit_date = Sys.Date(),
                                  fix_negatives = fix_negatives,
                                  run_parallel = FALSE) %>%
             dplyr::select(Update, FIPS, source, !!variables)
-        
+
     } else if(source == "file"){
-        
+
         rc <- get_gt_file_data(source_file)
-        
+
         # check that it has correct columns
         check_cols <- all(c("Update", "FIPS", "source", variables) %in% colnames(rc))
         stopifnot("Columns missing in source file. Must have [Update, FIPS, source] and desired variables." = all(check_cols))
-        
+
         rc <- rc %>%
             dplyr::select(rc, Update, FIPS, source, !!variables)
-        
+
 
   } else{
     warning(print(paste("The combination of ", source, "and", scale, "is not valid. Returning NULL object.")))
@@ -1017,11 +1017,11 @@ do_variant_adjustment <- function(
     dplyr::bind_rows(
       dplyr::mutate(
         tidyr::pivot_longer(rc, !!outcome_column_names, names_to = "outcome"),
-        variant = "all variants"
+        variant = ""
       )
     )%>%
-    tidyr::pivot_wider(names_from = c("outcome", "variant"), values_from = "value") %>%
-    dplyr::bind_rows(rc)
+    tidyr::pivot_wider(names_from = c("outcome", "variant"), values_from = "value")
+  names(rc) <- gsub("_$", "", names(rc))
   return(rc)
 }
 
