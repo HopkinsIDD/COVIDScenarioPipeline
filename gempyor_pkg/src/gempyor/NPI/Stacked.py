@@ -112,7 +112,9 @@ class Stacked(NPIBase):
 
         # check that no NPI is called several times, and retourn them
         if len(sub_npis_unique_names) != len(set(sub_npis_unique_names)):
-            raise ValueError(f"Stacked NPI {self.name} calls a NPI, which calls another NPI. The NPI that is called multiple time is/are: {set([x for x in sub_npis_unique_names if sub_npis_unique_names.count(x) > 1])}")
+            raise ValueError(
+                f"Stacked NPI {self.name} calls a NPI, which calls another NPI. The NPI that is called multiple time is/are: {set([x for x in sub_npis_unique_names if sub_npis_unique_names.count(x) > 1])}"
+            )
 
         self.__checkErrors()
 

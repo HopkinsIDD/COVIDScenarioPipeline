@@ -14,6 +14,7 @@ debug_print = False
 
 "Cap on # of reduction metadata entries to store in memory"
 
+
 class ReduceIntervention(NPIBase):
     def __init__(
         self,
