@@ -165,23 +165,27 @@ def rk4_integration(
                             source_number[spatial_node],
                             compound_adjusted_rate[spatial_node],
                         )
-                        if (
-                            number_move[spatial_node]
-                            > st_next[
-                                transitions[transition_source_col][transition_index]
-                            ][spatial_node]
-                        ):
-                            number_move[spatial_node] = st_next[
-                                transitions[transition_source_col][transition_index]
-                            ][spatial_node]
-                    st_next[
-                        transitions[transition_source_col][transition_index]
-                    ] -= number_move
-                    st_next[
-                        transitions[transition_destination_col][transition_index]
-                    ] += number_move
                 else:
                     number_move = source_number * compound_adjusted_rate
+
+            # for spatial_node in range(nspatial_nodes):
+            #    if number_move[spatial_node] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
+            #        number_move[spatial_node] = states_current[transitions[transition_source_col][transition_index]][spatial_node]
+
+            for spatial_node in range(nspatial_nodes):
+                if (
+                    number_move[spatial_node]
+                    > st_next[transitions[transition_source_col][transition_index]][
+                        spatial_node
+                    ]
+                ):
+                    number_move[spatial_node] = st_next[
+                        transitions[transition_source_col][transition_index]
+                    ][spatial_node]
+            st_next[transitions[transition_source_col][transition_index]] -= number_move
+            st_next[
+                transitions[transition_destination_col][transition_index]
+            ] += number_move
 
             states_diff[
                 0, transitions[transition_source_col][transition_index]
@@ -192,6 +196,9 @@ def rk4_integration(
             states_diff[
                 1, transitions[transition_destination_col][transition_index], :
             ] += number_move  # Cumumlative
+
+        # for spatial_node in range(nspatial_nodes):
+        #    if states_diff[0] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
 
         return np.reshape(states_diff, states_diff.size)  # return a 1D vector
 
