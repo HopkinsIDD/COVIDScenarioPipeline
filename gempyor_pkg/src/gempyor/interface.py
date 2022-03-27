@@ -22,6 +22,7 @@ import os
 import functools
 import multiprocessing as mp
 import pandas as pd
+import pyarrow.parquet as pq
 
 
 logging.basicConfig(level=os.environ.get("COVID_LOGLEVEL", "INFO").upper())
@@ -411,3 +412,48 @@ class InferenceSimulator:
         full_df = full_df.reset_index(drop=True)
 
         return full_df
+
+def paramred_parallel(run_spec, snpi_fn):
+    config_filepath = run_spec['config']
+    gempyor_simulator = InferenceSimulator(
+                                config_path=config_filepath,
+                                run_id="test_run_id",
+                                prefix="test_prefix/",
+                                first_sim_index=1,
+                                scenario="inference",  # NPIs scenario to use
+                                deathrate="med",  # Outcome scenario to use
+                                stoch_traj_flag=False,
+                                spatial_path_prefix=run_spec['geodata'],  # prefix where to find the folder indicated in spatial_setup$
+    )
+    
+    snpi = pq.read_table(snpi_fn).to_pandas()
+
+    npi_seir = gempyor_simulator.get_seir_npi(bypass_DF=snpi)
+
+#params_draw_df = gempyor_simulator.get_seir_parametersDF()  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
+    params_draw_arr = gempyor_simulator.get_seir_parameters(bypass_FN=snpi_fn.replace('snpi', 'spar'))  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
+    param_reduc_from = gempyor_simulator.get_seir_parameter_reduced(npi_seir=npi_seir, p_draw=params_draw_arr)
+    
+    return param_reduc_from
+
+def paramred_parallel_config(run_spec, dummy):
+    config_filepath = run_spec['config']
+    gempyor_simulator = InferenceSimulator(
+                                config_path=config_filepath,
+                                run_id="test_run_id",
+                                prefix="test_prefix/",
+                                first_sim_index=1,
+                                scenario="inference",  # NPIs scenario to use
+                                deathrate="med",  # Outcome scenario to use
+                                stoch_traj_flag=False,
+                                spatial_path_prefix=run_spec['geodata'],  # prefix where to find the folder indicated in spatial_setup$
+    )
+    
+
+    npi_seir = gempyor_simulator.get_seir_npi()
+
+
+    params_draw_arr = gempyor_simulator.get_seir_parameters()  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
+    param_reduc_from = gempyor_simulator.get_seir_parameter_reduced(npi_seir=npi_seir, p_draw=params_draw_arr)
+    
+    return param_reduc_from
