@@ -232,7 +232,8 @@ class InferenceSimulator:
                         sim_id2load=sim_id2load,
                         config=config,
                     )
-
+            self.debug_npi_seir = npi_seir
+            self.debug_npi_outcomes = npi_outcomes
             ### Run every time:
             with Timer("onerun_SEIR.seeding"):
                 if load_ID:
@@ -249,6 +250,8 @@ class InferenceSimulator:
                     seeding_data, seeding_amounts = self.s.seedingAndIC.draw_seeding(
                         sim_id2write, setup=self.s
                     )
+                self.debug_seeding_date = seeding_data
+                self.debug_seeding_amounts = seeding_amounts
 
             with Timer("SEIR.parameters"):
                 # Draw or load parameters
@@ -263,6 +266,9 @@ class InferenceSimulator:
                 parsed_parameters = self.s.compartments.parse_parameters(
                     parameters, self.s.parameters.pnames, self.unique_strings
                 )
+                self.debug_p_draw = p_draw
+                self.debug_parameters = parameters
+                self.debug_parsed_parameters = parsed_parameters
 
             with Timer("SEIR.compute"):
                 states = seir.steps_SEIR(
@@ -275,16 +281,19 @@ class InferenceSimulator:
                     seeding_data,
                     seeding_amounts,
                 )
+                self.debug_states = states
 
             with Timer("SEIR.postprocess"):
                 if self.s.write_csv or self.s.write_parquet:
                     out_df = seir.postprocess_and_write(
                         sim_id2write, self.s, states, p_draw, npi_seir, seeding_data
                     )
+                    self.debug_out_df = out_df
 
             loaded_values = None
             if load_ID:
                 loaded_values = self.s.read_simID(ftype="hpar", sim_id=sim_id2load)
+                self.debug_loaded_values = loaded_values
 
             # Compute outcomes
             with Timer("onerun_delayframe_outcomes.compute"):
@@ -295,6 +304,8 @@ class InferenceSimulator:
                     loaded_values=loaded_values,
                     npi=npi_outcomes,
                 )
+                self.debug_outcomes_df = outcomes_df
+                self.debug_hpar_df = hpar_df
 
             with Timer("onerun_delayframe_outcomes.postprocess"):
                 outcomes.postprocess_and_write(
@@ -304,7 +315,6 @@ class InferenceSimulator:
                     hpar=hpar_df,
                     npi=npi_outcomes,
                 )
-
         return 0
 
     def plot_transition_graph(
@@ -413,47 +423,59 @@ class InferenceSimulator:
 
         return full_df
 
+
 def paramred_parallel(run_spec, snpi_fn):
-    config_filepath = run_spec['config']
+    config_filepath = run_spec["config"]
     gempyor_simulator = InferenceSimulator(
-                                config_path=config_filepath,
-                                run_id="test_run_id",
-                                prefix="test_prefix/",
-                                first_sim_index=1,
-                                scenario="inference",  # NPIs scenario to use
-                                deathrate="med",  # Outcome scenario to use
-                                stoch_traj_flag=False,
-                                spatial_path_prefix=run_spec['geodata'],  # prefix where to find the folder indicated in spatial_setup$
+        config_path=config_filepath,
+        run_id="test_run_id",
+        prefix="test_prefix/",
+        first_sim_index=1,
+        scenario="inference",  # NPIs scenario to use
+        deathrate="med",  # Outcome scenario to use
+        stoch_traj_flag=False,
+        spatial_path_prefix=run_spec[
+            "geodata"
+        ],  # prefix where to find the folder indicated in spatial_setup$
     )
-    
+
     snpi = pq.read_table(snpi_fn).to_pandas()
 
     npi_seir = gempyor_simulator.get_seir_npi(bypass_DF=snpi)
 
-#params_draw_df = gempyor_simulator.get_seir_parametersDF()  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
-    params_draw_arr = gempyor_simulator.get_seir_parameters(bypass_FN=snpi_fn.replace('snpi', 'spar'))  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
-    param_reduc_from = gempyor_simulator.get_seir_parameter_reduced(npi_seir=npi_seir, p_draw=params_draw_arr)
-    
+    # params_draw_df = gempyor_simulator.get_seir_parametersDF()  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
+    params_draw_arr = gempyor_simulator.get_seir_parameters(
+        bypass_FN=snpi_fn.replace("snpi", "spar")
+    )  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
+    param_reduc_from = gempyor_simulator.get_seir_parameter_reduced(
+        npi_seir=npi_seir, p_draw=params_draw_arr
+    )
+
     return param_reduc_from
 
+
 def paramred_parallel_config(run_spec, dummy):
-    config_filepath = run_spec['config']
+    config_filepath = run_spec["config"]
     gempyor_simulator = InferenceSimulator(
-                                config_path=config_filepath,
-                                run_id="test_run_id",
-                                prefix="test_prefix/",
-                                first_sim_index=1,
-                                scenario="inference",  # NPIs scenario to use
-                                deathrate="med",  # Outcome scenario to use
-                                stoch_traj_flag=False,
-                                spatial_path_prefix=run_spec['geodata'],  # prefix where to find the folder indicated in spatial_setup$
+        config_path=config_filepath,
+        run_id="test_run_id",
+        prefix="test_prefix/",
+        first_sim_index=1,
+        scenario="inference",  # NPIs scenario to use
+        deathrate="med",  # Outcome scenario to use
+        stoch_traj_flag=False,
+        spatial_path_prefix=run_spec[
+            "geodata"
+        ],  # prefix where to find the folder indicated in spatial_setup$
     )
-    
 
     npi_seir = gempyor_simulator.get_seir_npi()
 
+    params_draw_arr = (
+        gempyor_simulator.get_seir_parameters()
+    )  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
+    param_reduc_from = gempyor_simulator.get_seir_parameter_reduced(
+        npi_seir=npi_seir, p_draw=params_draw_arr
+    )
 
-    params_draw_arr = gempyor_simulator.get_seir_parameters()  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
-    param_reduc_from = gempyor_simulator.get_seir_parameter_reduced(npi_seir=npi_seir, p_draw=params_draw_arr)
-    
     return param_reduc_from
