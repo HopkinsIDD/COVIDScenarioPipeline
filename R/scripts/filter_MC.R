@@ -29,7 +29,8 @@ option_list = list(
   optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
   optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable"),
   optparse::make_option(c("-R", "--is-resume"), action="store", default=Sys.getenv("COVID_IS_RESUME",FALSE), type = 'logical', help = "Is this run a resume"),
-  optparse::make_option(c("-I", "--is-interactive"), action="store", default=Sys.getenv("COVID_INTERACTIVE",Sys.getenv("INTERACTIVE_RUN", FALSE)), type = 'logical', help = "Is this run an interactive run")
+  optparse::make_option(c("-I", "--is-interactive"), action="store", default=Sys.getenv("COVID_INTERACTIVE",Sys.getenv("INTERACTIVE_RUN", FALSE)), type = 'logical', help = "Is this run an interactive run"),
+  optparse::make_option(c("-L", "--reset-chimeric-on-accept"), action = "store", default = Sys.getenv("COVID_RESET_CHIMERICS", FALSE), type = 'logical', help = 'Should the chimeric parameters get reset to global parameters when a global acceptance occurs')
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -209,8 +210,10 @@ required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 # Load gempyor module
 gempyor <- reticulate::import("gempyor")
 
+
 for(scenario in scenarios) {
   for(deathrate in deathrates) {
+    reset_chimeric_files <- FALSE
     # Data -------------------------------------------------------------------------
     # Load
     slot_prefix <- covidcommon::create_prefix(config$name,scenario,deathrate,opt$run_id,sep='/',trailing_separator='/')  # "USA/inference/med/2022.03.04.10:18:42.CET/"
@@ -325,7 +328,7 @@ for(scenario in scenarios) {
       arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
       arrow::write_parquet(proposed_hpar,this_global_files[['hpar_filename']])
 
-      
+
       ## Update the prefix
       gempyor_inference_runner$update_prefix(new_prefix=global_local_prefix)
       ## Run the simulator
@@ -387,6 +390,9 @@ for(scenario in scenarios) {
         current_index <- this_index
         global_likelihood <- proposed_likelihood
         global_likelihood_data <- proposed_likelihood_data
+        if (opt$reset_chimeric_on_accept) {
+          reset_chimeric_files <- TRUE
+        }
       } else {
         print("****REJECT****")
       }
@@ -404,12 +410,23 @@ for(scenario in scenarios) {
         orig_lls = chimeric_likelihood_data,
         prop_lls = proposed_likelihood_data
       )
-      initial_seeding <- seeding_npis_list$seeding
-      initial_snpi <- seeding_npis_list$snpi
-      initial_hnpi <- seeding_npis_list$hnpi
-      initial_hpar <- seeding_npis_list$hpar
-      chimeric_likelihood_data <- seeding_npis_list$ll
-      arrow::write_parquet(chimeric_likelihood_data, this_chimeric_files[['llik_filename']])
+      if (!reset_chimeric_files) {
+        initial_seeding <- seeding_npis_list$seeding
+        initial_snpi <- seeding_npis_list$snpi
+        initial_hnpi <- seeding_npis_list$hnpi
+        initial_hpar <- seeding_npis_list$hpar
+        chimeric_likelihood_data <- seeding_npis_list$ll
+        arrow::write_parquet(chimeric_likelihood_data, this_chimeric_files[['llik_filename']])
+      } else {
+        print("Resetting chimeric files to global")
+        initial_seeding <- proposed_seeding
+        initial_snpi <- proposed_snpi
+        initial_hnpi <- proposed_hnpi
+        initial_hpar <- proposed_hpar
+        chimeric_likelihood_data <- global_likelihood_data
+        arrow::write_parquet(chimeric_likelihood_data, this_chimeric_files[['llik_filename']])
+        reset_chimeric_files <- FALSE
+      }
 
       print(paste("Current index is ",current_index))
       # print(proposed_likelihood_data)
