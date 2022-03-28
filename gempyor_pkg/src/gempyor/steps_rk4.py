@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from numba import jit
 import tqdm, scipy
@@ -277,4 +278,54 @@ def rk4_integration(
         states_daily_incid = states_daily_incid / 2
         states_daily_incid[1::2, :, :] = states_daily_incid[:-1:2, :, :]
 
+    error = False
+    ## Perform some checks:
+    if np.isnan(states_daily_incid).any() or np.isnan(states).any():
+        logging.critical(
+            "Integration error: NaN detected in epidemic integration result. Failing..."
+        )
+        error = True
+    if not (np.isfinite(states_daily_incid).all() and np.isfinite(states).all()):
+        logging.critical(
+            "Integration error: Inf detected in epidemic integration result. Failing..."
+        )
+        error = True
+    if (states_daily_incid < 0).any() or (states < 0).any():
+        logging.critical(
+            "Integration error: negative values detected in epidemic integration result. Failing..."
+        )
+        error = True
+    if error:
+        logging.critical("Saving run configuration due to integration error")
+        import pickle
+
+        with open("integration_dump.pkl", "wb") as fn_dump:
+            pickle.dump(
+                [
+                    states,
+                    states_daily_incid,
+                    ncompartments,
+                    nspatial_nodes,
+                    ndays,
+                    parameters,
+                    dt,
+                    transitions,
+                    proportion_info,
+                    transition_sum_compartments,
+                    initial_conditions,
+                    dict(seeding_data),
+                    seeding_amounts,
+                    mobility_data,
+                    mobility_row_indices,
+                    mobility_data_indices,
+                    population,
+                    stochastic_p,
+                    method,
+                ],
+                fn_dump,
+            )
+        print(
+            "load the name space with: \nwith open('integration_dump.pkl','rb') as fn_dump:\n    states, states_daily_incid, ncompartments, nspatial_nodes, ndays, parameters, dt, transitions, proportion_info,  transition_sum_compartments, initial_conditions, seeding_data, seeding_amounts, mobility_data, mobility_row_indices, mobility_data_indices, population,  stochastic_p,  method = pickle.load(fn_dump)"
+        )
+        raise ValueError("Invalid Integration...")
     return states, states_daily_incid
