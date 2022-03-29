@@ -181,8 +181,8 @@ def rk4_integration(
         states_diff = np.zeros(
             (2, ncompartments, nspatial_nodes)
         )  # first dim: 0 -> states_diff, 1: states_cum
-        states = states.copy()
-        states = np.reshape(states, (2, ncompartments, nspatial_nodes))
+        st_next = states.copy()
+        st_next = np.reshape(st_next, (2, ncompartments, nspatial_nodes))
         transition_amounts = (
             transition_amounts.copy() * delta_t
         )  # Note that we are going to move by delta_t * transitions
@@ -190,17 +190,17 @@ def rk4_integration(
             for spatial_node in range(nspatial_nodes):
                 if (
                     transition_amounts[transition_index][spatial_node]
-                    > states[0][transitions[transition_source_col][transition_index]][
+                    > st_next[0][transitions[transition_source_col][transition_index]][
                         spatial_node
                     ]
                 ):
-                    transition_amounts[spatial_node] = states[0][
+                    transition_amounts[spatial_node] = st_next[0][
                         transitions[transition_source_col][transition_index]
                     ][spatial_node]
-            states[0][
+            st_next[0][
                 transitions[transition_source_col][transition_index]
             ] -= transition_amounts[transition_index]
-            states[0][
+            st_next[0][
                 transitions[transition_destination_col][transition_index]
             ] += transition_amounts[transition_index]
 
@@ -216,7 +216,7 @@ def rk4_integration(
                 transition_index
             ]  # Cumumlative
 
-        return np.reshape(states, states.size) + np.reshape(
+        return states+ np.reshape(
             states_diff, states_diff.size
         )
 
