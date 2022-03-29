@@ -67,7 +67,7 @@ def rk4_integration(
         st_next = (
             states_current.copy()
         )  # this is used to make sure stochastic integration never goes below zero
-        transitions_amount = np.zeros(2, ntransitions, nspatial_nodes) # keep track of the transitions
+        transition_amounts = np.zeros((2, ntransitions, nspatial_nodes)) # keep track of the transitions
 
         for transition_index in range(ntransitions):
             total_rate = np.ones((nspatial_nodes))
@@ -167,16 +167,16 @@ def rk4_integration(
                 else:
                     number_move = source_number * compound_adjusted_rate
 
-            transitions_amount[transition_index] = number_move
+            transition_amounts[transition_index] = number_move
 
-        return transition_amount
+        return transition_amounts
             # for spatial_node in range(nspatial_nodes):
             #    if number_move[spatial_node] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
             #        number_move[spatial_node] = states_current[transitions[transition_source_col][transition_index]][spatial_node]
 
 
     @jit(nopython=True, fastmath=True)
-    def update_state(states, delta_t, transition_amounts):
+    def update_states(states, delta_t, transition_amounts):
             # for spatial_node in range(nspatial_nodes):
             #    if transition_amounts[spatial_node] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
             #        transition_amounts[spatial_node] = states_current[transitions[transition_source_col][transition_index]][spatial_node]
@@ -339,5 +339,6 @@ def rk4_integration(
         print(
             "load the name space with: \nwith open('integration_dump.pkl','rb') as fn_dump:\n    states, states_daily_incid, ncompartments, nspatial_nodes, ndays, parameters, dt, transitions, proportion_info,  transition_sum_compartments, initial_conditions, seeding_data, seeding_amounts, mobility_data, mobility_row_indices, mobility_data_indices, population,  stochastic_p,  method = pickle.load(fn_dump)"
         )
+        print("/!\ Invalid integration, will cause problems for downstream users /!\ ")
         raise ValueError("Invalid Integration...")
     return states, states_daily_incid
