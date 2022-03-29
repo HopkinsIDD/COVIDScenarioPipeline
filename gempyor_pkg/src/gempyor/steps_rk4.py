@@ -194,7 +194,7 @@ def rk4_integration(
                         spatial_node
                     ]
                 ):
-                    transition_amounts[spatial_node] = st_next[0][
+                    transition_amounts[transition_index][spatial_node] = st_next[0][
                         transitions[transition_source_col][transition_index]
                     ][spatial_node]
             st_next[0][
