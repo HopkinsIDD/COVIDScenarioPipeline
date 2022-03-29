@@ -67,7 +67,7 @@ def rk4_integration(
         st_next = (
             states_current.copy()
         )  # this is used to make sure stochastic integration never goes below zero
-        transition_amounts = np.zeros((2, ntransitions, nspatial_nodes)) # keep track of the transitions
+        transition_amounts = np.zeros((ntransitions, nspatial_nodes)) # keep track of the transitions
 
         for transition_index in range(ntransitions):
             total_rate = np.ones((nspatial_nodes))
@@ -177,44 +177,31 @@ def rk4_integration(
 
     @jit(nopython=True, fastmath=True)
     def update_states(states, delta_t, transition_amounts):
-            # for spatial_node in range(nspatial_nodes):
-            #    if transition_amounts[spatial_node] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
-            #        transition_amounts[spatial_node] = states_current[transitions[transition_source_col][transition_index]][spatial_node]
         states_diff = np.zeros(
             (2, ncompartments, nspatial_nodes)
         )  # first dim: 0 -> states_diff, 1: states_cum
         states = states.copy()
+        states = np.reshape(states, (2, ncompartments, nspatial_nodes))
         transition_amounts = transition_amounts.copy() * delta_t # Note that we are going to move by delta_t * transitions
         for transition_index in range(ntransitions):
             for spatial_node in range(nspatial_nodes):
-                if (
-                    transition_amounts[spatial_node]
-                    > states[transitions[transition_source_col][transition_index]][
-                        spatial_node
-                    ]
-                ):
-                    transition_amounts[spatial_node] = states[
-                        transitions[transition_source_col][transition_index]
-                    ][spatial_node]
-            states[transitions[transition_source_col][transition_index]] -= transition_amounts
-            states[transitions[transition_destination_col][transition_index]] += transition_amounts
+                if transition_amounts[transition_index][spatial_node] > states[0][transitions[transition_source_col][transition_index]][spatial_node]:
+                    transition_amounts[spatial_node] = states[0][transitions[transition_source_col][transition_index]][spatial_node]
+            states[0][transitions[transition_source_col][transition_index]] -= transition_amounts[transition_index]
+            states[0][transitions[transition_destination_col][transition_index]] += transition_amounts[transition_index]
 
             states_diff[
                 0, transitions[transition_source_col][transition_index]
-            ] -= transition_amounts
+            ] -= transition_amounts[transition_index]
             states_diff[
                 0, transitions[transition_destination_col][transition_index]
-            ] += transition_amounts
+            ] += transition_amounts[transition_index]
             states_diff[
                 1, transitions[transition_destination_col][transition_index], :
-            ] += transition_amounts  # Cumumlative
+            ] += transition_amounts[transition_index]  # Cumumlative
 
-        # for spatial_node in range(nspatial_nodes):
-        #    if states_diff[0] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
-
-        states_diff_reshaped = np.reshape(states_diff, states_diff.size)  # return a 1D vector
-        return states + states_diff_reshaped
-
+        return np.reshape(states, states.size) +  np.reshape(states_diff, states_diff.size)
+    
     @jit(nopython=True, fastmath=True)
     def rk4_integrate(t, x, today):
         k1 = rhs(t, x, today)
