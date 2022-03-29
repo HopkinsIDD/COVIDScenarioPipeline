@@ -67,9 +67,9 @@ def rk4_integration(
         st_next = (
             states_current.copy()
         )  # this is used to make sure stochastic integration never goes below zero
-        states_diff = np.zeros(
-            (2, ncompartments, nspatial_nodes)
-        )  # first dim: 0 -> states_diff, 1: states_cum
+        transition_amounts = np.zeros(
+            (ntransitions, nspatial_nodes)
+        )  # keep track of the transitions
 
         for transition_index in range(ntransitions):
             total_rate = np.ones((nspatial_nodes))
@@ -169,47 +169,64 @@ def rk4_integration(
                 else:
                     number_move = source_number * compound_adjusted_rate
 
-            # for spatial_node in range(nspatial_nodes):
-            #    if number_move[spatial_node] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
-            #        number_move[spatial_node] = states_current[transitions[transition_source_col][transition_index]][spatial_node]
+            transition_amounts[transition_index] = number_move
 
+        return transition_amounts
+        # for spatial_node in range(nspatial_nodes):
+        #    if number_move[spatial_node] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
+        #        number_move[spatial_node] = states_current[transitions[transition_source_col][transition_index]][spatial_node]
+
+    @jit(nopython=True, fastmath=True)
+    def update_states(states, delta_t, transition_amounts):
+        states_diff = np.zeros(
+            (2, ncompartments, nspatial_nodes)
+        )  # first dim: 0 -> states_diff, 1: states_cum
+        st_next = states.copy()
+        st_next = np.reshape(st_next, (2, ncompartments, nspatial_nodes))
+        transition_amounts = (
+            transition_amounts.copy() * delta_t
+        )  # Note that we are going to move by delta_t * transitions
+        for transition_index in range(ntransitions):
             for spatial_node in range(nspatial_nodes):
                 if (
-                    number_move[spatial_node]
-                    > st_next[transitions[transition_source_col][transition_index]][
+                    transition_amounts[transition_index][spatial_node]
+                    > st_next[0][transitions[transition_source_col][transition_index]][
                         spatial_node
                     ]
                 ):
-                    number_move[spatial_node] = st_next[
+                    transition_amounts[transition_index][spatial_node] = st_next[0][
                         transitions[transition_source_col][transition_index]
                     ][spatial_node]
-            st_next[transitions[transition_source_col][transition_index]] -= number_move
-            st_next[
+            st_next[0][
+                transitions[transition_source_col][transition_index]
+            ] -= transition_amounts[transition_index]
+            st_next[0][
                 transitions[transition_destination_col][transition_index]
-            ] += number_move
+            ] += transition_amounts[transition_index]
 
             states_diff[
                 0, transitions[transition_source_col][transition_index]
-            ] -= number_move
+            ] -= transition_amounts[transition_index]
             states_diff[
                 0, transitions[transition_destination_col][transition_index]
-            ] += number_move
+            ] += transition_amounts[transition_index]
             states_diff[
                 1, transitions[transition_destination_col][transition_index], :
-            ] += number_move  # Cumumlative
+            ] += transition_amounts[
+                transition_index
+            ]  # Cumumlative
 
-        # for spatial_node in range(nspatial_nodes):
-        #    if states_diff[0] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
-
-        return np.reshape(states_diff, states_diff.size)  # return a 1D vector
+        return states+ np.reshape(
+            states_diff, states_diff.size
+        )
 
     @jit(nopython=True, fastmath=True)
     def rk4_integrate(t, x, today):
         k1 = rhs(t, x, today)
-        k2 = rhs(t + dt / 2, x + dt / 2 * k1, today)
-        k3 = rhs(t + dt / 2, x + dt / 2 * k2, today)
-        k4 = rhs(t + dt, x + dt * k3, today)
-        return x + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+        k2 = rhs(t + dt / 2, update_states(x, dt / 2, k1), today)
+        k3 = rhs(t + dt / 2, update_states(x, dt / 2, k2), today)
+        k4 = rhs(t + dt, update_states(x, dt, k3), today)
+        return update_states(x, dt / 6, (k1 + 2 * k2 + 2 * k3 + k4))
 
     yesterday = -1
     times = np.arange(0, (ndays - 1) + 1e-7, dt)
@@ -327,5 +344,6 @@ def rk4_integration(
         print(
             "load the name space with: \nwith open('integration_dump.pkl','rb') as fn_dump:\n    states, states_daily_incid, ncompartments, nspatial_nodes, ndays, parameters, dt, transitions, proportion_info,  transition_sum_compartments, initial_conditions, seeding_data, seeding_amounts, mobility_data, mobility_row_indices, mobility_data_indices, population,  stochastic_p,  method = pickle.load(fn_dump)"
         )
-        raise ValueError("Invalid Integration...")
+        print("/!\ Invalid integration, will cause problems for downstream users /!\ ")
+        # raise ValueError("Invalid Integration...")
     return states, states_daily_incid
