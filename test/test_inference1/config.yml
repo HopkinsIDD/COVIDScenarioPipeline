@@ -1,0 +1,200 @@
+name: test_inference1
+start_date: 2020-04-01
+end_date: 2020-05-15
+nsimulations: 1
+dt: 0.25
+
+spatial_setup:
+  base_path: data
+  setup_name: test1
+  geodata: geodata.csv
+  mobility: mobility.csv
+  popnodes: population
+  nodenames: geoid
+  census_year: 2018
+  modeled_states:
+    - HI
+
+seeding:
+  seeding_file_type: seed
+  method: FolderDraw
+  folder_path: importation/test1/
+  lambda_file: data/test1/seeding.csv
+  perturbation_sd: 3
+
+seir:
+  parameters:
+    sigma: 1 / 5.2
+    gamma:
+      distribution: uniform
+      low: 1 / 6
+      high: 1 / 2.6
+    R0s:
+      distribution: uniform
+      low: 2
+      high: 3
+    parallel_structure:
+      compartments:
+        unvaccinated:
+          transmissibility_reduction:
+            distribution: fixed
+            value: 0
+          susceptibility_reduction:
+            distribution: fixed
+            value: 0
+        first_dose:
+          transmissibility_reduction:
+            distribution: fixed
+            value: 0
+          susceptibility_reduction:
+            distribution: fixed
+            value: .5
+        second_dose:
+          transmissibility_reduction:
+            distribution: fixed
+            value: 0
+          susceptibility_reduction:
+            distribution: fixed
+            value: 1
+      transitions:
+        - from: unvaccinated
+          to: first_dose
+          rate:
+            distribution: fixed
+            value: 0
+        - from: first_dose
+          to: second_dose
+          rate:
+            distribution: fixed
+            value: 0
+
+interventions:
+  scenarios:
+    # - None
+    - Scenario1
+  settings:
+    None:
+      template: ReduceR0
+      value:
+        distribution: fixed
+        value: 0
+    Place1:
+      template: Reduce
+      parameter: r0
+      value:
+        distribution: uniform
+        low: .14
+        high: .33
+    Place2:
+      template: MultiTimeReduce
+      parameter: r0
+      groups:
+        - affected_geoids: "all"
+          periods:
+          - start_date: "2020-04-01"
+            end_date: "2020-04-15"
+          - start_date: "2020-05-01"
+            end_date: "2020-05-15"
+      value:
+        distribution: uniform
+        low: .14
+        high: .33
+    Dose1:
+      template: Reduce
+      parameter: "transition_rate 0"
+      period_start_date: 2020-04-10
+      period_end_date: 2020-04-10
+      value:
+        distribution: fixed
+        value: 0.9
+    Dose2:
+      template: Reduce
+      parameter: "transition_rate 1"
+      period_start_date: 2020-04-11
+      period_end_date: 2020-04-11
+      value:
+        distribution: fixed
+        value: 0.9
+    vaccination:
+      template: Stacked
+      scenarios:
+        - Dose1
+        - Dose2
+    Scenario1:
+      template: Stacked
+      scenarios:
+        - Place1
+        - Place2
+        - vaccination
+outcomes:
+  method: delayframe
+  param_from_file: TRUE
+  param_place_file: usa-geoid-params-output.parquet
+  scenarios:
+    - high_death_rate
+  settings:
+    high_death_rate:
+      incidH:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: .1
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: hosp_curr
+      incidD:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: .01
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+      incidICU:
+        source: incidH
+        probability:
+          value:
+            distribution: fixed
+            value: .1
+        delay:
+          value:
+            distribution: fixed
+            value: 0
+
+filtering:
+  simulations_per_slot: 5
+  do_filtering: TRUE
+  data_path: data/us_data.csv
+  likelihood_directory: importation/likelihood/
+  statistics:
+    sum_deaths:
+      name: sum_deaths
+      aggregator: sum
+      period: "1 weeks"
+      sim_var: incidD
+      data_var: incidDeath
+      remove_na: TRUE
+      add_one: FALSE
+      likelihood:
+        dist: sqrtnorm
+        param: [.1]
+    sum_hosp:
+      name: sum_hosp
+      aggregator: sum
+      period: "1 days"
+      sim_var: incidH
+      data_var : incidI
+      remove_na: TRUE
+      add_one: FALSE
+      likelihood:
+        dist: sqrtnorm
+        param: [.5]
