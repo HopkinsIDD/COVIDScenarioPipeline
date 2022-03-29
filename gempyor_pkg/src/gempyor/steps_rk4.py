@@ -67,7 +67,9 @@ def rk4_integration(
         st_next = (
             states_current.copy()
         )  # this is used to make sure stochastic integration never goes below zero
-        transition_amounts = np.zeros((ntransitions, nspatial_nodes)) # keep track of the transitions
+        transition_amounts = np.zeros(
+            (ntransitions, nspatial_nodes)
+        )  # keep track of the transitions
 
         for transition_index in range(ntransitions):
             total_rate = np.ones((nspatial_nodes))
@@ -170,10 +172,9 @@ def rk4_integration(
             transition_amounts[transition_index] = number_move
 
         return transition_amounts
-            # for spatial_node in range(nspatial_nodes):
-            #    if number_move[spatial_node] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
-            #        number_move[spatial_node] = states_current[transitions[transition_source_col][transition_index]][spatial_node]
-
+        # for spatial_node in range(nspatial_nodes):
+        #    if number_move[spatial_node] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
+        #        number_move[spatial_node] = states_current[transitions[transition_source_col][transition_index]][spatial_node]
 
     @jit(nopython=True, fastmath=True)
     def update_states(states, delta_t, transition_amounts):
@@ -182,13 +183,26 @@ def rk4_integration(
         )  # first dim: 0 -> states_diff, 1: states_cum
         states = states.copy()
         states = np.reshape(states, (2, ncompartments, nspatial_nodes))
-        transition_amounts = transition_amounts.copy() * delta_t # Note that we are going to move by delta_t * transitions
+        transition_amounts = (
+            transition_amounts.copy() * delta_t
+        )  # Note that we are going to move by delta_t * transitions
         for transition_index in range(ntransitions):
             for spatial_node in range(nspatial_nodes):
-                if transition_amounts[transition_index][spatial_node] > states[0][transitions[transition_source_col][transition_index]][spatial_node]:
-                    transition_amounts[spatial_node] = states[0][transitions[transition_source_col][transition_index]][spatial_node]
-            states[0][transitions[transition_source_col][transition_index]] -= transition_amounts[transition_index]
-            states[0][transitions[transition_destination_col][transition_index]] += transition_amounts[transition_index]
+                if (
+                    transition_amounts[transition_index][spatial_node]
+                    > states[0][transitions[transition_source_col][transition_index]][
+                        spatial_node
+                    ]
+                ):
+                    transition_amounts[spatial_node] = states[0][
+                        transitions[transition_source_col][transition_index]
+                    ][spatial_node]
+            states[0][
+                transitions[transition_source_col][transition_index]
+            ] -= transition_amounts[transition_index]
+            states[0][
+                transitions[transition_destination_col][transition_index]
+            ] += transition_amounts[transition_index]
 
             states_diff[
                 0, transitions[transition_source_col][transition_index]
@@ -198,10 +212,14 @@ def rk4_integration(
             ] += transition_amounts[transition_index]
             states_diff[
                 1, transitions[transition_destination_col][transition_index], :
-            ] += transition_amounts[transition_index]  # Cumumlative
+            ] += transition_amounts[
+                transition_index
+            ]  # Cumumlative
 
-        return np.reshape(states, states.size) +  np.reshape(states_diff, states_diff.size)
-    
+        return np.reshape(states, states.size) + np.reshape(
+            states_diff, states_diff.size
+        )
+
     @jit(nopython=True, fastmath=True)
     def rk4_integrate(t, x, today):
         k1 = rhs(t, x, today)
@@ -327,5 +345,5 @@ def rk4_integration(
             "load the name space with: \nwith open('integration_dump.pkl','rb') as fn_dump:\n    states, states_daily_incid, ncompartments, nspatial_nodes, ndays, parameters, dt, transitions, proportion_info,  transition_sum_compartments, initial_conditions, seeding_data, seeding_amounts, mobility_data, mobility_row_indices, mobility_data_indices, population,  stochastic_p,  method = pickle.load(fn_dump)"
         )
         print("/!\ Invalid integration, will cause problems for downstream users /!\ ")
-        raise ValueError("Invalid Integration...")
+        # raise ValueError("Invalid Integration...")
     return states, states_daily_incid
