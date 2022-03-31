@@ -216,9 +216,7 @@ def rk4_integration(
                 transition_index
             ]  # Cumumlative
 
-        return states+ np.reshape(
-            states_diff, states_diff.size
-        )
+        return states + np.reshape(states_diff, states_diff.size)
 
     @jit(nopython=True, fastmath=True)
     def rk4_integrate(t, x, today):
@@ -311,8 +309,15 @@ def rk4_integration(
         logging.critical(
             "Integration error: negative values detected in epidemic integration result. Failing..."
         )
+        # todo: this, but smart so it doesn't fail if empty array
+        # print(
+        #    f"STATES: NNZ:{states[states < 0].size}/{states.size}, max:{np.max(states[states < 0])}, min:{np.min(states[states < 0])}, mean:{np.mean(states[states < 0])} median:{np.median(states[states < 0])}"
+        # )
+        # print(
+        #    f"STATES_incid: NNZ:{states_daily_incid[states_daily_incid < 0].size}/{states_daily_incid.size}, max:{np.max(states_daily_incid[states_daily_incid < 0])}, min:{np.min(states_daily_incid[states_daily_incid < 0])}, mean:#{np.mean(states_daily_incid[states_daily_incid < 0])} median:{np.median(states_daily_incid[states_daily_incid < 0])}"
+        # )
         error = True
-    if error:
+    if error and False:
         logging.critical("Saving run configuration due to integration error")
         import pickle
 
