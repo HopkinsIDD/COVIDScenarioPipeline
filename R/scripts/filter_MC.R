@@ -392,11 +392,17 @@ for(scenario in scenarios) {
         if ((opt$this_block == 1) && (current_index == 0)) {
           print("by default because it's the first iteration of a block 1")
         }
+        old_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, current_index)
+        old_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_local_prefix, current_index)
         current_index <- this_index
         global_likelihood <- proposed_likelihood
         global_likelihood_data <- proposed_likelihood_data
+
+        sapply(old_global_files, file.remove)
+
       } else {
         print("****REJECT****")
+        sapply(this_global_files, file.remove)
       }
       arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
 
