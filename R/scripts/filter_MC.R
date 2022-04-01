@@ -449,7 +449,6 @@ for(scenario in scenarios) {
 
 
 #####Write currently accepted files to disk
-    last_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, opt$simulations_per_slot)
     output_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block)
     output_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block)
     readr::write_csv(initial_seeding,output_chimeric_files[['seed_filename']])
@@ -459,7 +458,8 @@ for(scenario in scenarios) {
     arrow::write_parquet(initial_hpar,output_chimeric_files[['hpar_filename']])
     arrow::write_parquet(chimeric_likelihood_data,output_chimeric_files[['llik_filename']])
     warning("Chimeric hosp and seir files not yet supported, just using the most recently generated file of each type")
-    file.copy(last_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
-    file.copy(last_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
+    current_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, current_index)
+    file.copy(current_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
+    file.copy(current_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
   }
 }
