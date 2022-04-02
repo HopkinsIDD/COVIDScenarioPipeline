@@ -211,8 +211,8 @@ def test_inference():
     assert_dir("model_output/llik")
     # os.removedirs("model_output")
 
-def test_inference1():
-    os.chdir("test_inference1")
+def test_documentation_inference_us():
+    os.chdir("test_documentation_inference_us")
 
     # build_US_setup.R
     cmd = ["Rscript", "../../R/scripts/build_US_setup.R",
