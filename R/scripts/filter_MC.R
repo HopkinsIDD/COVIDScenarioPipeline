@@ -215,6 +215,7 @@ gempyor <- reticulate::import("gempyor")
 
 
 print(paste("Chimeric reset is", (opt$reset_chimeric_on_accept)))
+print(names(opt))
 if (!opt$reset_chimeric_on_accept) {
   stop("Not resetting likelihoods")
 }
