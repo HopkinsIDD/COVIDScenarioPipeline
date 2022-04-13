@@ -214,6 +214,7 @@ required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 gempyor <- reticulate::import("gempyor")
 
 
+print(paste("Chimeric reset is", (opt$reset_chimeric_on_accept)))
 if (!opt$reset_chimeric_on_accept) {
   stop("Not resetting likelihoods")
 }
