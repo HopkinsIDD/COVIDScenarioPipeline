@@ -25,7 +25,7 @@ aggregate_and_calc_loc_likelihoods <- function(
   all_locations,
   modeled_outcome,
   obs_nodename,
-  config,
+  targets_config,
   obs,
   ground_truth_data,
   hosp_file,
@@ -34,7 +34,9 @@ aggregate_and_calc_loc_likelihoods <- function(
   geodata,
   snpi=NULL,
   hnpi=NULL,
-  hpar=NULL
+  hpar=NULL,
+  start_date = NULL,
+  end_date = NULL
 ) {
 
   ##Holds the likelihoods for all locations
@@ -56,7 +58,9 @@ aggregate_and_calc_loc_likelihoods <- function(
       inference::getStats(
         "time",
         "sim_var",
-        stat_list = config$filtering$statistics
+        stat_list = targets_config,
+        start_date = start_date,
+        end_date = end_date
       )
 
 
@@ -70,9 +74,9 @@ aggregate_and_calc_loc_likelihoods <- function(
         sum(inference::logLikStat(
           obs = ground_truth_data[[location]][[var]]$data_var,
           sim = this_location_modeled_outcome[[var]]$sim_var,
-          dist = config$filtering$statistics[[var]]$likelihood$dist,
-          param = config$filtering$statistics[[var]]$likelihood$param,
-          add_one = config$filtering$statistics[[var]]$add_one
+          dist = targets_config[[var]]$likelihood$dist,
+          param = targets_config[[var]]$likelihood$param,
+          add_one = targets_config[[var]]$add_one
         ))
     }
 

@@ -201,7 +201,10 @@ data_stats <- lapply(
       df,
       "date",
       "data_var",
-      stat_list = config$filtering$statistics)
+      stat_list = config$filtering$statistics,
+      start_date = gt_start_date,
+      end_date = gt_end_date
+    )
   }) %>%
     set_names(geonames)
 
@@ -254,11 +257,12 @@ for(scenario in scenarios) {
         rhs <- unique(names(data_stats))
         all_locations <- rhs[rhs %in% lhs]
 
+        ## No references to config$filtering$statistics
         inference::aggregate_and_calc_loc_likelihoods(
           all_locations = all_locations, # technically different
           modeled_outcome = sim_hosp,
           obs_nodename = obs_nodename,
-          config = config,
+          targets_config = config[["filtering"]][["statistics"]],
           obs = obs,
           ground_truth_data = data_stats,
           hosp_file = first_global_files[['llik_filename']],
@@ -267,7 +271,9 @@ for(scenario in scenarios) {
           geodata = geodata,
           snpi = arrow::read_parquet(first_global_files[['snpi_filename']]),
           hnpi = arrow::read_parquet(first_global_files[['hnpi_filename']]),
-          hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,!!rlang::sym(obs_nodename),outcome,sep='_'))
+          hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,!!rlang::sym(obs_nodename),outcome,sep='_')),
+          start_date = gt_start_date,
+          end_date = gt_end_date
         )
       },
       is_resume = opt[['is-resume']]
@@ -353,7 +359,7 @@ for(scenario in scenarios) {
         all_locations = all_locations,
         modeled_outcome = sim_hosp,
         obs_nodename = obs_nodename,
-        config = config,
+        targets_config = config[["filtering"]][["statistics"]],
         obs = obs,
         ground_truth_data = data_stats,
         hosp_file = this_global_files[["llik_filename"]],
@@ -365,7 +371,9 @@ for(scenario in scenarios) {
         hpar = dplyr::mutate(
           proposed_hpar,
           parameter = paste(quantity, !!rlang::sym(obs_nodename), outcome, sep = "_")
-        )
+        ),
+        start_date = gt_start_date,
+        end_date = gt_end_date
       )
 
 
@@ -387,14 +395,20 @@ for(scenario in scenarios) {
         if ((opt$this_block == 1) && (current_index == 0)) {
           print("by default because it's the first iteration of a block 1")
         }
+        old_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, current_index)
+        old_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_local_prefix, current_index)
         current_index <- this_index
         global_likelihood <- proposed_likelihood
         global_likelihood_data <- proposed_likelihood_data
         if (opt$reset_chimeric_on_accept) {
           reset_chimeric_files <- TRUE
         }
+
+        sapply(old_global_files, file.remove)
+
       } else {
         print("****REJECT****")
+        sapply(this_global_files, file.remove)
       }
       arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
 
@@ -452,7 +466,6 @@ for(scenario in scenarios) {
 
 
 #####Write currently accepted files to disk
-    last_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, opt$simulations_per_slot)
     output_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block)
     output_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block)
     readr::write_csv(initial_seeding,output_chimeric_files[['seed_filename']])
@@ -462,7 +475,8 @@ for(scenario in scenarios) {
     arrow::write_parquet(initial_hpar,output_chimeric_files[['hpar_filename']])
     arrow::write_parquet(chimeric_likelihood_data,output_chimeric_files[['llik_filename']])
     warning("Chimeric hosp and seir files not yet supported, just using the most recently generated file of each type")
-    file.copy(last_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
-    file.copy(last_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
+    current_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, current_index)
+    file.copy(current_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
+    file.copy(current_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
   }
 }
