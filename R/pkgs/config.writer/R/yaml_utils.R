@@ -401,6 +401,63 @@ yaml_stack <- function (dat, scenario = "Inference", stack=TRUE) {
 }
 
 
+
+#' Print stack interventions at the end of the transmission section
+#'
+#' @param dat dataframe with processed intervention name/periods; see collapsed_interventions.
+#' @param scenario intervention scenario name
+#' @param stack Whether to stack interventions; default TRUE
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+yaml_stack2 <- function (dat, scenario = "Inference", stack = TRUE){
+  
+  if (stack) {
+    dat <- dat %>% 
+      dplyr::group_by(category, USPS, geoid) %>% 
+      dplyr::filter(category == "NPI_redux" & period == max(period)) %>% 
+      dplyr::bind_rows(dat %>% dplyr::filter(category != "NPI_redux")) %>% dplyr::distinct(name, category) %>% 
+      dplyr::group_by(category) %>% dplyr::summarize(name = paste0(unique(name), collapse = "\", \""))
+    duplicate_names <- dat %>% dplyr::count(name) %>% dplyr::filter(n > 1) %>% nrow()
+    
+    if (duplicate_names > 1) {
+      stop("At least one intervention name is shared by distinct NPIs.")
+    }
+    for (i in 1:nrow(dat)) {
+      if (dat$category[i] %in% c("local_variance", "NPI_redux")) {
+        next
+      }
+      cat(paste0("    ", dat$category[i], ":\n", "      template: Stacked\n", 
+        "      scenarios: [\"", dat$name[i], "\"]\n"))
+    }
+    dat <- dat %>% dplyr::filter(category != "base_npi") %>% 
+      dplyr::mutate(category = dplyr::if_else(category == "NPI_redux", name, category))
+    cat(paste0("    ", scenario, ":\n", "      template: Stacked\n", 
+      "      scenarios: [\"", paste0(dat$category, collapse = "\", \""), 
+      "\"]\n"))
+  } else {
+    dat <- dat %>% dplyr::group_by(category, USPS, geoid) %>% 
+      dplyr::filter(category == "NPI_redux" & period == max(period)) %>% 
+      dplyr::bind_rows(dat %>% dplyr::filter(category != 
+      "NPI_redux")) %>% dplyr::distinct(name, category) %>% 
+      as_tibble() %>% dplyr::select(name) %>% pull(name)
+    duplicate_names <- sum(duplicated(dat))
+    if (duplicate_names > 1) {
+      stop("At least one intervention name is shared by distinct NPIs.")
+    }
+    cat(paste0("    ", scenario, ":\n", "      template: Stacked\n", 
+      "      scenarios: [\"", paste0(dat, collapse = "\", \""), 
+      "\"]\n"))
+  }
+}
+
+
+
+
+
 #' Print Interventions Section
 #'
 #' @description Print transmission and outcomes interventions and stack them
@@ -415,7 +472,6 @@ yaml_stack <- function (dat, scenario = "Inference", stack=TRUE) {
 #'
 #' @examples
 #'
-
 print_interventions <- function (dat, 
                                  scenario = "Inference", 
                                  stack=TRUE, 
@@ -444,7 +500,7 @@ print_interventions <- function (dat,
     
     if (nrow(outcome_dat) > 0) {
         if (compartment) {
-            yaml_stack(outcome_dat, "outcome_interventions", stack)
+            yaml_stack2(dat = outcome_dat, scenario="outcome_interventions", stack=stack)
             cat(paste0("\n"))
         }
         for (i in 1:nrow(outcome_dat)) {
