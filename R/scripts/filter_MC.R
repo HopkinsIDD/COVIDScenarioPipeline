@@ -214,6 +214,10 @@ required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 gempyor <- reticulate::import("gempyor")
 
 
+if (!opt$reset_chimeric_on_accept) {
+  stop("Not resetting likelihoods")
+}
+
 for(scenario in scenarios) {
   for(deathrate in deathrates) {
     reset_chimeric_files <- FALSE
