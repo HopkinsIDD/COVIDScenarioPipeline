@@ -168,10 +168,10 @@ from gempyor import file_paths
     "--reset-chimerics-on-global-accept",
     "--reset-chimerics-on-global-accept",
    "reset_chimerics",
-   ennvar="COVID_RESET_CHIMERICS",
+   envvar="COVID_RESET_CHIMERICS",
    type=bool,
    default=False,
-   help="Flag determining whether to reset chimeric values on any global acceptances"
+   help="Flag determining whether to reset chimeric values on any global acceptances",
 )
 
 def launch_batch(
