@@ -14,6 +14,8 @@ on:
       - dataseed
       - inference
       - inference_state
+      - compartment_dev
+      - seir-integration
 
 jobs:
   unit-tests:
@@ -27,23 +29,18 @@ jobs:
       - name: Set up Rprofile
         run: cp Docker.Rprofile $HOME/.Rprofile
         shell: bash
-      - name: Install SEIR and Outcomes packages
+      - name: Install the gempyor package
         run: |
-          /home/app/python_venv/bin/pip install numba==0.53.1
-          /home/app/python_venv/bin/python setup.py install
+          /home/app/python_venv/bin/python -m pip install --upgrade pip
+          /home/app/python_venv/bin/pip install -e gempyor_pkg/
         shell: bash
       - name: Install local R packages
         run: Rscript local_install.R
         shell: bash
-      - name: Run pytest SEIR
+      - name: Run gempyor tests
         run: |
-          cd SEIR/test
-          /home/app/python_venv/bin/pytest
-        shell: bash
-      - name: Run pytest Outcomes
-        run: |
-          cd Outcomes/test
-          /home/app/python_venv/bin/pytest
+          cd gempyor_pkg
+          /home/app/python_venv/bin/pytest -s
         shell: bash
       - name: Run covidcommon tests
         run: |

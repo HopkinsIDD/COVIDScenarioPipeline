@@ -1,0 +1,4 @@
+tests/outcomes/test_pwrite.parquet
+tests/seir/data/parsed_compartment_compartments.test.parquet
+tests/seir/data/parsed_compartment_transitions.test.parquet
+tests/seir/test_pwrite.parquet
