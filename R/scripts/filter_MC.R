@@ -9,6 +9,7 @@ suppressMessages(library(xts))
 suppressMessages(library(reticulate))
 suppressMessages(library(truncnorm))
 suppressMessages(library(parallel))
+suppressMessages(library(purrr))
 options(warn = 1)
 options(readr.num_columns = 0)
 
@@ -199,52 +200,44 @@ data_stats <- lapply(
       df,
       "date",
       "data_var",
-      stat_list = config$filtering$statistics)
+      stat_list = config$filtering$statistics,
+      start_date = gt_start_date,
+      end_date = gt_end_date
+    )
   }) %>%
     set_names(geonames)
 
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 
-## python configuration for minimal_interface.py
-reticulate::py_run_string(paste0("config_path = '", opt$config,"'"))
-reticulate::py_run_string(paste0("run_id = '", opt$run_id, "'"))
-#reticulate::import_from_path("SEIR", path=opt$pipepath)
-#reticulate::import_from_path("Outcomes", path=opt$pipepath)
-reticulate::py_run_string(paste0("index = ", 1))
-if(opt$stoch_traj_flag) {
-  reticulate::py_run_string(paste0("stoch_traj_flag = True"))
-} else {
-  reticulate::py_run_string(paste0("stoch_traj_flag = False"))
-}
+# Load gempyor module
+gempyor <- reticulate::import("gempyor")
 
 for(scenario in scenarios) {
-
-  reticulate::py_run_string(paste0("scenario = '", scenario, "'"))
-
   for(deathrate in deathrates) {
     # Data -------------------------------------------------------------------------
     # Load
+    slot_prefix <- covidcommon::create_prefix(config$name,scenario,deathrate,opt$run_id,sep='/',trailing_separator='/')  # "USA/inference/med/2022.03.04.10:18:42.CET/"
 
-    slot_prefix <- covidcommon::create_prefix(config$name,scenario,deathrate,opt$run_id,sep='/',trailing_separator='/')
+    gf_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','final',sep='/',trailing_separator='/')  # "USA/inference/med/2022.03.04.10:18:42.CET/global/final/"
+    ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/') #] "USA/inference/med/2022.03.04.10:18:42.CET/chimeric/intermediate/"
+    gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/')  # USA/inference/med/2022.03.04.10:21:44.CET/global/intermediate/"
 
-    gf_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','final',sep='/',trailing_separator='/')
-    ci_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'chimeric','intermediate',sep='/',trailing_separator='/')
-    gi_prefix <- covidcommon::create_prefix(prefix=slot_prefix,'global','intermediate',sep='/',trailing_separator='/')
+    chimeric_block_prefix <- covidcommon::create_prefix(prefix=ci_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')  # "USA/inference/med/2022.03.04.10:18:42.CET/chimeric/intermediate/000000001."
+    chimeric_local_prefix <- covidcommon::create_prefix(prefix=chimeric_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.') # "USA/inference/med/2022.03.04.10:18:42.CET/chimeric/intermediate/000000001.000000001."
 
+    global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.') #  "USA/inference/med/2022.03.04.10:18:42.CET/global/intermediate/000000001."
+    global_local_prefix <- covidcommon::create_prefix(prefix=global_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.') # "USA/inference/med/2022.03.04.10:18:42.CET/global/intermediate/000000001.000000001."
 
-    chimeric_block_prefix <- covidcommon::create_prefix(prefix=ci_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
-    chimeric_local_prefix <- covidcommon::create_prefix(prefix=chimeric_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
-
-    global_block_prefix <- covidcommon::create_prefix(prefix=gi_prefix, slot=list(opt$this_slot,"%09d"), sep='.', trailing_separator='.')
-    global_local_prefix <- covidcommon::create_prefix(prefix=global_block_prefix, slot=list(opt$this_block,"%09d"), sep='.', trailing_separator='.')
-
-
-    ## pass prefix to python and use
-    reticulate::py_run_string(paste0("deathrate = '", deathrate, "'"))
-    reticulate::py_run_string(paste0("prefix = '", global_block_prefix, "'"))
-    reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
-
-
+    ## python configuration: build simulator model initialized with compartment and all.
+    gempyor_inference_runner <- gempyor$InferenceSimulator(
+                                                    config_path=opt$config,
+                                                    run_id=opt$run_id,
+                                                    prefix=global_block_prefix,
+                                                    scenario=scenario,
+                                                    deathrate=deathrate,
+                                                    stoch_traj_flag=opt$stoch_traj_flag,
+                                                    initialize=TRUE  # Shall we pre-compute now things that are not pertubed by inference
+    )
 
     first_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block - 1)
     first_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block - 1)
@@ -254,18 +247,19 @@ for(scenario in scenarios) {
       opt$this_block,
       global_block_prefix,
       chimeric_block_prefix,
-      py,
+      gempyor_inference_runner,
       function(sim_hosp){
         sim_hosp <- dplyr::filter(sim_hosp,sim_hosp$time >= min(obs$date),sim_hosp$time <= max(obs$date))
         lhs <- unique(sim_hosp[[obs_nodename]])
         rhs <- unique(names(data_stats))
         all_locations <- rhs[rhs %in% lhs]
 
+        ## No references to config$filtering$statistics
         inference::aggregate_and_calc_loc_likelihoods(
           all_locations = all_locations, # technically different
           modeled_outcome = sim_hosp,
           obs_nodename = obs_nodename,
-          config = config,
+          targets_config = config[["filtering"]][["statistics"]],
           obs = obs,
           ground_truth_data = data_stats,
           hosp_file = first_global_files[['llik_filename']],
@@ -274,7 +268,9 @@ for(scenario in scenarios) {
           geodata = geodata,
           snpi = arrow::read_parquet(first_global_files[['snpi_filename']]),
           hnpi = arrow::read_parquet(first_global_files[['hnpi_filename']]),
-          hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,!!rlang::sym(obs_nodename),outcome,sep='_'))
+          hpar = dplyr::mutate(arrow::read_parquet(first_global_files[['hpar_filename']]),parameter=paste(quantity,!!rlang::sym(obs_nodename),outcome,sep='_')),
+          start_date = gt_start_date,
+          end_date = gt_end_date
         )
       },
       is_resume = opt[['is-resume']]
@@ -305,16 +301,12 @@ for(scenario in scenarios) {
 ### initial means accepted/current
 
 #####Loop over simulations in this block
-   for( this_index in seq_len(opt$simulations_per_slot)) {
+   for(this_index in seq_len(opt$simulations_per_slot)) {
       print(paste("Running simulation", this_index))
 
       ## Create filenames
       this_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
       this_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_local_prefix, this_index)
-
-      ## Setup python
-      reticulate::py_run_string(paste0("prefix = '", global_local_prefix, "'"))
-      reticulate::py_run_file(paste(opt$pipepath,"minimal_interface.py",sep='/'))
 
       ## Do perturbations from accepted
       proposed_seeding <- inference::perturb_seeding(
@@ -339,18 +331,16 @@ for(scenario in scenarios) {
       arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
       arrow::write_parquet(proposed_hpar,this_global_files[['hpar_filename']])
 
-      ## Run SEIR
-      err <- py$onerun_SEIR_loadID(this_index, py$s, this_index)
-      err <- ifelse(err == 1,0,1)
-      if(err != 0){
-        stop("SEIR failed to run")
-      }
 
-      err <- py$onerun_OUTCOMES_loadID(this_index)
-      print(err)
-      err <- ifelse(err == 1,0,1)
+      ## Update the prefix
+      gempyor_inference_runner$update_prefix(new_prefix=global_local_prefix)
+      ## Run the simulator
+      err <- gempyor_inference_runner$one_simulation(
+        sim_id2write=this_index,
+        load_ID=TRUE,
+        sim_id2load=this_index)
       if(err != 0){
-        stop("HOSP failed to run")
+        stop("InferenceSimulator failed to run")
       }
 
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_global_files[['hosp_filename']]))(this_global_files[['hosp_filename']]) %>%
@@ -366,7 +356,7 @@ for(scenario in scenarios) {
         all_locations = all_locations,
         modeled_outcome = sim_hosp,
         obs_nodename = obs_nodename,
-        config = config,
+        targets_config = config[["filtering"]][["statistics"]],
         obs = obs,
         ground_truth_data = data_stats,
         hosp_file = this_global_files[["llik_filename"]],
@@ -378,7 +368,9 @@ for(scenario in scenarios) {
         hpar = dplyr::mutate(
           proposed_hpar,
           parameter = paste(quantity, !!rlang::sym(obs_nodename), outcome, sep = "_")
-        )
+        ),
+        start_date = gt_start_date,
+        end_date = gt_end_date
       )
 
 
@@ -400,11 +392,17 @@ for(scenario in scenarios) {
         if ((opt$this_block == 1) && (current_index == 0)) {
           print("by default because it's the first iteration of a block 1")
         }
+        old_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, current_index)
+        old_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_local_prefix, current_index)
         current_index <- this_index
         global_likelihood <- proposed_likelihood
         global_likelihood_data <- proposed_likelihood_data
+
+        sapply(old_global_files, file.remove)
+
       } else {
         print("****REJECT****")
+        sapply(this_global_files, file.remove)
       }
       arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
 
@@ -451,7 +449,6 @@ for(scenario in scenarios) {
 
 
 #####Write currently accepted files to disk
-    last_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, opt$simulations_per_slot)
     output_chimeric_files <- inference::create_filename_list(opt$run_id, chimeric_block_prefix, opt$this_block)
     output_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block)
     readr::write_csv(initial_seeding,output_chimeric_files[['seed_filename']])
@@ -461,7 +458,8 @@ for(scenario in scenarios) {
     arrow::write_parquet(initial_hpar,output_chimeric_files[['hpar_filename']])
     arrow::write_parquet(chimeric_likelihood_data,output_chimeric_files[['llik_filename']])
     warning("Chimeric hosp and seir files not yet supported, just using the most recently generated file of each type")
-    file.copy(last_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
-    file.copy(last_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
+    current_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, current_index)
+    file.copy(current_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
+    file.copy(current_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
   }
 }

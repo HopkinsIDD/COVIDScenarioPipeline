@@ -1,4 +1,6 @@
 library(devtools)
+
+install.packages(c("covidcast","data.table","vroom","dplyr"), force=TRUE)
   
 initial.options <- commandArgs(trailingOnly = FALSE)
 file.arg.name <- "--file="

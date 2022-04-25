@@ -25,7 +25,7 @@ aggregate_and_calc_loc_likelihoods <- function(
   all_locations,
   modeled_outcome,
   obs_nodename,
-  config,
+  targets_config,
   obs,
   ground_truth_data,
   hosp_file,
@@ -34,7 +34,9 @@ aggregate_and_calc_loc_likelihoods <- function(
   geodata,
   snpi=NULL,
   hnpi=NULL,
-  hpar=NULL
+  hpar=NULL,
+  start_date = NULL,
+  end_date = NULL
 ) {
 
   ##Holds the likelihoods for all locations
@@ -56,7 +58,9 @@ aggregate_and_calc_loc_likelihoods <- function(
       inference::getStats(
         "time",
         "sim_var",
-        stat_list = config$filtering$statistics
+        stat_list = targets_config,
+        start_date = start_date,
+        end_date = end_date
       )
 
 
@@ -70,9 +74,9 @@ aggregate_and_calc_loc_likelihoods <- function(
         sum(inference::logLikStat(
           obs = ground_truth_data[[location]][[var]]$data_var,
           sim = this_location_modeled_outcome[[var]]$sim_var,
-          dist = config$filtering$statistics[[var]]$likelihood$dist,
-          param = config$filtering$statistics[[var]]$likelihood$param,
-          add_one = config$filtering$statistics[[var]]$add_one
+          dist = targets_config[[var]]$likelihood$dist,
+          param = targets_config[[var]]$likelihood$param,
+          add_one = targets_config[[var]]$add_one
         ))
     }
 
@@ -131,7 +135,7 @@ aggregate_and_calc_loc_likelihoods <- function(
 
 
     ##probably a more efficient what to do this, but unclear...
-    likelihood_data <- dplyr::left_join(likelihood_data, ll_adjs) %>%
+    likelihood_data <- dplyr::left_join(likelihood_data, ll_adjs, by="geoid") %>%
       tidyr::replace_na(list(likadj = 0)) %>% ##avoid unmatched location problems
       dplyr::mutate(ll = ll + likadj) %>%
       dplyr::select(-likadj)
@@ -177,7 +181,7 @@ aggregate_and_calc_loc_likelihoods <- function(
     }
 
     ##probably a more efficient what to do this, but unclear...
-    likelihood_data<- dplyr::left_join(likelihood_data, ll_adjs) %>%
+    likelihood_data<- dplyr::left_join(likelihood_data, ll_adjs, by="geoid") %>%
       dplyr::mutate(ll = ll + likadj) %>%
       dplyr::select(-likadj)
   }
@@ -390,14 +394,14 @@ create_filename_list <- function(
 ##'@param run_id what is the id of this run
 ##'@param global_prefix the prefix to use for global files
 ##'@param chimeric_prefix the prefix to use for chimeric files
-##'@param python_reticulate An already initialized copy of python set up to do hospitalization runs
+##'@param gempyor_inference_runner An already initialized copy of python inference runner
 ##' @export
 initialize_mcmc_first_block <- function(
   run_id,
   block,
   global_prefix,
   chimeric_prefix,
-  python_reticulate,
+  gempyor_inference_runner,
   likelihood_calculation_function,
   is_resume = FALSE
 ) {
@@ -498,36 +502,27 @@ initialize_mcmc_first_block <- function(
   }
 
   ## seir, snpi, spar
-  if (any(c("snpi_filename", "spar_filename") %in% global_file_names)) {
-    if (!all(c("snpi_filename", "spar_filename") %in% global_file_names)) {
-      stop("Provided some SEIR input, but not all")
+  checked_par_files <- c("snpi_filename", "spar_filename", "hnpi_filename", "hpar_filename")
+  checked_sim_files <- c("seir_filename", "hosp_filename")
+  if (any(checked_par_files %in% global_file_names)) {
+    if (!all(checked_par_files %in% global_file_names)) {
+      stop("Provided some InferenceSimulator input, but not all")
     }
-    if ("seir_filename" %in% global_file_names) {
-      python_reticulate$onerun_SEIR(block - 1, python_reticulate$s)
+    if (any(checked_sim_files %in% global_file_names)) {
+      if (!all(checked_sim_files %in% global_file_names)) {
+        stop("Provided only one of hosp or seir input file, with some output files. Not supported anymore")
+      }
+      gempyor_inference_runner$one_simulation(sim_id2write = block - 1)
     } else {
-      stop("Provided SEIR output, but not SEIR input")
+      stop("Provided some InferenceSimulator output(seir, hosp), but not InferenceSimulator input")
     }
   } else {
-    if ("seir_filename" %in% global_file_names) {
-      warning("SEIR input provided, but output not found. This is unstable for stochastic runs")
-      python_reticulate$onerun_SEIR_loadID(block - 1, python_reticulate$s, block - 1)
-    }
-  }
-
-  ## hpar
-  if (any(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
-    if (!all(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
-      stop("Provided some Outcomes input, but not all")
-    }
-    if ("hosp_filename" %in% global_file_names) {
-      python_reticulate$onerun_OUTCOMES(block - 1)
-    } else {
-      stop("Provided Outcomes output, but not Outcomes input")
-    }
-  } else {
-    if ("hosp_filename" %in% global_file_names) {
-      warning("Outcomes input provided, but output not found. This is unstable for stochastic runs")
-      python_reticulate$onerun_OUTCOMES_loadID(block - 1)
+    if (any(checked_sim_files %in% global_file_names)) {
+      if (!all(checked_sim_files %in% global_file_names)) {
+        stop("Provided only one of hosp or seir input file, not supported anymore")
+      }
+        warning("SEIR and Hosp input provided, but output not found. This is unstable for stochastic runs")
+        gempyor_inference_runner$one_simulation(sim_id2write=block - 1, load_ID=TRUE, sim_id2load=block - 1)
     }
   }
 
