@@ -112,7 +112,11 @@ if(is_US_run){
 ## Check some data attributes:
 ## This is a hack:
 if("geoid" %in% names(cases_deaths)){
-  cases_deaths$FIPS <- cases_deaths$geoid
+  if (is.numeric(cases_deaths$geoid)){
+    cases_deaths <- cases_deaths %>%
+      mutate(geoid = stringr::str_pad(FIPS, width = max(nchar(geoid)), side="left", pad="0"))
+  }
+  cases_deaths$FIPS <- as.character(cases_deaths$geoid)
   warning("Changing FIPS name in seeding. This is a hack")
 }
 if("date" %in% names(cases_deaths)){
