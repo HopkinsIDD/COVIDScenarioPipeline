@@ -195,7 +195,7 @@ test_that("aggregate_and_calc_loc_likelihoods returns a likelihood per location 
 
 
     expect_that(nrow(tmp), equals(length(stuff$all_locations)))
-    expect_that(sort(colnames(tmp)), equals(sort(c("ll","filename",stuff$obs_nodename))))
+    expect_that(sort(colnames(tmp)), equals(sort(c("ll","accept","accept_prob","accept_avg","filename",stuff$obs_nodename))))
 
 })
 

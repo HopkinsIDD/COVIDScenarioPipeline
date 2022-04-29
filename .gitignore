@@ -48,6 +48,7 @@ test/*/Makefile
 
 # RStudio files
 .Rproj.user/
+COVIDScenarioPipeline.Rproj
 
 # produced vignettes
 vignettes/*.html
@@ -72,3 +73,8 @@ packrat/lib*/
 build/
 dist/
 SEIR.egg-info/
+Outcomes.egg-info/
+.Rproj.user
+
+# R package manuals
+man/

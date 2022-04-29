@@ -149,7 +149,7 @@ def read_parameters_from_config(s: setup.Setup):
             print(
                 "Intersect with seir simulation: ",
                 len(branching_data.geoid.unique()),
-                "keeped",
+                "kept",
             )
 
             if len(branching_data.geoid.unique()) != len(s.spatset.nodenames):
