@@ -972,6 +972,12 @@ get_groundtruth_from_source <- function(
                                  run_parallel = FALSE) %>%
             dplyr::select(Update, FIPS, source, !!variables)
 
+    } else if((source == 'hhsCMU') && (scale == "US state")) {
+      warning("This code is almost certainly broken")
+      hosp <- get_hhsCMU_incidH_st_data()
+      hosp <- hosp %>% dplyr::select(-FIPS)
+      rc <- hosp
+      stop("This code is almost certainly broken")
     } else if(source == "file"){
 
         rc <- get_gt_file_data(source_file)
