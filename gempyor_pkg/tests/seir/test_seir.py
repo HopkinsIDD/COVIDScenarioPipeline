@@ -486,6 +486,7 @@ def test_continuation_resume():
         npi_config_seir=config["interventions"]["settings"][scenario],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
+        seir_config=config["seir"],
         initial_conditions_config=config["initial_conditions"],
         ti=config["start_date"].as_date(),
         tf=config["end_date"].as_date(),
