@@ -4,7 +4,7 @@ start_date: 2020-01-01
 end_date: 2022-09-03
 end_date_groundtruth: 2022-03-05
 nsimulations: 300
-dt: 1.000
+dt: 2.000
 
 spatial_setup:
   census_year: 2019
