@@ -185,7 +185,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
         in_prefix=prefix,
         out_run_id=run_id,
         out_prefix=prefix,
-        dt=0.25,
+        dt=1,
     )
 
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
@@ -208,7 +208,7 @@ def test_steps_SEIR_nb_simple_spread_with_txt_matrices():
         params, s.parameters.pnames, unique_strings
     )
 
-    for i in range(10):
+    for i in range(5):
         states = seir.steps_SEIR(
             s,
             parsed_parameters,
@@ -305,7 +305,7 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
         in_prefix=prefix,
         out_run_id=run_id,
         out_prefix=prefix,
-        dt=0.25,
+        dt=1,
     )
 
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
@@ -328,7 +328,7 @@ def test_steps_SEIR_nb_simple_spread_with_csv_matrices():
         params, s.parameters.pnames, unique_strings
     )
 
-    for i in range(10):
+    for i in range(5):
         states = seir.steps_SEIR(
             s,
             parsed_parameters,
