@@ -124,8 +124,8 @@ import time
 
 import click
 
-from . import seir, setup, file_paths
-from .utils import config
+from gempyor import seir, setup, file_paths
+from gempyor.utils import config
 
 # from .profile import profile_options
 

@@ -85,7 +85,6 @@ def build_npi_Outcomes(
             )
     return npi
 
-
 def onerun_delayframe_outcomes(
     *,
     sim_id2write: int,
