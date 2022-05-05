@@ -145,7 +145,7 @@ hospitalization_make_command <- function(simulation,scenario,deathrate, prefix =
     )
   } else if(method == 'branching_age_adjusted') {
     command_name <- paste(
-      "$(PYTHON) -m Outcomes",
+      "gempyor-outcomes",
       "-d",deathrate,"-j $(NCOREPER) -c $(CONFIG) --in-id $(RUN_ID) --out-id $(RUN_ID)",
       "--in-prefix", covidcommon::create_prefix(config_name,scenario,run_id,trailing_separator='/', sep='/'),
       "--out-prefix", covidcommon::create_prefix(config_name,scenario,deathrate,run_id,trailing_separator='/', sep='/')
@@ -179,7 +179,7 @@ simulation_make_command <- function(simulation,scenario,previous_simulation, pre
   }
   dependency_name <- paste(dependency_name, build_location_setup_target_name())
   dependency_name <- paste(dependency_name, create_seeding_target_name())
-  command_name <- paste0("$(PYTHON) -m SEIR -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER) --in-id $(RUN_ID) --out-id $(RUN_ID)")
+  command_name <- paste0("gempyor-seir -c $(CONFIG) -s ",scenario," -n ",simulation - previous_simulation," -j $(NCOREPER) --in-id $(RUN_ID) --out-id $(RUN_ID)")
   touch_name <- paste0("touch ",target_name)
   return(paste0(
     target_name, ": .files/directory_exists ",
