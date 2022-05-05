@@ -41,6 +41,7 @@ def test_constant_population():
         interactive=True,
         write_csv=False,
         dt=0.25,
+        stoch_traj_flag=False,
     )
 
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=0, setup=s)

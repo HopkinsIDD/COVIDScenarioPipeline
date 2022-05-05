@@ -70,7 +70,7 @@ def test_check_values():
         assert "mobility" in str(w[1].message)
 
 
-def test_constant_population():
+def test_constant_population_legacy_integration():
     config.set_file(f"{DATA_DIR}/config.yml")
 
     ss = setup.SpatialSetup(
@@ -103,6 +103,7 @@ def test_constant_population():
         out_prefix=prefix,
         dt=0.25,
     )
+    s.integration_method = "legacy"
 
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=100, setup=s)

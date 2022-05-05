@@ -49,7 +49,7 @@ class Setup:
         in_prefix=None,
         out_run_id=None,
         out_prefix=None,
-        stoch_traj_flag=True,
+        stoch_traj_flag=False,
     ):
 
         # 1. Important global variables
