@@ -271,7 +271,7 @@ def rk4_integration(
         if method == "rk4":
             sol = rk4_integrate(time, x_, today)
         elif method == "legacy":
-            sol = x_ + rhs(time, x_, today)
+            sol = update_states(x_, dt, rhs(time, x_, today))
         x_ = np.reshape(sol, (2, ncompartments, nspatial_nodes))
         states_daily_incid[today] += x_[1]
         states_next = x_[0]
