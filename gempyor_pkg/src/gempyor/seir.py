@@ -1,7 +1,5 @@
 import itertools
 import time
-from matplotlib.pyplot import step
-
 import numpy as np
 import pandas as pd
 import scipy
@@ -175,6 +173,7 @@ def onerun_SEIR(
     s: setup.Setup,
     load_ID: bool = False,
     sim_id2load: int = None,
+    config = None,
 ):
     scipy.random.seed()
 
@@ -243,19 +242,17 @@ def onerun_SEIR(
     return out_df
 
 
-def run_parallel_SEIR(s, *, n_jobs=1):
-    raise NotImplementedError(
-        "This method to run many simulation needs to be updated, to preload the slow setup"
-    )
+def run_parallel_SEIR(s, config, *, n_jobs=1):
     start = time.monotonic()
     sim_ids = np.arange(1, s.nsim + 1)
 
     if n_jobs == 1:  # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_SEIR(sim_id, s)
+            onerun_SEIR(sim_id2write=sim_id, s=s, load_ID=False, sim_id2load=None, config=config)
     else:
         tqdm.contrib.concurrent.process_map(
-            onerun_SEIR, sim_ids, itertools.repeat(s), max_workers=n_jobs
+            onerun_SEIR, sim_ids, itertools.repeat(s), 
+            itertools.repeat(False),itertools.repeat(None),itertools.repeat(config), max_workers=n_jobs
         )
 
     logging.info(
