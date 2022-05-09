@@ -55,7 +55,7 @@ import time, os
 
 import click
 
-from gempyor import file_paths
+from gempyor import file_paths, setup
 from gempyor.utils import config
 from gempyor import outcomes
 
@@ -155,6 +155,18 @@ from gempyor import outcomes
     show_default=True,
     help="True: stochastic outcomes simulations, False: continuous deterministic simulations",
 )
+@click.option(
+    "--write-csv/--no-write-csv",
+    default=False,
+    show_default=True,
+    help="write CSV output at end of simulation",
+)
+@click.option(
+    "--write-parquet/--no-write-parquet",
+    default=True,
+    show_default=True,
+    help="write parquet file output at end of simulation",
+)
 def simulate(
     config_file,
     in_run_id,
@@ -166,8 +178,17 @@ def simulate(
     jobs,
     index,
     stoch_traj_flag,
+    write_csv,
+    write_parquet,
 ):
+    spatial_path_prefix = ""
+    config.clear()
+    config.read(user=False)
     config.set_file(config_file)
+    spatial_config = config["spatial_setup"]
+    spatial_base_path = spatial_config["base_path"].get()
+    spatial_base_path = pathlib.Path(spatial_path_prefix + spatial_base_path)
+
     if not scenarios_outcomes:
         scenarios_outcomes = config["outcomes"]["scenarios"].as_str_seq()
     print(f"Outcomes scenarios to be run: {', '.join(scenarios_outcomes)}")
@@ -176,14 +197,41 @@ def simulate(
         nsim = config["nsimulations"].as_number()
     print(f"Simulations to be run: {nsim}")
 
+    spatial_setup = setup.SpatialSetup(
+        setup_name=spatial_config["setup_name"].get(),
+        geodata_file=spatial_base_path / spatial_config["geodata"].get(),
+        mobility_file=spatial_base_path / spatial_config["mobility"].get(),
+        popnodes_key=spatial_config["popnodes"].get(),
+        nodenames_key=spatial_config["nodenames"].get(),
+    )
+
     start = time.monotonic()
     out_prefix_is_none = out_prefix is None
     for scenario_outcomes in scenarios_outcomes:
         print(f"outcome {scenario_outcomes}")
+
         if out_prefix_is_none:
             out_prefix = config["name"].get() + "/" + str(scenario_outcomes) + "/"
         if in_prefix is None:
             raise ValueError(f"in_prefix must be provided")
+        s = setup.Setup(
+            setup_name=config["name"].get() + "/" + str(scenarios_outcomes) + "/",
+            spatial_setup=spatial_setup,
+            nsim=nsim,
+            outcomes_config=config["outcomes"],
+            outcomes_scenario=scenario_outcomes,
+            ti=config["start_date"].as_date(),
+            tf=config["end_date"].as_date(),
+            write_csv=write_csv,
+            write_parquet=write_parquet,
+            first_sim_index=index,
+            in_run_id=in_run_id,
+            in_prefix=in_prefix,
+            out_run_id=out_run_id,
+            out_prefix=out_prefix,
+            stoch_traj_flag=stoch_traj_flag,
+        )
+
         outdir = file_paths.create_dir_name(out_run_id, out_prefix, "hosp")
         os.makedirs(outdir, exist_ok=True)
 
@@ -192,25 +240,13 @@ def simulate(
 >> Starting {nsim} model runs beginning from {index} on {jobs} processes
 >> Scenario: {scenario_outcomes} 
 >> writing to folder : {out_prefix}
->> running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** trajectories
-          """
+>> running ***{'STOCHASTIC' if stoch_traj_flag else 'DETERMINISTIC'}*** trajectories"""
         )
 
         if config["outcomes"]["method"].get() == "delayframe":
-            outcomes.run_delayframe_outcomes(
-                config,
-                index,
-                in_run_id,
-                in_prefix,
-                index,
-                out_run_id,
-                out_prefix,
-                scenario_outcomes,
-                nsim,
-                jobs,
-                stoch_traj_flag,
+            outcomes.run_parallel_outcomes(
+                sim_id2write=index, s=s, nsim=nsim, n_jobs=jobs
             )
-
         else:
             raise ValueError(f"Only method 'delayframe' is supported at the moment.")
 

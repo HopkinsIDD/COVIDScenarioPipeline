@@ -236,7 +236,7 @@ def simulate(
     stoch_traj_flag,
 ):
 
-    spatial_path_prefix = ''
+    spatial_path_prefix = ""
     config.clear()
     config.read(user=False)
     config.set_file(config_file)
@@ -288,7 +288,7 @@ def simulate(
             + "/"
             + out_run_id
             + "/",
-            stoch_traj_flag=stoch_traj_flag
+            stoch_traj_flag=stoch_traj_flag,
         )
 
         print(

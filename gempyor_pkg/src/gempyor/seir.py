@@ -173,7 +173,7 @@ def onerun_SEIR(
     s: setup.Setup,
     load_ID: bool = False,
     sim_id2load: int = None,
-    config = None,
+    config=None,
 ):
     scipy.random.seed()
 
@@ -248,11 +248,18 @@ def run_parallel_SEIR(s, config, *, n_jobs=1):
 
     if n_jobs == 1:  # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_SEIR(sim_id2write=sim_id, s=s, load_ID=False, sim_id2load=None, config=config)
+            onerun_SEIR(
+                sim_id2write=sim_id, s=s, load_ID=False, sim_id2load=None, config=config
+            )
     else:
         tqdm.contrib.concurrent.process_map(
-            onerun_SEIR, sim_ids, itertools.repeat(s), 
-            itertools.repeat(False),itertools.repeat(None),itertools.repeat(config), max_workers=n_jobs
+            onerun_SEIR,
+            sim_ids,
+            itertools.repeat(s),
+            itertools.repeat(False),
+            itertools.repeat(None),
+            itertools.repeat(config),
+            max_workers=n_jobs,
         )
 
     logging.info(
