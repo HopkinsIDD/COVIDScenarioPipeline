@@ -149,6 +149,7 @@ class InferenceSimulator:
                     s=self.s,
                     load_ID=load_ID,
                     sim_id2load=sim_id2load,
+                    config=config
                 )
 
             with Timer("onerun_OUTCOMES"):

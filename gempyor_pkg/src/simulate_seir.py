@@ -176,6 +176,15 @@ from gempyor.utils import config
     help="the parallelization factor",
 )
 @click.option(
+    "--stochastic/--non-stochastic",
+    "--stochastic/--non-stochastic",
+    "stoch_traj_flag",
+    envvar="COVID_STOCHASTIC",
+    type=bool,
+    default=False,
+    help="Flag determining whether to run stochastic simulations or not",
+)
+@click.option(
     "--in-id",
     "--in-id",
     "in_run_id",
@@ -224,11 +233,16 @@ def simulate(
     write_csv,
     write_parquet,
     index,
+    stoch_traj_flag,
 ):
-    config.set_file(config_file)
 
+    spatial_path_prefix = ''
+    config.clear()
+    config.read(user=False)
+    config.set_file(config_file)
     spatial_config = config["spatial_setup"]
-    spatial_base_path = pathlib.Path(spatial_config["base_path"].get())
+    spatial_base_path = spatial_config["base_path"].get()
+    spatial_base_path = pathlib.Path(spatial_path_prefix + spatial_base_path)
 
     if not scenarios:
         scenarios = config["interventions"]["scenarios"].as_str_seq()
@@ -247,6 +261,7 @@ def simulate(
 
     start = time.monotonic()
     for scenario in scenarios:
+
         s = setup.Setup(
             setup_name=config["name"].get() + "/" + str(scenario) + "/",
             spatial_setup=spatial_setup,
@@ -273,18 +288,17 @@ def simulate(
             + "/"
             + out_run_id
             + "/",
+            stoch_traj_flag=stoch_traj_flag
         )
 
         print(
             f"""
->> Scenario: {scenario}
+>> Scenario: {scenario} from config {config_file}
 >> Starting {s.nsim} model runs beginning from {s.first_sim_index} on {jobs} processes
->> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}
->> writing to folder : {s.datadir}{s.setup_name}
+>> Setup *** {s.setup_name} *** from {s.ti} to {s.tf}
     """
         )
-
-        seir.run_parallel(s, n_jobs=jobs)
+        seir.run_parallel_SEIR(s, config=config, n_jobs=jobs)
     print(f">> All runs completed in {time.monotonic() - start:.1f} seconds")
 
 
