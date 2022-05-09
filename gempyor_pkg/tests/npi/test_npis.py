@@ -43,20 +43,22 @@ def test_full_npis_read_write():
         stoch_traj_flag=False,
         out_run_id=105,
     )
-    #inference_simulator.one_simulation(sim_id2write=1,load_ID=False)
+    # inference_simulator.one_simulation(sim_id2write=1,load_ID=False)
 
-    #outcomes.onerun_delayframe_outcomes(
+    # outcomes.onerun_delayframe_outcomes(
     #    sim_id2write=1, s=inference_simulator.s, load_ID=False, sim_id2load=1
-    #)
+    # )
 
     npi_outcomes = outcomes.build_npi_Outcomes(
         inference_simulator.s, load_ID=False, sim_id2load=None, config=config
     )
-    #npi_seir = seir.build_npi_SEIR(
+    # npi_seir = seir.build_npi_SEIR(
     #    inference_simulator.s, load_ID=False, sim_id2load=None, config=config
-    #)
+    # )
 
-    inference_simulator.s.write_simID(ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF())
+    inference_simulator.s.write_simID(
+        ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF()
+    )
 
     hnpi_read = pq.read_table(
         f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
@@ -80,17 +82,18 @@ def test_full_npis_read_write():
         stoch_traj_flag=False,
         out_run_id=106,
     )
-    #shutil.move('model_output/seir/000000001.105.seir.parquet', 'model_output/seir/000000001.106.seir.parquet')
+    # shutil.move('model_output/seir/000000001.105.seir.parquet', 'model_output/seir/000000001.106.seir.parquet')
 
-    #outcomes.onerun_delayframe_outcomes(
+    # outcomes.onerun_delayframe_outcomes(
     #    sim_id2write=1, s=inference_simulator.s, load_ID=True, sim_id2load=1
-    #)
+    # )
 
     npi_outcomes = outcomes.build_npi_Outcomes(
         inference_simulator.s, load_ID=True, sim_id2load=1, config=config
     )
-    inference_simulator.s.write_simID(ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF())
-
+    inference_simulator.s.write_simID(
+        ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF()
+    )
 
     hnpi_read = pq.read_table(
         f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
@@ -110,17 +113,18 @@ def test_full_npis_read_write():
         stoch_traj_flag=False,
         out_run_id=107,
     )
-    #shutil.move('model_output/seir/000000001.106.seir.parquet', 'model_output/seir/000000001.107.seir.parquet')
+    # shutil.move('model_output/seir/000000001.106.seir.parquet', 'model_output/seir/000000001.107.seir.parquet')
 
-    #outcomes.onerun_delayframe_outcomes(
+    # outcomes.onerun_delayframe_outcomes(
     #    sim_id2write=1, s=inference_simulator.s, load_ID=True, sim_id2load=1
-    #)
+    # )
 
     npi_outcomes = outcomes.build_npi_Outcomes(
         inference_simulator.s, load_ID=True, sim_id2load=1, config=config
     )
-    inference_simulator.s.write_simID(ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF())
-
+    inference_simulator.s.write_simID(
+        ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF()
+    )
 
     hnpi_read = pq.read_table(
         f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet"

@@ -14,13 +14,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def run_parallel_Outcomes(s, *, sim_id2load, sim_id2write, nsim=1, n_jobs=1):
-    raise NotImplementedError(
-        "This method to run many simulation needs to be updated, to preload the slow setup"
-    )
+def run_parallel_outcomes(s, *, sim_id2write, nsim=1, n_jobs=1):
     start = time.monotonic()
 
-    sim_id2loads = np.arange(sim_id2load, sim_id2load + s.nsim)
+    # sim_id2loads = np.arange(sim_id2load, sim_id2load + s.nsim)
     sim_id2writes = np.arange(sim_id2write, sim_id2write + s.nsim)
 
     loaded_values = None
@@ -29,19 +26,22 @@ def run_parallel_Outcomes(s, *, sim_id2load, sim_id2write, nsim=1, n_jobs=1):
     ):  # run single process for debugging/profiling purposes
         for sim_offset in np.arange(nsim):
             onerun_delayframe_outcomes(
-                sim_id2loads[sim_offset],
-                s,
-                sim_id2writes[sim_offset],
-                parameters,
+                sim_id2write=sim_id2writes[sim_offset],
+                s=s,
+                load_ID=False,
+                sim_id2load=None,
             )
+            # onerun_delayframe_outcomes(
+            #    sim_id2loads[sim_offset],
+            #    s,
+            #    sim_id2writes[sim_offset],
+            #    parameters,
+            # )
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_delayframe_outcomes,
-            sim_id2loads,
-            s,
             sim_id2writes,
-            itertools.repeat(parameters),
-            itertools.repeat(loaded_values),
+            s,
             max_workers=n_jobs,
         )
 
@@ -84,6 +84,7 @@ def build_npi_Outcomes(
                 geoids=s.spatset.nodenames,
             )
     return npi
+
 
 def onerun_delayframe_outcomes(
     *,
