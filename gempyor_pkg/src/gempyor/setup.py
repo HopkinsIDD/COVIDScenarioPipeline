@@ -85,7 +85,7 @@ class Setup:
         self.stoch_traj_flag = stoch_traj_flag
 
         # SEIR part
-        if config["seir"].exists() and seir_config:
+        if config["seir"].exists() and (seir_config or parameters_config):
             if "integration_method" in self.seir_config.keys():
                 self.integration_method = self.seir_config["integration_method"].get()
                 if self.integration_method == "best.current":
