@@ -57,7 +57,7 @@ interventions:
 outcomes:
   method: delayframe
   param_from_file: TRUE
-  param_place_file: ../../Outcomes/data/usa-geoid-params-output.parquet
+  param_place_file: ../../gempyor_pkg/tests/outcomes/data/usa-geoid-params-output.parquet
   scenarios:
     - high_death_rate
   settings:

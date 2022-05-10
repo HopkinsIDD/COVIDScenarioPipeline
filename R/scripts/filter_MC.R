@@ -366,23 +366,14 @@ for(scenario in scenarios) {
         continuous = !(opt$stoch_traj_flag)
       )
 
-<<<<<<< HEAD
       proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
       proposed_hnpi <- inference::perturb_hnpi(initial_hnpi, config$interventions$settings)
       proposed_spar <- initial_spar
       proposed_hpar <- inference::perturb_hpar(initial_hpar, config$outcomes$settings[[deathrate]])
-=======
-      # Old perturbation method, directly from config
-      
-      #proposed_snpi <- inference::perturb_snpi(initial_snpi, config$interventions$settings)
-      #proposed_hnpi <- inference::perturb_hnpi(initial_hnpi, config$interventions$settings)
-      # New perturbation method, from parameter file instead
-      print("NOTE: Perturbations are being read from files instead of configs after 1st iteration in each slot for snpi and hnpi")
-      proposed_snpi <- inference::perturb_snpi_from_file(initial_snpi, config$interventions$settings, chimeric_likelihood_data)
-      proposed_hnpi <- inference::perturb_hnpi_from_file(initial_hnpi, config$interventions$settings, chimeric_likelihood_data)
-      proposed_spar <- inference::perturb_spar_from_file(initial_spar, config$interventions$settings, chimeric_likelihood_data)
-      proposed_hpar <- inference::perturb_hpar_from_file(initial_hpar, config$interventions$settings, chimeric_likelihood_data)
->>>>>>> origin/inference
+      # proposed_snpi <- inference::perturb_snpi_from_file(initial_snpi, config$interventions$settings, chimeric_likelihood_data)
+      # proposed_hnpi <- inference::perturb_hnpi_from_file(initial_hnpi, config$interventions$settings, chimeric_likelihood_data)
+      # proposed_spar <- inference::perturb_spar_from_file(initial_spar, config$interventions$settings, chimeric_likelihood_data)
+      # proposed_hpar <- inference::perturb_hpar_from_file(initial_hpar, config$interventions$settings, chimeric_likelihood_data)
       proposed_spar <- initial_spar
       proposed_hpar <- inference::perturb_hpar(initial_hpar, config$outcomes$settings[[deathrate]])
       

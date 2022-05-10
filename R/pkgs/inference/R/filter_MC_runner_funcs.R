@@ -226,8 +226,6 @@ perform_MCMC_step_copies_global <- function(current_index,
   gf_prefix,
   global_block_prefix) {
 
-  stop("This needs to be fixed")
-
   rc <- list()
 
   if(current_index != 0){ #move files from global/intermediate/slot.block.run to global/final/slot
@@ -552,7 +550,7 @@ create_filename_list <- function(
     x=types,
     y=extensions,
     function(x,y){
-      covidcommon::create_file_name(run_id,prefix,index,x,y)
+      covidcommon::create_file_name(run_id = run_id,prefix = prefix,index = index,type = x,extension = y, create_directory = TRUE)
     }
   )
   names(rc) <- paste(names(rc),"filename",sep='_')
