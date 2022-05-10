@@ -35,6 +35,23 @@ test_that("initialize_mcmc_first_block works for block > 1",{
     )
   })
 
+  filenames <- c(
+    create_filename_list(
+      "test_run",
+      "global",
+      1,
+      c("seed", "seir", "snpi", "spar", "hosp", "hnpi", "hpar","llik"),
+      c("csv","parquet","parquet","parquet","parquet","parquet","parquet","parquet")
+    ),
+    create_filename_list(
+      "test_run",
+      "chimeric",
+      1,
+      c("seed", "seir", "snpi", "spar", "hosp", "hnpi", "hpar","llik"),
+      c("csv","parquet","parquet","parquet","parquet","parquet","parquet","parquet")
+    )
+  )
+
   expect_true({
     lapply(filenames,function(x){write.csv(file=x,data.frame(missing=TRUE))})
     all(file.exists(filenames))
@@ -46,7 +63,7 @@ test_that("initialize_mcmc_first_block works for block > 1",{
       block = 2,
       global_prefix = "global",
       chimeric_prefix = "chimeric",
-      python_reticulate = NULL,
+      gempyor_inference_runner = NULL,
       likelihood_calculation_function = NULL
     )
   }, NA)
@@ -93,6 +110,23 @@ test_that("initialize_mcmc_first_block works for block < 1",{
     )
   })
 
+  filenames <- c(
+    create_filename_list(
+      "test_run",
+      "global",
+      -1,
+      c("seed", "seir", "snpi", "spar", "hosp", "hpar","llik"),
+      c("csv","parquet","parquet","parquet","parquet","parquet","parquet")
+    ),
+    create_filename_list(
+      "test_run",
+      "chimeric",
+      -1,
+      c("seed", "seir", "snpi", "spar", "hosp", "hpar","llik"),
+      c("csv","parquet","parquet","parquet","parquet","parquet","parquet")
+    )
+  )
+
   expect_true({
     lapply(filenames,function(x){write.csv(file=x,data.frame(missing=TRUE))})
     all(file.exists(filenames))
@@ -104,7 +138,7 @@ test_that("initialize_mcmc_first_block works for block < 1",{
       block = 0,
       global_prefix = "global",
       chimeric_prefix = "chimeric",
-      python_reticulate = NULL,
+      gempyor_inference_runner = NULL,
       likelihood_calculation_function = NULL
     )
   })
