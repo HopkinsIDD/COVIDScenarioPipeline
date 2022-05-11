@@ -868,6 +868,7 @@ get_covidcast_data <- function(
 
     return(res)
 }
+
 ##'
 ##' Wrapper function to pull data from different sources
 ##'
@@ -945,6 +946,7 @@ get_groundtruth_from_source <- function(
     rc <- dplyr::select(rc, Update, UID, iso2, iso3, Latitude, Longitude, source, !!variables, Country_Region, Province_State, source)
     rc <- dplyr::bind_rows(rc, us)
     warning(print(paste("The combination of ", source, "and", scale, "is not fully working. County-level US data may be missing from this data frame.")))
+    warning("Complete scale is deprecated")
 
   } else if(source == "hhsCMU" & scale == "US state"){
 
