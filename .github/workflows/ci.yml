@@ -52,11 +52,11 @@ jobs:
           setwd("R/pkgs/hospitalization")
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
-      - name: Run report.generation tests
-        run: |
-          setwd("R/pkgs/report.generation")
-          devtools::test(stop_on_failure=TRUE)
-        shell: Rscript {0}
+#      - name: Run report.generation tests
+#        run: |
+#          setwd("R/pkgs/report.generation")
+#          devtools::test(stop_on_failure=TRUE)
+#        shell: Rscript {0}
       - name: Run inference tests
         run: |
           setwd("R/pkgs/inference")
