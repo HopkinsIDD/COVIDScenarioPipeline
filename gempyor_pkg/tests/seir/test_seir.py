@@ -569,7 +569,11 @@ def test_continuation_resume():
     )
 
     seir.onerun_SEIR(
-        sim_id2write=sim_id2write + 1, s=s, sim_id2load=sim_id2write, load_ID=True, config=config
+        sim_id2write=sim_id2write + 1,
+        s=s,
+        sim_id2load=sim_id2write,
+        load_ID=True,
+        config=config,
     )
     states_new = pq.read_table(
         file_paths.create_file_name(
@@ -676,7 +680,11 @@ def test_inference_resume():
     )
 
     seir.onerun_SEIR(
-        sim_id2write=sim_id2write + 1, s=s, sim_id2load=sim_id2write, load_ID=True, config=config
+        sim_id2write=sim_id2write + 1,
+        s=s,
+        sim_id2load=sim_id2write,
+        load_ID=True,
+        config=config,
     )
     npis_new = pq.read_table(
         file_paths.create_file_name(
