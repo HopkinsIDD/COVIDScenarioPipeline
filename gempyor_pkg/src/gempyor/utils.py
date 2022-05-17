@@ -169,46 +169,42 @@ def get_log_normal(meanlog, sdlog):
 
 
 @add_method(confuse.ConfigView)
-def as_random_distribution(self):
-    "Constructs a random distribution object from a distribution config key"
+def as_random_distribution(self, return_pdf = False):
+    """Constructs a random distribution object from a distribution config key. Either return
+    a rvs object (Random variates, default) or a cdf object (Cumulative distribution function).
+    """
 
     dist = self["distribution"].get()
     if dist == "fixed":
-        return functools.partial(
-            np.random.uniform,
-            self["value"].as_evaled_expression(),
-            self["value"].as_evaled_expression(),
-        )
+        dist = scipy.stats.uniform(loc = self["value"].as_evaled_expression(), scale = 0)
     elif dist == "uniform":
-        return functools.partial(
-            np.random.uniform,
-            self["low"].as_evaled_expression(),
-            self["high"].as_evaled_expression(),
-        )
+        dist = scipy.stats.uniform(loc = self["low"].as_evaled_expression(), scale = self["high"].as_evaled_expression())
     elif dist == "poisson":
-        return functools.partial(np.random.poisson, self["lam"].as_evaled_expression())
+        dist = scipy.stats.poisson(mu = self["lam"].as_evaled_expression())
     elif dist == "binomial":
         if (self["p"] < 0) or (self["p"] > 1):
             raise ValueError(f"""p value { self["p"] } is out of range [0,1]""")
-        return functools.partial(
-            np.random.binomial,
-            self["n"].as_evaled_expression(),
-            self["p"].as_evaled_expression(),
-        )
+        dist = scipy.stats.binom(n=self["n"].as_evaled_expression(), p=self["p"].as_evaled_expression())
     elif dist == "truncnorm":
-        return get_truncated_normal(
+        dist = get_truncated_normal(
             mean=self["mean"].as_evaled_expression(),
             sd=self["sd"].as_evaled_expression(),
             a=self["a"].as_evaled_expression(),
             b=self["b"].as_evaled_expression(),
-        ).rvs
+        )
     elif dist == "lognorm":
-        return get_log_normal(
+        dist = get_log_normal(
             meanlog=self["meanlog"].as_evaled_expression(),
             sdlog=self["sdlog"].as_evaled_expression(),
-        ).rvs
+        )
     else:
         raise NotImplementedError(f"unknown distribution [got: {dist}]")
+
+    if return_pdf:
+        return dist.cdf
+    else:
+        return dist.rvs
+
 
 
 def aws_disk_diagnosis():
