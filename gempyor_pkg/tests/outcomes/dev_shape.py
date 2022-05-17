@@ -21,7 +21,7 @@ import pyarrow as pa
 from gempyor import file_paths, setup, outcomes
 from gempyor.utils import config
 
-#os.chdir(os.path.dirname(__file__))
+# os.chdir(os.path.dirname(__file__))
 
 config.clear()
 config.read(user=False)
@@ -34,7 +34,3 @@ print(duration_hosp, np.sum(duration_hosp))
 
 delay_hosp = outcomes_shapes["delay_hosp"].as_convolution_kernel()
 print(delay_hosp)
-
-
-
-

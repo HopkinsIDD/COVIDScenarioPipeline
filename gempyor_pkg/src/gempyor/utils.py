@@ -169,22 +169,27 @@ def get_log_normal(meanlog, sdlog):
 
 
 @add_method(confuse.ConfigView)
-def as_random_distribution(self, return_pdf = False):
+def as_random_distribution(self, return_cdf=False):
     """Constructs a random distribution object from a distribution config key. Either return
     a rvs object (Random variates, default) or a cdf object (Cumulative distribution function).
     """
 
     dist = self["distribution"].get()
     if dist == "fixed":
-        dist = scipy.stats.uniform(loc = self["value"].as_evaled_expression(), scale = 0)
+        dist = scipy.stats.uniform(loc=self["value"].as_evaled_expression(), scale=0)
     elif dist == "uniform":
-        dist = scipy.stats.uniform(loc = self["low"].as_evaled_expression(), scale = self["high"].as_evaled_expression())
+        dist = scipy.stats.uniform(
+            loc=self["low"].as_evaled_expression(),
+            scale=self["high"].as_evaled_expression(),
+        )
     elif dist == "poisson":
-        dist = scipy.stats.poisson(mu = self["lam"].as_evaled_expression())
+        dist = scipy.stats.poisson(mu=self["lam"].as_evaled_expression())
     elif dist == "binomial":
         if (self["p"] < 0) or (self["p"] > 1):
             raise ValueError(f"""p value { self["p"] } is out of range [0,1]""")
-        dist = scipy.stats.binom(n=self["n"].as_evaled_expression(), p=self["p"].as_evaled_expression())
+        dist = scipy.stats.binom(
+            n=self["n"].as_evaled_expression(), p=self["p"].as_evaled_expression()
+        )
     elif dist == "truncnorm":
         dist = get_truncated_normal(
             mean=self["mean"].as_evaled_expression(),
@@ -200,11 +205,35 @@ def as_random_distribution(self, return_pdf = False):
     else:
         raise NotImplementedError(f"unknown distribution [got: {dist}]")
 
-    if return_pdf:
+    if return_cdf:
         return dist.cdf
     else:
         return dist.rvs
 
+
+def normalize_and_check_convolution_kernel(kernel: np.ndarray) -> np.ndarray:
+    if np.any(kernel < 0):
+        raise ValueError(f"kernel contains negative values")
+    norm_kern = kernel / np.sum(kernel)
+    return norm_kern
+
+
+@add_method(confuse.ConfigView)
+def as_convolution_kernel(self) -> np.ndarray:
+    "Returns the shape of the convolution unit_kernel"
+    if self["array"].exists():
+        kernel = np.array(self["array"].get())
+        return normalize_and_check_convolution_kernel(kernel)
+    if self["distribution"].exists():
+        dist = as_random_distribution(self, return_cdf=True)
+
+        np.diff(dist(np.arange(20))) # + sum things with support and all. Maybe default to mean + 3sd?
+
+        print(dist, type(dist))
+        breakpoint()
+
+    else:
+        raise NotImplementedError(f"unknown convolution shape [got: {self.get()}]")
 
 
 def aws_disk_diagnosis():
