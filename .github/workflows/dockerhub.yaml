@@ -32,8 +32,6 @@ jobs:
           lfs: true
     - name: Checkout LFS objects
       run: git lfs checkout
-    - name: Check that lfs files are present
-      run: wc -l renv.cache/R/renv/cache/v5/R-4.2/x86_64-pc-linux-gnu/abind/1.4-5/4f57884290cc75ab22f4af9e9d4ca862/abind/DESCRIPTION
     -
       name: Set up QEMU
       uses: docker/setup-qemu-action@v1
