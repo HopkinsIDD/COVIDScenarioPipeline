@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 USER root
 ENV TERM linux
@@ -11,16 +11,17 @@ ENV LC_ALL en_US.UTF-8
 
 # set noninteractive installation
 ENV DEBIAN_FRONTEND noninteractive
-ENV R_VERSION 3.6.3-1bionic
+ENV R_VERSION 4.1.0-1.2004.0
 
 # see https://www.digitalocean.com/community/tutorials/how-to-install-r-on-ubuntu-18-04
 # https://cran.r-project.org/bin/linux/debian/
 # https://cran.r-project.org/bin/linux/ubuntu/README.html
 RUN set -e \
+      && apt-get update \
       && apt-get -y install --no-install-recommends --no-install-suggests \
         gnupg2 gnupg1 ca-certificates software-properties-common \
       && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
-      && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/' \
+      && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/' \
       && add-apt-repository ppa:git-core/ppa
 
 RUN apt-get update && \
@@ -69,12 +70,13 @@ RUN apt-get update && \
     supervisor \
     awscli \
     r-base-dev=$R_VERSION \
+    python3-venv \
     # make sure we have up-to-date CA certs or curling some https endpoints (like python.org) may fail
     ca-certificates \
     # app user creation
     && useradd -m app \
     && mkdir -p /home/app \
-    && chown app:app /home/app \
+    && chown -R app:app /home/app \
     # set up sudo for app user
     && sudo echo "app ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/app \
     && sudo usermod -a -G staff app
@@ -88,14 +90,13 @@ ENV HOME /home/app
 #####
 
 # Use packrat for R package management
-RUN Rscript -e "install.packages('packrat',repos='https://cloud.r-project.org/')" \
-    && Rscript -e "install.packages('arrow',repos='https://cloud.r-project.org/')" \
-    && Rscript -e 'arrow::install_arrow()'
-COPY --chown=app:app packrat $HOME/packrat
+RUN sudo Rscript -e "install.packages('renv',repos='https://cloud.r-project.org/')" \
+    && cd /home/app
+    # && Rscript -e 'arrow::install_arrow()'
+COPY --chown=app:app renv.cache $HOME/.cache
+COPY --chown=app:app renv.lock $HOME/renv.lock
+COPY --chown=app:app renv $HOME/renv
 COPY --chown=app:app Docker.Rprofile $HOME/.Rprofile
-COPY --chown=app:app R/pkgs $HOME/R/pkgs
-RUN Rscript -e 'packrat::restore()'
-RUN Rscript -e 'install.packages(list.files("R/pkgs",full.names=TRUE,recursive=TRUE),type="source",repos=NULL)'
 
 
 #####
@@ -103,28 +104,24 @@ RUN Rscript -e 'install.packages(list.files("R/pkgs",full.names=TRUE,recursive=T
 #####
 
 ENV PYENV_ROOT $HOME/.pyenv
-ENV PYTHON_VERSION 3.7.6
+ENV PYTHON_VERSION 3.10.1
 ENV PYTHON_VENV_DIR $HOME/python_venv
 ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 
 
-RUN git clone git://github.com/yyuu/pyenv.git $HOME/.pyenv \
+RUN git clone https://github.com/yyuu/pyenv.git $HOME/.pyenv \
     && rm -rf $HOME/.pyenv/.git \
     && env PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install -s $PYTHON_VERSION --verbose \
     && pyenv rehash \
     && echo 'eval "$(pyenv init -)"' >> ~/.bashrc \
+    && echo "pyenv shell $PYTHON_VERSION" >> ~/.bashrc \
     && echo "PS1=\"\[\e]0;\u@\h: \w\a\] \h:\w\$ \"" >> ~/.bashrc
 
+# automatically activate the python venv when logging in
+COPY --chown=app:app gempyor_pkg $HOME/gempyor_pkg
 RUN eval "$(pyenv init -)" \
     && pyenv shell $PYTHON_VERSION \
-    && pyvenv $PYTHON_VENV_DIR \
-    # automatically activate the python venv when logging in
-    && echo ". $HOME/python_venv/bin/activate" >> $HOME/.bashrc \
-    && . $PYTHON_VENV_DIR/bin/activate
-
-COPY requirements.txt $HOME/requirements.txt
-RUN . $PYTHON_VENV_DIR/bin/activate \
     && pip install --upgrade pip setuptools \
-    && pip install -r $HOME/requirements.txt
+    && pip install --user $HOME/gempyor_pkg
 
 CMD ["/bin/bash"]

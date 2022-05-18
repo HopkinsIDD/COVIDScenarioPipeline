@@ -134,7 +134,7 @@ from gempyor import file_paths
     "stochastic",
     envvar="COVID_STOCHASTIC",
     type=bool,
-    default=True,
+    default=False,
     help="Flag determining whether to run stochastic simulations or not",
 )
 @click.option(

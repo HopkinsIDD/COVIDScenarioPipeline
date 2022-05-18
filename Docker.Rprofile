@@ -1,6 +1,4 @@
-#### -- Packrat Autoloader (version 0.5.0) -- ####
-working_directory <- getwd()
+cwd <- getwd()
 setwd("/home/app/")
-source("/home/app/packrat/init.R")
-setwd(working_directory)
-#### -- End Packrat Autoloader -- ####
+source("/home/app/renv/activate.R")
+setwd(cwd)
