@@ -9,7 +9,6 @@ on:
       - master
       - update_docker
     paths:
-      - 'requirements.txt'
       - 'Dockerfile'
       - 'Docker.Rprofile'
       - 'renv/**'
@@ -28,7 +27,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
       with:
-          repository: HopkinsIDD/cholera-mapping-pipeline
+          repository: HopkinsIDD/covidscenariopipeline
           ref: ${{ github.ref }}
           lfs: true
     - name: Checkout LFS objects
