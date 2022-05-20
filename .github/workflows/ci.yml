@@ -37,6 +37,8 @@ jobs:
           eval "$(pyenv virtualenv-init -)"
       - name: Install the gempyor package
         run: |
+          eval "$(pyenv init -)"
+          eval "$(pyenv virtualenv-init -)"
           pyenv activate covidsp
           python -m pip install --upgrade pip
           pip install -e gempyor_pkg/
@@ -47,7 +49,10 @@ jobs:
       - name: Run gempyor tests
         run: |
           cd gempyor_pkg
-          /home/app/python_venv/bin/pytest -s
+          eval "$(pyenv init -)"
+          eval "$(pyenv virtualenv-init -)"
+          pyenv activate covidsp
+          pytest -s
         shell: bash
       - name: Run covidcommon tests
         run: |
@@ -76,5 +81,8 @@ jobs:
           git lfs pull
           Rscript local_install.R
           cd test
-          /home/app/python_venv/bin/pytest run_tests.py
+          eval "$(pyenv init -)"
+          eval "$(pyenv virtualenv-init -)"
+          pyenv activate covidsp
+          pytest run_tests.py
         shell: bash
