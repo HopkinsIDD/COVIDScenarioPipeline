@@ -96,6 +96,7 @@ COPY --chown=app:app renv.cache $HOME/.cache
 COPY --chown=app:app renv.lock $HOME/renv.lock
 COPY --chown=app:app renv $HOME/renv
 COPY --chown=app:app Docker.Rprofile $HOME/.Rprofile
+COPY --chown=app:app R/pkgs $HOME/pkgs
 
 
 #####
