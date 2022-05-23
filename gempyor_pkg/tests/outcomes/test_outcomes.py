@@ -598,7 +598,7 @@ def test_outcomes_read_write_hpar_subclasses():
 def test_multishift_notstochdelays():
     os.chdir(os.path.dirname(__file__))
     shp = (10, 2)  # dateXplace
-    
+
     array = np.array(
         [
             [28, 39],

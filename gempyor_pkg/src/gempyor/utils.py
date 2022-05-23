@@ -227,7 +227,9 @@ def as_convolution_kernel(self) -> np.ndarray:
     if self["distribution"].exists():
         dist = as_random_distribution(self, return_cdf=True)
 
-        np.diff(dist(np.arange(20))) # + sum things with support and all. Maybe default to mean + 3sd?
+        np.diff(
+            dist(np.arange(20))
+        )  # + sum things with support and all. Maybe default to mean + 3sd?
 
         print(dist, type(dist))
         breakpoint()

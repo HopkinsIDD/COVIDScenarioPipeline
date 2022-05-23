@@ -8,6 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def get_source_array(source_name: str, all_data, seir_sim, dates, s) -> np.ndarray:
     if source_name == "incidI":  # create incidI
         source_array = get_filtered_incidI(
@@ -52,10 +53,16 @@ def compute_all_multioutcomes(
         # there is two way of building outcomes: from a source with probability, delay (and duration if needed)
         # or as a sum of existing outcomes.
         if "source" in parameters[new_comp]:
-            # Read the config for this compartment: if a source is specified, we
-            # 1. compute the source compartment incidence:
+
+            # 1. compute the source compartment array incidence --------------------------------------
             source_name: str = parameters[new_comp]["source"]
-            source_array = get_source_array(source_name=source_name, all_data= all_data, seir_sim=seir_sim, dates=dates, s=s)
+            source_array = get_source_array(
+                source_name=source_name,
+                all_data=all_data,
+                seir_sim=seir_sim,
+                dates=dates,
+                s=s,
+            )
             if source_name == "incidI" and "incidI" not in all_data:
                 # add incidI to the written frame, for consistence with past behaviour
                 all_data["incidI"] = source_array
@@ -66,17 +73,14 @@ def compute_all_multioutcomes(
                     ),
                 )
 
-            # 2. compute the probabilities and delays.
-            if (loaded_values is not None) and (
+            # do we have some loaded values for this specific new outcome?
+            loaded_values_for_this_comp: bool = (loaded_values is not None) and (
                 new_comp in loaded_values["outcome"].values
-            ):
-                ## This may be unnecessary
+            )
+            # 2. compute the probabilities ----------------------------------------------------------------------------
+            if loaded_values_for_this_comp:
                 probabilities = loaded_values[
                     (loaded_values["quantity"] == "probability")
-                    & (loaded_values["outcome"] == new_comp)
-                ]["value"].to_numpy()
-                delays = loaded_values[
-                    (loaded_values["quantity"].str.startswith("delay"))
                     & (loaded_values["outcome"] == new_comp)
                 ]["value"].to_numpy()
             else:
@@ -90,19 +94,12 @@ def compute_all_multioutcomes(
                         probabilities * parameters[new_comp]["rel_probability"]
                     )
 
-                delays = parameters[new_comp]["delay"].as_random_distribution()(
-                    size=len(s.spatset.nodenames)
-                )  # one draw per geoid
             probabilities[probabilities > 1] = 1
             probabilities[probabilities < 0] = 0
             probabilities = np.repeat(
                 probabilities[:, np.newaxis], len(dates), axis=1
             ).T  # duplicate in time
-            delays = np.repeat(
-                delays[:, np.newaxis], len(dates), axis=1
-            ).T  # duplicate in time
-            delays = np.round(delays).astype(int)
-            # write hpar before NPI
+
             hpar = pd.concat(
                 [
                     hpar,
@@ -115,25 +112,11 @@ def compute_all_multioutcomes(
                             * np.ones(len(s.spatset.nodenames)),
                         }
                     ),
-                    pd.DataFrame.from_dict(
-                        {
-                            "geoid": s.spatset.nodenames,
-                            "quantity": ["delay"] * len(s.spatset.nodenames),
-                            "outcome": [new_comp] * len(s.spatset.nodenames),
-                            "value": delays[0] * np.ones(len(s.spatset.nodenames)),
-                        }
-                    ),
                 ],
                 axis=0,
             )
+
             if npi is not None:
-                delays = NPI.reduce_parameter(
-                    parameter=delays,
-                    modification=npi.getReduction(
-                        parameters[new_comp]["delay::npi_param_name"].lower()
-                    ),
-                )
-                delays = np.round(delays).astype(int)
                 probabilities = NPI.reduce_parameter(
                     parameter=probabilities,
                     modification=npi.getReduction(
@@ -153,17 +136,57 @@ def compute_all_multioutcomes(
                     probabilities * np.ones_like(source_array)
                 )
 
+            # 3. compute the delays --------------------------------------
+            if loaded_values_for_this_comp:
+                delays = loaded_values[
+                    (loaded_values["quantity"].str.startswith("delay"))
+                    & (loaded_values["outcome"] == new_comp)
+                ]["value"].to_numpy()
+            else:
+                delays = parameters[new_comp]["delay"].as_random_distribution()(
+                    size=len(s.spatset.nodenames)
+                )  # one draw per geoid
+
+            delays = np.repeat(
+                delays[:, np.newaxis], len(dates), axis=1
+            ).T  # duplicate in time
+            delays = np.round(delays).astype(int)
+            # write hpar before NP
+            hpar = pd.concat(
+                [
+                    hpar,
+                    pd.DataFrame.from_dict(
+                        {
+                            "geoid": s.spatset.nodenames,
+                            "quantity": ["delay"] * len(s.spatset.nodenames),
+                            "outcome": [new_comp] * len(s.spatset.nodenames),
+                            "value": delays[0] * np.ones(len(s.spatset.nodenames)),
+                        }
+                    ),
+                ],
+                axis=0,
+            )
+            if npi is not None:
+                delays = NPI.reduce_parameter(
+                    parameter=delays,
+                    modification=npi.getReduction(
+                        parameters[new_comp]["delay::npi_param_name"].lower()
+                    ),
+                )
+                delays = np.round(delays).astype(int)
+
             # Shift to account for the delay
             all_data[new_comp] = multishift(
                 all_data[new_comp], delays, stoch_delay_flag=stoch_delay_flag
             )
-            # Produce a dataframe an merge it
+
+            # 5. Produce a dataframe with the incidence in the new compartment and merge it --------------------------------------
             df_p = dataframe_from_array(
                 all_data[new_comp], s.spatset.nodenames, dates, new_comp
             )
             outcomes = pd.merge(outcomes, df_p)
 
-            # Make duration
+            # 4. compute the duration --------------------------------------
             if "duration" in parameters[new_comp]:
                 if (loaded_values is not None) and (
                     new_comp in loaded_values["outcome"].values
@@ -306,7 +329,6 @@ def read_seir_sim(s, sim_id):
     return seir_df
 
 
-
 def dataframe_from_array(data, places, dates, comp_name):
     """
         Produce a dataframe in long form from a numpy matrix of
@@ -371,4 +393,3 @@ def multishift(arr, shifts, stoch_delay_flag=True):
                 if i + shifts[i, j] < arr.shape[0]:
                     result[i + shifts[i, j], j] += arr[i, j]
     return result
-

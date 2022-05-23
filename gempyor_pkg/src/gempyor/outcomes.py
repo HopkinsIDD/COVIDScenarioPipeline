@@ -53,6 +53,7 @@ def run_parallel_outcomes(s, *, sim_id2write, nsim=1, n_jobs=1):
     )
     return 1
 
+
 def build_npi_Outcomes(
     s: setup.Setup,
     load_ID: bool,
@@ -84,6 +85,7 @@ def build_npi_Outcomes(
                 geoids=s.spatset.nodenames,
             )
     return npi
+
 
 def onerun_delayframe_outcomes(
     *,
@@ -239,7 +241,9 @@ def read_parameters_from_config(s: setup.Setup):
                             ] = f"{new_comp}::delay".lower()
                     elif outcomes_config[new_comp]["delay"]["shape"].exists():
                         parameters[class_name]["delay::definition"] = "shape"
-                        parameters[class_name]["delay"] = outcomes_config[new_comp]["delay"]["shape"]
+                        parameters[class_name]["delay"] = outcomes_config[new_comp][
+                            "delay"
+                        ]["shape"]
                     else:
                         raise ValueError(
                             f"The delay for outcome {new_comp} is not specified with either a value or a shape"
@@ -260,9 +264,9 @@ def read_parameters_from_config(s: setup.Setup):
                         if outcomes_config[new_comp]["duration"]["value"].exists():
                             parameters[class_name]["duration::definition"] = "value"
                             # we have a classical outcomes specified by a single duration.
-                            parameters[class_name]["duration"] = outcomes_config[new_comp][
-                                "duration"
-                            ]["value"]
+                            parameters[class_name]["duration"] = outcomes_config[
+                                new_comp
+                            ]["duration"]["value"]
                             if outcomes_config[new_comp]["duration"][
                                 "intervention_param_name"
                             ].exists():
@@ -284,9 +288,9 @@ def read_parameters_from_config(s: setup.Setup):
                                 ] = f"{new_comp}::duration".lower()
                         elif outcomes_config[new_comp]["duration"]["shape"].exists():
                             parameters[class_name]["duration::definition"] = "shape"
-                            parameters[class_name]["duration"] = outcomes_config[new_comp][
-                                "duration"
-                            ]["shape"]
+                            parameters[class_name]["duration"] = outcomes_config[
+                                new_comp
+                            ]["duration"]["shape"]
                         else:
                             raise ValueError(
                                 f"Duration of outcome {new_comp} is not specified with a value or a shape"

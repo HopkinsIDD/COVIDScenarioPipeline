@@ -49,4 +49,3 @@ print(duration_hosp, np.sum(duration_hosp))
 
 delay_hosp = outcomes_shapes["delay_hosp"].as_convolution_kernel()
 print(delay_hosp)
-
