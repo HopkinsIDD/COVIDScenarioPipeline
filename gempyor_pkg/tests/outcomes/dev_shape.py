@@ -22,7 +22,22 @@ from gempyor import file_paths, setup, outcomes
 from gempyor.utils import config
 
 # os.chdir(os.path.dirname(__file__))
+config_path_prefix = ""  #'tests/outcomes/'
 
+inference_simulator = gempyor.InferenceSimulator(
+    config_path=f"{config_path_prefix}config.yml",
+    run_id=1,
+    prefix="",
+    first_sim_index=1,
+    deathrate="high_death_rate",
+    stoch_traj_flag=False,
+)
+
+outcomes.onerun_delayframe_outcomes(
+    sim_id2write=1, s=inference_simulator.s, load_ID=False
+)
+
+### test shape generation
 config.clear()
 config.read(user=False)
 config.set_file(f"config_shape_only.yml")
@@ -34,3 +49,4 @@ print(duration_hosp, np.sum(duration_hosp))
 
 delay_hosp = outcomes_shapes["delay_hosp"].as_convolution_kernel()
 print(delay_hosp)
+

@@ -16,7 +16,7 @@ from pathlib import Path
 # import seaborn as sns
 import pyarrow.parquet as pq
 import pyarrow as pa
-from gempyor import file_paths, setup, outcomes
+from gempyor import file_paths, setup, outcomes, outcomes_compute
 
 config_path_prefix = ""  #'tests/outcomes/'
 
@@ -598,6 +598,7 @@ def test_outcomes_read_write_hpar_subclasses():
 def test_multishift_notstochdelays():
     os.chdir(os.path.dirname(__file__))
     shp = (10, 2)  # dateXplace
+    
     array = np.array(
         [
             [28, 39],
@@ -630,7 +631,7 @@ def test_multishift_notstochdelays():
         ]
     )
     assert (
-        outcomes.multishift(array, shifts, stoch_delay_flag=False) == expected
+        outcomes_compute.multishift(array, shifts, stoch_delay_flag=False) == expected
     ).all()
 
 
