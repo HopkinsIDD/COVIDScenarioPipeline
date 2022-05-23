@@ -485,7 +485,7 @@ for(scenario in scenarios) {
         sapply(this_global_files, file.remove)
       }
 
-      effective_index <- (this_block - 1) * opt$simulations_per_slot + this_index
+      effective_index <- (opt$this_block - 1) * opt$simulations_per_slot + this_index
       avg_global_accept_rate <- ((effective_index-1)*old_avg_global_accept_rate + proposed_likelihood_data$accept)/(effective_index) # update running average acceptance probability
       proposed_likelihood_data$accept_avg <-avg_global_accept_rate
       proposed_likelihood_data$accept_prob <- exp(min(c(0, proposed_likelihood - global_likelihood))) #acceptance probability 
@@ -538,7 +538,7 @@ for(scenario in scenarios) {
       
       # Update running average acceptance rate
       # update running average acceptance probability. CHECK, this depends on values being in same order in both dataframes. Better to bind??
-      effective_index <- (this_block - 1) * opt$simulations_per_slot + this_index
+      effective_index <- (opt$this_block - 1) * opt$simulations_per_slot + this_index
       chimeric_likelihood_data$accept_avg <- ((effective_index - 1) * old_avg_chimeric_accept_rate + chimeric_likelihood_data$accept) / (effective_index)
 
       ## Write accepted parameters to file
