@@ -85,21 +85,6 @@ USER app
 ENV HOME /home/app
 
 #####
-# R
-#####
-
-# Use packrat for R package management
-RUN sudo Rscript -e "install.packages('renv',repos='https://cloud.r-project.org/')" \
-    && cd /home/app
-    # && Rscript -e 'arrow::install_arrow()'
-COPY --chown=app:app renv.cache $HOME/.cache
-COPY --chown=app:app renv.lock $HOME/renv.lock
-COPY --chown=app:app renv $HOME/renv
-COPY --chown=app:app Docker.Rprofile $HOME/.Rprofile
-COPY --chown=app:app R/pkgs $HOME/pkgs
-
-
-#####
 # Python (managed via pyenv)
 #####
 
@@ -130,5 +115,19 @@ RUN eval "$(pyenv init -)" \
     && pyenv activate covidsp \
     && pip install --upgrade pip setuptools \
     && pip install $HOME/gempyor_pkg
+
+#####
+# R
+#####
+
+# Use packrat for R package management
+RUN sudo Rscript -e "install.packages('renv',repos='https://cloud.r-project.org/')" \
+    && cd /home/app
+    # && Rscript -e 'arrow::install_arrow()'
+COPY --chown=app:app renv.cache $HOME/.cache
+COPY --chown=app:app renv.lock $HOME/renv.lock
+COPY --chown=app:app renv $HOME/renv
+COPY --chown=app:app Docker.Rprofile $HOME/.Rprofile
+COPY --chown=app:app R/pkgs $HOME/pkgs
 
 CMD ["/bin/bash"]
