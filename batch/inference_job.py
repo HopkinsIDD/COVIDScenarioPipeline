@@ -170,7 +170,7 @@ from gempyor import file_paths
    "reset_chimerics",
    envvar="COVID_RESET_CHIMERICS",
    type=bool,
-   default=False,
+   default=True,
    help="Flag determining whether to reset chimeric values on any global acceptances",
 )
 
