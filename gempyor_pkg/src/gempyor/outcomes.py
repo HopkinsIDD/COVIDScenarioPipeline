@@ -187,6 +187,7 @@ def read_parameters_from_config(s: setup.Setup):
                                 f"unsure how to read outcome {class_name}: not a str, nor an incidence or prevalence: {src_name}"
                             )
 
+                    # 1. probability
                     parameters[class_name]["probability"] = outcomes_config[new_comp][
                         "probability"
                     ]["value"]
@@ -210,53 +211,42 @@ def read_parameters_from_config(s: setup.Setup):
                             "probability::npi_param_name"
                         ] = f"{new_comp}::probability".lower()
 
-                    parameters[class_name]["delay"] = outcomes_config[new_comp][
-                        "delay"
-                    ]["value"]
-                    if outcomes_config[new_comp]["delay"][
-                        "intervention_param_name"
-                    ].exists():
-                        parameters[class_name]["delay::npi_param_name"] = (
-                            outcomes_config[new_comp]["delay"][
-                                "intervention_param_name"
-                            ]
-                            .as_str()
-                            .lower()
-                        )
-                        logging.debug(
-                            f"delay of outcome {new_comp} is affected by intervention "
-                            f"named {parameters[class_name]['delay::npi_param_name']} "
-                            f"instead of {new_comp}::delay"
-                        )
-                    else:
-                        parameters[class_name][
-                            "delay::npi_param_name"
-                        ] = f"{new_comp}::delay".lower()
-
-                    if outcomes_config[new_comp]["duration"].exists():
-                        parameters[class_name]["duration"] = outcomes_config[new_comp][
-                            "duration"
+                    # 2. delay
+                    if outcomes_config[new_comp]["delay"]["value"].exists():
+                        parameters[class_name]["delay::definition"] = "value"
+                        # we have a classical outcomes specified by a single delay:
+                        parameters[class_name]["delay"] = outcomes_config[new_comp][
+                            "delay"
                         ]["value"]
-                        if outcomes_config[new_comp]["duration"][
+                        if outcomes_config[new_comp]["delay"][
                             "intervention_param_name"
                         ].exists():
-                            parameters[class_name]["duration::npi_param_name"] = (
-                                outcomes_config[new_comp]["duration"][
+                            parameters[class_name]["delay::npi_param_name"] = (
+                                outcomes_config[new_comp]["delay"][
                                     "intervention_param_name"
                                 ]
                                 .as_str()
                                 .lower()
                             )
                             logging.debug(
-                                f"duration of outcome {new_comp} is affected by intervention "
-                                f"named {parameters[class_name]['duration::npi_param_name']} "
-                                f"instead of {new_comp}::duration"
+                                f"delay of outcome {new_comp} is affected by intervention "
+                                f"named {parameters[class_name]['delay::npi_param_name']} "
+                                f"instead of {new_comp}::delay"
                             )
                         else:
                             parameters[class_name][
-                                "duration::npi_param_name"
-                            ] = f"{new_comp}::duration".lower()
+                                "delay::npi_param_name"
+                            ] = f"{new_comp}::delay".lower()
+                    elif outcomes_config[new_comp]["delay"]["shape"].exists():
+                        parameters[class_name]["delay::definition"] = "shape"
+                        parameters[class_name]["delay"] = outcomes_config[new_comp]["delay"]["shape"]
+                    else:
+                        raise ValueError(
+                            f"The delay for outcome {new_comp} is not specified with either a value or a shape"
+                        )
 
+                    if outcomes_config[new_comp]["duration"].exists():
+                        # create the duration name:
                         if outcomes_config[new_comp]["duration"]["name"].exists():
                             parameters[class_name]["duration_name"] = (
                                 outcomes_config[new_comp]["duration"]["name"].as_str()
@@ -267,6 +257,40 @@ def read_parameters_from_config(s: setup.Setup):
                                 new_comp + "_curr" + subclass
                             )
 
+                        if outcomes_config[new_comp]["duration"]["value"].exists():
+                            parameters[class_name]["duration::definition"] = "value"
+                            # we have a classical outcomes specified by a single duration.
+                            parameters[class_name]["duration"] = outcomes_config[new_comp][
+                                "duration"
+                            ]["value"]
+                            if outcomes_config[new_comp]["duration"][
+                                "intervention_param_name"
+                            ].exists():
+                                parameters[class_name]["duration::npi_param_name"] = (
+                                    outcomes_config[new_comp]["duration"][
+                                        "intervention_param_name"
+                                    ]
+                                    .as_str()
+                                    .lower()
+                                )
+                                logging.debug(
+                                    f"duration of outcome {new_comp} is affected by intervention "
+                                    f"named {parameters[class_name]['duration::npi_param_name']} "
+                                    f"instead of {new_comp}::duration"
+                                )
+                            else:
+                                parameters[class_name][
+                                    "duration::npi_param_name"
+                                ] = f"{new_comp}::duration".lower()
+                        elif outcomes_config[new_comp]["duration"]["shape"].exists():
+                            parameters[class_name]["duration::definition"] = "shape"
+                            parameters[class_name]["duration"] = outcomes_config[new_comp][
+                                "duration"
+                            ]["shape"]
+                        else:
+                            raise ValueError(
+                                f"Duration of outcome {new_comp} is not specified with a value or a shape"
+                            )
                     if s.outcomes_config["param_from_file"].get():
                         rel_probability = branching_data[
                             (branching_data["outcome"] == class_name)

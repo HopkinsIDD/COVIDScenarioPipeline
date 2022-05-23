@@ -8,7 +8,24 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def get_source_array(source_name: str, all_data, seir_sim, dates, s) -> np.ndarray:
+    if source_name == "incidI":  # create incidI
+        source_array = get_filtered_incidI(
+            seir_sim,
+            dates,
+            s.spatset.nodenames,
+            {"incidence": {"infection_stage": "I1"}},
+        )
 
+    elif isinstance(source_name, dict):
+        source_array = get_filtered_incidI(
+            seir_sim, dates, s.spatset.nodenames, source_name
+        )
+        # we don't write source to the hosp file in this case
+    else:  # it's an already defined outcomes
+        source_array = all_data[source_name]
+
+    return source_array
 
 
 def compute_all_multioutcomes(
@@ -28,19 +45,19 @@ def compute_all_multioutcomes(
 
     seir_sim = read_seir_sim(s, sim_id=sim_id2write)
 
+    ## stoch_delay_flag is whether to use stochastic delays or not. True is not supported.
+    stoch_delay_flag = False
+
     for new_comp in parameters:
+        # there is two way of building outcomes: from a source with probability, delay (and duration if needed)
+        # or as a sum of existing outcomes.
         if "source" in parameters[new_comp]:
             # Read the config for this compartment: if a source is specified, we
-            # 1. compute incidence from binomial draw
-            # 2. compute duration if needed
-            source_name = parameters[new_comp]["source"]
-            if source_name == "incidI" and "incidI" not in all_data:  # create incidI
-                source_array = get_filtered_incidI(
-                    seir_sim,
-                    dates,
-                    s.spatset.nodenames,
-                    {"incidence": {"infection_stage": "I1"}},
-                )
+            # 1. compute the source compartment incidence:
+            source_name: str = parameters[new_comp]["source"]
+            source_array = get_source_array(source_name=source_name, all_data= all_data, seir_sim=seir_sim, dates=dates, s=s)
+            if source_name == "incidI" and "incidI" not in all_data:
+                # add incidI to the written frame, for consistence with past behaviour
                 all_data["incidI"] = source_array
                 outcomes = pd.merge(
                     outcomes,
@@ -48,14 +65,8 @@ def compute_all_multioutcomes(
                         source_array, s.spatset.nodenames, dates, "incidI"
                     ),
                 )
-            elif isinstance(source_name, dict):
-                source_array = get_filtered_incidI(
-                    seir_sim, dates, s.spatset.nodenames, source_name
-                )
-                # we don't write source to the hosp file in this case
-            else:  # it's an already defined outcomes
-                source_array = all_data[source_name]
 
+            # 2. compute the probabilities and delays.
             if (loaded_values is not None) and (
                 new_comp in loaded_values["outcome"].values
             ):
@@ -65,7 +76,7 @@ def compute_all_multioutcomes(
                     & (loaded_values["outcome"] == new_comp)
                 ]["value"].to_numpy()
                 delays = loaded_values[
-                    (loaded_values["quantity"] == "delay")
+                    (loaded_values["quantity"].str.startswith("delay"))
                     & (loaded_values["outcome"] == new_comp)
                 ]["value"].to_numpy()
             else:
@@ -143,8 +154,6 @@ def compute_all_multioutcomes(
                 )
 
             # Shift to account for the delay
-            ## stoch_delay_flag is whether to use stochastic delays or not
-            stoch_delay_flag = False
             all_data[new_comp] = multishift(
                 all_data[new_comp], delays, stoch_delay_flag=stoch_delay_flag
             )
@@ -160,7 +169,7 @@ def compute_all_multioutcomes(
                     new_comp in loaded_values["outcome"].values
                 ):
                     durations = loaded_values[
-                        (loaded_values["quantity"] == "duration")
+                        (loaded_values["quantity"].str.startswith("duration"))
                         & (loaded_values["outcome"] == new_comp)
                     ]["value"].to_numpy()
                 else:
