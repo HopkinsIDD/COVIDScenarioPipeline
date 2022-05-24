@@ -54,6 +54,11 @@ incidH = hosp_read[["incidH", "geoid", "date"]].pivot(
     columns="geoid", index="date", values="incidH"
 )
 
+# the incidI has values
+#               15001 15003 15005 15007 15009
+# 2020-04-15 --> 6.0   8.0   0.0   2.0   4.0
+# and the rest is all zeros
+
 delay_hosp = config["outcomes_shapes"]["delay_hosp"].as_convolution_kernel()
 delay_hosp = delay_hosp[len(delay_hosp) // 2 :]  # only the future part as defined.
 
@@ -87,8 +92,42 @@ icu_curr = hosp_read[["incidICU_curr", "geoid", "date"]].pivot(
     columns="geoid", index="date", values="incidICU_curr"
 )
 
+for i, place in enumerate(geoid):
+    icu_curr_pl = icu_curr[place]
+    incidICU_pl = incidICU[place]  # date is 2020-04-18
 
-# the incidI has values
-#               15001 15003 15005 15007 15009
-# 2020-04-15 --> 6.0   8.0   0.0   2.0   4.0
-# and the rest is all zeros
+    pploutofICU = pd.DataFrame(
+        np.convolve(
+            incidICU_pl,
+            config["outcomes_shapes"]["duration_icu_mod"].as_convolution_kernel(),
+            mode="same",
+        ),
+        index=icu_curr_pl.index,
+    )
+    # the duration is:
+    #  array: [.5, .25, .25] with  shift: 3 and we have e.g incidI at 2020-04-18    0.8
+    # so we should havel, in pploutofICU:
+    # 2020-04-18  0.0  # no one is out the same day
+    # 2020-04-19  0.0  # nor the next
+    # 2020-04-20  0.0  # nor the next
+    # 2020-04-21  0.4  # half the first day
+    # 2020-04-22  0.2  # a quarter
+    # 2020-04-23  0.2  # a quarter
+    # so ppl in icu_curr are:
+    # 2020-04-18    0.8  # everyone
+    # 2020-04-19    0.8  # everyone
+    # 2020-04-20    0.8  # everyone
+    # 2020-04-21    0.4  # half at the end of the day !
+    # 2020-04-22    0.2  # a quarter now, and then zeros.
+    if diffI[i] != 0:
+        assert len(icu_curr_pl[icu_curr_pl == incidICU_pl.max()]) == 3  # 3 days with everyone
+        assert icu_curr_pl.loc["2020-04-17"] == 0              # no one in the past
+        assert icu_curr_pl.loc["2020-04-18"] == diffI[i]*.1           # everyone in the first day
+        assert icu_curr_pl.loc["2020-04-19"] == diffI[i]*.1           # everyone in the first day
+        assert icu_curr_pl.loc["2020-04-20"] == diffI[i]*.1           # everyone in the first day
+        assert icu_curr_pl.loc["2020-04-21"] == diffI[i]*.1/2           # half at the end of the day
+        assert diffI[i]*.1/4-1e-6 <icu_curr_pl.loc["2020-04-22"] < diffI[i]*.1/4+1e-6           # a quarter now, and then zeros.
+        assert icu_curr_pl.loc["2020-04-23"] == 0             # no one thereafter
+
+
+
