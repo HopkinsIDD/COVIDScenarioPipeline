@@ -1425,3 +1425,28 @@ def test_outcomes_pcomp_read_write():
 
 
 # ADD A test that everything is equivalent
+
+def test_outcomes_shapesingle():
+    os.chdir(os.path.dirname(__file__))
+    config.clear()
+    config.read(user=False)
+    config.set_file(f"config_shape_full.yml")
+
+    outcomes_shapes = config["outcomes_shapes"]
+
+    # check that all convolution kernel from shape have mass 1, and are 1d array
+    for outcomes_shape in outcomes_shapes:
+        ck = outcomes_shapes[outcomes_shape].as_convolution_kernel()
+        assert len(ck.shape) == 1 # check that it is 1d
+        assert 1 - 1e-6 < ck.sum() < 1 + 1e-6  # check that the mass is 1
+
+    # specific checks:
+    delay_hosp = outcomes_shapes["delay_hosp"].as_convolution_kernel()
+    assert len(delay_hosp) == 11
+
+    duration_hosp = outcomes_shapes["duration_hosp"].as_convolution_kernel()
+    assert len(duration_hosp) == 8
+
+    duration_icu = outcomes_shapes["duration_icu"].as_convolution_kernel()
+    assert len(duration_icu) == 19
+

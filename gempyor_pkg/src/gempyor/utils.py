@@ -227,15 +227,15 @@ def as_convolution_kernel(self, cutoff=None) -> np.ndarray:
     elif self["distribution"].exists():
         dist = as_random_distribution(self, return_dist=True)
         # find the natural cutoff where .99 of the mass is below the cutoff
-        cutoff = dist.ppf(0.99)
+        cutoff = dist.ppf(0.99) + 1
         if self["cutoff"].exists():
-            cutoff = self["cutoff"].get()
-        kernel = dist.pdf(np.arange(cutoff))
+            cutoff = self["cutoff"].get() + 1
+        kernel = dist.pdf(np.arange(cutoff)) # np.arange automatically floors the cutoff to int.
     else:
         raise NotImplementedError(f"unknown convolution shape [got: {self.get()}]")
 
     if self["shift"].exists():
-        kernel = np.pad(kernel, self["shift"].get(), mode="constant", constant_values=0)
+        kernel = np.pad(kernel, (self["shift"].get(), 0), mode="constant", constant_values=0) # left pad is zero
 
     return normalize_and_check_convolution_kernel(kernel)
 

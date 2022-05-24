@@ -54,7 +54,7 @@ interventions:
 outcomes_shapes:
   delay_hosp:
       distribution: truncnorm
-      mean: 10
+      mean: 5
       sd: 4
       a: 0
       b: 10
@@ -62,16 +62,13 @@ outcomes_shapes:
         mean: this_npi_affects_the_mean
         sd: this_npi_affects_the_sd
   duration_hosp:
-      array: [0, .05, .1, .2, .2, .2, .1, .05, .05, .05]
-  delay_icu:
+      array: [0, .05, .1, .2, .2, .2, .1, .05]
+  duration_icu:
       distribution: truncnorm
       mean: 10
       sd: 10
       a: 0
       b: 20
-      intervention_param_name:
-        mean: this_npi_affects_the_mean
-        sd: this_npi_affects_the_sd
       cutoff: 15
       shift: 3
 outcomes:
@@ -100,7 +97,11 @@ outcomes:
             distribution: fixed
             value: .1
         delay:
-          shape: delay_icu
+          value:
+            distribution: fixed
+            value: 3
+        duration:
+          shape: duration_icu
   interventions:
     settings:
       high_death_rate:
