@@ -40,7 +40,7 @@ outcomes.onerun_delayframe_outcomes(
 ### test shape generation
 config.clear()
 config.read(user=False)
-config.set_file(f"config_shape.yml")
+config.set_file(f"config_shape_full.yml")
 
 outcomes_shapes = config["outcomes_shapes"]
 
