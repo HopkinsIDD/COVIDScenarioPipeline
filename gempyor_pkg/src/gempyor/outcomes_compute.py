@@ -184,6 +184,7 @@ def compute_all_multioutcomes(
             elif parameters[new_comp]["delay::definition"] == "shape":
                 # we don't use loaded value when there is a shape
                 delays = parameters[new_comp]["delay"].as_convolution_kernel()
+                breakpoint()
                 # delays = delays(
             else:
                 raise ValueError("delay::definition must be either 'value' or 'shape'")
@@ -267,7 +268,6 @@ def compute_all_multioutcomes(
                     )
 
                 # add the duration of the ourcome to the final dataframe.
-                breakpoint()
                 df_p = dataframe_from_array(
                     all_data[parameters[new_comp]["duration_name"]],
                     s.spatset.nodenames,
