@@ -1464,16 +1464,22 @@ def test_outcomes_shape_single():
     assert auto_dist.cdf(len(support_in_the_future)) > 0.99
     assert auto_dist.cdf(len(support_in_the_future) - 2) < 0.99
 
-
     # test the gamma distribution
     # TODO: this should go in another place
-    gamma_rate = config["outcomes_shapes"]["gamma_rate"].as_random_distribution(return_dist=True)
-    gamma_scale = config["outcomes_shapes"]["gamma_scale"].as_random_distribution(return_dist=True)
+    gamma_rate = config["outcomes_shapes"]["gamma_rate"].as_random_distribution(
+        return_dist=True
+    )
+    gamma_scale = config["outcomes_shapes"]["gamma_scale"].as_random_distribution(
+        return_dist=True
+    )
 
     # check that the two parametrizations are the same
-    assert (gamma_rate.pdf(np.arange(30,step=0.1)) == gamma_scale.pdf(np.arange(30,step=0.1))).all()
+    assert (
+        gamma_rate.pdf(np.arange(30, step=0.1))
+        == gamma_scale.pdf(np.arange(30, step=0.1))
+    ).all()
 
-    assert gamma_rate.stats()  == (np.array(30.), np.array(300.))  # mean, variance
+    assert gamma_rate.stats() == (np.array(30.0), np.array(300.0))  # mean, variance
 
 
 def test_outcomes_shape_full():
@@ -1481,7 +1487,6 @@ def test_outcomes_shape_full():
     config.clear()
     config.read(user=False)
     config.set_file(f"config_shape_full.yml")
-
 
     inference_simulator = gempyor.InferenceSimulator(
         config_path=f"{config_path_prefix}config_shape_full.yml",
@@ -1571,15 +1576,25 @@ def test_outcomes_shape_full():
         # 2020-04-21    0.4  # half at the end of the day !
         # 2020-04-22    0.2  # a quarter now, and then zeros.
         if diffI[i] != 0:
-            assert len(icu_curr_pl[icu_curr_pl == incidICU_pl.max()]) == 3  # 3 days with everyone
-            assert icu_curr_pl.loc["2020-04-17"] == 0              # no one in the past
-            assert icu_curr_pl.loc["2020-04-18"] == diffI[i]*.1           # everyone in the first day
-            assert icu_curr_pl.loc["2020-04-19"] == diffI[i]*.1           # everyone in the first day
-            assert icu_curr_pl.loc["2020-04-20"] == diffI[i]*.1           # everyone in the first day
-            assert icu_curr_pl.loc["2020-04-21"] == diffI[i]*.1/2           # half at the end of the day
-            assert diffI[i]*.1/4-1e-6 <icu_curr_pl.loc["2020-04-22"] < diffI[i]*.1/4+1e-6           # a quarter now, and then zeros.
-            assert icu_curr_pl.loc["2020-04-23"] == 0             # no one thereafter
-
-
-
-
+            assert (
+                len(icu_curr_pl[icu_curr_pl == incidICU_pl.max()]) == 3
+            )  # 3 days with everyone
+            assert icu_curr_pl.loc["2020-04-17"] == 0  # no one in the past
+            assert (
+                icu_curr_pl.loc["2020-04-18"] == diffI[i] * 0.1
+            )  # everyone in the first day
+            assert (
+                icu_curr_pl.loc["2020-04-19"] == diffI[i] * 0.1
+            )  # everyone in the first day
+            assert (
+                icu_curr_pl.loc["2020-04-20"] == diffI[i] * 0.1
+            )  # everyone in the first day
+            assert (
+                icu_curr_pl.loc["2020-04-21"] == diffI[i] * 0.1 / 2
+            )  # half at the end of the day
+            assert (
+                diffI[i] * 0.1 / 4 - 1e-6
+                < icu_curr_pl.loc["2020-04-22"]
+                < diffI[i] * 0.1 / 4 + 1e-6
+            )  # a quarter now, and then zeros.
+            assert icu_curr_pl.loc["2020-04-23"] == 0  # no one thereafter

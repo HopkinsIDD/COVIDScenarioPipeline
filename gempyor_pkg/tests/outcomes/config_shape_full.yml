@@ -85,6 +85,8 @@ outcomes_shapes:
     distribution: gamma
     shape: 3
     scale: 10
+
+    
 outcomes:
   method: delayframe
   param_from_file: False
