@@ -71,6 +71,9 @@ outcomes_shapes:
       b: 20
       cutoff: 15
       shift: 3
+  duration_icu_mod:
+      array: [.5, .25, .25]
+      shift: 3
   test_automatic_support:  # not used elsewhere in the config, but for test_outcomes_shape_single():
       distribution: poisson
       lam: 30
@@ -104,7 +107,7 @@ outcomes:
             distribution: fixed
             value: 3
         duration:
-          shape: duration_icu
+          shape: duration_icu_mod
   interventions:
     settings:
       high_death_rate:

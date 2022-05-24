@@ -102,6 +102,10 @@ Or if a functional form is defined, it is possible to use a distribution. In add
 
 Gempyor will normalize the kernels to ensure that their mass (area under the curve) is 1. Moreover, gempyor will raise an error if negative number find their ways into the kernel.
 
+Moreover, as the user provides the distribution **in the future only**, to get an input suitable for convolution, gempyor appends `len(kernel)` zeros at the start of the kernel.
+
+So **The first number in the shape definition is the number of individual entering this outcome (or exiting for a duration) the day of the source incidence**.
+
 #### Available distributions
 Gempyor distributions are the same for NPIs, parameters, and outcomes shape:
 - `fixed`

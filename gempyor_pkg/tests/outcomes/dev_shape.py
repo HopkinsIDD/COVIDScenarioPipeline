@@ -55,15 +55,26 @@ incidH = hosp_read[["incidH", "geoid", "date"]].pivot(
 )
 
 delay_hosp = config["outcomes_shapes"]["delay_hosp"].as_convolution_kernel()
+delay_hosp = delay_hosp[len(delay_hosp) // 2 :]  # only the future part as defined.
+
+# the convolution doesn't bring anything in the past.
+assert (incidH.loc[:"2020-04-14"] == 0).all().all()
 
 # check that the sum is conserved
 for i, place in enumerate(geoid):
     assert 0.2 * diffI[i] - 1e-6 < incidH[place].sum() < 0.2 * diffI[i] + 1e-6
-    assert len(incidH[place].to_numpy().nonzero()[0]) == 11
-    assert (
-        incidH[place].iloc[incidH[place].to_numpy().nonzero()[0]]
-        == delay_hosp * diffI[i] * 0.2
-    ).all()
+    if diffI[i] > 0.0001:
+        assert len(incidH[place].to_numpy().nonzero()[0]) == 11
+        assert (
+            delay_hosp * diffI[i] * 0.2 - 1e-6
+            < incidH[place].iloc[incidH[place].to_numpy().nonzero()[0]]
+        ).all()
+        assert (
+            delay_hosp * diffI[i] * 0.2 + 1e-6
+            > incidH[place].iloc[incidH[place].to_numpy().nonzero()[0]]
+        ).all()
+    else:
+        assert (incidH[place] == 0).all()
 
 hosp_curr = hosp_read[["duration_with_a_twist", "geoid", "date"]].pivot(
     columns="geoid", index="date", values="duration_with_a_twist"

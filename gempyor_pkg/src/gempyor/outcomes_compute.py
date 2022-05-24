@@ -266,13 +266,19 @@ def compute_all_multioutcomes(
                     duration_kernel = parameters[new_comp][
                         "duration"
                     ].as_convolution_kernel()
+                    # breakpoint()
                     # careful duration must be written to the name duration_name
                     all_data[parameters[new_comp]["duration_name"]] = np.cumsum(
                         all_data[new_comp], axis=0
-                    ) - convolve_along_time_dim(
-                        outcome_array=np.cumsum(all_data[new_comp], axis=0),
-                        kernel=duration_kernel,
+                    ) - np.cumsum(
+                        convolve_along_time_dim(
+                            outcome_array=all_data[new_comp],
+                            kernel=duration_kernel,
+                        ),
+                        axis=0,
                     )
+                    # cumulative of indivdidual entering the outcome compartment
+                    # minus the people going out
                 else:
                     raise ValueError(
                         "duration::definition must be either 'value' or 'shape'"

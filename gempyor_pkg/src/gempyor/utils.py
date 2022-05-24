@@ -247,6 +247,11 @@ def as_convolution_kernel(self, cutoff=None) -> np.ndarray:
             kernel, (self["shift"].get(), 0), mode="constant", constant_values=0
         )  # left pad is zero
 
+    # Double the kernel so that it is centered: user provides the future distribution of cases.
+    # The first number in the shape definition is the number of individual
+    # entering this outcome (or exiting for a duration) the day of the source incidence
+    kernel = np.pad(kernel, (len(kernel) - 1, 0), mode="constant", constant_values=0)
+
     return normalize_and_check_convolution_kernel(kernel)
 
 
