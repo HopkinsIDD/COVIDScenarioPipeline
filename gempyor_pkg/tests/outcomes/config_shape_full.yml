@@ -31,17 +31,25 @@ interventions:
         value: 0.5
     H_delay_mean:
       template: Reduce
-      parameter: "incidH_probability"
+      parameter: "this_npi_affects_the_mean"
       affected_geoids: "all"
       period_start_date: 2020-04-15
       period_end_date: 2020-05-05
       value:
         distribution: fixed
         value: 0.5
-
-    all_outcomes_npi:
+    H_delay_sd:
+      template: Reduce
+      parameter: "this_npi_affects_the_sd"
+      affected_geoids: "all"
+      period_start_date: 2020-04-25
+      period_end_date: 2020-04-30
+      value:
+        distribution: fixed
+        value: 0.5
+    all_outcomes_npis:
       template: Stacked
-      scenarios: ["Hdelay", "Hprobability", "Hduration"]
+      scenarios: ["Hprobability", "H_delay_sd", "H_delay_mean"]
 
 outcomes_shapes:
   delay_hosp:
@@ -55,8 +63,17 @@ outcomes_shapes:
         sd: this_npi_affects_the_sd
   duration_hosp:
       array: [0, .05, .1, .2, .2, .2, .1, .05, .05, .05]
-
-
+  delay_icu:
+      distribution: truncnorm
+      mean: 10
+      sd: 10
+      a: 0
+      b: 20
+      intervention_param_name:
+        mean: this_npi_affects_the_mean
+        sd: this_npi_affects_the_sd
+      cutoff: 15
+      shift: 3
 outcomes:
   method: delayframe
   param_from_file: False
@@ -75,6 +92,15 @@ outcomes:
           shape: delay_hosp
         duration:
           shape: duration_hosp ## shape instead of value: \n distribution: fixed, ...
+          name: duration_with_a_twist
+      incidICU:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: .1
+        delay:
+          shape: delay_icu
   interventions:
     settings:
       high_death_rate:

@@ -1,3 +1,4 @@
+from jinja2 import pass_environment
 from numba import jit
 import numpy as np
 import pandas as pd
@@ -137,48 +138,55 @@ def compute_all_multioutcomes(
                 )
 
             # 3. compute the delays --------------------------------------
-            if loaded_values_for_this_comp:
-                delays = loaded_values[
-                    (loaded_values["quantity"].str.startswith("delay"))
-                    & (loaded_values["outcome"] == new_comp)
-                ]["value"].to_numpy()
-            else:
-                delays = parameters[new_comp]["delay"].as_random_distribution()(
-                    size=len(s.spatset.nodenames)
-                )  # one draw per geoid
+            if parameters[new_comp]["delay::definition"] == "value":
+                if loaded_values_for_this_comp:
+                    delays = loaded_values[
+                        (loaded_values["quantity"].str.startswith("delay"))
+                        & (loaded_values["outcome"] == new_comp)
+                    ]["value"].to_numpy()
+                else:
+                    delays = parameters[new_comp]["delay"].as_random_distribution()(
+                        size=len(s.spatset.nodenames)
+                    )  # one draw per geoid
 
-            delays = np.repeat(
-                delays[:, np.newaxis], len(dates), axis=1
-            ).T  # duplicate in time
-            delays = np.round(delays).astype(int)
-            # write hpar before NP
-            hpar = pd.concat(
-                [
-                    hpar,
-                    pd.DataFrame.from_dict(
-                        {
-                            "geoid": s.spatset.nodenames,
-                            "quantity": ["delay"] * len(s.spatset.nodenames),
-                            "outcome": [new_comp] * len(s.spatset.nodenames),
-                            "value": delays[0] * np.ones(len(s.spatset.nodenames)),
-                        }
-                    ),
-                ],
-                axis=0,
-            )
-            if npi is not None:
-                delays = NPI.reduce_parameter(
-                    parameter=delays,
-                    modification=npi.getReduction(
-                        parameters[new_comp]["delay::npi_param_name"].lower()
-                    ),
-                )
+                delays = np.repeat(
+                    delays[:, np.newaxis], len(dates), axis=1
+                ).T  # duplicate in time
                 delays = np.round(delays).astype(int)
+                # write hpar before NP
+                hpar = pd.concat(
+                    [
+                        hpar,
+                        pd.DataFrame.from_dict(
+                            {
+                                "geoid": s.spatset.nodenames,
+                                "quantity": ["delay"] * len(s.spatset.nodenames),
+                                "outcome": [new_comp] * len(s.spatset.nodenames),
+                                "value": delays[0] * np.ones(len(s.spatset.nodenames)),
+                            }
+                        ),
+                    ],
+                    axis=0,
+                )
+                if npi is not None:
+                    delays = NPI.reduce_parameter(
+                        parameter=delays,
+                        modification=npi.getReduction(
+                            parameters[new_comp]["delay::npi_param_name"].lower()
+                        ),
+                    )
+                    delays = np.round(delays).astype(int)
 
-            # Shift to account for the delay
-            all_data[new_comp] = multishift(
-                all_data[new_comp], delays, stoch_delay_flag=stoch_delay_flag
-            )
+                # Shift to account for the delay
+                all_data[new_comp] = multishift(
+                    all_data[new_comp], delays, stoch_delay_flag=stoch_delay_flag
+                )
+            elif parameters[new_comp]["delay::definition"] == "shape":
+                # we don't use loaded value when there is a shape
+                delays = parameters[new_comp]["delay"].as_convolution_kernel()
+                # delays = delays(
+            else:
+                raise ValueError("delay::definition must be either 'value' or 'shape'")
 
             # 5. Produce a dataframe with the incidence in the new compartment and merge it --------------------------------------
             df_p = dataframe_from_array(
@@ -188,69 +196,78 @@ def compute_all_multioutcomes(
 
             # 4. compute the duration --------------------------------------
             if "duration" in parameters[new_comp]:
-                if (loaded_values is not None) and (
-                    new_comp in loaded_values["outcome"].values
-                ):
-                    durations = loaded_values[
-                        (loaded_values["quantity"].str.startswith("duration"))
-                        & (loaded_values["outcome"] == new_comp)
-                    ]["value"].to_numpy()
-                else:
-                    durations = parameters[new_comp][
-                        "duration"
-                    ].as_random_distribution()(
-                        size=len(s.spatset.nodenames)
-                    )  # one draw per geoid
-                durations = np.repeat(
-                    durations[:, np.newaxis], len(dates), axis=1
-                ).T  # duplicate in time
-                durations = np.round(durations).astype(int)
-
-                hpar = pd.concat(
-                    [
-                        hpar,
-                        pd.DataFrame.from_dict(
-                            {
-                                "geoid": s.spatset.nodenames,
-                                "quantity": ["duration"] * len(s.spatset.nodenames),
-                                "outcome": [new_comp] * len(s.spatset.nodenames),
-                                "value": durations[0]
-                                * np.ones(len(s.spatset.nodenames)),
-                            }
-                        ),
-                    ],
-                    axis=0,
-                )
-
-                if npi is not None:
-                    # import matplotlib.pyplot as plt
-                    # plt.imshow(durations)
-                    # plt.title(durations.mean())
-                    # plt.colorbar()
-                    # plt.savefig('Dbef'+new_comp + '-' + source)
-                    # plt.close()
-                    # print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
-                    durations = NPI.reduce_parameter(
-                        parameter=durations,
-                        modification=npi.getReduction(
-                            parameters[new_comp]["duration::npi_param_name"].lower()
-                        ),
-                    )  # npi.getReduction(f"{new_comp}::duration".lower()))
+                if parameters[new_comp]["duration::definition"] == "value":
+                    if (loaded_values is not None) and (
+                        new_comp in loaded_values["outcome"].values
+                    ):
+                        durations = loaded_values[
+                            (loaded_values["quantity"].str.startswith("duration"))
+                            & (loaded_values["outcome"] == new_comp)
+                        ]["value"].to_numpy()
+                    else:
+                        durations = parameters[new_comp][
+                            "duration"
+                        ].as_random_distribution()(
+                            size=len(s.spatset.nodenames)
+                        )  # one draw per geoid
+                    durations = np.repeat(
+                        durations[:, np.newaxis], len(dates), axis=1
+                    ).T  # duplicate in time
                     durations = np.round(durations).astype(int)
-                    # plt.imshow(durations)
-                    # plt.title(durations.mean())
-                    # plt.colorbar()
-                    # plt.savefig('Daft'+new_comp + '-' + source)
-                    # plt.close()
 
-                all_data[parameters[new_comp]["duration_name"]] = np.cumsum(
-                    all_data[new_comp], axis=0
-                ) - multishift(
-                    np.cumsum(all_data[new_comp], axis=0),
-                    durations,
-                    stoch_delay_flag=stoch_delay_flag,
-                )
+                    hpar = pd.concat(
+                        [
+                            hpar,
+                            pd.DataFrame.from_dict(
+                                {
+                                    "geoid": s.spatset.nodenames,
+                                    "quantity": ["duration"] * len(s.spatset.nodenames),
+                                    "outcome": [new_comp] * len(s.spatset.nodenames),
+                                    "value": durations[0]
+                                    * np.ones(len(s.spatset.nodenames)),
+                                }
+                            ),
+                        ],
+                        axis=0,
+                    )
 
+                    if npi is not None:
+                        # import matplotlib.pyplot as plt
+                        # plt.imshow(durations)
+                        # plt.title(durations.mean())
+                        # plt.colorbar()
+                        # plt.savefig('Dbef'+new_comp + '-' + source)
+                        # plt.close()
+                        # print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
+                        durations = NPI.reduce_parameter(
+                            parameter=durations,
+                            modification=npi.getReduction(
+                                parameters[new_comp]["duration::npi_param_name"].lower()
+                            ),
+                        )  # npi.getReduction(f"{new_comp}::duration".lower()))
+                        durations = np.round(durations).astype(int)
+                        # plt.imshow(durations)
+                        # plt.title(durations.mean())
+                        # plt.colorbar()
+                        # plt.savefig('Daft'+new_comp + '-' + source)
+                        # plt.close()
+
+                    all_data[parameters[new_comp]["duration_name"]] = np.cumsum(
+                        all_data[new_comp], axis=0
+                    ) - multishift(
+                        np.cumsum(all_data[new_comp], axis=0),
+                        durations,
+                        stoch_delay_flag=stoch_delay_flag,
+                    )
+                elif parameters[new_comp]["duration::definition"] == "shape":
+                    pass
+                else:
+                    raise ValueError(
+                        "duration::definition must be either 'value' or 'shape'"
+                    )
+
+                # add the duration of the ourcome to the final dataframe.
+                breakpoint()
                 df_p = dataframe_from_array(
                     all_data[parameters[new_comp]["duration_name"]],
                     s.spatset.nodenames,

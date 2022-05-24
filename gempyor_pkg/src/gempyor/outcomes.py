@@ -129,6 +129,7 @@ def read_parameters_from_config(s: setup.Setup):
         # Either mean of probabilities given or from the file... This speeds up a bit the process.
         # However needs an ordered dict, here we're abusing a bit the spec.
         outcomes_config = s.outcomes_config["settings"][s.outcomes_scenario]
+        outcomes_shapes_config = s.outcomes_shapes_config
         if s.outcomes_config["param_from_file"].get():
             # Load the actual csv file
             branching_file = s.outcomes_config["param_place_file"].as_str()
@@ -241,9 +242,9 @@ def read_parameters_from_config(s: setup.Setup):
                             ] = f"{new_comp}::delay".lower()
                     elif outcomes_config[new_comp]["delay"]["shape"].exists():
                         parameters[class_name]["delay::definition"] = "shape"
-                        parameters[class_name]["delay"] = outcomes_config[new_comp][
-                            "delay"
-                        ]["shape"]
+                        parameters[class_name]["delay"] = outcomes_shapes_config[
+                            outcomes_config[new_comp]["delay"]["shape"].get()
+                        ]
                     else:
                         raise ValueError(
                             f"The delay for outcome {new_comp} is not specified with either a value or a shape"
@@ -288,9 +289,9 @@ def read_parameters_from_config(s: setup.Setup):
                                 ] = f"{new_comp}::duration".lower()
                         elif outcomes_config[new_comp]["duration"]["shape"].exists():
                             parameters[class_name]["duration::definition"] = "shape"
-                            parameters[class_name]["duration"] = outcomes_config[
-                                new_comp
-                            ]["duration"]["shape"]
+                            parameters[class_name]["duration"] = outcomes_shapes_config[
+                                outcomes_config[new_comp]["duration"]["shape"].get()
+                            ]
                         else:
                             raise ValueError(
                                 f"Duration of outcome {new_comp} is not specified with a value or a shape"

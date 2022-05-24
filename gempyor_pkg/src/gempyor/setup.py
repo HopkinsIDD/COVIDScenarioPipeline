@@ -138,6 +138,12 @@ class Setup:
                     "settings"
                 ][self.outcomes_scenario]
 
+        self.outcomes_shapes_config = None
+        if config[
+            "outcomes_shapes"
+        ].exists():  # perhaps this should be passed as an argument ?
+            self.outcomes_shapes_config = config["outcomes_shapes"]
+
         # 4. Inputs and outputs
         if in_run_id is None:
             in_run_id = file_paths.run_id()

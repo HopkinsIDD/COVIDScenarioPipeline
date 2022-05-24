@@ -169,7 +169,7 @@ def get_log_normal(meanlog, sdlog):
 
 
 @add_method(confuse.ConfigView)
-def as_random_distribution(self, return_cdf=False):
+def as_random_distribution(self, return_dist=False):
     """Constructs a random distribution object from a distribution config key. Either return
     a rvs object (Random variates, default) or a cdf object (Cumulative distribution function).
     """
@@ -205,8 +205,8 @@ def as_random_distribution(self, return_cdf=False):
     else:
         raise NotImplementedError(f"unknown distribution [got: {dist}]")
 
-    if return_cdf:
-        return dist.cdf
+    if return_dist:
+        return dist
     else:
         return dist.rvs
 
@@ -219,23 +219,21 @@ def normalize_and_check_convolution_kernel(kernel: np.ndarray) -> np.ndarray:
 
 
 @add_method(confuse.ConfigView)
-def as_convolution_kernel(self) -> np.ndarray:
+def as_convolution_kernel(self, cutoff=None) -> np.ndarray:
     "Returns the shape of the convolution unit_kernel"
     if self["array"].exists():
         kernel = np.array(self["array"].get())
-        return normalize_and_check_convolution_kernel(kernel)
-    if self["distribution"].exists():
-        dist = as_random_distribution(self, return_cdf=True)
-
-        np.diff(
-            dist(np.arange(20))
-        )  # + sum things with support and all. Maybe default to mean + 3sd?
-
-        print(dist, type(dist))
-        breakpoint()
-
+    elif self["distribution"].exists():
+        dist = as_random_distribution(self, return_dist=True)
+        # find the natural cutoff where .99 of the mass is below the cutoff
+        cutoff = dist.ppf(0.99)
+        if self["cutoff"].exists():
+            cutoff = self["cutoff"].get()
+        kernel = dist.pdf(np.arange(cutoff))
     else:
         raise NotImplementedError(f"unknown convolution shape [got: {self.get()}]")
+
+    return normalize_and_check_convolution_kernel(kernel)
 
 
 def aws_disk_diagnosis():

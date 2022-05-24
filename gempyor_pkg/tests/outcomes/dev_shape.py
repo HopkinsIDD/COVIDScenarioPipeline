@@ -25,7 +25,7 @@ from gempyor.utils import config
 config_path_prefix = ""  #'tests/outcomes/'
 
 inference_simulator = gempyor.InferenceSimulator(
-    config_path=f"{config_path_prefix}config.yml",
+    config_path=f"{config_path_prefix}config_shape_full.yml",
     run_id=1,
     prefix="",
     first_sim_index=1,
@@ -40,7 +40,7 @@ outcomes.onerun_delayframe_outcomes(
 ### test shape generation
 config.clear()
 config.read(user=False)
-config.set_file(f"config_shape_only.yml")
+config.set_file(f"config_shape.yml")
 
 outcomes_shapes = config["outcomes_shapes"]
 
@@ -49,3 +49,4 @@ print(duration_hosp, np.sum(duration_hosp))
 
 delay_hosp = outcomes_shapes["delay_hosp"].as_convolution_kernel()
 print(delay_hosp)
+breakpoint()
