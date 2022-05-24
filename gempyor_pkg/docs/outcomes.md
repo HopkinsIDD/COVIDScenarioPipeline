@@ -175,7 +175,7 @@ outcomes_shapes:
       b: 20
       cutoff: 15
       shift: 3
-  test_automatic_support: 
+  test_automatic_support:  # here the automatic cutoff cuts it after something like 45 days
     distribution: poisson
     lam: 30
   gamma_rate:
@@ -196,12 +196,15 @@ Or if a functional form is defined, it is possible to use a distribution. In add
 
 Gempyor will normalize the kernels to ensure that their mass (area under the curve) is 1. Moreover, gempyor will raise an error if negative number find their ways into the kernel.
 
- **The first number in the shape definition is the number of individual entering this outcome (or exiting for a duration) the day of the source incidence**.
+
 
 
 #### technically: 
 Moreover, as the user provides the distribution **in the future only**, to get an input suitable for convolution, gempyor appends `len(kernel)` zeros at the start of the kernel. So gempyor builds a convolution kernel with an odd number as length. Say the user give 6 values (a,b,c,d,e,f) because our user defined the cutoff as 5, then the convolution kernel is `0 0 0 0 0 a b c d e f` where a multiplies today value (and the padded zeros ensure we don't affect the past).
 
+ **The first number in the shape definition is the number of individual entering this outcome (or exiting for a duration) the day of the source incidence**. 
+ 
+It’s important to keep in mind that you are not specifying the convolution kernel but the present and futur part of it. E.g if you give a shape of [.5, .25, .25] for the delay between incidI to incidH, then for 4 individual in incidI on a certain day, 2 will go to incidH the same day, 1 the second day and 1 the third day (i.e the convolution kernel is [0,0,5, .25, .25]
 
 #### Available distributions
 Gempyor distributions are the same for NPIs, parameters, and outcomes shape:

@@ -83,6 +83,7 @@ def test_parameters_quick_draw_old():
 
     assert R0s.shape == (nt_inter, nnodes)
     assert len(np.unique(R0s)) == 1
+    breakpoint()
     assert ((2 <= R0s) & (R0s <= 3)).all()
 
     assert sigma.shape == (nt_inter, nnodes)

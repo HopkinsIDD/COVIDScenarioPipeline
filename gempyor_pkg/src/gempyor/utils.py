@@ -178,9 +178,10 @@ def as_random_distribution(self, return_dist=False):
     if dist == "fixed":
         dist = scipy.stats.uniform(loc=self["value"].as_evaled_expression(), scale=0)
     elif dist == "uniform":
+        # The loc is the lower bound and scale is upper bound subtracted from the lower bound !!
         dist = scipy.stats.uniform(
             loc=self["low"].as_evaled_expression(),
-            scale=self["high"].as_evaled_expression(),
+            scale=self["high"].as_evaled_expression()- self["low"].as_evaled_expression(),
         )
     elif dist == "poisson":
         dist = scipy.stats.poisson(mu=self["lam"].as_evaled_expression())
