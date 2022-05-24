@@ -183,8 +183,8 @@ def compute_all_multioutcomes(
                 )
             elif parameters[new_comp]["delay::definition"] == "shape":
                 # we don't use loaded value when there is a shape
-                delays = parameters[new_comp]["delay"].as_convolution_kernel()
-                all_data[new_comp] = convolve_along_time_dim(outcome_array=all_data[new_comp], kernel=delays)
+                delay_kernel = parameters[new_comp]["delay"].as_convolution_kernel()
+                all_data[new_comp] = convolve_along_time_dim(outcome_array=all_data[new_comp], kernel=delay_kernel)
                 # delays = delays(
             else:
                 raise ValueError("delay::definition must be either 'value' or 'shape'")
@@ -261,8 +261,9 @@ def compute_all_multioutcomes(
                         stoch_delay_flag=stoch_delay_flag,
                     )
                 elif parameters[new_comp]["duration::definition"] == "shape":
-                    durations_kernel = parameters[new_comp]["duration"].as_convolution_kernel()
-                    all_data[new_comp] = convolve_along_time_dim(outcome_array=all_data[new_comp], kernel=duration)
+                    duration_kernel = parameters[new_comp]["duration"].as_convolution_kernel()
+                    # careful duration must be written to the name duration_name
+                    all_data[parameters[new_comp]["duration_name"]] = convolve_along_time_dim(outcome_array=all_data[new_comp], kernel=duration_kernel)
                 else:
                     raise ValueError(
                         "duration::definition must be either 'value' or 'shape'"
@@ -346,7 +347,6 @@ def read_seir_sim(s, sim_id):
 
     return seir_df
 
-@jit(nopython=True)
 def convolve_along_time_dim(outcome_array: np.ndarray, kernel: np.ndarray):
     """ 
     outcomes_array has shape (dates, places)
