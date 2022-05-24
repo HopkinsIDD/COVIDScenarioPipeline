@@ -71,6 +71,9 @@ outcomes_shapes:
       b: 20
       cutoff: 15
       shift: 3
+  test_automatic_support:  # not used elsewhere in the config, but for test_outcomes_shape_single():
+      distribution: poisson
+      lam: 30
 outcomes:
   method: delayframe
   param_from_file: False

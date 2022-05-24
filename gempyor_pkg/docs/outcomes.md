@@ -49,6 +49,8 @@ will create a new outcomes as the sum of the listed outcomes.
 ## Outcomes shape specification
 Instead of point-delay, it is possible to specify a distribution (a _shape_) for the delay and durations of outcomes. A single incidence in the source is then spread according to the distribution, following a convolution operation.
 
+A good example config lies in `gempyor_pkg/tests/outcomes/config_shape_full.yml`
+
 To use this feature, instead of a `value:`, the name of a previously defined (see next section) shape is given after `shape`:
 ```yaml
 outcomes: 
