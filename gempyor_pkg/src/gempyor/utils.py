@@ -250,6 +250,7 @@ def as_convolution_kernel(self, cutoff=None) -> np.ndarray:
     # Double the kernel so that it is centered: user provides the future distribution of cases.
     # The first number in the shape definition is the number of individual
     # entering this outcome (or exiting for a duration) the day of the source incidence
+    # so the array always has an odd length (the center is the first element).
     kernel = np.pad(kernel, (len(kernel) - 1, 0), mode="constant", constant_values=0)
 
     return normalize_and_check_convolution_kernel(kernel)

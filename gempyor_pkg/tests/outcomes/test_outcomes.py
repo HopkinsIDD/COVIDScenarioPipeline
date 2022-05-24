@@ -1443,13 +1443,13 @@ def test_outcomes_shape_single():
 
     # specific checks:
     delay_hosp = outcomes_shapes["delay_hosp"].as_convolution_kernel()
-    assert len(delay_hosp) == 11  # this is an automatic cutoff
+    assert len(delay_hosp) == 11*2-1  # this is an automatic cutoff
 
     duration_hosp = outcomes_shapes["duration_hosp"].as_convolution_kernel()
-    assert len(duration_hosp) == 8
+    assert len(duration_hosp) == 8*2-1
 
     duration_icu = outcomes_shapes["duration_icu"].as_convolution_kernel()
-    assert len(duration_icu) == 19
+    assert len(duration_icu) == 19*2-1
 
     test_automatic_support = outcomes_shapes[
         "test_automatic_support"
@@ -1459,5 +1459,7 @@ def test_outcomes_shape_single():
     auto_dist = outcomes_shapes["test_automatic_support"].as_random_distribution(
         return_dist=True
     )
-    assert auto_dist.cdf(len(test_automatic_support)) > 0.99
-    assert auto_dist.cdf(len(test_automatic_support) - 2) < 0.99
+    support_in_the_future = test_automatic_support[len(test_automatic_support) // 2:]
+
+    assert auto_dist.cdf(len(support_in_the_future)) > 0.99
+    assert auto_dist.cdf(len(support_in_the_future) - 2) < 0.99
