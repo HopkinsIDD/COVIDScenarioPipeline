@@ -35,7 +35,7 @@ def compute_all_multioutcomes(
 ):
     """Compute delay frame based on temporally varying input. We load the seir sim corresponding to sim_id to write"""
     hpar = pd.DataFrame(columns=["geoid", "quantity", "outcome", "value"])
-    all_data = {}
+    all_data = {}  # stores the outcomes data, with shape (dates, places)
     dates = pd.date_range(s.ti, s.tf, freq="D")
 
     outcomes = dataframe_from_array(
@@ -184,7 +184,7 @@ def compute_all_multioutcomes(
             elif parameters[new_comp]["delay::definition"] == "shape":
                 # we don't use loaded value when there is a shape
                 delays = parameters[new_comp]["delay"].as_convolution_kernel()
-                breakpoint()
+                all_data[new_comp] = convolve_along_time_dim(outcome_array=all_data[new_comp], kernel=delays)
                 # delays = delays(
             else:
                 raise ValueError("delay::definition must be either 'value' or 'shape'")
@@ -261,7 +261,8 @@ def compute_all_multioutcomes(
                         stoch_delay_flag=stoch_delay_flag,
                     )
                 elif parameters[new_comp]["duration::definition"] == "shape":
-                    pass
+                    durations_kernel = parameters[new_comp]["duration"].as_convolution_kernel()
+                    all_data[new_comp] = convolve_along_time_dim(outcome_array=all_data[new_comp], kernel=duration)
                 else:
                     raise ValueError(
                         "duration::definition must be either 'value' or 'shape'"
@@ -344,6 +345,19 @@ def read_seir_sim(s, sim_id):
     seir_df = s.read_simID(ftype="seir", sim_id=sim_id)
 
     return seir_df
+
+@jit(nopython=True)
+def convolve_along_time_dim(outcome_array: np.ndarray, kernel: np.ndarray):
+    """ 
+    outcomes_array has shape (dates, places)
+    kernel is 1d
+    """
+    result = np.zeros_like(outcome_array)
+    for place in range(outcome_array.shape[1]):
+        result[:, place] = np.convolve(
+            outcome_array[:, place], kernel, mode="same"
+        ) # same ensure that the result has the same length as the input.
+    return result
 
 
 def dataframe_from_array(data, places, dates, comp_name):
