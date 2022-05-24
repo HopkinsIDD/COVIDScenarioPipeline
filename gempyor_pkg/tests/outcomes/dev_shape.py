@@ -59,6 +59,7 @@ incidH = hosp_read[["incidH", "geoid", "date"]].pivot(
 # 2020-04-15 --> 6.0   8.0   0.0   2.0   4.0
 # and the rest is all zeros
 
+
 delay_hosp = config["outcomes_shapes"]["delay_hosp"].as_convolution_kernel()
 delay_hosp = delay_hosp[len(delay_hosp) // 2 :]  # only the future part as defined.
 
@@ -131,3 +132,11 @@ for i, place in enumerate(geoid):
 
 
 
+
+gamma_rate = config["outcomes_shapes"]["gamma_rate"].as_random_distribution(return_dist=True)
+gamma_scale = config["outcomes_shapes"]["gamma_scale"].as_random_distribution(return_dist=True)
+
+# check that the two parametrizations are the same
+assert (gamma_rate.pdf(np.arange(30,step=0.1)) == gamma_scale.pdf(np.arange(30,step=0.1))).all()
+
+assert gamma_rate.stats()  == (np.array(30.), np.array(300.))  # mean, variance

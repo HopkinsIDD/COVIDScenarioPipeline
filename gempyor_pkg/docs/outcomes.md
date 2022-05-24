@@ -126,7 +126,9 @@ Gempyor distributions are the same for NPIs, parameters, and outcomes shape:
 - `lognorm
     - `meanlog`
     - `sdlog`
-- `gamma`: we choose the shape 
+- `gamma`:
+    - `shape`
+    - `scale` or `rate`s
 
 Want another distribution?  ask for it, it's much easier if it is in this list https://docs.scipy.org/doc/scipy/reference/stats.html but we can arrange it. 
 

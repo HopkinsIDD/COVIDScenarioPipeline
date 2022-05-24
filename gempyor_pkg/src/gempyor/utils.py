@@ -202,6 +202,15 @@ def as_random_distribution(self, return_dist=False):
             meanlog=self["meanlog"].as_evaled_expression(),
             sdlog=self["sdlog"].as_evaled_expression(),
         )
+    elif dist == "gamma":
+        if self["rate"].exists():
+            scale = 1 / self["rate"].as_evaled_expression()
+        else:
+            scale = self["scale"].as_evaled_expression()
+        dist = scipy.stats.gamma(
+            a=self["shape"].as_evaled_expression(),
+            scale=scale,
+        )
     else:
         raise NotImplementedError(f"unknown distribution [got: {dist}]")
 

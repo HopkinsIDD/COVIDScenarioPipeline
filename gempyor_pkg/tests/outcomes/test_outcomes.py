@@ -1465,6 +1465,17 @@ def test_outcomes_shape_single():
     assert auto_dist.cdf(len(support_in_the_future) - 2) < 0.99
 
 
+    # test the gamma distribution
+    # TODO: this should go in another place
+    gamma_rate = config["outcomes_shapes"]["gamma_rate"].as_random_distribution(return_dist=True)
+    gamma_scale = config["outcomes_shapes"]["gamma_scale"].as_random_distribution(return_dist=True)
+
+    # check that the two parametrizations are the same
+    assert (gamma_rate.pdf(np.arange(30,step=0.1)) == gamma_scale.pdf(np.arange(30,step=0.1))).all()
+
+    assert gamma_rate.stats()  == (np.array(30.), np.array(300.))  # mean, variance
+
+
 def test_outcomes_shape_full():
     os.chdir(os.path.dirname(__file__))
     config.clear()

@@ -53,30 +53,38 @@ interventions:
 
 outcomes_shapes:
   delay_hosp:
-      distribution: truncnorm
-      mean: 5
-      sd: 4
-      a: 0
-      b: 10
-      intervention_param_name:
-        mean: this_npi_affects_the_mean
-        sd: this_npi_affects_the_sd
+    distribution: truncnorm
+    mean: 5
+    sd: 4
+    a: 0
+    b: 10
+    intervention_param_name:
+      mean: this_npi_affects_the_mean
+      sd: this_npi_affects_the_sd
   duration_hosp:
-      array: [0, .05, .1, .2, .2, .2, .1, .05]
+    array: [0, .05, .1, .2, .2, .2, .1, .05]
   duration_icu:
-      distribution: truncnorm
-      mean: 10
-      sd: 10
-      a: 0
-      b: 20
-      cutoff: 15
-      shift: 3
+    distribution: truncnorm
+    mean: 10
+    sd: 10
+    a: 0
+    b: 20
+    cutoff: 15
+    shift: 3
   duration_icu_mod:
-      array: [.5, .25, .25]
-      shift: 3
+    array: [.5, .25, .25]
+    shift: 3
   test_automatic_support:  # not used elsewhere in the config, but for test_outcomes_shape_single():
-      distribution: poisson
-      lam: 30
+    distribution: poisson
+    lam: 30
+  gamma_rate:
+    distribution: gamma
+    shape: 3
+    rate: 1/10
+  gamma_scale:
+    distribution: gamma
+    shape: 3
+    scale: 10
 outcomes:
   method: delayframe
   param_from_file: False
