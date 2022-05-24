@@ -51,7 +51,7 @@ Instead of point-delay, it is possible to specify a distribution (a _shape_) for
 
 A good example config lies in `gempyor_pkg/tests/outcomes/config_shape_full.yml`
 
-To use this feature, instead of a `value:`, the name of a previously defined (see next section) shape is given after `shape`:
+To use this feature, instead of a `value:`, the name of a previously defined (see next section) shape name is given after `shape`. A single shape may be re-used for several outcomes.
 ```yaml
 outcomes: 
   settings:
@@ -67,6 +67,7 @@ outcomes:
         duration:
           shape: duration_hosp ## shape instead of value: \n distribution: fixed, ...
 ```
+Here we define the delay to hospitalization and the duration in hospital as shapes. These shapes are defined as:
 
 ### Shape definition
 Shapes are defined in the root section `outcomes_shapes:` of the config. Each shape is a convolution kernel.
@@ -81,7 +82,7 @@ outcomes_shapes:
       intervention_param_name:
         mean: this_npi_affects_the_mean
         sd: this_npi_affects_the_sd
-  duration_hosp: # gets normalized to [0, 0.0555, 0.111, 0.222, 0.222, 0.222, 0.111, 0.0555]
+  duration_hosp: # gets normalized to [0, 0.0555, 0.111, 0.222, 0.222, 0.222, 0.111, 0.0555], see below
       array: [0, .05, .1, .2, .2, .2, .1, .05]
   duration_icu:  # has len(19). rougly  [0 , 0 , 0, 0.04304299, 0.04733261, 0.05153182, ..., 0.06784, 0.0655, 0.0626]
       distribution: truncnorm
@@ -127,3 +128,4 @@ Want another distribution?  ask for it, it's much easier if it is in this list h
 
 
 ### Modifying shapes in time
+Not currently working.
