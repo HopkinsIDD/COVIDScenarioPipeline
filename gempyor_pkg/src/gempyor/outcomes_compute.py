@@ -184,7 +184,9 @@ def compute_all_multioutcomes(
             elif parameters[new_comp]["delay::definition"] == "shape":
                 # we don't use loaded value when there is a shape
                 delay_kernel = parameters[new_comp]["delay"].as_convolution_kernel()
-                all_data[new_comp] = convolve_along_time_dim(outcome_array=all_data[new_comp], kernel=delay_kernel)
+                all_data[new_comp] = convolve_along_time_dim(
+                    outcome_array=all_data[new_comp], kernel=delay_kernel
+                )
                 # delays = delays(
             else:
                 raise ValueError("delay::definition must be either 'value' or 'shape'")
@@ -261,9 +263,16 @@ def compute_all_multioutcomes(
                         stoch_delay_flag=stoch_delay_flag,
                     )
                 elif parameters[new_comp]["duration::definition"] == "shape":
-                    duration_kernel = parameters[new_comp]["duration"].as_convolution_kernel()
+                    duration_kernel = parameters[new_comp][
+                        "duration"
+                    ].as_convolution_kernel()
                     # careful duration must be written to the name duration_name
-                    all_data[parameters[new_comp]["duration_name"]] = convolve_along_time_dim(outcome_array=all_data[new_comp], kernel=duration_kernel)
+                    all_data[parameters[new_comp]["duration_name"]] = np.cumsum(
+                        all_data[new_comp], axis=0
+                    ) - convolve_along_time_dim(
+                        outcome_array=np.cumsum(all_data[new_comp], axis=0),
+                        kernel=duration_kernel,
+                    )
                 else:
                     raise ValueError(
                         "duration::definition must be either 'value' or 'shape'"
@@ -347,8 +356,9 @@ def read_seir_sim(s, sim_id):
 
     return seir_df
 
+
 def convolve_along_time_dim(outcome_array: np.ndarray, kernel: np.ndarray):
-    """ 
+    """
     outcomes_array has shape (dates, places)
     kernel is 1d
     """
@@ -356,7 +366,7 @@ def convolve_along_time_dim(outcome_array: np.ndarray, kernel: np.ndarray):
     for place in range(outcome_array.shape[1]):
         result[:, place] = np.convolve(
             outcome_array[:, place], kernel, mode="same"
-        ) # same ensure that the result has the same length as the input.
+        )  # same ensure that the result has the same length as the input.
     return result
 
 

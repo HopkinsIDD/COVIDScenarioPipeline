@@ -230,9 +230,11 @@ def as_convolution_kernel(self, cutoff=None) -> np.ndarray:
         cutoff = dist.ppf(0.99) + 1
         if self["cutoff"].exists():
             cutoff = self["cutoff"].get() + 1
-        
+
         if is_dist_continuous(dist):
-            kernel = dist.pdf(np.arange(cutoff)) # np.arange automatically floors the cutoff to int.
+            kernel = dist.pdf(
+                np.arange(cutoff)
+            )  # np.arange automatically floors the cutoff to int.
         elif is_dist_discrete(dist):
             kernel = dist.pmf(np.arange(cutoff))
         else:
@@ -241,7 +243,9 @@ def as_convolution_kernel(self, cutoff=None) -> np.ndarray:
         raise NotImplementedError(f"unknown convolution shape [got: {self.get()}]")
 
     if self["shift"].exists():
-        kernel = np.pad(kernel, (self["shift"].get(), 0), mode="constant", constant_values=0) # left pad is zero
+        kernel = np.pad(
+            kernel, (self["shift"].get(), 0), mode="constant", constant_values=0
+        )  # left pad is zero
 
     return normalize_and_check_convolution_kernel(kernel)
 
@@ -250,14 +254,17 @@ def as_convolution_kernel(self, cutoff=None) -> np.ndarray:
 # because sometime dist is a rv_frozen, so it's not a straigthforward check
 # see https://stackoverflow.com/questions/61529345/how-can-i-check-whether-a-scipy-distribution-is-discrete
 def is_dist_discrete(dist):
-    if hasattr(dist, 'dist'):
+    if hasattr(dist, "dist"):
         return isinstance(dist.dist, scipy.stats.rv_discrete)
-    else: return isinstance(dist, scipy.stats.rv_discrete)
+    else:
+        return isinstance(dist, scipy.stats.rv_discrete)
+
 
 def is_dist_continuous(dist):
-    if hasattr(dist, 'dist'):
+    if hasattr(dist, "dist"):
         return isinstance(dist.dist, scipy.stats.rv_continuous)
-    else: return isinstance(dist, scipy.stats.rv_continuous)
+    else:
+        return isinstance(dist, scipy.stats.rv_continuous)
 
 
 def aws_disk_diagnosis():

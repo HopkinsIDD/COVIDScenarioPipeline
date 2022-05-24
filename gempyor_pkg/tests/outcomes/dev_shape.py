@@ -39,7 +39,7 @@ inference_simulator = gempyor.InferenceSimulator(
     first_sim_index=1,
     deathrate="high_death_rate",
     stoch_traj_flag=False,
-    out_run_id=550
+    out_run_id=550,
 )
 
 outcomes.onerun_delayframe_outcomes(
@@ -50,7 +50,9 @@ hosp_read = pq.read_table(
     f"{config_path_prefix}model_output/hosp/000000001.550.hosp.parquet"
 ).to_pandas()
 
-incidH = hosp_read[['incidH', 'geoid', 'date']].pivot(columns='geoid', index='date', values='incidH')
+incidH = hosp_read[["incidH", "geoid", "date"]].pivot(
+    columns="geoid", index="date", values="incidH"
+)
 
 delay_hosp = config["outcomes_shapes"]["delay_hosp"].as_convolution_kernel()
 
@@ -58,16 +60,24 @@ delay_hosp = config["outcomes_shapes"]["delay_hosp"].as_convolution_kernel()
 for i, place in enumerate(geoid):
     assert 0.2 * diffI[i] - 1e-6 < incidH[place].sum() < 0.2 * diffI[i] + 1e-6
     assert len(incidH[place].to_numpy().nonzero()[0]) == 11
-    assert (incidH[place].iloc[incidH[place].to_numpy().nonzero()[0]] == delay_hosp * diffI[i] * 0.2).all()
+    assert (
+        incidH[place].iloc[incidH[place].to_numpy().nonzero()[0]]
+        == delay_hosp * diffI[i] * 0.2
+    ).all()
 
-hosp_curr = hosp_read[['duration_with_a_twist', 'geoid', 'date']].pivot(columns='geoid', index='date', values='duration_with_a_twist')
+hosp_curr = hosp_read[["duration_with_a_twist", "geoid", "date"]].pivot(
+    columns="geoid", index="date", values="duration_with_a_twist"
+)
 
-incidICU = hosp_read[['incidICU', 'geoid', 'date']].pivot(columns='geoid', index='date', values='incidICU')
-icu_curr = hosp_read[['incidICU_curr', 'geoid', 'date']].pivot(columns='geoid', index='date', values='incidICU_curr')
+incidICU = hosp_read[["incidICU", "geoid", "date"]].pivot(
+    columns="geoid", index="date", values="incidICU"
+)
+icu_curr = hosp_read[["incidICU_curr", "geoid", "date"]].pivot(
+    columns="geoid", index="date", values="incidICU_curr"
+)
 
 
 # the incidI has values
 #               15001 15003 15005 15007 15009
 # 2020-04-15 --> 6.0   8.0   0.0   2.0   4.0
 # and the rest is all zeros
-

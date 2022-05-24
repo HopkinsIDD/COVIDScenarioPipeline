@@ -1426,6 +1426,7 @@ def test_outcomes_pcomp_read_write():
 
 # ADD A test that everything is equivalent
 
+
 def test_outcomes_shape_single():
     os.chdir(os.path.dirname(__file__))
     config.clear()
@@ -1437,7 +1438,7 @@ def test_outcomes_shape_single():
     # check that all convolution kernel from shape have mass 1, and are 1d array
     for outcomes_shape in outcomes_shapes:
         ck = outcomes_shapes[outcomes_shape].as_convolution_kernel()
-        assert len(ck.shape) == 1 # check that it is 1d
+        assert len(ck.shape) == 1  # check that it is 1d
         assert 1 - 1e-6 < ck.sum() < 1 + 1e-6  # check that the mass is 1
 
     # specific checks:
@@ -1450,11 +1451,13 @@ def test_outcomes_shape_single():
     duration_icu = outcomes_shapes["duration_icu"].as_convolution_kernel()
     assert len(duration_icu) == 19
 
-    test_automatic_support = outcomes_shapes["test_automatic_support"].as_convolution_kernel()
+    test_automatic_support = outcomes_shapes[
+        "test_automatic_support"
+    ].as_convolution_kernel()
     # the automatic support has a cutoff at .99 of the mass of the distrubtion:
-    # get the distribution: 
-    auto_dist = outcomes_shapes["test_automatic_support"].as_random_distribution(return_dist= True)
-    assert auto_dist.cdf(len(test_automatic_support)) > .99
-    assert auto_dist.cdf(len(test_automatic_support)-2) < .99
-
-
+    # get the distribution:
+    auto_dist = outcomes_shapes["test_automatic_support"].as_random_distribution(
+        return_dist=True
+    )
+    assert auto_dist.cdf(len(test_automatic_support)) > 0.99
+    assert auto_dist.cdf(len(test_automatic_support) - 2) < 0.99
