@@ -1,0 +1,25 @@
+The model results here are the results of a modeling pipeline 
+that moves from a seeding phase, through epidemic simulation,
+a outcome and hospitalization generation engine, and report 
+generation. Core code for all aspects of the pipeline 
+is all open source. The core pipeline phases are:
+
+
+* **Seeding:** We run a model to determine the likelihood of importing
+  cases into the region of interest. We maintain an [R
+  package](https://github.com/HopkinsIDD/covidImportation).
+
+* **Epidemic Simulation:** We run a location stratified [SEIR
+  model](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/SEIR),
+  using a python module in `COVIDScenarioPipeline`.
+  
+* **Hospitalization and Outcome Generator:** We estimate secondary
+  effects of infection using infection numbers using the
+  [hospitalization](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/hospitalization)
+  R package in `COVIDScenarioPipeline`.
+
+* **Report Generation:** We provide functions to access results and
+  help produce reports in the
+  [report_generation](https://github.com/HopkinsIDD/COVIDScenarioPipeline/tree/dataseed/R/pkgs/report_generation)
+  R package in `COVIDScenarioPipeline`.
+  
