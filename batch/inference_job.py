@@ -164,6 +164,16 @@ from gempyor import file_paths
     default=str(date.today()),
     help="Last date to pull for ground truth data",
 )
+@click.option(
+    "--reset-chimerics-on-global-accept",
+    "--reset-chimerics-on-global-accept",
+   "reset_chimerics",
+   envvar="COVID_RESET_CHIMERICS",
+   type=bool,
+   default=True,
+   help="Flag determining whether to reset chimeric values on any global acceptances",
+)
+
 def launch_batch(
     config_file,
     run_id,
@@ -182,6 +192,7 @@ def launch_batch(
     resume_discard_seeding,
     max_stacked_interventions,
     last_validation_date,
+    reset_chimerics
 ):
 
     config = None
@@ -225,6 +236,7 @@ def launch_batch(
         resume_discard_seeding,
         max_stacked_interventions,
         last_validation_date,
+        reset_chimerics,
     )
 
     job_queues = get_job_queues(job_queue_prefix)
@@ -326,6 +338,7 @@ class BatchJobHandler(object):
         resume_discard_seeding,
         max_stacked_interventions,
         last_validation_date,
+        reset_chimerics,
     ):
         self.run_id = run_id
         self.num_jobs = num_jobs
@@ -342,6 +355,7 @@ class BatchJobHandler(object):
         self.resume_discard_seeding = resume_discard_seeding
         self.max_stacked_interventions = max_stacked_interventions
         self.last_validation_date = last_validation_date
+        self.reset_chimerics = reset_chimerics
 
     def launch(self, job_name, config_file, scenarios, p_death_names, job_queues):
 
@@ -429,6 +443,7 @@ class BatchJobHandler(object):
                 "value": str(self.resume_discard_seeding),
             },
             {"name": "COVID_STOCHASTIC", "value": str(self.stochastic)},
+            {"name": "COVID_RESET_CHIMERICS", "value": str(self.reset_chimerics)},
         ]
 
         runner_script_path = f"s3://{self.s3_bucket}/{runner_script_name}"
