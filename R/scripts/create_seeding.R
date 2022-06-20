@@ -273,7 +273,7 @@ incident_cases <- incident_cases %>%
     dplyr::group_modify(function(.x, .y) {
         .x %>%
             dplyr::arrange(Update) %>%
-            dplyr::filter(value > 0) %>%
+            dplyr::filter(value > 0 & !is.na(value)) %>%
             .[seq_len(min(nrow(.x), 5)), ] %>%
             dplyr::mutate(
                 Update = Update - lubridate::days(config[["seeding"]][["seeding_delay"]]),
