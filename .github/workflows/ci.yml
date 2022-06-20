@@ -31,8 +31,10 @@ jobs:
         shell: bash
       - name: Install the gempyor package
         run: |
-          /home/app/python_venv/bin/python -m pip install --upgrade pip
-          /home/app/python_venv/bin/pip install -e gempyor_pkg/
+          eval "$(/home/app/.pyenv/bin/pyenv init -)"
+          /home/app/.pyenv/bin/pyenv shell 3.10.1
+          python -m pip install --upgrade pip
+          pip install -e gempyor_pkg/
         shell: bash
       - name: Install local R packages
         run: Rscript local_install.R
@@ -40,7 +42,7 @@ jobs:
       - name: Run gempyor tests
         run: |
           cd gempyor_pkg
-          /home/app/python_venv/bin/pytest -s
+          pytest -s
         shell: bash
       - name: Run covidcommon tests
         run: |
@@ -52,11 +54,11 @@ jobs:
           setwd("R/pkgs/hospitalization")
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
-      - name: Run report.generation tests
-        run: |
-          setwd("R/pkgs/report.generation")
-          devtools::test(stop_on_failure=TRUE)
-        shell: Rscript {0}
+#      - name: Run report.generation tests
+#        run: |
+#          setwd("R/pkgs/report.generation")
+#          devtools::test(stop_on_failure=TRUE)
+#        shell: Rscript {0}
       - name: Run inference tests
         run: |
           setwd("R/pkgs/inference")
@@ -69,5 +71,5 @@ jobs:
           git lfs pull
           Rscript local_install.R
           cd test
-          /home/app/python_venv/bin/pytest run_tests.py
+          pytest run_tests.py
         shell: bash

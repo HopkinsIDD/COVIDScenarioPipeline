@@ -29,7 +29,8 @@ option_list = list(
   optparse::make_option(c("-y", "--python"), action="store", default=Sys.getenv("COVID_PYTHON_PATH","python3"), type='character', help="path to python executable"),
   optparse::make_option(c("-r", "--rpath"), action="store", default=Sys.getenv("COVID_RSCRIPT_PATH","Rscript"), type = 'character', help = "path to R executable"),
   optparse::make_option(c("-R", "--is-resume"), action="store", default=Sys.getenv("COVID_IS_RESUME",FALSE), type = 'logical', help = "Is this run a resume"),
-  optparse::make_option(c("-I", "--is-interactive"), action="store", default=Sys.getenv("COVID_INTERACTIVE",Sys.getenv("INTERACTIVE_RUN", FALSE)), type = 'logical', help = "Is this run an interactive run")
+  optparse::make_option(c("-I", "--is-interactive"), action="store", default=Sys.getenv("COVID_INTERACTIVE",Sys.getenv("INTERACTIVE_RUN", FALSE)), type = 'logical', help = "Is this run an interactive run"),
+  optparse::make_option(c("-L", "--reset_chimeric_on_accept"), action = "store", default = Sys.getenv("COVID_RESET_CHIMERICS", FALSE), type = 'logical', help = 'Should the chimeric parameters get reset to global parameters when a global acceptance occurs')
 )
 
 parser=optparse::OptionParser(option_list=option_list)
@@ -219,8 +220,15 @@ gempyor <- reticulate::import("gempyor")
 
 # Scenario loop -----
 
+print(paste("Chimeric reset is", (opt$reset_chimeric_on_accept)))
+print(names(opt))
+if (!opt$reset_chimeric_on_accept) {
+  warning("We recommend setting reset_chimeric_on_accept TRUE, since reseting chimeric chains on global acceptances more closely matches normal MCMC behaviour")
+}
+
 for(scenario in scenarios) {
   for(deathrate in deathrates) {
+    reset_chimeric_files <- FALSE
     # Data -------------------------------------------------------------------------
     # Load
 
@@ -463,6 +471,10 @@ for(scenario in scenarios) {
         global_likelihood <- proposed_likelihood
         #This carries forward to next iteration as current global likelihood data
         global_likelihood_data <- proposed_likelihood_data
+
+        if (opt$reset_chimeric_on_accept) {
+          reset_chimeric_files <- TRUE
+        }
         
         warning("Removing unused files")
         sapply(old_global_files, file.remove)
@@ -473,7 +485,8 @@ for(scenario in scenarios) {
         sapply(this_global_files, file.remove)
       }
 
-      avg_global_accept_rate <- ((this_index-1)*old_avg_global_accept_rate + proposed_likelihood_data$accept)/(this_index) # update running average acceptance probability
+      effective_index <- (opt$this_block - 1) * opt$simulations_per_slot + this_index
+      avg_global_accept_rate <- ((effective_index-1)*old_avg_global_accept_rate + proposed_likelihood_data$accept)/(effective_index) # update running average acceptance probability
       proposed_likelihood_data$accept_avg <-avg_global_accept_rate
       proposed_likelihood_data$accept_prob <- exp(min(c(0, proposed_likelihood - global_likelihood))) #acceptance probability 
 
@@ -486,36 +499,48 @@ for(scenario in scenarios) {
       # prints to file of the form llik/name/scenario/deathrate/run_id/global/intermediate/slot.block.iter.run_id.llik.ext
       arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
       
-      ## Chimeric likelihood acceptance or rejection decisions (one round) -----
-      #  "Chimeric" means GeoID-specific
-      
-      seeding_npis_list <- inference::accept_reject_new_seeding_npis(
-        seeding_orig = initial_seeding,
-        seeding_prop = proposed_seeding,
-        snpi_orig = initial_snpi,
-        snpi_prop = proposed_snpi,
-        hnpi_orig = initial_hnpi,
-        hnpi_prop = proposed_hnpi,
-        hpar_orig = initial_hpar,
-        hpar_prop = proposed_hpar,
-        orig_lls = chimeric_likelihood_data,
-        prop_lls = proposed_likelihood_data
-      )
-      
-      old_avg_chimeric_accept_rate <- chimeric_likelihood_data$accept_avg # keep track of running average chimeric acceptance rate, for each geoID, since old chimeric likelihood data not kept in memory
-      
-      # Update accepted parameters to start next simulation
-      initial_seeding <- seeding_npis_list$seeding
-      initial_snpi <- seeding_npis_list$snpi
-      initial_hnpi <- seeding_npis_list$hnpi
-      initial_hpar <- seeding_npis_list$hpar
-      chimeric_likelihood_data <- seeding_npis_list$ll
+      # keep track of running average chimeric acceptance rate, for each geoID, since old chimeric likelihood data not kept in memory
+      old_avg_chimeric_accept_rate <- chimeric_likelihood_data$accept_avg
+
+      if (!reset_chimeric_files) {
+        ## Chimeric likelihood acceptance or rejection decisions (one round) -----
+        #  "Chimeric" means GeoID-specific
+        
+        seeding_npis_list <- inference::accept_reject_new_seeding_npis(
+          seeding_orig = initial_seeding,
+          seeding_prop = proposed_seeding,
+          snpi_orig = initial_snpi,
+          snpi_prop = proposed_snpi,
+          hnpi_orig = initial_hnpi,
+          hnpi_prop = proposed_hnpi,
+          hpar_orig = initial_hpar,
+          hpar_prop = proposed_hpar,
+          orig_lls = chimeric_likelihood_data,
+          prop_lls = proposed_likelihood_data
+        )
+
+
+        # Update accepted parameters to start next simulation
+        initial_seeding <- seeding_npis_list$seeding
+        initial_snpi <- seeding_npis_list$snpi
+        initial_hnpi <- seeding_npis_list$hnpi
+        initial_hpar <- seeding_npis_list$hpar
+        chimeric_likelihood_data <- seeding_npis_list$ll
+      } else {
+        print("Resetting chimeric files to global")
+        initial_seeding <- proposed_seeding
+        initial_snpi <- proposed_snpi
+        initial_hnpi <- proposed_hnpi
+        initial_hpar <- proposed_hpar
+        chimeric_likelihood_data <- global_likelihood_data
+        reset_chimeric_files <- FALSE
+      }
       
       # Update running average acceptance rate
-      chimeric_likelihood_data$accept_avg <- ((this_index-1)*old_avg_chimeric_accept_rate + chimeric_likelihood_data$accept)/(this_index) # update running average acceptance probability. CHECK, this depends on values being in same order in both dataframes. Better to bind??
-      
-      arrow::write_parquet(chimeric_likelihood_data, this_chimeric_files[['llik_filename']]) # to file of the form llik/name/scenario/deathrate/run_id/chimeric/intermediate/slot.block.iter.run_id.llik.parquet
-      
+      # update running average acceptance probability. CHECK, this depends on values being in same order in both dataframes. Better to bind??
+      effective_index <- (opt$this_block - 1) * opt$simulations_per_slot + this_index
+      chimeric_likelihood_data$accept_avg <- ((effective_index - 1) * old_avg_chimeric_accept_rate + chimeric_likelihood_data$accept) / (effective_index)
+
       ## Write accepted parameters to file
       # writes to file of the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.block.iter.run_id.variable.ext
       write.csv(initial_seeding,this_chimeric_files[['seed_filename']])
@@ -523,8 +548,8 @@ for(scenario in scenarios) {
       arrow::write_parquet(initial_hnpi,this_chimeric_files[['hnpi_filename']])
       arrow::write_parquet(initial_spar,this_chimeric_files[['spar_filename']])
       arrow::write_parquet(initial_hpar,this_chimeric_files[['hpar_filename']])
-      
-      
+      arrow::write_parquet(chimeric_likelihood_data, this_chimeric_files[['llik_filename']])
+
       print(paste("Current index is ",current_index))
       
       ###Memory management

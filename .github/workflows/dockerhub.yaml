@@ -7,17 +7,14 @@ on:
   push:
     branches:
       - master
-      - dev
-      - dataseed
-      - inference
+      - update_docker
     paths:
-      - 'requirements.txt'
-      - 'local_install.R'
       - 'Dockerfile'
-      - 'R/pkgs/**'
-      - '.Rprofile'
-      - 'packrat/**'
-      - '.github/workflows/dockerhub*'
+      - 'Docker.Rprofile'
+      - 'renv/**'
+      - 'renv.lock'
+      - 'renv.cache/**'
+      - '.github/workflows/docker*'
 
 name: Deploy to DockerHub
 
@@ -28,8 +25,13 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
-
+      uses: actions/checkout@v3
+      with:
+          repository: HopkinsIDD/covidscenariopipeline
+          ref: ${{ github.ref }}
+          lfs: true
+    - name: Checkout LFS objects
+      run: git lfs checkout
     -
       name: Set up QEMU
       uses: docker/setup-qemu-action@v1
@@ -66,22 +68,18 @@ jobs:
 
     - name: Build Push Dev
       uses: docker/build-push-action@v2
+      if: (contains( github.ref, 'update_docker') || contains( github.base_ref, 'update_docker' ))
       with:
+        context: .
         push: true
         tags: |
           hopkinsidd/covidscenariopipeline:latest-dev
           hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.shashort}}
           hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.reftag}}
           hopkinsidd/covidscenariopipeline:${{ github.sha }}
-      if: contains( github.ref , 'dev') || contains( github.base_ref, 'dev' )
-
-    - name: Build Push Inference
-      uses: docker/build-push-action@v2
-      with:
-        push: true
-        tags: |
-          hopkinsidd/covidscenariopipeline:latest-inference
-          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.shashort}}
-          hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.reftag}}
-          hopkinsidd/covidscenariopipeline:${{ github.sha }}
-      if: contains( github.ref , 'inference') || contains( github.base_ref, 'inference' )
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache
+        rm -rf /tmp/.buildx-cache-new
