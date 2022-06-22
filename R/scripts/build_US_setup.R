@@ -75,11 +75,11 @@ tidycensus::census_api_key(key = census_key)
 
 # Pull stored data unless it does not contain desired states or year, then pull from census API
 
-geodata_us <- readr::read_csv("data/geodata_territories_2019_statelevel.csv")
+geodata_us <- readr::read_csv(file.path(opt$p,"data/geodata_territories_2019_statelevel.csv"))
 USPSall <- geodata_us$USPS
 
 if (all(filterUSPS %in% USPSall) & config$spatial_setup$census_year==2019){
-    census_data <- arrow::read_parquet("data/census_data_us.parquet") %>%
+    census_data <- arrow::read_parquet(file.path(opt$p,"data/census_data_us.parquet")) %>%
         dplyr::as_tibble() %>% 
         dplyr::filter(USPS %in% filterUSPS)
 } else {
