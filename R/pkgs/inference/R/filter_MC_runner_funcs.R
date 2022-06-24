@@ -3,19 +3,19 @@
 
 ##'Function that performs aggregation and calculates likelihood data across all given locations.
 ##'
-##' @param all_locations all of the locoations to calculate likelihood for
+##' @param all_locations all of the locations to calculate likelihood for
 ##' @param modeled_outcome  the hospital data for the simulations
-##' @param obs_nodename the name of the column containg locations.
-##' @param config the full configuraiton setup
+##' @param obs_nodename the name of the column containing locations.
+##' @param config the full configuration setup
 ##' @param obs the full observed data
 ##' @param ground_truth_data the data we are going to compare to aggregated to the right statistic
 ##' @param hosp_file the filename of the hosp file being used (unclear if needed in scope)
 ##' @param hierarchical_stats the hierarchical stats to use
 ##' @param defined_priors information on defined priors.
 ##' @param geodata the geographics data to help with hierarchies
-##' @param snpi the file with the npi information for seir
-##' @param hnpi the file with the npi information for outcomes
-##' @param hpar data frame of hospitalization parameters
+##' @param snpi the file with the npi information for seir, only used for heirarchical likelihoods
+##' @param hnpi the file with the npi information for outcomes, only used for heirarchical likelihoods
+##' @param hpar data frame of hospitalization parameters, only used for heirarchical likelihoods
 ##'
 ##' @return a data frame of likelihood data.
 ##'
@@ -25,7 +25,7 @@ aggregate_and_calc_loc_likelihoods <- function(
   all_locations,
   modeled_outcome,
   obs_nodename,
-  config,
+  targets_config,
   obs,
   ground_truth_data,
   hosp_file,
@@ -34,7 +34,9 @@ aggregate_and_calc_loc_likelihoods <- function(
   geodata,
   snpi=NULL,
   hnpi=NULL,
-  hpar=NULL
+  hpar=NULL,
+  start_date = NULL,
+  end_date = NULL
 ) {
 
   ##Holds the likelihoods for all locations
@@ -56,7 +58,9 @@ aggregate_and_calc_loc_likelihoods <- function(
       inference::getStats(
         "time",
         "sim_var",
-        stat_list = config$filtering$statistics
+        stat_list = targets_config,
+        start_date = start_date,
+        end_date = end_date
       )
 
 
@@ -70,9 +74,9 @@ aggregate_and_calc_loc_likelihoods <- function(
         sum(inference::logLikStat(
           obs = ground_truth_data[[location]][[var]]$data_var,
           sim = this_location_modeled_outcome[[var]]$sim_var,
-          dist = config$filtering$statistics[[var]]$likelihood$dist,
-          param = config$filtering$statistics[[var]]$likelihood$param,
-          add_one = config$filtering$statistics[[var]]$add_one
+          dist = targets_config[[var]]$likelihood$dist,
+          param = targets_config[[var]]$likelihood$param,
+          add_one = targets_config[[var]]$add_one
         ))
     }
 
@@ -81,7 +85,10 @@ aggregate_and_calc_loc_likelihoods <- function(
     likelihood_data[[location]] <- dplyr::tibble(
       ll = this_location_log_likelihood,
       filename = hosp_file,
-      geoid = location
+      geoid = location,
+      accept = 0, # acceptance decision (0/1) . Will be updated later when accept/reject decisions made
+      accept_avg = 0, # running average acceptance decision
+      accept_prob = 0 # probability of acceptance of proposal
     )
     names(likelihood_data)[names(likelihood_data) == 'geoid'] <- obs_nodename
   }
@@ -89,7 +96,7 @@ aggregate_and_calc_loc_likelihoods <- function(
   #' @importFrom magrittr %>%
   likelihood_data <- likelihood_data %>% do.call(what = rbind)
 
-  ##Update  liklihood data based on hierarchical_stats
+  ##Update  likelihood data based on hierarchical_stats
   for (stat in names(hierarchical_stats)) {
 
     if (hierarchical_stats[[stat]]$module %in% c("seir_interventions", "seir")) {
@@ -131,14 +138,14 @@ aggregate_and_calc_loc_likelihoods <- function(
 
 
     ##probably a more efficient what to do this, but unclear...
-    likelihood_data <- dplyr::left_join(likelihood_data, ll_adjs) %>%
+    likelihood_data <- dplyr::left_join(likelihood_data, ll_adjs, by = obs_nodename) %>%
       tidyr::replace_na(list(likadj = 0)) %>% ##avoid unmatched location problems
       dplyr::mutate(ll = ll + likadj) %>%
       dplyr::select(-likadj)
   }
 
 
-  ##Update lieklihoods based on priors
+  ##Update likelihoods based on priors
   for (prior in names(defined_priors)) {
     if (defined_priors[[prior]]$module %in% c("seir_interventions", "seir")) {
       #' @importFrom magrittr %>%
@@ -177,11 +184,10 @@ aggregate_and_calc_loc_likelihoods <- function(
     }
 
     ##probably a more efficient what to do this, but unclear...
-    likelihood_data<- dplyr::left_join(likelihood_data, ll_adjs) %>%
+    likelihood_data<- dplyr::left_join(likelihood_data, ll_adjs, by = obs_nodename) %>%
       dplyr::mutate(ll = ll + likadj) %>%
       dplyr::select(-likadj)
   }
-
 
   if(any(is.na(likelihood_data$ll))) {
     print("Full Likelihood")
@@ -200,19 +206,19 @@ aggregate_and_calc_loc_likelihoods <- function(
 ##' Function that performs the necessary file copies the end of an MCMC iteration of
 ##' filter_MC.
 ##'
-##'@param current_index the current indec in the run
-##'@param slot what is the current slot numbe
+##'@param current_index the current index in the run
+##'@param slot what is the current slot number
 ##'@param block what is the current block
 ##'@param run_id what is the id of this run
 ##'@param global_local_prefix the prefix to be put on both global and local runs.
 ##'@param gf_prefix the prefix for the directory containing the current globally accepted files.
 ##'@param global_block_prefix prefix that describes this block.
 ##'
-##'@return TRUE if this succeded.
+##'@return TRUE if this succeeded.
 ##'
 ##'@export
 ##'
-perform_MCMC_step_copies <- function(current_index,
+perform_MCMC_step_copies_global <- function(current_index,
   slot,
   block,
   run_id,
@@ -220,10 +226,9 @@ perform_MCMC_step_copies <- function(current_index,
   gf_prefix,
   global_block_prefix) {
 
-
   rc <- list()
 
-  if(current_index != 0){
+  if(current_index != 0){ #move files from global/intermediate/slot.block.run to global/final/slot
     rc$seed_gf <- file.copy(
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seed','csv'),
       covidcommon::create_file_name(run_id,gf_prefix,slot,'seed','csv'),
@@ -277,7 +282,7 @@ perform_MCMC_step_copies <- function(current_index,
       covidcommon::create_file_name(run_id,gf_prefix,slot,'hpar','parquet'),
 	    overwrite = TRUE
     )
-
+    #move files from global/intermediate/slot.block.run to global/intermediate/slot
     rc$seed_block <- file.copy(
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'seed','csv'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'seed','csv')
@@ -324,7 +329,7 @@ perform_MCMC_step_copies <- function(current_index,
       covidcommon::create_file_name(run_id,global_local_prefix,current_index,'hpar','parquet'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'hpar','parquet')
     )
-  } else {
+  } else { #move files from global/intermediate/slot.(block-1) to global/intermediate/slot.block
     rc$seed_prevblk <- file.copy(
       covidcommon::create_file_name(run_id,global_block_prefix,block - 1 ,'seed','csv'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'seed','csv')
@@ -349,6 +354,7 @@ perform_MCMC_step_copies <- function(current_index,
       covidcommon::create_file_name(run_id,global_block_prefix,block - 1,'llik','parquet'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'llik','parquet')
     )
+    
 
     rc$snpi_prvblk <-file.copy(
       covidcommon::create_file_name(run_id,global_block_prefix,block - 1,'snpi','parquet'),
@@ -375,6 +381,174 @@ perform_MCMC_step_copies <- function(current_index,
 
 }
 
+##'
+##' Function that performs the necessary file copies the end of an MCMC iteration of
+##' filter_MC.
+##'
+##'@param current_index the current index in the run
+##'@param slot what is the current slot number
+##'@param block what is the current block
+##'@param run_id what is the id of this run
+##'@param chimeric_local_prefix the prefix to be put on both chimeric and local runs.
+##'@param cf_prefix the prefix for the directory containing the current chimericly accepted files.
+##'@param chimeric_block_prefix prefix that describes this block.
+##'
+##'@return TRUE if this succeeded.
+##'
+##'@export
+##'
+perform_MCMC_step_copies_chimeric <- function(current_index,
+                                            slot,
+                                            block,
+                                            run_id,
+                                            chimeric_local_prefix,
+                                            cf_prefix,
+                                            chimeric_block_prefix) {
+  
+  
+  rc <- list()
+  
+  if(current_index != 0){ #move files from chimeric/intermediate/slot.block.run to chimeric/final/slot
+    rc$seed_gf <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'seed','csv'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'seed','csv'),
+      overwrite = TRUE
+    )
+    
+    # No chimeric SEIR or HOSP files
+    
+    # rc$seir_gf <- file.copy(
+    #   covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'seir','parquet'),
+    #   covidcommon::create_file_name(run_id,cf_prefix,slot,'seir','parquet'),
+    #   overwrite = TRUE
+    # )
+    # 
+    # rc$hosp_gf <- file.copy(
+    #   covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hosp','parquet'),
+    #   covidcommon::create_file_name(run_id,cf_prefix,slot,'hosp','parquet'),
+    #   overwrite = TRUE
+    # )
+    
+    rc$llik_gf <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'llik','parquet'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'llik','parquet'),
+      overwrite = TRUE
+    )
+    
+    
+    rc$snpi_gf <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'snpi','parquet'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'snpi','parquet'),
+      overwrite = TRUE
+    )
+    
+    rc$hnpi_gf <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hnpi','parquet'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'hnpi','parquet'),
+      overwrite = TRUE
+    )
+    
+    rc$spar_gf <-file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'spar','parquet'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'spar','parquet'),
+      overwrite = TRUE
+    )
+    
+    rc$hpar_gf <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hpar','parquet'),
+      covidcommon::create_file_name(run_id,cf_prefix,slot,'hpar','parquet'),
+      overwrite = TRUE
+    )
+    #move files from chimeric/intermediate/slot.block.run to chimeric/intermediate/slot
+    rc$seed_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'seed','csv'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seed','csv')
+    )
+    
+    # no chimeric SEIR or HOSP files
+    
+    # rc$seir_block <- file.copy(
+    #   covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'seir','parquet'),
+    #   covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seir','parquet')
+    # )
+    # 
+    # rc$hosp_block <- file.copy(
+    #   covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hosp','parquet'),
+    #   covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hosp','parquet')
+    # )
+    
+    rc$llik_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'llik','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'llik','parquet')
+    )
+    
+    rc$snpi_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'snpi','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'snpi','parquet')
+    )
+    
+    rc$hnpi_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hnpi','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hnpi','parquet')
+    )
+    
+    rc$spar_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'spar','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'spar','parquet')
+    )
+    
+    
+    rc$hpar_block <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hpar','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hpar','parquet')
+    )
+  } else { #move files from chimeric/intermediate/slot.(block-1) to chimeric/intermediate/slot.block
+    rc$seed_prevblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1 ,'seed','csv'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seed','csv')
+    )
+    
+    rc$seir_prevblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1 ,'seir','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seir','parquet')
+    )
+    
+    rc$hosp_prevblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1 ,'hosp','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hosp','parquet')
+    )
+    
+    rc$llik_prevblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'llik','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'llik','parquet')
+    )
+    
+    rc$snpi_prvblk <-file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'snpi','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'snpi','parquet')
+    )
+    
+    rc$hnpi_prvblk <-file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'hnpi','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hnpi','parquet')
+    )
+    
+    rc$spar_prvblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'spar','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'spar','parquet')
+    )
+    
+    rc$hpar_prvblk <- file.copy(
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'hpar','parquet'),
+      covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hpar','parquet')
+    )
+  }
+  
+  
+  return(rc)
+  
+}
+
 ## Create a list with a filename of each type/extension.  A convenience function for consistency in file names
 #' @export
 create_filename_list <- function(
@@ -391,7 +565,7 @@ create_filename_list <- function(
     x=types,
     y=extensions,
     function(x,y){
-      covidcommon::create_file_name(run_id,prefix,index,x,y)
+      covidcommon::create_file_name(run_id = run_id,prefix = prefix,index = index,type = x,extension = y, create_directory = TRUE)
     }
   )
   names(rc) <- paste(names(rc),"filename",sep='_')
@@ -400,19 +574,19 @@ create_filename_list <- function(
 
 ##'@name initialize_mcmc_first_block
 ##'@title initialize_mcmc_first_block
-##'@param slot what is the current slot numbe
+##'@param slot what is the current slot number
 ##'@param block what is the current block
 ##'@param run_id what is the id of this run
 ##'@param global_prefix the prefix to use for global files
 ##'@param chimeric_prefix the prefix to use for chimeric files
-##'@param python_reticulate An already initialized copy of python set up to do hospitalization runs
+##'@param gempyor_inference_runner An already initialized copy of python inference runner
 ##' @export
 initialize_mcmc_first_block <- function(
   run_id,
   block,
   global_prefix,
   chimeric_prefix,
-  python_reticulate,
+  gempyor_inference_runner,
   likelihood_calculation_function,
   is_resume = FALSE
 ) {
@@ -422,8 +596,8 @@ initialize_mcmc_first_block <- function(
   non_llik_types <- paste(types[types != "llik"], "filename", sep = "_")
   extensions <- c("csv", rep("parquet", times = length(types) - 1))
 
-  global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions)
-  chimeric_files <- create_filename_list(run_id, chimeric_prefix, block - 1, types, extensions)
+  global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1).run_ID.variable.ext
+  chimeric_files <- create_filename_list(run_id, chimeric_prefix, block - 1, types, extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.(block-1).run_ID.variable.ext
 
   global_check <- sapply(global_files, file.exists)
   chimeric_check <- sapply(chimeric_files, file.exists)
@@ -492,7 +666,7 @@ initialize_mcmc_first_block <- function(
     ))
   }
 
-  global_file_names <- names(global_files[!global_check])
+  global_file_names <- names(global_files[!global_check]) # names are of the form "variable_filename", only files that DONT already exist will be in this list
 
   ## seed
   if ("seed_filename" %in% global_file_names) {
@@ -530,36 +704,28 @@ initialize_mcmc_first_block <- function(
   }
 
   ## seir, snpi, spar
-  if (any(c("snpi_filename", "spar_filename") %in% global_file_names)) {
-    if (!all(c("snpi_filename", "spar_filename") %in% global_file_names)) {
-      stop("Provided some SEIR input, but not all")
+  checked_par_files <- c("snpi_filename", "spar_filename", "hnpi_filename", "hpar_filename")
+  checked_sim_files <- c("seir_filename", "hosp_filename")
+  # These functions save variables to files of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1),runID.variable.ext
+  if (any(checked_par_files %in% global_file_names)) {
+    if (!all(checked_par_files %in% global_file_names)) {
+      stop("Provided some InferenceSimulator input, but not all")
     }
-    if ("seir_filename" %in% global_file_names) {
-      python_reticulate$onerun_SEIR(block - 1, python_reticulate$s)
+    if (any(checked_sim_files %in% global_file_names)) {
+      if (!all(checked_sim_files %in% global_file_names)) {
+        stop("Provided only one of hosp or seir input file, with some output files. Not supported anymore")
+      }
+      gempyor_inference_runner$one_simulation(sim_id2write = block - 1)
     } else {
-      stop("Provided SEIR output, but not SEIR input")
+      stop("Provided some InferenceSimulator output(seir, hosp), but not InferenceSimulator input")
     }
   } else {
-    if ("seir_filename" %in% global_file_names) {
-      warning("SEIR input provided, but output not found. This is unstable for stochastic runs")
-      python_reticulate$onerun_SEIR_loadID(block - 1, python_reticulate$s, block - 1)
-    }
-  }
-
-  ## hpar
-  if (any(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
-    if (!all(c("hnpi_filename", "hpar_filename") %in% global_file_names)) {
-      stop("Provided some Outcomes input, but not all")
-    }
-    if ("hosp_filename" %in% global_file_names) {
-      python_reticulate$onerun_OUTCOMES(block - 1)
-    } else {
-      stop("Provided Outcomes output, but not Outcomes input")
-    }
-  } else {
-    if ("hosp_filename" %in% global_file_names) {
-      warning("Outcomes input provided, but output not found. This is unstable for stochastic runs")
-      python_reticulate$onerun_OUTCOMES_loadID(block - 1)
+    if (any(checked_sim_files %in% global_file_names)) {
+      if (!all(checked_sim_files %in% global_file_names)) {
+        stop("Provided only one of hosp or seir input file, not supported anymore")
+      }
+        warning("SEIR and Hosp input provided, but output not found. This is unstable for stochastic runs")
+        gempyor_inference_runner$one_simulation(sim_id2write=block - 1, load_ID=TRUE, sim_id2load=block - 1)
     }
   }
 
@@ -573,10 +739,13 @@ initialize_mcmc_first_block <- function(
 
   ## Refactor me later:
   global_likelihood_data <- likelihood_calculation_function(hosp_data)
-  arrow::write_parquet(global_likelihood_data, global_files[["llik_filename"]])
+  arrow::write_parquet(global_likelihood_data, global_files[["llik_filename"]]) # save global likelihood data to file of the form llik/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1).run_ID.llik.ext
+  
+  #print("from inside initialize_mcmc_first_block: column names of likelihood dataframe")
+  #print(colnames(global_likelihood_data))
 
   for (type in names(chimeric_files)) {
-    file.copy(global_files[[type]], chimeric_files[[type]], overwrite = TRUE)
+    file.copy(global_files[[type]], chimeric_files[[type]], overwrite = TRUE) # copy files that were in global directory into chimeric directory
   }
   return()
 }

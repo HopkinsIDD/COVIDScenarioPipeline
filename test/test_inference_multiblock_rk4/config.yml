@@ -1,0 +1,204 @@
+name: test_inference
+start_date: 2020-01-01
+end_date: 2020-08-17
+nsimulations: 1
+dt: 0.25
+
+spatial_setup:
+  base_path: data
+  setup_name: test1
+  geodata: geodata.csv
+  mobility: mobility.csv
+  popnodes: population
+  nodenames: geoid
+  census_year: 2018
+  modeled_states:
+    - NY
+
+seeding:
+  seeding_file_type: seed
+  method: FolderDraw
+  folder_path: importation/test1/
+  lambda_file: data/test1/seeding.csv
+  perturbation_sd: 3
+
+seir:
+  parameters:
+    alpha: 0.99
+    sigma: 1 / 5.2
+    gamma:
+      distribution: uniform
+      low: 1 / 6
+      high: 1 / 2.6
+    R0s:
+      distribution: uniform
+      low: 2
+      high: 3
+
+interventions:
+  scenarios:
+    - Scenario1
+  settings:
+    local_variation:
+      template: ReduceR0
+      value:
+        distribution: truncnorm
+        mean: 0
+        sd: .1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: .1
+        a: -1
+        b: 1
+    Place1:
+      template: ReduceR0
+      value:
+        distribution: uniform
+        low: .14
+        high: .33
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: .05
+        a: -1
+        b: 1
+    Scenario1:
+      template: Stacked
+      scenarios:
+        - local_variation
+        - Place1
+
+outcomes:
+  method: delayframe
+  param_from_file: TRUE
+  param_place_file: ../../gempyor_pkg/tests/outcomes/data/usa-geoid-params-output.parquet
+  scenarios:
+    - low
+  settings:
+    low:
+      incidH:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: .0175
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: hosp_curr
+      incidD:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: .0025
+        delay:
+          value:
+            distribution: fixed
+            value: 20
+      incidICU:
+        source: incidH
+        probability:
+          value:
+            distribution: fixed
+            value: 0.167
+        delay:
+          value:
+            distribution: fixed
+            value: 3
+        duration:
+          value:
+            distribution: fixed
+            value: 8
+          name: icu_curr
+      incidVent:
+        source: incidICU
+        probability:
+          value:
+            distribution: fixed
+            value: 0.463
+        delay:
+          value:
+            distribution: fixed
+            value: 1
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: vent_curr
+      incidC:
+        source: incidI
+        probability:
+          value:
+            distribution: truncnorm
+            mean: .1
+            sd: .1
+            a: 0
+            b: 1
+          perturbation:
+            distribution: truncnorm
+            mean: 0
+            sd: .05
+            a: -1
+            b: 1
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+
+filtering:
+  simulations_per_slot: 100
+  do_filtering: TRUE
+  data_path: data/us_data.csv
+  likelihood_directory: importation/likelihood/
+  statistics:
+    sum_deaths:
+      name: sum_deaths
+      aggregator: sum
+      period: "1 weeks"
+      sim_var: incidD
+      data_var: incidDeath
+      remove_na: FALSE
+      add_one: FALSE
+      likelihood:
+        dist: sqrtnorm
+        param: [.1]
+    sum_confirmed:
+      name: sum_confirmed
+      aggregator: sum
+      period: "1 weeks"
+      sim_var: incidC
+      data_var : incidI
+      remove_na: FALSE
+      add_one: FALSE
+      likelihood:
+        dist: sqrtnorm
+        param: [.2]
+  hierarchical_stats_geo:
+    local_var_hierarchy:
+      name: local_variation
+      module: seir
+      geo_group_col: USPS
+      transform: none
+    local_conf:
+      name: probability_incidI_incidC
+      module: outcomes_parameters
+      geo_group_col: USPS
+      transform: logit
+  priors:
+    local_var_prior:
+      name: local_variation
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - 0
+        - 1

@@ -118,7 +118,7 @@ if (!is.null(gt_source)) {
             ))
         }
     }
-    cases_deaths <- read.csv(data_path)
+    cases_deaths <- readr::read_csv(data_path)
     print(paste("Successfully loaded data from ", data_path, "for seeding."))
 }
 
@@ -127,10 +127,10 @@ if (!is.null(gt_source)) {
 if (seed_variants) {
     variant_data <- readr::read_csv(config$seeding$variant_filename)
     cases_deaths <- cases_deaths %>%
-        left_join(variant_data) %>%
-        mutate(incidI = incidI * prop) %>%
-        select(-prop) %>%
-        pivot_wider(names_from = variant, values_from = incidI)
+        dplyr::left_join(variant_data) %>%
+        dplyr::mutate(incidI = incidI * prop) %>%
+        dplyr::select(-prop) %>%
+        tidyr::pivot_wider(names_from = variant, values_from = incidI)
 }
 
 ## Check some data attributes:
@@ -185,19 +185,19 @@ if ("compartments" %in% names(config[["seir"]])) {
         required_column_names <- c("FIPS", "Update", "value", paste("source", names(config$seir$compartments), sep = "_"), paste("destination", names(config$seir$compartments), sep = "_"))
         incident_cases <- incident_cases[, required_column_names]
         
-        if (!is.null(config$smh_roun)) {
-          if (config$smh_round=="R11"){
-              incident_cases_om <- incident_cases %>%
-                  dplyr::filter(Update==lubridate::as_date("2021-12-01")) %>%
-                  dplyr::group_by(FIPS, Update, source_infection_stage, source_vaccination_stage, source_age_strata,
-                                  destination_vaccination_stage, destination_age_strata, destination_infection_stage) %>%
-                  dplyr::summarise(value = sum(value, na.rm=TRUE)) %>%
-                  dplyr::mutate(source_variant_type = "WILD", destination_variant_type = "OMICRON") %>%
-                  dplyr::mutate(value = round(ifelse(FIPS %in% c("06000","36000"), 10, 
-                                                     ifelse(FIPS %in% c("53000","12000"), 5, 1)))) %>% 
-                  tibble::as_tibble()
-          }
-        }
+        # if (!is.null(config$smh_round)) {
+        #     if (config$smh_round=="R11"){
+        #         incident_cases_om <- incident_cases %>%
+        #             dplyr::filter(Update==lubridate::as_date("2021-12-01")) %>%
+        #             dplyr::group_by(FIPS, Update, source_infection_stage, source_vaccination_stage, source_age_strata,
+        #                             destination_vaccination_stage, destination_age_strata, destination_infection_stage) %>%
+        #             dplyr::summarise(value = sum(value, na.rm=TRUE)) %>%
+        #             dplyr::mutate(source_variant_type = "WILD", destination_variant_type = "OMICRON") %>%
+        #             dplyr::mutate(value = round(ifelse(FIPS %in% c("06000","36000"), 10, 
+        #                                                ifelse(FIPS %in% c("53000","12000"), 5, 1)))) %>% 
+        #             tibble::as_tibble()
+        #     }
+        # }
         
         
     } else if ("seeding_compartments" %in% names(config$seeding) ) {
@@ -273,7 +273,7 @@ incident_cases <- incident_cases %>%
     dplyr::group_modify(function(.x, .y) {
         .x %>%
             dplyr::arrange(Update) %>%
-            dplyr::filter(value > 0) %>%
+            dplyr::filter(value > 0 & !is.na(value)) %>%
             .[seq_len(min(nrow(.x), 5)), ] %>%
             dplyr::mutate(
                 Update = Update - lubridate::days(config[["seeding"]][["seeding_delay"]]),
@@ -294,12 +294,20 @@ if (!dir.exists(lambda_dir)) {
     suppressWarnings(dir.create(lambda_dir, recursive = TRUE))
 }
 
-
+# Add "no_perturb" flag
+if (!("no_perturb" %in% colnames(incident_cases))){
+    incident_cases$no_perturb <- FALSE
+}
 
 # Combine with population seeding for compartments (current hack to get population in)
 
 if ("compartments" %in% names(config[["seir"]]) & "pop_seed_file" %in% names(config[["seeding"]])) {
     seeding_pop <- readr::read_csv(config$seeding$pop_seed_file)
+    
+    # Add "no_perturb" flag
+    if (!("no_perturb" %in% colnames(seeding_pop))){
+        seeding_pop$no_perturb <- TRUE
+    }
     seeding_pop <- seeding_pop %>%
         dplyr::filter(place %in% all_geoids) %>%
         dplyr::select(!!!colnames(incident_cases))

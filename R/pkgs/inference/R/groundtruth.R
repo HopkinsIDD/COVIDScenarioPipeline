@@ -40,9 +40,14 @@ get_ground_truth_file <- function(data_path, cache = TRUE, gt_source = "csse", g
 #' @param data_path Path where to write the data
 #'
 #' @export
-get_ground_truth <- function(data_path, fips_codes, fips_column_name, start_date, end_date, cache = TRUE, gt_source = "csse", gt_scale = "US county", variant_filename = "data/variant/variant_props_long.csv"){
+get_ground_truth <- function(data_path, fips_codes, fips_column_name, start_date, end_date, 
+                             cache = TRUE, 
+                             gt_source = "csse", gt_scale = "US county", 
+                             variant_filename = "data/variant/variant_props_long.csv"){
 
-  get_ground_truth_file(data_path = data_path, cache = cache, gt_source = gt_source, gt_scale = gt_scale, variant_filename = variant_filename)
+  get_ground_truth_file(data_path = data_path, cache = cache, 
+                        gt_source = gt_source, gt_scale = gt_scale, 
+                        variant_filename = variant_filename)
 
   rc <- suppressMessages(readr::read_csv(
     data_path,
@@ -61,6 +66,7 @@ get_ground_truth <- function(data_path, fips_codes, fips_column_name, start_date
       date = unique(rc$date)
     )
   )
+  rc <- rc %>% dplyr::arrange(FIPS, source, date)
   rc <- dplyr::mutate_if(rc, is.numeric, dplyr::coalesce, 0)
   names(rc)[names(rc) == "FIPS"] <- fips_column_name
   return(rc)

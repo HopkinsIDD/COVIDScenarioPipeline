@@ -1,3 +1,10 @@
+test/test_build_US_setup/data/
+test/test_build_nonUS_setup/data/geodata.csv
+test/test_compartmental_specification/data/
+test/test_inference/data/
+test/test_inference_multiblock/data/
+COVIDScenarioPipeline.Rproj
+gempyor_pkg/docs/Rinterface.nb.html
 .DS_Store
 .Rhistory
 .Rproj.user/
@@ -14,9 +21,11 @@ doc/latex
 *.*.so
 *.egg-info/
 # ^Joseph's stuff
-
+gempyor_pkg/docs/full_graph*
+gempyor_pkg/docs/readable_graph*
 Outcomes/test/model_output
 model_output/
+test/*/Makefile
 
 # History files
 .Rhistory
@@ -39,6 +48,7 @@ model_output/
 
 # RStudio files
 .Rproj.user/
+COVIDScenarioPipeline.Rproj
 
 # produced vignettes
 vignettes/*.html
@@ -63,3 +73,8 @@ packrat/lib*/
 build/
 dist/
 SEIR.egg-info/
+Outcomes.egg-info/
+.Rproj.user
+
+# R package manuals
+man/
