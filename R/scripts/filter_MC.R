@@ -82,6 +82,10 @@ if(!(config$seeding$method %in% c('FolderDraw','InitialConditionsFolderDraw'))){
 #  stop("Despite being a folder draw method, filtration method requires the seeding to provide a lambda_file argument.")
 #}
 
+if (initial_conditions %in% names(config)) {
+  name_change_functions <- inference::create_name_change_function(config$initial_conditions)
+}
+
 
 # Aggregation to state level if in config
 state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
@@ -305,10 +309,12 @@ for(scenario in scenarios) {
           end_date = gt_end_date
         )
       },
+      config_start_date = lubridate::ymd(config$start_date),
+      name_change_functions = name_change_functions,
       is_resume = opt[['is-resume']]
     )
-    
-    
+
+
     ## So far no acceptances have occurred
     current_index <- 0
 
@@ -325,19 +331,19 @@ for(scenario in scenarios) {
     initial_hpar <- arrow::read_parquet(first_chimeric_files[['hpar_filename']])
     chimeric_likelihood_data <- arrow::read_parquet(first_chimeric_files[['llik_filename']])
     global_likelihood_data <- arrow::read_parquet(first_global_files[['llik_filename']])
-    
+
     ##Add initial perturbation sd values to parameter files----
     initial_snpi <- inference::add_perturb_column_snpi(initial_snpi,config$interventions$settings)
     initial_hnpi <- inference::add_perturb_column_hnpi(initial_hnpi,config$interventions$settings)
-    
+
     #Need to write these parameters back to the SAME chimeric file since they have a new column now
     arrow::write_parquet(initial_snpi,first_chimeric_files[['snpi_filename']])
     arrow::write_parquet(initial_hnpi,first_chimeric_files[['hnpi_filename']])
-    
+
     # Also need to add this column to the global file (it will always be equal in the first block) (MIGHT NOT BE WORKING)
     arrow::write_parquet(initial_snpi,first_global_files[['snpi_filename']])
     arrow::write_parquet(initial_hnpi,first_global_files[['hnpi_filename']])
-    
+
     #####Get the full likelihood (WHY IS THIS A DATA FRAME)
     # Compute total loglik for each sim
     global_likelihood <- sum(global_likelihood_data$ll)
@@ -345,7 +351,7 @@ for(scenario in scenarios) {
     #####LOOP NOTES
     ### initial means accepted/current
     ### current means proposed
-    
+
     startTimeCount=Sys.time()
     ##Loop over simulations in this block ----
 
@@ -354,9 +360,9 @@ for(scenario in scenarios) {
 
     for( this_index in seq_len(opt$simulations_per_slot)) {
       print(paste("Running simulation", this_index))
-      
+
       startTimeCountEach=Sys.time()
-      
+
       ## Create filenames
 
       ## Using the prefixes, create standardized files of each type (e.g., seir) of the form
@@ -385,8 +391,8 @@ for(scenario in scenarios) {
       # proposed_hpar <- inference::perturb_hpar_from_file(initial_hpar, config$interventions$settings, chimeric_likelihood_data)
       proposed_spar <- initial_spar
       proposed_hpar <- inference::perturb_hpar(initial_hpar, config$outcomes$settings[[deathrate]])
-      
-      
+
+
       ## Write files that need to be written for other code to read
       # writes to file  of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.block.iter.run_id.variable.ext
       write.csv(proposed_seeding,this_global_files[['seed_filename']])
@@ -406,14 +412,14 @@ for(scenario in scenarios) {
       if(err != 0){
         stop("InferenceSimulator failed to run")
       }
-      
+
       sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_global_files[['hosp_filename']]))(this_global_files[['hosp_filename']]) %>%
         dplyr::filter(time >= min(obs$date),time <= max(obs$date))
-      
+
       lhs <- unique(sim_hosp[[obs_nodename]])
       rhs <- unique(names(data_stats))
       all_locations <- rhs[rhs %in% lhs]
-      
+
       ## Compare model output to data and calculate likelihood ----
       proposed_likelihood_data <- inference::aggregate_and_calc_loc_likelihoods(
         all_locations = all_locations,
@@ -435,27 +441,27 @@ for(scenario in scenarios) {
         start_date = gt_start_date,
         end_date = gt_end_date
       )
-      
-      
+
+
       rm(sim_hosp)
-      
+
       ## UNCOMMENT TO DEBUG
       ## print(global_likelihood_data)
       ## print(chimeric_likelihood_data)
       ## print(proposed_likelihood_data)
-      
+
       ## Compute total loglik for each sim
       proposed_likelihood <- sum(proposed_likelihood_data$ll)
-      
+
       ## For logging
       print(paste("Current likelihood",formatC(global_likelihood,digits=2,format="f"),"Proposed likelihood",formatC(proposed_likelihood,digits=2,format="f")))
-      
+
       ## Global likelihood acceptance or rejection decision ----
-      
-      
+
+
       proposed_likelihood_data$accept <- ifelse(inference::iterateAccept(global_likelihood, proposed_likelihood) || ((current_index == 0) && (opt$this_block == 1)),1,0)
       if(proposed_likelihood_data$accept == 1) {
-        
+
         print("**** ACCEPT (Recording) ****")
         if ((opt$this_block == 1) && (current_index == 0)) {
           print("by default because it's the first iteration of a block 1")
@@ -477,7 +483,7 @@ for(scenario in scenarios) {
         if (opt$reset_chimeric_on_accept) {
           reset_chimeric_files <- TRUE
         }
-        
+
         warning("Removing unused files")
         sapply(old_global_files, file.remove)
 
@@ -490,24 +496,24 @@ for(scenario in scenarios) {
       effective_index <- (opt$this_block - 1) * opt$simulations_per_slot + this_index
       avg_global_accept_rate <- ((effective_index-1)*old_avg_global_accept_rate + proposed_likelihood_data$accept)/(effective_index) # update running average acceptance probability
       proposed_likelihood_data$accept_avg <-avg_global_accept_rate
-      proposed_likelihood_data$accept_prob <- exp(min(c(0, proposed_likelihood - global_likelihood))) #acceptance probability 
+      proposed_likelihood_data$accept_prob <- exp(min(c(0, proposed_likelihood - global_likelihood))) #acceptance probability
 
 
       old_avg_global_accept_rate <- avg_global_accept_rate # keep track, since old global likelihood data not kept in memory
 
       ## Print average global acceptance rate
       # print(paste("Average global acceptance rate: ",formatC(100*avg_global_accept_rate,digits=2,format="f"),"%"))
-      
+
       # prints to file of the form llik/name/scenario/deathrate/run_id/global/intermediate/slot.block.iter.run_id.llik.ext
       arrow::write_parquet(proposed_likelihood_data, this_global_files[['llik_filename']])
-      
+
       # keep track of running average chimeric acceptance rate, for each geoID, since old chimeric likelihood data not kept in memory
       old_avg_chimeric_accept_rate <- chimeric_likelihood_data$accept_avg
 
       if (!reset_chimeric_files) {
         ## Chimeric likelihood acceptance or rejection decisions (one round) -----
         #  "Chimeric" means GeoID-specific
-        
+
         seeding_npis_list <- inference::accept_reject_new_seeding_npis(
           seeding_orig = initial_seeding,
           seeding_prop = proposed_seeding,
@@ -541,7 +547,7 @@ for(scenario in scenarios) {
         chimeric_likelihood_data <- global_likelihood_data
         reset_chimeric_files <- FALSE
       }
-      
+
       # Update running average acceptance rate
       # update running average acceptance probability. CHECK, this depends on values being in same order in both dataframes. Better to bind??
       effective_index <- (opt$this_block - 1) * opt$simulations_per_slot + this_index
@@ -557,23 +563,23 @@ for(scenario in scenarios) {
       arrow::write_parquet(chimeric_likelihood_data, this_chimeric_files[['llik_filename']])
 
       print(paste("Current index is ",current_index))
-      
+
       ###Memory management
       rm(proposed_seeding)
       rm(proposed_snpi)
       rm(proposed_cont)
       rm(proposed_hnpi)
       rm(proposed_hpar)
-      
+
       endTimeCountEach=difftime(Sys.time(), startTimeCountEach, units = "secs")
       print(paste("Time to run this MCMC iteration is ",formatC(endTimeCountEach,digits=2,format="f")," seconds"))
     }
-    
+
     endTimeCount=difftime(Sys.time(), startTimeCount, units = "secs")
     # print(paste("Time to run all MCMC iterations is ",formatC(endTimeCount,digits=2,format="f")," seconds"))
 
     #####Do MCMC end copy. Fail if unsucessfull
-    # moves the most recently globally accepted parameter values from global/intermediate file to global/final  
+    # moves the most recently globally accepted parameter values from global/intermediate file to global/final
     cpy_res_global <- inference::perform_MCMC_step_copies_global(current_index,
                                                           opt$this_slot,
                                                           opt$this_block,
@@ -582,7 +588,7 @@ for(scenario in scenarios) {
                                                           gf_prefix,
                                                           global_block_prefix)
     if(!prod(unlist(cpy_res_global))) {stop("File copy failed:", paste(unlist(cpy_res_global),paste(names(cpy_res_global),"|")))}
-    # moves the most recently chimeric accepted parameter values from chimeric/intermediate file to chimeric/final  
+    # moves the most recently chimeric accepted parameter values from chimeric/intermediate file to chimeric/final
 
     cpy_res_chimeric <- inference::perform_MCMC_step_copies_chimeric(this_index,
                                                             opt$this_slot,

@@ -1,3 +1,4 @@
+#' @include initialize_conditions.R
 ###Functions that help with the running of Filter MC. Can take in full confit.
 
 
@@ -354,7 +355,7 @@ perform_MCMC_step_copies_global <- function(current_index,
       covidcommon::create_file_name(run_id,global_block_prefix,block - 1,'llik','parquet'),
       covidcommon::create_file_name(run_id,global_block_prefix,block,'llik','parquet')
     )
-    
+
 
     rc$snpi_prvblk <-file.copy(
       covidcommon::create_file_name(run_id,global_block_prefix,block - 1,'snpi','parquet'),
@@ -404,10 +405,10 @@ perform_MCMC_step_copies_chimeric <- function(current_index,
                                             chimeric_local_prefix,
                                             cf_prefix,
                                             chimeric_block_prefix) {
-  
-  
+
+
   rc <- list()
-  
+
   if(current_index != 0){ #move files from chimeric/intermediate/slot.block.run to chimeric/final/slot
     rc$seed_gf <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'seed','csv'),
@@ -428,32 +429,32 @@ perform_MCMC_step_copies_chimeric <- function(current_index,
     #   covidcommon::create_file_name(run_id,cf_prefix,slot,'hosp','parquet'),
     #   overwrite = TRUE
     # )
-    
+
     rc$llik_gf <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'llik','parquet'),
       covidcommon::create_file_name(run_id,cf_prefix,slot,'llik','parquet'),
       overwrite = TRUE
     )
-    
-    
+
+
     rc$snpi_gf <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'snpi','parquet'),
       covidcommon::create_file_name(run_id,cf_prefix,slot,'snpi','parquet'),
       overwrite = TRUE
     )
-    
+
     rc$hnpi_gf <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hnpi','parquet'),
       covidcommon::create_file_name(run_id,cf_prefix,slot,'hnpi','parquet'),
       overwrite = TRUE
     )
-    
+
     rc$spar_gf <-file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'spar','parquet'),
       covidcommon::create_file_name(run_id,cf_prefix,slot,'spar','parquet'),
       overwrite = TRUE
     )
-    
+
     rc$hpar_gf <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hpar','parquet'),
       covidcommon::create_file_name(run_id,cf_prefix,slot,'hpar','parquet'),
@@ -464,40 +465,40 @@ perform_MCMC_step_copies_chimeric <- function(current_index,
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'seed','csv'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seed','csv')
     )
-    
+
     # no chimeric SEIR or HOSP files
-    
+
     # rc$seir_block <- file.copy(
     #   covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'seir','parquet'),
     #   covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seir','parquet')
     # )
-    # 
+    #
     # rc$hosp_block <- file.copy(
     #   covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hosp','parquet'),
     #   covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hosp','parquet')
     # )
-    
+
     rc$llik_block <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'llik','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'llik','parquet')
     )
-    
+
     rc$snpi_block <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'snpi','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'snpi','parquet')
     )
-    
+
     rc$hnpi_block <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hnpi','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hnpi','parquet')
     )
-    
+
     rc$spar_block <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'spar','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'spar','parquet')
     )
-    
-    
+
+
     rc$hpar_block <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_local_prefix,current_index,'hpar','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hpar','parquet')
@@ -507,46 +508,46 @@ perform_MCMC_step_copies_chimeric <- function(current_index,
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1 ,'seed','csv'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seed','csv')
     )
-    
+
     rc$seir_prevblk <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1 ,'seir','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'seir','parquet')
     )
-    
+
     rc$hosp_prevblk <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1 ,'hosp','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hosp','parquet')
     )
-    
+
     rc$llik_prevblk <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'llik','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'llik','parquet')
     )
-    
+
     rc$snpi_prvblk <-file.copy(
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'snpi','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'snpi','parquet')
     )
-    
+
     rc$hnpi_prvblk <-file.copy(
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'hnpi','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hnpi','parquet')
     )
-    
+
     rc$spar_prvblk <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'spar','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'spar','parquet')
     )
-    
+
     rc$hpar_prvblk <- file.copy(
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block - 1,'hpar','parquet'),
       covidcommon::create_file_name(run_id,chimeric_block_prefix,block,'hpar','parquet')
     )
   }
-  
-  
+
+
   return(rc)
-  
+
 }
 
 ## Create a list with a filename of each type/extension.  A convenience function for consistency in file names
@@ -588,7 +589,9 @@ initialize_mcmc_first_block <- function(
   chimeric_prefix,
   gempyor_inference_runner,
   likelihood_calculation_function,
-  is_resume = FALSE
+  config_start_date,
+  name_change_functions,
+  is_resume = FALSE,
 ) {
 
   ## Only works on these files:
@@ -630,7 +633,7 @@ initialize_mcmc_first_block <- function(
   if (is_resume) {
     print(global_check)
     important_global_check <- global_check[
-      !(names(global_check) %in% c("llik_filename", "hosp_filename", "seir_filename", "seed_filename"))
+      !(names(global_check) %in% c("llik_filename", "hosp_filename", "seir_filename", "seed_filename", "cont_filename"))
     ]
     if (!all(important_global_check)) {
       all_file_types <- names(important_global_check)
@@ -688,18 +691,18 @@ initialize_mcmc_first_block <- function(
 
   ## cont
   if ("cont_filename" %in% global_file_names) {
-    if (is.null(config$initial_conditions)) {
-      stop("Can't deal with this right now. In order to do initial conditions, they need to be provided in the config as initial_conditions::initial_condition_file")
-    }
-    if (is.null(config$initial_conditions$initial_condition_file)) {
-      stop("Can't deal with this right now. In order to do initial conditions, they need to be provided in the config as initial_conditions::initial_condition_file")
-    }
-    if (!file.exists(config$initial_conditions$initial_condition_file)) {
-      stop(paste("Could not locate initial conditions file",config$initial_conditions$initial_condition_file))
-    }
-    err <- !(file.copy(config$initial_conditions$initial_condition_file, global_files[["cont_filename"]]))
-    if (err != 0) {
-      stop("Could not copy initial conditions")
+    if ("seir_filename" %in% global_file_names) {
+      create_cont_file_from_seir(global_file_names[["cont_filename"]], global_file_names[["seir_filename"]], config_start_date, name_change_functions)
+    } else if (is.null(config$initial_conditions$initial_condition_file)) {
+      create_cont_file_from_default(global_file_names[["cont_filename"]], ...)
+    } else {
+      if (!file.exists(config$initial_conditions$initial_condition_file)) {
+        stop(paste("Could not locate initial conditions file",config$initial_conditions$initial_condition_file))
+      }
+      err <- !(file.copy(config$initial_conditions$initial_condition_file, global_files[["cont_filename"]]))
+      if (err != 0) {
+        stop("Could not copy initial conditions")
+      }
     }
   }
 
@@ -740,7 +743,7 @@ initialize_mcmc_first_block <- function(
   ## Refactor me later:
   global_likelihood_data <- likelihood_calculation_function(hosp_data)
   arrow::write_parquet(global_likelihood_data, global_files[["llik_filename"]]) # save global likelihood data to file of the form llik/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1).run_ID.llik.ext
-  
+
   #print("from inside initialize_mcmc_first_block: column names of likelihood dataframe")
   #print(colnames(global_likelihood_data))
 
