@@ -124,7 +124,7 @@ find data
 echo "==="
 
 # NOTE(jwills): hard coding this for now
-Rscript COVIDScenarioPipeline/R/scripts/filter_MC.R -p COVIDScenarioPipeline
+Rscript COVIDScenarioPipeline/R/scripts/filter_MC.R -p COVIDScenarioPipeline || aws s3 cp integration_dump.pkl $S3_RESULTS_PATH/integration_dump.pkl
 
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then
