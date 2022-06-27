@@ -188,9 +188,12 @@ def rk4_integration(
         )  # Note that we are going to move by delta_t * transitions
         for transition_index in range(ntransitions):
             for spatial_node in range(nspatial_nodes):
+                if ((transition_amounts[transition_index][spatial_node] < 0).any()):
+                    print("transition amounts should be non-negative. Purposefully failing simulation.")
+                    states_diff = states_diff * np.na
                 if (
                     transition_amounts[transition_index][spatial_node]
-                    > st_next[0][transitions[transition_source_col][transition_index]][
+                    >= st_next[0][transitions[transition_source_col][transition_index]][
                         spatial_node
                     ]
                 ):
@@ -317,7 +320,7 @@ def rk4_integration(
         #    f"STATES_incid: NNZ:{states_daily_incid[states_daily_incid < 0].size}/{states_daily_incid.size}, max:{np.max(states_daily_incid[states_daily_incid < 0])}, min:{np.min(states_daily_incid[states_daily_incid < 0])}, mean:#{np.mean(states_daily_incid[states_daily_incid < 0])} median:{np.median(states_daily_incid[states_daily_incid < 0])}"
         # )
         error = True
-    if error and False:
+    if error:
         logging.critical("Saving run configuration due to integration error")
         import pickle
 
