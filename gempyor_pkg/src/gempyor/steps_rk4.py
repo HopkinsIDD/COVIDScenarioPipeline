@@ -188,7 +188,7 @@ def rk4_integration(
         )  # Note that we are going to move by delta_t * transitions
         for transition_index in range(ntransitions):
             for spatial_node in range(nspatial_nodes):
-                if ((transition_amounts[transition_index][spatial_node] < 0).any()):
+                if ((transition_amounts[transition_index][spatial_node] < 0)):
                     print("transition amounts should be non-negative. Purposefully failing simulation.")
                     states_diff = states_diff * np.na
                 if (
