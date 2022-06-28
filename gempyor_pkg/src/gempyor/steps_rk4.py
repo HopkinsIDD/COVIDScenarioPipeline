@@ -190,7 +190,7 @@ def rk4_integration(
             for spatial_node in range(nspatial_nodes):
                 if ((transition_amounts[transition_index][spatial_node] < 0)):
                     print("transition amounts should be non-negative. Purposefully failing simulation.")
-                    states_diff = states_diff * np.NA
+                    states_diff = states_diff * np.nan
                 if (
                     transition_amounts[transition_index][spatial_node]
                     >= st_next[0][transitions[transition_source_col][transition_index]][
