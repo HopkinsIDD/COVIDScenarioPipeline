@@ -46,6 +46,7 @@ error_handler() {
 	if [ $AWS_BATCH_JOB_ATTEMPT -eq 3 ]; then
 		echo $JOB_NAME >> errorfile
 		echo $msg >> errorfile
+		aws s3 cp integration_dump.pkl $S3_RESULTS_PATH/failures/integration_dump.$AWS_BATCH_JOB_ARRAY_INDEX.pkl
 		aws s3 cp errorfile $S3_RESULTS_PATH/failures/$AWS_BATCH_JOB_ARRAY_INDEX
 		exit 0
 	else
@@ -124,7 +125,7 @@ find data
 echo "==="
 
 # NOTE(jwills): hard coding this for now
-Rscript COVIDScenarioPipeline/R/scripts/filter_MC.R -p COVIDScenarioPipeline || aws s3 cp integration_dump.pkl $S3_RESULTS_PATH/integration_dump.pkl
+Rscript COVIDScenarioPipeline/R/scripts/filter_MC.R -p COVIDScenarioPipeline
 
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then
