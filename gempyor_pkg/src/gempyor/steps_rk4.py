@@ -63,7 +63,7 @@ def rk4_integration(
             1,
         )
 
-    @jit(nopython=True, fastmath=True)
+    @jit(nopython=True)
     def rhs(t, x, today):
         states_current = np.reshape(x, (2, ncompartments, nspatial_nodes))[0]
         st_next = (
@@ -181,7 +181,7 @@ def rk4_integration(
         #    if number_move[spatial_node] > states_current[transitions[transition_source_col][transition_index]][spatial_node]:
         #        number_move[spatial_node] = states_current[transitions[transition_source_col][transition_index]][spatial_node]
 
-    @jit(nopython=True, fastmath=True)
+    @jit(nopython=True)
     def update_states(states, delta_t, transition_amounts):
         states_diff = np.zeros(
             (2, ncompartments, nspatial_nodes)
