@@ -16,6 +16,8 @@ proportion_sum_starts_col = 0
 proportion_sum_stops_col = 1
 proportion_exponent_col = 2
 
+float_tolerance = 1e-9
+
 
 def rk4_integration(
     *,
@@ -70,6 +72,9 @@ def rk4_integration(
         transition_amounts = np.zeros(
             (ntransitions, nspatial_nodes)
         )  # keep track of the transitions
+
+        if ((x < 0).any()):
+            print("Integration error: rhs got a negative x (pos, time)", np.where(x < 0), t)
 
         for transition_index in range(ntransitions):
             total_rate = np.ones((nspatial_nodes))
@@ -189,17 +194,17 @@ def rk4_integration(
         for transition_index in range(ntransitions):
             for spatial_node in range(nspatial_nodes):
                 if ((transition_amounts[transition_index][spatial_node] < 0)):
-                    print("transition amounts should be non-negative. Purposefully failing simulation.")
-                    states_diff = states_diff * np.nan
+                    print("Integration error: transition amounts negative (trans_idx, node)", transition_index, spatial_node)
                 if (
                     transition_amounts[transition_index][spatial_node]
                     >= st_next[0][transitions[transition_source_col][transition_index]][
                         spatial_node
-                    ]
+                    ] - float_tolerance
                 ):
-                    transition_amounts[transition_index][spatial_node] = st_next[0][
+                    transition_amounts[transition_index][spatial_node] = max(st_next[0][
                         transitions[transition_source_col][transition_index]
-                    ][spatial_node]
+                    ][spatial_node] - float_tolerance, 
+                    0)
             st_next[0][
                 transitions[transition_source_col][transition_index]
             ] -= transition_amounts[transition_index]
