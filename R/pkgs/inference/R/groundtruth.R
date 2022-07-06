@@ -46,7 +46,12 @@ get_ground_truth <- function(data_path, fips_codes, fips_column_name, start_date
 
   rc <- suppressMessages(readr::read_csv(
     data_path,
-    col_types = list(FIPS = readr::col_character()),
+    col_types = readr::cols(
+      FIPS = readr::col_character(),
+      date = readr::col_date(),
+      source = readr::col_character(),
+      .default=col_double()
+    ),
   ))
   rc <- dplyr::filter(
     rc,
