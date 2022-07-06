@@ -376,6 +376,8 @@ class BatchJobHandler(object):
                 for q in os.listdir("COVIDScenarioPipeline"):
                     if not (
                         q == "packrat"
+                        or q == "covid-dashboard-app"
+                        or q == "renv.cache"
                         or q == "sample_data"
                         or q == "build"
                         or q.startswith(".")
