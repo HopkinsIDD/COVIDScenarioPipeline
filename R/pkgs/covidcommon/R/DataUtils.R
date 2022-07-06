@@ -1002,7 +1002,7 @@ get_groundtruth_from_source <- function(
     tryCatch({
       rc <- do_variant_adjustment(rc, variant_props_file)
     }, error = function(e) {
-      stop(paste0("Could not use variant file |", variant_props_file, "|, with error message", e$message()))
+      stop(paste0("Could not use variant file |", variant_props_file, "|, with error message", e$message))
     })
   }
 
