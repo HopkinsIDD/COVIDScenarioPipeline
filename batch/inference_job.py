@@ -568,6 +568,8 @@ class BatchJobHandler(object):
             print(
                 f"Resuming from run id is {self.restart_from_run_id} located in {self.restart_from_s3_bucket}"
             )
+            if (self.resume_discard_seeding):
+                print(f"Discarding seeding results")
         print(f"Final output will be: {results_path}/model_output/")
         print(f"Run id is {self.run_id}")
 
