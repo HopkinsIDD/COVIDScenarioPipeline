@@ -22,7 +22,8 @@ RUN set -e \
         gnupg2 gnupg1 ca-certificates software-properties-common \
       && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
       && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/' \
-      && add-apt-repository ppa:git-core/ppa
+      && add-apt-repository ppa:git-core/ppa \
+      && add-apt-repository ppa:deadsnakes/ppa
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -70,9 +71,11 @@ RUN apt-get update && \
     supervisor \
     awscli \
     r-base-dev=$R_VERSION \
+    python3.10 \
     # make sure we have up-to-date CA certs or curling some https endpoints (like python.org) may fail
     ca-certificates \
     # app user creation
+    && sudo ln -s /usr/bin/python3.10 /usr/local/bin/python \
     && useradd -m app \
     && mkdir -p /home/app \
     && chown -R app:app /home/app \
@@ -88,32 +91,8 @@ ENV HOME /home/app
 # Python (managed via pyenv)
 #####
 
-ENV PYENV_ROOT $HOME/.pyenv
-ENV PYTHON_VERSION 3.10.1
-ENV PYTHON_VENV_DIR $HOME/python_venv
-ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
-
-
-RUN git clone https://github.com/yyuu/pyenv.git $HOME/.pyenv \
-    && rm -rf $HOME/.pyenv/.git \
-    && env PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install -s $PYTHON_VERSION --verbose \
-    && pyenv rehash \
-    && echo 'eval "$(pyenv init -)"' >> ~/.bashrc \
-    && echo "PS1=\"\[\e]0;\u@\h: \w\a\] \h:\w\$ \"" >> ~/.bashrc
-
-RUN git clone https://github.com/pyenv/pyenv-virtualenv.git $HOME/.pyenv/plugins/pyenv-virtualenv \
-    && rm -rf $HOME/.pyenv/plugins/pyenv-virtualenv/.git \
-    && pyenv rehash \
-    && echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc \
-    && pyenv virtualenv $PYTHON_VERSION covidsp \
-    && echo 'pyenv activate covidsp' >> ~/.bashrc
-
 # automatically activate the python venv when logging in
-COPY --chown=app:app gempyor_pkg $HOME/gempyor_pkg
-RUN eval "$(pyenv init -)" \
-    && eval "$(pyenv virtualenv-init -)" \
-    && pyenv activate covidsp \
-    && pip install --upgrade pip setuptools \
+RUN pip install --upgrade pip setuptools \
     && pip install $HOME/gempyor_pkg
 
 #####
