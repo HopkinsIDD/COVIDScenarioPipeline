@@ -72,10 +72,14 @@ RUN apt-get update && \
     awscli \
     r-base-dev=$R_VERSION \
     python3.10 \
+    python3.10-dev \
+    python3.10-distutils \
+    python3.10-venv \
     # make sure we have up-to-date CA certs or curling some https endpoints (like python.org) may fail
     ca-certificates \
     # app user creation
     && sudo ln -s /usr/bin/python3.10 /usr/local/bin/python \
+    && sudo ln -s /usr/bin/pip3 /usr/local/bin/pip \
     && useradd -m app \
     && mkdir -p /home/app \
     && chown -R app:app /home/app \
@@ -90,19 +94,22 @@ ENV HOME /home/app
 #####
 # Python (managed via pyenv)
 #####
+# 
+ENV PYTHON_VERSION 3.10
+ENV VENV_ROOT /var/python/$PYTHON_VERSION/virtualenv
+COPY --chown=app:app gempyor_pkg $HOME/gempyor_pkg
 
-# automatically activate the python venv when logging in
-RUN pip install --upgrade pip setuptools \
-    && pip install $HOME/gempyor_pkg
+RUN sudo python -m venv $VENV_ROOT \
+  && sudo $VENV_ROOT/bin/python3.10 -m pip install --upgrade setuptools pip \
+  && sudo $VENV_ROOT/bin/python3.10 -m pip install $HOME/gempyor_pkg \
+  && echo "source $VENV_ROOT/bin/activate" >> $HOME/.bashrc
 
 #####
 # R
 #####
 
-# Use packrat for R package management
-RUN sudo Rscript -e "install.packages('renv',repos='https://cloud.r-project.org/')" \
-    && cd /home/app
-    # && Rscript -e 'arrow::install_arrow()'
+# Use renv for R package management
+RUN sudo Rscript -e "install.packages('renv',repos='https://cloud.r-project.org/')"
 COPY --chown=app:app renv.cache $HOME/.cache
 COPY --chown=app:app renv.lock $HOME/renv.lock
 COPY --chown=app:app renv $HOME/renv
