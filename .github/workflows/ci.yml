@@ -29,10 +29,10 @@ jobs:
       - name: Set up Rprofile
         run: |
           cp Docker.Rprofile $HOME/.Rprofile
+          cp /home/app/.bashrc $HOME/.bashrc
         shell: bash
       - name: Install the gempyor package
         run: |
-          source /home/app/.bashrc
           python -m pip install --upgrade pip
           pip install -e gempyor_pkg/
         shell: bash
@@ -41,19 +41,16 @@ jobs:
         shell: bash
       - name: Run gempyor tests
         run: |
-          source /home/app/.bashrc
           cd gempyor_pkg
           pytest -s
         shell: bash
       - name: Run covidcommon tests
         run: |
-          source /home/app/.bashrc
           setwd("R/pkgs/covidcommon")
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
       - name: Run hospitalization tests
         run: |
-          source /home/app/.bashrc
           setwd("R/pkgs/hospitalization")
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
@@ -64,7 +61,6 @@ jobs:
 #        shell: Rscript {0}
       - name: Run inference tests
         run: |
-          source /home/app/.bashrc
           setwd("R/pkgs/inference")
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
@@ -75,6 +71,5 @@ jobs:
           git lfs pull
           Rscript local_install.R
           cd test
-          source /home/app/.bashrc
           pytest run_tests.py
         shell: bash
