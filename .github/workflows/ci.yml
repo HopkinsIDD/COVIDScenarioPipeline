@@ -33,7 +33,7 @@ jobs:
         shell: bash
       - name: Install the gempyor package
         run: |
-          cat ~/.bashrc
+          source /var/python/3.10/virtualenv/bin/activate
           python -m pip install --upgrade pip
           python -m pip install gempyor_pkg/
         shell: bash
