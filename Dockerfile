@@ -102,7 +102,7 @@ COPY --chown=app:app gempyor_pkg $HOME/gempyor_pkg
 RUN sudo python -m venv $VENV_ROOT \
   && sudo $VENV_ROOT/bin/python3.10 -m pip install --upgrade setuptools pip \
   && sudo $VENV_ROOT/bin/python3.10 -m pip install $HOME/gempyor_pkg \
-  && echo "source $VENV_ROOT/bin/activate" >> $HOME/.bashrc
+  && echo "source $VENV_ROOT/bin/activate" >> $HOME/.bashrc \
   && echo "source $VENV_ROOT/bin/activate" >> /root/.bashrc
 
 #####
