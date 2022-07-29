@@ -26,11 +26,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          lfs: true
       - name: Set up Rprofile
         run: |
           cp Docker.Rprofile $HOME/.Rprofile
           cp /home/app/.bashrc $HOME/.bashrc
-          git lfs pull
         shell: bash
       - name: Install the gempyor package
         run: |
