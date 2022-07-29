@@ -30,6 +30,7 @@ jobs:
         run: |
           cp Docker.Rprofile $HOME/.Rprofile
           cp /home/app/.bashrc $HOME/.bashrc
+          git lfs pull
         shell: bash
       - name: Install the gempyor package
         run: |
@@ -40,21 +41,20 @@ jobs:
       - name: Install local R packages
         run: Rscript local_install.R
         shell: bash
+      - name: Run integration tests
+        env:
+          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+        run: |
+          Rscript local_install.R
+          cd test
+          source /var/python/3.10/virtualenv/bin/activate
+          pytest run_tests.py
+        shell: bash
       - name: Run gempyor tests
         run: |
           source /var/python/3.10/virtualenv/bin/activate
           cd gempyor_pkg
           pytest -s
-        shell: bash
-      - name: Run integration tests
-        env:
-          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
-        run: |
-          git lfs pull
-          Rscript local_install.R
-          cd test
-          source /var/python/3.10/virtualenv/bin/activate
-          pytest run_tests.py
         shell: bash
       - name: Run covidcommon tests
         run: |
