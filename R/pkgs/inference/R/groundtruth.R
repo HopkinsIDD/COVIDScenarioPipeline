@@ -50,7 +50,7 @@ get_ground_truth <- function(data_path, fips_codes, fips_column_name, start_date
       FIPS = readr::col_character(),
       date = readr::col_date(),
       source = readr::col_character(),
-      .default=col_double()
+      .default = readr::col_double()
     ),
   ))
   rc <- dplyr::filter(
