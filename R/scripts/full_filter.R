@@ -81,7 +81,7 @@ foreach(slot = seq_len(opt$slots)) %dopar% {
         "-d", opt$deathrates,
         "-j", opt$jobs,
         "-k", opt$simulations_per_slot,
-        "-n", opt$slots,
+        "-i", slot,
         "-b", opt$this_block,
         "-t", opt$stoch_traj_flag,
         "--ground_truth_start", opt$ground_truth_start,
