@@ -84,8 +84,8 @@ foreach(slot = seq_len(opt$slots)) %dopar% {
         "-i", slot,
         "-b", opt$this_block,
         "-t", opt$stoch_traj_flag,
-        ifelse(nchar(opt$ground_truth_start) > 0, c("--ground_truth_start", opt$ground_truth_start), NULL)
-        ifelse(nchar(opt$ground_truth_end) > 0, c("--ground_truth_end", opt$ground_truth_end), NULL)
+        ifelse(nchar(opt$ground_truth_start) > 0, c("--ground_truth_start", opt$ground_truth_start), NULL),
+        ifelse(nchar(opt$ground_truth_end) > 0, c("--ground_truth_end", opt$ground_truth_end), NULL),
         "-p", opt$pipepath,
         "-y", opt$python,
         "-r", opt$rpath,
