@@ -70,6 +70,17 @@ foreach(scenario = scenarios) %:%
 foreach(deathrate = deathrates) %:%
 foreach(slot = seq_len(opt$slots)) %dopar% {
   print(paste("Slot",slot,"of",opt$slots))
+
+
+  ground_truth_start_text <- NULL
+  ground_truth_end_text <- NULL
+  if (nchar(opt$ground_truth_start) > 0) {
+    ground_truth_start_text <- c("--ground_truth_start", opt$ground_truth_start)
+  }
+  if (nchar(opt$ground_truth_start) > 0) {
+    ground_truth_end_text <- c("--ground_truth_end", opt$ground_truth_end)
+  }
+
   err <- system(
     paste(
       opt$rpath,
@@ -84,8 +95,8 @@ foreach(slot = seq_len(opt$slots)) %dopar% {
         "-i", slot,
         "-b", opt$this_block,
         "-t", opt$stoch_traj_flag,
-        ifelse(nchar(opt$ground_truth_start) > 0, c("--ground_truth_start", opt$ground_truth_start), NULL),
-        ifelse(nchar(opt$ground_truth_end) > 0, c("--ground_truth_end", opt$ground_truth_end), NULL),
+        ground_truth_start_text,
+        ground_truth_end_text,
         "-p", opt$pipepath,
         "-y", opt$python,
         "-r", opt$rpath,

@@ -452,7 +452,7 @@ for(scenario in scenarios) {
       
       
       proposed_likelihood_data$accept <- ifelse(inference::iterateAccept(global_likelihood, proposed_likelihood) || ((current_index == 0) && (opt$this_block == 1)),1,0)
-      if(proposed_likelihood_data$accept == 1) {
+      if(all(proposed_likelihood_data$accept == 1)) {
         
         print("**** ACCEPT (Recording) ****")
         if ((opt$this_block == 1) && (current_index == 0)) {
