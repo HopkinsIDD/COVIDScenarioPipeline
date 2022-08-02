@@ -3,19 +3,12 @@ name: unit-tests
 on:
   push:
     branches:
-      - master
+      - main
       - dev
-      - dataseed
-      - inference
   pull_request:
     branches:
-      - master
+      - main
       - dev
-      - dataseed
-      - inference
-      - inference_state
-      - compartment_dev
-      - seir-integration
 
 jobs:
   unit-tests:
@@ -41,15 +34,6 @@ jobs:
         shell: bash
       - name: Install local R packages
         run: Rscript local_install.R
-        shell: bash
-      - name: Run integration tests
-        env:
-          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
-        run: |
-          Rscript local_install.R
-          cd test
-          source /var/python/3.10/virtualenv/bin/activate
-          pytest run_tests.py
         shell: bash
       - name: Run gempyor tests
         run: |
@@ -77,3 +61,12 @@ jobs:
           setwd("R/pkgs/inference")
           devtools::test(stop_on_failure=TRUE)
         shell: Rscript {0}
+      - name: Run integration tests
+        env:
+          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+        run: |
+          Rscript local_install.R
+          cd test
+          source /var/python/3.10/virtualenv/bin/activate
+          pytest run_tests.py
+        shell: bash
