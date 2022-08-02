@@ -178,16 +178,16 @@ def test_multitime():
 # assert_dir("model_output/seed")
 
 
-def test_report():
-    _success("test_report")
-
-    assert_file("data/geodata.csv")
-    assert_file("data/mobility.csv")
-    assert_dir("data/shp")
-    assert_dir("model_output/seed")
-    assert_dir("notebooks")
-    today_str = datetime.date.today().strftime("%Y%m%d")
-    assert_file(f"notebooks/Hawaii_{today_str}/Hawaii_{today_str}_report.html")
+# def test_report():
+#     _success("test_report")
+# 
+#     assert_file("data/geodata.csv")
+#     assert_file("data/mobility.csv")
+#     assert_dir("data/shp")
+#     assert_dir("model_output/seed")
+#     assert_dir("notebooks")
+#     today_str = datetime.date.today().strftime("%Y%m%d")
+#     assert_file(f"notebooks/Hawaii_{today_str}/Hawaii_{today_str}_report.html")
 
 
 # def test_hosp_age_adjust():
