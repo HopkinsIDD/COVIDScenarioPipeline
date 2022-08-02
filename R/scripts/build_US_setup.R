@@ -38,11 +38,12 @@ library(tidycensus)
 option_list = list(
   optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
   optparse::make_option(c("-p", "--path"), action="store", default=Sys.getenv("COVID_PATH", "COVIDScenarioPipeline"), type='character', help="path to the COVIDScenarioPipeline directory"),
-  optparse::make_option(c("-w", "--wide_form"), action="store",default=FALSE,type='logical',help="Whether to generate the old wide format mobility or the new long format")
+  optparse::make_option(c("-w", "--wide_form"), action="store",default=FALSE,type='logical',help="Whether to generate the old wide format mobility or the new long format"),
+  optparse::make_option(c("-k", "--api-key"), action="store", default=Sys.getenv("CENSUS_API_KEY", ""), type = "character", help = "api key used by tidycensus")
 )
 opt = optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
-config <- covidcommon::load_config(opt$c)
+config <- covidcommon::load_config(opt$config)
 if (length(config) == 0) {
   stop("no configuration found -- please set CONFIG_PATH environment variable or use the -c command flag")
 }
@@ -55,14 +56,14 @@ dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
 state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
 
 dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
-# commute_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
-# census_data <- readr::read_csv(paste(opt$p,"sample_data","united-states-commutes","census_tracts_2010.csv", sep = '/'))
+# commute_data <- readr::read_csv(paste(opt$path,"sample_data","united-states-commutes","commute_data.csv",sep='/'))
+# census_data <- readr::read_csv(paste(opt$path,"sample_data","united-states-commutes","census_tracts_2010.csv", sep = '/'))
 
 
 # Get census key
-census_key = Sys.getenv("CENSUS_API_KEY")
-if(length(config$importation$census_api_key) != 0){
-  census_key = config$importation$census_api_key
+census_key <- opt[["api-key"]]
+if(is.null(census_key)) {
+  census_key <- config$importation$census_api_key
 }
 if(census_key == ""){
   stop("no census key found -- please set CENSUS_API_KEY environment variable or specify importation::census_api_key in config file")
@@ -109,7 +110,7 @@ census_data <- census_data %>%
 
 
 # Territory populations (except Puerto Rico) taken from from https://www.census.gov/prod/cen2010/cph-2-1.pdf
-terr_census_data <- readr::read_csv(file.path(opt$p,"sample_data","united-states-commutes","census_tracts_island_areas_2010.csv"))
+terr_census_data <- readr::read_csv(file.path(opt$path,"sample_data","united-states-commutes","census_tracts_island_areas_2010.csv"))
 
 census_data <- terr_census_data %>% 
   dplyr::filter(length(filterUSPS) == 0 | ((USPS %in% filterUSPS) & !(USPS %in% census_data)))%>%
@@ -165,7 +166,7 @@ if(state_level & !file.exists(paste0(config$spatial_setup$base_path, "/", config
     dplyr::summarize(FLOW = sum(FLOW)) %>%
     dplyr::filter(OFIPS != DFIPS)
 
-  if(opt$w){
+  if(opt$wide_form){
     mobility_file <- 'mobility.txt'
   } else if (length(config$spatial_setup$mobility) > 0) {
     mobility_file <- config$spatial_setup$mobility
