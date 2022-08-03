@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head><title>R: COVID19 Pipeline Inference</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body><div class="container">
+<h1> COVID19 Pipeline Inference
+<img class="toplogo" src="../../../doc/html/Rlogo.svg" alt="[R logo]" />
+</h1>
+<hr/>
+<div style="text-align: center;">
+<a href="../../../doc/html/packages.html"><img class="arrow" src="../../../doc/html/left.jpg" alt="[Up]" /></a>
+<a href="../../../doc/html/index.html"><img class="arrow" src="../../../doc/html/up.jpg" alt="[Top]" /></a>
+</div><h2>Documentation for package &lsquo;inference&rsquo; version 0.0.1</h2>
+
+<ul><li><a href="../DESCRIPTION">DESCRIPTION file</a>.</li>
+</ul>
+
+<h2>Help Pages</h2>
+
+
+<table width="100%">
+<tr><td style="width: 25%;"><a href="accept_reject_new_seeding_npis.html">accept_reject_new_seeding_npis</a></td>
+<td>Function to go through to accept or reject proposed parameters for each geoid based on a geoid specific likelihood.</td></tr>
+<tr><td style="width: 25%;"><a href="add_perturb_column_hnpi.html">add_perturb_column_hnpi</a></td>
+<td>Function adds a column to the npi parameter file to record the perturbation standard deviation, initially taken from the config file</td></tr>
+<tr><td style="width: 25%;"><a href="add_perturb_column_snpi.html">add_perturb_column_snpi</a></td>
+<td>Function adds a column to the npi parameter file to record the perturbation standard deviation, initially taken from the config file</td></tr>
+<tr><td style="width: 25%;"><a href="aggregate_and_calc_loc_likelihoods.html">aggregate_and_calc_loc_likelihoods</a></td>
+<td>Function that performs aggregation and calculates likelihood data across all given locations.</td></tr>
+<tr><td style="width: 25%;"><a href="calc_hierarchical_likadj.html">calc_hierarchical_likadj</a></td>
+<td>Function to calculate a hierarchical adjustment to the LL contribution under the assumption that everything comes from a normal distribution with some variance.</td></tr>
+<tr><td style="width: 25%;"><a href="calc_prior_likadj.html">calc_prior_likadj</a></td>
+<td>Function to calcualte the likelihood adjustment based on a prior</td></tr>
+<tr><td style="width: 25%;"><a href="compute_cumulative_counts.html">compute_cumulative_counts</a></td>
+<td>Function to compute cumulative counts across geoids</td></tr>
+<tr><td style="width: 25%;"><a href="compute_totals.html">compute_totals</a></td>
+<td>Function to compute cumulative counts across geoids</td></tr>
+<tr><td style="width: 25%;"><a href="create_cum_death_forecast.html">create_cum_death_forecast</a></td>
+<td>Creates a merged forecast from a data object and a set of sims.</td></tr>
+<tr><td style="width: 25%;"><a href="cum_death_forecast.html">cum_death_forecast</a></td>
+<td>Functoin that takes the results of an inference run, a date and a set of cumulative numbers and and results from the simulation.</td></tr>
+<tr><td style="width: 25%;"><a href="getStats.html">getStats</a></td>
+<td>Function for computing statistics over which to compute likelihoods</td></tr>
+<tr><td style="width: 25%;"><a href="get_ground_truth.html">get_ground_truth</a></td>
+<td>Function to load US COVID data from USAfacts</td></tr>
+<tr><td style="width: 25%;"><a href="get_ground_truth_file.html">get_ground_truth_file</a></td>
+<td>Function to load US COVID data from JHUCSSE</td></tr>
+<tr><td style="width: 25%;"><a href="initialize_mcmc_first_block.html">initialize_mcmc_first_block</a></td>
+<td>initialize_mcmc_first_block</td></tr>
+<tr><td style="width: 25%;"><a href="iterateAccept.html">iterateAccept</a></td>
+<td>Function accept proposals</td></tr>
+<tr><td style="width: 25%;"><a href="logLikStat.html">logLikStat</a></td>
+<td>Function for computing statistics over which to compute likelihoods</td></tr>
+<tr><td style="width: 25%;"><a href="multi_loc_inference_test.html">multi_loc_inference_test</a></td>
+<td>Function that does a rapid testing of the inference procedures on a single time series.</td></tr>
+<tr><td style="width: 25%;"><a href="npis_dataframe.html">npis_dataframe</a></td>
+<td>Create NPIs dataframe for a single location for input to SEIR code</td></tr>
+<tr><td style="width: 25%;"><a href="perform_MCMC_step_copies_chimeric.html">perform_MCMC_step_copies_chimeric</a></td>
+<td>Function that performs the necessary file copies the end of an MCMC iteration of filter_MC.</td></tr>
+<tr><td style="width: 25%;"><a href="perform_MCMC_step_copies_global.html">perform_MCMC_step_copies_global</a></td>
+<td>Function that performs the necessary file copies the end of an MCMC iteration of filter_MC.</td></tr>
+<tr><td style="width: 25%;"><a href="periodAggregate.html">periodAggregate</a></td>
+<td>Function for applying time aggregation of variables on which to comput likelihoods Note that bahavior is not consistent when multiples of time nits are passed in.</td></tr>
+<tr><td style="width: 25%;"><a href="perturb_expand_npis.html">perturb_expand_npis</a></td>
+<td>Expands the perturb npi into a dataframe with time</td></tr>
+<tr><td style="width: 25%;"><a href="perturb_hnpi.html">perturb_hnpi</a></td>
+<td>Function perturbs an npi parameter file based on user-specified distributions</td></tr>
+<tr><td style="width: 25%;"><a href="perturb_hnpi_from_file.html">perturb_hnpi_from_file</a></td>
+<td>Function perturbs an npi parameter file based on the current perturbation standard deviation in the file, and also can update the perturbation value if the adaptive mode is turned on</td></tr>
+<tr><td style="width: 25%;"><a href="perturb_hpar.html">perturb_hpar</a></td>
+<td>Fucction perturbs an outcomes parameter file based on user-specified distributions</td></tr>
+<tr><td style="width: 25%;"><a href="perturb_seeding.html">perturb_seeding</a></td>
+<td>Function perturbs a seeding file based on a normal proposal on the start date and a poisson on the number of cases.</td></tr>
+<tr><td style="width: 25%;"><a href="perturb_snpi.html">perturb_snpi</a></td>
+<td>Function perturbs an npi parameter file based on user-specified distributions</td></tr>
+<tr><td style="width: 25%;"><a href="perturb_snpi_from_file.html">perturb_snpi_from_file</a></td>
+<td>Function perturbs an npi parameter file based on the current perturbation standard deviation in the file, and also can update the perturbation value if the adaptive mode is turned on</td></tr>
+<tr><td style="width: 25%;"><a href="simulate_multi_epi.html">simulate_multi_epi</a></td>
+<td>Fill in the epi curve from a baseline state given current parameters</td></tr>
+<tr><td style="width: 25%;"><a href="simulate_single_epi.html">simulate_single_epi</a></td>
+<td>Fill in the epi curve from a baseline state given current parameters</td></tr>
+<tr><td style="width: 25%;"><a href="single_hosp_run.html">single_hosp_run</a></td>
+<td>Run hospitalizations and deaths for single epi curve Functions taken from the hospitalization package</td></tr>
+<tr><td style="width: 25%;"><a href="single_loc_inference_test.html">single_loc_inference_test</a></td>
+<td>Function that does a rapid testing of the inference procedures on a single time series.</td></tr>
+<tr><td style="width: 25%;"><a href="synthetic_data.html">synthetic_data</a></td>
+<td>Create synthetic data to run inference on Runs an SEIR simulation and applies hospitalization and death on it</td></tr>
+<tr><td style="width: 25%;"><a href="synthetic_data_multi.html">synthetic_data_multi</a></td>
+<td>Create synthetic data to run inference on Runs an SEIR simulation and applies hospitalization and death on it</td></tr>
+</table>
+</div></body></html>

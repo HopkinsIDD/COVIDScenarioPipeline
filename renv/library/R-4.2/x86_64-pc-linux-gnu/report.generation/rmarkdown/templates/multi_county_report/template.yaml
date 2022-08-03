@@ -1,0 +1,4 @@
+name: Multi-scenario/multi-county report
+description: >-
+  Basic template for making a multi-scenario report that covers
+  multiple counties (or other groupings of geoids

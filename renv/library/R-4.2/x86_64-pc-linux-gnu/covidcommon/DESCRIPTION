@@ -1,0 +1,18 @@
+Package: covidcommon
+Title: Common R code shared across packages
+Version: 0.0.1
+Imports: methods, yaml, purrr
+Authors@R: person(given = "Joshua",
+           family = "Kaminsky",
+           role = c("cre", "aut"),
+           email = "jkaminsky@jhu.edu")
+Description: Common R code shared across all local packages
+License: What license it uses
+Encoding: UTF-8
+Suggests: testthat (>= 2.1.0)
+RoxygenNote: 7.1.2
+Author: Joshua Kaminsky [cre, aut]
+Maintainer: Joshua Kaminsky <jkaminsky@jhu.edu>
+Built: R 4.2.0; ; 2022-05-20 23:22:51 UTC; unix
+RemoteType: local
+RemoteUrl: ~/pkgs/covidcommon/

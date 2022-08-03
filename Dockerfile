@@ -22,7 +22,8 @@ RUN set -e \
         gnupg2 gnupg1 ca-certificates software-properties-common \
       && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
       && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/' \
-      && add-apt-repository ppa:git-core/ppa
+      && add-apt-repository ppa:git-core/ppa \
+      && add-apt-repository ppa:deadsnakes/ppa
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -70,10 +71,15 @@ RUN apt-get update && \
     supervisor \
     awscli \
     r-base-dev=$R_VERSION \
-    python3-venv \
+    python3.10 \
+    python3.10-dev \
+    python3.10-distutils \
+    python3.10-venv \
     # make sure we have up-to-date CA certs or curling some https endpoints (like python.org) may fail
     ca-certificates \
     # app user creation
+    && sudo ln -s /usr/bin/python3.10 /usr/local/bin/python \
+    && sudo ln -s /usr/bin/pip3 /usr/local/bin/pip \
     && useradd -m app \
     && mkdir -p /home/app \
     && chown -R app:app /home/app \
@@ -86,42 +92,31 @@ USER app
 ENV HOME /home/app
 
 #####
+# Python (managed via pyenv)
+#####
+# 
+ENV PYTHON_VERSION 3.10
+ENV VENV_ROOT /var/python/$PYTHON_VERSION/virtualenv
+COPY --chown=app:app gempyor_pkg $HOME/gempyor_pkg
+
+RUN sudo python -m venv $VENV_ROOT \
+  && sudo chown app:app -R $VENV_ROOT \
+  && $VENV_ROOT/bin/python3.10 -m pip install --upgrade setuptools pip \
+  && $VENV_ROOT/bin/python3.10 -m pip install $HOME/gempyor_pkg
+
+COPY --chown=app:app Docker.bashrc $HOME/.bashrc
+COPY --chown=root:root Docker.bashrc /root/.bashrc
+
+#####
 # R
 #####
 
-# Use packrat for R package management
-RUN sudo Rscript -e "install.packages('renv',repos='https://cloud.r-project.org/')" \
-    && cd /home/app
-    # && Rscript -e 'arrow::install_arrow()'
+# Use renv for R package management
+RUN sudo Rscript -e "install.packages('renv',repos='https://cloud.r-project.org/')"
 COPY --chown=app:app renv.cache $HOME/.cache
 COPY --chown=app:app renv.lock $HOME/renv.lock
 COPY --chown=app:app renv $HOME/renv
 COPY --chown=app:app Docker.Rprofile $HOME/.Rprofile
-
-
-#####
-# Python (managed via pyenv)
-#####
-
-ENV PYENV_ROOT $HOME/.pyenv
-ENV PYTHON_VERSION 3.10.1
-ENV PYTHON_VENV_DIR $HOME/python_venv
-ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
-
-
-RUN git clone https://github.com/yyuu/pyenv.git $HOME/.pyenv \
-    && rm -rf $HOME/.pyenv/.git \
-    && env PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install -s $PYTHON_VERSION --verbose \
-    && pyenv rehash \
-    && echo 'eval "$(pyenv init -)"' >> ~/.bashrc \
-    && echo "pyenv shell $PYTHON_VERSION" >> ~/.bashrc \
-    && echo "PS1=\"\[\e]0;\u@\h: \w\a\] \h:\w\$ \"" >> ~/.bashrc
-
-# automatically activate the python venv when logging in
-COPY --chown=app:app gempyor_pkg $HOME/gempyor_pkg
-RUN eval "$(pyenv init -)" \
-    && pyenv shell $PYTHON_VERSION \
-    && pip install --upgrade pip setuptools \
-    && pip install --user $HOME/gempyor_pkg
+COPY --chown=app:app R/pkgs $HOME/pkgs
 
 CMD ["/bin/bash"]

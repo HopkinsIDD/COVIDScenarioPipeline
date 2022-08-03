@@ -1,0 +1,69 @@
+$.config                Overrides the $ operator for S3 'config'
+                        objects to ensure that named args exist.
+as_density_distribution
+                        Takes a list of parameters and converts to a
+                        pdf
+as_evaled_expression    Evaluates an expression, returning a numeric
+                        value
+as_random_distribution
+                        Evaluates an expression, returning a numeric
+                        value
+config                  Map of configuration values, constructed via a
+                        call to 'load_config'
+create_prefix           create_prefix
+download_CSSE_global_data
+                        Download CSSE global data
+download_CSSE_US_data   Download CSSE US data
+download_reichlab_data
+                        Download Reich Lab data
+download_USAFacts_data
+                        Download USAFacts data
+fix_negative_counts     Title
+get_covidcast_data      get_covidcast_data
+get_CSSE_global_data    Pull global case and death count data from JHU
+                        CSSE
+get_CSSE_US_data        Pull US case and death count data from JHU CSSE
+get_CSSE_US_matchGlobal_data
+                        Pull CSSE US data in format similar to that of
+                        global data
+get_groundtruth_from_source
+                        Wrapper function to pull data from different
+                        sources
+get_hhsCMU_allHosp_st_data
+                        Pull all state-level hospitalization data from
+                        HHS through CMU Delphi API
+get_hhsCMU_hospCurr_st_data
+                        Clean and trim state-level hospCurr data from
+                        HHS through CMU Delphi API
+get_hhsCMU_incidH_st_data
+                        Clean and trim state-level incidH data from HHS
+                        through CMU Delphi API Update is shifted one
+                        day back because data was originally reported
+                        as previous day hospital admissions Returned
+                        data preview: Update, FIPS, source,
+                        incidH_confirmed, incidH_all
+get_islandareas_data    Pulls island area data from NY Times
+get_reichlab_cty_data   Pull county-level case and death count data
+                        from Reich Lab
+get_reichlab_st_data    Pull state-level case and death count data from
+                        Reich Lab
+get_USAFacts_data       Pull case and death count data from USAFacts
+hospitalization_file_path
+                        Function for determining where to write
+                        hospitalization output file
+hpar_file_path          Function for determining where to write the
+                        hospitalization parameter files
+load_config             Returns a map of configuration loaded from the
+                        config YAML
+run_id                  Create a unique identifier for a run via time
+                        stamp
+safe_eval               Safer version of eval that only allows
+                        arthimetic operations
+seeding_file_path       Function for determining where to write the
+                        seeding.csv file
+simulation_file_path    Function for determining where to write the
+                        SEIR output to file
+snpi_file_path          Function for determining where to write the
+                        seeding.csv file
+spar_file_path          Function for determining where to write the
+                        seeding.csv file

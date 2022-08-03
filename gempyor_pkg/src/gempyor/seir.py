@@ -175,7 +175,7 @@ def onerun_SEIR(
     sim_id2load: int = None,
     config=None,
 ):
-    scipy.random.seed()
+    np.random.seed()
 
     npi = build_npi_SEIR(s=s, load_ID=load_ID, sim_id2load=sim_id2load, config=config)
 

@@ -1,0 +1,20 @@
+Package: inference
+Title: COVID19 Pipeline Inference
+Version: 0.0.1
+Authors@R: person(given = "IDD",
+           family = "Group",
+           role = c("aut", "cre"),
+           email = "first.last@example.com")
+Description: Performs inference on pipeline model using MCMC
+License: What license it uses
+Encoding: UTF-8
+LazyData: true
+Imports: dplyr, readr, covidcommon, report.generation, stringr, foreach,
+    magrittr, xts, reticulate, truncnorm, arrow
+RoxygenNote: 7.1.2
+Suggests: testthat
+Author: IDD Group [aut, cre]
+Maintainer: IDD Group <first.last@example.com>
+Built: R 4.2.0; ; 2022-05-20 23:23:02 UTC; unix
+RemoteType: local
+RemoteUrl: ~/pkgs/inference/

@@ -1,0 +1,20 @@
+Package: hospitalization
+Title: Generate hospitalization scenarios corresponding to the infection
+    scenarios from a run of the SEIR code.
+Version: 0.0.1
+Imports: magrittr, knitr, tidyr, dplyr, readr, gridExtra, ggfortify, ggplot2,
+    flextable, doParallel, data.table, foreach
+Authors@R: person(given = "Joshua",
+           family = "Kaminsky",
+           role = c("cre", "aut"),
+           email = "jkaminsky@jhu.edu")
+Description: Generate hospitalization scenarios corresponding to the infection scenarios from a run of the SEIR code.
+License: What license it uses
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.2
+Author: Joshua Kaminsky [cre, aut]
+Maintainer: Joshua Kaminsky <jkaminsky@jhu.edu>
+Built: R 4.2.0; ; 2022-05-20 23:23:14 UTC; unix
+RemoteType: local
+RemoteUrl: ~/pkgs/hospitalization/

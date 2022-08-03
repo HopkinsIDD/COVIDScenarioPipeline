@@ -1,0 +1,1406 @@
+name: California
+start_date: 2020-01-01
+end_date: 2021-03-31
+nsimulations: 300
+dt: 0.25
+report_location_name: California
+
+spatial_setup:
+  census_year: 2019
+  base_path: data
+  modeled_states:
+    - CA
+  setup_name: CA_inference
+  geodata: geodata.csv
+  mobility: mobility.csv
+  popnodes: pop2019est
+  nodenames: geoid
+  include_in_report: include_in_report
+
+seeding:
+  method: FolderDraw
+  seeding_file_type: seed
+  lambda_file: data/minimal/seeding.csv
+  folder_path: importation/minimal/
+  perturbation_sd: 3
+
+seir:
+  parameters:
+    alpha: 0.99
+    sigma: 1 / 5.2
+    gamma:
+      distribution: uniform
+      low: 1 / 6
+      high: 1 / 2.6
+    R0s:
+      distribution: uniform
+      low: 2
+      high: 3
+
+interventions:
+  scenarios:
+    - Deaths
+  settings:
+    local_variance:
+      template: ReduceR0
+      value:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_jan:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06001", "06003", "06005", "06007", "06009", "06011", "06013", "06015", "06017", "06019", "06021", "06023", "06025", "06027", "06029", "06031", "06033", "06035", "06037", "06039", "06041", "06043", "06045", "06047", "06049", "06051", "06053", "06055", "06057", "06059", "06061", "06063", "06065", "06067", "06069", "06071", "06073", "06075", "06077", "06079", "06081", "06083", "06085", "06087", "06089", "06091", "06093", "06095", "06097", "06099", "06101", "06103", "06105", "06107", "06109", "06111", "06113", "06115"]
+         periods:
+           - start_date: 2020-01-01
+             end_date: 2020-01-31
+           - start_date: 2021-01-01
+             end_date: 2021-01-31
+      value:
+        distribution: truncnorm
+        mean: -0.2
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_feb:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06001", "06003", "06005", "06007", "06009", "06011", "06013", "06015", "06017", "06019", "06021", "06023", "06025", "06027", "06029", "06031", "06033", "06035", "06037", "06039", "06041", "06043", "06045", "06047", "06049", "06051", "06053", "06055", "06057", "06059", "06061", "06063", "06065", "06067", "06069", "06071", "06073", "06075", "06077", "06079", "06081", "06083", "06085", "06087", "06089", "06091", "06093", "06095", "06097", "06099", "06101", "06103", "06105", "06107", "06109", "06111", "06113", "06115"]
+         periods:
+           - start_date: 2020-02-01
+             end_date: 2020-02-29
+           - start_date: 2021-02-01
+             end_date: 2021-02-28
+      value:
+        distribution: truncnorm
+        mean: -0.133
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_mar:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06001", "06003", "06005", "06007", "06009", "06011", "06013", "06015", "06017", "06019", "06021", "06023", "06025", "06027", "06029", "06031", "06033", "06035", "06037", "06039", "06041", "06043", "06045", "06047", "06049", "06051", "06053", "06055", "06057", "06059", "06061", "06063", "06065", "06067", "06069", "06071", "06073", "06075", "06077", "06079", "06081", "06083", "06085", "06087", "06089", "06091", "06093", "06095", "06097", "06099", "06101", "06103", "06105", "06107", "06109", "06111", "06113", "06115"]
+         periods:
+           - start_date: 2020-03-01
+             end_date: 2020-03-31
+           - start_date: 2021-03-01
+             end_date: 2021-03-31
+      value:
+        distribution: truncnorm
+        mean: -0.067
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_may:
+      template: ReduceR0
+      period_start_date: 2020-05-01
+      period_end_date: 2020-05-31
+      value:
+        distribution: truncnorm
+        mean: 0.067
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_jun:
+      template: ReduceR0
+      period_start_date: 2020-06-01
+      period_end_date: 2020-06-30
+      value:
+        distribution: truncnorm
+        mean: 0.133
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_jul:
+      template: ReduceR0
+      period_start_date: 2020-07-01
+      period_end_date: 2020-07-31
+      value:
+        distribution: truncnorm
+        mean: 0.2
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_aug:
+      template: ReduceR0
+      period_start_date: 2020-08-01
+      period_end_date: 2020-08-31
+      value:
+        distribution: truncnorm
+        mean: 0.133
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_sep:
+      template: ReduceR0
+      period_start_date: 2020-09-01
+      period_end_date: 2020-09-30
+      value:
+        distribution: truncnorm
+        mean: 0.067
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_oct:
+      template: ReduceR0
+      period_start_date: 2020-10-01
+      period_end_date: 2020-10-31
+      value:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_nov:
+      template: ReduceR0
+      period_start_date: 2020-11-01
+      period_end_date: 2020-11-30
+      value:
+        distribution: truncnorm
+        mean: -0.067
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_dec:
+      template: ReduceR0
+      period_start_date: 2020-12-01
+      period_end_date: 2020-12-31
+      value:
+        distribution: truncnorm
+        mean: -0.133
+        sd: 0.1
+        a: -1
+        b: 1
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.1
+        a: -1
+        b: 1
+    seas_jan2:
+      template: ReduceR0
+      period_start_date: 2021-01-01
+      period_end_date: 2021-01-31
+      value:
+        distribution: truncnorm
+        mean: -0.2
+        sd: 0.1
+        a: -1
+        b: 1
+    Lockdown:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06085"]
+         periods:
+           - start_date: 2020-03-20
+             end_date: 2020-05-03
+       - affected_geoids: ["06003", "06005", "06007", "06009", "06011", "06015", "06017", "06019", "06021", "06023", "06027", "06029", "06031", "06033", "06035", "06037", "06039", "06043", "06045", "06047", "06049", "06051", "06053", "06055", "06057", "06059", "06061", "06063", "06065", "06069", "06071", "06073", "06077", "06079", "06081", "06083", "06087", "06089", "06091", "06093", "06095", "06097", "06099", "06101", "06103", "06105", "06107", "06109", "06111", "06113", "06115"]
+         periods:
+           - start_date: 2020-03-20
+             end_date: 2020-05-07
+       - affected_geoids: ["06025"]
+         periods:
+           - start_date: 2020-03-20
+             end_date: 2020-05-08
+       - affected_geoids: ["06001", "06013", "06041", "06075"]
+         periods:
+           - start_date: 2020-03-20
+             end_date: 2020-05-17
+       - affected_geoids: ["06067"]
+         periods:
+           - start_date: 2020-03-20
+             end_date: 2020-05-22
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    P2:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06067"]
+         periods:
+           - start_date: 2020-05-23
+             end_date: 2020-06-12
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    P2A:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06085"]
+         periods:
+           - start_date: 2020-05-04
+             end_date: 2020-05-25
+       - affected_geoids: ["06031", "06073"]
+         periods:
+           - start_date: 2020-05-08
+             end_date: 2020-05-19
+       - affected_geoids: ["06003", "06005", "06007", "06009", "06011", "06015", "06017", "06021", "06023", "06027", "06029", "06033", "06035", "06039", "06043", "06045", "06047", "06049", "06051", "06053", "06055", "06057", "06061", "06063", "06069", "06077", "06079", "06081", "06083", "06087", "06089", "06091", "06093", "06095", "06097", "06099", "06101", "06103", "06105", "06107", "06109", "06111", "06113", "06115"]
+         periods:
+           - start_date: 2020-05-08
+             end_date: 2020-05-20
+       - affected_geoids: ["06065"]
+         periods:
+           - start_date: 2020-05-08
+             end_date: 2020-05-21
+       - affected_geoids: ["06059", "06071"]
+         periods:
+           - start_date: 2020-05-08
+             end_date: 2020-05-22
+       - affected_geoids: ["06019", "06037"]
+         periods:
+           - start_date: 2020-05-08
+             end_date: 2020-05-25
+       - affected_geoids: ["06025"]
+         periods:
+           - start_date: 2020-05-09
+             end_date: 2020-05-25
+       - affected_geoids: ["06041"]
+         periods:
+           - start_date: 2020-05-18
+             end_date: 2020-05-31
+       - affected_geoids: ["06013"]
+         periods:
+           - start_date: 2020-05-18
+             end_date: 2020-06-01
+       - affected_geoids: ["06075"]
+         periods:
+           - start_date: 2020-05-18
+             end_date: 2020-06-10
+       - affected_geoids: ["06001"]
+         periods:
+           - start_date: 2020-05-18
+             end_date: 2020-06-18
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    P2B:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06031", "06073"]
+         periods:
+           - start_date: 2020-05-20
+             end_date: 2020-06-11
+       - affected_geoids: ["06003", "06005", "06007", "06009", "06011", "06015", "06017", "06021", "06023", "06027", "06029", "06033", "06035", "06039", "06043", "06045", "06047", "06049", "06051", "06053", "06055", "06057", "06061", "06063", "06069", "06077", "06079", "06081", "06083", "06087", "06089", "06091", "06093", "06095", "06097", "06099", "06101", "06103", "06105", "06107", "06109", "06111", "06113", "06115"]
+         periods:
+           - start_date: 2020-05-21
+             end_date: 2020-06-11
+       - affected_geoids: ["06065"]
+         periods:
+           - start_date: 2020-05-22
+             end_date: 2020-06-11
+       - affected_geoids: ["06059", "06071"]
+         periods:
+           - start_date: 2020-05-23
+             end_date: 2020-06-11
+       - affected_geoids: ["06019", "06037"]
+         periods:
+           - start_date: 2020-05-26
+             end_date: 2020-06-11
+       - affected_geoids: ["06025", "06085"]
+         periods:
+           - start_date: 2020-05-26
+             end_date: 2020-06-30
+       - affected_geoids: ["06041"]
+         periods:
+           - start_date: 2020-06-01
+             end_date: 2020-06-28
+       - affected_geoids: ["06013"]
+         periods:
+           - start_date: 2020-06-02
+             end_date: 2020-06-30
+       - affected_geoids: ["06075"]
+         periods:
+           - start_date: 2020-06-11
+             end_date: 2020-08-30
+       - affected_geoids: ["06001"]
+         periods:
+           - start_date: 2020-06-19
+             end_date: 2020-07-14
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    P3:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06037"]
+         periods:
+           - start_date: 2020-06-12
+             end_date: 2020-06-27
+       - affected_geoids: ["06031", "06065"]
+         periods:
+           - start_date: 2020-06-12
+             end_date: 2020-06-28
+       - affected_geoids: ["06019", "06021", "06029", "06047", "06059", "06071", "06073", "06077", "06083", "06095", "06099", "06107", "06111"]
+         periods:
+           - start_date: 2020-06-12
+             end_date: 2020-06-30
+       - affected_geoids: ["06003", "06005", "06007", "06009", "06015", "06017", "06023", "06027", "06033", "06035", "06043", "06045", "06049", "06051", "06057", "06063", "06081", "06087", "06089", "06091", "06093", "06103", "06105", "06109"]
+         periods:
+           - start_date: 2020-06-12
+             end_date: 2020-07-12
+       - affected_geoids: ["06011", "06039", "06053", "06055", "06061", "06069", "06079", "06097", "06101", "06113", "06115"]
+         periods:
+           - start_date: 2020-06-12
+             end_date: 2020-07-13
+       - affected_geoids: ["06067"]
+         periods:
+           - start_date: 2020-06-13
+             end_date: 2020-06-28
+       - affected_geoids: ["06041"]
+         periods:
+           - start_date: 2020-06-29
+             end_date: 2020-07-13
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    R1:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06037"]
+         periods:
+           - start_date: 2020-06-28
+             end_date: 2020-07-13
+       - affected_geoids: ["06031", "06065", "06067"]
+         periods:
+           - start_date: 2020-06-29
+             end_date: 2020-07-13
+       - affected_geoids: ["06013", "06019", "06021", "06047", "06059", "06071", "06077", "06083", "06085", "06095", "06099", "06107", "06111"]
+         periods:
+           - start_date: 2020-07-01
+             end_date: 2020-07-13
+       - affected_geoids: ["06073"]
+         periods:
+           - start_date: 2020-07-01
+             end_date: 2020-07-14
+       - affected_geoids: ["06029"]
+         periods:
+           - start_date: 2020-07-01
+             end_date: 2020-07-23
+       - affected_geoids: ["06025"]
+         periods:
+           - start_date: 2020-07-01
+             end_date: 2020-08-30
+       - affected_geoids: ["06007"]
+         periods:
+           - start_date: 2020-07-13
+             end_date: 2020-07-24
+       - affected_geoids: ["06051"]
+         periods:
+           - start_date: 2020-07-13
+             end_date: 2020-07-26
+       - affected_geoids: ["06087"]
+         periods:
+           - start_date: 2020-07-13
+             end_date: 2020-07-27
+       - affected_geoids: ["06081"]
+         periods:
+           - start_date: 2020-07-13
+             end_date: 2020-07-31
+       - affected_geoids: ["06005", "06009", "06027", "06045", "06091"]
+         periods:
+           - start_date: 2020-07-13
+             end_date: 2020-08-19
+       - affected_geoids: ["06003", "06015", "06017", "06023", "06033", "06035", "06043", "06049", "06057", "06063", "06089", "06093", "06103", "06105", "06109"]
+         periods:
+           - start_date: 2020-07-13
+             end_date: 2020-08-30
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    R2:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06011", "06013", "06019", "06021", "06031", "06037", "06039", "06041", "06047", "06053", "06055", "06059", "06061", "06065", "06067", "06069", "06071", "06077", "06079", "06083", "06085", "06095", "06097", "06099", "06101", "06107", "06111", "06113", "06115"]
+         periods:
+           - start_date: 2020-07-14
+             end_date: 2020-08-30
+       - affected_geoids: ["06001", "06073"]
+         periods:
+           - start_date: 2020-07-15
+             end_date: 2020-08-30
+       - affected_geoids: ["06029"]
+         periods:
+           - start_date: 2020-07-24
+             end_date: 2020-08-30
+       - affected_geoids: ["06007"]
+         periods:
+           - start_date: 2020-07-25
+             end_date: 2020-08-30
+       - affected_geoids: ["06051"]
+         periods:
+           - start_date: 2020-07-27
+             end_date: 2020-08-30
+       - affected_geoids: ["06087"]
+         periods:
+           - start_date: 2020-07-28
+             end_date: 2020-08-30
+       - affected_geoids: ["06081"]
+         periods:
+           - start_date: 2020-08-01
+             end_date: 2020-08-30
+       - affected_geoids: ["06005", "06009", "06027", "06045", "06091"]
+         periods:
+           - start_date: 2020-08-20
+             end_date: 2020-08-30
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    sah_2:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06001", "06009", "06013", "06019", "06025", "06027", "06029", "06031", "06037", "06039", "06041", "06043", "06047", "06051", "06059", "06065", "06069", "06071", "06073", "06075", "06077", "06079", "06083", "06085", "06099", "06107", "06109", "06111"]
+         periods:
+           - start_date: 2020-12-06
+             end_date: 2021-01-24
+       - affected_geoids: ["06003", "06005", "06007", "06011", "06017", "06057", "06061", "06063", "06067", "06091", "06101", "06113", "06115"]
+         periods:
+           - start_date: 2020-12-10
+             end_date: 2021-01-11
+       - affected_geoids: ["06097"]
+         periods:
+           - start_date: 2020-12-12
+             end_date: 2021-01-24
+       - affected_geoids: ["06053"]
+         periods:
+           - start_date: 2020-12-13
+             end_date: 2021-01-24
+       - affected_geoids: ["06055", "06081", "06087", "06095"]
+         periods:
+           - start_date: 2020-12-18
+             end_date: 2021-01-24
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    T1A:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06005", "06059", "06061", "06085", "06087"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-09-07
+       - affected_geoids: ["06027", "06041"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-09-14
+       - affected_geoids: ["06103"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-09-14
+           - start_date: 2020-10-06
+             end_date: 2020-11-01
+       - affected_geoids: ["06001", "06079", "06081", "06095"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-09-21
+       - affected_geoids: ["06065"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-09-21
+           - start_date: 2020-10-19
+             end_date: 2020-11-01
+       - affected_geoids: ["06007", "06013", "06019", "06067", "06077", "06083", "06113"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-09-28
+       - affected_geoids: ["06047", "06111", "06115"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-10-05
+       - affected_geoids: ["06011", "06029", "06031", "06069", "06099", "06101"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-10-12
+       - affected_geoids: ["06021", "06045"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-10-25
+       - affected_geoids: ["06025", "06037", "06039", "06053", "06071", "06097", "06107"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-11-01
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    T1B:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06089", "06103"]
+         periods:
+           - start_date: 2020-11-02
+             end_date: 2021-03-31
+       - affected_geoids: ["06073"]
+         periods:
+           - start_date: 2020-11-09
+             end_date: 2020-12-05
+           - start_date: 2021-01-25
+             end_date: 2021-03-31
+       - affected_geoids: ["06067"]
+         periods:
+           - start_date: 2020-11-09
+             end_date: 2020-12-09
+           - start_date: 2021-01-12
+             end_date: 2021-03-31
+       - affected_geoids: ["06001", "06013", "06019", "06029", "06031", "06047", "06059", "06069", "06077", "06079", "06083", "06085", "06099", "06109", "06111"]
+         periods:
+           - start_date: 2020-11-16
+             end_date: 2020-12-05
+           - start_date: 2021-01-25
+             end_date: 2021-03-31
+       - affected_geoids: ["06007", "06017", "06057", "06061", "06101", "06113", "06115"]
+         periods:
+           - start_date: 2020-11-16
+             end_date: 2020-12-09
+           - start_date: 2021-01-12
+             end_date: 2021-03-31
+       - affected_geoids: ["06055", "06087", "06095"]
+         periods:
+           - start_date: 2020-11-16
+             end_date: 2020-12-17
+           - start_date: 2021-01-25
+             end_date: 2021-03-31
+       - affected_geoids: ["06105"]
+         periods:
+           - start_date: 2020-11-16
+             end_date: 2021-01-11
+       - affected_geoids: ["06021", "06045", "06093"]
+         periods:
+           - start_date: 2020-11-16
+             end_date: 2021-03-31
+       - affected_geoids: ["06011"]
+         periods:
+           - start_date: 2020-11-24
+             end_date: 2020-12-09
+           - start_date: 2021-01-12
+             end_date: 2021-03-31
+       - affected_geoids: ["06023"]
+         periods:
+           - start_date: 2020-11-24
+             end_date: 2020-12-27
+           - start_date: 2021-01-12
+             end_date: 2021-03-31
+       - affected_geoids: ["06015", "06035"]
+         periods:
+           - start_date: 2020-11-24
+             end_date: 2021-03-31
+       - affected_geoids: ["06009", "06075"]
+         periods:
+           - start_date: 2020-11-28
+             end_date: 2020-12-05
+           - start_date: 2021-01-25
+             end_date: 2021-03-31
+       - affected_geoids: ["06063"]
+         periods:
+           - start_date: 2020-11-28
+             end_date: 2020-12-09
+           - start_date: 2021-01-12
+             end_date: 2021-03-31
+       - affected_geoids: ["06081"]
+         periods:
+           - start_date: 2020-11-28
+             end_date: 2020-12-17
+           - start_date: 2021-01-25
+             end_date: 2021-03-31
+       - affected_geoids: ["06033", "06049"]
+         periods:
+           - start_date: 2020-11-28
+             end_date: 2021-03-31
+       - affected_geoids: ["06005"]
+         periods:
+           - start_date: 2021-01-12
+             end_date: 2021-03-31
+       - affected_geoids: ["06027", "06041", "06051"]
+         periods:
+           - start_date: 2021-01-25
+             end_date: 2021-03-31
+       - affected_geoids: ["06025", "06037", "06039", "06065", "06071", "06107"]
+         periods:
+           - start_date: 2021-01-25
+             end_date: 2021-03-31
+           - start_date: 2020-11-02
+             end_date: 2020-12-05
+       - affected_geoids: ["06097"]
+         periods:
+           - start_date: 2021-01-25
+             end_date: 2021-03-31
+           - start_date: 2020-11-02
+             end_date: 2020-12-11
+       - affected_geoids: ["06053"]
+         periods:
+           - start_date: 2021-01-25
+             end_date: 2021-03-31
+           - start_date: 2020-11-02
+             end_date: 2020-12-12
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    T2A:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06017", "06035", "06057"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-09-21
+       - affected_geoids: ["06091"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-09-24
+       - affected_geoids: ["06009", "06075"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-09-28
+       - affected_geoids: ["06055"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-10-18
+       - affected_geoids: ["06033", "06073"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-11-01
+       - affected_geoids: ["06005"]
+         periods:
+           - start_date: 2020-09-08
+             end_date: 2020-09-28
+       - affected_geoids: ["06061", "06085"]
+         periods:
+           - start_date: 2020-09-08
+             end_date: 2020-10-12
+       - affected_geoids: ["06087"]
+         periods:
+           - start_date: 2020-09-08
+             end_date: 2020-10-25
+       - affected_geoids: ["06059"]
+         periods:
+           - start_date: 2020-09-08
+             end_date: 2020-11-01
+       - affected_geoids: ["06027", "06103"]
+         periods:
+           - start_date: 2020-09-15
+             end_date: 2020-10-05
+       - affected_geoids: ["06041"]
+         periods:
+           - start_date: 2020-09-15
+             end_date: 2020-10-25
+       - affected_geoids: ["06001"]
+         periods:
+           - start_date: 2020-09-22
+             end_date: 2020-10-12
+       - affected_geoids: ["06065"]
+         periods:
+           - start_date: 2020-09-22
+             end_date: 2020-10-18
+       - affected_geoids: ["06081"]
+         periods:
+           - start_date: 2020-09-22
+             end_date: 2020-10-25
+       - affected_geoids: ["06079", "06095"]
+         periods:
+           - start_date: 2020-09-22
+             end_date: 2020-11-01
+       - affected_geoids: ["06007"]
+         periods:
+           - start_date: 2020-09-29
+             end_date: 2020-10-18
+       - affected_geoids: ["06013"]
+         periods:
+           - start_date: 2020-09-29
+             end_date: 2020-10-25
+       - affected_geoids: ["06019", "06067", "06077", "06083", "06113"]
+         periods:
+           - start_date: 2020-09-29
+             end_date: 2020-11-01
+       - affected_geoids: ["06047", "06089", "06111", "06115"]
+         periods:
+           - start_date: 2020-10-06
+             end_date: 2020-11-01
+       - affected_geoids: ["06011", "06029", "06031", "06069", "06099", "06101"]
+         periods:
+           - start_date: 2020-10-13
+             end_date: 2020-11-01
+       - affected_geoids: ["06021", "06045"]
+         periods:
+           - start_date: 2020-10-26
+             end_date: 2020-11-01
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    T2B:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06067", "06073"]
+         periods:
+           - start_date: 2020-11-02
+             end_date: 2020-11-08
+       - affected_geoids: ["06019", "06021", "06029", "06031", "06045", "06047", "06059", "06069", "06077", "06079", "06083", "06095", "06099", "06101", "06111", "06113", "06115"]
+         periods:
+           - start_date: 2020-11-02
+             end_date: 2020-11-15
+       - affected_geoids: ["06033"]
+         periods:
+           - start_date: 2020-11-02
+             end_date: 2020-11-27
+       - affected_geoids: ["06013", "06087"]
+         periods:
+           - start_date: 2020-11-09
+             end_date: 2020-11-15
+       - affected_geoids: ["06005"]
+         periods:
+           - start_date: 2020-11-09
+             end_date: 2020-12-09
+       - affected_geoids: ["06011"]
+         periods:
+           - start_date: 2020-11-16
+             end_date: 2020-11-23
+           - start_date: 2020-11-02
+             end_date: 2020-11-15
+       - affected_geoids: ["06023"]
+         periods:
+           - start_date: 2020-11-16
+             end_date: 2020-11-23
+           - start_date: 2020-12-28
+             end_date: 2021-01-11
+       - affected_geoids: ["06049", "06063", "06075", "06081"]
+         periods:
+           - start_date: 2020-11-16
+             end_date: 2020-11-27
+       - affected_geoids: ["06041", "06051"]
+         periods:
+           - start_date: 2020-11-16
+             end_date: 2020-12-05
+       - affected_geoids: ["06027"]
+         periods:
+           - start_date: 2020-11-28
+             end_date: 2020-12-05
+       - affected_geoids: ["06043"]
+         periods:
+           - start_date: 2020-11-28
+             end_date: 2020-12-05
+           - start_date: 2021-01-25
+             end_date: 2021-03-31
+       - affected_geoids: ["06003"]
+         periods:
+           - start_date: 2020-11-28
+             end_date: 2020-12-09
+           - start_date: 2021-01-12
+             end_date: 2021-03-31
+       - affected_geoids: ["06105"]
+         periods:
+           - start_date: 2021-01-12
+             end_date: 2021-03-31
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    T3A:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06043"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-09-21
+       - affected_geoids: ["06023", "06063", "06089", "06093", "06105"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-10-05
+       - affected_geoids: ["06015", "06051", "06109"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-11-01
+       - affected_geoids: ["06017", "06035", "06057"]
+         periods:
+           - start_date: 2020-09-22
+             end_date: 2020-11-01
+       - affected_geoids: ["06091"]
+         periods:
+           - start_date: 2020-09-25
+             end_date: 2020-10-12
+       - affected_geoids: ["06075"]
+         periods:
+           - start_date: 2020-09-29
+             end_date: 2020-10-18
+       - affected_geoids: ["06009"]
+         periods:
+           - start_date: 2020-09-29
+             end_date: 2020-10-25
+       - affected_geoids: ["06005"]
+         periods:
+           - start_date: 2020-09-29
+             end_date: 2020-11-01
+       - affected_geoids: ["06027"]
+         periods:
+           - start_date: 2020-10-06
+             end_date: 2020-11-01
+       - affected_geoids: ["06001", "06061", "06085"]
+         periods:
+           - start_date: 2020-10-13
+             end_date: 2020-11-01
+       - affected_geoids: ["06007", "06055"]
+         periods:
+           - start_date: 2020-10-19
+             end_date: 2020-11-01
+       - affected_geoids: ["06013", "06041", "06081", "06087"]
+         periods:
+           - start_date: 2020-10-26
+             end_date: 2020-11-01
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    T3B:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06005", "06013", "06087"]
+         periods:
+           - start_date: 2020-11-02
+             end_date: 2020-11-08
+       - affected_geoids: ["06001", "06007", "06017", "06041", "06051", "06055", "06057", "06061", "06063", "06081", "06085", "06109"]
+         periods:
+           - start_date: 2020-11-02
+             end_date: 2020-11-15
+       - affected_geoids: ["06015", "06035"]
+         periods:
+           - start_date: 2020-11-02
+             end_date: 2020-11-23
+       - affected_geoids: ["06027"]
+         periods:
+           - start_date: 2020-11-02
+             end_date: 2020-11-27
+       - affected_geoids: ["06049", "06093", "06105"]
+         periods:
+           - start_date: 2020-11-09
+             end_date: 2020-11-15
+       - affected_geoids: ["06009"]
+         periods:
+           - start_date: 2020-11-16
+             end_date: 2020-11-27
+       - affected_geoids: ["06091"]
+         periods:
+           - start_date: 2020-11-16
+             end_date: 2020-12-09
+           - start_date: 2021-01-12
+             end_date: 2021-03-31
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    T4A:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06003", "06049"]
+         periods:
+           - start_date: 2020-08-31
+             end_date: 2020-11-01
+       - affected_geoids: ["06043"]
+         periods:
+           - start_date: 2020-09-22
+             end_date: 2020-11-01
+       - affected_geoids: ["06023", "06063", "06093", "06105"]
+         periods:
+           - start_date: 2020-10-06
+             end_date: 2020-11-01
+       - affected_geoids: ["06091"]
+         periods:
+           - start_date: 2020-10-13
+             end_date: 2020-11-01
+       - affected_geoids: ["06075"]
+         periods:
+           - start_date: 2020-10-19
+             end_date: 2020-11-01
+       - affected_geoids: ["06009"]
+         periods:
+           - start_date: 2020-10-26
+             end_date: 2020-11-01
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    T4B:
+      template: MultiTimeReduce
+      parameter: R0
+      groups:
+       - affected_geoids: ["06049", "06093", "06105"]
+         periods:
+           - start_date: 2020-11-02
+             end_date: 2020-11-08
+       - affected_geoids: ["06009", "06023", "06075", "06091"]
+         periods:
+           - start_date: 2020-11-02
+             end_date: 2020-11-15
+       - affected_geoids: ["06003", "06043"]
+         periods:
+           - start_date: 2020-11-02
+             end_date: 2020-11-27
+      value:
+        distribution: truncnorm
+        mean: 0.6
+        sd: 0.3
+        a: 0
+        b: 0.9
+      perturbation:
+        distribution: truncnorm
+        mean: 0
+        sd: 0.05
+        a: -1
+        b: 1
+    sah:
+      template: Stacked
+      scenarios: ["sah_2"]
+    seasonal:
+      template: Stacked
+      scenarios: ["seas_jan", "seas_feb", "seas_mar", "seas_may", "seas_jun", "seas_jul", "seas_aug", "seas_sep", "seas_oct", "seas_nov", "seas_dec"]
+    Deaths:
+      template: Stacked
+      scenarios: ["local_variance", "seasonal", "Lockdown", "P2", "P2A", "P2B", "P3", "R1", "R2", "sah", "T1A", "T1B", "T2A", "T2B", "T3A", "T3B", "T4A", "T4B"]
+
+outcomes:
+  method: delayframe
+  param_from_file: TRUE
+  param_place_file: hospitalization_inference_merge_relative.hpar.parquet
+  scenarios:
+    - med
+  settings:
+    med:
+      incidH:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: 0.02
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: hosp_curr
+      incidD:
+        source: incidI
+        probability:
+          value:
+            distribution: fixed
+            value: 0.005
+        delay:
+          value:
+            distribution: fixed
+            value: 20
+      incidICU:
+        source: incidH
+        probability:
+          value:
+            distribution: fixed
+            value: 0.167
+        delay:
+          value:
+            distribution: fixed
+            value: 3
+        duration:
+          value:
+            distribution: fixed
+            value: 8
+          name: icu_curr
+      incidVent:
+        source: incidICU
+        probability:
+          value:
+            distribution: fixed
+            value: 0.463
+        delay:
+          value:
+            distribution: fixed
+            value: 1
+        duration:
+          value:
+            distribution: fixed
+            value: 7
+          name: vent_curr
+      incidC:
+        source: incidI
+        probability:
+          value:
+            distribution: truncnorm
+            mean: 0.2
+            sd: 0.1
+            a: 0
+            b: 1
+          perturbation:
+            distribution: truncnorm
+            mean: 0
+            sd: 0.1
+            a: -1
+            b: 1
+        delay:
+          value:
+            distribution: fixed
+            value: 7
+
+filtering:
+  simulations_per_slot: 300
+  do_filtering: TRUE
+  data_path: data/ca_data.csv
+  gt_source: csse
+  likelihood_directory: importation/likelihood
+  statistics:
+    sum_deaths:
+      name: sum_deaths
+      aggregator: sum
+      period: 1 weeks
+      sim_var: incidD
+      data_var: death_incid
+      remove_na: FALSE
+      add_one: TRUE
+      likelihood:
+        dist: pois
+    sum_confirmed:
+      name: sum_confirmed
+      aggregator: sum
+      period: 1 weeks
+      sim_var: incidC
+      data_var: confirmed_incid
+      remove_na: FALSE
+      add_one: FALSE
+      likelihood:
+        dist: sqrtnorm
+        param: [0.4]
+  hierarchical_stats_geo:
+    local_var_hierarchy:
+      name: local_variance
+      module: seir
+      geo_group_col: USPS
+      transform: none
+    local_conf:
+      name: probability_incidI_incidC
+      module: hospitalization
+      geo_group_col: USPS
+      transform: logit
+  priors:
+    local_var_prior:
+      name: local_variance
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - 0
+        - 1
+    seas_jan_prior:
+      name: seas_jan
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - -0.2
+        - 1
+    seas_feb_prior:
+      name: seas_feb
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - -0.133
+        - 1
+    seas_mar_prior:
+      name: seas_mar
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - -0.067
+        - 1
+    seas_may_prior:
+      name: seas_may
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - 0.067
+        - 1
+    seas_jun_prior:
+      name: seas_jun
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - 0.133
+        - 1
+    seas_jul_prior:
+      name: seas_jul
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - 0.2
+        - 1
+    seas_aug_prior:
+      name: seas_aug
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - 0.133
+        - 1
+    seas_sep_prior:
+      name: seas_sep
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - 0.067
+        - 1
+    seas_oct_prior:
+      name: seas_oct
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - 0
+        - 1
+    seas_nov_prior:
+      name: seas_nov
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - -0.067
+        - 1
+    seas_dec_prior:
+      name: seas_dec
+      module: seir
+      likelihood:
+        dist: normal
+        param:
+        - -0.133
+        - 1
+
+report:
+  data_settings:
+    pop_year: 2019
+  plot_settings:
+    plot_intervention: FALSE
+  formatting:
+    scenario_labels_short: ["Cases", "Deaths"]
+    scenario_levels: ["Cases", "Deaths"]
+    scenario_labels:
+    - 'Case-Optimized'
+    - 'Death-Optimized'
+    scenario_colors: ["#D95F02", "#1B9E77", "#7570B3", "#E7298A"]
+    death_rate_levels: ["low"]
+    death_rate_labels: ["0.25% IFR"]
+    display_dates: ["2020-09-08", "2020-09-30", "2020-10-31", "2020-11-15"]
