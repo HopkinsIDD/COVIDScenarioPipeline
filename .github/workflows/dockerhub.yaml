@@ -11,6 +11,7 @@ on:
     paths:
       - 'Dockerfile'
       - 'Docker.Rprofile'
+      - 'Docker.bashrc'
       - 'renv/**'
       - 'renv.lock'
       - 'renv.cache/**'

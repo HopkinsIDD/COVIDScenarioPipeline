@@ -455,8 +455,8 @@
       "Version": "1.0.0",
       "Source": "Local",
       "RemoteType": "local",
-      "RemoteUrl": ".",
-      "Hash": "e0eb3f7fc0fabcf454b03ad687a1e3a7",
+      "RemoteUrl": "~/pkgs/config.writer/",
+      "Hash": "6926b00e7a264696bc5b5ec3147bdd6e",
       "Requirements": [
         "MMWRweek",
         "lubridate",
@@ -497,8 +497,8 @@
       "Version": "0.0.1",
       "Source": "Local",
       "RemoteType": "local",
-      "RemoteUrl": ".",
-      "Hash": "fe8dd1e0432a7b6bf91b43c8d22d1799",
+      "RemoteUrl": "~/pkgs/covidcommon/",
+      "Hash": "17e444a25de7fcd4dbc7814656456c6e",
       "Requirements": [
         "purrr",
         "yaml"
@@ -1224,8 +1224,8 @@
       "Version": "0.0.1",
       "Source": "Local",
       "RemoteType": "local",
-      "RemoteUrl": ".",
-      "Hash": "35d8f9b031aa1af5962c2d3e8b249613",
+      "RemoteUrl": "~/pkgs/hospitalization/",
+      "Hash": "51adc19ec66b91ce2c68e474205ca59a",
       "Requirements": [
         "data.table",
         "doParallel",
@@ -1337,8 +1337,8 @@
       "Version": "0.0.1",
       "Source": "Local",
       "RemoteType": "local",
-      "RemoteUrl": ".",
-      "Hash": "2212e888d9b90c0425ec78749780d12c",
+      "RemoteUrl": "~/pkgs/inference/",
+      "Hash": "24ef76f3af8c43e368620dc7f755f3eb",
       "Requirements": [
         "arrow",
         "covidcommon",
@@ -1923,8 +1923,8 @@
       "Version": "0.0.1",
       "Source": "Local",
       "RemoteType": "local",
-      "RemoteUrl": ".",
-      "Hash": "f65fa1cde1cc6e4534b165aa1fd11e53",
+      "RemoteUrl": "~/pkgs/report.generation/",
+      "Hash": "d456c0e4b1fd75b9252ad30d46e32e42",
       "Requirements": [
         "knitr",
         "tidyverse"
@@ -2489,10 +2489,10 @@
     },
     "tinytex": {
       "Package": "tinytex",
-      "Version": "0.38",
+      "Version": "0.39",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "759d047596ac173433985deddf313450",
+      "Hash": "29f67ab15405b390b90e56ff22198ead",
       "Requirements": [
         "xfun"
       ]

@@ -1,0 +1,273 @@
+---
+title: "[DESCRIPTION] Scenario Report"
+author: "[AUTHOR NAMES]"
+output:
+  html_document:
+    df_print: paged
+    fig_caption: true
+    theme: journal
+bibliography: ReportReferences.bib
+params:
+  config_file: "config.yml"
+  included_state: "XX" #two digit abbreviation of state to produce county-level report
+  sim_end_date: "YYYY-MM-DD" #date at which all results are truncated
+  pdeath_default: "high" # which of config$hospitalization$parameters$p_death_names to display for county-level tables
+    
+---
+
+Prepared by [Johns Hopkins ID Dynamics](https://iddynamics.jhsph.edu/) Working Group  
+Updated `r Sys.Date()`
+
+**FOR PLANNING PURPOSES ONLY: NOT A FORECAST**
+
+```{r setup, include=F}
+## Block with general knitr options, libray load, etc. Nothing specific to the project.
+knitr::opts_knit$set(root.dir = "../..") ##Assumes we are in a subdirectory of notebooks
+knitr::opts_chunk$set(
+    echo = FALSE,
+    fig.align = "center",
+    message = FALSE,
+    warning = FALSE,
+    error = TRUE,
+    cache.lazy = FALSE,
+    bitmapType = "cairo"
+    )
+knitr::opts_knit$set(eval.after = 'fig.cap') ##Allows us to set a variable to figure caption in the block
+
+options(scipen=999)
+
+#Preamble
+library(tidyverse)
+library(covidcommon)
+library(report.generation)
+library(covidImportation)
+
+```
+
+
+```{r  load_config}
+
+## Block loads the config file and geodata
+config <- covidcommon::load_config(params$config_file)
+geodata <- load_geodata_file(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata),
+                             geoid_len=5)
+sim_end_date <- as.Date(params$sim_end_date)
+
+```
+
+```{r load_shapefile}
+## Load shapefile
+shp <- load_shape_file(filename = file.path(config$spatial_setup$base_path, config$spatial_setup$shapefile_name),
+                       to_lower = TRUE,
+                       geoid_len = 5)
+```
+
+```{r  set_region}
+## block sets the geoids + names to included in report + alphabetizes across all counties
+  included_geoids <- geodata %>% filter(USPS %in% params$included_state) %>% select(geoid) %>% arrange(geoid) %>% unlist()
+  included_geoid_names <- shp$name[match(included_geoids, shp$geoid)]
+  
+## block also sets some of the plot values
+  scen_desc_str <- "four strategies with A) 3 months of Fixed Moderate Social Distancing , B) 3 months of Moderate Social Distancing with Degrading Effectiveness, C) 3 months of Moderate Social Distancing with School Re-opening May 18 - June 15, and D) 4 weeks of Moderate Social Distancing with All Restrictions Lifted May 18"
+  fig_counter <- 1
+  tab_counter <- 1
+  
+```
+
+```{r load_hosp_data}
+
+##UNCOMMENT TO RUN PARALLEL (ALSO DEREGIASTER AT END)
+##doParallel::registerDoParallel(6)
+
+
+###Load state totalsk for the hospital.
+scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
+
+state_hosp_totals <- list()
+
+for (i in 1:length(config$hospitalization$parameters$p_death_names)) {
+    state_hosp_totals[[i]] <- load_hosp_geocombined_totals(scn_dirs = scn_dirs, 
+                                                           scenariolabels = config$report$formatting$scenario_labels,
+                                                           name_filter= config$hospitalization$parameters$p_death_names[i],
+                                                           incl_geoids=included_geoids,
+                                                           geoid_len=5) %>%
+        mutate(pdeath=config$hospitalization$parameters$p_death[i])
+}
+
+##UNCOMMENT TO RUN PARALLEL
+##doParallel::stopImplicitCluster()
+
+state_hosp_totals <- dplyr::bind_rows(state_hosp_totals)
+
+```
+
+
+```{r load thresh}
+
+## READ IN (or enter) DESIRED THRESHOLD DATA HERE
+
+## example below for Maryland
+source("R/load_beds_by_county_md.R")
+occup_assum <- 0.57 ## from CRISP data 4/6 - 4/10
+
+state_acute_threshold <- load_beds_by_county_md(filename = "data/east-coast/md_beddata_crisp_20200412.csv",
+                                         varname = "n_acute_beds_staffed",
+                                         bed_percentage = 1-occup_assum)
+
+```
+
+```{r load hosp thresh}
+
+## READ IN GEOUNIT HOSPITAL DATA + ADD THRESHOLD VALUE
+
+hosp_geounit_relative <- load_hosp_geounit_relative_to_threshold(scn_dirs = scn_dirs,
+                                                                 threshold = state_acute_threshold,
+                                                                 variable = "NhospCurr",
+                                                                 end_date = config$end_date,
+                                                                 name_filter = params$pdeath_default,
+                                                                 incl_geoids = included_geoids,
+                                                                 scenario_labels = config$report$formatting$scenario_labels,
+                                                                 geoid_len = 5)
+
+```
+
+----------------------------------------
+
+## Summary
+
+[OVERALL SUMMARY TEXT GOES HERE]
+
+```{r summary_fig_hosp, fig.cap=cap, fig.width=10}
+
+## PLOT CURRENT HOSPITALIZATIONS BY TIME FOR ENTIRE STATE
+## ADDS HORIZONTAL LINE TO SHOW CAPACITY 
+
+plot_ts_hosp_state_sample(state_hosp_totals,
+                          varname = "NhospCurr",
+                          varlabel = "Total current hospital occupancy",
+                          scenario_labels = config$report$formatting$scenario_labels,
+                          scenario_cols = config$report$formatting$scenario_colors,
+                          sim_start_date = config$start_date,
+                          sim_end_date = sim_end_date, #config$end_date,
+                          pdeath_level = 0.01,
+                          num_sims = 50)+
+  scale_y_sqrt(name="Total current hospital occupancy", breaks=c(500, 2500, 10000, 25000))+
+  facet_wrap(~scenario_name, nrow = 1) +
+  theme(axis.text.x =element_text(angle=45))+ 
+  theme(legend.position = "none")+
+  geom_hline(aes(yintercept = sum(state_acute_threshold)))
+
+cap <- paste("**Fig.", fig_counter, "**: Daily current hospital occupancy for 50 simulation realizations for", scen_desc_str, "at 1% IFR assumptions. Flat line represents total state hospital capacity for COVID19 patients. Note the square root scaled y-axis.")
+
+fig_counter <- fig_counter+1
+```
+
+
+```{r threshold comparisons, fig.width = 10, fig.cap = cap}
+
+## PLOTS NEEDS RELATIVE TO CAPACITY FOR EACH GEOID FOR EACH SCENARIO
+
+p1 <- plot_needs_relative_to_threshold_heatmap(hosp_geounit_relative,
+                                               shapefile = shp,
+                                               scenario_labels = config$report$formatting$scenario_labels,
+                                               legend_title = "excess acute care \nbeds needed",
+                                               value_name = "threshold_value",
+                                               value_label = "acute care bed capacity",
+                                               start_date = "2020-04-01",
+                                               end_date = "2020-07-01",
+                                               incl_geoids = included_geoids)
+
+p1
+
+cap <- paste("**Fig.", fig_counter, " **:  County-level hospital burden, as log proportion of acute care bed capacity, for", scen_desc_str, "at 1% IFR assumptions.")
+
+fig_counter <- fig_counter+1
+
+```
+
+
+----------------------------------------
+
+## County-Specific Results
+
+
+```{r county-level read, results="asis"}
+
+## CREATES HEADER + SUMMARY TABLE FOR EACH GEOID
+
+for(i in 1:length(included_geoids)) {
+  cat("  \n -----------------------------  \n")
+  cat("  \n###",  as.character(included_geoid_names[i]), "  \n")
+
+  cat( paste("**Tab.", tab_counter, 
+             " **: Summary across", scen_desc_str, " for the county of ", included_geoid_names[i], 
+             ". Estimates are presented across", 
+             length(config$report$formatting$display_dates)+1, 
+             "time periods for 1% IFR assumptions.") )
+  
+  ## UNCOMMENT TO RUN PARALLEL (ALSO DEREGIASTER AT END)
+  ## doParallel::registerDoParallel(6)
+
+  ### Load county level totals
+  scn_dirs <- paste(config$name,config$interventions$scenarios,sep='_')
+
+  tmp_hosp_totals <- list()
+
+  tmp_hosp_totals[[i]] <- load_hosp_geocombined_totals(scn_dirs = scn_dirs,
+                                                       scenariolabels = config$report$formatting$scenario_labels,
+                                                       name_filter = params$pdeath_default,
+                                                       incl_geoids = included_geoids[i],
+                                                       geoid_len = 5) %>%
+        mutate(pdeath=config$hospitalization$parameters$p_death[which(config$hospitalization$parameters$p_death_names == params$pdeath_default)])
+
+
+  ## UNCOMMENT TO RUN PARALLEL
+  ## doParallel::stopImplicitCluster()
+
+  tmp_hosp_totals <- dplyr::bind_rows(tmp_hosp_totals)
+  
+  cat( knitr::knit_print(make_scn_time_summary_table_withVent(tmp_hosp_totals, config$report$formatting$display_dates)) )
+  
+  cat("  \n")
+  tab_counter <- tab_counter + 1
+}
+
+```
+
+
+----------------------------------------
+
+## Appendix: Methods
+
+
+### Pipeline Overview
+
+```{r, child=reference_chunk("PipelineDescription.Rmd")}
+```
+
+### Technical Details
+
+#### SEIR Model
+
+```{r, child=reference_chunk("SEIRModelDesc.Rmd")}
+```
+
+
+#### Limitations
+
+```{r, child=reference_chunk("limitations.Rmd")}
+```
+
+#### Key Sources
+
+```{r, child=reference_chunk("key_sources.Rmd")}
+```
+
+#### Team
+
+```{r, child=reference_chunk("DevelopmentTeam.Rmd")}
+```
+
+----------------------------------------
+
+### Bibliography

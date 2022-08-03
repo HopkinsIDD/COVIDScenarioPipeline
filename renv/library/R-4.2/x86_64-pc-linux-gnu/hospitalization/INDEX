@@ -1,0 +1,9 @@
+build_hospdeath_geoid_fixedIFR_par
+                        Build a set of sampled hospitalizations,
+                        deaths, and recoveries from the incident
+                        infection data from the simulation model.
+build_hospdeath_par     Build a set of sampled hospitalizations,
+                        deaths, and recoveries from the incident
+                        infection data from the simulation model.
+hosp_load_scenario_sim
+                        Data loading utility function for this package.

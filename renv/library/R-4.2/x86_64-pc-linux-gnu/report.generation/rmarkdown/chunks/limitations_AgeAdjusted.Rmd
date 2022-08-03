@@ -1,0 +1,11 @@
+We note several limitations to our work:
+
+(1) We truncated the initial run of these simulations on `r print_pretty_date(sim_end_date)`. Our estimates therefore do not necesarily represent a total or final outbreak size in all scenarios. This truncation also has implications for the estimated number of hospitalizations and deaths, as many individuals have yet to reach their final outcome by `r print_pretty_date(sim_end_date)`.
+
+(2) There remains considerable uncertainty around some of the key epidemiologic features of COVID-19, including the average duration of infectiousness and time to recovery or death. We have used commonly accepted and well supported estimates, in line with those recommended by the CDC, of these parameters and believe that they are appropriate for planning purposes.
+
+(3) We assume equal risk of infection among all individuals within a county at a given time point. There is some evidence of age-specific differences in susceptibility to infection that are not considered here. We do account for age-specific differences in risk of hospitalization, ICU admission, ventilation, and death, such that counties with older populations are estimated to experience a higher burden of clinical cases requiring hospitalization or ICU admission.
+
+(4) We assume $R_e$, the effective reproductive number, to be constant in each scenario, other than changes due to onset of non-pharmaceutical interventions. As capacity for surveillance, contact tracing, and testing improve, and as the general public becomes increasingly aware of the outbreak and modifies their own behavior, we might expect that $R_e$ will decrease dynamically, perhaps even as a function of the perceived COVID19 burden. As the outbreak continues, it will be possible to refine the scenarios considered here to better reflect the actual epidemic situation.
+
+(5) We do not explicitly model the role of asymptomatic infection in the tranmission process. All infected individuals are equally infectious, regardless of clinical presentation. We do consider age-specific probabilities of symptomatic infection that lead to hospitalization or other clinical outcomes, though a substantial symptomatic burden, beyond what is estimated here, may reduce the number of hospitalized cases.

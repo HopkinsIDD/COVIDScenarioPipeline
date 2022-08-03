@@ -1,0 +1,99 @@
+accept_reject_new_seeding_npis
+                        Function to go through to accept or reject
+                        proposed parameters for each geoid based on a
+                        geoid specific likelihood.
+add_perturb_column_hnpi
+                        Function adds a column to the npi parameter
+                        file to record the perturbation standard
+                        deviation, initially taken from the config file
+add_perturb_column_snpi
+                        Function adds a column to the npi parameter
+                        file to record the perturbation standard
+                        deviation, initially taken from the config file
+aggregate_and_calc_loc_likelihoods
+                        Function that performs aggregation and
+                        calculates likelihood data across all given
+                        locations.
+calc_hierarchical_likadj
+                        Function to calculate a hierarchical adjustment
+                        to the LL contribution under the assumption
+                        that everything comes from a normal
+                        distribution with some variance.
+calc_prior_likadj       Function to calcualte the likelihood adjustment
+                        based on a prior
+compute_cumulative_counts
+                        Function to compute cumulative counts across
+                        geoids
+compute_totals          Function to compute cumulative counts across
+                        geoids
+create_cum_death_forecast
+                        Creates a merged forecast from a data object
+                        and a set of sims.
+cum_death_forecast      Functoin that takes the results of an inference
+                        run, a date and a set of cumulative numbers and
+                        and results from the simulation.
+get_ground_truth        Function to load US COVID data from USAfacts
+get_ground_truth_file   Function to load US COVID data from JHUCSSE
+getStats                Function for computing statistics over which to
+                        compute likelihoods
+initialize_mcmc_first_block
+                        initialize_mcmc_first_block
+iterateAccept           Function accept proposals
+logLikStat              Function for computing statistics over which to
+                        compute likelihoods
+multi_loc_inference_test
+                        Function that does a rapid testing of the
+                        inference procedures on a single time series.
+npis_dataframe          Create NPIs dataframe for a single location for
+                        input to SEIR code
+perform_MCMC_step_copies_chimeric
+                        Function that performs the necessary file
+                        copies the end of an MCMC iteration of
+                        filter_MC.
+perform_MCMC_step_copies_global
+                        Function that performs the necessary file
+                        copies the end of an MCMC iteration of
+                        filter_MC.
+periodAggregate         Function for applying time aggregation of
+                        variables on which to comput likelihoods Note
+                        that bahavior is not consistent when multiples
+                        of time nits are passed in.
+perturb_expand_npis     Expands the perturb npi into a dataframe with
+                        time
+perturb_hnpi            Function perturbs an npi parameter file based
+                        on user-specified distributions
+perturb_hnpi_from_file
+                        Function perturbs an npi parameter file based
+                        on the current perturbation standard deviation
+                        in the file, and also can update the
+                        perturbation value if the adaptive mode is
+                        turned on
+perturb_hpar            Fucction perturbs an outcomes parameter file
+                        based on user-specified distributions
+perturb_seeding         Function perturbs a seeding file based on a
+                        normal proposal on the start date and a poisson
+                        on the number of cases.
+perturb_snpi            Function perturbs an npi parameter file based
+                        on user-specified distributions
+perturb_snpi_from_file
+                        Function perturbs an npi parameter file based
+                        on the current perturbation standard deviation
+                        in the file, and also can update the
+                        perturbation value if the adaptive mode is
+                        turned on
+simulate_multi_epi      Fill in the epi curve from a baseline state
+                        given current parameters
+simulate_single_epi     Fill in the epi curve from a baseline state
+                        given current parameters
+single_hosp_run         Run hospitalizations and deaths for single epi
+                        curve Functions taken from the hospitalization
+                        package
+single_loc_inference_test
+                        Function that does a rapid testing of the
+                        inference procedures on a single time series.
+synthetic_data          Create synthetic data to run inference on Runs
+                        an SEIR simulation and applies hospitalization
+                        and death on it
+synthetic_data_multi    Create synthetic data to run inference on Runs
+                        an SEIR simulation and applies hospitalization
+                        and death on it

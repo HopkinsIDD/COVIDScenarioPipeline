@@ -1,0 +1,23 @@
+##### Health outcomes
+
+We use a statistical model to calculate several key health outcomes, including number of individuals who are hospitalized, admitted to the ICU, ventilatied, and who die, from transmission model output. 
+
+Briefly, we assume some probabilty of hospitalization among all incident infections, $\mathbb{P}(hosp \mid infected)$ and a fixed average time from symptom onset to hospitalization, $d_{inf -> hosp}$. The number of hospitalizations that were infected at time $t_{inf}$ and hospitalized at time $t_{hosp}$ is denoted $n^{hosp}_{t_{inf},t_{hosp}}$, where
+
+\begin{eqnarray}
+n^{hosp}_{t_{inf},\cdot} &\sim Binomial(n^{inf}_{t_{inf}}, \mathbb{P}(hosp \mid infected)) \\
+t_{hosp} &= t_{inf} + d_{inf -> hosp} 
+\end{eqnarray}
+
+In the absence of clear data on the overall risk of hospitalization and the asymptomatic fraction, we assumed that the risk of hospitalization is 10 times the risk of death among all infections (the infection fatality ratio, IFR), such that $\mathbb{P}(hosp \mid infected) = 10\cdot\mathbb{P}(death \mid infected)$. Here, we use IFR estimates: `r paste(config$report$formatting$pdeath_labels, sep=", ")`. Those who are hospitalized are at risk of ICU admission ($\mathbb{P}(ICU \mid hosp) =$ `r paste(config$hospitalization$parameters$p_ICU)`), and those admitted to the ICU are at risk of ventilation ($\mathbb{P}(vent \mid ICU) =$ `r paste(config$hospitalization$parameters$p_vent)`).
+
+\begin{eqnarray}
+n^{ICU}_{t_{hosp},\cdot} &\sim Binomial(n^{hosp}_{t_{hosp}}, \mathbb{P}(ICU \mid hosp)) \\
+t_{ICU} &= t_{hosp} + d_{hosp -> ICU} \\
+\\
+n^{vent}_{t_{ICU},\cdot} &\sim Binomial(n^{ICU}_{t_{ICU}}, \mathbb{P}(vent \mid ICU)) \\
+t_{vent} &= t_{ICU} + d_{ICU -> vent} 
+\\
+n^{death}_{t_{hosp},\cdot} &\sim Binomial(n^{hosp}_{t_{hosp}}, 0.1) \\
+t_{death} &= t_{hosp} + d_{hosp -> death} 
+\end{eqnarray}

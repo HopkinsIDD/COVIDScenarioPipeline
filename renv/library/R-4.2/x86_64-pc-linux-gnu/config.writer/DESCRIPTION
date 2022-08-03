@@ -1,0 +1,27 @@
+Package: config.writer
+Title: Config creator for COVIDScenarioPipeline
+Version: 1.0.0
+Imports: tidyverse (>= 1.3.1), readr (>= 2.0.0), lubridate, tigris, magrittr,
+    yaml, MMWRweek
+Authors@R: person(given = "Juan",
+           family = "Dent Hulse",
+           role = c("aut", "cre"),
+           email = "jdhulse22@gmail.com")
+    person(given = "Shaun", 
+           family = "Truelove", 
+           role = c("aut", "cre"),
+           email = "shauntruelove@jhu.edu")
+Description: Tools to generate config file for use with COVIDScenarioPipeline.
+License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a license
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2.9000
+Suggests: rmarkdown, knitr
+VignetteBuilder: knitr
+Depends: R (>= 3.6.0)
+Author: Shaun Truelove [aut, cre]
+Maintainer: Shaun Truelove <shauntruelove@jhu.edu>
+Built: R 4.2.0; ; 2022-05-20 23:23:20 UTC; unix
+RemoteType: local
+RemoteUrl: ~/pkgs/config.writer/
