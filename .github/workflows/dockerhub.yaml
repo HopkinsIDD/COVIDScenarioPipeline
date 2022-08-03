@@ -68,7 +68,7 @@ jobs:
           hopkinsidd/covidscenariopipeline:${{ github.sha }}
 
     - name: Build Push Dev
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       if: (contains( github.ref, 'update_docker') || contains( github.base_ref, 'update_docker' ))
       with:
         context: .
