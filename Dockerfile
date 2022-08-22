@@ -101,7 +101,7 @@ COPY --chown=app:app gempyor_pkg $HOME/gempyor_pkg
 
 RUN sudo python -m venv $VENV_ROOT \
   && sudo chown app:app -R $VENV_ROOT \
-  && $VENV_ROOT/bin/python3.10 -m pip install --upgrade setuptools pip \
+  && $VENV_ROOT/bin/python3.10 -m pip install --upgrade setuptools pip boto3 \
   && $VENV_ROOT/bin/python3.10 -m pip install $HOME/gempyor_pkg
 
 COPY --chown=app:app Docker.bashrc $HOME/.bashrc

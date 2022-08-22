@@ -6,7 +6,7 @@
 on:
   push:
     branches:
-      - master
+      - main
       - update_docker
     paths:
       - 'Dockerfile'
@@ -57,12 +57,12 @@ jobs:
 
     - name: Build Push Master
       uses: docker/build-push-action@v2
-      if: contains( github.ref, 'master') || contains( github.base_ref, 'master' )
+      if: contains( github.ref, 'main') || contains( github.base_ref, 'main' )
       with:
         push: true
         tags: |
           hopkinsidd/covidscenariopipeline:latest
-          hopkinsidd/covidscenariopipeline:latest-master
+          hopkinsidd/covidscenariopipeline:latest-main
           hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.shashort}}
           hopkinsidd/covidscenariopipeline:${{steps.tags.outputs.reftag}}
           hopkinsidd/covidscenariopipeline:${{ github.sha }}
