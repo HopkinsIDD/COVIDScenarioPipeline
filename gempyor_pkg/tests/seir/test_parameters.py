@@ -26,15 +26,15 @@ def test_parameters_from_config_plus_read_write():
     lhs = parameters.Parameters(
         parameter_config=config["seir"]["parameters"], config_version="v2"
     )
-    nt_inter = 10
+    n_days = 10
     nnodes = 5
 
     p = parameters.Parameters(
         parameter_config=config["seir"]["parameters"], config_version="v2"
     )
-    p_draw = p.parameters_quick_draw(nt_inter=10, nnodes=5)
+    p_draw = p.parameters_quick_draw(n_days=10, nnodes=5)
     # test shape
-    assert p_draw.shape == (len(config["seir"]["parameters"].keys()), nt_inter, nnodes)
+    assert p_draw.shape == (len(config["seir"]["parameters"].keys()), n_days, nnodes)
 
     write_df(fname="test_pwrite.parquet", df=p.getParameterDF(p_draw=p_draw))
 
@@ -42,20 +42,45 @@ def test_parameters_from_config_plus_read_write():
         parameter_config=config["seir"]["parameters"], config_version="v2"
     )
     p_load = rhs.parameters_load(
-        param_df=read_df("test_pwrite.parquet"), nt_inter=nt_inter, nnodes=nnodes
+        param_df=read_df("test_pwrite.parquet"), n_days=n_days, nnodes=nnodes
     )
 
     assert (p_draw == p_load).all()
 
 
 def test_parameters_quick_draw_old():
-    config.set_file(f"{DATA_DIR}/parameters_only.yml")
+    config.set_file(f"{DATA_DIR}/config_compartmental_model_format_with_covariates.yml")
 
-    date_range = pd.date_range("2020-01-30", "2020-02-01")
-    dt = 0.25
-    nt_inter = int((len(date_range) - 1) * (1 / dt)) + 1
-    nnodes = 200
-    npi = pd.DataFrame(0.0, index=date_range, columns=range(nnodes))
+    ss = setup.SpatialSetup(
+    setup_name="test_seir",
+    geodata_file=f"{DATA_DIR}/geodata.csv",
+    mobility_file=f"{DATA_DIR}/mobility.txt",
+    popnodes_key="population",
+    nodenames_key="geoid",
+)
+
+    index = 1
+    run_id = "test_parameter"
+    prefix = ""
+    s = setup.Setup(
+        setup_name="test_seir",
+        spatial_setup=ss,
+        nsim=1,
+        npi_scenario="None",
+        npi_config_seir=config["interventions"]["settings"]["None"],
+        parameters_config=config["seir"]["parameters"],
+        seeding_config=config["seeding"],
+        ti=config["start_date"].as_date(),
+        tf=config["end_date"].as_date(),
+        interactive=True,
+        write_csv=False,
+        first_sim_index=index,
+        in_run_id=run_id,
+        in_prefix=prefix,
+        out_run_id=run_id,
+        out_prefix=prefix,
+        dt=0.25,
+    )
 
     params = parameters.Parameters(parameter_config=config, config_version="old")
 
@@ -68,7 +93,7 @@ def test_parameters_quick_draw_old():
         pn.lower() for pn in params.pnames
     ]
 
-    p_array = params.parameters_quick_draw(nt_inter, nnodes)
+    p_array = params.parameters_quick_draw(n_days, nnodes)
     print(p_array.shape)
 
     alpha = p_array[params.pnames2pindex["alpha"]]
@@ -78,15 +103,44 @@ def test_parameters_quick_draw_old():
     # susceptibility_reduction = p_array[parameters.pnames2pindex['']]
     # transmissibility_reduction = p_array[parameters.pnames2pindex['alpha']]
 
-    assert alpha.shape == (nt_inter, nnodes)
+    assert alpha.shape == (n_days, nnodes)
     assert (alpha == 0.5).all()
 
-    assert R0s.shape == (nt_inter, nnodes)
+    assert R0s.shape == (n_days, nnodes)
     assert len(np.unique(R0s)) == 1
     assert ((2 <= R0s) & (R0s <= 3)).all()
 
-    assert sigma.shape == (nt_inter, nnodes)
+    assert sigma.shape == (n_days, nnodes)
     assert (sigma == config["sigma"].as_evaled_expression()).all()
 
-    assert gamma.shape == (nt_inter, nnodes)
+    assert gamma.shape == (n_days, nnodes)
     assert len(np.unique(gamma)) == 1
+
+def test_parameters_from_timeserie_file():
+    config.clear()
+    config.read(user=False)
+    config.set_file(f"{DATA_DIR}/config_compartmental_model_format.yml")
+
+    lhs = parameters.Parameters(
+        parameter_config=config["seir"]["parameters"], config_version="v2"
+    )
+    n_days = 10
+    nnodes = 5
+
+    p = parameters.Parameters(
+        parameter_config=config["seir"]["parameters"], config_version="v2"
+    )
+    p_draw = p.parameters_quick_draw(n_days=10, nnodes=5)
+    # test shape
+    assert p_draw.shape == (len(config["seir"]["parameters"].keys()), n_days, nnodes)
+
+    write_df(fname="test_pwrite.parquet", df=p.getParameterDF(p_draw=p_draw))
+
+    rhs = parameters.Parameters(
+        parameter_config=config["seir"]["parameters"], config_version="v2"
+    )
+    p_load = rhs.parameters_load(
+        param_df=read_df("test_pwrite.parquet"), n_days=n_days, nnodes=nnodes
+    )
+
+    assert (p_draw == p_load).all()

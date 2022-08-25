@@ -1,0 +1,102 @@
+name: minimal
+start_date: 2020-02-01
+end_date: 2020-02-15
+nsimulations: 15
+dt: 0.25
+
+spatial_setup:
+  base_path: data
+  setup_name: minimal
+  geodata: geodata.csv
+  mobility: mobility.txt
+  popnodes: population
+  nodenames: geoid
+
+seir:
+  parameters:
+    alpha:
+      value:
+        distribution: fixed
+        value: .99
+    sigma:
+      value:
+        distribution: fixed
+        value: 1 / 5.2
+    gamma:
+      value:
+        distribution: uniform
+        low: 1 / 6
+        high: 1 / 2.6
+    R0s:
+      timeserie: data/r0s_ts.csv
+    theta_1:
+      value:
+        distribution: fixed
+        value: .1
+    theta_2:
+      value:
+        distribution: fixed
+        value: .2
+    nu_1:
+      intervention_overlap_operation : "sum"
+      value:
+        distribution: fixed
+        value: .3
+    nu_2:
+      intervention_overlap_operation : "sum"
+      value:
+        distribution: fixed
+        value: .4
+    chi_0:
+      value:
+        distribution: fixed
+        value: .5
+    chi_1:
+      value:
+        distribution: fixed
+        value: .6
+    rho:
+      intervention_overlap_operation : "prod"
+      value:
+        distribution: fixed
+        value: 7
+  compartments:
+    infection_stage: ["S", "E", "I1", "I2", "I3", "R"]
+    vaccination_stage: ["0dose", "1dose", "2dose"]
+    variant_type: ["var0", "var1"]
+  transitions:
+    - source: ["S", ["0dose", "1dose", "2dose"], "var0"]
+      destination: ["E", ["0dose", "1dose", "2dose"], ["var0","var1"]]
+      proportional_to: ["source", [["E", "I1", "I2", "I3"], ["0dose", "1dose", "2dose"], ["var0", "var1"]]]
+      proportion_exponent: [[1,1,1], ["alpha",1,1]]
+      rate: ["R0s * gamma", ["1", "theta_1", "theta_2"], ["chi_0", "chi_1"]]
+    - source: ["E", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      destination: ["I1", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["sigma", 1, 1]
+    - source: ["I1", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      destination: ["I2", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["3 * gamma", 1, 1]
+    - source: ["I2", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      destination: ["I3", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["3 * gamma", 1, 1]
+    - source: ["I3", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      destination: ["R", ["0dose", "1dose", "2dose"], ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["3 * gamma", 1, 1]
+    - source: [["S", "E", "I1", "I2", "I3", "R"], "0dose", ["var0", "var1"]]
+      destination: [["S", "E", "I1", "I2", "I3", "R"], "1dose", ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["nu_1", 1, 1]
+    - source: [["S", "E", "I1", "I2", "I3", "R"], "1dose", ["var0", "var1"]]
+      destination: [["S", "E", "I1", "I2", "I3", "R"], "2dose", ["var0", "var1"]]
+      proportional_to: ["source"]
+      proportion_exponent: [[1,1,1]]
+      rate: ["nu_2", 1, 1]

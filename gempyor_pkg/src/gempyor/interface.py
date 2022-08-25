@@ -94,7 +94,7 @@ class InferenceSimulator:
             initial_conditions_config=config["initial_conditions"],
             parameters_config=config["seir"]["parameters"],
             seir_config=config["seir"],
-            outcomes_config=config["outcomes"],
+            outcomes_config=config["outcomes"] if config["outcomes"].exists() else None,
             outcomes_scenario=deathrate,
             ti=config["start_date"].as_date(),
             tf=config["end_date"].as_date(),
@@ -369,12 +369,12 @@ class InferenceSimulator:
         if param_df is not None:
             p_draw = self.s.parameters.parameters_load(
                 param_df=param_df,
-                nt_inter=self.s.n_days,
+                n_days=self.s.n_days,
                 nnodes=self.s.nnodes,
             )
         else:
             p_draw = self.s.parameters.parameters_quick_draw(
-                nt_inter=self.s.n_days, nnodes=self.s.nnodes
+                n_days=self.s.n_days, nnodes=self.s.nnodes
             )
         return p_draw
 
