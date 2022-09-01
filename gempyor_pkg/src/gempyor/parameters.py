@@ -50,18 +50,32 @@ class Parameters:
                 elif self.pconfig[pn]["timeserie"].exists():
                     fn_name = self.pconfig[pn]["timeserie"].get()
                     df = utils.read_df(fn_name).set_index("date")
-                    if len(df.columns) == len(nodenames): # one ts per geoid
-                        df = df[nodenames] # make sure the order of geoids is the same as the reference (nodenames from spatial setup)
+                    df.index = pd.to_datetime(df.index)
+                    if len(df.columns) >= len(nodenames): # one ts per geoid
+                        df = df[nodenames] # make sure the order of geoids is the same as the reference 
+                        # (nodenames from spatial setup) and select the columns
                     elif len(df.columns) == 1:
                         df = pd.DataFrame(pd.concat([df]*len(nodenames), axis=1).values, 
                         index=df.index, columns=nodenames)
                     else:
+                        print('loaded col :', sorted(list(df.columns)))
+                        print('geodata col:', sorted(nodenames))
                         raise ValueError(f"""ERROR loading file {fn_name} for parameter {pn}: the number of non 'date'
                         columns are {len(df.columns)}, expected {len(nodenames)} (the number of geoids) or one.""")
 
                     df = df[str(ti):str(tf)]
-                    # check the date range
+                    if not (len(df.index) == len(pd.date_range(ti,tf))):
+                        print('config dates:', pd.date_range(ti,tf))
+                        print('loaded dates:', df.index)
+                        print(pd.date_range(ti,tf) == df.index)
+                        raise ValueError(f"""ERROR loading file {fn_name} for parameter {pn}: 
+                        the 'date' index of the provided file does not cover the whole config time span from
+                        {ti}->{tf}, where we have dates from {str(df.index[0])} to {str(df.index[-1])}""")
+                    # check the date range, need the lenght to be equal
                     if not (pd.date_range(ti,tf) == df.index).all():
+                        print('config dates:', pd.date_range(ti,tf))
+                        print('loaded dates:', df.index)
+                        print(pd.date_range(ti,tf) == df.index)
                         raise ValueError(f"""ERROR loading file {fn_name} for parameter {pn}: 
                         the 'date' index of the provided file does not cover the whole config time span from
                         {ti}->{tf}""")
