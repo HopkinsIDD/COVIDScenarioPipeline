@@ -54,6 +54,7 @@ option_list <- list(
 
 opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
 
+gt_source <- NULL
 print(paste0("Using config file: ", opt$config))
 config <- covidcommon::load_config(opt$config)
 if (length(config) == 0) {
@@ -95,12 +96,29 @@ if (!is.null(gt_source)) {
     # Aggregation to state level if in config
     if (is_US_run) {
         state_level <- ifelse(!is.null(config$spatial_setup$state_level) && config$spatial_setup$state_level, TRUE, FALSE)
-        if (state_level) {
-            gt_scale <- "US state"
-            cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = TRUE)
-        } else{
-            gt_scale <- "US county"
-            cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale)
+        if (gt_source == "historical"){
+            
+            data_path <- config$filtering$data_path
+            if (is.null(data_path)) {
+                data_path <- config$seeding$casedata_file
+                if (is.null(data_path)) {
+                    stop(paste(
+                        "Please provide a ground truth file for non-us runs",
+                        "with no data source as filtering::data_path or seeding::casedata_file"
+                    ))
+                }
+            }
+            cases_deaths <- readr::read_csv(data_path)
+            print(paste("Successfully loaded data from ", data_path, "for seeding."))
+            
+        } else {
+            if (state_level) {
+                gt_scale <- "US state"
+                cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale, incl_unass = TRUE)
+            } else{
+                gt_scale <- "US county"
+                cases_deaths <- covidcommon::get_groundtruth_from_source(source = gt_source, scale = gt_scale)
+            }
         }
         cases_deaths <- cases_deaths %>%
             mutate(FIPS = stringr::str_pad(FIPS, width = 5, side = "right", pad = "0"))
@@ -126,11 +144,26 @@ if (!is.null(gt_source)) {
 
 if (seed_variants) {
     variant_data <- readr::read_csv(config$seeding$variant_filename)
-    cases_deaths <- cases_deaths %>%
-        dplyr::left_join(variant_data) %>%
-        dplyr::mutate(incidI = incidI * prop) %>%
-        dplyr::select(-prop) %>%
-        tidyr::pivot_wider(names_from = variant, values_from = incidI)
+    
+    if (!is.null(config$seeding$seeding_outcome)){
+        if (config$seeding$seeding_outcome=="incidH"){
+            cases_deaths <- cases_deaths %>%
+                dplyr::left_join(variant_data) %>%
+                dplyr::mutate(incidI = incidH * prop) %>%
+                dplyr::select(-prop) %>%
+                tidyr::pivot_wider(names_from = variant, values_from = incidI)
+        } else {
+            stop(paste(
+                "Currently only incidH is implemented for config$seeding$seeding_outcome."
+            ))
+        }
+    } else {
+        cases_deaths <- cases_deaths %>%
+            dplyr::left_join(variant_data) %>%
+            dplyr::mutate(incidI = incidI * prop) %>%
+            dplyr::select(-prop) %>%
+            tidyr::pivot_wider(names_from = variant, values_from = incidI)
+    }
 }
 
 ## Check some data attributes:
