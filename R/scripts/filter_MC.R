@@ -190,23 +190,23 @@ obs <- inference::get_ground_truth(
   variant_filename = config$seeding$variant_filename
 )
 
-geonames <- unique(obs[[obs_nodename]])
+geonames <- obs_nodename #unique(obs[[obs_nodename]])
 
 ## Compute statistics
-data_stats <- lapply(
-  geonames,
-  function(x) {
-    df <- obs[obs[[obs_nodename]] == x, ]
-    inference::getStats(
-      df,
-      "date",
-      "data_var",
-      stat_list = config$filtering$statistics,
-      start_date = gt_start_date,
-      end_date = gt_end_date
-    )
-  }) %>%
-  set_names(geonames)
+#data_stats <- lapply(
+#  geonames,
+#  function(x) {
+#    df <- obs[obs[[obs_nodename]] == x, ]
+#    inference::getStats(
+#      df,
+#      "date",
+#      "data_var",
+#      stat_list = config$filtering$statistics,
+#      start_date = gt_start_date,
+#      end_date = gt_end_date
+#    )
+#  }) %>%
+#  set_names(geonames)
 
 required_packages <- c("dplyr", "magrittr", "xts", "zoo", "stringr")
 
@@ -281,9 +281,9 @@ for(scenario in scenarios) {
       chimeric_block_prefix,
       gempyor_inference_runner,
       function(sim_hosp){
-        sim_hosp <- dplyr::filter(sim_hosp,sim_hosp$time >= min(obs$date),sim_hosp$time <= max(obs$date))
+        #sim_hosp <- dplyr::filter(sim_hosp,sim_hosp$time >= min(obs$date),sim_hosp$time <= max(obs$date))
         lhs <- unique(sim_hosp[[obs_nodename]])
-        rhs <- unique(names(data_stats))
+        rhs <- unique(sim_hosp[[obs_nodename]])
         all_locations <- rhs[rhs %in% lhs]
 
         ## No references to config$filtering$statistics
@@ -292,8 +292,8 @@ for(scenario in scenarios) {
           modeled_outcome = sim_hosp,
           obs_nodename = obs_nodename,
           targets_config = config[["filtering"]][["statistics"]],
-          obs = obs,
-          ground_truth_data = data_stats,
+          obs = sim_hosp,
+          ground_truth_data = sim_hosp,
           hosp_file = first_global_files[['llik_filename']],
           hierarchical_stats = hierarchical_stats,
           defined_priors = defined_priors,
@@ -405,11 +405,12 @@ for(scenario in scenarios) {
         stop("InferenceSimulator failed to run")
       }
       
-      sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_global_files[['hosp_filename']]))(this_global_files[['hosp_filename']]) %>%
-        dplyr::filter(time >= min(obs$date),time <= max(obs$date))
+      sim_hosp <- report.generation:::read_file_of_type(gsub(".*[.]","",this_global_files[['hosp_filename']]))(this_global_files[['hosp_filename']]) 
+      #%>%
+      #  dplyr::filter(time >= min(obs$date),time <= max(obs$date))
       
       lhs <- unique(sim_hosp[[obs_nodename]])
-      rhs <- unique(names(data_stats))
+      rhs <- unique(sim_hosp[[obs_nodename]])
       all_locations <- rhs[rhs %in% lhs]
       
       ## Compare model output to data and calculate likelihood ----
@@ -418,8 +419,8 @@ for(scenario in scenarios) {
         modeled_outcome = sim_hosp,
         obs_nodename = obs_nodename,
         targets_config = config[["filtering"]][["statistics"]],
-        obs = obs,
-        ground_truth_data = data_stats,
+        obs = sim_hosp,
+        ground_truth_data = sim_hosp,
         hosp_file = this_global_files[["llik_filename"]],
         hierarchical_stats = hierarchical_stats,
         defined_priors = defined_priors,
