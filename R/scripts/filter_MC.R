@@ -239,6 +239,7 @@ if (config$filtering$do_filtering){
             end_date = gt_end_date
         )
     }
+    print("Running WITH inference")
     
 } else {
     
@@ -267,6 +268,7 @@ if (config$filtering$do_filtering){
             end_date = gt_end_date
         )
     }
+    print("Running WITHOUT inference")
 }
 
 
@@ -291,7 +293,14 @@ if (!opt$reset_chimeric_on_accept) {
 }
 
 for(scenario in scenarios) {
+    
+    print(paste0("Running scenario: ", scenario))
+    
     for(deathrate in deathrates) {
+        
+        print(paste0("Running deathrate: ", deathrate))
+
+        
         reset_chimeric_files <- FALSE
         # Data -------------------------------------------------------------------------
         # Load
@@ -330,6 +339,7 @@ for(scenario in scenarios) {
             stoch_traj_flag=opt$stoch_traj_flag,
             initialize=TRUE  # Shall we pre-compute now things that are not pertubed by inference
         )
+        print("gempyor_inference_runner created successfully.")
         
         ## Using the prefixes, create standardized files of each type (e.g., seir) of the form
         ## {variable}/{prefix}{block-1}.{run_id}.{variable}.{ext}
@@ -347,7 +357,7 @@ for(scenario in scenarios) {
             likelihood_calculation_fun,
             is_resume = opt[['is-resume']]
         )
-        
+        print("First MCMC block initialized successfully.")
         
         ## So far no acceptances have occurred
         current_index <- 0
@@ -480,7 +490,6 @@ for(scenario in scenarios) {
                 start_date = gt_start_date,
                 end_date = gt_end_date
             )
-            
             
             rm(sim_hosp)
             
