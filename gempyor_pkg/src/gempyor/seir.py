@@ -204,12 +204,12 @@ def onerun_SEIR(
         if load_ID:
             p_draw = s.parameters.parameters_load(
                 param_df=s.read_simID(ftype="spar", sim_id=sim_id2load),
-                nt_inter=s.n_days,
+                n_days=s.n_days,
                 nnodes=s.nnodes,
             )
         else:
             p_draw = s.parameters.parameters_quick_draw(
-                nt_inter=s.n_days, nnodes=s.nnodes
+                n_days=s.n_days, nnodes=s.nnodes
             )
         # reduce them
         parameters = s.parameters.parameters_reduce(p_draw, npi)
