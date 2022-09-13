@@ -12,7 +12,6 @@ spatial_setup:
   popnodes: population
   nodenames: geoid
 
-
 seir:
   parameters:
     alpha:
@@ -29,10 +28,7 @@ seir:
         low: 1 / 6
         high: 1 / 2.6
     R0s:
-      value:
-        distribution: uniform
-        low: 2
-        high: 3
+      timeserie: data/r0s_ts.csv
     theta_1:
       value:
         distribution: fixed

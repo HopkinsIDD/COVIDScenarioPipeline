@@ -120,7 +120,8 @@ class Setup:
 
             # Think if we really want to hold this up.
             self.parameters = parameters.Parameters(
-                parameter_config=self.parameters_config, config_version=config_version
+                parameter_config=self.parameters_config, config_version=config_version, 
+                ti=self.ti, tf=self.tf, nodenames=self.spatset.nodenames
             )
             self.seedingAndIC = seeding_ic.SeedingAndIC(
                 seeding_config=self.seeding_config,

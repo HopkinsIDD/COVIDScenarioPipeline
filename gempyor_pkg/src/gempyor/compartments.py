@@ -18,7 +18,6 @@ class Compartments:
         self.times_set = 0
 
         ## Something like this is needed for check script:
-        # self.parameters = Parameters(seir_config["parameters"])
 
         if (not compartments_file is None) and (not transitions_file is None):
             self.fromFile(compartments_file, transitions_file)
