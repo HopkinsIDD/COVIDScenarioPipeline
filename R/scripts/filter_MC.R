@@ -511,11 +511,7 @@ for(scenario in scenarios) {
             
             
             proposed_likelihood_data$accept <- ifelse(inference::iterateAccept(global_likelihood, proposed_likelihood) || ((current_index == 0) && (opt$this_block == 1)),1,0)
-      if(all(proposed_likelihood_data$accept == 1)) {
             if(all(proposed_likelihood_data$accept == 1) | config$filtering$do_filtering == FALSE) {
-        all(proposed_likelihood_data$accept == 1) |
-        (!config$filtering$do_filtering)
-      ) {
                 
                 print("**** ACCEPT (Recording) ****")
                 if ((opt$this_block == 1) && (current_index == 0)) {
@@ -545,10 +541,10 @@ for(scenario in scenarios) {
             } else {
                 print("**** REJECT (Recording) ****")
                 warning("Removing unused files")
-        if (this_index != opt$simulations_per_slot) {
-                sapply(this_global_files, file.remove)
+                if (this_index < opt$simulations_per_slot) {
+                    sapply(this_global_files, file.remove)
+                }
             }
-      }
             
             effective_index <- (opt$this_block - 1) * opt$simulations_per_slot + this_index
             avg_global_accept_rate <- ((effective_index-1)*old_avg_global_accept_rate + proposed_likelihood_data$accept)/(effective_index) # update running average acceptance probability
@@ -657,8 +653,8 @@ for(scenario in scenarios) {
         output_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block)
         
         warning("Chimeric hosp and seir files not yet supported, just using the most recently generated file of each type")
-    this_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
-    file.copy(this_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
-    file.copy(this_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
+        this_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
+        file.copy(this_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
+        file.copy(this_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
     }
 }
