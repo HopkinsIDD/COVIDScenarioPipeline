@@ -441,7 +441,7 @@ for(scenario in scenarios) {
             
             ## Write files that need to be written for other code to read
             # writes to file  of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.block.iter.run_id.variable.ext
-            write.csv(proposed_seeding,this_global_files[['seed_filename']])
+            write.csv(proposed_seeding,this_global_files[['seed_filename']], row.names = FALSE)
             arrow::write_parquet(proposed_snpi,this_global_files[['snpi_filename']])
             arrow::write_parquet(proposed_hnpi,this_global_files[['hnpi_filename']])
             arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
@@ -604,7 +604,7 @@ for(scenario in scenarios) {
             
             ## Write accepted parameters to file
             # writes to file of the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.block.iter.run_id.variable.ext
-            write.csv(initial_seeding,this_chimeric_files[['seed_filename']])
+            write.csv(initial_seeding,this_chimeric_files[['seed_filename']], row.names = FALSE)
             arrow::write_parquet(initial_snpi,this_chimeric_files[['snpi_filename']])
             arrow::write_parquet(initial_hnpi,this_chimeric_files[['hnpi_filename']])
             arrow::write_parquet(initial_spar,this_chimeric_files[['spar_filename']])
