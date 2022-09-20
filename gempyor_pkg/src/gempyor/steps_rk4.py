@@ -188,9 +188,14 @@ def rk4_integration(
         )  # first dim: 0 -> states_diff, 1: states_cum
         st_next = states.copy()
         st_next = np.reshape(st_next, (2, ncompartments, nspatial_nodes))
-        transition_amounts = (
-            transition_amounts.copy() * delta_t
-        )  # Note that we are going to move by delta_t * transitions
+        if method=="rk4":
+            # we move by delta_t * transitions, in case of rk4
+            # when we use legacy, the compound_adjusted_rate  already 
+            # includes the time step
+            transition_amounts = (
+                transition_amounts.copy() * delta_t
+            )  
+
         for transition_index in range(ntransitions):
             for spatial_node in range(nspatial_nodes):
                 if ((transition_amounts[transition_index][spatial_node] < 0)):

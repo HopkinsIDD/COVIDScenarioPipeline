@@ -441,7 +441,7 @@ for(scenario in scenarios) {
             
             ## Write files that need to be written for other code to read
             # writes to file  of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.block.iter.run_id.variable.ext
-            write.csv(proposed_seeding,this_global_files[['seed_filename']])
+            write.csv(proposed_seeding,this_global_files[['seed_filename']], row.names = FALSE)
             arrow::write_parquet(proposed_snpi,this_global_files[['snpi_filename']])
             arrow::write_parquet(proposed_hnpi,this_global_files[['hnpi_filename']])
             arrow::write_parquet(proposed_spar,this_global_files[['spar_filename']])
@@ -541,7 +541,9 @@ for(scenario in scenarios) {
             } else {
                 print("**** REJECT (Recording) ****")
                 warning("Removing unused files")
-                sapply(this_global_files, file.remove)
+                if (this_index < opt$simulations_per_slot) {
+                    sapply(this_global_files, file.remove)
+                }
             }
             
             effective_index <- (opt$this_block - 1) * opt$simulations_per_slot + this_index
@@ -602,7 +604,7 @@ for(scenario in scenarios) {
             
             ## Write accepted parameters to file
             # writes to file of the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.block.iter.run_id.variable.ext
-            write.csv(initial_seeding,this_chimeric_files[['seed_filename']])
+            write.csv(initial_seeding,this_chimeric_files[['seed_filename']], row.names = FALSE)
             arrow::write_parquet(initial_snpi,this_chimeric_files[['snpi_filename']])
             arrow::write_parquet(initial_hnpi,this_chimeric_files[['hnpi_filename']])
             arrow::write_parquet(initial_spar,this_chimeric_files[['spar_filename']])
@@ -651,8 +653,8 @@ for(scenario in scenarios) {
         output_global_files <- inference::create_filename_list(opt$run_id, global_block_prefix, opt$this_block)
         
         warning("Chimeric hosp and seir files not yet supported, just using the most recently generated file of each type")
-        current_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, current_index)
-        file.copy(current_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
-        file.copy(current_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
+        this_index_global_files <- inference::create_filename_list(opt$run_id, global_local_prefix, this_index)
+        file.copy(this_index_global_files[['hosp_filename']],output_chimeric_files[['hosp_filename']])
+        file.copy(this_index_global_files[['seir_filename']],output_chimeric_files[['seir_filename']])
     }
 }

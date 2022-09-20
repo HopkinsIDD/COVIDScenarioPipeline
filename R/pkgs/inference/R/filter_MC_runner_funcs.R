@@ -577,12 +577,14 @@ initialize_mcmc_first_block <- function(
 ) {
 
   ## Only works on these files:
-  types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik")
+  global_types <- c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar", "llik")
+  global_extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
+  chimeric_types <- c("seed", "snpi", "hnpi", "spar", "hpar", "llik")
+  chimeric_extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet")
   non_llik_types <- paste(c("seed", "seir", "snpi", "hnpi", "spar", "hosp", "hpar"), "filename", sep = "_")
-  extensions <- c("csv", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet", "parquet")
 
-  global_files <- create_filename_list(run_id, global_prefix, block - 1, types, extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1).run_ID.variable.ext
-  chimeric_files <- create_filename_list(run_id, chimeric_prefix, block - 1, types, extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.(block-1).run_ID.variable.ext
+  global_files <- create_filename_list(run_id, global_prefix, block - 1, global_types, global_extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/global/intermediate/slot.(block-1).run_ID.variable.ext
+  chimeric_files <- create_filename_list(run_id, chimeric_prefix, block - 1, chimeric_types, chimeric_extensions) # makes file names of the form variable/name/scenario/deathrate/run_id/chimeric/intermediate/slot.(block-1).run_ID.variable.ext
 
   global_check <- sapply(global_files, file.exists)
   chimeric_check <- sapply(chimeric_files, file.exists)
