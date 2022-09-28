@@ -1,7 +1,7 @@
-# checkdate <- function(str) {
-#   tryCatch(as.Date(str), 
-#            warning = function(w) return(FALSE))
-# }
+### PART OF THE COVIDCOMMON PACKAGE TO CHECK FOR VALIDITY OF CONFIGS. 
+### THIS NEEDS TO BE RUN BY THE MEANS OF A FUNCTION CALL VIA THE DATA FOLDER WHICH HAS THE CONFIG FILE AND THE RELEVANT DATA PATHS
+### FUNCTION CALL SHOULD LOOK LIKE THE FOLLOWING:
+### check_config(config=CONFIG_AS_YAML_FILE,config_name=NAME_OF_CONFIG_AS_STRING)
 
 validation_list <- list()
 
@@ -36,13 +36,12 @@ validation_list$start_date <-function(value,full_config,config_name){
   if(is.null(value)){
     print("No start date mentioned")
     return(FALSE)
+  }else{
+    if(is.na(as.Date(value,optional=TRUE))){
+      print("Enter a valid start date")
+      return(FALSE)
+    }
   }
-  # }else{
-  #   if(checkdate(value)==FALSE){
-  #     print("Enter a valid start date")
-  #     return(FALSE)
-  #   }
-  # }
   return(TRUE)
 }
 
@@ -51,6 +50,10 @@ validation_list$end_date <-function(value,full_config,config_name){
     print("No start date mentioned")
     return(FALSE)
   }else{
+    if(is.na(as.Date(value,optional=TRUE))){
+      print("Enter a valid end date")
+      return(FALSE)
+    }
     if(as.Date(value)<as.Date(full_config$start_date)){
       print("The start date is greater than end date")
       return(FALSE)
@@ -113,7 +116,15 @@ validation_list$spatial_setup$modeled_states <- function(value, full_config,conf
       return(FALSE)
     }
   }
-  #Here additional checks can be added to see if the states mentioned in the config are valid states or not
+  states<-c("AK","AL","AR","AS","AZ","CA","CO","CT","DC","DE","FL","GA","GU",
+            "HI","IA","ID","IL","IN","KS","KY","LA","MA","MD","ME","MI","MN",
+            "MO","MP","MS","MT","NC","ND","NE","NH","NJ","NM","NV","NY","OH",
+            "OK","OR","PA","PR","RI","SC","SD","TN","TX","UT","VA","VI","VT",
+            "WA","WI","WV","WY")
+  if(!all(value %in% states)){
+    print("Invalid state mentioned in modeled states")
+    return(FALSE)
+  }
   return(TRUE)
 }
 
@@ -198,20 +209,6 @@ validation_list$spatial_setup$state_level <- function(value, full_config,config_
   }
   return(TRUE)
 }
-
-
-
-###### IMPORTATION PART
-# validation_list$importation <- list()
-# validation_list$importation$census_api_key <- function(value, full_config) {
-#   if (is.null(value) || len(value)==0) {
-#     if(is.null(Sys.getenv("CENSUS_API_KEY")) || Sys.getenv("CENSUS_API_KEY")=="" ){
-#       print("No census api key mentioned")
-#       return(FALSE)
-#     }
-#   }
-#   return(TRUE)
-# }
 
 
 ########SEEDING PART ###########################
@@ -311,32 +308,33 @@ validation_list$seeding$folder_path<- function(value,full_config,config_name){
       print("Incorrect folder path: folder path in seeding should have a / in the end")
       return(FALSE)
     }
-    if(full_config$seeding$method=="FolderDraw" & !is.null(full_config$filtering)){
-      if(is.null(full_config$seeding$lambda_file)){
-        print("Lambda File not mentioned even if filtering section present")
-        return(FALSE)
-      }      
-      if(!file.exists(full_config$seeding$lambda_file)){
-        print("Lambda File does not exist even if filtering section present")
-        return(FALSE)
-      }
-    }
-    
   }
   return(TRUE)
 }
 
 validation_list$seeding$lambda_file<- function(value,full_config,config_name){
-  if(full_config$seeding$method=="PoissonDistributed" | full_config$seeding$method=="NegativeBinomialDistributed"){
     if(is.null(value)){
       print("Lambda File not mentioned")
       return(FALSE)
-    }      
-    if(!file.exists(value)){
-      print("Lambda File does not exist")
-      return(FALSE)
+    }   
+    if ("filtering" %in% names(full_config)){
+      if(!dir.exists(paste0(strsplit(value,split="/")[[1]][1:length(strsplit(value,split="/")[[1]])-1],collapse="/"))){
+        print("The folder where lambda file will be created does not exist")
+        return(FALSE)
+      }
     }
-  }
+    else{
+      if (full_config$seeding$method %in% c("PoissonDistributed", "NegativeBinomialDistributed")){
+        if(!dir.exists(paste0(strsplit(value,split="/")[[1]][1:length(strsplit(value,split="/")[[1]])-1],collapse="/"))){
+          print("The folder where lambda file will be created does not exist")
+          return(FALSE)
+        }
+        if(!file.exists(value)){
+          print("Lambda file does not exist")
+          return(FALSE)
+        }
+      }
+    }
   return(TRUE)  
 }
 
@@ -453,32 +451,6 @@ validation_list$seir$transitions<-function(value,full_config,config_name){
   }
   return(TRUE)
 }
-# validation_list$seir$parameters$R0s <- function(value, full_config) {
-#   if (is.null(value)) {
-#     print("No R0 mentioned")
-#     return(FALSE)
-#   }
-#   return(TRUE)
-# }
-
-# validation_list$seir$parameters$parallel_structure<-list()
-# 
-# validation_list$seir$compartments <- function(value, full_config) {
-#   if (is.null(value)) {
-#     print("No Compartments mentioned")
-#     return(FALSE)
-#   }
-#   return(TRUE)
-# }
-# 
-# validation_list$seir$transitions <- function(value, full_config) {
-#   if (is.null(value)) {
-#     print("No transitions mentioned")
-#     return(FALSE)
-#   }
-#   return(TRUE)
-# }
-
 
 ###OUTCOMES##
 validation_list$outcomes<- list()
@@ -578,7 +550,7 @@ validation_list$filtering$data_path<-function(value,full_config,config_name){
     print("Mention correct data path for filtering")
     return(FALSE)
   }
-  if(!file.exists(value)){
+  if(!dir.exists(paste0(strsplit(value,split="/")[[1]][1:length(strsplit(value,split="/")[[1]])-1],collapse="/"))){
     print("Mentioned data path does not exist for filtering")
     return(FALSE)
   }
