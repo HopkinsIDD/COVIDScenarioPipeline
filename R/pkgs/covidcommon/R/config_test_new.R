@@ -5,15 +5,19 @@
 
 validation_list <- list()
 
-validation_list$name<-function(value,full_config,config_name,config_ignore_checks=character(0)){
+validation_list$name<-function(value,config_name){
   if(is.null(value)){
     print("Mention a name for the run")
+    return(FALSE)
+  }
+  if (mode(value) != "character") {
+    print(paste("name should be a single string, but has mode", mode(value)))
     return(FALSE)
   }
   return(TRUE)
 }
 
-validation_list$dt<- function(value,full_config,config_name){
+validation_list$dt<- function(value,config_name){
   if(is.null(value)){
     print("Mention dt")
     return(FALSE)
@@ -25,14 +29,14 @@ validation_list$dt<- function(value,full_config,config_name){
   return(TRUE)
 }
 
-validation_list$smh_round <-function(value,full_config,config_name){
+validation_list$smh_round <-function(value,config_name){
   if(is.null(value)){
     print("No SMH Round mentioned NA assigned as default") #ASSIGN DEFAULT
   }
   return(TRUE)
 }
 
-validation_list$start_date <-function(value,full_config,config_name){
+validation_list$start_date <-function(value,config_name){
   if(is.null(value)){
     print("No start date mentioned")
     return(FALSE)
@@ -45,7 +49,7 @@ validation_list$start_date <-function(value,full_config,config_name){
   return(TRUE)
 }
 
-validation_list$end_date <-function(value,full_config,config_name){
+validation_list$end_date <-function(value,config_name){
   if(is.null(value)){
     print("No start date mentioned")
     return(FALSE)
@@ -54,6 +58,7 @@ validation_list$end_date <-function(value,full_config,config_name){
       print("Enter a valid end date")
       return(FALSE)
     }
+    full_config = yaml::read_yaml(config_name)
     if(as.Date(value)<as.Date(full_config$start_date)){
       print("The start date is greater than end date")
       return(FALSE)
@@ -62,17 +67,39 @@ validation_list$end_date <-function(value,full_config,config_name){
   return(TRUE)
 }
 
-validation_list$end_date_groundtruth <-function(value,full_config,config_name){
+validation_list$start_date_groundtruth <-function(value,config_name){
   if(is.null(value)){
-    print("No end date groundtruth mentioned")
-    return(FALSE)
+    print("No start date groundtruth mentioned default will be assigned")
+  }
+  else{
+    if(is.na(as.Date(value,optional=TRUE))){
+      print("Enter a valid start groundtruth date")
+      return(FALSE)
+    }
   }
   return(TRUE)
 }
 
-validation_list$nsimulations<- function(value,full_config,config_name){
+validation_list$end_date_groundtruth <-function(value,config_name){
+  if(is.null(value)){
+    print("No end date groundtruth mentioned - no limiting ground truth date")
+  }
+  else{
+    if(is.na(as.Date(value,optional=TRUE))){
+      print("Enter a valid end groundtruth date")
+      return(FALSE)
+    }
+  return(TRUE)
+  }
+}
+
+validation_list$nsimulations<- function(value,config_name){
   if(is.null(value)){
     print("Enter a value for number of simulations")
+    return(FALSE)
+  }
+  if(!is.numeric(value)){
+    print("number of simulations should be numeric")
     return(FALSE)
   }
   if(value<1){
@@ -89,7 +116,7 @@ validation_list$nsimulations<- function(value,full_config,config_name){
 ## With Default: Geodata, Mobility, Popnodes, Statelevel
 
 validation_list$spatial_setup <- list()
-validation_list$spatial_setup$base_path <- function(value, full_config,config_name) {
+validation_list$spatial_setup$base_path <- function(value,config_name) {
   if (is.null(value)) {
     print("No base path mentioned in the configuration file")
     return(FALSE)
@@ -101,7 +128,7 @@ validation_list$spatial_setup$base_path <- function(value, full_config,config_na
   return(TRUE)
 }
 
-validation_list$spatial_setup$modeled_states <- function(value, full_config,config_name) {
+validation_list$spatial_setup$modeled_states <- function(value,config_name) {
   if(length(value)==0){
     print("No state mentioned in the configuration file")
     return(FALSE)
@@ -128,11 +155,12 @@ validation_list$spatial_setup$modeled_states <- function(value, full_config,conf
   return(TRUE)
 }
 
-validation_list$spatial_setup$geodata <- function(value, full_config,config_name) {
+validation_list$spatial_setup$geodata <- function(value, config_name) {
   if (is.null(value)) {
     print("No geodata path mentioned in the configuration file")
     return(FALSE)
   }else{
+    full_config<-yaml::read_yaml(config_name)
     path=paste(full_config$spatial_setup$base_path,'/',value,sep='')
     if (!file.exists(path)) {
       print(paste("The mentioned geodata file :", value, "could not be found."))
@@ -142,11 +170,12 @@ validation_list$spatial_setup$geodata <- function(value, full_config,config_name
   return(TRUE)
 }
 
-validation_list$spatial_setup$mobility <- function(value, full_config,config_name) {
+validation_list$spatial_setup$mobility <- function(value, config_name) {
   if (is.null(value)) {
     print("No mobility path mentioned in the configuration file")
     return(FALSE)
   }else{
+    full_config<-yaml::read_yaml(config_name)
     path=paste(full_config$spatial_setup$base_path,'/',value,sep='')
     if (!file.exists(path)) {
       print(paste("The mentioned mobility file :", value, "could not be found."))
@@ -156,15 +185,19 @@ validation_list$spatial_setup$mobility <- function(value, full_config,config_nam
   return(TRUE)
 }
 
-validation_list$spatial_setup$census_year <- function(value, full_config,config_name) {
+validation_list$spatial_setup$census_year <- function(value, config_name) {
   if (is.null(value)) {
     print("No year mentioned")
+    return(FALSE)
+  }
+  if(!is.numeric(value)){
+    print("Incorrect value for year")
     return(FALSE)
   }
   return(TRUE)
 }
 
-validation_list$spatial_setup$nodenames <- function(value, full_config,config_name) {
+validation_list$spatial_setup$nodenames <- function(value, config_name) {
   if (is.null(value)) {
     print("No Nodenames mentioned") #Should display a better error message than nodenames.
     return(FALSE)
@@ -172,7 +205,7 @@ validation_list$spatial_setup$nodenames <- function(value, full_config,config_na
   return(TRUE)
 }
 
-validation_list$spatial_setup$popnodes <- function(value, full_config,config_name) {
+validation_list$spatial_setup$popnodes <- function(value, config_name) {
   if (is.null(value)) {
     print("No Population Nodes mentioned") #Should display a better error message than nodenames.
     return(FALSE)
@@ -181,7 +214,7 @@ validation_list$spatial_setup$popnodes <- function(value, full_config,config_nam
 }
 
 #SINCE NOT NECESSARY written to remove warning
-validation_list$spatial_setup$include_in_report <- function(value, full_config,config_name) {
+validation_list$spatial_setup$include_in_report <- function(value, config_name) {
   return(TRUE)
 }
 
@@ -190,19 +223,26 @@ validation_list$spatial_setup$setup_name <- function(value, full_config,config_n
     print("No runtype mentioned") #Should display a better error message than nodenames.
     return(FALSE)
   }
-  if (length(strsplit(config_copy$spatial_setup$setup_name,split=" ")[[1]])!=1 | length(config_copy$spatial_setup$setup_name)!=1){
-    print("Multiple setup_name(run_type) mentioned")
+  if (length(value) != 1) {
+    print(paste("setup_name should be a single string, but has length", length(value)))
+    return(FALSE)
+  }
+  if (mode(value) != "character") {
+    print(paste("setup_name should be a single string, but has mode", mode(value)))
+    return(FALSE)
+  }
+  if (!(value %in% c("SMH", "FCH"))) {
+    print(paste("setup_name should be either 'SMH' or 'FCH', but is ", value))
     return(FALSE)
   }
   return(TRUE)
 }
 
-validation_list$spatial_setup$state_level <- function(value, full_config,config_name) {
+validation_list$spatial_setup$state_level <- function(value, config_name) {
   if (is.null(value)) {
-    print("No specifications about state level runs mentioned mentioned")
-    return(FALSE)
+    print("No specifications about state level runs mentioned mentioned")#ASSIGN DEFAULT
   }else{
-    if(value!=TRUE & value!=FALSE){
+    if(!(value %in% c(TRUE,FALSE))){
       print("Wrong value mentioned should either be TRUE or FALSE")
       return(FALSE)
     }
@@ -215,7 +255,8 @@ validation_list$spatial_setup$state_level <- function(value, full_config,config_
 #No Default: perturbation_sd, date_sd, method
 ##With defaults: amount_sd, variant_file (default value: Should it be WILD?)
 validation_list$seeding <- list()
-validation_list$seeding$perturbation_sd <- function(value, full_config,config_name) {
+validation_list$seeding$perturbation_sd <- function(value, config_name) {
+  full_config = yaml::read_yaml(config_name)
   if(is.null(full_config$seeding$date_sd)){
     if (is.null(value)) {
       print("No perturbation_sd or date_sd mentioned")
@@ -225,7 +266,8 @@ validation_list$seeding$perturbation_sd <- function(value, full_config,config_na
   return(TRUE)
 }
 
-validation_list$seeding$date_sd <- function(value, full_config,config_name) {
+validation_list$seeding$date_sd <- function(value, config_name) {
+  full_config = yaml::read_yaml(config_name)
   if(is.null(full_config$seeding$pertubation_sd)){
     if (is.null(value)) {
       print("No perturbation_sd or date_sd mentioned")
@@ -234,7 +276,7 @@ validation_list$seeding$date_sd <- function(value, full_config,config_name) {
   return(TRUE)
 }
 
-validation_list$seeding$amount_sd <- function(value, full_config,config_name){
+validation_list$seeding$amount_sd <- function(value, config_name){
   if(is.null(value)){
     print("No standard deviation for amount mentioned") #Assign default
   }else{
@@ -246,7 +288,7 @@ validation_list$seeding$amount_sd <- function(value, full_config,config_name){
   return(TRUE)
 }
 
-validation_list$seeding$method <- function(value, full_config,config_name) {
+validation_list$seeding$method <- function(value, config_name) {
   if (is.null(value)) {
     print("No seeding method mentioned")
     return(FALSE)
@@ -254,7 +296,7 @@ validation_list$seeding$method <- function(value, full_config,config_name) {
   return(TRUE)
 }
 
-validation_list$seeding$variant_filename <- function(value, full_config,config_name) {
+validation_list$seeding$variant_filename <- function(value, config_name) {
   if (is.null(value)) {
     print("No variant file mentioned in the configuration file")
     return(FALSE)
@@ -267,7 +309,7 @@ validation_list$seeding$variant_filename <- function(value, full_config,config_n
   return(TRUE)
 }
 
-validation_list$seeding$seeding_compartments<- function(value,full_config,config_name){
+validation_list$seeding$seeding_compartments<- function(value,config_name){
   if(is.null(value)){
     print("No seeding compartments mentioned")
     return(FALSE)
@@ -275,7 +317,7 @@ validation_list$seeding$seeding_compartments<- function(value,full_config,config
   return(TRUE)
 }
 
-validation_list$seeding$seeding_file_type <- function(value, full_config,config_name) {
+validation_list$seeding$seeding_file_type <- function(value, config_name) {
   if (is.null(value)) {
     print("No specifications about seeding type mentioned")
     return(FALSE)
@@ -288,7 +330,8 @@ validation_list$seeding$seeding_file_type <- function(value, full_config,config_
   return(TRUE)
 }
 
-validation_list$seeding$pop_seed_file<- function(value,full_config,config_name){
+validation_list$seeding$pop_seed_file<- function(value,config_name){
+  full_config = yaml::read_yaml(config_name)
   if("compartments" %in% names(full_config$seir)){
     if(is.null(value)){
       print("Mention population seeding file for a compartment runs")
@@ -298,7 +341,8 @@ validation_list$seeding$pop_seed_file<- function(value,full_config,config_name){
   return(TRUE)
 }
 
-validation_list$seeding$folder_path<- function(value,full_config,config_name){
+validation_list$seeding$folder_path<- function(value,config_name){
+  full_config = yaml::read_yaml(config_name)
   if(full_config$seeding$method=="FolderDraw" | full_config$seeding$method=="SetInitialConditions" | full_config$seeding$method=="InitialConditionsFolderDraw"){
     if(is.null(value)){
       print("Importation folder path not mentioned")
@@ -312,20 +356,21 @@ validation_list$seeding$folder_path<- function(value,full_config,config_name){
   return(TRUE)
 }
 
-validation_list$seeding$lambda_file<- function(value,full_config,config_name){
+validation_list$seeding$lambda_file<- function(value,config_name){
     if(is.null(value)){
       print("Lambda File not mentioned")
       return(FALSE)
-    }   
+    }
+    full_config<-yaml::read_yaml(config_name)
     if ("filtering" %in% names(full_config)){
-      if(!dir.exists(paste0(strsplit(value,split="/")[[1]][1:length(strsplit(value,split="/")[[1]])-1],collapse="/"))){
+      if(!dir.exists(dirname(value))){
         print("The folder where lambda file will be created does not exist")
         return(FALSE)
       }
     }
     else{
       if (full_config$seeding$method %in% c("PoissonDistributed", "NegativeBinomialDistributed")){
-        if(!dir.exists(paste0(strsplit(value,split="/")[[1]][1:length(strsplit(value,split="/")[[1]])-1],collapse="/"))){
+        if(!dir.exists(dirname(value))){
           print("The folder where lambda file will be created does not exist")
           return(FALSE)
         }
@@ -340,13 +385,13 @@ validation_list$seeding$lambda_file<- function(value,full_config,config_name){
 
 ######SEIR MODEL SPECIFICATIONS##################
 ##NO Defaults: Parameters: sigma,gamma,ROs, transitions, compartments
-validation_list$seir$integration_method<-function(value,full_config,config_name){
+validation_list$seir$integration_method<-function(value,config_name){
   if(is.null(value)){
     print("No integration method mentioned default will be assigned")
   }
   return(TRUE)
 }
-validation_list$seir$parameters<-function(value,full_config,config_name){
+validation_list$seir$parameters<-function(value,config_name){
   if (is.null(value)) {
     print("No parameters mentioned")
     return(FALSE)
@@ -371,6 +416,7 @@ validation_list$seir$parameters<-function(value,full_config,config_name){
   
   #Checks if extra seir parameters are not mentioned depending upon the the 
   #variants present in seeding$seeeding_compartments 
+  full_config = yaml::read_yaml(config_name)
   present_variants<-names(full_config$seeding$seeding_compartments)
   all_variants<-c('WILD','ALPHA','DELTA','OMICRON','VARIANT_X')
   absent_variants<-all_variants[!(all_variants %in% present_variants)]
@@ -397,7 +443,7 @@ validation_list$seir$parameters<-function(value,full_config,config_name){
   
 }
 
-validation_list$seir$compartments<- function(value,full_config,config_name){
+validation_list$seir$compartments<- function(value,config_name){
   if(is.null(value)){
     print("No compartment information present")
     return(FALSE)
@@ -422,7 +468,7 @@ validation_list$seir$compartments<- function(value,full_config,config_name){
   return(TRUE)
 }
 
-validation_list$seir$transitions<-function(value,full_config,config_name){
+validation_list$seir$transitions<-function(value,config_name){
   gempyor <- reticulate::import("gempyor")
   gempyor$config$set_file(config_name)
   compartments_obj <- gempyor$compartments$Compartments(gempyor$config["seir"])
@@ -454,7 +500,7 @@ validation_list$seir$transitions<-function(value,full_config,config_name){
 
 ###OUTCOMES##
 validation_list$outcomes<- list()
-validation_list$outcomes$method<- function(value,full_config,config_name){
+validation_list$outcomes$method<- function(value,config_name){
   if(is.null(value)){
     print("No method mentioned in outcomes")
     return(FALSE)
@@ -466,7 +512,7 @@ validation_list$outcomes$method<- function(value,full_config,config_name){
   return(TRUE)
 }
 
-validation_list$outcomes$param_from_file<- function(value, full_config,config_name){
+validation_list$outcomes$param_from_file<- function(value, config_name){
   if(is.null(value)){
     print("There is no value mentioned for outcomes param_from_file")
     return(FALSE)
@@ -474,7 +520,8 @@ validation_list$outcomes$param_from_file<- function(value, full_config,config_na
   return(TRUE)
 }
 
-validation_list$outcomes$param_place_file<- function(value, full_config,config_name){
+validation_list$outcomes$param_place_file<- function(value, config_name){
+  full_config = yaml::read_yaml(config_name)
   if(full_config$outcomes$param_from_file){
     if(is.null(value)){
       print("Mention Output Param File")
@@ -487,17 +534,18 @@ validation_list$outcomes$param_place_file<- function(value, full_config,config_n
   return(TRUE)
 }
 
-validation_list$outcomes$scenarios<- function(value, full_config,config_name){
+validation_list$outcomes$scenarios<- function(value, config_name){
   if(is.null(value)){
     print("So outcome scenarios mentioned default assigned") #Assign Default
   }
   return(TRUE)
 }
 
-validation_list$outcomes$settings<-function(value, full_config,config_name){
+validation_list$outcomes$settings<-function(value, config_name){
   if(is.null(value)){
     print("No outcome settings mentioned default assigned") #Assign Default
   }
+  full_config = yaml::read_yaml(config_name)
   for (scenario in full_config$outcomes$scenarios){
     if(!(scenario %in% names(value))){
       print(paste0("No details mentioned about scenario ",scenario," in outcomes"))
@@ -507,7 +555,7 @@ validation_list$outcomes$settings<-function(value, full_config,config_name){
   return(TRUE)
 }
 
-validation_list$outcomes$interventions<-function(value, full_config,config_name){
+validation_list$outcomes$interventions<-function(value, config_name){
   if(is.null(value)){
     print("No outcome interventions mentioned")
     return(FALSE)
@@ -517,7 +565,7 @@ validation_list$outcomes$interventions<-function(value, full_config,config_name)
 
 ###FILTERING
 validation_list$filtering<-list()
-validation_list$filtering$simulations_per_slot<-function(value,full_config,config_name){
+validation_list$filtering$simulations_per_slot<-function(value,config_name){
   if(is.null(value)){
     print("simulations_per_slot undefined in config, can't autodetect parameters")
     return(FALSE)
@@ -533,38 +581,38 @@ validation_list$filtering$simulations_per_slot<-function(value,full_config,confi
   return(TRUE)
 }
 
-validation_list$filtering$do_filtering<- function(value,full_config,config_name){
+validation_list$filtering$do_filtering<- function(value,config_name){
   if(is.null(value)){
     print("Mention do_filtering")
     return(FALSE)
   }
-  if(value!=TRUE & value!=FALSE){
+  if(!(value %in% c(TRUE,FALSE))){
     print("Incorrect value mentioned: should be TRUE or FALSE")
     return(FALSE)
   }
   return(TRUE)
 }
 
-validation_list$filtering$data_path<-function(value,full_config,config_name){
+validation_list$filtering$data_path<-function(value,config_name){
   if(is.null(value)){
     print("Mention correct data path for filtering")
     return(FALSE)
   }
-  if(!dir.exists(paste0(strsplit(value,split="/")[[1]][1:length(strsplit(value,split="/")[[1]])-1],collapse="/"))){
+  if(!dir.exists(dirname(value))){
     print("Mentioned data path does not exist for filtering")
     return(FALSE)
   }
   return(TRUE)
 }
 
-validation_list$filtering$gt_source<- function(value,config,config_name){
+validation_list$filtering$gt_source<- function(value,config_name){
   if(is.null(value)){
     print("No source of ground truth source mentioned default assigned ")#Assign default
   }
   return(TRUE)
 }
 
-validation_list$filtering$statistics<- function(value,config,config_name){
+validation_list$filtering$statistics<- function(value,config_name){
   if(is.null(value)){
     print("Mention statistics for filtering")
     return(FALSE)
@@ -572,8 +620,24 @@ validation_list$filtering$statistics<- function(value,config,config_name){
   return(TRUE)
 }
 
+validation_list$filtering$priors<- function(value,config_name){
+  if(is.null(value)){
+    return(TRUE) #SINCE NOT COMPULSORY TO BE MENTIONED
+  }
+  if(sum(value$likelihood$param[[1]])!=0){
+    print("The sum of likelihoods of priors should be zero")
+    return(FALSE)
+  }
+  for (prior in value){
+    if(!(prior$likelihood$dist %in% c('normal','logit'))){
+      print("The distribuition of priors can either be normal or logit")
+    }
+  }
+  return(TRUE) 
+}
+
 validation_list$interventions<-list()
-validation_list$interventions$scenarios<-function(value,config,config_name){
+validation_list$interventions$scenarios<-function(value,config_name){
   if(is.null(value)){
     print("Mention intervention scenarios")
     return(FALSE)
@@ -581,7 +645,7 @@ validation_list$interventions$scenarios<-function(value,config,config_name){
   return(TRUE)
 }
 
-validation_list$interventions$settings<-function(value,config,config_name){
+validation_list$interventions$settings<-function(value,config_name){
   if(is.null(value)){
     print("Mention details about intervention scenarios in intervention settings")
     return(FALSE)
@@ -591,6 +655,12 @@ validation_list$interventions$settings<-function(value,config,config_name){
 
 config_ignore_checks=character(0)
 
+#' PART OF THE COVIDCOMMON PACKAGE TO CHECK FOR VALIDITY OF CONFIGS. 
+#' THIS NEEDS TO BE RUN BY THE MEANS OF A FUNCTION CALL VIA THE DATA FOLDER WHICH HAS THE CONFIG FILE AND THE RELEVANT DATA PATHS
+#' FUNCTION CALL SHOULD LOOK LIKE THE FOLLOWING:
+#' check_config(config=CONFIG_AS_YAML_FILE,config_name=NAME_OF_CONFIG_AS_STRING)
+#' 
+#' @return A boolean value depending on whether the config is valid(TRUE) or not(FALSE) 
 #' @name check_config
 #' @title check_config
 #' @description Check the config to make sure the fields are valid
@@ -599,8 +669,9 @@ config_ignore_checks=character(0)
 #' @param original_config In case of recursion, the original config this was part of.  This is what is passed to the functions in the defaults
 #' @param config_ignore_checks Fields which shouldn't be checked
 #' @export
-check_config <- function(config, checks = validation_list, original_config = config,
-                         config_name,name_prefix = NULL, no_check_fields = config_ignore_checks, index = NULL) {
+check_config <- function(config_name,config= yaml::read_yaml(config_name), 
+                         checks = validation_list,
+                         name_prefix = NULL, no_check_fields = config_ignore_checks, index = NULL) {
   config_is_valid <- TRUE
   subconfig_valid <- TRUE
   for (field_name in names(checks)) {
@@ -608,14 +679,15 @@ check_config <- function(config, checks = validation_list, original_config = con
       for (new_index in seq_len(length(config))) {
         if (class(config[[field_name]]) %in% c("NULL", "list")) {
           subconfig_valid <- check_config(
-            config[[new_index]], checks[[field_name]],
-            original_config, config_name,paste0(name_prefix, ifelse(is.null(name_prefix),
+            config_name, config[[new_index]], 
+            checks[[field_name]],
+            paste0(name_prefix, ifelse(is.null(name_prefix),
                                                                     "", "::"
             ), c(index, new_index)),
             index = c(index, new_index)
           )
         } else {
-          subconfig_valid <- checks[[field_name]](config[[new_index]], original_config,config_name, c(index, new_index))
+          subconfig_valid <- checks[[field_name]](config[[new_index]],config_name, c(index, new_index))
         }
         config_is_valid <- config_is_valid && subconfig_valid
       }
@@ -624,8 +696,9 @@ check_config <- function(config, checks = validation_list, original_config = con
     if (class(checks[[field_name]]) == "list") {
       if (class(config[[field_name]]) %in% c("NULL", "list")) {
         subconfig_valid <- check_config(
-          config[[field_name]], checks[[field_name]],
-          original_config, config_name,paste0(name_prefix, ifelse(is.null(name_prefix),
+          config_name, config[[field_name]], 
+          checks[[field_name]],
+          paste0(name_prefix, ifelse(is.null(name_prefix),
                                                                   "", "::"
           ), field_name)
         )
@@ -640,7 +713,7 @@ check_config <- function(config, checks = validation_list, original_config = con
         config_is_valid <- FALSE
       }
     } else {
-      field_valid <- checks[[field_name]](config[[field_name]], original_config, config_name)###
+      field_valid <- checks[[field_name]](config[[field_name]],  config_name)###
       config_is_valid <- config_is_valid && field_valid
     }
   }
@@ -657,5 +730,3 @@ check_config <- function(config, checks = validation_list, original_config = con
   
   return(config_is_valid)
 }
-
-
