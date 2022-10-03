@@ -266,6 +266,68 @@ def test_inference():
     # os.removedirs("model_output")
 
 
+def test_documentation_inference_us():
+    os.chdir("test_documentation_inference_us")
+
+    # build_US_setup.R
+    cmd = [
+        "Rscript",
+        "../../R/scripts/build_US_setup.R",
+        "-c",
+        "config.yml",
+        "-p",
+        "../..",
+    ]
+
+    complete = subprocess.run(cmd)
+    assert (
+        complete.returncode == 0
+    ), f"build_US_setup.R failed with code {complete.returncode}"
+
+    assert_file("data/geodata.csv")
+    assert_file("data/mobility.csv")
+
+    # full_filter.R
+    cmd = [
+        "Rscript",
+        "../../R/scripts/full_filter.R",
+        "-c",
+        "config.yml",
+        "-p",
+        "../..",
+        "-j",
+        "1",
+        "-b",
+        "1",
+        "-u",
+        "test_inference",
+        "-y",
+        sys.executable,
+    ]
+
+    complete = subprocess.run(cmd)
+
+    assert (
+        complete.returncode == 0
+    ), f"full_filter.R failed with code {complete.returncode}"
+
+    assert_file("data/test1/seeding.csv")
+    assert_file("data/us_data.csv")
+    assert_dir("model_output")
+    assert_dir("model_output/seed")
+    assert_dir("model_output/seir")
+    assert_dir("model_output/snpi")
+    assert_dir("model_output/spar")
+    assert_dir("model_output/hosp")
+    assert_dir("model_output/hpar")
+    assert_dir("model_output/llik")
+    # os.removedirs("model_output")
+
+
+
+
+
+
 def test_inference_multiblock():
     os.chdir("test_inference_multiblock")
 
