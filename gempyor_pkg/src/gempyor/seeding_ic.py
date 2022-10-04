@@ -35,6 +35,7 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
 
     nb_seed_perday = np.zeros(setup.n_days, dtype=np.int64)
 
+    n_seeding_ignored = 0
     for idx, (row_index, row) in enumerate(df.iterrows()):
         if row["place"] not in setup.spatset.nodenames:
             raise ValueError(
@@ -63,9 +64,10 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
             )
             seeding_amounts[idx] = amounts[idx]
         else:
-            print(
-                "WARNING IGNORING SEEDING DATE PRIOR TO START_DATE. Probably caused by a bug in create seeding"
-            )
+            n_seeding_ignored += 1
+    
+    if n_seeding_ignored > 0:
+        logging.critical(f"Seeding ignored {n_seeding_ignored} rows because they were before the start of the simulation.")
 
     day_start_idx = np.zeros(setup.n_days + 1, dtype=np.int64)
     day_start_idx[1:] = np.cumsum(nb_seed_perday)

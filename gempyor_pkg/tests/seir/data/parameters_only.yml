@@ -1,10 +1,25 @@
-alpha: 0.5
-sigma: 1 / 5.2
-gamma:
-  distribution: uniform
-  low: 1 / 6
-  high: 1 / 2.6
-R0s:
-  distribution: uniform
-  low: 2
-  high: 3
+name: minimal
+start_date: 2020-02-01
+end_date: 2020-02-15
+nsimulations: 15
+dt: 0.25
+
+spatial_setup:
+  base_path: data
+  setup_name: minimal
+  geodata: geodata.csv
+  mobility: mobility.txt
+  popnodes: population
+  nodenames: geoid
+seir:
+  parameters:
+    alpha: 0.5
+    sigma: 1 / 5.2
+    gamma:
+      distribution: uniform
+      low: 1 / 6
+      high: 1 / 2.6
+    R0s:
+      distribution: uniform
+      low: 2
+      high: 3

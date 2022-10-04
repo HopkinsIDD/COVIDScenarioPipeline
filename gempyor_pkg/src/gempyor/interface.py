@@ -94,7 +94,7 @@ class InferenceSimulator:
             initial_conditions_config=config["initial_conditions"],
             parameters_config=config["seir"]["parameters"],
             seir_config=config["seir"],
-            outcomes_config=config["outcomes"],
+            outcomes_config=config["outcomes"] if config["outcomes"].exists() else None,
             outcomes_scenario=deathrate,
             ti=config["start_date"].as_date(),
             tf=config["end_date"].as_date(),
@@ -236,6 +236,23 @@ class InferenceSimulator:
             self.debug_npi_seir = npi_seir
             self.debug_npi_outcomes = npi_outcomes
             ### Run every time:
+            with Timer("SEIR.parameters"):
+                # Draw or load parameters
+                p_draw = self.get_seir_parameters(
+                    load_ID=load_ID, sim_id2load=sim_id2load
+                )
+
+                # reduce them
+                parameters = self.s.parameters.parameters_reduce(p_draw, npi_seir)
+
+                # Parse them
+                parsed_parameters = self.s.compartments.parse_parameters(
+                    parameters, self.s.parameters.pnames, self.unique_strings
+                )
+                self.debug_p_draw = p_draw
+                self.debug_parameters = parameters
+                self.debug_parsed_parameters = parsed_parameters
+            
             with Timer("onerun_SEIR.seeding"):
                 if load_ID:
                     initial_conditions = self.s.seedingAndIC.load_ic(
@@ -253,23 +270,6 @@ class InferenceSimulator:
                     )
                 self.debug_seeding_date = seeding_data
                 self.debug_seeding_amounts = seeding_amounts
-
-            with Timer("SEIR.parameters"):
-                # Draw or load parameters
-                p_draw = self.get_seir_parameters(
-                    load_ID=load_ID, sim_id2load=sim_id2load
-                )
-
-                # reduce them
-                parameters = self.s.parameters.parameters_reduce(p_draw, npi_seir)
-
-                # Parse them
-                parsed_parameters = self.s.compartments.parse_parameters(
-                    parameters, self.s.parameters.pnames, self.unique_strings
-                )
-                self.debug_p_draw = p_draw
-                self.debug_parameters = parameters
-                self.debug_parsed_parameters = parsed_parameters
 
             with Timer("SEIR.compute"):
                 states = seir.steps_SEIR(
@@ -369,12 +369,12 @@ class InferenceSimulator:
         if param_df is not None:
             p_draw = self.s.parameters.parameters_load(
                 param_df=param_df,
-                nt_inter=self.s.n_days,
+                n_days=self.s.n_days,
                 nnodes=self.s.nnodes,
             )
         else:
             p_draw = self.s.parameters.parameters_quick_draw(
-                nt_inter=self.s.n_days, nnodes=self.s.nnodes
+                n_days=self.s.n_days, nnodes=self.s.nnodes
             )
         return p_draw
 
