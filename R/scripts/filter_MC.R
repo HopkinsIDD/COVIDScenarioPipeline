@@ -58,6 +58,10 @@ if(opt$config == ""){
 }
 config = covidcommon::load_config(opt$config)
 
+if(!(covidcommon::check_config(opt$config))){
+  stop("The config could not be automatically validated. Please update validation scripts, or fix the config.")
+}
+
 if(('perturbation_sd' %in% names(config$seeding))) {
   if(('date_sd' %in% names(config$seeding))) {
     stop("Both the key seeding::perturbation_sd and the key seeding::date_sd are present in the config file, but only one allowed.")
