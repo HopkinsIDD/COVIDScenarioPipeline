@@ -1010,11 +1010,25 @@ get_groundtruth_from_source <- function(
 
 }
 
+
+
+
+##'
+##' Wrapper function to apply variant adjustment
+##'
+##' aportions variant to reported outcomes 
+##'
+##' @return data frame
+##'
+##' @importFrom magrittr %>%
+##'
+##' @export
+##'
 do_variant_adjustment <- function(
   rc,
   variant_props_file = "data/variant/variant_props_long.csv"
 ) {
-  non_outcome_column_names <- c("FIPS", "Update", "source")
+  non_outcome_column_names <- c("FIPS", "Update", "date", "source", "location")
   outcome_column_names <- names(rc)[!(names(rc) %in% non_outcome_column_names)]
   variant_data <- readr::read_csv(variant_props_file)
   rc <- rc %>%
