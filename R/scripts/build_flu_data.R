@@ -164,6 +164,9 @@ if (adjust_for_variant){
     variant_data <- variant_data %>%
         select(-week_end)
     
+    variant_data <- variant_data %>% 
+            filter(date >= as_date(config$start_date) & date <= as_date(config$end_date_groundtruth))
+    
     write_csv(variant_data, variant_props_file)
 }
 
@@ -177,6 +180,8 @@ if (adjust_for_variant) {
     
     tryCatch({
         us_data <- covidcommon::do_variant_adjustment(us_data, variant_props_file)
+        us_data <- us_data %>% 
+            filter(date >= as_date(config$start_date) & date <= as_date(config$end_date_groundtruth))
         write_csv(us_data, config$filtering$data_path)
     }, error = function(e) {
         stop(paste0("Could not use variant file |", variant_props_file, 

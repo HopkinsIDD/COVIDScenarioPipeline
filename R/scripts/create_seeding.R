@@ -290,6 +290,7 @@ all_geoids <- geodata[[config$spatial_setup$nodenames]]
 incident_cases <- incident_cases %>%
     dplyr::filter(FIPS %in% all_geoids) %>%
     dplyr::select(!!!required_column_names)
+incident_cases <- incident_cases %>% filter(value>0)
 
 incident_cases[["Update"]] <- as.Date(incident_cases$Update)
 
@@ -362,6 +363,9 @@ if (max(incident_cases$date) < lubridate::as_date(config$start_date)){
         ungroup() %>%
         mutate(date = lubridate::as_date(config$start_date),
                amount = 0)
+} else {
+    incident_cases <- incident_cases %>%
+        filter(date >= config$start_date & date <= config$end_date)
 }
 
 
