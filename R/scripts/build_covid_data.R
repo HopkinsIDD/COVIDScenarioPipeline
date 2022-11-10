@@ -103,7 +103,15 @@ us_data <- us_data %>%
 
 
 
-# Save pre-variants
+
+# ~ Fix Zeros -------------------------------------------------------------
+
+us_data <- us_data %>%
+    mutate(across(starts_with("incid"), ~ replace_na(.x, 0))) %>%
+    mutate(across(starts_with("incid"), ~ as.numeric(.x)))
+
+
+# Save
 write_csv(us_data, config$filtering$data_path)
 
 
