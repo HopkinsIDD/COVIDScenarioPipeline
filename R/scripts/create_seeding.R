@@ -143,15 +143,22 @@ if (!is.null(gt_source)) {
 
 
 if (seed_variants) {
+    
     variant_data <- readr::read_csv(config$seeding$variant_filename)
+    
+    # rename date columns in data for joining
+    colnames(variant_data)[colnames(variant_data) == "Update"] ="date"
+    colnames(cases_deaths)[colnames(cases_deaths) == "Update"] ="date"
     
     if (!is.null(config$seeding$seeding_outcome)){
         if (config$seeding$seeding_outcome=="incidH"){
             cases_deaths <- cases_deaths %>%
+                dplyr::select(date, FIPS, source, incidH) %>%
                 dplyr::left_join(variant_data) %>%
                 dplyr::mutate(incidI = incidH * prop) %>%
                 dplyr::select(-prop) %>%
-                tidyr::pivot_wider(names_from = variant, values_from = incidI)
+                tidyr::pivot_wider(names_from = variant, values_from = incidI) %>%
+                dplyr::mutate(dplyr::across(tidyselect::any_of(unique(variant_data$variant)), ~ tidyr::replace_na(.x, 0)))
         } else {
             stop(paste(
                 "Currently only incidH is implemented for config$seeding$seeding_outcome."
@@ -159,10 +166,12 @@ if (seed_variants) {
         }
     } else {
         cases_deaths <- cases_deaths %>%
+            dplyr::select(date, FIPS, source, incidI) %>%
             dplyr::left_join(variant_data) %>%
             dplyr::mutate(incidI = incidI * prop) %>%
             dplyr::select(-prop) %>%
-            tidyr::pivot_wider(names_from = variant, values_from = incidI)
+            tidyr::pivot_wider(names_from = variant, values_from = incidI) %>%
+            dplyr::mutate(dplyr::across(tidyselect::any_of(unique(variant_data$variant)), ~ tidyr::replace_na(.x, 0)))
     }
 }
 
