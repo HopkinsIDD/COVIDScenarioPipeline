@@ -99,7 +99,8 @@ us_data <- us_data %>%
 locs <- config$spatial_setup$modeled_states
 us_data <- us_data %>%
     filter(source %in% locs) %>%
-    filter(!is.na(source))
+    filter(!is.na(source)) %>%
+    rename(date = Update)
 
 
 
