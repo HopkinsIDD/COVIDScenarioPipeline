@@ -92,8 +92,8 @@ adjust_for_variant <- !is.null(variant_props_file)
 if (adjust_for_variant){
     
     # Variant Data (need to automate this data pull still)
-    variant_data <- read_csv(file.path(config$spatial_setup$base_path, "variant/WHO_NREVSS_Clinical_Labs.csv"), skip = 1)
-    variant_data_ <- cdcfluview::who_nrevss(region="state", years = 2022)$clinical_labs
+    # variant_data <- read_csv(file.path(config$spatial_setup$base_path, "variant/WHO_NREVSS_Clinical_Labs.csv"), skip = 1)
+    variant_data <- cdcfluview::who_nrevss(region="state", years = 2022)$clinical_labs
     
     # location data
     loc_data <- read_csv("data-locations/locations.csv")
@@ -102,15 +102,21 @@ if (adjust_for_variant){
     # CLEAN DATA
     
     variant_data <- variant_data %>%
-        select(state = REGION, 
-               week = WEEK,
-               year = YEAR,
-               FluA = `TOTAL A`,
-               FluB = `TOTAL B`) %>%
+        select(state = region,
+               week = week,
+               year = year,
+               FluA = total_a,
+               FluB = total_b) %>%
+      # select(state = REGION, 
+      #        week = WEEK,
+      #        year = YEAR,
+      #        FluA = `TOTAL A`,
+      #        FluB = `TOTAL B`) %>%
         pivot_longer(cols = starts_with("Flu"),
                      names_to = "variant",
                      values_to = "n") %>%
-        mutate(n = ifelse(n == "X", 0, n)) %>%
+        # mutate(n = ifelse(n == "X", 0, n)) %>%
+        mutate(n = ifelse(is.na(n), 0, n)) %>%
         mutate(n = as.integer(n)) %>%
         group_by(state, week, year) %>%
         mutate(prop = n / sum(n, na.rm=TRUE)) %>%
