@@ -26,6 +26,15 @@ from gempyor import file_paths
     help="configuration file for this run",
 )
 @click.option(
+    "-p",
+    "--pipepath",
+    "csp_path",
+    envvar="COVID_PATH",
+    type=click.Path(exists=True),
+    required=True,
+    help="path to the COVIDScenarioPipeline directory",
+)
+@click.option(
     "--id",
     "--id",
     "run_id",
@@ -176,6 +185,7 @@ from gempyor import file_paths
 
 def launch_batch(
     config_file,
+    csp_path
     run_id,
     num_jobs,
     sims_per_job,
@@ -221,6 +231,7 @@ def launch_batch(
     if restart_from_run_id is None:
         restart_from_run_id = run_id
     handler = BatchJobHandler(
+        csp_path,
         run_id,
         num_jobs,
         sims_per_job,
@@ -323,6 +334,7 @@ def get_job_queues(job_queue_prefix):
 class BatchJobHandler(object):
     def __init__(
         self,
+        csp_path,
         run_id,
         num_jobs,
         sims_per_job,
@@ -340,6 +352,7 @@ class BatchJobHandler(object):
         last_validation_date,
         reset_chimerics,
     ):
+        self.csp_path = csp_path
         self.run_id = run_id
         self.num_jobs = num_jobs
         self.sims_per_job = sims_per_job
@@ -432,6 +445,7 @@ class BatchJobHandler(object):
             {"name": "DVC_OUTPUTS", "value": " ".join(self.outputs)},
             {"name": "S3_RESULTS_PATH", "value": results_path},
             {"name": "COVID_CONFIG_PATH", "value": config_file},
+            {"name": "COVID_PATH", "value": self.csp_path},
             {"name": "COVID_NSIMULATIONS", "value": str(self.num_jobs)},
             {
                 "name": "COVID_MAX_STACK_SIZE",
@@ -449,8 +463,8 @@ class BatchJobHandler(object):
         ]
 
         runner_script_path = f"s3://{self.s3_bucket}/{runner_script_name}"
-        s3_cp_run_script = f"aws s3 cp {runner_script_path} $PWD/run-covid-pipeline"
-        command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
+        s3_cp_run_script = f"aws s3 cp {runner_script_path} $PWD/run-covid-pipeline"         # line to copy the runner script in wd as ./run-covid-pipeline
+        command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]     # execute copy line above and then run the script
 
         with open(config_file) as f:
             config = yaml.full_load(f)

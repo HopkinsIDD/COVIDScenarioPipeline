@@ -57,7 +57,7 @@ error_handler() {
 
 # Pick up stuff that changed
 # TODO(jwills): maybe move this to like a prep script?
-Rscript COVIDScenarioPipeline/local_install.R
+Rscript $COVID_PATH/local_install.R
 local_install_ret=$?
 
 if [ $local_install_ret -ne 0 ]; then
@@ -66,7 +66,7 @@ fi
 
 python -m pip install --upgrade pip # needs new pip for toml file
 
-(cd COVIDScenarioPipeline && pip install -e gempyor_pkg)
+(cd $COVID_PATH && pip install -e gempyor_pkg)
 python_install_ret=$?
 if [ $python_install_ret -ne 0 ]; then
 	error_handler "Error code returned from running `pip install -e gempyor_pkg`: $python_install_ret"
@@ -126,7 +126,7 @@ find data
 echo "==="
 
 # NOTE(jwills): hard coding this for now
-Rscript COVIDScenarioPipeline/R/scripts/filter_MC.R -p COVIDScenarioPipeline
+Rscript $COVID_PATH/R/scripts/filter_MC.R -p $COVID_PATH
 
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then
