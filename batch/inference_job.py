@@ -162,7 +162,7 @@ from gempyor import file_paths
     envvar="VALIDATION_DATE",
     type=click.DateTime(formats=["%Y-%m-%d"]),
     default=str(date.today()),
-    help="Last date to pull for ground truth data",
+    help="First date of projection/forecast -- first date without ground truth data",
 )
 @click.option(
     "--reset-chimerics-on-global-accept",

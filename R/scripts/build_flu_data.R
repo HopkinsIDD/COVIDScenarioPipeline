@@ -9,6 +9,10 @@ library(readr)
 library(lubridate)
 
 #check for cdc fluview package
+httr_installed <- require(httr)
+if (!httr_installed){
+    install.packages("httr")
+}
 cdcflueview_installed <- require(cdcfluview)
 if (!cdcflueview_installed){
     remotes::install_github("hrbrmstr/cdcfluview")
