@@ -130,7 +130,8 @@ if (adjust_for_variant){
         select(-prop_tot, -n) %>%
         mutate(prop = ifelse(is.na(prop), 0, prop)) %>%
         filter(!is.na(week)) %>%
-        mutate(week_end = as_date(MMWRweek::MMWRweek2Date(year, week, 7)))
+        mutate(week_end = as_date(MMWRweek::MMWRweek2Date(year, week, 7))) %>%
+        filter(week_end <= as_date(end_date_))
     
     match_data <- loc_data %>% 
         select(state = location_name,
@@ -145,8 +146,9 @@ if (adjust_for_variant){
         mutate(prop = ifelse(is.na(prop) & variant=="FluA", 1, prop)) %>%
         mutate(prop = ifelse(is.na(prop) & variant!="FluA", 0, prop))
     
-    # Extend to dates of groundtruth
-    var_max_dates <- variant_data %>% 
+    if(end_date_ != max(variant_data$week_end)){
+      # Extend to dates of groundtruth
+      var_max_dates <- variant_data %>% 
         group_by(source, state) %>%
         filter(week_end == max(week_end)) %>%
         ungroup() %>%
@@ -156,15 +158,15 @@ if (adjust_for_variant){
         mutate(weeks_missing = paste((seq(from = 1, to=weeks_missing, 1)*7 + week_end), collapse = ",")) %>%
         # mutate(weeks_missing = list(as_date(seq(from = 1, to=weeks_missing, 1)*7 + week_end))) #%>%
         ungroup()
-    var_max_dates <- var_max_dates %>%
+      var_max_dates <- var_max_dates %>%
         rename(max_current = week_end) %>%
         mutate(week_end = strsplit(as.character(weeks_missing), ",")) %>% 
         unnest(week_end) %>%
         select(state, week, year, variant, prop, week_end, source) %>%
         mutate(week_end = as_date(week_end))
-        
-    variant_data <- variant_data %>%
+      variant_data <- variant_data %>%
         bind_rows(var_max_dates)
+    }
     
     variant_data <- variant_data %>%
         mutate(week = epiweek(week_end), year = epiyear(week_end))
