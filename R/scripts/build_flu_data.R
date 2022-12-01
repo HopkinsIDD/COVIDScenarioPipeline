@@ -8,6 +8,12 @@ library(tidycensus)
 library(readr)
 library(lubridate)
 
+#check for cdc fluview package
+cdcflueview_installed <- require(cdcfluview)
+if (!cdcflueview_installed){
+    remotes::install_github("hrbrmstr/cdcfluview")
+}
+
 
 option_list = list(
     optparse::make_option(c("-c", "--config"), action="store", default=Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type='character', help="path to the config file"),
@@ -87,6 +93,7 @@ if (adjust_for_variant){
     
     # Variant Data (need to automate this data pull still)
     variant_data <- read_csv(file.path(config$spatial_setup$base_path, "variant/WHO_NREVSS_Clinical_Labs.csv"), skip = 1)
+    variant_data_ <- cdcfluview::who_nrevss(region="state", years = 2022)$clinical_labs
     
     # location data
     loc_data <- read_csv("data-locations/locations.csv")
