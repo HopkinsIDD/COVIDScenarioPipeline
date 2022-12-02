@@ -3,7 +3,7 @@
 library(devtools)
 
 install.packages(c("covidcast","data.table","vroom","dplyr","jsonlite", "httr"), force=TRUE)
-remotes::install_github("hrbrmstr/cdcfluview")
+devtools::install_github("hrbrmstr/cdcfluview")
 
 # To run if operating in the container
 initial.options <- commandArgs(trailingOnly = FALSE)
