@@ -161,7 +161,7 @@ from gempyor import file_paths
     "max_stacked_interventions",
     envvar="COVID_MAX_STACK_SIZE",
     type=click.IntRange(min=350),
-    default=350,
+    default=5000,
     help="Maximum number of interventions to allow in a stacked intervention",
 )
 @click.option(
@@ -185,7 +185,7 @@ from gempyor import file_paths
 
 def launch_batch(
     config_file,
-    csp_path
+    csp_path,
     run_id,
     num_jobs,
     sims_per_job,
