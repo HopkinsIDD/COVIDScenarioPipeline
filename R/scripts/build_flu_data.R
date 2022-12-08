@@ -61,6 +61,10 @@ source("https://raw.githubusercontent.com/cdcepi/Flusight-forecast-data/master/d
 us_data <- load_flu_hosp_data(temporal_resolution = 'daily', na.rm = TRUE)
 locs <- read_csv(file.path(config$spatial_setup$base_path, config$spatial_setup$geodata))
 
+# fix string pad issue on left side
+us_data <- us_data %>%
+    mutate(location = stringr::str_pad(location, width = 2, side = "left", pad = "0"))
+
 us_data <- us_data %>% 
     filter(location != "US") %>%
     mutate(location = stringr::str_pad(location, width=5, side="right", pad="0")) %>%
