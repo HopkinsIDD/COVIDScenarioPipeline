@@ -34,7 +34,7 @@ aws configure set default.s3.multipart_chunksize 8MB
 # install the local R packages
 aws s3 cp --quiet $S3_MODEL_DATA_PATH model_data.tar.gz
 mkdir model_data
-tar -xvzf model_data.tar.gz -C model_data
+tar -xzf model_data.tar.gz -C model_data # chadi: removed v(erbose) option here as it floods the log with data we have anyway from the s3 bucket
 cd model_data
 
 # check for presence of S3_LAST_JOB_OUTPUT and download the
@@ -75,16 +75,16 @@ fi
 ## Remove trailing slashes
 export S3_LAST_JOB_OUTPUT=$(echo $S3_LAST_JOB_OUTPUT | sed 's/\/$//')
 DVC_OUTPUTS_ARRAY=($DVC_OUTPUTS)
-if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
+if [ -n "$S3_LAST_JOB_OUTPUT" ]; then   # -n Checks if the length of a string is nonzero --> if S3_LAST_JOB_OUTPUT is not empty, the we download the output from the last job
 	if [ $COVID_BLOCK_INDEX -eq 1 ]; then
 		export RESUME_RUN_INDEX=$COVID_OLD_RUN_INDEX
-		echo "$RESUME_DISCARD_SEEDING"
-		if [ $RESUME_DISCARD_SEEDING == TRUE ]; then
+		echo "RESUME_DISCARD_SEEDING is set to $RESUME_DISCARD_SEEDING"
+		if [ $RESUME_DISCARD_SEEDING == "true" ]; then
 			export PARQUET_TYPES="spar snpi hpar hnpi"
 		else
 			export PARQUET_TYPES="seed spar snpi hpar hnpi"
 		fi
-	else
+	else                                 # if we are not in the first block, we need to resume from the last job, with seeding an all.
 		export RESUME_RUN_INDEX=$COVID_RUN_INDEX
 		export PARQUET_TYPES="seed spar snpi seir hpar hnpi hosp llik"
 	fi

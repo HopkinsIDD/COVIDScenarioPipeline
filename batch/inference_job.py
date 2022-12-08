@@ -456,7 +456,7 @@ class BatchJobHandler(object):
             {"name": "COVID_SIMULATIONS_PER_SLOT", "value": str(self.sims_per_job)},
             {
                 "name": "RESUME_DISCARD_SEEDING",
-                "value": str(self.resume_discard_seeding),
+                "value": str(self.resume_discard_seeding).lower(),  # lower is import here, this is string-compared to "true" in the run script
             },
             {"name": "COVID_STOCHASTIC", "value": str(self.stochastic)},
             {"name": "COVID_RESET_CHIMERICS", "value": str(self.reset_chimerics)},
