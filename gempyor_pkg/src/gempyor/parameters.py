@@ -15,7 +15,13 @@ logger = logging.getLogger(__name__)
 class Parameters:
     # Minimal object to be easily picklable for // runs
     def __init__(
-        self, parameter_config: confuse.ConfigView, *, ti: datetime.date, tf: datetime.date, nodenames: list, config_version: str = "old", 
+        self,
+        parameter_config: confuse.ConfigView,
+        *,
+        ti: datetime.date,
+        tf: datetime.date,
+        nodenames: list,
+        config_version: str = "old",
     ):
         self.pconfig = parameter_config
         self.pnames = []
@@ -39,44 +45,48 @@ class Parameters:
                 self.pdata[pn] = {}
                 self.pdata[pn]["idx"] = idx
 
-
                 # Parameter characterized by it's distribution
-                if self.pconfig[pn]["value"].exists(): 
-                    self.pdata[pn]["dist"] = self.pconfig[pn][
-                        "value"
-                    ].as_random_distribution()
+                if self.pconfig[pn]["value"].exists():
+                    self.pdata[pn]["dist"] = self.pconfig[pn]["value"].as_random_distribution()
 
                 # Parameter given as a file
                 elif self.pconfig[pn]["timeserie"].exists():
                     fn_name = self.pconfig[pn]["timeserie"].get()
                     df = utils.read_df(fn_name).set_index("date")
                     df.index = pd.to_datetime(df.index)
-                    if len(df.columns) >= len(nodenames): # one ts per geoid
-                        df = df[nodenames] # make sure the order of geoids is the same as the reference 
+                    if len(df.columns) >= len(nodenames):  # one ts per geoid
+                        df = df[nodenames]  # make sure the order of geoids is the same as the reference
                         # (nodenames from spatial setup) and select the columns
                     elif len(df.columns) == 1:
-                        df = pd.DataFrame(pd.concat([df]*len(nodenames), axis=1).values, 
-                        index=df.index, columns=nodenames)
+                        df = pd.DataFrame(
+                            pd.concat([df] * len(nodenames), axis=1).values, index=df.index, columns=nodenames
+                        )
                     else:
-                        print('loaded col :', sorted(list(df.columns)))
-                        print('geodata col:', sorted(nodenames))
-                        raise ValueError(f"""ERROR loading file {fn_name} for parameter {pn}: the number of non 'date'
-                        columns are {len(df.columns)}, expected {len(nodenames)} (the number of geoids) or one.""")
+                        print("loaded col :", sorted(list(df.columns)))
+                        print("geodata col:", sorted(nodenames))
+                        raise ValueError(
+                            f"""ERROR loading file {fn_name} for parameter {pn}: the number of non 'date'
+                        columns are {len(df.columns)}, expected {len(nodenames)} (the number of geoids) or one."""
+                        )
 
-                    df = df[str(ti):str(tf)]
-                    if not (len(df.index) == len(pd.date_range(ti,tf))):
-                        print('config dates:', pd.date_range(ti,tf))
-                        print('loaded dates:', df.index)
-                        raise ValueError(f"""ERROR loading file {fn_name} for parameter {pn}: 
+                    df = df[str(ti) : str(tf)]
+                    if not (len(df.index) == len(pd.date_range(ti, tf))):
+                        print("config dates:", pd.date_range(ti, tf))
+                        print("loaded dates:", df.index)
+                        raise ValueError(
+                            f"""ERROR loading file {fn_name} for parameter {pn}: 
                         the 'date' index of the provided file does not cover the whole config time span from
-                        {ti}->{tf}, where we have dates from {str(df.index[0])} to {str(df.index[-1])}""")
+                        {ti}->{tf}, where we have dates from {str(df.index[0])} to {str(df.index[-1])}"""
+                        )
                     # check the date range, need the lenght to be equal
-                    if not (pd.date_range(ti,tf) == df.index).all():
-                        print('config dates:', pd.date_range(ti,tf))
-                        print('loaded dates:', df.index)
-                        raise ValueError(f"""ERROR loading file {fn_name} for parameter {pn}: 
+                    if not (pd.date_range(ti, tf) == df.index).all():
+                        print("config dates:", pd.date_range(ti, tf))
+                        print("loaded dates:", df.index)
+                        raise ValueError(
+                            f"""ERROR loading file {fn_name} for parameter {pn}: 
                         the 'date' index of the provided file does not cover the whole config time span from
-                        {ti}->{tf}""")
+                        {ti}->{tf}"""
+                        )
 
                     self.pdata[pn]["ts"] = df
                 if self.pconfig[pn]["intervention_overlap_operation"].exists():
@@ -88,9 +98,7 @@ class Parameters:
                     logging.debug(
                         f"No 'intervention_overlap_operation' for parameter {pn}, assuming multiplicative NPIs"
                     )
-                self.intervention_overlap_operation[
-                    self.pdata[pn]["intervention_overlap_operation"]
-                ].append(pn.lower())
+                self.intervention_overlap_operation[self.pdata[pn]["intervention_overlap_operation"]].append(pn.lower())
 
         elif config_version == "old":
             n_parallel_compartments = 1
@@ -136,14 +144,10 @@ class Parameters:
                 for compartment, index in compartments_dict.items():
                     if "susceptibility_reduction" in compartments_map[compartment]:
                         pn = f"susceptibility_reduction{index}"
-                        p_dists[pn] = compartments_map[compartment][
-                            "susceptibility_reduction"
-                        ].as_random_distribution()
+                        p_dists[pn] = compartments_map[compartment]["susceptibility_reduction"].as_random_distribution()
                         self.intervention_overlap_operation["prod"].append(pn.lower())
                     else:
-                        raise ValueError(
-                            f"Susceptibility Reduction not found for comp {compartment}"
-                        )
+                        raise ValueError(f"Susceptibility Reduction not found for comp {compartment}")
                     if "transmissibility_reduction" in compartments_map[compartment]:
                         pn = f"transmissibility_reduction{index}"
                         p_dists[pn] = compartments_map[compartment][
@@ -151,14 +155,10 @@ class Parameters:
                         ].as_random_distribution()
                         self.intervention_overlap_operation["prod"].append(pn.lower())
                     else:
-                        raise ValueError(
-                            f"Transmissibility Reduction not found for comp {compartment}"
-                        )
+                        raise ValueError(f"Transmissibility Reduction not found for comp {compartment}")
                 for transition in range(n_parallel_transitions):
                     pn = f"transition_rate{transition}"
-                    p_dists[pn] = transition_map[transition][
-                        "rate"
-                    ].as_random_distribution()
+                    p_dists[pn] = transition_map[transition]["rate"].as_random_distribution()
                     self.intervention_overlap_operation["sum"].append(pn.lower())
 
             ### Build the new structure
@@ -176,9 +176,7 @@ class Parameters:
         logging.debug(f"We have {self.npar} parameter: {self.pnames}")
         logging.debug(f"Data to sample is: {self.pdata}")
         logging.debug(f"Index in arrays are: {self.pnames2pindex}")
-        logging.debug(
-            f"NPI overlap operation is {self.intervention_overlap_operation} "
-        )
+        logging.debug(f"NPI overlap operation is {self.intervention_overlap_operation} ")
 
     def picklable_lamda_alpha(self):
         """These two functions were lambda in __init__ before, it was more elegant. but as the object needs to be pickable,
@@ -209,9 +207,7 @@ class Parameters:
 
         return param_arr  # we don't store it as a member because this object needs to be small to be pickable
 
-    def parameters_load(
-        self, param_df: pd.DataFrame, n_days: int, nnodes: int
-    ) -> ndarray:
+    def parameters_load(self, param_df: pd.DataFrame, n_days: int, nnodes: int) -> ndarray:
         """
         drop-in equivalent to param_quick_draw() that take a file as written parameter_write()
         :param fname:
@@ -230,9 +226,7 @@ class Parameters:
             elif "ts" in self.pdata[pn]:
                 param_arr[idx] = self.pdata[pn]["ts"].values
             else:
-                print(
-                    f"PARAM: parameter {pn} NOT found in loadID file. Drawing from config distribution"
-                )
+                print(f"PARAM: parameter {pn} NOT found in loadID file. Drawing from config distribution")
                 pval = self.pdata[pn]["dist"]()
                 param_arr[idx] = np.full((n_days, nnodes), pval)
 

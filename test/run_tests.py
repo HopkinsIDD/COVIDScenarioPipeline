@@ -38,9 +38,7 @@ def _success(test_dir):
         sys.executable,
     ]
     complete = subprocess.run(cmd)
-    assert (
-        complete.returncode == 0
-    ), f"make_makefile.R failed with code {complete.returncode}"
+    assert complete.returncode == 0, f"make_makefile.R failed with code {complete.returncode}"
 
     assert_file("Makefile")
 
@@ -79,9 +77,7 @@ def _success_build_US_setup(test_dir):
         "FALSE",
     ]
     complete = subprocess.run(cmd)
-    assert (
-        complete.returncode == 0
-    ), f"build_US_setup.R failed with code {complete.returncode}"
+    assert complete.returncode == 0, f"build_US_setup.R failed with code {complete.returncode}"
 
     assert_file("data/mobility.csv")
     assert_file("data/geodata.csv")
@@ -105,9 +101,7 @@ def _success_build_nonUS_setup(test_dir):
         "mobility_data.csv",
     ]
     complete = subprocess.run(cmd)
-    assert (
-        complete.returncode == 0
-    ), f"build_nonUS_setup.R failed with code {complete.returncode}"
+    assert complete.returncode == 0, f"build_nonUS_setup.R failed with code {complete.returncode}"
 
     assert_file("data/mobility.csv")
     assert_file("data/geodata.csv")
@@ -134,9 +128,7 @@ def _success_create_seeding_nonUS(test_dir):
     # Make Makefile
     cmd = ["Rscript", "../../R/scripts/create_seeding.R", "-c", "config.yml"]
     complete = subprocess.run(cmd)
-    assert (
-        complete.returncode == 0
-    ), f"create_seeding.R failed for non-US setup with code {complete.returncode}"
+    assert complete.returncode == 0, f"create_seeding.R failed for non-US setup with code {complete.returncode}"
 
     assert_file("data/seeding.csv")
 
@@ -180,7 +172,7 @@ def test_multitime():
 
 # def test_report():
 #     _success("test_report")
-# 
+#
 #     assert_file("data/geodata.csv")
 #     assert_file("data/mobility.csv")
 #     assert_dir("data/shp")
@@ -222,9 +214,7 @@ def test_inference():
     ]
 
     complete = subprocess.run(cmd)
-    assert (
-        complete.returncode == 0
-    ), f"build_US_setup.R failed with code {complete.returncode}"
+    assert complete.returncode == 0, f"build_US_setup.R failed with code {complete.returncode}"
 
     assert_file("data/geodata.csv")
     assert_file("data/mobility.csv")
@@ -249,9 +239,7 @@ def test_inference():
 
     complete = subprocess.run(cmd)
 
-    assert (
-        complete.returncode == 0
-    ), f"full_filter.R failed with code {complete.returncode}"
+    assert complete.returncode == 0, f"full_filter.R failed with code {complete.returncode}"
 
     assert_file("data/test1/seeding.csv")
     assert_file("data/us_data.csv")
@@ -280,9 +268,7 @@ def test_inference_multiblock():
     ]
 
     complete = subprocess.run(cmd)
-    assert (
-        complete.returncode == 0
-    ), f"build_US_setup.R failed with code {complete.returncode}"
+    assert complete.returncode == 0, f"build_US_setup.R failed with code {complete.returncode}"
 
     assert_file("data/geodata.csv")
     assert_file("data/mobility.csv")
@@ -306,9 +292,7 @@ def test_inference_multiblock():
     ]
 
     complete = subprocess.run(cmd_1)
-    assert (
-        complete.returncode == 0
-    ), f"full_filter.R block 1 failed with code {complete.returncode}"
+    assert complete.returncode == 0, f"full_filter.R block 1 failed with code {complete.returncode}"
 
     cmd_2 = [
         "Rscript",
@@ -329,20 +313,12 @@ def test_inference_multiblock():
 
     complete = subprocess.run(cmd_2)
 
-    assert (
-        complete.returncode == 0
-    ), f"full_filter.R block 2 failed with code {complete.returncode}"
+    assert complete.returncode == 0, f"full_filter.R block 2 failed with code {complete.returncode}"
 
     final_prefix = "test_inference/Scenario1/low/test_inference/global/final/"
-    intermediate_prefix = (
-        "test_inference/Scenario1/low/test_inference/global/intermediate/000000001."
-    )
-    final_filename = file_paths.create_file_name(
-        "test_inference", final_prefix, 1, "llik", "parquet"
-    )
-    intermediate_filename = file_paths.create_file_name(
-        "test_inference", intermediate_prefix, 2, "llik", "parquet"
-    )
+    intermediate_prefix = "test_inference/Scenario1/low/test_inference/global/intermediate/000000001."
+    final_filename = file_paths.create_file_name("test_inference", final_prefix, 1, "llik", "parquet")
+    intermediate_filename = file_paths.create_file_name("test_inference", intermediate_prefix, 2, "llik", "parquet")
 
     final_hash = ""
     with open(final_filename, "rb") as f:
@@ -402,9 +378,7 @@ def test_compartmental_specification():
     ]
 
     complete = subprocess.run(cmd)
-    assert (
-        complete.returncode == 0
-    ), f"build_US_setup.R failed with code {complete.returncode}"
+    assert complete.returncode == 0, f"build_US_setup.R failed with code {complete.returncode}"
 
     assert_file("data/geodata.csv")
     assert_file("data/mobility.csv")
@@ -429,9 +403,7 @@ def test_compartmental_specification():
 
     complete = subprocess.run(cmd)
 
-    assert (
-        complete.returncode == 0
-    ), f"full_filter.R failed with code {complete.returncode}"
+    assert complete.returncode == 0, f"full_filter.R failed with code {complete.returncode}"
 
     assert_file("data/test1/seeding.csv")
     assert_file("data/us_data.csv")

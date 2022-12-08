@@ -36,9 +36,7 @@ run_id = 110
 prefix = ""
 sim_id = 1
 
-a = pd.read_parquet(
-    file_paths.create_file_name(run_id, prefix, sim_id, "seir", "parquet")
-)
+a = pd.read_parquet(file_paths.create_file_name(run_id, prefix, sim_id, "seir", "parquet"))
 print(a)
 # created by running SEIR test_seir.py (comment line 530 to remove file tree) first
 b = pd.read_parquet("../../SEIR/test/model_output/seir/000000101.test.seir.parquet")
@@ -56,9 +54,7 @@ geoid = ["15005", "15007", "15009", "15001", "15003"]
 diffI = np.arange(5) * 2
 date_data = datetime.date(2020, 4, 15)
 for i in range(5):
-    b.loc[
-        (b["mc_value_type"] == "incidence") & (b["date"] == str(date_data)), geoid[i]
-    ] = diffI[i]
+    b.loc[(b["mc_value_type"] == "incidence") & (b["date"] == str(date_data)), geoid[i]] = diffI[i]
 
 pa_df = pa.Table.from_pandas(b, preserve_index=False)
 pa.parquet.write_table(pa_df, "new_test_no_vacc.parquet")

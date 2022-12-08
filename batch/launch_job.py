@@ -198,20 +198,13 @@ def launch_job_inner(
     tarfile_name = f"{job_name}.tar.gz"
     tar = tarfile.open(tarfile_name, "w:gz")
     for p in os.listdir("."):
-        if not (
-            p.startswith(".")
-            or p.endswith("tar.gz")
-            or p in dvc_outputs
-            or p == "batch"
-        ):
+        if not (p.startswith(".") or p.endswith("tar.gz") or p in dvc_outputs or p == "batch"):
             tar.add(p, filter=lambda x: None if x.name.startswith(".") else x)
     tar.close()
 
     # Upload the tar'd contents of this directory and the runner script to S3
     runner_script_name = f"{job_name}-runner.sh"
-    local_runner_script = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "runner.sh"
-    )
+    local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), "runner.sh")
     s3_client = boto3.client("s3")
     s3_client.upload_file(local_runner_script, s3_input_bucket, runner_script_name)
     s3_client.upload_file(tarfile_name, s3_input_bucket, tarfile_name)
@@ -228,9 +221,7 @@ def launch_job_inner(
         {"name": "S3_RESULTS_PATH", "value": results_path},
         {"name": "SLOTS_PER_JOB", "value": str(slots_per_job)},
     ]
-    s3_cp_run_script = (
-        f"aws s3 cp s3://{s3_input_bucket}/{runner_script_name} $PWD/run-covid-pipeline"
-    )
+    s3_cp_run_script = f"aws s3 cp s3://{s3_input_bucket}/{runner_script_name} $PWD/run-covid-pipeline"
     command = ["sh", "-c", f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline"]
     container_overrides = {
         "vcpus": vcpu,
@@ -257,9 +248,7 @@ def launch_job_inner(
             containerOverrides=container_overrides,
         )
 
-    print(
-        f"Batch job with id {resp['jobId']} launched; output will be written to {results_path}"
-    )
+    print(f"Batch job with id {resp['jobId']} launched; output will be written to {results_path}")
 
 
 def get_dvc_outputs():

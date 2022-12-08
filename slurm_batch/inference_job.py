@@ -166,13 +166,12 @@ from SEIR import file_paths
 @click.option(
     "--reset-chimerics-on-global-accept",
     "--reset-chimerics-on-global-accept",
-   "reset_chimerics",
-   envvar="COVID_RESET_CHIMERICS",
-   type=bool,
-   default=True,
-   help="Flag determining whether to reset chimeric values on any global acceptances",
+    "reset_chimerics",
+    envvar="COVID_RESET_CHIMERICS",
+    type=bool,
+    default=True,
+    help="Flag determining whether to reset chimeric values on any global acceptances",
 )
-
 def launch_batch(
     config_file,
     csp_path,
@@ -191,7 +190,7 @@ def launch_batch(
     resume_discard_seeding,
     max_stacked_interventions,
     last_validation_date,
-    reset_chimerics 
+    reset_chimerics,
 ):
 
     config = None
@@ -210,9 +209,7 @@ def launch_batch(
     if "filtering" in config:
         config["filtering"]["simulations_per_slot"] = sims_per_job
         if not os.path.exists(config["filtering"]["data_path"]):
-            print(
-                f"ERROR: filtering.data_path path {config['filtering']['data_path']} does not exist!"
-            )
+            print(f"ERROR: filtering.data_path path {config['filtering']['data_path']} does not exist!")
             return 1
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
@@ -256,9 +253,7 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
         return (num_jobs, sims_per_job, num_blocks)
 
     if "filtering" not in config or "simulations_per_slot" not in config["filtering"]:
-        raise click.UsageError(
-            "filtering::simulations_per_slot undefined in config, can't autodetect parameters"
-        )
+        raise click.UsageError("filtering::simulations_per_slot undefined in config, can't autodetect parameters")
     sims_per_slot = int(config["filtering"]["simulations_per_slot"])
 
     if num_jobs is None:
@@ -268,17 +263,10 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
     if sims_per_job is None:
         if num_blocks is not None:
             sims_per_job = int(math.ceil(sims_per_slot / num_blocks))
-            print(
-                f"Setting number of blocks to {num_blocks} [via num_blocks (-k) argument]"
-            )
-            print(
-                f"Setting sims per job to {sims_per_job} [via {sims_per_slot} simulations_per_slot in config]"
-            )
+            print(f"Setting number of blocks to {num_blocks} [via num_blocks (-k) argument]")
+            print(f"Setting sims per job to {sims_per_job} [via {sims_per_slot} simulations_per_slot in config]")
         else:
-            geoid_fname = (
-                pathlib.Path(config["spatial_setup"]["base_path"])
-                / config["spatial_setup"]["geodata"]
-            )
+            geoid_fname = pathlib.Path(config["spatial_setup"]["base_path"]) / config["spatial_setup"]["geodata"]
             with open(geoid_fname) as geoid_fp:
                 num_geoids = sum(1 for line in geoid_fp)
 
@@ -300,9 +288,7 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
 
     if num_blocks is None:
         num_blocks = int(math.ceil(sims_per_slot / sims_per_job))
-        print(
-            f"Setting number of blocks to {num_blocks} [via {sims_per_slot} simulations_per_slot in config]"
-        )
+        print(f"Setting number of blocks to {num_blocks} [via {sims_per_slot} simulations_per_slot in config]")
 
     return (num_jobs, sims_per_job, num_blocks)
 
@@ -350,9 +336,7 @@ class BatchJobHandler(object):
         manifest["cmd"] = " ".join(sys.argv[:])
         manifest["job_name"] = job_name
         manifest["data_sha"] = subprocess.getoutput("git rev-parse HEAD")
-        manifest["csp_sha"] = subprocess.getoutput(
-            "cd COVIDScenarioPipeline; git rev-parse HEAD"
-        )
+        manifest["csp_sha"] = subprocess.getoutput("cd COVIDScenarioPipeline; git rev-parse HEAD")
 
         # Prepare to tar up the current directory, excluding any dvc outputs, so it
         # can be shipped to S3
@@ -363,29 +347,16 @@ class BatchJobHandler(object):
             for p in os.listdir("."):
                 if p == "COVIDScenarioPipeline":
                     for q in os.listdir("COVIDScenarioPipeline"):
-                        if not (
-                            q == "packrat"
-                            or q == "sample_data"
-                            or q == "build"
-                            or q.startswith(".")
-                        ):
+                        if not (q == "packrat" or q == "sample_data" or q == "build" or q.startswith(".")):
                             tar.add(os.path.join("COVIDScenarioPipeline", q))
                         elif q == "sample_data":
                             for r in os.listdir("COVIDScenarioPipeline/sample_data"):
                                 if r != "united-states-commutes":
-                                    tar.add(
-                                        os.path.join(
-                                            "COVIDScenarioPipeline", "sample_data", r
-                                        )
-                                    )
-                elif not (
-                    p.startswith(".") or p.endswith("tar.gz") or p in self.outputs
-                ):
+                                    tar.add(os.path.join("COVIDScenarioPipeline", "sample_data", r))
+                elif not (p.startswith(".") or p.endswith("tar.gz") or p in self.outputs):
                     tar.add(
                         p,
-                        filter=lambda x: None
-                        if os.path.basename(x.name).startswith(".")
-                        else x,
+                        filter=lambda x: None if os.path.basename(x.name).startswith(".") else x,
                     )
             tar.close()
 
@@ -424,15 +395,11 @@ class BatchJobHandler(object):
             cur_env_vars = base_env_vars.copy()
             cur_env_vars.append({"name": "COVID_SCENARIOS", "value": s})
             cur_env_vars.append({"name": "COVID_DEATHRATES", "value": d})
-            cur_env_vars.append(
-                {"name": "COVID_PREFIX", "value": f"{config['name']}/{s}/{d}"}
-            )
+            cur_env_vars.append({"name": "COVID_PREFIX", "value": f"{config['name']}/{s}/{d}"})
             cur_env_vars.append({"name": "COVID_BLOCK_INDEX", "value": "1"})
             cur_env_vars.append({"name": "COVID_RUN_INDEX", "value": f"{self.run_id}"})
             if not (self.restart_from_s3_bucket is None):
-                cur_env_vars.append(
-                    {"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from_s3_bucket}
-                )
+                cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from_s3_bucket})
                 cur_env_vars.append(
                     {
                         "name": "COVID_OLD_RUN_INDEX",
@@ -468,9 +435,7 @@ class BatchJobHandler(object):
             run_id_restart = self.run_id
             print(f"Launching {cur_job_name}...")
         if not (self.restart_from_s3_bucket is None):
-            print(
-                f"Resuming from run id is {self.restart_from_run_id} located in {self.restart_from_s3_bucket}"
-            )
+            print(f"Resuming from run id is {self.restart_from_run_id} located in {self.restart_from_s3_bucket}")
         print(f"Final output will be: {results_path}/model_output/")
         print(f"Run id is {self.run_id}")
 

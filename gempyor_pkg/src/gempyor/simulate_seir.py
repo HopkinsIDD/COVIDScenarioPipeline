@@ -282,12 +282,7 @@ def simulate(
             in_run_id=in_run_id,
             in_prefix=config["name"].get() + "/",
             out_run_id=out_run_id,
-            out_prefix=config["name"].get()
-            + "/"
-            + str(scenario)
-            + "/"
-            + out_run_id
-            + "/",
+            out_prefix=config["name"].get() + "/" + str(scenario) + "/" + out_run_id + "/",
             stoch_traj_flag=stoch_traj_flag,
         )
 
