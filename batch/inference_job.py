@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import boto3
 import click
 import itertools
 import json
@@ -16,6 +15,8 @@ from gempyor import file_paths
 
 
 @click.command()
+@click.option("--aws", "batch_system", flag_value="aws", default=True)
+@click.option("--slurm", "batch_system", flag_value="slurm")
 @click.option(
     "-c",
     "--config",
@@ -33,6 +34,15 @@ from gempyor import file_paths
     type=click.Path(exists=True),
     required=True,
     help="path to the COVIDScenarioPipeline directory",
+)
+@click.option(
+    "--data-path",
+    "--data-path",
+    "data_path",
+    envvar="DATA_PATH",
+    type=click.Path(exists=True),
+    default=".",
+    help="path to the data directory",
 )
 @click.option(
     "--id",
@@ -182,9 +192,19 @@ from gempyor import file_paths
     default=True,
     help="Flag determining whether to reset chimeric values on any global acceptances",
 )
+@click.option(
+    "--upload-to-s3",
+    "--upload-to-s3",
+    "s3_upload",
+    type=bool,
+    default=True,
+    help="Flag determining whether we also save runs to s3 for slurm runs",
+)
 def launch_batch(
+    batch_system,
     config_file,
     csp_path,
+    data_path,
     run_id,
     num_jobs,
     sims_per_job,
@@ -202,6 +222,7 @@ def launch_batch(
     max_stacked_interventions,
     last_validation_date,
     reset_chimerics,
+    s3_upload,
 ):
 
     config = None
@@ -213,7 +234,7 @@ def launch_batch(
     job_name = f"{config['name']}-{timestamp}"
 
     num_jobs, sims_per_job, num_blocks = autodetect_params(
-        config, num_jobs=num_jobs, sims_per_job=sims_per_job, num_blocks=num_blocks
+        config, num_jobs=num_jobs, sims_per_job=sims_per_job, num_blocks=num_blocks, batch_system=batch_system
     )
 
     # Update and save the config file with the number of sims to run
@@ -228,7 +249,9 @@ def launch_batch(
     if restart_from_run_id is None:
         restart_from_run_id = run_id
     handler = BatchJobHandler(
+        batch_system,
         csp_path,
+        data_path,
         run_id,
         num_jobs,
         sims_per_job,
@@ -245,13 +268,13 @@ def launch_batch(
         max_stacked_interventions,
         last_validation_date,
         reset_chimerics,
+        s3_upload,
     )
 
-    job_queues = get_job_queues(job_queue_prefix)
     scenarios = config["interventions"]["scenarios"]
     p_death_names = config["outcomes"]["scenarios"]
 
-    handler.launch(job_name, config_file, scenarios, p_death_names, job_queues)
+    handler.launch(job_name, config_file, scenarios, p_death_names)
 
     # Set job_name as environmental variable so it can be pulled for pushing to git
     os.environ["job_name"] = job_name
@@ -261,7 +284,7 @@ def launch_batch(
     return rc
 
 
-def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=None):
+def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=None, batch_system=None):
     if num_jobs and sims_per_job and num_blocks:
         return (num_jobs, sims_per_job, num_blocks)
 
@@ -283,11 +306,17 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
             with open(geoid_fname) as geoid_fp:
                 num_geoids = sum(1 for line in geoid_fp)
 
-            # formula based on a simple regression of geoids (based on known good performant params)
-            sims_per_job = max(60 - math.sqrt(num_geoids), 10)
-            sims_per_job = 5 * int(math.ceil(sims_per_job / 5))  # multiple of 5
-
-            num_blocks = int(math.ceil(sims_per_slot / sims_per_job))
+            if batch_system == "aws":
+                # formula based on a simple regression of geoids (based on known good performant params)
+                sims_per_job = max(60 - math.sqrt(num_geoids), 10)
+                sims_per_job = 5 * int(math.ceil(sims_per_job / 5))  # multiple of 5
+                num_blocks = int(math.ceil(sims_per_slot / sims_per_job))
+            elif batch_system == "slurm":
+                # now launch full sims:
+                sims_per_job = sims_per_slot
+                num_blocks = 1
+            else:
+                raise ValueError(f"Unknown batch submission system {batch_system}")
 
             print(
                 f"Setting sims per job to {sims_per_job} "
@@ -302,7 +331,9 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
     return (num_jobs, sims_per_job, num_blocks)
 
 
-def get_job_queues(job_queue_prefix):
+def get_aws_job_queues(job_queue_prefix):
+    import boto3
+
     batch_client = boto3.client("batch")
     queues_with_jobs = {}
     resp = batch_client.describe_job_queues()
@@ -318,7 +349,9 @@ def get_job_queues(job_queue_prefix):
 class BatchJobHandler(object):
     def __init__(
         self,
+        batch_system,
         csp_path,
+        data_path,
         run_id,
         num_jobs,
         sims_per_job,
@@ -335,8 +368,11 @@ class BatchJobHandler(object):
         max_stacked_interventions,
         last_validation_date,
         reset_chimerics,
+        s3_upload,
     ):
+        self.batch_system = batch_system
         self.csp_path = csp_path
+        self.data_path = data_path
         self.run_id = run_id
         self.num_jobs = num_jobs
         self.sims_per_job = sims_per_job
@@ -353,18 +389,26 @@ class BatchJobHandler(object):
         self.max_stacked_interventions = max_stacked_interventions
         self.last_validation_date = last_validation_date
         self.reset_chimerics = reset_chimerics
+        self.s3_upload = s3_upload
 
-    def launch(self, job_name, config_file, scenarios, p_death_names, job_queues):
+    def build_job_metadata(self, job_name):
+        """
+        For slurm: create a tar and manifest file to preserve what is used for the current run
+        For aws: this + Prepare to tar up the current directory, excluding any dvc outputs, so it can be shipped to S3
+        """
 
+        os.makedirs(f"{job_name}/metadata/", exist_ok=True)
         manifest = {}
         manifest["cmd"] = " ".join(sys.argv[:])
         manifest["job_name"] = job_name
         manifest["data_sha"] = subprocess.getoutput("git rev-parse HEAD")
         manifest["csp_sha"] = subprocess.getoutput("cd COVIDScenarioPipeline; git rev-parse HEAD")
 
-        # Prepare to tar up the current directory, excluding any dvc outputs, so it
-        # can be shipped to S3
-        tarfile_name = f"{job_name}.tar.gz"
+        # Save the manifest file to S3
+        with open(f"{job_name}/metadata/manifest.json", "w") as f:
+            json.dump(manifest, f, indent=4)
+
+        tarfile_name = f"{job_name}/metadata/{job_name}.tar.gz"
         tar = tarfile.open(tarfile_name, "w:gz", dereference=True)
         for p in os.listdir("."):
             if p == "COVIDScenarioPipeline":
@@ -389,33 +433,50 @@ class BatchJobHandler(object):
                 )
         tar.close()
 
-        # Upload the tar'd contents of this directory and the runner script to S3
-        runner_script_name = f"{job_name}-runner.sh"
-        local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), "inference_runner.sh")
-        s3_client = boto3.client("s3")
-        s3_client.upload_file(local_runner_script, self.s3_bucket, runner_script_name)
-        s3_client.upload_file(tarfile_name, self.s3_bucket, tarfile_name)
-        os.remove(tarfile_name)
+        if self.s3_upload or self.batch_system == "aws":
+            # Upload the tar'd contents of this directory and the runner script to S3
+            import boto3
 
-        # Save the manifest file to S3
-        with open("manifest.json", "w") as f:
-            json.dump(manifest, f, indent=4)
-        s3_client.upload_file("manifest.json", self.s3_bucket, f"{job_name}/manifest.json")
+            s3_client = boto3.client("s3")
+            s3_client.upload_file(tarfile_name, self.s3_bucket, tarfile_name)
+            s3_client.upload_file(f"{job_name}/metadata/manifest.json", self.s3_bucket, f"{job_name}/manifest.json")
 
-        # Create job to copy output to appropriate places
-        copy_script_name = f"{job_name}-copy.sh"
-        local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), "inference_copy.sh")
-        s3_client.upload_file(local_runner_script, self.s3_bucket, copy_script_name)
+            if self.batch_system == "aws":
+                runner_script_name = f"{job_name}-runner.sh"
+                local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), "inference_runner.sh")
+                s3_client.upload_file(local_runner_script, self.s3_bucket, runner_script_name)
+
+                # Create job to copy output to appropriate places
+                copy_script_name = f"{job_name}-copy.sh"
+                local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), "inference_copy.sh")
+                s3_client.upload_file(local_runner_script, self.s3_bucket, copy_script_name)
+
+                # do some clean up
+                os.remove(tarfile_name)
+
+    def launch(self, job_name, config_file, scenarios, p_death_names):
+
+        if self.batch_system == "aws":
+            import boto3
+
+            job_queues = get_aws_job_queues(job_queue_prefix)
+            batch_client = boto3.client("batch")
 
         # Prepare and launch the num_jobs via AWS Batch.
-        model_data_path = f"s3://{self.s3_bucket}/{tarfile_name}"
-        results_path = f"s3://{self.s3_bucket}/{job_name}"
+        s3_model_data_path = f"s3://{self.s3_bucket}/{tarfile_name}"
+        s3_results_path = f"s3://{self.s3_bucket}/{job_name}"
+        # Prepare and launch the num_jobs
+        fs_results_path = f"{job_name}/model_output"
+
+        ## TODO: check how each of these variables are used downstream
         base_env_vars = [
-            {"name": "S3_MODEL_DATA_PATH", "value": model_data_path},
+            {"name": "S3_MODEL_DATA_PATH", "value": s3_model_data_path},
             {"name": "DVC_OUTPUTS", "value": " ".join(self.outputs)},
-            {"name": "S3_RESULTS_PATH", "value": results_path},
+            {"name": "S3_RESULTS_PATH", "value": s3_results_path},
+            {"name": "FS_RESULTS_PATH", "value": fs_results_path},
+            {"name": "DATA_PATH", "value": str(self.data_path)},
+            {"name": "COVID_PATH", "value": str(self.csp_path)},
             {"name": "COVID_CONFIG_PATH", "value": config_file},
-            {"name": "COVID_PATH", "value": self.csp_path},
             {"name": "COVID_NSIMULATIONS", "value": str(self.num_jobs)},
             {
                 "name": "COVID_MAX_STACK_SIZE",
@@ -433,19 +494,9 @@ class BatchJobHandler(object):
             {"name": "COVID_STOCHASTIC", "value": str(self.stochastic)},
             {"name": "COVID_RESET_CHIMERICS", "value": str(self.reset_chimerics)},
         ]
-
-        runner_script_path = f"s3://{self.s3_bucket}/{runner_script_name}"
-        s3_cp_run_script = f"aws s3 cp {runner_script_path} $PWD/run-covid-pipeline"  # line to copy the runner script in wd as ./run-covid-pipeline
-        command = [
-            "sh",
-            "-c",
-            f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline",
-        ]  # execute copy line above and then run the script
-
         with open(config_file) as f:
             config = yaml.full_load(f)
 
-        batch_client = boto3.client("batch")
         for ctr, (s, d) in enumerate(itertools.product(scenarios, p_death_names)):
             cur_job_name = f"{job_name}_{s}_{d}"
             # Create first job
@@ -464,22 +515,53 @@ class BatchJobHandler(object):
                     }
                 )
                 cur_env_vars.append({"name": "COVID_IS_RESUME", "value": f"TRUE"})
+            else:
+                cur_env_vars.append({"name": "COVID_IS_RESUME", "value": f"FALSE"})
             cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block0"})
+            
+            # First job:
+            if self.batch_system == "aws":
+                runner_script_path = f"s3://{self.s3_bucket}/{runner_script_name}"
+                s3_cp_run_script = f"aws s3 cp {runner_script_path} $PWD/run-covid-pipeline"  # line to copy the runner script in wd as ./run-covid-pipeline
+                command = [
+                    "sh",
+                    "-c",
+                    f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline",
+                ]  # execute copy line above and then run the script
 
-            cur_job_queue = job_queues[ctr % len(job_queues)]
-            last_job = batch_client.submit_job(
-                jobName=f"{cur_job_name}_block0",
-                jobQueue=cur_job_queue,
-                arrayProperties={"size": self.num_jobs},
-                jobDefinition=self.batch_job_definition,
-                containerOverrides={
-                    "vcpus": self.vcpus,
-                    "memory": self.vcpus * self.memory,
-                    "environment": cur_env_vars,
-                    "command": command,
-                },
-                retryStrategy={"attempts": 3},
-            )
+                cur_job_queue = job_queues[ctr % len(job_queues)]
+                last_job = batch_client.submit_job(
+                    jobName=f"{cur_job_name}_block0",
+                    jobQueue=cur_job_queue,
+                    arrayProperties={"size": self.num_jobs},
+                    jobDefinition=self.batch_job_definition,
+                    containerOverrides={
+                        "vcpus": self.vcpus,
+                        "memory": self.vcpus * self.memory,
+                        "environment": cur_env_vars,
+                        "command": command,
+                    },
+                    retryStrategy={"attempts": 3},
+                )
+            elif self.batch_system == "slurm":
+                for envar in cur_env_vars:  # set env vars as enviroment variables
+                    os.environ[envar["name"]] = envar["value"]
+                    print(f"""{envar["name"]} = {envar["value"]}""")
+                # add them to the export command of slurm
+                export_str = "--export=ALL,"
+                for envar in cur_env_vars:
+                    export_str += f"""{envar["name"]}="{envar["value"]}","""
+                export_str = export_str[:-1]
+
+                # submit job (idea: use slumpy to get the "depend on")
+                command = [
+                    "sbatch",
+                    export_str,
+                    f"--array=1-{self.num_jobs}",
+                    f"{self.csp_path}/slurm_batch/inference_job.run",
+                ]
+                print(" ".join(command))
+                subprocess.run(command, check=True, shell=True)
 
             # Create all other jobs
             block_idx = 1
