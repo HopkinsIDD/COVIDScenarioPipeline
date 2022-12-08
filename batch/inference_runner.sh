@@ -8,38 +8,44 @@ set -x
 # SIMS_PER_JOB is the number of sims to run per job
 # JOB_NAME the name of the job
 # S3_RESULTS_PATH location in S3 to store the results
+if [ $BATCH_SYSTEM == "aws" ]; then
+	# Check to see if we should bail on this run because of accumulated errors in other runs
+	failure_count=$(aws s3 ls $S3_RESULTS_PATH/failures/ | wc -l)
+	if [ $failure_count -gt 100 ]; then
+		echo "Failing run because total number of previous child job failures is $failure_count"
+		exit 1
+	fi
 
-# Check to see if we should bail on this run because of accumulated errors in other runs
-failure_count=$(aws s3 ls $S3_RESULTS_PATH/failures/ | wc -l)
-if [ $failure_count -gt 100 ]; then
-	echo "Failing run because total number of previous child job failures is $failure_count"
-	exit 1
+	# setup the python environment
+	HOME=/home/app
+	PYENV_ROOT=$HOME/.pyenv
+	PYTHON_VERSION=3.7.6
+	PYTHON_VENV_DIR=$HOME/python_venv
+	PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+	. $PYTHON_VENV_DIR/bin/activate
+
+	# set optimized S3 configuration
+	aws configure set default.s3.max_concurrent_requests 100
+	aws configure set default.s3.max_queue_size 100
+	aws configure set default.s3.multipart_threshold 8MB
+	aws configure set default.s3.multipart_chunksize 8MB
+
+	# Copy the complete model + data package from S3 and
+	# install the local R packages
+	aws s3 cp --quiet $S3_MODEL_DATA_PATH model_data.tar.gz
+	mkdir model_data
+	tar -xzf model_data.tar.gz -C model_data # chadi: removed v(erbose) option here as it floods the log with data we have anyway from the s3 bucket
+	cd model_data
 fi
 
-# setup the python environment
-HOME=/home/app
-PYENV_ROOT=$HOME/.pyenv
-PYTHON_VERSION=3.7.6
-PYTHON_VENV_DIR=$HOME/python_venv
-PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
-. $PYTHON_VENV_DIR/bin/activate
-
-# set optimized S3 configuration
-aws configure set default.s3.max_concurrent_requests 100
-aws configure set default.s3.max_queue_size 100
-aws configure set default.s3.multipart_threshold 8MB
-aws configure set default.s3.multipart_chunksize 8MB
-
-# Copy the complete model + data package from S3 and
-# install the local R packages
-aws s3 cp --quiet $S3_MODEL_DATA_PATH model_data.tar.gz
-mkdir model_data
-tar -xzf model_data.tar.gz -C model_data # chadi: removed v(erbose) option here as it floods the log with data we have anyway from the s3 bucket
-cd model_data
-
-# check for presence of S3_LAST_JOB_OUTPUT and download the
+# check for presence of LAST_JOB_OUTPUT and download the
 # output from the corresponding last job here
-export COVID_SLOT_INDEX=$(python -c "print($AWS_BATCH_JOB_ARRAY_INDEX + 1)")
+
+if [ $BATCH_SYSTEM == "aws" ]; then
+	export COVID_SLOT_INDEX=$(python -c "print($AWS_BATCH_JOB_ARRAY_INDEX + 1)")
+elif [ $BATCH_SYSTEM == "slurm" ]; then
+	export COVID_SLOT_INDEX=$(python -c "print($SLURM_ARRAY_TASK_ID + 1)")   # todo make sure it starts at zero.
+fi
 
 error_handler() {
 	msg=$1
@@ -73,13 +79,14 @@ if [ $python_install_ret -ne 0 ]; then
 fi
 
 ## Remove trailing slashes
-export S3_LAST_JOB_OUTPUT=$(echo $S3_LAST_JOB_OUTPUT | sed 's/\/$//')
+export LAST_JOB_OUTPUT=$(echo $LAST_JOB_OUTPUT | sed 's/\/$//')
+# TODO: this can be a folder from the filesystem
 DVC_OUTPUTS_ARRAY=($DVC_OUTPUTS)
-if [ -n "$S3_LAST_JOB_OUTPUT" ]; then   # -n Checks if the length of a string is nonzero --> if S3_LAST_JOB_OUTPUT is not empty, the we download the output from the last job
+if [ -n "$LAST_JOB_OUTPUT" ]; then   # -n Checks if the length of a string is nonzero --> if LAST_JOB_OUTPUT is not empty, the we download the output from the last job
 	if [ $COVID_BLOCK_INDEX -eq 1 ]; then
 		export RESUME_RUN_INDEX=$COVID_OLD_RUN_INDEX
 		echo "RESUME_DISCARD_SEEDING is set to $RESUME_DISCARD_SEEDING"
-		if [ $RESUME_DISCARD_SEEDING == "true" ]; then
+		if [ $RESUME_DISCARD_SEEDING == "true" ]
 			export PARQUET_TYPES="spar snpi hpar hnpi"
 		else
 			export PARQUET_TYPES="seed spar snpi hpar hnpi"
@@ -104,7 +111,7 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then   # -n Checks if the length of a string is
 			else
 				export IN_FILENAME=$OUT_FILENAME
 			fi
-			aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$IN_FILENAME $OUT_FILENAME
+			aws s3 cp --quiet $LAST_JOB_OUTPUT/$IN_FILENAME $OUT_FILENAME
 			if [ -f $OUT_FILENAME ]; then
 				echo "Copy successful for file of type $filetype ($IN_FILENAME -> $OUT_FILENAME)"
 			else

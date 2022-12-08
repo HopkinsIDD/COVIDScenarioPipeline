@@ -86,7 +86,7 @@ from gempyor import file_paths
     show_default=True,
     help="The output directories whose contents are captured and saved in S3",
 )
-@click.option(
+@click.option(  # aws only option, or slurm if --upload-to-s3 is selected
     "-b",
     "--s3-bucket",
     "s3_bucket",
@@ -95,7 +95,16 @@ from gempyor import file_paths
     show_default=True,
     help="The S3 bucket to use for keeping state for the batch jobs",
 )
-@click.option(
+@click.option(  # slurm only option
+    "-f",
+    "--fs-folder",
+    "fs_folder",
+    type=str,
+    default="/scratch/group/truelove",  # TODO: check that it exist
+    show_default=True,
+    help="The file system folder to use for keeping the job outputs",
+)
+@click.option(  # aws only option
     "-d",
     "--job-definition",
     "batch_job_definition",
@@ -104,7 +113,7 @@ from gempyor import file_paths
     show_default=True,
     help="The name of the AWS Batch Job Definition to use for the job",
 )
-@click.option(
+@click.option(  # aws only option
     "-q",
     "--job-queue-prefix",
     "job_queue_prefix",
@@ -113,7 +122,7 @@ from gempyor import file_paths
     show_default=True,
     help="The prefix string of the job queues we should use for this run",
 )
-@click.option(
+@click.option(  # aws only option
     "-v",
     "--vcpus",
     "vcpus",
@@ -122,7 +131,7 @@ from gempyor import file_paths
     show_default=True,
     help="The number of CPUs to request for running jobs",
 )
-@click.option(
+@click.option(  # aws only option
     "-m",
     "--memory",
     "memory",
@@ -133,11 +142,11 @@ from gempyor import file_paths
 )
 @click.option(
     "-r",
-    "--restart-from-s3-bucket",
-    "restart_from_s3_bucket",
+    "--restart-from-location",
+    "restart_from_location",
     type=str,
     default=None,
-    help="The location of an S3 run to use as the initial to the first block of the current run",
+    help="The location (folder or an S3 bucket) to use as the initial to the first block of the current run",
 )
 @click.option(
     "-r",
@@ -145,7 +154,7 @@ from gempyor import file_paths
     "restart_from_run_id",
     type=str,
     default=None,
-    help="The location of an S3 run to use as the initial to the first block of the current run",
+    help="The run_id of the run we are restarting from",
 )
 @click.option(
     "--stochastic/--non-stochastic",
@@ -192,7 +201,7 @@ from gempyor import file_paths
     default=True,
     help="Flag determining whether to reset chimeric values on any global acceptances",
 )
-@click.option(
+@click.option(  # slurm only option
     "--upload-to-s3",
     "--upload-to-s3",
     "s3_upload",
@@ -211,11 +220,12 @@ def launch_batch(
     num_blocks,
     outputs,
     s3_bucket,
+    fs_folder,
     batch_job_definition,
     job_queue_prefix,
     vcpus,
     memory,
-    restart_from_s3_bucket,
+    restart_from_location,
     restart_from_run_id,
     stochastic,
     resume_discard_seeding,
@@ -248,6 +258,7 @@ def launch_batch(
 
     if restart_from_run_id is None:
         restart_from_run_id = run_id
+
     handler = BatchJobHandler(
         batch_system,
         csp_path,
@@ -258,10 +269,12 @@ def launch_batch(
         num_blocks,
         outputs,
         s3_bucket,
+        fs_folder,
         batch_job_definition,
+        job_queue_prefix,
         vcpus,
         memory,
-        restart_from_s3_bucket,
+        restart_from_location,
         restart_from_run_id,
         stochastic,
         resume_discard_seeding,
@@ -358,10 +371,12 @@ class BatchJobHandler(object):
         num_blocks,
         outputs,
         s3_bucket,
+        fs_folder,
         batch_job_definition,
+        job_queue_prefix,
         vcpus,
         memory,
-        restart_from_s3_bucket,
+        restart_from_location,
         restart_from_run_id,
         stochastic,
         resume_discard_seeding,
@@ -379,10 +394,12 @@ class BatchJobHandler(object):
         self.num_blocks = num_blocks
         self.outputs = outputs
         self.s3_bucket = s3_bucket
+        self.fs_folder = fs_folder
         self.batch_job_definition = batch_job_definition
+        self.job_queue_prefix = job_queue_prefix
         self.vcpus = vcpus
         self.memory = memory
-        self.restart_from_s3_bucket = restart_from_s3_bucket
+        self.restart_from_location = restart_from_location
         self.restart_from_run_id = restart_from_run_id
         self.stochastic = stochastic
         self.resume_discard_seeding = resume_discard_seeding
@@ -393,11 +410,12 @@ class BatchJobHandler(object):
 
     def build_job_metadata(self, job_name):
         """
-        For slurm: create a tar and manifest file to preserve what is used for the current run
-        For aws: this + Prepare to tar up the current directory, excluding any dvc outputs, so it can be shipped to S3
+        Create a manifest file to preserve what is used for the current run.
+        - For slurm: save this manifest into the fs_folder
+        - For aws: save the manifest into the s3_bucket, but also upload the necessary files to run the job
+        (inference_runner.sh, inference_runner.py, and the csp_ and data_ folders)
+        TODO: should we save the tar file when doing the slurm as well in case the user pulls while the job is running?
         """
-
-        os.makedirs(f"{job_name}/metadata/", exist_ok=True)
         manifest = {}
         manifest["cmd"] = " ".join(sys.argv[:])
         manifest["job_name"] = job_name
@@ -405,13 +423,25 @@ class BatchJobHandler(object):
         manifest["csp_sha"] = subprocess.getoutput("cd COVIDScenarioPipeline; git rev-parse HEAD")
 
         # Save the manifest file to S3
-        with open(f"{job_name}/metadata/manifest.json", "w") as f:
+        with open("manifest.json", "w") as f:
             json.dump(manifest, f, indent=4)
 
-        tarfile_name = f"{job_name}/metadata/{job_name}.tar.gz"
+        if self.batch_system == "aws":
+            # need these to be uploaded so they can be executed.
+            this_file_path = os.path.dirname(os.path.realpath(__file__))
+            self.save_file(source=os.path.join(this_file_path, "inference_runner.sh"), destination=f"{job_name}-runner.sh")
+            self.save_file(source=os.path.join(this_file_path, "inference_copy.sh"), destination=f"{job_name}-copy.sh")
+            
+            tarfile_name = f"{job_name}.tar.gz"
+            self.tar_working_dir(tarfile_name = tarfile_name)
+            self.save_file(source=tarfile_name, destination=f"{job_name}.tar.gz", remove_source=True)
+
+        self.save_file(source="manifest.json", destination=f"{job_name}/manifest.json", remove_source=True)
+
+    def tar_working_dir(self, tarfile_name):
         tar = tarfile.open(tarfile_name, "w:gz", dereference=True)
         for p in os.listdir("."):
-            if p == "COVIDScenarioPipeline":
+            if p == "COVIDScenarioPipeline":  # TODO: we should use csp_path & data_path here
                 for q in os.listdir("COVIDScenarioPipeline"):
                     if not (
                         q == "packrat"
@@ -433,44 +463,44 @@ class BatchJobHandler(object):
                 )
         tar.close()
 
+    def save_file(self, source, destination, delete_source=False, prefix=""):
+        """
+        Put a file to the appropriate location, either or s3 or both, in the right folder or both
+        """
         if self.s3_upload or self.batch_system == "aws":
-            # Upload the tar'd contents of this directory and the runner script to S3
             import boto3
 
             s3_client = boto3.client("s3")
-            s3_client.upload_file(tarfile_name, self.s3_bucket, tarfile_name)
-            s3_client.upload_file(f"{job_name}/metadata/manifest.json", self.s3_bucket, f"{job_name}/manifest.json")
+            s3_client.upload_file(source, self.s3_bucket, os.path.join(prefix, destination))
 
-            if self.batch_system == "aws":
-                runner_script_name = f"{job_name}-runner.sh"
-                local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), "inference_runner.sh")
-                s3_client.upload_file(local_runner_script, self.s3_bucket, runner_script_name)
+        if self.batch_system == "slurm":
+            import shutil
 
-                # Create job to copy output to appropriate places
-                copy_script_name = f"{job_name}-copy.sh"
-                local_runner_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), "inference_copy.sh")
-                s3_client.upload_file(local_runner_script, self.s3_bucket, copy_script_name)
+            # Copy the tar'd contents of this directory and the runner script to the appropriate location
+            # os.path.join makes sure that the / are correct whatever finishes fs_folder
+            shutil.copy(source, os.path.join(self.fs_folder, prefix, destination))
 
-                # do some clean up
-                os.remove(tarfile_name)
+        if delete_source:
+            os.remove(source)
 
     def launch(self, job_name, config_file, scenarios, p_death_names):
-
+        
+        self.build_job_data(job_name)
+        
         if self.batch_system == "aws":
             import boto3
 
-            job_queues = get_aws_job_queues(job_queue_prefix)
+            job_queues = get_aws_job_queues(self.job_queue_prefix)
             batch_client = boto3.client("batch")
 
-        # Prepare and launch the num_jobs via AWS Batch.
-        s3_model_data_path = f"s3://{self.s3_bucket}/{tarfile_name}"
+        
         s3_results_path = f"s3://{self.s3_bucket}/{job_name}"
-        # Prepare and launch the num_jobs
-        fs_results_path = f"{job_name}/model_output"
+        fs_results_path =  os.path.join(self.fs_folder, job_name)
 
         ## TODO: check how each of these variables are used downstream
         base_env_vars = [
-            {"name": "S3_MODEL_DATA_PATH", "value": s3_model_data_path},
+            {"name": "BATCH_SYSTEM", "value":  self.batch_system},
+            {"name": "S3_MODEL_DATA_PATH", "value": f"s3://{self.s3_bucket}/{job_name}.tar.gz"},
             {"name": "DVC_OUTPUTS", "value": " ".join(self.outputs)},
             {"name": "S3_RESULTS_PATH", "value": s3_results_path},
             {"name": "FS_RESULTS_PATH", "value": fs_results_path},
@@ -506,8 +536,8 @@ class BatchJobHandler(object):
             cur_env_vars.append({"name": "COVID_PREFIX", "value": f"{config['name']}/{s}/{d}"})
             cur_env_vars.append({"name": "COVID_BLOCK_INDEX", "value": "1"})
             cur_env_vars.append({"name": "COVID_RUN_INDEX", "value": f"{self.run_id}"})
-            if not (self.restart_from_s3_bucket is None):
-                cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": self.restart_from_s3_bucket})
+            if not (self.restart_from_location is None):
+                cur_env_vars.append({"name": "LAST_JOB_OUTPUT", "value": self.restart_from_location})
                 cur_env_vars.append(
                     {
                         "name": "COVID_OLD_RUN_INDEX",
@@ -518,10 +548,10 @@ class BatchJobHandler(object):
             else:
                 cur_env_vars.append({"name": "COVID_IS_RESUME", "value": f"FALSE"})
             cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block0"})
-            
+
             # First job:
             if self.batch_system == "aws":
-                runner_script_path = f"s3://{self.s3_bucket}/{runner_script_name}"
+                runner_script_path = f"s3://{self.s3_bucket}/{job_name}-runner.sh"
                 s3_cp_run_script = f"aws s3 cp {runner_script_path} $PWD/run-covid-pipeline"  # line to copy the runner script in wd as ./run-covid-pipeline
                 command = [
                     "sh",
@@ -563,70 +593,72 @@ class BatchJobHandler(object):
                 print(" ".join(command))
                 subprocess.run(command, check=True, shell=True)
 
-            # Create all other jobs
-            block_idx = 1
-            while block_idx < self.num_blocks:
-                cur_env_vars = base_env_vars.copy()
-                cur_env_vars.append({"name": "COVID_SCENARIOS", "value": s})
-                cur_env_vars.append({"name": "COVID_DEATHRATES", "value": d})
-                cur_env_vars.append({"name": "COVID_PREFIX", "value": f"{config['name']}/{s}/{d}"})
-                cur_env_vars.append({"name": "COVID_BLOCK_INDEX", "value": f"{block_idx+1}"})
-                cur_env_vars.append({"name": "COVID_RUN_INDEX", "value": f"{self.run_id}"})
-                cur_env_vars.append({"name": "COVID_OLD_RUN_INDEX", "value": f"{self.run_id}"})
-                cur_env_vars.append({"name": "S3_LAST_JOB_OUTPUT", "value": f"{results_path}/"})
-                cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block{block_idx}"})
-                cur_job = batch_client.submit_job(
-                    jobName=f"{cur_job_name}_block{block_idx}",
+            if self.batch_system == "aws":
+                # Create all other jobs
+                block_idx = 1
+                while block_idx < self.num_blocks:
+                    cur_env_vars = base_env_vars.copy()
+                    cur_env_vars.append({"name": "COVID_SCENARIOS", "value": s})
+                    cur_env_vars.append({"name": "COVID_DEATHRATES", "value": d})
+                    cur_env_vars.append({"name": "COVID_PREFIX", "value": f"{config['name']}/{s}/{d}"})
+                    cur_env_vars.append({"name": "COVID_BLOCK_INDEX", "value": f"{block_idx+1}"})
+                    cur_env_vars.append({"name": "COVID_RUN_INDEX", "value": f"{self.run_id}"})
+                    cur_env_vars.append({"name": "COVID_OLD_RUN_INDEX", "value": f"{self.run_id}"})
+                    cur_env_vars.append({"name": "LAST_JOB_OUTPUT", "value": f"{s3_results_path}/"})
+                    cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block{block_idx}"})
+                    cur_job = batch_client.submit_job(
+                        jobName=f"{cur_job_name}_block{block_idx}",
+                        jobQueue=cur_job_queue,
+                        arrayProperties={"size": self.num_jobs},
+                        dependsOn=[{"jobId": last_job["jobId"], "type": "N_TO_N"}],
+                        jobDefinition=self.batch_job_definition,
+                        containerOverrides={
+                            "vcpus": self.vcpus,
+                            "memory": self.vcpus * self.memory,
+                            "environment": cur_env_vars,
+                            "command": command,
+                        },
+                        retryStrategy={"attempts": 3},
+                    )
+                    last_job = cur_job
+                    block_idx += 1
+
+                # Prepare and launch the num_jobs via AWS Batch.
+                cp_env_vars = [
+                    {"name": "S3_RESULTS_PATH", "value": s3_results_path},
+                    {"name": "LAST_JOB_OUTPUT", "value": f"{s3_results_path}"},
+                    {"name": "NSLOT", "value": str(self.num_jobs)},
+                ]
+
+                copy_script_path = f"s3://{self.s3_bucket}/{job_name}-copy.sh"
+                s3_cp_run_script = f"aws s3 cp {copy_script_path} $PWD/run-covid-pipeline"
+                cp_command = [
+                    "sh",
+                    "-c",
+                    f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline",
+                ]
+
+                run_id_restart = self.run_id
+
+                copy_job = batch_client.submit_job(
+                    jobName=f"{cur_job_name}_copy",
                     jobQueue=cur_job_queue,
-                    arrayProperties={"size": self.num_jobs},
-                    dependsOn=[{"jobId": last_job["jobId"], "type": "N_TO_N"}],
                     jobDefinition=self.batch_job_definition,
+                    dependsOn=[{"jobId": last_job["jobId"]}],
                     containerOverrides={
-                        "vcpus": self.vcpus,
-                        "memory": self.vcpus * self.memory,
-                        "environment": cur_env_vars,
-                        "command": command,
+                        "vcpus": 1,
+                        "environment": cp_env_vars,
+                        "command": cp_command,
                     },
                     retryStrategy={"attempts": 3},
                 )
-                last_job = cur_job
-                block_idx += 1
 
-            # Prepare and launch the num_jobs via AWS Batch.
-            cp_env_vars = [
-                {"name": "S3_RESULTS_PATH", "value": results_path},
-                {"name": "S3_LAST_JOB_OUTPUT", "value": f"{results_path}"},
-                {"name": "NSLOT", "value": str(self.num_jobs)},
-            ]
-
-            copy_script_path = f"s3://{self.s3_bucket}/{copy_script_name}"
-            s3_cp_run_script = f"aws s3 cp {copy_script_path} $PWD/run-covid-pipeline"
-            cp_command = [
-                "sh",
-                "-c",
-                f"{s3_cp_run_script}; /bin/bash $PWD/run-covid-pipeline",
-            ]
-
-            run_id_restart = self.run_id
-            print(f"Launching {cur_job_name}...")
-            copy_job = batch_client.submit_job(
-                jobName=f"{cur_job_name}_copy",
-                jobQueue=cur_job_queue,
-                jobDefinition=self.batch_job_definition,
-                dependsOn=[{"jobId": last_job["jobId"]}],
-                containerOverrides={
-                    "vcpus": 1,
-                    "environment": cp_env_vars,
-                    "command": cp_command,
-                },
-                retryStrategy={"attempts": 3},
-            )
-
-        if not (self.restart_from_s3_bucket is None):
-            print(f"Resuming from run id is {self.restart_from_run_id} located in {self.restart_from_s3_bucket}")
+        print(f"Launching {cur_job_name}...")
+        if not (self.restart_from_location is None):
+            print(f"Resuming from run id is {self.restart_from_run_id} located in {self.restart_from_location}")
             if self.resume_discard_seeding:
                 print(f"Discarding seeding results")
-        print(f"Final output will be: {results_path}/model_output/")
+        print(f"Final output will be: {s3_results_path}/model_output/")
         print(f"Run id is {self.run_id}")
 
 
