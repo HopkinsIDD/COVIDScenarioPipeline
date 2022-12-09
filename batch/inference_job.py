@@ -244,7 +244,7 @@ def launch_batch(
     job_name = f"{config['name']}-{timestamp}"
 
     num_jobs, sims_per_job, num_blocks = autodetect_params(
-        config, num_jobs=num_jobs, sims_per_job=sims_per_job, num_blocks=num_blocks, batch_system=batch_system
+        config, data_path=data_path, num_jobs=num_jobs, sims_per_job=sims_per_job, num_blocks=num_blocks, batch_system=batch_system
     )
 
     # Update and save the config file with the number of sims to run
@@ -297,7 +297,7 @@ def launch_batch(
     return rc
 
 
-def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=None, batch_system=None):
+def autodetect_params(config, data_path, *, num_jobs=None, sims_per_job=None, num_blocks=None, batch_system=None):
     if num_jobs and sims_per_job and num_blocks:
         return (num_jobs, sims_per_job, num_blocks)
 
@@ -315,7 +315,7 @@ def autodetect_params(config, *, num_jobs=None, sims_per_job=None, num_blocks=No
             print(f"Setting number of blocks to {num_blocks} [via num_blocks (-k) argument]")
             print(f"Setting sims per job to {sims_per_job} [via {sims_per_slot} simulations_per_slot in config]")
         else:
-            geoid_fname = pathlib.Path(config["spatial_setup"]["base_path"]) / config["spatial_setup"]["geodata"]
+            geoid_fname = pathlib.Path(data_path, config["spatial_setup"]["base_path"]) / config["spatial_setup"]["geodata"]
             with open(geoid_fname) as geoid_fp:
                 num_geoids = sum(1 for line in geoid_fp)
 
