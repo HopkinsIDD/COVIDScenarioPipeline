@@ -9,7 +9,6 @@ from . import NPI, setup, file_paths, steps_rk4
 from .utils import config, Timer, aws_disk_diagnosis, read_df
 import pyarrow as pa
 import logging
-from .dev import steps as steps_experimental
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +97,7 @@ def steps_SEIR(
             )
         seir_sim = steps_rk4.rk4_integration(**fnct_args)
     else:
+        from .dev import steps as steps_experimental
         logging.critical("Experimental !!! These methods are not ready for production ! ")
         if s.integration_method in [
             "scipy.solve_ivp",
