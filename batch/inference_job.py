@@ -466,7 +466,7 @@ class BatchJobHandler(object):
                 )
         tar.close()
 
-    def save_file(self, source, destination, delete_source=False, prefix=""):
+    def save_file(self, source, destination, remove_source=False, prefix=""):
         """
         Put a file to the appropriate location, either or s3 or both, in the right folder or both
         """
@@ -483,7 +483,7 @@ class BatchJobHandler(object):
             # os.path.join makes sure that the / are correct whatever finishes fs_folder
             shutil.copy(source, os.path.join(self.fs_folder, prefix, destination))
 
-        if delete_source:
+        if remove_source:
             os.remove(source)
 
     def launch(self, job_name, config_file, scenarios, p_death_names):
@@ -491,7 +491,7 @@ class BatchJobHandler(object):
         fs_results_path = os.path.join(self.fs_folder, job_name)
         os.makedirs(f"fs_results_path", exist_ok=True)
 
-        self.build_job_data(job_name)
+        self.build_job_metadata(job_name)
 
         if self.batch_system == "aws":
             import boto3
