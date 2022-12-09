@@ -23,7 +23,7 @@ if [ -n "$LAST_JOB_OUTPUT" ]; then   # -n Checks if the length of a string is no
 	if [ $COVID_BLOCK_INDEX -eq 1 ]; then  # always true for slurm submissions
 		export RESUME_RUN_INDEX=$COVID_OLD_RUN_INDEX
 		echo "RESUME_DISCARD_SEEDING is set to $RESUME_DISCARD_SEEDING"
-		if [ $RESUME_DISCARD_SEEDING == "true" ]
+		if [ $RESUME_DISCARD_SEEDING == "true" ]; then
 			export PARQUET_TYPES="spar snpi hpar hnpi"
 		else
 			export PARQUET_TYPES="seed spar snpi hpar hnpi"
