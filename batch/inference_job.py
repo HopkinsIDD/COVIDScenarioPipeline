@@ -489,7 +489,7 @@ class BatchJobHandler(object):
     def launch(self, job_name, config_file, scenarios, p_death_names):
         s3_results_path = f"s3://{self.s3_bucket}/{job_name}"
         fs_results_path = os.path.join(self.fs_folder, job_name)
-        os.makedirs(f"fs_results_path", exist_ok=True)
+        os.makedirs(f"{fs_results_path}", exist_ok=True)
 
         self.build_job_metadata(job_name)
 
