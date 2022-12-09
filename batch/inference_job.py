@@ -248,10 +248,11 @@ def launch_batch(
     )
 
     # Update and save the config file with the number of sims to run
+    # TODO: does this really save the config file?
     if "filtering" in config:
         config["filtering"]["simulations_per_slot"] = sims_per_job
-        if not os.path.exists(config["filtering"]["data_path"]):
-            print(f"ERROR: filtering.data_path path {config['filtering']['data_path']} does not exist!")
+        if not os.path.exists(pathlib.Path(data_path, config["filtering"]["data_path"])):
+            print(f"ERROR: filtering.data_path path {pathlib.Path(data_path, config['filtering']['data_path'])} does not exist!")
             return 1
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
