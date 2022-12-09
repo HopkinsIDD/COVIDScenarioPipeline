@@ -597,7 +597,7 @@ class BatchJobHandler(object):
                     f"--mem={self.memory}M",  # memory per node
                     # use vcpu here ? no need afaik.
                     # time:  Acceptable time formats include "minutes", ... "days-hours:minutes" or  #J-H:m:s.
-                    f"-time={time_limit}",
+                    f"--time={time_limit}",
                     f"--job-name={cur_job_name}",
                     f"{os.path.dirname(os.path.realpath(__file__))}/inference_job.run",
                 ]
