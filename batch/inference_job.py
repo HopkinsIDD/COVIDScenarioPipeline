@@ -429,11 +429,13 @@ class BatchJobHandler(object):
         if self.batch_system == "aws":
             # need these to be uploaded so they can be executed.
             this_file_path = os.path.dirname(os.path.realpath(__file__))
-            self.save_file(source=os.path.join(this_file_path, "inference_runner.sh"), destination=f"{job_name}-runner.sh")
+            self.save_file(
+                source=os.path.join(this_file_path, "inference_runner.sh"), destination=f"{job_name}-runner.sh"
+            )
             self.save_file(source=os.path.join(this_file_path, "inference_copy.sh"), destination=f"{job_name}-copy.sh")
-            
+
             tarfile_name = f"{job_name}.tar.gz"
-            self.tar_working_dir(tarfile_name = tarfile_name)
+            self.tar_working_dir(tarfile_name=tarfile_name)
             self.save_file(source=tarfile_name, destination=f"{job_name}.tar.gz", remove_source=True)
 
         self.save_file(source="manifest.json", destination=f"{job_name}/manifest.json", remove_source=True)
@@ -484,26 +486,26 @@ class BatchJobHandler(object):
             os.remove(source)
 
     def launch(self, job_name, config_file, scenarios, p_death_names):
-        
+        s3_results_path = f"s3://{self.s3_bucket}/{job_name}"
+        fs_results_path = os.path.join(self.fs_folder, job_name)
+        os.makedirs(f"fs_results_path", exist_ok=True)
+
         self.build_job_data(job_name)
-        
+
         if self.batch_system == "aws":
             import boto3
 
             job_queues = get_aws_job_queues(self.job_queue_prefix)
             batch_client = boto3.client("batch")
 
-        
-        s3_results_path = f"s3://{self.s3_bucket}/{job_name}"
-        fs_results_path =  os.path.join(self.fs_folder, job_name)
-
         ## TODO: check how each of these variables are used downstream
         base_env_vars = [
-            {"name": "BATCH_SYSTEM", "value":  self.batch_system},
+            {"name": "BATCH_SYSTEM", "value": self.batch_system},
             {"name": "S3_MODEL_DATA_PATH", "value": f"s3://{self.s3_bucket}/{job_name}.tar.gz"},
             {"name": "DVC_OUTPUTS", "value": " ".join(self.outputs)},
             {"name": "S3_RESULTS_PATH", "value": s3_results_path},
             {"name": "FS_RESULTS_PATH", "value": fs_results_path},
+            {"name": "S3_UPLOAD", "value": str(self.s3_upload).lower()},
             {"name": "DATA_PATH", "value": str(self.data_path)},
             {"name": "COVID_PATH", "value": str(self.csp_path)},
             {"name": "COVID_CONFIG_PATH", "value": config_file},
@@ -583,18 +585,26 @@ class BatchJobHandler(object):
                     export_str += f"""{envar["name"]}="{envar["value"]}","""
                 export_str = export_str[:-1]
 
+                # time is 5 minutes per simulation TODO: allow longer job with an option.
+                time_limit = self.sims_per_job*5
+
                 # submit job (idea: use slumpy to get the "depend on")
                 command = [
                     "sbatch",
                     export_str,
                     f"--array=1-{self.num_jobs}",
-                    f"{self.csp_path}/slurm_batch/inference_job.run",
+                    f"--mem={self.memory}M",  # memory per node
+                    # use vcpu here ? no need afaik.
+                    # time:  Acceptable time formats include "minutes", ... "days-hours:minutes" or  #J-H:m:s.
+                    f"-time={time_limit}",
+                    f"--job-name={cur_job_name}",
+                    f"{os.path.dirname(os.path.realpath(__file__))}/inference_job.run",
                 ]
-                print(" ".join(command))
+                print("slurm command to be run >> "," ".join(command))
                 subprocess.run(command, check=True, shell=True)
-
+            
+            # On aws: create all other jobs + the copy job. slurm script is only one block and copies itself at the end.
             if self.batch_system == "aws":
-                # Create all other jobs
                 block_idx = 1
                 while block_idx < self.num_blocks:
                     cur_env_vars = base_env_vars.copy()
@@ -653,13 +663,26 @@ class BatchJobHandler(object):
                     retryStrategy={"attempts": 3},
                 )
 
-        print(f"Launching {cur_job_name}...")
+        print(f" --------- COPY TO #csp_production message below ---------")
+        print(f"Launching {cur_job_name} on {self.batch_system}...")
+        print(
+            f" >> Job array: {self.num_jobs} slot(s) X {self.num_blocks} block(s) of {self.sims_per_job} simulation(s)."
+        )
         if not (self.restart_from_location is None):
-            print(f"Resuming from run id is {self.restart_from_run_id} located in {self.restart_from_location}")
+            em = "."
             if self.resume_discard_seeding:
-                print(f"Discarding seeding results")
-        print(f"Final output will be: {s3_results_path}/model_output/")
-        print(f"Run id is {self.run_id}")
+                em = f", discarding seeding results."
+            print(f" >> Resuming from run id is {self.restart_from_run_id} located in {self.restart_from_location}{em}")
+        if self.batch_system == "aws":
+            print(f" >> Final output will be: {s3_results_path}/model_output/")
+        elif self.batch_system == "slurm":
+            print(f" >> Final output will be: {fs_results_path}/model_output/")
+            if self.s3_upload:
+                print(f" >> Final output will be uploaded to {s3_results_path}/model_output/")
+        print(f" >> Run id is {self.run_id}")
+        print(f" >> config is {self.config_path.split('/')[-1]}")
+        print(f" ------------------------- END -------------------------")
+        # add in csp and data path branch.
 
 
 if __name__ == "__main__":
