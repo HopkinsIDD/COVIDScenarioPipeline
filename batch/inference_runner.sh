@@ -169,7 +169,7 @@ do
 	export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/final/', $COVID_SLOT_INDEX,'$type','csv'))")
 	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
 done
-echo "***************** UPLOADING RESULT TO S3 *****************"
+echo "***************** DONE UPLOADING RESULT TO S3 *****************"
 
 echo "Done"
 exit 0
