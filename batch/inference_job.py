@@ -100,7 +100,7 @@ from gempyor import file_paths
     "--fs-folder",
     "fs_folder",
     type=str,
-    default="/data/struelo1",  # TODO: check that it exist
+    default="/data/struelo1",  # TODO:  check that it exist
     show_default=True,
     help="The file system folder to use for keeping the job outputs",
 )
@@ -611,13 +611,17 @@ class BatchJobHandler(object):
                 print(command)
                 print(" <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ")
                 import shlex # using shlex to split the command because it's not obvious https://docs.python.org/3/library/subprocess.html#subprocess.Popen
-                sr = subprocess.run(shlex.split(command), check=True, shell=True)
-                print(f"sbatch command returned {sr.returncode}")
+                sr = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)#, check=True, shell=True)
+                (stdout, stderr) = sr.communicate()
+
                 if sr.returncode != 0:
+                    print(f"sbatch command failed with returncode {sr.returncode}")
                     print("sbatch command failed with stdout and stderr:")
-                    print(sr.stdout)
-                    print(sr.stderr)
+                    print("stdout: ", stdout)
+                    print("stderr: ", stderr)
                     raise Exception("sbatch command failed")
+                
+                print(f">>> SUCCESS SCHEDULING JOB. Slurm job id is {stdout.decode().split(' ')[-1][:-1]}")
 
 
             
@@ -698,7 +702,7 @@ class BatchJobHandler(object):
             if self.s3_upload:
                 print(f" >> Final output will be uploaded to {s3_results_path}/model_output/")
         print(f" >> Run id is {self.run_id}")
-        print(f" >> config is {self.config_file.split('/')[-1]}")
+        print(f" >> config is {config_file.split('/')[-1]}")
         print(f" ------------------------- END -------------------------")
         # add in csp and data path branch.
 
