@@ -96,7 +96,7 @@ echo "Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH   # 
 Rscript $COVID_PATH/R/scripts/filter_MC.R -p $COVID_PATH > $LOG_FILE 2>&1
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then
-        error_handler "Error code returned from full_filter.R: $dvc_ret"
+        echo "Error code returned from full_filter.R: $dvc_ret"
 fi
 echo "***************** DONE RUNNING FILTER_MC.R *****************"
 
@@ -138,6 +138,7 @@ fi
 echo "***************** DONE UPLOADING RESULT TO S3 (OR NOT) *****************"
 
 
+# TODO: MV here ? what to do about integration_dump.pkl e.g ?
 echo "***************** COPYING RESULTS TO RESULT DIRECTORY *****************"
 for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
 do

@@ -590,21 +590,28 @@ class BatchJobHandler(object):
                 time_limit = self.sims_per_job*5
 
                 # submit job (idea: use slumpy to get the "depend on")
-                command = [
-                    "sbatch",
-                    export_str,
-                    f"--array=1-{self.num_jobs}",
-                    f"--mem={self.memory}M",  # memory per node
+                #command = [
+                #    "sbatch",
+                #    export_str,
+                #    f"--array=1-{self.num_jobs}",
+                #    f"--mem={self.memory}M",  # memory per node
+                #    # use vcpu here ? no need afaik.
+                #    # time:  Acceptable time formats include "minutes", ... "days-hours:minutes" or  #J-H:m:s.
+                #    f"--time={time_limit}",
+                #    f"--job-name={cur_job_name}",
+                #    f"{os.path.dirname(os.path.realpath(__file__))}/inference_job.run",
+                #]
+                command = f"sbatch {export_str} --array=1-{self.num_jobs} --mem={self.memory}M --time={time_limit} --job-name={cur_job_name} {os.path.dirname(os.path.realpath(__file__))}/inference_job.run"
+                    #f"--mem={self.memory}M",  # memory per node
                     # use vcpu here ? no need afaik.
                     # time:  Acceptable time formats include "minutes", ... "days-hours:minutes" or  #J-H:m:s.
-                    f"--time={time_limit}",
-                    f"--job-name={cur_job_name}",
-                    f"{os.path.dirname(os.path.realpath(__file__))}/inference_job.run",
-                ]
+
                 print("slurm command to be run >>>>>>>> ")
-                print(" ".join(command))
+                #print(" ".join(command))
+                print(command)
                 print(" <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ")
-                sr = subprocess.run(command, check=True, shell=True)
+                import shlex # using shlex to split the command because it's not obvious https://docs.python.org/3/library/subprocess.html#subprocess.Popen
+                sr = subprocess.run(shlex.split(command), check=True, shell=True)
                 print(f"sbatch command returned {sr.returncode}")
                 if sr.returncode != 0:
                     print("sbatch command failed with stdout and stderr:")
@@ -691,7 +698,7 @@ class BatchJobHandler(object):
             if self.s3_upload:
                 print(f" >> Final output will be uploaded to {s3_results_path}/model_output/")
         print(f" >> Run id is {self.run_id}")
-        print(f" >> config is {self.config_path.split('/')[-1]}")
+        print(f" >> config is {self.config_file.split('/')[-1]}")
         print(f" ------------------------- END -------------------------")
         # add in csp and data path branch.
 
