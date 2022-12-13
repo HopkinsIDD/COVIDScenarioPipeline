@@ -9,14 +9,19 @@ set -x
 
 COVID_SLOT_INDEX=${SLURM_ARRAY_TASK_ID}
 
+echo "***************** LOADING ENVIRONMENT *****************"
 module purge
-module load anaconda
+# on marcc this is anaconda3/2022.05 to circumvent anaconda python bug. Otherwise that is just anaconda 
+module load anaconda3/2022.05
 conda activate covidSP
 # in case conda not found
 #source /home/jcblemai/.bashrc
 #source ~/miniconda3/etc/profile.d/conda.sh # loading conda in case
 #eval "$(conda shell.bash hook)"
+echo "***************** DONE LOADING ENVIRONMENT *****************"
 
+
+echo "***************** FETCHING RESUME FILES *****************"
 ### In case of resume, download or move the right files
 export LAST_JOB_OUTPUT=$(echo $LAST_JOB_OUTPUT | sed 's/\/$//')
 if [ -n "$LAST_JOB_OUTPUT" ]; then   # -n Checks if the length of a string is nonzero --> if LAST_JOB_OUTPUT is not empty, the we download the output from the last job
@@ -65,9 +70,10 @@ if [ -n "$LAST_JOB_OUTPUT" ]; then   # -n Checks if the length of a string is no
 	done
 	ls -ltr model_output
 fi
+echo "***************** DONE FETCHING RESUME FILES *****************"
 
+echo "***************** RUNNING FILTER_MC.R *****************"
 export LOG_FILE="$FS_RESULTS_PATH/log_${COVID_RUN_INDEX}_${COVID_SLOT_INDEX}.txt"
-
 echo "Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH   # path to the config file  
                                                --run_id $COVID_RUN_INDEX  # Unique identifier for this run
                                                --scenarios $COVID_SCENARIOS  # name of the intervention to run, or 'all' 
@@ -88,28 +94,14 @@ echo "Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH   # 
 
 #cd $DATA_PATH
 Rscript $COVID_PATH/R/scripts/filter_MC.R -p $COVID_PATH > $LOG_FILE 2>&1
-# Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH `#path to the config file` \
-#                                                --run_id $COVID_RUN_INDEX `#Unique identifier for this run` \
-#                                                --scenarios $COVID_SCENARIOS `#name of the intervention to run, or 'all'` \
-#                                                --deathrates $COVID_DEATHRATES `#name of the outcome scenarios to run, or 'all'` \
-#                                                --jobs 1 `#Number of jobs to run in parallel` \
-#                                                --simulations_per_slot $COVID_SIMULATIONS_PER_SLOT `#number of simulations to run for this slot` \
-#                                                --this_slot $COVID_SLOT_INDEX `#id of this slot` \
-#                                                --this_block 1 `# id of this block` \
-#                                                --stoch_traj_flag $COVID_STOCHASTIC `#Stochastic SEIR and outcomes trajectories if true` \
-#                                                #--ground_truth_start $COVID_GT_START `#First date to include groundtruth for` \
-#                                                --ground_truth_end $VALIDATION_DATE `#First date to include groundtruth for` \
-#                                                --pipepath $COVID_PATH \
-#                                                --python python \
-#                                                --rpath Rscript \
-#                                                --is-resume $COVID_IS_RESUME `#Is this run a resume` \
-#                                                --is-interactive FALSE >> $LOG_FILE 2>&1 &
-
-
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then
         error_handler "Error code returned from full_filter.R: $dvc_ret"
 fi
+echo "***************** DONE RUNNING FILTER_MC.R *****************"
+
+
+echo "***************** UPLOADING RESULT TO S3 (OR NOT) *****************"
 ## copy to s3 if necessary:
 if [ $S3_UPLOAD == "true" ]; then
     for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
@@ -143,8 +135,10 @@ if [ $S3_UPLOAD == "true" ]; then
         aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
     done
 fi
+echo "***************** DONE UPLOADING RESULT TO S3 (OR NOT) *****************"
 
 
+echo "***************** COPYING RESULTS TO RESULT DIRECTORY *****************"
 for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
 do
     export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','parquet'))")
@@ -175,11 +169,11 @@ do
     export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/final/', $COVID_SLOT_INDEX,'$type','csv'))")
     cp $FILENAME $FS_RESULTS_PATH/$FILENAME
 done
-
+echo "***************** DONE COPYING RESULTS TO RESULT DIRECTORY *****************"
 
 # TODO: replacement for aws copy here ?
 
-echo "Done"
+echo "DONE EVERYTHING: MOVING LOG FILE"
 
 # move all the slurm log files:
 # doc: By default both standard output and standard error are directed to the same file. 

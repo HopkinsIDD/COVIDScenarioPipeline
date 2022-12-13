@@ -15,7 +15,7 @@ if [ $failure_count -gt 100 ]; then
 	echo "Failing run because total number of previous child job failures is $failure_count"
 	exit 1
 fi
-
+echo "***************** LOADING ENVIRONMENT *****************"
 # setup the python environment
 HOME=/home/app
 PYENV_ROOT=$HOME/.pyenv
@@ -73,7 +73,9 @@ python_install_ret=$?
 if [ $python_install_ret -ne 0 ]; then
 	error_handler "Error code returned from running `pip install -e gempyor_pkg`: $python_install_ret"
 fi
+echo "***************** DONE LOADING ENVIRONMENT *****************"
 
+echo "***************** FETCHING RESUME FILES *****************"
 ### In case of resume, download the right files from s3
 ## Remove trailing slashes
 export LAST_JOB_OUTPUT=$(echo $LAST_JOB_OUTPUT | sed 's/\/$//')
@@ -118,6 +120,7 @@ if [ -n "$LAST_JOB_OUTPUT" ]; then   # -n Checks if the length of a string is no
 	done
 	ls -ltr model_output
 fi
+echo "***************** DONE FETCHING RESUME FILES *****************"
 
 echo "State of directory before we start"
 echo "==="
@@ -126,15 +129,17 @@ echo "---"
 find data
 echo "==="
 
+echo "***************** RUNNING FILTER_MC.R *****************"
 # NOTE(jwills): hard coding this for now
 Rscript $COVID_PATH/R/scripts/filter_MC.R -p $COVID_PATH
-
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then
         error_handler "Error code returned from full_filter.R: $dvc_ret"
 fi
+echo "***************** DONE RUNNING FILTER_MC.R *****************"
 
-	for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
+echo "***************** UPLOADING RESULT TO S3 *****************"
+for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
 do
 	export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','parquet'))")
 	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
@@ -164,6 +169,7 @@ do
 	export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/final/', $COVID_SLOT_INDEX,'$type','csv'))")
 	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
 done
+echo "***************** UPLOADING RESULT TO S3 *****************"
 
 echo "Done"
 exit 0

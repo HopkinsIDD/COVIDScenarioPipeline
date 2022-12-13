@@ -601,8 +601,18 @@ class BatchJobHandler(object):
                     f"--job-name={cur_job_name}",
                     f"{os.path.dirname(os.path.realpath(__file__))}/inference_job.run",
                 ]
-                print("slurm command to be run >> "," ".join(command))
-                subprocess.run(command, check=True, shell=True)
+                print("slurm command to be run >>>>>>>> ")
+                print(" ".join(command))
+                print(" <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ")
+                sr = subprocess.run(command, check=True, shell=True)
+                print(f"sbatch command returned {sr.returncode}")
+                if sr.returncode != 0:
+                    print("sbatch command failed with stdout and stderr:")
+                    print(sr.stdout)
+                    print(sr.stderr)
+                    raise Exception("sbatch command failed")
+
+
             
             # On aws: create all other jobs + the copy job. slurm script is only one block and copies itself at the end.
             if self.batch_system == "aws":
