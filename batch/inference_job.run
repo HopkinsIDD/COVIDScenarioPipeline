@@ -1,4 +1,4 @@
-#!/bin/bash -l
+#!/bin/bash
 #SBATCH --nodes 1                      # Node PER JOB. Apparently this works on MARC
 #SBATCH --ntasks-per-node 1            # MPI sense -> just 1.
 #SBATCH --cpus-per-task 1              # No more than the number of CPU in a node. CPU <- coeur dans slurm
@@ -12,12 +12,15 @@ COVID_SLOT_INDEX=${SLURM_ARRAY_TASK_ID}
 echo "***************** LOADING ENVIRONMENT *****************"
 module purge
 # on marcc this is anaconda3/2022.05 to circumvent anaconda python bug. Otherwise that is just anaconda 
+module load anaconda
 module load anaconda3/2022.05
 conda activate covidSP
 # in case conda not found
 #source /home/jcblemai/.bashrc
 #source ~/miniconda3/etc/profile.d/conda.sh # loading conda in case
 #eval "$(conda shell.bash hook)"
+which python
+which Rscript
 echo "***************** DONE LOADING ENVIRONMENT *****************"
 
 
