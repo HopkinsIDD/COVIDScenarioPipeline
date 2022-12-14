@@ -19,7 +19,7 @@ DATA_DIR = os.path.dirname(__file__) + "/data"
 os.chdir(os.path.dirname(__file__))
 
 
-#def test_parameters_from_timeserie_file():
+# def test_parameters_from_timeserie_file():
 if True:
     config.clear()
     config.read(user=False)
@@ -33,32 +33,27 @@ if True:
         stoch_traj_flag=False,
     )
 
-    #p = parameters.Parameters(
+    # p = parameters.Parameters(
     #    parameter_config=config["seir"]["parameters"], config_version="v2")
 
     p = inference_simulator.s.parameters
-    p_draw = p.parameters_quick_draw(n_days=inference_simulator.s.n_days, 
-    nnodes=inference_simulator.s.nnodes)
+    p_draw = p.parameters_quick_draw(n_days=inference_simulator.s.n_days, nnodes=inference_simulator.s.nnodes)
 
     p_df = p.getParameterDF(p_draw)["parameter"]
 
     for pn in p.pnames:
-        if pn == 'R0s':
-            assert (pn not in p_df)
+        if pn == "R0s":
+            assert pn not in p_df
         else:
-            assert(pn in p_df)
+            assert pn in p_df
 
     initial_df = read_df("data/r0s_ts.csv").set_index("date")
 
-    assert((p_draw[p.pnames2pindex['R0s']] == initial_df.values).all())
+    assert (p_draw[p.pnames2pindex["R0s"]] == initial_df.values).all()
 
     ### test what happen when the order of geoids is not respected (expected: reput them in order)
-
 
     ### test what happens with incomplete data (expected: fail)
 
     ### test what happens when loading from file
-    #write_df(fname="test_pwrite.parquet", df=p.getParameterDF(p_draw=p_draw))
-
-
-
+    # write_df(fname="test_pwrite.parquet", df=p.getParameterDF(p_draw=p_draw))

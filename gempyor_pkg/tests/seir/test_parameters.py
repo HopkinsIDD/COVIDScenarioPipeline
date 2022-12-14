@@ -24,12 +24,12 @@ def test_parameters_from_config_plus_read_write():
     config.set_file(f"{DATA_DIR}/config_compartmental_model_format.yml")
     # Would be better to build a setup
     ss = setup.SpatialSetup(
-    setup_name="test_seir",
-    geodata_file=f"{DATA_DIR}/geodata.csv",
-    mobility_file=f"{DATA_DIR}/mobility.txt",
-    popnodes_key="population",
-    nodenames_key="geoid",
-)
+        setup_name="test_seir",
+        geodata_file=f"{DATA_DIR}/geodata.csv",
+        mobility_file=f"{DATA_DIR}/mobility.txt",
+        popnodes_key="population",
+        nodenames_key="geoid",
+    )
 
     index = 1
     run_id = "test_parameter"
@@ -39,7 +39,7 @@ def test_parameters_from_config_plus_read_write():
         spatial_setup=ss,
         nsim=1,
         npi_scenario="None",
-        config_version='v2',
+        config_version="v2",
         npi_config_seir=config["interventions"]["settings"]["None"],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
@@ -56,13 +56,21 @@ def test_parameters_from_config_plus_read_write():
     )
 
     lhs = parameters.Parameters(
-        parameter_config=config["seir"]["parameters"], ti = s.ti, tf=s.tf, nodenames=s.spatset.nodenames, config_version="v2"
+        parameter_config=config["seir"]["parameters"],
+        ti=s.ti,
+        tf=s.tf,
+        nodenames=s.spatset.nodenames,
+        config_version="v2",
     )
     n_days = 10
     nnodes = 5
 
     p = parameters.Parameters(
-        parameter_config=config["seir"]["parameters"], ti = s.ti, tf=s.tf, nodenames=s.spatset.nodenames, config_version="v2"
+        parameter_config=config["seir"]["parameters"],
+        ti=s.ti,
+        tf=s.tf,
+        nodenames=s.spatset.nodenames,
+        config_version="v2",
     )
     p_draw = p.parameters_quick_draw(n_days=10, nnodes=5)
     # test shape
@@ -71,11 +79,13 @@ def test_parameters_from_config_plus_read_write():
     write_df(fname="test_pwrite.parquet", df=p.getParameterDF(p_draw=p_draw))
 
     rhs = parameters.Parameters(
-        parameter_config=config["seir"]["parameters"], ti = s.ti, tf=s.tf, nodenames=s.spatset.nodenames, config_version="v2"
+        parameter_config=config["seir"]["parameters"],
+        ti=s.ti,
+        tf=s.tf,
+        nodenames=s.spatset.nodenames,
+        config_version="v2",
     )
-    p_load = rhs.parameters_load(
-        param_df=read_df("test_pwrite.parquet"), n_days=n_days, nnodes=nnodes
-    )
+    p_load = rhs.parameters_load(param_df=read_df("test_pwrite.parquet"), n_days=n_days, nnodes=nnodes)
 
     assert (p_draw == p_load).all()
 
@@ -86,12 +96,12 @@ def test_parameters_quick_draw_old():
     config.set_file(f"{DATA_DIR}/parameters_only.yml")
 
     ss = setup.SpatialSetup(
-    setup_name="test_seir",
-    geodata_file=f"{DATA_DIR}/geodata.csv",
-    mobility_file=f"{DATA_DIR}/mobility.txt",
-    popnodes_key="population",
-    nodenames_key="geoid",
-)
+        setup_name="test_seir",
+        geodata_file=f"{DATA_DIR}/geodata.csv",
+        mobility_file=f"{DATA_DIR}/mobility.txt",
+        popnodes_key="population",
+        nodenames_key="geoid",
+    )
     index = 1
     run_id = "test_parameter"
     prefix = ""
@@ -105,7 +115,7 @@ def test_parameters_quick_draw_old():
         seeding_config=config["seeding"],
         ti=config["start_date"].as_date(),
         tf=config["end_date"].as_date(),
-        config_version='old',
+        config_version="old",
         interactive=True,
         write_csv=False,
         first_sim_index=index,
@@ -116,16 +126,20 @@ def test_parameters_quick_draw_old():
         dt=0.25,
     )
 
-    params = parameters.Parameters(parameter_config=config["seir"]["parameters"], ti = s.ti, tf=s.tf, nodenames=s.spatset.nodenames, config_version="old" )
+    params = parameters.Parameters(
+        parameter_config=config["seir"]["parameters"],
+        ti=s.ti,
+        tf=s.tf,
+        nodenames=s.spatset.nodenames,
+        config_version="old",
+    )
 
     ### Check that the object is well constructed:
     print(params.pnames)
     assert params.pnames == ["alpha", "sigma", "gamma", "R0"]
     assert params.npar == 4
     assert params.intervention_overlap_operation["sum"] == []
-    assert params.intervention_overlap_operation["prod"] == [
-        pn.lower() for pn in params.pnames
-    ]
+    assert params.intervention_overlap_operation["prod"] == [pn.lower() for pn in params.pnames]
 
     p_array = params.parameters_quick_draw(n_days=s.n_days, nnodes=s.nnodes)
     print(p_array.shape)
@@ -150,17 +164,18 @@ def test_parameters_quick_draw_old():
     assert gamma.shape == (s.n_days, s.nnodes)
     assert len(np.unique(gamma)) == 1
 
+
 def test_parameters_from_timeserie_file():
     config.clear()
     config.read(user=False)
     config.set_file(f"{DATA_DIR}/config_compartmental_model_format.yml")
     ss = setup.SpatialSetup(
-    setup_name="test_seir",
-    geodata_file=f"{DATA_DIR}/geodata.csv",
-    mobility_file=f"{DATA_DIR}/mobility.txt",
-    popnodes_key="population",
-    nodenames_key="geoid",
-)
+        setup_name="test_seir",
+        geodata_file=f"{DATA_DIR}/geodata.csv",
+        mobility_file=f"{DATA_DIR}/mobility.txt",
+        popnodes_key="population",
+        nodenames_key="geoid",
+    )
     index = 1
     run_id = "test_parameter"
     prefix = ""
@@ -169,7 +184,7 @@ def test_parameters_from_timeserie_file():
         spatial_setup=ss,
         nsim=1,
         npi_scenario="None",
-        config_version='v2',
+        config_version="v2",
         npi_config_seir=config["interventions"]["settings"]["None"],
         parameters_config=config["seir"]["parameters"],
         seeding_config=config["seeding"],
@@ -186,13 +201,21 @@ def test_parameters_from_timeserie_file():
     )
 
     lhs = parameters.Parameters(
-        parameter_config=config["seir"]["parameters"], ti = s.ti, tf=s.tf, nodenames=s.spatset.nodenames,config_version="v2"
+        parameter_config=config["seir"]["parameters"],
+        ti=s.ti,
+        tf=s.tf,
+        nodenames=s.spatset.nodenames,
+        config_version="v2",
     )
     n_days = 10
     nnodes = 5
 
     p = parameters.Parameters(
-        parameter_config=config["seir"]["parameters"],ti = s.ti, tf=s.tf, nodenames=s.spatset.nodenames, config_version="v2"
+        parameter_config=config["seir"]["parameters"],
+        ti=s.ti,
+        tf=s.tf,
+        nodenames=s.spatset.nodenames,
+        config_version="v2",
     )
     p_draw = p.parameters_quick_draw(n_days=10, nnodes=5)
     # test shape
@@ -201,10 +224,12 @@ def test_parameters_from_timeserie_file():
     write_df(fname="test_pwrite.parquet", df=p.getParameterDF(p_draw=p_draw))
 
     rhs = parameters.Parameters(
-        parameter_config=config["seir"]["parameters"],ti = s.ti, tf=s.tf, nodenames=s.spatset.nodenames, config_version="v2"
+        parameter_config=config["seir"]["parameters"],
+        ti=s.ti,
+        tf=s.tf,
+        nodenames=s.spatset.nodenames,
+        config_version="v2",
     )
-    p_load = rhs.parameters_load(
-        param_df=read_df("test_pwrite.parquet"), n_days=n_days, nnodes=nnodes
-    )
+    p_load = rhs.parameters_load(param_df=read_df("test_pwrite.parquet"), n_days=n_days, nnodes=nnodes)
 
     assert (p_draw == p_load).all()
