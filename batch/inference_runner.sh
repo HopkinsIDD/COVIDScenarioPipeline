@@ -131,7 +131,7 @@ echo "==="
 
 echo "***************** RUNNING FILTER_MC.R *****************"
 # NOTE(jwills): hard coding this for now
-Rscript $COVID_PATH/R/scripts/filter_MC.R -p $COVID_PATH
+Rscript COVIDScenarioPipeline/R/scripts/filter_MC.R -p COVIDScenarioPipeline
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then
         error_handler "Error code returned from full_filter.R: $dvc_ret"

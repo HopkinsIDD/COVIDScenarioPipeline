@@ -7,6 +7,8 @@
 
 set -x
 
+cd $DATA_PATH
+
 COVID_SLOT_INDEX=${SLURM_ARRAY_TASK_ID}
 
 echo "***************** LOADING ENVIRONMENT *****************"
@@ -94,8 +96,6 @@ echo "Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH   # 
                                                --is-resume $COVID_IS_RESUME # Is this run a resume
                                                --is-interactive FALSE # Is this run an interactive run" > $LOG_FILE 2>&1 &
 
-
-#cd $DATA_PATH
 Rscript $COVID_PATH/R/scripts/filter_MC.R -p $COVID_PATH > $LOG_FILE 2>&1
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then

@@ -292,8 +292,9 @@ def launch_batch(
 
     # Set job_name as environmental variable so it can be pulled for pushing to git
     os.environ["job_name"] = job_name
+    # Set run_id as environmental variable so it can be pulled for pushing to git TODO
 
-    (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")
+    (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}") # TODO: cd ...
     print(txt)
     return rc
 
@@ -420,8 +421,8 @@ class BatchJobHandler(object):
         manifest = {}
         manifest["cmd"] = " ".join(sys.argv[:])
         manifest["job_name"] = job_name
-        manifest["data_sha"] = subprocess.getoutput("git rev-parse HEAD")
-        manifest["csp_sha"] = subprocess.getoutput("cd COVIDScenarioPipeline; git rev-parse HEAD")
+        manifest["data_sha"] = subprocess.getoutput("cd {self.data_path}; git rev-parse HEAD")
+        manifest["csp_sha"] = subprocess.getoutput(f"cd {self.csp_path}; git rev-parse HEAD")
 
         # Save the manifest file to S3
         with open("manifest.json", "w") as f:
@@ -442,24 +443,25 @@ class BatchJobHandler(object):
         self.save_file(source="manifest.json", destination=f"{job_name}/manifest.json", remove_source=True)
 
     def tar_working_dir(self, tarfile_name):
+        # this tar file always has the structure:
+        # where all data files are in the root of the tar file and the csp files are in a COVIDScenarioPipeline folder.
         tar = tarfile.open(tarfile_name, "w:gz", dereference=True)
-        for p in os.listdir("."):
-            if p == "COVIDScenarioPipeline":  # TODO: we should use csp_path & data_path here
-                for q in os.listdir("COVIDScenarioPipeline"):
-                    if not (
-                        q == "packrat"
-                        or q == "covid-dashboard-app"
-                        or q == "renv.cache"
-                        or q == "sample_data"
-                        or q == "build"
-                        or q.startswith(".")
-                    ):
-                        tar.add(os.path.join("COVIDScenarioPipeline", q))
-                    elif q == "sample_data":
-                        for r in os.listdir("COVIDScenarioPipeline/sample_data"):
-                            if r != "united-states-commutes":
-                                tar.add(os.path.join("COVIDScenarioPipeline", "sample_data", r))
-            elif not (p.startswith(".") or p.endswith("tar.gz") or p in self.outputs):
+        for q in os.listdir(self.csp_path):
+            if not (
+                q == "packrat"
+                or q == "covid-dashboard-app"
+                or q == "renv.cache"
+                or q == "sample_data"
+                or q == "build"
+                or q.startswith(".")
+            ):
+                tar.add(os.path.join("COVIDScenarioPipeline", q))
+            elif q == "sample_data":
+                for r in os.listdir("COVIDScenarioPipeline/sample_data"):
+                    if r != "united-states-commutes":
+                        tar.add(os.path.join("COVIDScenarioPipeline", "sample_data", r))
+        for p in os.listdir(self.data_path):
+            if not (p.startswith(".") or p.endswith("tar.gz") or p in self.outputs or p == "COVIDScenarioPipeline"):
                 tar.add(
                     p,
                     filter=lambda x: None if os.path.basename(x.name).startswith(".") else x,
@@ -597,33 +599,44 @@ class BatchJobHandler(object):
                 #    f"--mem={self.memory}M",  # memory per node
                 #    # use vcpu here ? no need afaik.
                 #    # time:  Acceptable time formats include "minutes", ... "days-hours:minutes" or  #J-H:m:s.
-                #    f"--time={time_limit}",
+                #    f"--time={time_limit}",¨
+                #                    #f"--mem={self.memory}M",  # memory per node
+                # use vcpu here ? no need afaik.
+                # time:  Acceptable time formats include "minutes", ... "days-hours:minutes" or  #J-H:m:s.
                 #    f"--job-name={cur_job_name}",
                 #    f"{os.path.dirname(os.path.realpath(__file__))}/inference_job.run",
                 #]
                 command = f"sbatch {export_str} --array=1-{self.num_jobs} --mem={self.memory}M --time={time_limit} --job-name={cur_job_name} {os.path.dirname(os.path.realpath(__file__))}/inference_job.run"
-                    #f"--mem={self.memory}M",  # memory per node
-                    # use vcpu here ? no need afaik.
-                    # time:  Acceptable time formats include "minutes", ... "days-hours:minutes" or  #J-H:m:s.
 
                 print("slurm command to be run >>>>>>>> ")
-                #print(" ".join(command))
                 print(command)
                 print(" <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ")
                 import shlex # using shlex to split the command because it's not obvious https://docs.python.org/3/library/subprocess.html#subprocess.Popen
-                sr = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)#, check=True, shell=True)
+                sr = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 (stdout, stderr) = sr.communicate()
-
                 if sr.returncode != 0:
                     print(f"sbatch command failed with returncode {sr.returncode}")
                     print("sbatch command failed with stdout and stderr:")
                     print("stdout: ", stdout)
                     print("stderr: ", stderr)
                     raise Exception("sbatch command failed")
+                slurm_job_id = stdout.decode().split(' ')[-1][:-1]
+                print(f">>> SUCCESS SCHEDULING JOB. Slurm job id is {slurm_job_id}")
                 
-                print(f">>> SUCCESS SCHEDULING JOB. Slurm job id is {stdout.decode().split(' ')[-1][:-1]}")
-
-
+                postprod_command = f"sbatch {export_str} --dependency=afterany:{slurm_job_id} --mem={64000}M --time={120} --job-name=post-{cur_job_name} {os.path.dirname(os.path.realpath(__file__))}/postprocess_inference.run"
+                print("post-processing command to be run >>>>>>>> ")
+                print(postprod_command)
+                print(" <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ")
+                sr = subprocess.Popen(shlex.split(postprod_command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                (stdout, stderr) = sr.communicate()
+                if sr.returncode != 0:
+                    print(f"sbatch command failed with returncode {sr.returncode}")
+                    print("sbatch command failed with stdout and stderr:")
+                    print("stdout: ", stdout)
+                    print("stderr: ", stderr)
+                    raise Exception("sbatch command failed")
+                postprod_job_id = stdout.decode().split(' ')[-1][:-1]
+                print(f">>> SUCCESS SCHEDULING POST-PROCESSING JOB. Slurm job id is {postprod_job_id}")
             
             # On aws: create all other jobs + the copy job. slurm script is only one block and copies itself at the end.
             if self.batch_system == "aws":
@@ -688,7 +701,7 @@ class BatchJobHandler(object):
         print(f" --------- COPY TO #csp_production message below ---------")
         print(f"Launching {cur_job_name} on {self.batch_system}...")
         print(
-            f" >> Job array: {self.num_jobs} slot(s) X {self.num_blocks} block(s) of {self.sims_per_job} simulation(s)."
+            f" >> Job array: {self.num_jobs} slot(s) X {self.num_blocks} block(s) of {self.sims_per_job} simulation(s) each."
         )
         if not (self.restart_from_location is None):
             em = "."
@@ -703,6 +716,12 @@ class BatchJobHandler(object):
                 print(f" >> Final output will be uploaded to {s3_results_path}/model_output/")
         print(f" >> Run id is {self.run_id}")
         print(f" >> config is {config_file.split('/')[-1]}")
+        csp_branch = subprocess.getoutput(f"cd {self.csp_path}; git rev-parse --abbrev-ref HEAD")
+        data_branch = subprocess.getoutput(f"cd {self.data_path}; git rev-parse --abbrev-ref HEAD")
+        data_hash = subprocess.getoutput(f"cd {self.data_path}; git rev-parse HEAD")
+        csp_hash = subprocess.getoutput(f"cd {self.csp_path}; git rev-parse HEAD")
+        print(f""" >> CSP branch is {csp_branch} with hash {csp_hash}""")
+        print(f""" >> DATA branch is {data_branch} with hash {data_hash}""")
         print(f" ------------------------- END -------------------------")
         # add in csp and data path branch.
 
