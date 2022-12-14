@@ -47,9 +47,7 @@ def test_constant_population():
     initial_conditions = s.seedingAndIC.draw_ic(sim_id=0, setup=s)
     seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id=100, setup=s)
 
-    npi = NPI.NPIBase.execute(
-        npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames
-    )
+    npi = NPI.NPIBase.execute(npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames)
 
     parameters = s.parameters.parameters_quick_draw(n_days=s.n_days, nnodes=s.nnodes)
     parameter_names = [x for x in s.parameters.pnames]
@@ -61,9 +59,7 @@ def test_constant_population():
         proportion_array,
         proportion_info,
     ) = s.compartments.get_transition_array()
-    parsed_parameters = s.compartments.parse_parameters(
-        parameters, s.parameters.pnames, unique_strings
-    )
+    parsed_parameters = s.compartments.parse_parameters(parameters, s.parameters.pnames, unique_strings)
     print("RUN_FUN_END")
     print(proportion_array)
 

@@ -77,14 +77,10 @@ if __name__ == "__main__":
     fn = files[0]
     old_run_id = detect_old_run_id(fn)
     new_name = (
-        fn.replace("seir", "cont")
-        .replace(f"{input_folder}/model_output", "model_output")
-        .replace(old_run_id, run_id)
+        fn.replace("seir", "cont").replace(f"{input_folder}/model_output", "model_output").replace(old_run_id, run_id)
     )
 
-    print(
-        f"detected old_run_id: {old_run_id} which will be replaced by user provided run_id: {run_id}"
-    )
+    print(f"detected old_run_id: {old_run_id} which will be replaced by user provided run_id: {run_id}")
     empty_str = "°" * len(input_folder)
     print(f"file: \n OLD NAME: {fn}\n NEW NAME: {empty_str}{new_name}")
     for fn in tqdm.tqdm(files):

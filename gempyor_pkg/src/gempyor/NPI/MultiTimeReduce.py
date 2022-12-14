@@ -20,8 +20,7 @@ class MultiTimeReduce(NPIBase):
             name=getattr(
                 npi_config,
                 "key",
-                (npi_config["scenario"].exists() and npi_config["scenario"].get())
-                or "unknown",
+                (npi_config["scenario"].exists() and npi_config["scenario"].get()) or "unknown",
             )
         )
 
@@ -57,22 +56,14 @@ class MultiTimeReduce(NPIBase):
 
         # if parameters are exceeding global start/end dates, index of parameter df will be out of range so check first
         if self.sanitize:
-            too_early = (
-                min([min(i) for i in self.parameters["start_date"]]) < self.start_date
-            )
-            too_late = (
-                max([max(i) for i in self.parameters["end_date"]]) > self.end_date
-            )
+            too_early = min([min(i) for i in self.parameters["start_date"]]) < self.start_date
+            too_late = max([max(i) for i in self.parameters["end_date"]]) > self.end_date
             if too_early or too_late:
-                raise ValueError(
-                    "at least one period start or end date is not between global dates"
-                )
+                raise ValueError("at least one period start or end date is not between global dates")
 
         for grp_config in npi_config["groups"]:
             affected_geoids_grp = self.__get_affected_geoids_grp(grp_config)
-            for sub_index in range(
-                len(self.parameters["start_date"][affected_geoids_grp[0]])
-            ):
+            for sub_index in range(len(self.parameters["start_date"][affected_geoids_grp[0]])):
                 period_range = pd.date_range(
                     self.parameters["start_date"][affected_geoids_grp[0]][sub_index],
                     self.parameters["end_date"][affected_geoids_grp[0]][sub_index],
@@ -98,9 +89,7 @@ class MultiTimeReduce(NPIBase):
         max_start_date = max([max(i) for i in self.parameters["start_date"]])
         min_end_date = min([min(i) for i in self.parameters["end_date"]])
         max_end_date = max([max(i) for i in self.parameters["end_date"]])
-        if not (
-            (self.start_date <= min_start_date) & (max_start_date <= self.end_date)
-        ):
+        if not ((self.start_date <= min_start_date) & (max_start_date <= self.end_date)):
             raise ValueError(
                 f"at least one period_start_date [{min_start_date}, {max_start_date}] is not between global dates [{self.start_date}, {self.end_date}]"
             )
@@ -110,9 +99,7 @@ class MultiTimeReduce(NPIBase):
             )
 
         if not (self.parameters["start_date"] <= self.parameters["end_date"]).all():
-            raise ValueError(
-                f"at least one period_start_date is greater than the corresponding period end date"
-            )
+            raise ValueError(f"at least one period_start_date is greater than the corresponding period end date")
 
         for n in self.affected_geoids:
             if n not in self.geoids:
@@ -138,9 +125,7 @@ class MultiTimeReduce(NPIBase):
 
         self.affected_geoids = self.__get_affected_geoids(npi_config)
 
-        self.parameters = self.parameters[
-            self.parameters.index.isin(self.affected_geoids)
-        ]
+        self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids)]
         dist = npi_config["value"].as_random_distribution()
         self.parameters["npi_name"] = self.name
         self.parameters["parameter"] = self.param_name
@@ -172,9 +157,7 @@ class MultiTimeReduce(NPIBase):
     def __createFromDf(self, loaded_df, npi_config):
         loaded_df.index = loaded_df.geoid
         loaded_df = loaded_df[loaded_df["npi_name"] == self.name]
-        self.parameters = loaded_df[
-            ["npi_name", "start_date", "end_date", "parameter", "reduction"]
-        ].copy()
+        self.parameters = loaded_df[["npi_name", "start_date", "end_date", "parameter", "reduction"]].copy()
         # self.parameters["start_date"] = [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["start_date"]]
         # self.parameters["end_date"] =   [[datetime.date.fromisoformat(date) for date in strdate.split(",")] for strdate in self.parameters["end_date"]]
         # self.affected_geoids = set(self.parameters.index)
@@ -183,9 +166,7 @@ class MultiTimeReduce(NPIBase):
         if self.sanitize:
             if len(self.affected_geoids) != len(self.parameters):
                 print(f"loading {self.name} and we got {len(self.parameters)} geoids")
-                print(
-                    f"getting from config that it affects {len(self.affected_geoids)}"
-                )
+                print(f"getting from config that it affects {len(self.affected_geoids)}")
 
         for grp_config in npi_config["groups"]:
             affected_geoids_grp = self.__get_affected_geoids_grp(grp_config)
@@ -229,14 +210,10 @@ class MultiTimeReduce(NPIBase):
             if grp_config["affected_geoids"].get() == "all":
                 affected_geoids_grp = self.geoids
             else:
-                affected_geoids_grp += [
-                    str(n.get()) for n in grp_config["affected_geoids"]
-                ]
+                affected_geoids_grp += [str(n.get()) for n in grp_config["affected_geoids"]]
         affected_geoids = set(affected_geoids_grp)
         if len(affected_geoids) != len(affected_geoids_grp):
-            raise ValueError(
-                f"In NPI {self.name}, some geoids belong to several groups. This is unsupported."
-            )
+            raise ValueError(f"In NPI {self.name}, some geoids belong to several groups. This is unsupported.")
         return affected_geoids
 
     def getReduction(self, param, default=0.0):
@@ -249,11 +226,7 @@ class MultiTimeReduce(NPIBase):
     def getReductionToWrite(self):
         df = self.parameters
         df.index.name = "geoid"
-        df["start_date"] = df["start_date"].apply(
-            lambda l: ",".join([d.strftime("%Y-%m-%d") for d in l])
-        )
-        df["end_date"] = df["end_date"].apply(
-            lambda l: ",".join([d.strftime("%Y-%m-%d") for d in l])
-        )
+        df["start_date"] = df["start_date"].apply(lambda l: ",".join([d.strftime("%Y-%m-%d") for d in l]))
+        df["end_date"] = df["end_date"].apply(lambda l: ",".join([d.strftime("%Y-%m-%d") for d in l]))
         df = df.reset_index()
         return df

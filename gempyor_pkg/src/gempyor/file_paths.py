@@ -6,15 +6,11 @@ def create_file_name(run_id, prefix, index, ftype, extension, create_directory=T
     if create_directory:
         os.makedirs(create_dir_name(run_id, prefix, ftype), exist_ok=True)
 
-    fn_no_ext = create_file_name_without_extension(
-        run_id, prefix, index, ftype, create_directory=create_directory
-    )
+    fn_no_ext = create_file_name_without_extension(run_id, prefix, index, ftype, create_directory=create_directory)
     return f"{fn_no_ext}.%s" % (extension,)
 
 
-def create_file_name_without_extension(
-    run_id, prefix, index, ftype, create_directory=True
-):
+def create_file_name_without_extension(run_id, prefix, index, ftype, create_directory=True):
     if create_directory:
         os.makedirs(create_dir_name(run_id, prefix, ftype), exist_ok=True)
     return "model_output/%s/%s%09d.%s.%s" % (ftype, prefix, index, run_id, ftype)
@@ -25,8 +21,4 @@ def run_id():
 
 
 def create_dir_name(run_id, prefix, ftype):
-    return os.path.dirname(
-        create_file_name_without_extension(
-            run_id, prefix, 1, ftype, create_directory=False
-        )
-    )
+    return os.path.dirname(create_file_name_without_extension(run_id, prefix, 1, ftype, create_directory=False))

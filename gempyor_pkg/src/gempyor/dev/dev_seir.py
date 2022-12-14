@@ -58,9 +58,7 @@ mobility_geoid_indices = s.mobility.indices
 mobility_data_indices = s.mobility.indptr
 mobility_data = s.mobility.data
 
-npi = NPI.NPIBase.execute(
-    npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames
-)
+npi = NPI.NPIBase.execute(npi_config=s.npi_config_seir, global_config=config, geoids=s.spatset.nodenames)
 
 params = s.parameters.parameters_quick_draw(s.n_days, s.nnodes)
 params = s.parameters.parameters_reduce(params, npi)
@@ -92,12 +90,7 @@ states = seir.steps_SEIR_nb(
     True,
 )
 df = seir.states2Df(s, states)
-assert (
-    df[(df["mc_value_type"] == "prevalence") & (df["mc_infection_stage"] == "R")].loc[
-        str(s.tf), "20002"
-    ]
-    > 1
-)
+assert df[(df["mc_value_type"] == "prevalence") & (df["mc_infection_stage"] == "R")].loc[str(s.tf), "20002"] > 1
 print(df)
 ts = df
 cp = "R"

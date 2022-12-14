@@ -46,15 +46,11 @@ for fold in folder:
         only_in_sim = list(set(sim.columns) - set(past_dynamics.columns))
         only_in_pastdyn = list(set(past_dynamics.columns) - set(sim.columns))
         c.drop(only_in_pastdyn, inplace=True, axis=1)
-        c.loc[
-            (c["time"] <= max(past_dynamics["time"])) & (c["comp"] != "S"), only_in_sim
-        ] = 0
+        c.loc[(c["time"] <= max(past_dynamics["time"])) & (c["comp"] != "S"), only_in_sim] = 0
         pop_ois = []
         for nd in only_in_sim:
             pop_ois.append(float(geodata[geodata["geoid"] == nd].pop2010))
-        c.loc[
-            (c["time"] <= max(past_dynamics["time"])) & (c["comp"] == "S"), only_in_sim
-        ] = pop_ois
+        c.loc[(c["time"] <= max(past_dynamics["time"])) & (c["comp"] == "S"), only_in_sim] = pop_ois
         pa_df = pa.Table.from_pandas(c.round(), preserve_index=False)
         pa.parquet.write_table(pa_df, filename)
     print("DONE")

@@ -17,13 +17,9 @@ logger = logging.getLogger(__name__)
 
 def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
     if not df["date"].is_monotonic_increasing:
-        raise ValueError(
-            "_DataFrame2NumbaDict got an unsorted dataframe, exposing itself to non-sense"
-        )
+        raise ValueError("_DataFrame2NumbaDict got an unsorted dataframe, exposing itself to non-sense")
 
-    cmp_grp_names = [
-        col for col in setup.compartments.compartments.columns if col != "name"
-    ]
+    cmp_grp_names = [col for col in setup.compartments.compartments.columns if col != "name"]
     seeding_dict: nb.typed.Dict = nb.typed.Dict.empty(
         key_type=nb.types.unicode_type,
         value_type=nb.types.int64[:],
@@ -49,31 +45,25 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
                     nb_seed_perday[(row["date"].date() - setup.ti).days] + 1
                 )
 
-                source_dict = {
-                    grp_name: row[f"source_{grp_name}"] for grp_name in cmp_grp_names
-                }
-                destination_dict = {
-                    grp_name: row[f"destination_{grp_name}"] for grp_name in cmp_grp_names
-                }
-                seeding_dict["seeding_sources"][idx] = setup.compartments.get_comp_idx(
-                    source_dict
-                )
-                seeding_dict["seeding_destinations"][idx] = setup.compartments.get_comp_idx(
-                    destination_dict
-                )
-                seeding_dict["seeding_places"][idx] = setup.spatset.nodenames.index(
-                    row["place"]
-                )
+                source_dict = {grp_name: row[f"source_{grp_name}"] for grp_name in cmp_grp_names}
+                destination_dict = {grp_name: row[f"destination_{grp_name}"] for grp_name in cmp_grp_names}
+                seeding_dict["seeding_sources"][idx] = setup.compartments.get_comp_idx(source_dict)
+                seeding_dict["seeding_destinations"][idx] = setup.compartments.get_comp_idx(destination_dict)
+                seeding_dict["seeding_places"][idx] = setup.spatset.nodenames.index(row["place"])
                 seeding_amounts[idx] = amounts[idx]
             else:
                 n_seeding_ignored_after += 1
         else:
             n_seeding_ignored_before += 1
-    
+
     if n_seeding_ignored_before > 0:
-        logging.critical(f"Seeding ignored {n_seeding_ignored_before} rows because they were before the start of the simulation.")
+        logging.critical(
+            f"Seeding ignored {n_seeding_ignored_before} rows because they were before the start of the simulation."
+        )
     if n_seeding_ignored_after > 0:
-        logging.critical(f"Seeding ignored {n_seeding_ignored_after} rows because they were after the end of the simulation.")
+        logging.critical(
+            f"Seeding ignored {n_seeding_ignored_after} rows because they were after the end of the simulation."
+        )
 
     day_start_idx = np.zeros(setup.n_days + 1, dtype=np.int64)
     day_start_idx[1:] = np.cumsum(nb_seed_perday)
@@ -103,31 +93,21 @@ class SeedingAndIC:
         elif method == "SetInitialConditions":
             # TODO: this format should allow not complete configurations
             #       - Does not support the new way of doing compartiment indexing
-            logger.critical(
-                "Untested method SetInitialConditions !!! Please report this messsage."
-            )
+            logger.critical("Untested method SetInitialConditions !!! Please report this messsage.")
             ic_df = pd.read_csv(
                 self.initial_conditions_config["states_file"].as_str(),
                 converters={"place": lambda x: str(x)},
             )
             if ic_df.empty:
-                raise ValueError(
-                    f"There is no entry for initial time ti in the provided seeding::states_file."
-                )
+                raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
             y0 = np.zeros((setup.compartments.compartments.shape[0], setup.nnodes))
             for pl_idx, pl in enumerate(setup.spatset.nodenames):  #
                 if pl in list(ic_df["place"]):
                     states_pl = ic_df[ic_df["place"] == pl]
-                    for comp_idx, comp_name in setup.compartments.compartments[
-                        "name"
-                    ].iteritems():
-                        y0[comp_idx, pl_idx] = float(
-                            states_pl[states_pl["comp"] == comp_name]["amount"]
-                        )
+                    for comp_idx, comp_name in setup.compartments.compartments["name"].iteritems():
+                        y0[comp_idx, pl_idx] = float(states_pl[states_pl["comp"] == comp_name]["amount"])
                 elif self.seeding_config["ignore_missing"].get():
-                    print(
-                        f"WARNING: State load does not exist for node {pl}, assuming fully susceptible population"
-                    )
+                    print(f"WARNING: State load does not exist for node {pl}, assuming fully susceptible population")
                     y0[0, pl_idx] = setup.popnodes[pl_idx]
                 else:
                     raise ValueError(
@@ -135,22 +115,13 @@ class SeedingAndIC:
                     )
 
         elif method == "InitialConditionsFolderDraw":
-            ic_df = setup.read_simID(
-                ftype=self.initial_conditions_config["initial_file_type"], sim_id=sim_id
-            )
-            ic_df = ic_df[
-                (ic_df["date"] == str(setup.ti))
-                & (ic_df["mc_value_type"] == "prevalence")
-            ]
+            ic_df = setup.read_simID(ftype=self.initial_conditions_config["initial_file_type"], sim_id=sim_id)
+            ic_df = ic_df[(ic_df["date"] == str(setup.ti)) & (ic_df["mc_value_type"] == "prevalence")]
             if ic_df.empty:
-                raise ValueError(
-                    f"There is no entry for initial time ti in the provided seeding::states_file."
-                )
+                raise ValueError(f"There is no entry for initial time ti in the provided seeding::states_file.")
 
             y0 = np.zeros((setup.compartments.compartments.shape[0], setup.nnodes))
-            for comp_idx, comp_name in setup.compartments.compartments[
-                "name"
-            ].iteritems():
+            for comp_idx, comp_name in setup.compartments.compartments["name"].iteritems():
                 ic_df_compartment = ic_df[ic_df["mc_name"] == comp_name]
                 for pl_idx, pl in enumerate(setup.spatset.nodenames):
                     if pl in ic_df.columns:
@@ -165,9 +136,7 @@ class SeedingAndIC:
                             f"place {pl} does not exist in seeding::states_file. You can set ignore_missing=TRUE to bypass this error"
                         )
         else:
-            raise NotImplementedError(
-                f"unknown initial conditions method [got: {method}]"
-            )
+            raise NotImplementedError(f"unknown initial conditions method [got: {method}]")
         return y0
 
     def draw_seeding(self, sim_id: int, setup) -> nb.typed.Dict:
@@ -183,9 +152,7 @@ class SeedingAndIC:
             )
             dupes = seeding[seeding.duplicated(["place", "date"])].index + 1
             if not dupes.empty:
-                raise ValueError(
-                    f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file."
-                )
+                raise ValueError(f"Repeated place-date in rows {dupes.tolist()} of seeding::lambda_file.")
         elif method == "FolderDraw":
             seeding = pd.read_csv(
                 setup.get_input_filename(
@@ -235,6 +202,4 @@ class SeedingAndIC:
 
     # Write seeding used to file
     def seeding_write(self, seeding, fname, extension):
-        raise NotImplementedError(
-            f"It is not yet possible to write the seeding to a file"
-        )
+        raise NotImplementedError(f"It is not yet possible to write the seeding to a file")

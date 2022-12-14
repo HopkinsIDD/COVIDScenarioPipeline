@@ -16,9 +16,7 @@ import confuse
 import numpy as np
 from pyspark.sql import functions as F, SparkSession, SQLContext, Window
 
-PROBS = np.concatenate(
-    [[0.01, 0.025], np.arange(start=0.05, stop=0.95, step=0.05), [0.975, 0.99]]
-)
+PROBS = np.concatenate([[0.01, 0.025], np.arange(start=0.05, stop=0.95, step=0.05), [0.975, 0.99]])
 METRICS = ["hosp_curr", "cum_death", "death", "infections", "cum_infections", "hosp"]
 
 spark = SparkSession.builder.appName("quantile report").getOrCreate()
@@ -71,15 +69,9 @@ def process(config_file, scenarios, output, start_date, end_date, name_filter):
     config = confuse.Configuration("COVIDScenarioPipeline")
     config.set_file(config_file)
 
-    input_paths = (
-        f"{config['spatial_setup']['setup_name'].get()}_{scenario}"
-        for scenario in scenarios
-    )
+    input_paths = (f"{config['spatial_setup']['setup_name'].get()}_{scenario}" for scenario in scenarios)
     paths = itertools.chain(
-        *(
-            pathlib.Path("hospitalization/model_output").glob(p + "/**/*.parquet")
-            for p in input_paths
-        )
+        *(pathlib.Path("hospitalization/model_output").glob(p + "/**/*.parquet") for p in input_paths)
     )
     paths = (str(p) for p in paths if p.is_file())
     paths = filter(lambda p: re.search(name_filter, p), paths)
@@ -96,9 +88,7 @@ def process(config_file, scenarios, output, start_date, end_date, name_filter):
     df = df.filter((df.time > start_date.date()) & (df.time <= end_date.date()))
     df = df.withColumn(
         "cum_infections",
-        F.sum(df.infections).over(
-            Window.partitionBy(df.geoid).orderBy(df.time, df.uid)
-        ),
+        F.sum(df.infections).over(Window.partitionBy(df.geoid).orderBy(df.time, df.uid)),
     )
     df = df.withColumn(
         "cum_death",
@@ -111,10 +101,7 @@ def process(config_file, scenarios, output, start_date, end_date, name_filter):
         (metric, prob, f"{metric}__{str(round(prob, 3)).replace('.', '_')}")
         for metric, prob in itertools.product(METRICS, PROBS)
     ]
-    agg_sql = ", ".join(
-        f"percentile_approx({metric}, {prob}, 100) AS {name}"
-        for metric, prob, name in metric_probs
-    )
+    agg_sql = ", ".join(f"percentile_approx({metric}, {prob}, 100) AS {name}" for metric, prob, name in metric_probs)
     rollup_df = sqlContext.sql(
         f"""\
 SELECT geoid, time, {agg_sql} FROM df
