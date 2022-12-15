@@ -46,9 +46,7 @@ class Stacked(NPIBase):
             if isinstance(scenario, str):
                 settings = settings_map.get(scenario)
                 if settings is None:
-                    raise RuntimeError(
-                        f"couldn't find scenario in config file [got: {scenario}]"
-                    )
+                    raise RuntimeError(f"couldn't find scenario in config file [got: {scenario}]")
                 # via profiling: faster to recreate the confuse view than to fetch+resolve due to confuse isinstance
                 # checks
                 scenario_npi_config = confuse.RootView([settings])
@@ -66,25 +64,19 @@ class Stacked(NPIBase):
             )
 
             new_params = sub_npi.param_name  # either a list (if stacked) or a string
-            new_params = (
-                [new_params] if isinstance(new_params, str) else new_params
-            )  # convert to list
+            new_params = [new_params] if isinstance(new_params, str) else new_params  # convert to list
             # Add each parameter at first encounter
             for new_p in new_params:
                 if new_p not in self.param_name:
                     self.param_name.append(new_p)
-                    if (
-                        new_p in pnames_overlap_operation_sum
-                    ):  # re.match("^transition_rate [1234567890]+$",new_p):
+                    if new_p in pnames_overlap_operation_sum:  # re.match("^transition_rate [1234567890]+$",new_p):
                         self.reductions[new_p] = 0
                     else:
                         self.reductions[new_p] = 1
 
             for param in self.param_name:
                 reduction = sub_npi.getReduction(param, default=0.0)
-                if (
-                    param in pnames_overlap_operation_sum
-                ):  # re.match("^transition_rate [1234567890]+$",param):
+                if param in pnames_overlap_operation_sum:  # re.match("^transition_rate [1234567890]+$",param):
                     self.reductions[param] += reduction
                 else:
                     self.reductions[param] *= 1 - reduction
@@ -105,9 +97,7 @@ class Stacked(NPIBase):
                     self.reduction_params.clear()
 
         for param in self.param_name:
-            if (
-                not param in pnames_overlap_operation_sum
-            ):  # re.match("^transition_rate \d+$",param):
+            if not param in pnames_overlap_operation_sum:  # re.match("^transition_rate \d+$",param):
                 self.reductions[param] = 1 - self.reductions[param]
 
         # check that no NPI is called several times, and retourn them

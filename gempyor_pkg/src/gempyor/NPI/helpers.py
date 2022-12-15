@@ -12,9 +12,7 @@ def reduce_parameter(
     if isinstance(modification, pd.DataFrame):
         modification = modification.T
         modification.index = pd.to_datetime(modification.index.astype(str))
-        modification = (
-            modification.resample("1D").ffill().to_numpy()
-        )  # Type consistency:
+        modification = modification.resample("1D").ffill().to_numpy()  # Type consistency:
     if method == "prod":
         return parameter * (1 - modification)
     elif method == "sum":

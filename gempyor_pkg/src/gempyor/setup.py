@@ -59,9 +59,7 @@ class Setup:
         self.ti = ti  ## we start at 00:00 on ti
         self.tf = tf  ## we end on 23:59 on tf
         if self.tf <= self.ti:
-            raise ValueError(
-                "tf (time to finish) is less than or equal to ti (time to start)"
-            )
+            raise ValueError("tf (time to finish) is less than or equal to ti (time to start)")
         self.npi_scenario = npi_scenario
         self.npi_config_seir = npi_config_seir
         self.seeding_config = seeding_config
@@ -93,14 +91,10 @@ class Setup:
                 if self.integration_method == "rk4":
                     self.integration_method = "rk4.jit"
                 if self.integration_method not in ["rk4.jit", "legacy"]:
-                    raise ValueError(
-                        f"Unknow integration method {self.integration_method}."
-                    )
+                    raise ValueError(f"Unknow integration method {self.integration_method}.")
             else:
                 self.integration_method = "rk4.jit"
-                logging.info(
-                    f"Integration method not provided, assuming type {self.integration_method}"
-                )
+                logging.info(f"Integration method not provided, assuming type {self.integration_method}")
 
             if config_version is None:
                 if "compartments" in self.seir_config.keys():
@@ -108,9 +102,7 @@ class Setup:
                 else:
                     config_version = "old"
 
-                logging.debug(
-                    f"Config version not provided, infering type {config_version}"
-                )
+                logging.debug(f"Config version not provided, infering type {config_version}")
 
             if config_version != "old" and config_version != "v2":
                 raise ValueError(
@@ -120,8 +112,11 @@ class Setup:
 
             # Think if we really want to hold this up.
             self.parameters = parameters.Parameters(
-                parameter_config=self.parameters_config, config_version=config_version, 
-                ti=self.ti, tf=self.tf, nodenames=self.spatset.nodenames
+                parameter_config=self.parameters_config,
+                config_version=config_version,
+                ti=self.ti,
+                tf=self.tf,
+                nodenames=self.spatset.nodenames,
             )
             self.seedingAndIC = seeding_ic.SeedingAndIC(
                 seeding_config=self.seeding_config,
@@ -132,12 +127,8 @@ class Setup:
         # 3. Outcomes
         self.npi_config_outcomes = None
         if self.outcomes_config:
-            if self.outcomes_config["interventions"]["settings"][
-                self.outcomes_scenario
-            ].exists():
-                self.npi_config_outcomes = self.outcomes_config["interventions"][
-                    "settings"
-                ][self.outcomes_scenario]
+            if self.outcomes_config["interventions"]["settings"][self.outcomes_scenario].exists():
+                self.npi_config_outcomes = self.outcomes_config["interventions"]["settings"][self.outcomes_scenario]
 
         # 4. Inputs and outputs
         if in_run_id is None:
@@ -163,15 +154,11 @@ class Setup:
             if outcomes_config:
                 ftypes.extend(["hosp", "hpar", "hnpi"])
             for ftype in ftypes:
-                datadir = file_paths.create_dir_name(
-                    self.out_run_id, self.out_prefix, ftype
-                )
+                datadir = file_paths.create_dir_name(self.out_run_id, self.out_prefix, ftype)
                 os.makedirs(datadir, exist_ok=True)
 
             if self.write_parquet and self.write_csv:
-                print(
-                    "Confused between reading .csv or parquet. Assuming input file is .parquet"
-                )
+                print("Confused between reading .csv or parquet. Assuming input file is .parquet")
             if self.write_parquet:
                 self.extension = "parquet"
             elif self.write_csv:
@@ -185,9 +172,7 @@ class Setup:
             extension_override=extension_override,
         )
 
-    def get_output_filename(
-        self, ftype: str, sim_id: int, extension_override: str = ""
-    ):
+    def get_output_filename(self, ftype: str, sim_id: int, extension_override: str = ""):
         return self.get_filename(
             ftype=ftype,
             sim_id=sim_id,
@@ -195,9 +180,7 @@ class Setup:
             extension_override=extension_override,
         )
 
-    def get_filename(
-        self, ftype: str, sim_id: int, input: bool, extension_override: str = ""
-    ):
+    def get_filename(self, ftype: str, sim_id: int, input: bool, extension_override: str = ""):
         """return a CSP formated filename."""
 
         if extension_override:  # empty strings are Falsy
@@ -221,9 +204,7 @@ class Setup:
         )
         return fn
 
-    def read_simID(
-        self, ftype: str, sim_id: int, input: bool = True, extension_override: str = ""
-    ):
+    def read_simID(self, ftype: str, sim_id: int, input: bool = True, extension_override: str = ""):
         return read_df(
             fname=self.get_filename(
                 ftype=ftype,
@@ -255,20 +236,14 @@ class Setup:
 
 
 class SpatialSetup:
-    def __init__(
-        self, *, setup_name, geodata_file, mobility_file, popnodes_key, nodenames_key
-    ):
+    def __init__(self, *, setup_name, geodata_file, mobility_file, popnodes_key, nodenames_key):
         self.setup_name = setup_name
-        self.data = pd.read_csv(
-            geodata_file, converters={nodenames_key: lambda x: str(x)}
-        )  # geoids and populations
+        self.data = pd.read_csv(geodata_file, converters={nodenames_key: lambda x: str(x)})  # geoids and populations
         self.nnodes = len(self.data)  # K = # of locations
 
         # popnodes_key is the name of the column in geodata_file with populations
         if popnodes_key not in self.data:
-            raise ValueError(
-                f"popnodes_key: {popnodes_key} does not correspond to a column in geodata."
-            )
+            raise ValueError(f"popnodes_key: {popnodes_key} does not correspond to a column in geodata.")
         self.popnodes = self.data[popnodes_key].to_numpy()  # population
         if len(np.argwhere(self.popnodes == 0)):
             raise ValueError(
@@ -277,18 +252,14 @@ class SpatialSetup:
 
         # nodenames_key is the name of the column in geodata_file with geoids
         if nodenames_key not in self.data:
-            raise ValueError(
-                f"nodenames_key: {nodenames_key} does not correspond to a column in geodata."
-            )
+            raise ValueError(f"nodenames_key: {nodenames_key} does not correspond to a column in geodata.")
         self.nodenames = self.data[nodenames_key].tolist()
         if len(self.nodenames) != len(set(self.nodenames)):
             raise ValueError(f"There are duplicate nodenames in geodata.")
 
         mobility_file = pathlib.Path(mobility_file)
         if mobility_file.suffix == ".txt":
-            print(
-                "Mobility files as matrices are not recommended. Please switch soon to long form csv files."
-            )
+            print("Mobility files as matrices are not recommended. Please switch soon to long form csv files.")
             self.mobility = scipy.sparse.csr_matrix(
                 np.loadtxt(mobility_file), dtype=int
             )  # K x K matrix of people moving
@@ -299,9 +270,7 @@ class SpatialSetup:
                 )
 
         elif mobility_file.suffix == ".csv":
-            mobility_data = pd.read_csv(
-                mobility_file, converters={"ori": str, "dest": str}
-            )
+            mobility_data = pd.read_csv(mobility_file, converters={"ori": str, "dest": str})
             nn_dict = {v: k for k, v in enumerate(self.nodenames)}
             mobility_data["ori_idx"] = mobility_data["ori"].apply(nn_dict.__getitem__)
             mobility_data["dest_idx"] = mobility_data["dest"].apply(nn_dict.__getitem__)
@@ -335,7 +304,9 @@ class SpatialSetup:
             rows, cols, values = scipy.sparse.find(tmp)
             errmsg = ""
             for r, c, v in zip(rows, cols, values):
-                errmsg += f"\n({r}, {c}) = {self.mobility[r, c]} > population of '{self.nodenames[r]}' = {self.popnodes[r]}"
+                errmsg += (
+                    f"\n({r}, {c}) = {self.mobility[r, c]} > population of '{self.nodenames[r]}' = {self.popnodes[r]}"
+                )
             raise ValueError(
                 f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}"
             )
