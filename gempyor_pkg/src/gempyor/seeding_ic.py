@@ -31,7 +31,8 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
 
     nb_seed_perday = np.zeros(setup.n_days, dtype=np.int64)
 
-    n_seeding_ignored = 0
+    n_seeding_ignored_before = 0
+    n_seeding_ignored_after = 0
     for idx, (row_index, row) in enumerate(df.iterrows()):
         if row["place"] not in setup.spatset.nodenames:
             raise ValueError(
@@ -39,22 +40,28 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
             )
 
         if (row["date"].date() - setup.ti).days >= 0:
-            nb_seed_perday[(row["date"].date() - setup.ti).days] = (
-                nb_seed_perday[(row["date"].date() - setup.ti).days] + 1
-            )
-
-            source_dict = {grp_name: row[f"source_{grp_name}"] for grp_name in cmp_grp_names}
-            destination_dict = {grp_name: row[f"destination_{grp_name}"] for grp_name in cmp_grp_names}
-            seeding_dict["seeding_sources"][idx] = setup.compartments.get_comp_idx(source_dict)
-            seeding_dict["seeding_destinations"][idx] = setup.compartments.get_comp_idx(destination_dict)
-            seeding_dict["seeding_places"][idx] = setup.spatset.nodenames.index(row["place"])
-            seeding_amounts[idx] = amounts[idx]
+            if (row["date"].date() - setup.ti).days < len(nb_seed_perday):
+                nb_seed_perday[(row["date"].date() - setup.ti).days] = (
+                    nb_seed_perday[(row["date"].date() - setup.ti).days] + 1
+                )
+                source_dict = {grp_name: row[f"source_{grp_name}"] for grp_name in cmp_grp_names}
+                destination_dict = {grp_name: row[f"destination_{grp_name}"] for grp_name in cmp_grp_names}
+                seeding_dict["seeding_sources"][idx] = setup.compartments.get_comp_idx(source_dict)
+                seeding_dict["seeding_destinations"][idx] = setup.compartments.get_comp_idx(destination_dict)
+                seeding_dict["seeding_places"][idx] = setup.spatset.nodenames.index(row["place"])
+                seeding_amounts[idx] = amounts[idx]
+            else:
+                n_seeding_ignored_after += 1
         else:
-            n_seeding_ignored += 1
+            n_seeding_ignored_before += 1
 
-    if n_seeding_ignored > 0:
+    if n_seeding_ignored_before > 0:
         logging.critical(
-            f"Seeding ignored {n_seeding_ignored} rows because they were before the start of the simulation."
+            f"Seeding ignored {n_seeding_ignored_before} rows because they were before the start of the simulation."
+        )
+    if n_seeding_ignored_after > 0:
+        logging.critical(
+            f"Seeding ignored {n_seeding_ignored_after} rows because they were after the end of the simulation."
         )
 
     day_start_idx = np.zeros(setup.n_days + 1, dtype=np.int64)

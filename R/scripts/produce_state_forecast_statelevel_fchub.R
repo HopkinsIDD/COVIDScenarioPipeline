@@ -1,18 +1,18 @@
 ###PREAMBLE
 library(inference)
 library(tidyverse)
-setwd("~/COVIDWorking/more_space")
+setwd("/home/jhsph/COVIDWorking/Forecast_Hub")
 opt <- arguments <- list()
 
 # MODIFY THIS SECTION .................................
 opt$scenario <- "counterfactual"
-opt$projection_date <- "2021-05-02"
-opt$forecast_date <- "2021-05-02"
-opt$end_date <- "2021-06-12"
+opt$projection_date <- "2020-01-01"
+opt$forecast_date <- "2020-01-01"
+opt$end_date <- "2021-11-06"
 #arguments$args <- paste0(opt$projection_date, "_Scenariohub_proj/", opt$scenario, "/")
-arguments$args <- "usa_runs_2021-05-02-st"
+arguments$args <- "rd8_test_2021-11-22"
 
-opt$outfile <- "2021-05-02-JHU_IDD-CovidSP_st.csv"
+opt$outfile <- "rd8_2021-11-22-JHU_IDD-CovidSP_full.csv"
 opt$outdir <- paste0(".")
 #......................................................
 
@@ -20,7 +20,7 @@ opt$outdir <- paste0(".")
 opt$jobs <- 2
 opt$geodata <- "geodata_territories_2019_statelevel.csv"
 opt$death_filter <- "med"
-opt$num_simulations <- 300
+opt$num_simulations <- 50
 # opt$outfile <- paste0(opt$projection_date, "-JHU_IDD-CovidSP-", opt$scenario,".csv")
 # opt$outdir <- paste0(opt$projection_date, "_Scenariohub_Proj")
 opt$include_hosp <- TRUE
@@ -42,7 +42,7 @@ res_geoid <- arrow::open_dataset(sprintf("%s/hosp",arguments$args),
                                                  "lik_type", 
                                                  "is_final"))%>%
   select(time, geoid, incidD, incidH, incidC, death_rate, p_comp)%>%
-  filter(time>=opt$forecast_date & time<=opt$end_date)%>%
+  filter(time>=lubridate::as_date(opt$forecast_date) & time<=lubridate::as_date(opt$end_date))%>%
   collect() %>%
   filter(stringr::str_detect(death_rate, opt$death_filter))%>%
   mutate(time=as.Date(time)) %>%
@@ -78,9 +78,9 @@ csse_deaths <- covidcommon::get_groundtruth_from_source(source = "csse", scale =
 
 
 jhu_csse_deaths <- csse_deaths %>%
-  rename(geoid=FIPS, time=Update, cumDeaths=Deaths, USPS=source)%>%
+  rename(geoid=FIPS, time=Update, cumD=Deaths, USPS=source)%>%
   group_by(USPS,time)%>%
-  summarize(cumDeaths=sum(cumDeaths))%>%
+  summarize(cumD=sum(cumD))%>%
   ungroup()
 
 ##Make the forecast for daily cumlative cases
@@ -100,7 +100,7 @@ if (opt$reichify) {
     rename(target_end_date=time)%>%
     mutate(location=as.character(cdlTools::fips(USPS)))%>%
     mutate(location=stringr::str_pad(location, width=2, side="left", pad="0"))%>%
-    rename(value=cumDeaths)%>%
+    rename(value=cumD)%>%
     mutate(target=sprintf("%d day ahead cum death", steps_ahead))%>%
     mutate(type="quantile")%>%
     mutate(type=replace(type, quantile=="mean","point"))%>%
@@ -129,7 +129,7 @@ res_us <- res_state%>%
   
 jhu_csse_deaths_us <- jhu_csse_deaths %>%
   group_by(time)%>%
-  summarize(cumDeaths=sum(cumDeaths))%>%
+  summarize(cumD=sum(cumD))%>%
   ungroup()%>%
   mutate(location="US")
 
@@ -145,7 +145,7 @@ if (opt$reichify) {
     filter(time>opt$forecast_date)%>%
     mutate(forecast_date=opt$forecast_date)%>%
     rename(target_end_date=time)%>%
-    rename(value=cumDeaths)%>%
+    rename(value=cumD)%>%
     mutate(target=sprintf("%d day ahead cum death", steps_ahead))%>%
     mutate(type="quantile")%>%
     mutate(type=replace(type, quantile=="mean","point"))%>%

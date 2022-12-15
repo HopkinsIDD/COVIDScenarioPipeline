@@ -73,7 +73,6 @@ class Parameters:
                     if not (len(df.index) == len(pd.date_range(ti, tf))):
                         print("config dates:", pd.date_range(ti, tf))
                         print("loaded dates:", df.index)
-                        print(pd.date_range(ti, tf) == df.index)
                         raise ValueError(
                             f"""ERROR loading file {fn_name} for parameter {pn}: 
                         the 'date' index of the provided file does not cover the whole config time span from
@@ -83,7 +82,6 @@ class Parameters:
                     if not (pd.date_range(ti, tf) == df.index).all():
                         print("config dates:", pd.date_range(ti, tf))
                         print("loaded dates:", df.index)
-                        print(pd.date_range(ti, tf) == df.index)
                         raise ValueError(
                             f"""ERROR loading file {fn_name} for parameter {pn}: 
                         the 'date' index of the provided file does not cover the whole config time span from
