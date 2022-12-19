@@ -49,25 +49,17 @@ def test_full_npis_read_write():
     #    sim_id2write=1, s=inference_simulator.s, load_ID=False, sim_id2load=1
     # )
 
-    npi_outcomes = outcomes.build_npi_Outcomes(
-        inference_simulator.s, load_ID=False, sim_id2load=None, config=config
-    )
+    npi_outcomes = outcomes.build_npi_Outcomes(inference_simulator.s, load_ID=False, sim_id2load=None, config=config)
     # npi_seir = seir.build_npi_SEIR(
     #    inference_simulator.s, load_ID=False, sim_id2load=None, config=config
     # )
 
-    inference_simulator.s.write_simID(
-        ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF()
-    )
+    inference_simulator.s.write_simID(ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF())
 
-    hnpi_read = pq.read_table(
-        f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
-    ).to_pandas()
+    hnpi_read = pq.read_table(f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet").to_pandas()
     hnpi_read["reduction"] = np.random.random(len(hnpi_read)) * 2 - 1
     out_hnpi = pa.Table.from_pandas(hnpi_read, preserve_index=False)
-    pa.parquet.write_table(
-        out_hnpi, file_paths.create_file_name(105, "", 1, "hnpi", "parquet")
-    )
+    pa.parquet.write_table(out_hnpi, file_paths.create_file_name(105, "", 1, "hnpi", "parquet"))
     import random
 
     random.seed(10)
@@ -88,19 +80,11 @@ def test_full_npis_read_write():
     #    sim_id2write=1, s=inference_simulator.s, load_ID=True, sim_id2load=1
     # )
 
-    npi_outcomes = outcomes.build_npi_Outcomes(
-        inference_simulator.s, load_ID=True, sim_id2load=1, config=config
-    )
-    inference_simulator.s.write_simID(
-        ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF()
-    )
+    npi_outcomes = outcomes.build_npi_Outcomes(inference_simulator.s, load_ID=True, sim_id2load=1, config=config)
+    inference_simulator.s.write_simID(ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF())
 
-    hnpi_read = pq.read_table(
-        f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet"
-    ).to_pandas()
-    hnpi_wrote = pq.read_table(
-        f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet"
-    ).to_pandas()
+    hnpi_read = pq.read_table(f"{config_path_prefix}model_output/hnpi/000000001.105.hnpi.parquet").to_pandas()
+    hnpi_wrote = pq.read_table(f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet").to_pandas()
     assert (hnpi_read == hnpi_wrote).all().all()
 
     # runs with the new, random NPI
@@ -119,17 +103,9 @@ def test_full_npis_read_write():
     #    sim_id2write=1, s=inference_simulator.s, load_ID=True, sim_id2load=1
     # )
 
-    npi_outcomes = outcomes.build_npi_Outcomes(
-        inference_simulator.s, load_ID=True, sim_id2load=1, config=config
-    )
-    inference_simulator.s.write_simID(
-        ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF()
-    )
+    npi_outcomes = outcomes.build_npi_Outcomes(inference_simulator.s, load_ID=True, sim_id2load=1, config=config)
+    inference_simulator.s.write_simID(ftype="hnpi", sim_id=1, df=npi_outcomes.getReductionDF())
 
-    hnpi_read = pq.read_table(
-        f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet"
-    ).to_pandas()
-    hnpi_wrote = pq.read_table(
-        f"{config_path_prefix}model_output/hnpi/000000001.107.hnpi.parquet"
-    ).to_pandas()
+    hnpi_read = pq.read_table(f"{config_path_prefix}model_output/hnpi/000000001.106.hnpi.parquet").to_pandas()
+    hnpi_wrote = pq.read_table(f"{config_path_prefix}model_output/hnpi/000000001.107.hnpi.parquet").to_pandas()
     assert (hnpi_read == hnpi_wrote).all().all()

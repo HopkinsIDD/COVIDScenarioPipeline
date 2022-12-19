@@ -43,13 +43,8 @@ library(tidyr)
 library(purrr)
 
 option_list <- list(
-    optparse::make_option(
-        c("-c", "--config"),
-        action = "store",
-        default = Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")),
-        type = "character",
-        help = "path to the config file"
-    )
+    optparse::make_option(c("-c", "--config"), action = "store", default = Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type = "character", help = "path to the config file"),
+    optparse::make_option(c("-k", "--keep_all_seeding"), action="store",default=TRUE,type='logical',help="Whether to filter away seeding prior to the start date of the simulation.")
 )
 
 opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
@@ -143,15 +138,22 @@ if (!is.null(gt_source)) {
 
 
 if (seed_variants) {
+    
     variant_data <- readr::read_csv(config$seeding$variant_filename)
+    
+    # rename date columns in data for joining
+    colnames(variant_data)[colnames(variant_data) == "Update"] ="date"
+    colnames(cases_deaths)[colnames(cases_deaths) == "Update"] ="date"
     
     if (!is.null(config$seeding$seeding_outcome)){
         if (config$seeding$seeding_outcome=="incidH"){
             cases_deaths <- cases_deaths %>%
+                dplyr::select(date, FIPS, source, incidH) %>%
                 dplyr::left_join(variant_data) %>%
                 dplyr::mutate(incidI = incidH * prop) %>%
                 dplyr::select(-prop) %>%
-                tidyr::pivot_wider(names_from = variant, values_from = incidI)
+                tidyr::pivot_wider(names_from = variant, values_from = incidI) %>%
+                dplyr::mutate(dplyr::across(tidyselect::any_of(unique(variant_data$variant)), ~ tidyr::replace_na(.x, 0)))
         } else {
             stop(paste(
                 "Currently only incidH is implemented for config$seeding$seeding_outcome."
@@ -159,10 +161,12 @@ if (seed_variants) {
         }
     } else {
         cases_deaths <- cases_deaths %>%
+            dplyr::select(date, FIPS, source, incidI) %>%
             dplyr::left_join(variant_data) %>%
             dplyr::mutate(incidI = incidI * prop) %>%
             dplyr::select(-prop) %>%
-            tidyr::pivot_wider(names_from = variant, values_from = incidI)
+            tidyr::pivot_wider(names_from = variant, values_from = incidI) %>%
+            dplyr::mutate(dplyr::across(tidyselect::any_of(unique(variant_data$variant)), ~ tidyr::replace_na(.x, 0)))
     }
 }
 
@@ -290,6 +294,7 @@ all_geoids <- geodata[[config$spatial_setup$nodenames]]
 incident_cases <- incident_cases %>%
     dplyr::filter(FIPS %in% all_geoids) %>%
     dplyr::select(!!!required_column_names)
+incident_cases <- incident_cases %>% filter(value>0)
 
 incident_cases[["Update"]] <- as.Date(incident_cases$Update)
 
@@ -362,6 +367,21 @@ if (max(incident_cases$date) < lubridate::as_date(config$start_date)){
         ungroup() %>%
         mutate(date = lubridate::as_date(config$start_date),
                amount = 0)
+} else {
+    
+    # keep all seeding -- dont filter away before sim date
+    if (opt$keep_all_seeding){
+        incident_cases <- incident_cases %>%
+            mutate(date = lubridate::as_date(ifelse(date < lubridate::as_date(config$start_date), 
+                                                    lubridate::as_date(config$start_date), lubridate::as_date(date)))) %>%
+            filter(date <= config$end_date) %>%
+            # group_by(across(c(-amount))) %>%
+            # summarise(amount = sum(amount, na.rm = TRUE)) %>%
+            as_tibble()
+    } else {
+        incident_cases <- incident_cases %>%
+            filter(date >= config$start_date & date <= config$end_date) 
+    }
 }
 
 

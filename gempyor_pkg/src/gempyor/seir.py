@@ -98,9 +98,7 @@ def steps_SEIR(
             )
         seir_sim = steps_rk4.rk4_integration(**fnct_args)
     else:
-        logging.critical(
-            "Experimental !!! These methods are not ready for production ! "
-        )
+        logging.critical("Experimental !!! These methods are not ready for production ! ")
         if s.integration_method in [
             "scipy.solve_ivp",
             "scipy.odeint",
@@ -112,9 +110,7 @@ def steps_SEIR(
                     f"with method {s.integration_method}, only deterministic "
                     f"integration is possible (got stoch_straj_flag={s.stoch_traj_flag}"
                 )
-            seir_sim = steps_experimental.ode_integration(
-                **fnct_args, integration_method=s.integration_method
-            )
+            seir_sim = steps_experimental.ode_integration(**fnct_args, integration_method=s.integration_method)
         elif s.integration_method == "rk4.jit1":
             seir_sim = steps_experimental.rk4_integration1(**fnct_args)
         elif s.integration_method == "rk4.jit2":
@@ -152,18 +148,14 @@ def build_npi_SEIR(s, load_ID, sim_id2load, config, bypass_DF=None, bypass_FN=No
                 global_config=config,
                 geoids=s.spatset.nodenames,
                 loaded_df=loaded_df,
-                pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
-                    "sum"
-                ],
+                pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation["sum"],
             )
         else:
             npi = NPI.NPIBase.execute(
                 npi_config=s.npi_config_seir,
                 global_config=config,
                 geoids=s.spatset.nodenames,
-                pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation[
-                    "sum"
-                ],
+                pnames_overlap_operation_sum=s.parameters.intervention_overlap_operation["sum"],
             )
     return npi
 
@@ -190,14 +182,10 @@ def onerun_SEIR(
     with Timer("onerun_SEIR.seeding"):
         if load_ID:
             initial_conditions = s.seedingAndIC.load_ic(sim_id2load, setup=s)
-            seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(
-                sim_id2load, setup=s
-            )
+            seeding_data, seeding_amounts = s.seedingAndIC.load_seeding(sim_id2load, setup=s)
         else:
             initial_conditions = s.seedingAndIC.draw_ic(sim_id2write, setup=s)
-            seeding_data, seeding_amounts = s.seedingAndIC.draw_seeding(
-                sim_id2write, setup=s
-            )
+            seeding_data, seeding_amounts = s.seedingAndIC.draw_seeding(sim_id2write, setup=s)
 
     with Timer("onerun_SEIR.parameters"):
         # Draw or load parameters
@@ -208,18 +196,14 @@ def onerun_SEIR(
                 nnodes=s.nnodes,
             )
         else:
-            p_draw = s.parameters.parameters_quick_draw(
-                n_days=s.n_days, nnodes=s.nnodes
-            )
+            p_draw = s.parameters.parameters_quick_draw(n_days=s.n_days, nnodes=s.nnodes)
         # reduce them
         parameters = s.parameters.parameters_reduce(p_draw, npi)
         log_debug_parameters(p_draw, "Parameters without interventions")
         log_debug_parameters(parameters, "Parameters with interventions")
 
         # Parse them
-        parsed_parameters = s.compartments.parse_parameters(
-            parameters, s.parameters.pnames, unique_strings
-        )
+        parsed_parameters = s.compartments.parse_parameters(parameters, s.parameters.pnames, unique_strings)
         log_debug_parameters(parsed_parameters, "Unique Parameters used by transitions")
 
     with Timer("onerun_SEIR.compute"):
@@ -236,9 +220,7 @@ def onerun_SEIR(
 
     with Timer("onerun_SEIR.postprocess"):
         if s.write_csv or s.write_parquet:
-            out_df = postprocess_and_write(
-                sim_id2write, s, states, p_draw, npi, seeding_data
-            )
+            out_df = postprocess_and_write(sim_id2write, s, states, p_draw, npi, seeding_data)
     return out_df
 
 
@@ -248,9 +230,7 @@ def run_parallel_SEIR(s, config, *, n_jobs=1):
 
     if n_jobs == 1:  # run single process for debugging/profiling purposes
         for sim_id in tqdm.tqdm(sim_ids):
-            onerun_SEIR(
-                sim_id2write=sim_id, s=s, load_ID=False, sim_id2load=None, config=config
-            )
+            onerun_SEIR(sim_id2write=sim_id, s=s, load_ID=False, sim_id2load=None, config=config)
     else:
         tqdm.contrib.concurrent.process_map(
             onerun_SEIR,
@@ -262,9 +242,7 @@ def run_parallel_SEIR(s, config, *, n_jobs=1):
             max_workers=n_jobs,
         )
 
-    logging.info(
-        f""">> {s.nsim} seir simulations completed in {time.monotonic() - start:.1f} seconds"""
-    )
+    logging.info(f""">> {s.nsim} seir simulations completed in {time.monotonic() - start:.1f} seconds""")
 
 
 def states2Df(s, states):
@@ -333,9 +311,7 @@ def postprocess_and_write(sim_id, s, states, p_draw, npi, seeding):
     # NPIs
     s.write_simID(ftype="snpi", sim_id=sim_id, df=npi.getReductionDF())
     # Parameters
-    s.write_simID(
-        ftype="spar", sim_id=sim_id, df=s.parameters.getParameterDF(p_draw=p_draw)
-    )
+    s.write_simID(ftype="spar", sim_id=sim_id, df=s.parameters.getParameterDF(p_draw=p_draw))
     out_df = states2Df(s, states)
     s.write_simID(ftype="seir", sim_id=sim_id, df=out_df)
 

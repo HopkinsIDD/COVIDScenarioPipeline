@@ -26,9 +26,7 @@ def write_df(fname: str, df: pd.DataFrame, extension: str = ""):
         df = pa.Table.from_pandas(df, preserve_index=False)
         pa.parquet.write_table(df, fname)
     else:
-        raise NotImplementedError(
-            f"Invalid extension {extension}. Must be 'csv' or 'parquet'"
-        )
+        raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
 
 
 def read_df(fname: str, extension: str = "") -> pd.DataFrame:
@@ -42,9 +40,7 @@ def read_df(fname: str, extension: str = "") -> pd.DataFrame:
     elif extension == "parquet":
         df = pa.parquet.read_table(fname).to_pandas()
     else:
-        raise NotImplementedError(
-            f"Invalid extension {extension}. Must be 'csv' or 'parquet'"
-        )
+        raise NotImplementedError(f"Invalid extension {extension}. Must be 'csv' or 'parquet'")
     return df
 
 
@@ -68,9 +64,7 @@ import pstats
 from functools import wraps
 
 
-def profile(
-    output_file=None, sort_by="cumulative", lines_to_print=None, strip_dirs=False
-):
+def profile(output_file=None, sort_by="cumulative", lines_to_print=None, strip_dirs=False):
     """A time profiler decorator.
     Inspired by and modified the profile decorator of Giampaolo Rodola:
     http://code.activestate.com/recipes/577817-profile-decorator/
