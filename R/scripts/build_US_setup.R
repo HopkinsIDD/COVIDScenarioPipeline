@@ -30,6 +30,11 @@
 
 ## @cond
 
+
+
+# SETUP -------------------------------------------------------------------
+
+
 library(dplyr)
 library(tidyr)
 library(tidycensus)
@@ -70,7 +75,10 @@ if(census_key == ""){
 tidycensus::census_api_key(key = census_key)
 
 
-# CENSUS DATA -------------------------------------------------------------
+
+
+# GEODATA (CENSUS DATA) -------------------------------------------------------------
+
 
 census_data <- tidycensus::get_acs(geography="county", state=filterUSPS, 
                                    variables="B01003_001", year=config$spatial_setup$census_year, 
@@ -116,7 +124,7 @@ census_data <- terr_census_data %>%
   rbind(census_data)
 
 
-# State-level aggregation if desired ------------------------------------------
+# State-level aggregation if desired
 if (state_level){
   census_data <- census_data %>%
     dplyr::mutate(geoid = as.character(paste0(substr(geoid,1,2), "000"))) %>%
@@ -145,7 +153,9 @@ print(paste("Wrote geodata file:", file.path(outdir, geodata_file)))
 
 
 
-# COMMUTE DATA ------------------------------------------------------------
+# MOBILITY DATA (COMMUTER DATA) ------------------------------------------------------------
+
+
 if(state_level & !file.exists(paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility))){
 
   warning(paste("State-level mobility files must be created manually because `build_US_setup.R` does not generate a state-level mobility file automatically. No valid mobility file named", paste0(config$spatial_setup$base_path, "/", config$spatial_setup$mobility), "(specified in the config) currently exists. Please check again."))

@@ -32,8 +32,7 @@ proportion_exponent_col = 2
     ## Dimensions
     "int32," "int32," "int32,"  ## ncompartments  ## nspatial_nodes  ## Number of days
     ## Parameters
-    "float64[:, :, :],"  ## Parameters [ nparameters x ndays x nspatial_nodes]
-    "float64,"  ## dt
+    "float64[:, :, :]," "float64,"  ## Parameters [ nparameters x ndays x nspatial_nodes]  ## dt
     ## Transitions
     "int64[:, :],"  ## transitions [ [source, destination, proportion_start, proportion_stop, rate] x ntransitions ]
     "int64[:, :],"  ## proportions_info [ [sum_starts, sum_stops, exponent] x ntransition_proportions ]
@@ -85,11 +84,7 @@ def steps_SEIR_nb(
     percent_day_away = 0.5
     for spatial_node in range(nspatial_nodes):
         percent_who_move[spatial_node] = min(
-            mobility_data[
-                mobility_data_indices[spatial_node] : mobility_data_indices[
-                    spatial_node + 1
-                ]
-            ].sum()
+            mobility_data[mobility_data_indices[spatial_node] : mobility_data_indices[spatial_node + 1]].sum()
             / population[spatial_node],
             1,
         )
@@ -116,24 +111,18 @@ def steps_SEIR_nb(
                 this_seeding_amounts = seeding_amounts[seeding_instance_idx]
                 seeding_places = seeding_data["seeding_places"][seeding_instance_idx]
                 seeding_sources = seeding_data["seeding_sources"][seeding_instance_idx]
-                seeding_destinations = seeding_data["seeding_destinations"][
-                    seeding_instance_idx
-                ]
+                seeding_destinations = seeding_data["seeding_destinations"][seeding_instance_idx]
                 # this_seeding_amounts = this_seeding_amounts < states_next[seeding_sources] ?  this_seeding_amounts : states_next[seeding_instance_idx]
                 states_next[seeding_sources][seeding_places] -= this_seeding_amounts
-                states_next[seeding_sources][seeding_places] = states_next[
-                    seeding_sources
-                ][seeding_places] * (states_next[seeding_sources][seeding_places] > 0)
-                states_next[seeding_destinations][
-                    seeding_places
-                ] += this_seeding_amounts
+                states_next[seeding_sources][seeding_places] = states_next[seeding_sources][seeding_places] * (
+                    states_next[seeding_sources][seeding_places] > 0
+                )
+                states_next[seeding_destinations][seeding_places] += this_seeding_amounts
 
                 total_seeded += this_seeding_amounts
                 times_seeded += 1
                 # ADD TO cumulative, this is debatable,
-                states_daily_incid[today][seeding_destinations][
-                    seeding_places
-                ] += this_seeding_amounts
+                states_daily_incid[today][seeding_destinations][seeding_places] += this_seeding_amounts
 
         total_infected = 0
         for transition_index in range(ntransitions):
@@ -149,72 +138,52 @@ def steps_SEIR_nb(
                     proportion_info[proportion_sum_starts_col][proportion_index],
                     proportion_info[proportion_sum_stops_col][proportion_index],
                 ):
-                    relevant_number_in_comp += states_current[
-                        transition_sum_compartments[proportion_sum_index]
-                    ]
+                    relevant_number_in_comp += states_current[transition_sum_compartments[proportion_sum_index]]
                     # exponents should not be a proportion, since we don't sum them over sum compartments
-                    relevant_exponent = parameters[
-                        proportion_info[proportion_exponent_col][proportion_index]
-                    ][today]
+                    relevant_exponent = parameters[proportion_info[proportion_exponent_col][proportion_index]][today]
                 if first_proportion:
                     only_one_proportion = (
-                        transitions[transition_proportion_start_col][transition_index]
-                        + 1
+                        transitions[transition_proportion_start_col][transition_index] + 1
                     ) == transitions[transition_proportion_stop_col][transition_index]
                     first_proportion = False
                     source_number = relevant_number_in_comp
                     if source_number.max() > 0:
                         total_rate[source_number > 0] *= (
-                            source_number[source_number > 0]
-                            ** relevant_exponent[source_number > 0]
+                            source_number[source_number > 0] ** relevant_exponent[source_number > 0]
                             / source_number[source_number > 0]
                         )
                     if only_one_proportion:
-                        total_rate *= parameters[
-                            transitions[transition_rate_col][transition_index]
-                        ][today]
+                        total_rate *= parameters[transitions[transition_rate_col][transition_index]][today]
                 else:
                     for spatial_node in range(nspatial_nodes):
-                        proportion_keep_compartment = (
-                            1 - percent_day_away * percent_who_move[spatial_node]
-                        )
+                        proportion_keep_compartment = 1 - percent_day_away * percent_who_move[spatial_node]
                         proportion_change_compartment = (
                             percent_day_away
                             * mobility_data[
-                                mobility_data_indices[
-                                    spatial_node
-                                ] : mobility_data_indices[spatial_node + 1]
+                                mobility_data_indices[spatial_node] : mobility_data_indices[spatial_node + 1]
                             ]
                             / population[spatial_node]
                         )
                         rate_keep_compartment = (
                             proportion_keep_compartment
-                            * relevant_number_in_comp[spatial_node]
-                            ** relevant_exponent[spatial_node]
+                            * relevant_number_in_comp[spatial_node] ** relevant_exponent[spatial_node]
                             / population[spatial_node]
-                            * parameters[
-                                transitions[transition_rate_col][transition_index]
-                            ][today][spatial_node]
+                            * parameters[transitions[transition_rate_col][transition_index]][today][spatial_node]
                         )
 
                         visiting_compartment = mobility_row_indices[
-                            mobility_data_indices[spatial_node] : mobility_data_indices[
-                                spatial_node + 1
-                            ]
+                            mobility_data_indices[spatial_node] : mobility_data_indices[spatial_node + 1]
                         ]
 
                         rate_change_compartment = proportion_change_compartment
                         rate_change_compartment *= (
-                            relevant_number_in_comp[visiting_compartment]
-                            ** relevant_exponent[visiting_compartment]
+                            relevant_number_in_comp[visiting_compartment] ** relevant_exponent[visiting_compartment]
                         )
                         rate_change_compartment /= population[visiting_compartment]
-                        rate_change_compartment *= parameters[
-                            transitions[transition_rate_col][transition_index]
-                        ][today][visiting_compartment]
-                        total_rate[spatial_node] *= (
-                            rate_keep_compartment + rate_change_compartment.sum()
-                        )
+                        rate_change_compartment *= parameters[transitions[transition_rate_col][transition_index]][
+                            today
+                        ][visiting_compartment]
+                        total_rate[spatial_node] *= rate_keep_compartment + rate_change_compartment.sum()
 
             compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
 
@@ -252,22 +221,14 @@ def steps_SEIR_nb(
             for spatial_node in range(nspatial_nodes):
                 if (
                     number_move[spatial_node]
-                    > states_next[transitions[transition_source_col][transition_index]][
+                    > states_next[transitions[transition_source_col][transition_index]][spatial_node]
+                ):
+                    number_move[spatial_node] = states_next[transitions[transition_source_col][transition_index]][
                         spatial_node
                     ]
-                ):
-                    number_move[spatial_node] = states_next[
-                        transitions[transition_source_col][transition_index]
-                    ][spatial_node]
-            states_next[
-                transitions[transition_source_col][transition_index]
-            ] -= number_move
-            states_next[
-                transitions[transition_destination_col][transition_index]
-            ] += number_move
-            states_daily_incid[
-                today, transitions[transition_destination_col][transition_index], :
-            ] += number_move
+            states_next[transitions[transition_source_col][transition_index]] -= number_move
+            states_next[transitions[transition_destination_col][transition_index]] += number_move
+            states_daily_incid[today, transitions[transition_destination_col][transition_index], :] += number_move
 
         states_current = states_next.copy()
 
