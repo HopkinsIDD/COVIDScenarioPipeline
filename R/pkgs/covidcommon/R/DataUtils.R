@@ -1080,7 +1080,6 @@ get_groundtruth_from_source <- function(
 #' @return
 #' 
 #' @importFrom magrittr %>%
-#' 
 #' @export
 #'
 #' @examples
