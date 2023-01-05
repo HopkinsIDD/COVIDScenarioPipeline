@@ -1045,6 +1045,8 @@ process_sims <- function(
         keep_all_compartments = keep_all_compartments,
         variants_ = variants_,
         vacc_ = vacc_,
+        geodata_file = "data/geodata_2019_statelevel.csv",
+        death_filter = "med",
         plot_samp,
         gt_data,
         scenario_dir,
@@ -1126,9 +1128,6 @@ process_sims <- function(
     opt$end_date <- as.Date(opt$end_date)
     
     # Functions ---------------------------------------------------------------
-    
-    source("R/process_sims/process_projections_functions_NEW.R")
-    
     
     # Load Data ---------------------------------------------------------------
     
