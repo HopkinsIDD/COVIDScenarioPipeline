@@ -1402,8 +1402,7 @@ process_sims <- function(
     
     # ~ Daily Outcomes -----------------------------------------------------------
     
-    daily_cum_outcomes_ <- outcomes_[outcomes_cum_ & outcomes_time_=="daily"]
-    if (length(daily_cum_outcomes_)>0){
+    if (any(outcomes_time_=="daily")) {
         
         # Incident
         daily_incid_sims <- get_daily_incid(res_state, outcomes = outcomes_[outcomes_time_=="daily"])
@@ -1443,10 +1442,12 @@ process_sims <- function(
         }
         
         # Cumulative
-        if (any(outcomes_cumfromgt & outcomes_time_=="daily")){
+        daily_cum_outcomes_ <- outcomes_[outcomes_cum_ & outcomes_time_=="daily"]
+        if (length(daily_cum_outcomes_)>0){
             daily_cum_sims <- get_cum_sims(sim_data = daily_incid_sims  %>%
                                                mutate(agestrat="age0to130") %>%
-                                               rename(outcome = outcome_name, value = outcome),
+                                               rename(outcome = outcome_name, value = outcome) %>%
+                                               filter(outcome %in% paste0("incid", daily_cum_outcomes_)),
                                            obs_data = gt_data_2, 
                                            gt_cum_vars = paste0("cum", outcomes_[outcomes_cumfromgt]), # variables to get cum from GT
                                            forecast_date = lubridate::as_date(opt$forecast_date),
