@@ -1371,7 +1371,7 @@ process_sims <- function(
                 weekly_inc_outcome = weekly_incid_sims %>% filter(outcome_name %in% paste0("incid", outcomes_calib_weekly)), 
                 point_est=0.5, opt)
             weekly_incid_sims_formatted <- weekly_incid_sims_formatted %>% 
-                filter(!(outcome %in% outcomes_calib_weekly)) %>% 
+                filter(!(outcome %in% paste0("incid", outcomes_calib_weekly))) %>% 
                 bind_rows(weekly_incid_sims_recalib_formatted)
             rm(weekly_incid_sims_calibrations)
         }
@@ -1445,7 +1445,7 @@ process_sims <- function(
                 daily_inc_outcome = daily_incid_sims %>% filter(outcome_name %in% paste0("incid", outcomes_calib_daily)), 
                 point_est=0.5, opt)
             daily_incid_sims_formatted <- daily_incid_sims_formatted %>% 
-                filter(!(outcome %in% outcomes_calib_daily)) %>% 
+                filter(!(outcome %in% paste0("incid", outcomes_calib_daily))) %>% 
                 bind_rows(daily_incid_sims_recalib_formatted)
             rm(daily_incid_sims_calibrations)
         }
