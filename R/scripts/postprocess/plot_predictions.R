@@ -64,57 +64,121 @@ state_cw <- cdlTools::census2010FIPS %>%
 # gt_data <- readr::read_csv(file.path(scenario_dir, "gt_data_clean.csv")) # loads gt_data
 gt_data <- gt_data %>% 
   mutate(time = lubridate::as_date(time)) %>% mutate(date = time)
+colnames(gt_data) <- gsub("incidI", "incidC", colnames(gt_data))
+outcomes_gt_ <- outcomes_[outcomes_ != "I"]
+outcomes_time_gt_ <- outcomes_time_[outcomes_ != "I"]
+outcomes_cum_gt_ <- outcomes_cum_[outcomes_ != "I"]
+outcomes_cumfromgt_gt_ <- outcomes_cumfromgt[outcomes_ != "I"]
 
-cum_dat_st <- gt_data %>%
-  select(date, USPS, contains("cum")) %>%
-  mutate(day_of_week=lubridate::wday(date, label=T))%>%
-  ungroup %>%
-  filter(day_of_week=="Sat") %>%
-  select(-day_of_week)
+use_obs_data_forcum <- ifelse(any(outcomes_cumfromgt_gt_),TRUE, FALSE)
+gt_data_2 <- gt_data
+gt_data_2 <- gt_data_2 %>% mutate(cumH = 0) # incidH is only cumulative from start of simulation
 
-inc_dat_st <- gt_data %>%
-  select(date, USPS, contains("inc")) %>%
-  mutate(week = lubridate::epiweek(date), year = lubridate::epiyear(date)) %>%
-  mutate(tmp_time = as.numeric(date)) %>%
-  group_by(USPS, week, year) %>%
-  summarise(tmp_time = max(tmp_time), 
-            across(starts_with("inc"), sum)) %>%
-  ungroup %>%
-  mutate(date = lubridate::as_date(tmp_time)) %>%
-  mutate(pre_gt_end = date<=validation_date) %>%
-  select(date, USPS, starts_with("incid"), pre_gt_end)
 
-# inc_dat_st_vars <- dat_st_vars_long %>%
+# ~ Weekly Outcomes -----------------------------------------------------------
+gt_cl <- NULL
+if (any(outcomes_time_=="weekly")) {
+  # Incident
+  gt_data_st_week <- get_weekly_incid(gt_data %>% dplyr::select(time, geoid, USPS, paste0("incid", outcomes_gt_[outcomes_time_gt_=="weekly"])) %>% mutate(sim_num = 0),
+                                      outcomes = outcomes_gt_[outcomes_time_gt_=="weekly"]) 
+  
+  # Cumulative
+  weekly_cum_outcomes_ <- outcomes_gt_[outcomes_cum_gt_ & outcomes_time_gt_=="weekly"]
+  if (length(weekly_cum_outcomes_)>0) {
+    gt_data_st_weekcum <- get_cum_sims(sim_data = gt_data_st_week %>%
+                                         mutate(agestrat="age0to130") %>%
+                                         rename(outcome = outcome_name, value = outcome) %>%
+                                         filter(outcome %in% paste0("incid", weekly_cum_outcomes_)),
+                                       obs_data = gt_data_2, 
+                                       gt_cum_vars = paste0("cum", outcomes_gt_[outcomes_cumfromgt_gt_]), # variables to get cum from GT
+                                       forecast_date = lubridate::as_date(forecast_date),
+                                       aggregation="week",
+                                       loc_column = "USPS", 
+                                       use_obs_data = use_obs_data_forcum) %>%
+      rename(outcome_name = outcome, outcome = value) %>%
+      select(-agestrat)
+    
+    gt_data_st_week <- gt_data_st_week %>% 
+      bind_rows(gt_data_st_weekcum)
+  }
+  gt_cl <- gt_cl %>% bind_rows(gt_data_st_week %>% mutate(time_aggr = "weekly"))
+}
+if (any(outcomes_time_=="daily")) {
+  # Incident
+  gt_data_st_day <- get_daily_incid(gt_data %>% dplyr::select(time, geoid, USPS, paste0("incid", outcomes_gt_[outcomes_time_gt_=="daily"])) %>% mutate(sim_num = 0),
+                                    outcomes = outcomes_gt_[outcomes_time_gt_=="daily"]) 
+  
+  # Cumulative
+  daily_cum_outcomes_ <- outcomes_gt_[outcomes_cum_gt_ & outcomes_time_gt_=="daily"]
+  if (length(daily_cum_outcomes_)>0){
+    gt_data_st_daycum <- get_cum_sims(sim_data = gt_data_st_day  %>%
+                                     mutate(agestrat="age0to130") %>%
+                                     rename(outcome = outcome_name, value = outcome) %>%
+                                     filter(outcome %in% paste0("incid", daily_cum_outcomes_)),
+                                   obs_data = gt_data_2, 
+                                   gt_cum_vars = paste0("cum", outcomes_gt_[outcomes_cumfromgt_gt_]), # variables to get cum from GT
+                                   forecast_date = lubridate::as_date(opt$forecast_date),
+                                   aggregation="day",
+                                   loc_column = "USPS", 
+                                   use_obs_data = use_obs_data_forcum) %>%
+      rename(outcome_name = outcome, outcome = value) %>%
+      select(-agestrat)
+    gt_data_st_day <- gt_data_st_day %>% bind_rows(gt_data_st_daycum)
+  }
+    gt_cl <- gt_cl %>% bind_rows(gt_data_st_day %>% mutate(time_aggr = "daily"))
+}
+
+
+
+# 
+# cum_dat_st <- gt_data %>%
+#   select(date, USPS, contains("cum")) %>%
+#   mutate(day_of_week=lubridate::wday(date, label=T))%>%
+#   ungroup %>%
+#   filter(day_of_week=="Sat") %>%
+#   select(-day_of_week)
+# 
+# inc_dat_st <- gt_data %>%
+#   select(date, USPS, contains("inc")) %>%
 #   mutate(week = lubridate::epiweek(date), year = lubridate::epiyear(date)) %>%
 #   mutate(tmp_time = as.numeric(date)) %>%
-#   group_by(USPS, week, year, outcome, variant) %>%
-#   summarise(tmp_time = max(tmp_time), value = sum(value, na.rm = TRUE)) %>%
+#   group_by(USPS, week, year) %>%
+#   summarise(tmp_time = max(tmp_time), 
+#             across(starts_with("inc"), sum)) %>%
 #   ungroup %>%
 #   mutate(date = lubridate::as_date(tmp_time)) %>%
 #   mutate(pre_gt_end = date<=validation_date) %>%
-#   select(-tmp_time)
+#   select(date, USPS, starts_with("incid"), pre_gt_end)
+# 
+# # inc_dat_st_vars <- dat_st_vars_long %>%
+# #   mutate(week = lubridate::epiweek(date), year = lubridate::epiyear(date)) %>%
+# #   mutate(tmp_time = as.numeric(date)) %>%
+# #   group_by(USPS, week, year, outcome, variant) %>%
+# #   summarise(tmp_time = max(tmp_time), value = sum(value, na.rm = TRUE)) %>%
+# #   ungroup %>%
+# #   mutate(date = lubridate::as_date(tmp_time)) %>%
+# #   mutate(pre_gt_end = date<=validation_date) %>%
+# #   select(-tmp_time)
 
 
 # Combine cum, inc, and hosp ground truth #
-dat_st_cl <- full_join(cum_dat_st, inc_dat_st, by = c("date", "USPS")) 
-rm(cum_dat_st, inc_dat_st)
 
 # Remove incomplete weeks from ground truth #
-if(!((max(dat_st_cl$date)-lubridate::days(7)) %in% unique(dat_st_cl$date))){
-  dat_st_cl <- dat_st_cl %>% filter(date != max(date))
-}
+gt_cl <- gt_cl %>% rename(date = time)
+# if(!((max(gt_cl$date)-lubridate::days(7)) %in% unique(gt_cl$date))){
+#   dat_st_cl <- dat_st_cl %>% filter(date != max(date))
+# }
 # if(!((max(inc_dat_st_vars$date)-lubridate::days(7)) %in% unique(inc_dat_st_vars$date))){
 #   inc_dat_st_vars <- inc_dat_st_vars %>% filter(date != max(date))
 # }
 
-colnames(dat_st_cl) <- gsub("cumI", "cumC", colnames(dat_st_cl)) 
-colnames(dat_st_cl) <- gsub("incidI", "incidC", colnames(dat_st_cl)) 
 
-dat_st_cl2 <- dat_st_cl %>%
-  pivot_longer(cols=-c(date, USPS, pre_gt_end), names_to = "target", values_to = "value") %>%
+dat_st_cl2 <- gt_cl %>% 
+  select(date, USPS, target = outcome_name, time_aggr, value = outcome) %>%
   mutate(incid_cum = ifelse(grepl("inc", target), "inc", "cum")) %>%
   mutate(aggr_target = !grepl('_', target)) %>%
-  mutate(outcome = substr(gsub("cum|incid", "", target), 1,1))
+  mutate(outcome = substr(gsub("cum|incid", "", target), 1,1)) %>%
+  mutate(pre_gt_end = date<=validation_date) 
 
 
 
