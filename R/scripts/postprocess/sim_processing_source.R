@@ -1003,10 +1003,10 @@ combine_and_format_scenarios <- function(
     colnames(data_comb)[colnames(data_comb) == "forecast_date"] <- forecast_date_name
     
     # Save it
-    readr::write_csv(data_comb, file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".csv")))
-    arrow::write_parquet(data_comb, file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".parquet")))
+    readr::write_csv(data_comb, file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), "_all.csv")))
+    arrow::write_parquet(data_comb, file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), "_all.parquet")))
     
-    print(paste0("Final data saved in:  [  ", file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".csv")), "  ]"))
+    print(paste0("Final data saved in:  [  ", file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), "_all.csv")), "  ]"))
     
     return(data_comb)
 }
