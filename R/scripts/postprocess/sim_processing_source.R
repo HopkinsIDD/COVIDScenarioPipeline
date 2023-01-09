@@ -474,7 +474,8 @@ calibrate_outcome <- function(outcome_calib = "incidH",
         gt_calib <- get_weekly_incid(gt_data %>% dplyr::select(time, geoid, USPS, !!sym(outcome_calib)) %>% mutate(sim_num = 0),
                                      outcomes = outcome_calib_base) 
     } else {
-        gt_calib <- gt_data %>% dplyr::select(time, geoid, USPS, !!sym(outcome_calib)) %>% mutate(sim_num = 0)
+        gt_calib <- get_daily_incid(gt_data %>% dplyr::select(time, geoid, USPS, !!sym(outcome_calib)) %>% mutate(sim_num = 0),
+                                     outcomes = outcome_calib_base)
     }
     
     gt_calib <- gt_calib %>% 
@@ -1327,6 +1328,11 @@ process_sims <- function(
     # colnames(gt_data_2) <- gsub("cumI", "cumC", colnames(gt_data_2))
     gt_data_2 <- gt_data_2 %>% mutate(cumH = 0) # incidH is only cumulative from start of simulation
     
+    # outcomes_gt_ <- outcomes_[outcomes_!="I"]
+    # outcomes_cum_gt_ <- outcomes_cum_[outcomes_!="I"]
+    # 
+    # gt_data_2 <- gt_data_2 %>% 
+    #   select(USPS, geoid, time, paste0("incid", outcomes_gt_), paste0("cum", outcomes_[outcomes_cum_gt_]))
     
     # ~ Weekly Outcomes -----------------------------------------------------------
     
@@ -1421,15 +1427,18 @@ process_sims <- function(
             daily_incid_sims_calibrations <- calibrate_outcome(outcome_calib = paste0("incid", outcomes_calib_daily),
                                                                weekly_outcome = FALSE,
                                                                n_calib_days = n_calib_days,
-                                                               gt_data, 
+                                                               gt_data = gt_data, 
                                                                incid_sims_formatted = daily_incid_sims_formatted,
                                                                incid_sims = daily_incid_sims, 
-                                                               projection_date,
-                                                               quick_run, testing,
-                                                               keep_variant_compartments, keep_vacc_compartments, keep_all_compartments,
-                                                               variants_=NULL, vacc_=NULL, death_filter=opt$death_filter,
-                                                               opt,
-                                                               scenario_dir)
+                                                               projection_date = projection_date,
+                                                               quick_run = quick_run, testing = testing,
+                                                               keep_variant_compartments = keep_variant_compartments, 
+                                                               keep_vacc_compartments = keep_vacc_compartments, 
+                                                               keep_all_compartments = keep_all_compartments,
+                                                               variants_ = NULL, vacc_ = NULL,
+                                                               death_filter = death_filter,
+                                                               opt = opt,
+                                                               scenario_dir = scenario_dir)
             daily_incid_sims <- daily_incid_sims_calibrations$incid_sims_recalib
             
             daily_incid_sims_recalib_formatted <- format_daily_outcomes(
