@@ -1109,8 +1109,8 @@ process_sims <- function(
     
     #......................................................
     
-    opt$geodata <- "data/geodata_2019_statelevel.csv"   #geodata_territories_2019_statelevel.csv"
-    opt$death_filter <- "med"
+    opt$geodata <- geodata_file #"data/geodata_2019_statelevel.csv"   #geodata_territories_2019_statelevel.csv"
+    opt$death_filter <- death_filter #"med"
     opt$outfile <- paste0(opt$projection_date, "-JHU_IDD-CovidSP-", opt$scenario, ifelse(full_fit, "_FULL", ""),ifelse(likelihood_prune, "_LLprune",""), ".csv")
     opt$vaccfile <- paste0(opt$projection_date, "-JHU_IDD-CovidSP-", opt$scenario, "_vaccdata", ifelse(full_fit, "_FULL", ""), ".csv")
     opt$vaccsumm <- paste0(opt$projection_date, "-JHU_IDD-CovidSP-", opt$scenario, "_vaccsummary", ifelse(full_fit, "_FULL", ""), ".csv")
@@ -1322,7 +1322,7 @@ process_sims <- function(
     
     # GET SIM OUTCOMES -------------------------------------------------------------------
     
-    use_obs_data_forcum <- TRUE
+    use_obs_data_forcum <- ifelse(any(outcomes_cumfromgt),TRUE, FALSE)
     gt_data_2 <- gt_data
     # colnames(gt_data_2) <- gsub("cumI", "cumC", colnames(gt_data_2))
     gt_data_2 <- gt_data_2 %>% mutate(cumH = 0) # incidH is only cumulative from start of simulation

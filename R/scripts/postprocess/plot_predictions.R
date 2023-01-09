@@ -134,7 +134,11 @@ if (!plot_cum) {  forecast_st <- forecast_st %>% filter(!grepl(" cum ", target))
 
 # filter to keep only outcomes of interest
 outcomes_name <- recode(outcomes_, "I"="inf", "C"="case", "H"="hosp", "D"="death")
-cum_outcomes_name <- paste0("cum ", recode(cum_wk_outcomes_, "I"="inf", "C"="case", "H"="hosp", "D"="death"))
+if(any(outcomes_cum_)){
+  cum_outcomes_name <- paste0("cum ", recode(cum_wk_outcomes_, "I"="inf", "C"="case", "H"="hosp", "D"="death"))
+}else{
+  cum_outcomes_name <- NULL
+}
 forecast_st <- forecast_st %>% filter(grepl(paste0(c(paste0("inc ", outcomes_name), cum_outcomes_name), collapse = "|"), target))
 
 # create cat variables
@@ -205,6 +209,9 @@ for(usps in unique(forecast_st_plt$USPS)){
   print(paste0("Plotting: ", usps))
   cols_tmp <- cols[names(cols) %in% unique(forecast_st_plt$scenario_name)]
   
+  target_labs <- paste0(str_to_title(outcomes_time_[match(gsub("inc","",unique(forecast_st_plt$target)),outcomes_)]), " incident ", gsub("inc","",unique(forecast_st_plt$target)))
+  names(target_labs) <- unique(forecast_st_plt$target)
+  
   inc_st_plt <- forecast_st_plt %>% 
     filter(USPS == usps) %>% 
     filter(incid_cum=="inc") %>%
@@ -215,18 +222,23 @@ for(usps in unique(forecast_st_plt$USPS)){
     geom_point(data = . %>% filter(type=="gt"), aes(y = ctr, color = factor(scenario_name)), size = 1.5, pch=21, fill=NA) +
     geom_vline(xintercept = projection_date, color="red", alpha =0.5) +
     scale_color_manual(values = cols_tmp, aesthetics = c("color", "fill")) +
-    scale_y_funct(glue::glue("Weekly Incident, {usps}")) +
+    scale_y_funct(glue::glue("Incident, {usps}")) +
+    # scale_y_funct(glue::glue("Weekly Incident, {usps}")) +
     scale_x_date(date_breaks = "1 month", date_labels = "%b %y") +
     theme_bw() + xlab(NULL) +
     guides(color=guide_legend(title = NULL, nrow=2,byrow=TRUE), fill = "none") +
     coord_cartesian(xlim=lubridate::as_date(c(trunc_date, sim_end_date))) +
-    facet_wrap(~target, ncol = 1, scales = "free_y") +
+    facet_wrap(~target, ncol = 1, scales = "free_y",
+               labeller = as_labeller(target_labs)) +
     theme(legend.position = "bottom", legend.text = element_text(size=10),
           axis.text.x = element_text(size=6, angle = 45))
   plot(inc_st_plt)
   
   
   if (plot_cum) {
+    
+    target_labs <- paste0(str_to_title(outcomes_time_[match(gsub("cum","",unique(forecast_st_plt$target)),outcomes_)]), " cumulative ", gsub("cum","",unique(forecast_st_plt$target)))
+    names(target_labs) <- unique(forecast_st_plt$target)
     
     cum_st_plt <- forecast_st_plt %>% 
       filter(USPS == usps) %>% 
@@ -238,12 +250,13 @@ for(usps in unique(forecast_st_plt$USPS)){
       geom_point(data = . %>% filter(type=="gt"), aes(y = ctr, color = factor(scenario_name)), size = 1.5, pch=21, fill=NA) +
       geom_vline(xintercept = projection_date, color="red", alpha =0.5) +
       scale_color_manual(values = cols_tmp, aesthetics = c("color", "fill")) +
-      scale_y_funct(glue::glue("Weekly Incident, {usps}")) +
+      scale_y_funct(glue::glue("Cumulative, {usps}"))  +
       scale_x_date(date_breaks = "1 month", date_labels = "%b %y") +
       theme_bw() + xlab(NULL) +
       guides(color=guide_legend(title = NULL, nrow=2,byrow=TRUE), fill = "none") +
       coord_cartesian(xlim=lubridate::as_date(c(trunc_date, sim_end_date))) +
-      facet_wrap(~target, ncol = 1, scales = "free_y") +
+      facet_wrap(~target, ncol = 1, scales = "free_y",
+                 labeller = as_labeller(target_labs)) +
       theme(legend.position = "bottom", legend.text = element_text(size=10),
             axis.text.x = element_text(size=6, angle = 45))
     
@@ -262,6 +275,9 @@ for(usps in unique(forecast_st_plt$USPS)){
   print(paste0("Plotting: ", usps))
   cols_tmp <- cols[names(cols) %in% unique(forecast_st_plt$scenario_name)]
   
+  target_labs <- paste0(str_to_title(outcomes_time_[match(gsub("inc","",unique(forecast_st_plt$target)),outcomes_)]), " incident ", gsub("inc","",unique(forecast_st_plt$target)))
+  names(target_labs) <- unique(forecast_st_plt$target)
+  
   inc_st_plt <- forecast_st_plt %>% 
     filter(USPS == usps) %>% 
     filter(incid_cum=="inc") %>%
@@ -272,17 +288,21 @@ for(usps in unique(forecast_st_plt$USPS)){
     geom_point(data = . %>% filter(type=="gt"), aes(y = ctr, color = factor(scenario_name)), size = 1.5, pch=21, fill=NA) +
     geom_vline(xintercept = projection_date, color="red", alpha =0.5) +
     scale_color_manual(values = cols_tmp, aesthetics = c("color", "fill")) +
-    scale_y_funct(glue::glue("Weekly Incident, {usps}")) +
+    scale_y_funct(glue::glue("Incident, {usps}")) +
     scale_x_date(date_breaks = "1 month", date_labels = "%b %y") +
     theme_bw() + xlab(NULL) +
     guides(color=guide_legend(title = NULL, nrow=2,byrow=TRUE), fill = "none") +
     coord_cartesian(xlim=lubridate::as_date(c(trunc_date, sim_end_date))) +
-    facet_wrap(~target, ncol = 1, scales = "free_y") +
+    facet_wrap(~target, ncol = 1, scales = "free_y",
+               labeller = as_labeller(target_labs)) +
     theme(legend.position = "bottom", legend.text = element_text(size=10),
           axis.text.x = element_text(size=6, angle = 45))
   plot(inc_st_plt)
   
   if (plot_cum) {
+    
+    target_labs <- paste0(str_to_title(outcomes_time_[match(gsub("cum","",unique(forecast_st_plt$target)),outcomes_)]), " cumulative ", gsub("cum","",unique(forecast_st_plt$target)))
+    names(target_labs) <- unique(forecast_st_plt$target)
     
     cum_st_plt <- forecast_st_plt %>% 
       filter(USPS == usps) %>% 
@@ -294,12 +314,13 @@ for(usps in unique(forecast_st_plt$USPS)){
       geom_point(data = . %>% filter(type=="gt"), aes(y = ctr, color = factor(scenario_name)), size = 1.5, pch=21, fill=NA) +
       geom_vline(xintercept = projection_date, color="red", alpha =0.5) +
       scale_color_manual(values = cols_tmp, aesthetics = c("color", "fill")) +
-      scale_y_funct(glue::glue("Weekly Incident, {usps}")) +
+      scale_y_funct(glue::glue("Cumulative, {usps}")) +
       scale_x_date(date_breaks = "1 month", date_labels = "%b %y") +
       theme_bw() + xlab(NULL) +
       guides(color=guide_legend(title = NULL, nrow=2,byrow=TRUE), fill = "none") +
       coord_cartesian(xlim=lubridate::as_date(c(trunc_date, sim_end_date))) +
-      facet_wrap(~target, ncol = 1, scales = "free_y") +
+      facet_wrap(~target, ncol = 1, scales = "free_y",
+                 labeller = as_labeller(target_labs)) +
       theme(legend.position = "bottom", legend.text = element_text(size=10),
             axis.text.x = element_text(size=6, angle = 45))
     
