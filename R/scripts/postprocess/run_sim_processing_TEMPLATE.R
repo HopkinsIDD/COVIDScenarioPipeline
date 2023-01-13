@@ -15,7 +15,7 @@ library(doParallel)
 
 # SETUP -------------------------------------------------------------------
 
-
+proj_dir <- getwd()
 # ~ Local or Github source ------------------------------------------------
 
 # if using local, make sure its pulled and in same base directory as project
@@ -23,6 +23,7 @@ library(doParallel)
 use_local_repo <- TRUE 
 github_url <- "https://raw.githubusercontent.com/HopkinsIDD/COVIDScenarioPipeline/main-addprocessing"
 csp_local_dir <- "../COVIDScenarioPipeline"
+# csp_local_dir <- "../../nCov/COVIDScenarioPipeline"
 
 
 # ~ Main Run Options -----------------------------------------------------------
@@ -31,13 +32,13 @@ full_fit <- FALSE
 
 # ~ Round -----------------------------------------------------------------
 round_num <- 3
-fch_date <- "Dec25"
+fch_date <- "Jan8"
 
 # ~ Application -----------------------------------------------------------
 smh_or_fch <- "fch" #"fch" or "smh"
 pathogen <- "flu" # covid19 or flu
 repo <- "../../shared/SMH_Flu"
-subdir <- NULL
+subdir <- NULL  #used for testing purposes
 
 smh_or_fch <- tolower(smh_or_fch)
 if(smh_or_fch == "fch"){ subdir <- file.path("FCH", fch_date) }   #"excluding_vacchosp"  #NULL # can be changed to add subanalysis
@@ -48,15 +49,19 @@ scenario_num = 1:4# which scenarios to process right now
 fch_scenario_num = 2
 n_weeks <- 41
 
-scenario_num = ifelse(tolower(smh_or_fch) == "fch", fch_scenario_num, scenario_num)
+if(tolower(smh_or_fch) == "fch"){
+  scenario_num <- fch_scenario_num
+}
+# scenario_num = ifelse(tolower(smh_or_fch) == "fch", fch_scenario_num, scenario_num) ## ifelse() can't return vectors
 scenarios <- c("highVE_optImm", "highVE_pesImm", "lowVE_optImm", "lowVE_pesImm")[scenario_num]
-scenario_s3_buckets <- c("20221220T034851", "20221213T214233", "20221220T034117", "20221220T041329")[scenario_num] # automatically pull from s3 if the data are not local already
+scenario_s3_buckets <- c("20221220T173349", "20230109T033128", "20221220T174219", "20221220T174814")[scenario_num] # automatically pull from s3 if the data are not local already
 override_pull_from_s3 <- c(FALSE, FALSE, FALSE, FALSE)[scenario_num] # !!!! VERY IMPORTANT - LEAVE FALSE UNLESS YOU ARE REWRITING THE CURRENT S3 DATA !!!!
 
 # ~ Config Specifics ------------------------------------------------------
 subname <- NA
 subname_all <- NA
-config_subname <- "2022_trunc"
+# config_subname <- "2022_trunc"
+config_subname <- "2022_Jan8"
 
 # ~ Outcomes to Include (for processing and plotting) ---------------------------------------------------
 outcomes_ <- c("I","C","H","D")
@@ -83,7 +88,6 @@ likelihood_sims <- FALSE
 
 
 
-
 # SUBMISSION & PROCESSING SPECIFICS ----------------------------------------------------
 ## -- "outcomes_" are for processing. we want more than we submit for diagnostics.
 
@@ -93,8 +97,10 @@ if (smh_or_fch == "fch" & pathogen == "flu"){
         data_comb %>%
             filter(grepl("inc hosp", target)) %>%
             mutate(target = gsub("inc hosp", "inc flu hosp", target)) %>%
-            dplyr::select(forecast_date, target_end_date, target, location, type, quantile, value)
+            dplyr::select(forecast_date=model_projection_date, target_end_date, target, location, type, quantile, value) %>%
+        mutate(forecast_date = forecast_date + 1)
     }
+    drop <- FALSE
     forecast_date_name <- "forecast_date"
     outcomes_ <- c("I","C","H","D")
     outcomes_time_ <- c("weekly","weekly","weekly","weekly")
@@ -132,7 +138,9 @@ if (smh_or_fch == "fch" & pathogen == "covid19"){
             filter(target %in% targets) %>%
             filter(!(str_detect(target, "inc case") & !(quantile %in% c(0.025, 0.100, 0.250, 0.500, 0.750, 0.900, 0.975) | is.na(quantile)))) %>%
             filter(!(!str_detect(target, "inc case") & !(quantile %in% c(0.01, 0.025, seq(0.05, 0.95, by = 0.05), 0.975, 0.99) | is.na(quantile)))) %>%
-            mutate(quantile = format(quantile, digits = 3))
+            mutate(quantile = format(quantile, digits = 3)) %>%
+            select(-scenario_id, -scenario_name, -forecast_date, -age_group) %>%
+            rename(forecast_date = model_projection_date)
     }
     drop <- FALSE
     forecast_date_name <- "forecast_date"
@@ -198,7 +206,7 @@ forecast_date <- lubridate::as_date(config$start_date)+21 # date to start plotti
 end_date <- lubridate::as_date(config$end_date)
 if (tolower(smh_or_fch)=="fch") { 
     n_weeks <- 4
-    end_date <- lubridate::as_date(projection_date + n_weeks*7)
+    end_date <- lubridate::as_date(projection_date + n_weeks*7)-1
 }
 point_est <- 0.5   # alternative: "mean"
 compartment_types = c("vacc","variant","agestrat") # types of compartments, other than standard SEIR
@@ -210,6 +218,8 @@ variants_ <- config$seir$compartments$variant_type
 vacc_ <- config$seir$compartments$vaccination_stage
 county_level <- FALSE
 plot_projections <- TRUE
+
+save_reps <- smh_or_fch=="smh" & !full_fit
 
 # create the repo where everything will be saved
 round_directory <- do.call(file.path, as.list(na.omit(c(repo, paste0("R",round_num), subdir))))
@@ -263,6 +273,14 @@ if (pathogen == "flu"){
 }
 
 gt_data <- clean_gt_forplots(readr::read_csv(config$filtering$data_path))
+
+if (any(grepl("incidI", colnames(gt_data)))){
+  colnames(gt_data) <- gsub("incidI", "incidC", colnames(gt_data))
+}
+if (any(grepl("cumI", colnames(gt_data)))){
+  colnames(gt_data) <- gsub("cumI", "cumC", colnames(gt_data))
+}
+
 readr::write_csv(gt_data, file.path(round_directory, "gt_data_clean.csv"))
 
 gc()
@@ -321,8 +339,11 @@ peak_ram_ <- peakRAM::peakRAM({
                                  vacc_ = vacc_,
                                  plot_samp = plot_samp,
                                  gt_data = gt_data,
+                                 geodata_file = "data/geodata_2019_statelevel.csv",
+                                 death_filter = "med",
                                  scenario_dir = scenario_dir,
-                                 summarize_peaks = (smh_or_fch == "smh"))
+                                 summarize_peaks = (smh_or_fch == "smh"),
+                                 save_reps = save_reps)
         tmp_out <- list(tmp_out, tmp_out_)
     }
     stopCluster(cl)
@@ -361,15 +382,27 @@ data_comb <- combine_and_format_scenarios(
 # FINAL SUBMISSION CLEANUP ----------------------------------------------
 
 # Remove unwanted targets & dates
-data_comb <- data_comb %>% filter(target_end_date <= proj_end_date | (is.na(target_end_date) & target == "peak size hosp"))
+proj_end_date <-config$end_date
+data_comb <- data_comb %>% filter(target_end_date <= proj_end_date | (is.na(target_end_date) & target == "peak size hosp")) %>%
+  mutate(forecast_date = as.character(forecast_date))
 data_submission <- select_submission_targets(data_comb) 
 
+
 # Check
-data_submission %>% 
+if(smh_or_fch=='smh'){
+  data_submission %>% 
     select(scenario_id, scenario_name, target) %>%
     distinct() %>%
     mutate(target = gsub('[[:digit:]]+', '', target)) %>%
     distinct()  %>% print(n=100)
+}else{
+  data_submission %>% 
+    select(target) %>%
+    distinct() %>%
+    mutate(target = gsub('[[:digit:]]+', '', target)) %>%
+    distinct()  %>% print(n=100)
+}
+
 
 
 if(drop == TRUE) {
@@ -382,18 +415,18 @@ if(drop == TRUE) {
 } 
 
 # SAVE IT
-readr::write_csv(data_submission, file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".csv")))
-arrow::write_parquet(data_submission, file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".parquet")))
+readr::write_csv(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date + 1, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".csv")))
+arrow::write_parquet(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date + 1, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".parquet")))
 arrow::write_parquet(data_comb, file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), "_all.parquet")))
 
-print(paste0("Final data saved in:  [  ", file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".csv")), "  ]"))
+print(paste0("Final data saved in:  [  ", file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date + 1, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".csv")), "  ]"))
 
 
 
 
 # ~ Save Replicates Sample ------------------------------------------------
 
-if (!full_fit & smh_or_fch == "smh"){
+if (!full_fit & smh_or_fch == "smh" & save_reps){
     
     file_names <- file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP-", scenarios_all, "_100reps.parquet"))
     geodata <- read_csv("data/geodata_territories_2019_statelevel.csv")
@@ -481,15 +514,13 @@ if(plot_projections){
     opt$geodata <- "data/geodata_2019_statelevel.csv"   #geodata_territories_2019_statelevel.csv"
     opt$death_filter <- "med"
     opt$outdir <- ifelse(!is.na(out_sub_dir), file.path(round_directory, out_sub_dir), file.path(round_directory))
-    opt$include_hosp <- incl_hosp
-    opt$include_inf <- incl_inf
+    opt$include_hosp <- TRUE
+    opt$include_inf <- FALSE
     opt$reichify <- TRUE
     
     likelihood_sims <- FALSE
     skipcum <- FALSE
     y_sqrt <- FALSE
-    incl_hosp <- TRUE
-    incl_inf <- FALSE
     compare_to_baseline <- FALSE
     point_est <- 0.5
     keep_all_compartments <- keep_variant_compartments <- FALSE
@@ -498,7 +529,7 @@ if(plot_projections){
     
     
     # new options
-    plot_cum <- TRUE
+    plot_cum <- ifelse(any(outcomes_cum_),TRUE,FALSE)
     plot_incid <- TRUE
     
     data_comb <- arrow::read_parquet(file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), "_all.parquet")))
@@ -512,7 +543,7 @@ if(plot_projections){
     
     # Run plotting script
     # gt_data <- gt_data_all
-    source(paste0(source_loc, "/R/scripts/postprocess/plot_predictions.R", local=TRUE))
+    source(paste0(source_loc, "/R/scripts/postprocess/plot_predictions.R"))
 }
 
 
@@ -542,9 +573,22 @@ cat(paste0(
 print('Processing Complete')
 
 
+
 # NOTES:
 #  - [process_sims_parallel.R] was previously called [produce_smh_projections_cmprt_parallel.R]
 #  - [   ] was previously called produce_smh_projections_cmprt_parallel.R
 #  - [   ] was previously called produce_smh_projections_cmprt_parallel.R
 #  - [   ] was previously called produce_smh_projections_cmprt_parallel.R
+
+
+# Move to save dir for exporting
+setwd(round_directory)
+
+
+# download.file(paste0(round_directory))
+
+# move back to 
+
+# setwd(proj_dir)
+
 
