@@ -132,16 +132,23 @@ if (smh_or_fch == "fch" & pathogen == "covid19"){
                      paste0(1:8, " wk ahead inc case"),
                      paste0(0:130, " day ahead inc hosp"))
         
-        data_comb %>%
+        data_comb <- data_comb %>%
             filter(type != "point-mean" & !(is.na(quantile) & type == "quantile")) %>%
             mutate(quantile = round(quantile, 3)) %>%
             filter(target %in% targets) %>%
-            filter(!(str_detect(target, "inc case") & !(quantile %in% c(0.025, 0.100, 0.250, 0.500, 0.750, 0.900, 0.975) | is.na(quantile)))) %>%
-            filter(!(!str_detect(target, "inc case") & !(quantile %in% c(0.01, 0.025, seq(0.05, 0.95, by = 0.05), 0.975, 0.99) | is.na(quantile)))) %>%
-            mutate(quantile = format(quantile, digits = 3)) %>%
             select(-scenario_id, -scenario_name, -forecast_date, -age_group) %>%
-            rename(forecast_date = model_projection_date)
+            rename(forecast_date = model_projection_date) %>%
+            filter(quantile %in% c(0.01, 0.025, seq(0.05, 0.95, by = 0.05), 0.975, 0.99) | is.na(quantile))
+        
+        data_comb %>% 
+          filter(str_detect(target, "inc case")) %>% 
+          filter(quantile %in% c(0.025, 0.100, 0.250, 0.500, 0.750, 0.900, 0.975) | is.na(quantile)) %>%
+          bind_rows(
+            data_comb %>% filter(!str_detect(target, "inc case"))) %>%
+          mutate(quantile = format(quantile, digits = 3))
+
     }
+    
     drop <- FALSE
     forecast_date_name <- "forecast_date"
     outcomes_ <- c("I","C","H","D")
