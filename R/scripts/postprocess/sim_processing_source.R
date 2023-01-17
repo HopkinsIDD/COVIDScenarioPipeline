@@ -1367,6 +1367,7 @@ process_sims <- function(
                                                                 keep_variant_compartments, keep_vacc_compartments, keep_all_compartments,
                                                                 variants_=NULL, vacc_=NULL, death_filter=opt$death_filter,
                                                                 opt,
+                                                                geodata = geodata,
                                                                 scenario_dir)
             weekly_incid_sims <- weekly_incid_sims_calibrations$incid_sims_recalib
             
