@@ -84,7 +84,7 @@ combine_and_format_sims <- function(outcome_vars = "incid",
     
     if(county_level){
         res_state <- res_geoid_all %>%
-            inner_join(geodata%>%select(geoid, USPS)) %>%
+            inner_join(geodata %>% select(geoid, USPS)) %>%
             group_by_at(c("USPS", "time", "sim_num", compartment_types)) %>%
             summarise(across(starts_with("incid"), sum)) %>%
             as_tibble()
@@ -157,7 +157,7 @@ load_simulations <- function(geodata,
     
     if(county_level){
         res_state <- res_geoid %>%
-            inner_join(geodata%>%select(geoid, USPS)) %>%
+            inner_join(geodata %>% select(geoid, USPS)) %>%
             group_by_at(c("USPS", "time", "sim_num", compartment_types)) %>%
             # summarize(incidI=sum(incidI),
             #           incidD=sum(incidD),
@@ -167,11 +167,11 @@ load_simulations <- function(geodata,
             as_tibble()
     } else {
         res_state <- res_geoid %>%
-            inner_join(geodata%>%select(geoid, USPS))
+            inner_join(geodata %>% select(geoid, USPS))
         
         if (keep_compartments){
             res_state_long <- res_geoid_long %>% 
-                inner_join(geodata%>%select(geoid, USPS))
+                inner_join(geodata %>% select(geoid, USPS))
         }
         rm(res_geoid_long, res_geoid)
     }
@@ -241,7 +241,7 @@ trans_sims_wide <- function(geodata,
     
     if(county_level){
         res_state <- res_geoid %>%
-            inner_join(geodata%>%select(geoid, USPS)) %>%
+            inner_join(geodata %>% select(geoid, USPS)) %>%
             group_by_at(c("USPS", "time", "sim_num", compartment_types)) %>%
             # summarize(incidI=sum(incidI),
             #           incidD=sum(incidD),
@@ -251,11 +251,11 @@ trans_sims_wide <- function(geodata,
             as_tibble()
     } else {
         res_state <- res_geoid %>%
-            inner_join(geodata%>%select(geoid, USPS))
+            inner_join(geodata %>% select(geoid, USPS))
         
         if (keep_compartments){
             res_state_long <- res_geoid_long %>% 
-                inner_join(geodata%>%select(geoid, USPS))
+                inner_join(geodata %>% select(geoid, USPS))
         }
         rm(res_geoid_long, res_geoid)
     }
@@ -340,7 +340,7 @@ load_simulations_orig <- function(geodata,
     
     if(county_level){
         res_state <- res_geoid %>%
-            inner_join(geodata%>%select(geoid, USPS)) %>%
+            inner_join(geodata %>% select(geoid, USPS)) %>%
             group_by_at(c("USPS", "time", "sim_num", compartment_types)) %>%
             # summarize(incidI=sum(incidI),
             #           incidD=sum(incidD),
@@ -350,11 +350,11 @@ load_simulations_orig <- function(geodata,
             as_tibble()
     } else {
         res_state <- res_geoid %>%
-            inner_join(geodata%>%select(geoid, USPS))
+            inner_join(geodata %>% select(geoid, USPS))
         
         if (keep_compartments){
             res_state_long <- res_geoid_long %>% 
-                inner_join(geodata%>%select(geoid, USPS))
+                inner_join(geodata %>% select(geoid, USPS))
         }
         rm(res_geoid_long, res_geoid)
     }
@@ -464,6 +464,7 @@ calibrate_outcome <- function(outcome_calib = "incidH",
                               keep_variant_compartments, keep_vacc_compartments, keep_all_compartments,
                               variants_=NULL, vacc_=NULL, death_filter=opt$death_filter,
                               opt,
+                              geodata,
                               scenario_dir) {
     
     calib_dates <- sort((lubridate::as_date(projection_date)) - c(1, n_calib_days))
@@ -1440,6 +1441,7 @@ process_sims <- function(
                                                                variants_ = NULL, vacc_ = NULL,
                                                                death_filter = death_filter,
                                                                opt = opt,
+                                                               geodata = geodata,
                                                                scenario_dir = scenario_dir)
             daily_incid_sims <- daily_incid_sims_calibrations$incid_sims_recalib
             
