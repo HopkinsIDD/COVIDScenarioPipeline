@@ -1091,6 +1091,8 @@ process_sims <- function(
     if (full_fit)   opt$forecast_date <- forecast_date
     opt$projection_date <- lubridate::as_date(opt$projection_date)
     opt$forecast_date <- lubridate::as_date(opt$forecast_date)
+    forecast_date <- opt$forecast_date 
+    
     
     reich_locs <- read_csv("https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-locations/locations.csv")
     
