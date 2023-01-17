@@ -65,10 +65,11 @@ state_cw <- cdlTools::census2010FIPS %>%
 gt_data <- gt_data %>% 
   mutate(time = lubridate::as_date(time)) %>% mutate(date = time)
 colnames(gt_data) <- gsub("incidI", "incidC", colnames(gt_data))
-outcomes_gt_ <- outcomes_[outcomes_ != "I"]
-outcomes_time_gt_ <- outcomes_time_[outcomes_ != "I"]
-outcomes_cum_gt_ <- outcomes_cum_[outcomes_ != "I"]
-outcomes_cumfromgt_gt_ <- outcomes_cumfromgt[outcomes_ != "I"]
+gt_outcomes <- outcomes_[outcomes_ != "I" & sapply(X = paste0("incid", outcomes_), FUN = function(x=X, y) any(grepl(pattern = x, x = y)), y = colnames(gt_data)) ]
+outcomes_gt_ <- outcomes_[outcomes_ %in% gt_outcomes]
+outcomes_time_gt_ <- outcomes_time_[outcomes_ %in% gt_outcomes]
+outcomes_cum_gt_ <- outcomes_cum_[outcomes_ %in% gt_outcomes]
+outcomes_cumfromgt_gt_ <- outcomes_cumfromgt[outcomes_ %in% gt_outcomes]
 
 use_obs_data_forcum <- ifelse(any(outcomes_cumfromgt_gt_),TRUE, FALSE)
 gt_data_2 <- gt_data
