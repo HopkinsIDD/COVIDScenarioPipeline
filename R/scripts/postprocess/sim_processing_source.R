@@ -902,17 +902,21 @@ get_cum_sims <- function(sim_data, obs_data, forecast_date, aggregation = "day",
                                      cum_dat = start_cases, loc_column, cmprt_column)
         }
     } else {
-        start_cases <- obs_data %>% filter(time == forecast_date) %>% select(!!sym(loc_column), !!(gt_cum_vars)) %>%
-            pivot_longer(cols=starts_with("cum"), names_to = "outcome_name", values_to = "outcome") %>%
-            mutate(outcome = 0)
+        # start_cases <- obs_data %>% filter(time == forecast_date) %>% select(!!sym(loc_column), !!(gt_cum_vars)) %>%
+        #     pivot_longer(cols=starts_with("cum"), names_to = "outcome_name", values_to = "outcome") %>%
+        #     mutate(outcome = 0)
+      start_cases <- sim_data %>% select(!!sym(loc_column), outcome) %>%
+            mutate(outcome = gsub("incid", "cum", outcome)) %>%
+            distinct() %>%
+            mutate(value = 0, time = forecast_date)
         cum_sims <- cum_sum_sims(sim_data, start_date = forecast_date - 1, 
                                  cum_dat = start_cases, loc_column, cmprt_column)
     }
     return(cum_sims)
 }
+    
 
-
-
+  
 format_weekly_cum_outcomes <- function(weekly_cum_sims){
     rc <- weekly_cum_sims %>% group_by(time, !!sym(loc_column)) %>% 
         summarize(x = list(enframe(c(quantile(cum_cases_corr, 
@@ -1051,7 +1055,6 @@ process_sims <- function(
         death_filter = "med",
         plot_samp,
         gt_data,
-        scenario_dir,
         summarize_peaks = FALSE,
         save_reps = FALSE) {
     
@@ -1330,7 +1333,7 @@ process_sims <- function(
     gt_data_2 <- gt_data
     # colnames(gt_data_2) <- gsub("cumI", "cumC", colnames(gt_data_2))
     gt_data_2 <- gt_data_2 %>% mutate(cumH = 0) # incidH is only cumulative from start of simulation
-    
+     
     # outcomes_gt_ <- outcomes_[outcomes_!="I"]
     # outcomes_cum_gt_ <- outcomes_cum_[outcomes_!="I"]
     # 
@@ -1359,15 +1362,20 @@ process_sims <- function(
             weekly_incid_sims_calibrations <- calibrate_outcome(outcome_calib = paste0("incid", outcomes_calib_weekly),
                                                                 weekly_outcome = TRUE,
                                                                 n_calib_days = n_calib_days,
-                                                                gt_data, 
+                                                                gt_data = gt_data, 
                                                                 incid_sims_formatted = weekly_incid_sims_formatted,
                                                                 incid_sims = weekly_incid_sims, 
-                                                                projection_date,
-                                                                quick_run, testing,
-                                                                keep_variant_compartments, keep_vacc_compartments, keep_all_compartments,
-                                                                variants_=NULL, vacc_=NULL, death_filter=opt$death_filter,
-                                                                opt,
-                                                                scenario_dir)
+                                                                projection_date = projection_date,
+                                                                quick_run = quick_run, testing = testing,
+                                                                keep_variant_compartments = keep_variant_compartments, 
+                                                                keep_vacc_compartments = keep_vacc_compartments, 
+                                                                keep_all_compartments = keep_all_compartments,
+                                                                variants_ = NULL, vacc_ = NULL,
+                                                                death_filter = death_filter,
+                                                                opt = opt,
+                                                                geodata = geodata,
+                                                                scenario_dir = scenario_dir)
+
             weekly_incid_sims <- weekly_incid_sims_calibrations$incid_sims_recalib
             
             weekly_incid_sims_recalib_formatted <- format_weekly_outcomes(
