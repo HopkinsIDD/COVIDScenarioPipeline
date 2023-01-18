@@ -1508,7 +1508,7 @@ process_sims <- function(
         
         weekly_reps <- weekly_incid_sims %>%
             mutate(time = lubridate::as_date(time)) %>%
-            filter(time >= lubridate::as_date(projection_date) & time <= lubridate::as_date(proj_end_date)) %>%
+            filter(time >= lubridate::as_date(projection_date) & time <= lubridate::as_date(end_date)) %>%
             filter(sim_num %in% sample(unique(weekly_incid_sims$sim_num), ifelse(quick_run, 20, 100), replace = FALSE)) %>%
             pivot_wider(names_from = sim_num, values_from = outcome, names_prefix = "sim_") %>%
             mutate(age_group = "0-130",
@@ -1565,7 +1565,7 @@ process_sims <- function(
         
         peak_timing <- peak_timing %>%
             mutate(time = lubridate::as_date(time)) %>%
-            filter(time >= lubridate::as_date(projection_date) & time <= lubridate::as_date(proj_end_date)) %>%
+            filter(time >= lubridate::as_date(projection_date) & time <= lubridate::as_date(end_date)) %>%
             mutate(age_group = "0-130",
                    quantile = NA, type = "point",
                    outcome_name = "incidH",
