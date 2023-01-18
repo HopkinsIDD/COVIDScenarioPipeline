@@ -599,7 +599,7 @@ files_export <- files_generated[!as.logical(rowSums(sapply(X = scenarios_all, FU
 files_export <- files_export[grepl(".parquet|.csv|.pdf", files_export)]
 files_export
 
-# zip_file_name <- file.path(round_directory, paste(na.omit(c(paste0("R",round_num), gsub("/", "_", subdir))),  collapse = "_"))
+zip_file_name <- file.path(round_directory, paste(na.omit(c(paste0("R",round_num), gsub("/", "_", subdir))),  collapse = "_"))
 # zip(zipfile = zip_file_name, 
 #     files   = files_export)
 
