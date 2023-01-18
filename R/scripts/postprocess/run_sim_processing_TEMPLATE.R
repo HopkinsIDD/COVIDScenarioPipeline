@@ -596,10 +596,16 @@ print('Processing Complete')
 dir(round_directory)
 files_generated <- dir(round_directory, include.dirs = TRUE, full.names = TRUE)
 files_export <- files_generated[!as.logical(rowSums(sapply(X = scenarios_all, FUN = function(x = X) grepl(pattern = x, files_generated))))]
+files_export
 
-zip_file_name <- file.path(round_directory, paste(na.omit(c(paste0("R",round_num), gsub("/", "_", subdir))),  collapse = "_"))
-zip(zipfile = zip_file_name, 
-    files   = files_export)
+# zip_file_name <- file.path(round_directory, paste(na.omit(c(paste0("R",round_num), gsub("/", "_", subdir))),  collapse = "_"))
+# zip(zipfile = zip_file_name, 
+#     files   = files_export)
+
+dir.create(zip_file_name, recursive = TRUE)
+file.copy(from = files_export,
+          to = file.path(zip_file_name, basename(files_export)), 
+          overwrite = TRUE)
 
 # browseURL(paste0(zip_file_name, ".zip"))
 # browseURL("/home/shared/SMH/R16/FCH/Jan15/R16_FCH_Jan15.zip")
@@ -609,15 +615,14 @@ zip(zipfile = zip_file_name,
 # Move to save dir for exporting
 setwd(round_directory)
 cat(paste0("\n\n",
-          "*** TO GET FILES: ***  \n\n",
-          "Go to the 'Files' window on the right side of the RStudioServer interface.\n",
-          "You should be in the correct directory (", round_directory, ").\n",
-          "Check the box next to \n", 
-          paste0(zip_file_name, ".zip"), ", \ngo to 'More', and click 'Export'.\n",
-          "This will download the correct output files to your local computer.\n\n",
-          "Make sure to return to your project directory as your working directory `setwd(proj_dir)`\n\n\n"))
+           "*** TO GET FILES: ***  \n\n",
+           "Go to the 'Files' window on the right side of the RStudioServer interface.\n",
+           "You should be in the correct directory (", round_directory, ").\n",
+           "Check the box next to \n", 
+           paste0(zip_file_name), ", \ngo to 'More', and click 'Export'.\n",
+           "This will download the correct output files to your local computer.\n\n",
+           "Make sure to return to your project directory as your working directory `setwd(proj_dir)`\n\n\n"))
 
 
 # setwd(proj_dir)
-
 
