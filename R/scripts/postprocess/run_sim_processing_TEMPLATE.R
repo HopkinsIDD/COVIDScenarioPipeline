@@ -595,7 +595,7 @@ print('Processing Complete')
 
 dir(round_directory)
 files_generated <- dir(round_directory, include.dirs = TRUE, full.names = TRUE)
-files_export <- files_generated[!as.logical(rowSums(sapply(X = scenarios_all_, FUN = function(x = X) grepl(pattern = x, files_generated))))]
+files_export <- files_generated[!as.logical(rowSums(sapply(X = scenarios_all, FUN = function(x = X) grepl(pattern = x, files_generated))))]
 
 zip_file_name <- file.path(round_directory, paste(na.omit(c(paste0("R",round_num), gsub("/", "_", subdir))),  collapse = "_"))
 zip(zipfile = zip_file_name, 
