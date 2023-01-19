@@ -101,7 +101,7 @@ scenario_s3_buckets <- scenario_s3_buckets[scenario_num] # automatically pull fr
 override_pull_from_s3 <- override_pull_from_s3[scenario_num] # !!!! VERY IMPORTANT - LEAVE FALSE UNLESS YOU ARE REWRITING THE CURRENT S3 DATA !!!!
 
 
-
+geodata_file_path = file.path(config$spatial_setup$base_path, config$spatial_setup$geodata)
 
 
 
@@ -367,7 +367,7 @@ peak_ram_ <- peakRAM::peakRAM({
                                  vacc_ = vacc_,
                                  plot_samp = plot_samp,
                                  gt_data = gt_data,
-                                 geodata_file = config$spatial_setup$geodata,
+                                 geodata_file = geodata_file_path,
                                  death_filter = config$outcomes$scenarios,
                                  summarize_peaks = (smh_or_fch == "smh"),
                                  save_reps = save_reps)
@@ -447,7 +447,7 @@ print(paste0("Final data saved in:  [  ", file.path(round_directory, paste0(lubr
 if (!full_fit & smh_or_fch == "smh" & save_reps){
     
     file_names <- file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP-", scenarios_all, "_100reps.parquet"))
-    geodata <- read_csv("data/geodata_territories_2019_statelevel.csv")
+    geodata <- read_csv(geodata_file_path)
     
     file_samp <- lapply(file_names, arrow::read_parquet)
     file_samp <- data.table::rbindlist(file_samp) %>% as_tibble() %>%
