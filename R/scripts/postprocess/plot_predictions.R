@@ -88,20 +88,20 @@ if (any(outcomes_time_=="daily")) {
   daily_cum_outcomes_ <- outcomes_gt_[outcomes_cum_gt_ & outcomes_time_gt_=="daily"]
   if (length(daily_cum_outcomes_)>0){
     gt_data_st_daycum <- get_cum_sims(sim_data = gt_data_st_day  %>%
-                                     mutate(agestrat="age0to130") %>%
-                                     rename(outcome = outcome_name, value = outcome) %>%
-                                     filter(outcome %in% paste0("incid", daily_cum_outcomes_)),
-                                   obs_data = gt_data_2, 
-                                   gt_cum_vars = paste0("cum", outcomes_gt_[outcomes_cumfromgt_gt_]), # variables to get cum from GT
-                                   forecast_date = lubridate::as_date(forecast_date),
-                                   aggregation="day",
-                                   loc_column = "USPS", 
-                                   use_obs_data = use_obs_data_forcum) %>%
+                                        mutate(agestrat="age0to130") %>%
+                                        rename(outcome = outcome_name, value = outcome) %>%
+                                        filter(outcome %in% paste0("incid", daily_cum_outcomes_)),
+                                      obs_data = gt_data_2, 
+                                      gt_cum_vars = paste0("cum", outcomes_gt_[outcomes_cumfromgt_gt_]), # variables to get cum from GT
+                                      forecast_date = lubridate::as_date(forecast_date),
+                                      aggregation="day",
+                                      loc_column = "USPS", 
+                                      use_obs_data = use_obs_data_forcum) %>%
       rename(outcome_name = outcome, outcome = value) %>%
       select(-agestrat)
     gt_data_st_day <- gt_data_st_day %>% bind_rows(gt_data_st_daycum)
   }
-    gt_cl <- gt_cl %>% bind_rows(gt_data_st_day %>% mutate(time_aggr = "daily"))
+  gt_cl <- gt_cl %>% bind_rows(gt_data_st_day %>% mutate(time_aggr = "daily"))
 }
 
 
@@ -131,7 +131,7 @@ dat_st_cl2 <- gt_cl %>%
 # PRIMARY FORECAST DATA ----------------------------------------------------
 
 forecast_st <- proj_data %>%
-  filter(nchar(location)==2 & (quantile %in% c(quant[1], 0.5, quant[2]) | is.na(quantile))) %>%
+  filter(nchar(location)==2 & (quantile %in% sort(unique(c(quant_values, 0.5))) | is.na(quantile))) %>%
   left_join(state_cw, by = c("location")) 
 
 # filter out incid or cum
@@ -152,18 +152,9 @@ forecast_st_plt <- forecast_st %>%
   mutate(incid_cum = ifelse(grepl("inc ", target), "inc", "cum")) %>%
   mutate(outcome = stringr::word(target, 5)) %>%
   mutate(outcome = recode(outcome, "inf"="I", "case"="C", "hosp"="H", "death"="D")) %>%
-  dplyr::mutate(quantile_cln = ifelse(!is.na(quantile), paste0("q", sub("0.", "", as.character(quantile))), 
+  dplyr::mutate(quantile_cln = ifelse(!is.na(quantile), paste0("q", paste0(as.character(quantile*100), "%")), 
                                       ifelse(type=="point-mean", paste0("mean"), 
                                              ifelse(type=="point", paste0("median"), NA)))) %>%
-  dplyr::mutate(quantile_cln2 = ifelse(!is.na(quantile), paste0(incid_cum, outcome, "_q", sub("0.", "", as.character(quantile))), 
-                                       ifelse(type=="point-mean", paste0(incid_cum, outcome,"_mean"), 
-                                              ifelse(type=="point", paste0(incid_cum, outcome,"_median"), NA))))
-
-forecast_st_plt <- forecast_st_plt %>%
-  mutate(quantile_cln = gsub(substr(as.character(quant[1]),3,10), "low", quantile_cln),
-         quantile_cln = gsub(substr(as.character(quant[2]),3,10), "high", quantile_cln)) %>%
-  mutate(quantile_cln2 = gsub(substr(as.character(quant[1]),3,10), "low", quantile_cln2),
-         quantile_cln2 = gsub(substr(as.character(quant[2]),3,10), "high", quantile_cln2)) %>%
   mutate(target_type = paste0(incid_cum, outcome))
 
 pltdat_truth <- dat_st_cl2 %>% 
@@ -176,7 +167,7 @@ pltdat_truth <- dat_st_cl2 %>%
 if(center_line == "mean"){
   forecast_st_plt <- forecast_st_plt %>% mutate(quantile_cln = gsub("mean", "ctr", quantile_cln))
 } else{
-  forecast_st_plt <- forecast_st_plt %>% mutate(quantile_cln = gsub("q5", "ctr", quantile_cln))
+  forecast_st_plt <- forecast_st_plt %>% mutate(quantile_cln = gsub("q50%", "ctr", quantile_cln))
 }
 
 forecast_st_plt <- forecast_st_plt %>% 
@@ -219,7 +210,10 @@ for(usps in unique(forecast_st_plt$USPS)){
     filter(incid_cum=="inc") %>%
     mutate(scenario_name = factor(scenario_name)) %>%
     ggplot(aes(x = date)) +
-    geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = qlow, ymax = qhigh, fill = factor(scenario_name)), alpha = 0.25) +
+    list(
+      if("q2.5%" %in% colnames(forecast_st_plt)){ geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = `q2.5%`, ymax = `q97.5%`, fill = factor(scenario_name)), alpha = 0.2)},
+      if("q25%" %in% colnames(forecast_st_plt)){ geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = `q25%`, ymax = `q75%`, fill = factor(scenario_name)), alpha = 0.25)}
+    ) +
     geom_line(data = . %>% filter(type=="projection"), aes(y = ctr, color = factor(scenario_name)), linewidth = 1.25) +
     geom_point(data = . %>% filter(type=="gt"), aes(y = ctr, color = factor(scenario_name)), size = 1.5, pch=21, fill=NA) +
     geom_vline(xintercept = projection_date, color="red", alpha =0.5) +
@@ -247,7 +241,10 @@ for(usps in unique(forecast_st_plt$USPS)){
       filter(incid_cum=="cum") %>%
       mutate(scenario_name = factor(scenario_name)) %>%
       ggplot(aes(x = date)) +
-      geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = qlow, ymax = qhigh, fill = factor(scenario_name)), alpha = 0.25) +
+      list(
+        if("q2.5%" %in% colnames(forecast_st_plt)){ geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = `q2.5%`, ymax = `q97.5%`, fill = factor(scenario_name)), alpha = 0.2)},
+        if("q25%" %in% colnames(forecast_st_plt)){ geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = `q25%`, ymax = `q75%`, fill = factor(scenario_name)), alpha = 0.25)}
+      ) +
       geom_line(data = . %>% filter(type=="projection"), aes(y = ctr, color = factor(scenario_name)), linewidth = 1.25) +
       geom_point(data = . %>% filter(type=="gt"), aes(y = ctr, color = factor(scenario_name)), size = 1.5, pch=21, fill=NA) +
       geom_vline(xintercept = projection_date, color="red", alpha =0.5) +
@@ -285,7 +282,10 @@ for(usps in unique(forecast_st_plt$USPS)){
     filter(incid_cum=="inc") %>%
     mutate(scenario_name = factor(scenario_name)) %>%
     ggplot(aes(x = date)) +
-    geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = qlow, ymax = qhigh, fill = factor(scenario_name)), alpha = 0.25) +
+    list(
+      if("q2.5%" %in% colnames(forecast_st_plt)){ geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = `q2.5%`, ymax = `q97.5%`, fill = factor(scenario_name)), alpha = 0.2)},
+      if("q25%" %in% colnames(forecast_st_plt)){ geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = `q25%`, ymax = `q75%`, fill = factor(scenario_name)), alpha = 0.25)}
+    ) +
     geom_line(data = . %>% filter(type=="projection"), aes(y = ctr, color = factor(scenario_name)), linewidth = 1.25) +
     geom_point(data = . %>% filter(type=="gt"), aes(y = ctr, color = factor(scenario_name)), size = 1.5, pch=21, fill=NA) +
     geom_vline(xintercept = projection_date, color="red", alpha =0.5) +
@@ -311,7 +311,10 @@ for(usps in unique(forecast_st_plt$USPS)){
       filter(incid_cum=="cum") %>%
       mutate(scenario_name = factor(scenario_name)) %>%
       ggplot(aes(x = date)) +
-      geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = qlow, ymax = qhigh, fill = factor(scenario_name)), alpha = 0.25) +
+      list(
+        if("q2.5%" %in% colnames(forecast_st_plt)){ geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = `q2.5%`, ymax = `q97.5%`, fill = factor(scenario_name)), alpha = 0.2)},
+        if("q25%" %in% colnames(forecast_st_plt)){ geom_ribbon(data = . %>% filter(type=="projection"), aes(ymin = `q25%`, ymax = `q75%`, fill = factor(scenario_name)), alpha = 0.25)}
+      ) +
       geom_line(data = . %>% filter(type=="projection"), aes(y = ctr, color = factor(scenario_name)), linewidth = 1.25) +
       geom_point(data = . %>% filter(type=="gt"), aes(y = ctr, color = factor(scenario_name)), size = 1.5, pch=21, fill=NA) +
       geom_vline(xintercept = projection_date, color="red", alpha =0.5) +
