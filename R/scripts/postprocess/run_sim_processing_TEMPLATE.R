@@ -100,7 +100,6 @@ if (smh_or_fch == "fch" & pathogen == "flu"){
             mutate(target = gsub("inc hosp", "inc flu hosp", target)) %>%
             dplyr::select(forecast_date, target_end_date, target, location, type, quantile, value)
     }
-    drop <- FALSE
     forecast_date_name <- "forecast_date"
     outcomes_ <- c("I","C","H","D")
     outcomes_time_ <- c("weekly","weekly","weekly","weekly")
@@ -149,7 +148,6 @@ if (smh_or_fch == "fch" & pathogen == "covid19"){
 
     }
     
-    drop <- FALSE
     forecast_date_name <- "forecast_date"
     outcomes_ <- c("I","C","H","D")
     outcomes_time_ <- c("weekly","weekly","daily","weekly")
@@ -411,15 +409,6 @@ if(smh_or_fch=='smh'){
 }
 
 
-
-if(drop == TRUE) {
-    # Manually edit to drop what you want
-    # data_submission <- data_submission %>%
-    #   mutate(flag = ifelse(str_detect(target, "hosp") & location %in% c("13"), 1, 0 )) %>%
-    #   filter(flag == 0) %>%
-    #   dplyr::select(-flag)
-    proj_out <- filter(data_submission, location != "US")
-} 
 
 # SAVE IT
 readr::write_csv(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".csv")))
