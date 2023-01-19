@@ -1,27 +1,12 @@
 #..............................................................................................................
 
-# This script gets run by 
-# - `run_sim_processing.R`
-
-
+# This script gets run by: run_sim_processing.R`
 # Do not modify unless changing the plotting or saving structures
 
 #..............................................................................................................
 
 library(tidyverse)
 
-# Whether to compare to Baseline
-include_baseline <- compare_to_baseline
-
-# Carry over variables
-opt$projection_date <- lubridate::as_date(opt$projection_date)
-incl_hosp <- opt$include_hosp
-incl_inf <- opt$include_inf
-
-# if (is.null(scenario_name)){
-#     scenarios <- c("baseline","optimistic","moderate","fatigue","counterfactual")
-#     scenario_name <- scenarios[sapply(scenarios, grepl, projections_file_path)]
-# } 
 
 center_line <- ifelse(point_est==0.5, "median", "mean") ## mean or median model line
 center_line_var <- ifelse(point_est==0.5, "point", "point-mean")
@@ -52,16 +37,6 @@ state_cw <- cdlTools::census2010FIPS %>%
 
 # GROUND TRUTH ------------------------------------------------------------
 
-# loaded from runs
-#case_data_runs <- read_csv("data/ScenarioHub/R10/us_data.csv")
-
-# gt_data <- read_csv(file.path(opt$outdir, "gt_data.csv")) %>%
-#   rename(date = time) %>%
-#   mutate(pre_gt_end = date < lubridate::as_date(proj_data[[1]]$model_projection_date)[1])
-
-# loaded from runs
-# scenario_dir <- file.path(opt$outdir, scenario_name)
-# gt_data <- readr::read_csv(file.path(scenario_dir, "gt_data_clean.csv")) # loads gt_data
 gt_data <- gt_data %>% 
   mutate(time = lubridate::as_date(time)) %>% mutate(date = time)
 colnames(gt_data) <- gsub("incidI", "incidC", colnames(gt_data))
@@ -118,7 +93,7 @@ if (any(outcomes_time_=="daily")) {
                                      filter(outcome %in% paste0("incid", daily_cum_outcomes_)),
                                    obs_data = gt_data_2, 
                                    gt_cum_vars = paste0("cum", outcomes_gt_[outcomes_cumfromgt_gt_]), # variables to get cum from GT
-                                   forecast_date = lubridate::as_date(opt$forecast_date),
+                                   forecast_date = lubridate::as_date(forecast_date),
                                    aggregation="day",
                                    loc_column = "USPS", 
                                    use_obs_data = use_obs_data_forcum) %>%
@@ -131,39 +106,6 @@ if (any(outcomes_time_=="daily")) {
 
 
 
-# 
-# cum_dat_st <- gt_data %>%
-#   select(date, USPS, contains("cum")) %>%
-#   mutate(day_of_week=lubridate::wday(date, label=T))%>%
-#   ungroup %>%
-#   filter(day_of_week=="Sat") %>%
-#   select(-day_of_week)
-# 
-# inc_dat_st <- gt_data %>%
-#   select(date, USPS, contains("inc")) %>%
-#   mutate(week = lubridate::epiweek(date), year = lubridate::epiyear(date)) %>%
-#   mutate(tmp_time = as.numeric(date)) %>%
-#   group_by(USPS, week, year) %>%
-#   summarise(tmp_time = max(tmp_time), 
-#             across(starts_with("inc"), sum)) %>%
-#   ungroup %>%
-#   mutate(date = lubridate::as_date(tmp_time)) %>%
-#   mutate(pre_gt_end = date<=validation_date) %>%
-#   select(date, USPS, starts_with("incid"), pre_gt_end)
-# 
-# # inc_dat_st_vars <- dat_st_vars_long %>%
-# #   mutate(week = lubridate::epiweek(date), year = lubridate::epiyear(date)) %>%
-# #   mutate(tmp_time = as.numeric(date)) %>%
-# #   group_by(USPS, week, year, outcome, variant) %>%
-# #   summarise(tmp_time = max(tmp_time), value = sum(value, na.rm = TRUE)) %>%
-# #   ungroup %>%
-# #   mutate(date = lubridate::as_date(tmp_time)) %>%
-# #   mutate(pre_gt_end = date<=validation_date) %>%
-# #   select(-tmp_time)
-
-
-# Combine cum, inc, and hosp ground truth #
-
 # Remove incomplete weeks from ground truth #
 gt_cl <- gt_cl %>% rename(date = time)
 # if(!((max(gt_cl$date)-lubridate::days(7)) %in% unique(gt_cl$date))){
@@ -172,7 +114,6 @@ gt_cl <- gt_cl %>% rename(date = time)
 # if(!((max(inc_dat_st_vars$date)-lubridate::days(7)) %in% unique(inc_dat_st_vars$date))){
 #   inc_dat_st_vars <- inc_dat_st_vars %>% filter(date != max(date))
 # }
-
 
 dat_st_cl2 <- gt_cl %>% 
   select(date, USPS, target = outcome_name, time_aggr, value = outcome) %>%
@@ -252,12 +193,6 @@ forecast_st_plt <- forecast_st_plt %>%
 
 # PRODUCE PDF OF ALL LOCATIONS --------------------------------------------
 
-# if (y_sqrt){
-#     scale_y_funct <- scale_y_sqrt
-# } else {
-#     scale_y_funct <- scale_y_continuous
-# }
-
 
 # set up colors
 scenarios_plot <- unique(forecast_st_plt$scenario_name)
@@ -268,7 +203,9 @@ names(cols) <- c("gt-pre-projection", "gt-post-projection", scenarios_plot)
 options(scipen = 999)
 scale_y_funct <- scale_y_continuous
 
-pdf(stplot_fname, width=7, height=11)
+stplot_fname_nosqrt <- paste0(stplot_fname, ".pdf")
+
+pdf(stplot_fname_nosqrt, width=7, height=11)
 for(usps in unique(forecast_st_plt$USPS)){
   
   print(paste0("Plotting: ", usps))
@@ -331,7 +268,7 @@ for(usps in unique(forecast_st_plt$USPS)){
 dev.off()
 
 
-stplot_fname_sqrt <- gsub(".pdf", "_sqrt.pdf", stplot_fname)
+stplot_fname_sqrt <- paste0(stplot_fname, "_sqrt.pdf")
 scale_y_funct <- scale_y_sqrt
 
 pdf(stplot_fname_sqrt, width=7, height=11)
@@ -397,4 +334,4 @@ dev.off()
 
 
 # WHERE SAVED
-print(paste0("Plots created in ", stplot_fname))
+print(paste0("Plots created in: \n\n", stplot_fname_nosqrt, " & \n", stplot_fname_sqrt, "\n\n"))
