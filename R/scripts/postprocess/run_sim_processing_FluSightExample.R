@@ -528,7 +528,7 @@ if(plot_projections){
                                                  ifelse(is.na(subname), "", subname)))
     
     # Run plotting script
-    source(paste0(source_loc, "/R/scripts/postprocess/plot_predictions_rev.R"))
+    source(paste0(source_loc, "/R/scripts/postprocess/plot_predictions.R"))
 }
 
 
