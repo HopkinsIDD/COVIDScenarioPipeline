@@ -63,7 +63,6 @@ subname_all <- NA
 outcomes_ <- c("I","C","H","D")
 outcomes_time_ <- c("weekly","weekly","weekly","weekly")
 outcomes_cum_ <- c(FALSE, FALSE, FALSE, FALSE)
-outcomes_calibrate = c(FALSE, FALSE, TRUE, FALSE)
 
 # ~ Calibration -----------------------------------------------------------
 outcomes_calibrate = c(FALSE, FALSE, TRUE, FALSE) # match outcomes_
@@ -370,7 +369,6 @@ peak_ram_ <- peakRAM::peakRAM({
                                  gt_data = gt_data,
                                  geodata_file = config$spatial_setup$geodata,
                                  death_filter = config$outcomes$scenarios,
-                                 scenario_dir = scenario_dir,
                                  summarize_peaks = (smh_or_fch == "smh"),
                                  save_reps = save_reps)
         tmp_out <- list(tmp_out, tmp_out_)
