@@ -63,7 +63,6 @@ subname_all <- NA
 outcomes_ <- c("I","C","H","D")
 outcomes_time_ <- c("weekly","weekly","weekly","weekly")
 outcomes_cum_ <- c(FALSE, FALSE, FALSE, FALSE)
-outcomes_calibrate = c(FALSE, FALSE, TRUE, FALSE)
 
 # ~ Calibration -----------------------------------------------------------
 outcomes_calibrate = c(FALSE, FALSE, TRUE, FALSE) # match outcomes_
