@@ -100,7 +100,7 @@ from gempyor import file_paths
     "--fs-folder",
     "fs_folder",
     type=str,
-    default="/data/struelo1",  # TODO:  check that it exist
+    default="/data/struelo1/flepimop-runs",  # TODO:  check that it exist
     show_default=True,
     help="The file system folder to use for keeping the job outputs",
 )
