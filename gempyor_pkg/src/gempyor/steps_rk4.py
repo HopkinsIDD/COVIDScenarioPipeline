@@ -84,12 +84,12 @@ def rk4_integration(
                     relevant_number_in_comp += states_current[transition_sum_compartments[proportion_sum_index]]
                     # exponents should not be a proportion, since we don't sum them over sum compartments
                     relevant_exponent = parameters[proportion_info[proportion_exponent_col][proportion_index]][today]
-                if first_proportion:  # TODO: ask why there is nothing with n_spatial node here.
+                if first_proportion:  # TODO: ask why there is nothing with n_spatial node here. I think this is always source.
                     only_one_proportion = (
                         transitions[transition_proportion_start_col][transition_index] + 1
                     ) == transitions[transition_proportion_stop_col][transition_index]
                     first_proportion = False
-                    source_number = relevant_number_in_comp
+                    source_number = relevant_number_in_comp  # does this mean we need the first to be "source" ???
                     if source_number.max() > 0:
                         total_rate[source_number > 0] *= (
                             source_number[source_number > 0] ** relevant_exponent[source_number > 0]
@@ -118,8 +118,7 @@ def rk4_integration(
                             mobility_data_indices[spatial_node] : mobility_data_indices[spatial_node + 1]
                         ]
 
-                        rate_change_compartment = proportion_change_compartment
-                        rate_change_compartment *= (
+                        rate_change_compartment = proportion_change_compartment * (
                             relevant_number_in_comp[visiting_compartment] ** relevant_exponent[visiting_compartment]
                         )
                         rate_change_compartment /= population[visiting_compartment]
