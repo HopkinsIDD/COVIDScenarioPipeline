@@ -44,7 +44,6 @@ def _DataFrame2NumbaDict(df, amounts, setup) -> nb.typed.Dict:
                 nb_seed_perday[(row["date"].date() - setup.ti).days] = (
                     nb_seed_perday[(row["date"].date() - setup.ti).days] + 1
                 )
-
                 source_dict = {grp_name: row[f"source_{grp_name}"] for grp_name in cmp_grp_names}
                 destination_dict = {grp_name: row[f"destination_{grp_name}"] for grp_name in cmp_grp_names}
                 seeding_dict["seeding_sources"][idx] = setup.compartments.get_comp_idx(source_dict)

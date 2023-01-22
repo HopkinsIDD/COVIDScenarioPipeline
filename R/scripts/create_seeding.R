@@ -43,13 +43,8 @@ library(tidyr)
 library(purrr)
 
 option_list <- list(
-    optparse::make_option(
-        c("-c", "--config"),
-        action = "store",
-        default = Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")),
-        type = "character",
-        help = "path to the config file"
-    )
+    optparse::make_option(c("-c", "--config"), action = "store", default = Sys.getenv("COVID_CONFIG_PATH", Sys.getenv("CONFIG_PATH")), type = "character", help = "path to the config file"),
+    optparse::make_option(c("-k", "--keep_all_seeding"), action="store",default=TRUE,type='logical',help="Whether to filter away seeding prior to the start date of the simulation.")
 )
 
 opt <- optparse::parse_args(optparse::OptionParser(option_list = option_list))
@@ -373,8 +368,20 @@ if (max(incident_cases$date) < lubridate::as_date(config$start_date)){
         mutate(date = lubridate::as_date(config$start_date),
                amount = 0)
 } else {
-    incident_cases <- incident_cases %>%
-        filter(date >= config$start_date & date <= config$end_date)
+    
+    # keep all seeding -- dont filter away before sim date
+    if (opt$keep_all_seeding){
+        incident_cases <- incident_cases %>%
+            mutate(date = lubridate::as_date(ifelse(date < lubridate::as_date(config$start_date), 
+                                                    lubridate::as_date(config$start_date), lubridate::as_date(date)))) %>%
+            filter(date <= config$end_date) %>%
+            # group_by(across(c(-amount))) %>%
+            # summarise(amount = sum(amount, na.rm = TRUE)) %>%
+            as_tibble()
+    } else {
+        incident_cases <- incident_cases %>%
+            filter(date >= config$start_date & date <= config$end_date) 
+    }
 }
 
 
