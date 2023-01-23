@@ -168,5 +168,5 @@ do
 done
 echo "***************** DONE UPLOADING RESULT TO S3 *****************"
 
-echo "Done"
+echo "DONE EVERYTHING."
 exit 0

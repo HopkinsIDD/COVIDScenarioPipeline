@@ -32,7 +32,7 @@ echo "***************** DONE LOADING ENVIRONMENT *****************"
 echo "***************** FETCHING RESUME FILES *****************"
 ### In case of resume, download or move the right files
 export LAST_JOB_OUTPUT=$(echo $LAST_JOB_OUTPUT | sed 's/\/$//')
-if [ -n "$LAST_JOB_OUTPUT" ]; then   # -n Checks if the length of a string is nonzero --> if LAST_JOB_OUTPUT is not empty, the we download the output from the last job
+if [ -n "$LAST_JOB_OUTPUT" ]; then  # -n Checks if the length of a string is nonzero --> if LAST_JOB_OUTPUT is not empty, the we download the output from the last job
 	if [ $COVID_BLOCK_INDEX -eq 1 ]; then  # always true for slurm submissions
 		export RESUME_RUN_INDEX=$COVID_OLD_RUN_INDEX
 		echo "RESUME_DISCARD_SEEDING is set to $RESUME_DISCARD_SEEDING"
@@ -183,13 +183,14 @@ echo "***************** DONE COPYING RESULTS TO RESULT DIRECTORY ***************
 
 # TODO: replacement for aws copy here ?
 
-echo "DONE EVERYTHING: MOVING LOG FILE"
+echo "DONE EVERYTHING."
 
 # move all the slurm log files:
 # doc: By default both standard output and standard error are directed to the same file. 
 #For job arrays, the default file name is "slurm-%A_%a.out", 
-# "%A" is replaced by the job ID and "%a" with the array index. 
-mv slurm-$SLURM_ARRAY_JOB_ID_${SLURM_ARRAY_TASK_ID}.out $FS_RESULTS_PATH/slurm-$SLURM_ARRAY_JOB_ID_${SLURM_ARRAY_TASK_ID}.out
+# "%A" is replaced by the job ID and "%a" with the array index.
+# --> THIS DOES NOT WORK 
+#mv slurm-$SLURM_ARRAY_JOB_ID_${SLURM_ARRAY_TASK_ID}.out $FS_RESULTS_PATH/slurm-$SLURM_ARRAY_JOB_ID_${SLURM_ARRAY_TASK_ID}.out
 
 
 wait

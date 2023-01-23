@@ -141,5 +141,5 @@ export FILENAME="plot.pdf"
 aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/post/$FILENAME
 
 
-echo "Done"
+echo "DONE EVERYTHING."
 exit 0
