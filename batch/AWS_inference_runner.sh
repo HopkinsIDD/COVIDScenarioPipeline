@@ -37,10 +37,8 @@ mkdir model_data
 tar -xzf model_data.tar.gz -C model_data # chadi: removed v(erbose) option here as it floods the log with data we have anyway from the s3 bucket
 cd model_data
 
-
 # check for presence of LAST_JOB_OUTPUT and download the
 # output from the corresponding last job here
-
 export COVID_SLOT_INDEX=$(python -c "print($AWS_BATCH_JOB_ARRAY_INDEX + 1)")
 
 error_handler() {
@@ -57,9 +55,8 @@ error_handler() {
 	fi
 }
 
-# Pick up stuff that changed
-# TODO(jwills): maybe move this to like a prep script?
-Rscript $COVID_PATH/local_install.R
+# Note $COVID_PATH because here we're using the tar file of the pipeline, untarred in pwd.
+Rscript COVIDScenarioPipeline/local_install.R
 local_install_ret=$?
 
 if [ $local_install_ret -ne 0 ]; then
@@ -68,7 +65,7 @@ fi
 
 python -m pip install --upgrade pip # needs new pip for toml file
 
-(cd $COVID_PATH && pip install -e gempyor_pkg)
+(cd COVIDScenarioPipeline && pip install -e gempyor_pkg)
 python_install_ret=$?
 if [ $python_install_ret -ne 0 ]; then
 	error_handler "Error code returned from running `pip install -e gempyor_pkg`: $python_install_ret"
@@ -79,7 +76,7 @@ echo "***************** FETCHING RESUME FILES *****************"
 ### In case of resume, download the right files from s3
 ## Remove trailing slashes
 export LAST_JOB_OUTPUT=$(echo $LAST_JOB_OUTPUT | sed 's/\/$//')
-if [ -n "$LAST_JOB_OUTPUT" ]; then   # -n Checks if the length of a string is nonzero --> if LAST_JOB_OUTPUT is not empty, the we download the output from the last job
+if [ -n "$LAST_JOB_OUTPUT" ]; then  # -n Checks if the length of a string is nonzero --> if LAST_JOB_OUTPUT is not empty, the we download the output from the last job
 	if [ $COVID_BLOCK_INDEX -eq 1 ]; then
 		export RESUME_RUN_INDEX=$COVID_OLD_RUN_INDEX
 		echo "RESUME_DISCARD_SEEDING is set to $RESUME_DISCARD_SEEDING"

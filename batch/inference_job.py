@@ -122,7 +122,7 @@ from gempyor import file_paths
     show_default=True,
     help="The prefix string of the job queues we should use for this run",
 )
-@click.option(  # aws only option
+@click.option(
     "-v",
     "--vcpus",
     "vcpus",
@@ -131,12 +131,12 @@ from gempyor import file_paths
     show_default=True,
     help="The number of CPUs to request for running jobs",
 )
-@click.option(  # aws only option
+@click.option(
     "-m",
     "--memory",
     "memory",
     type=click.IntRange(min=1000, max=24000),
-    default=12000,
+    default=8000,
     show_default=True,
     help="The amount of RAM in megabytes needed per CPU running simulations",
 )
