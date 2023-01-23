@@ -244,7 +244,12 @@ def launch_batch(
     job_name = f"{config['name']}-{timestamp}"
 
     num_jobs, sims_per_job, num_blocks = autodetect_params(
-        config, data_path=data_path, num_jobs=num_jobs, sims_per_job=sims_per_job, num_blocks=num_blocks, batch_system=batch_system
+        config,
+        data_path=data_path,
+        num_jobs=num_jobs,
+        sims_per_job=sims_per_job,
+        num_blocks=num_blocks,
+        batch_system=batch_system,
     )
 
     # Update and save the config file with the number of sims to run
@@ -252,7 +257,9 @@ def launch_batch(
     if "filtering" in config:
         config["filtering"]["simulations_per_slot"] = sims_per_job
         if not os.path.exists(pathlib.Path(data_path, config["filtering"]["data_path"])):
-            print(f"ERROR: filtering.data_path path {pathlib.Path(data_path, config['filtering']['data_path'])} does not exist!")
+            print(
+                f"ERROR: filtering.data_path path {pathlib.Path(data_path, config['filtering']['data_path'])} does not exist!"
+            )
             return 1
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
@@ -294,7 +301,7 @@ def launch_batch(
     os.environ["job_name"] = job_name
     # Set run_id as environmental variable so it can be pulled for pushing to git TODO
 
-    (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}") # TODO: cd ...
+    (rc, txt) = subprocess.getstatusoutput(f"git checkout -b run_{job_name}")  # TODO: cd ...
     print(txt)
     return rc
 
@@ -317,7 +324,9 @@ def autodetect_params(config, data_path, *, num_jobs=None, sims_per_job=None, nu
             print(f"Setting number of blocks to {num_blocks} [via num_blocks (-k) argument]")
             print(f"Setting sims per job to {sims_per_job} [via {sims_per_slot} simulations_per_slot in config]")
         else:
-            geoid_fname = pathlib.Path(data_path, config["spatial_setup"]["base_path"]) / config["spatial_setup"]["geodata"]
+            geoid_fname = (
+                pathlib.Path(data_path, config["spatial_setup"]["base_path"]) / config["spatial_setup"]["geodata"]
+            )
             with open(geoid_fname) as geoid_fp:
                 num_geoids = sum(1 for line in geoid_fp)
 
@@ -434,7 +443,9 @@ class BatchJobHandler(object):
             self.save_file(
                 source=os.path.join(this_file_path, "AWS_inference_runner.sh"), destination=f"{job_name}-runner.sh"
             )
-            self.save_file(source=os.path.join(this_file_path, "AWS_inference_copy.sh"), destination=f"{job_name}-copy.sh")
+            self.save_file(
+                source=os.path.join(this_file_path, "AWS_inference_copy.sh"), destination=f"{job_name}-copy.sh"
+            )
 
             tarfile_name = f"{job_name}.tar.gz"
             self.tar_working_dir(tarfile_name=tarfile_name)
@@ -589,10 +600,10 @@ class BatchJobHandler(object):
                 export_str = export_str[:-1]
 
                 # time is 5 minutes per simulation TODO: allow longer job with an option.
-                time_limit = self.sims_per_job*5
+                time_limit = self.sims_per_job * 5
 
                 # submit job (idea: use slumpy to get the "depend on")
-                #command = [
+                # command = [
                 #    "sbatch",
                 #    export_str,
                 #    f"--array=1-{self.num_jobs}",
@@ -605,13 +616,14 @@ class BatchJobHandler(object):
                 # time:  Acceptable time formats include "minutes", ... "days-hours:minutes" or  #J-H:m:s.
                 #    f"--job-name={cur_job_name}",
                 #    f"{os.path.dirname(os.path.realpath(__file__))}/inference_job.run",
-                #]
+                # ]
                 command = f"sbatch {export_str} --array=1-{self.num_jobs} --mem={self.memory}M --time={time_limit} --job-name={cur_job_name} {os.path.dirname(os.path.realpath(__file__))}/SLURM_inference_job.run"
 
                 print("slurm command to be run >>>>>>>> ")
                 print(command)
                 print(" <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ")
-                import shlex # using shlex to split the command because it's not obvious https://docs.python.org/3/library/subprocess.html#subprocess.Popen
+                import shlex  # using shlex to split the command because it's not obvious https://docs.python.org/3/library/subprocess.html#subprocess.Popen
+
                 sr = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 (stdout, stderr) = sr.communicate()
                 if sr.returncode != 0:
@@ -620,9 +632,9 @@ class BatchJobHandler(object):
                     print("stdout: ", stdout)
                     print("stderr: ", stderr)
                     raise Exception("sbatch command failed")
-                slurm_job_id = stdout.decode().split(' ')[-1][:-1]
+                slurm_job_id = stdout.decode().split(" ")[-1][:-1]
                 print(f">>> SUCCESS SCHEDULING JOB. Slurm job id is {slurm_job_id}")
-                
+
                 postprod_command = f"""sbatch {export_str} --dependency=afterany:{slurm_job_id} --mem={64000}M --time={120} --job-name=post-{cur_job_name} {os.path.dirname(os.path.realpath(__file__))}/SLURM_postprocess_inference.run"""
                 print("post-processing command to be run >>>>>>>> ")
                 print(postprod_command)
@@ -635,9 +647,9 @@ class BatchJobHandler(object):
                     print("stdout: ", stdout)
                     print("stderr: ", stderr)
                     raise Exception("sbatch command failed")
-                postprod_job_id = stdout.decode().split(' ')[-1][:-1]
+                postprod_job_id = stdout.decode().split(" ")[-1][:-1]
                 print(f">>> SUCCESS SCHEDULING POST-PROCESSING JOB. Slurm job id is {postprod_job_id}")
-            
+
             # On aws: create all other jobs + the copy job. slurm script is only one block and copies itself at the end.
             if self.batch_system == "aws":
                 block_idx = 1

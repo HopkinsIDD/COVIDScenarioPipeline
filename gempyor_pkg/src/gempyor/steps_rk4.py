@@ -84,7 +84,9 @@ def rk4_integration(
                     relevant_number_in_comp += states_current[transition_sum_compartments[proportion_sum_index]]
                     # exponents should not be a proportion, since we don't sum them over sum compartments
                     relevant_exponent = parameters[proportion_info[proportion_exponent_col][proportion_index]][today]
-                if first_proportion:  # TODO: ask why there is nothing with n_spatial node here. I think this is always source.
+                if (
+                    first_proportion
+                ):  # TODO: ask why there is nothing with n_spatial node here. I think this is always source.
                     only_one_proportion = (
                         transitions[transition_proportion_start_col][transition_index] + 1
                     ) == transitions[transition_proportion_stop_col][transition_index]
