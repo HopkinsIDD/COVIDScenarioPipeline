@@ -8,7 +8,7 @@
 set -x
 
 curl \
-  -H "Title: $COVID_RUN_INDEX Done" \
+  -H "Title: $COVID_RUN_INDEX Done ✅" \
   -H "Priority: urgent" \
   -H "Tags: warning,snail" \
   -d "TODO say how many failure and stuff" \

@@ -136,7 +136,7 @@ from gempyor import file_paths
     "--memory",
     "memory",
     type=click.IntRange(min=1000, max=6000),
-    default=4000,
+    default=12000,
     show_default=True,
     help="The amount of RAM in megabytes needed per CPU running simulations",
 )
@@ -724,6 +724,8 @@ class BatchJobHandler(object):
         print(f""" >> DATA branch is {data_branch} with hash {data_hash}""")
         print(f" ------------------------- END -------------------------")
         # add in csp and data path branch.
+
+        # TODO add if Flu or Not, add validation date
 
 
 if __name__ == "__main__":
