@@ -64,6 +64,9 @@ if [ -n "$LAST_JOB_OUTPUT" ]; then   # -n Checks if the length of a string is no
             if [[ $LAST_JOB_OUTPUT == *"s3://"* ]]; then
                 aws s3 cp --quiet $LAST_JOB_OUTPUT/$IN_FILENAME $OUT_FILENAME
             else
+                # cp does not create directorys, so we make the directories first
+                export $OUT_FILENAME_DIR="$(dirname "${OUT_FILENAME}")"
+                mkdir -p $OUT_FILENAME_DIR
                 cp $LAST_JOB_OUTPUT/$IN_FILENAME $OUT_FILENAME
             fi
 		    if [ -f $OUT_FILENAME ]; then
@@ -149,32 +152,32 @@ echo "***************** COPYING RESULTS TO RESULT DIRECTORY *****************"
 for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
 do
     export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','parquet'))")
-    cp $FILENAME $FS_RESULTS_PATH/$FILENAME
+    cp --parents $FILENAME $FS_RESULTS_PATH
 done
     for type in "seed"
     do
         export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','csv'))")
-    cp $FILENAME $FS_RESULTS_PATH/$FILENAME
+    cp --parents $FILENAME $FS_RESULTS_PATH
 done
     for type in "seed"
     do
         export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','csv'))")
-    cp $FILENAME $FS_RESULTS_PATH/$FILENAME
+    cp --parents $FILENAME $FS_RESULTS_PATH
 done
     for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
 do
     export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','parquet'))")
-    cp $FILENAME $FS_RESULTS_PATH/$FILENAME
+    cp --parents $FILENAME $FS_RESULTS_PATH
 done
     for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
 do
     export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/final/', $COVID_SLOT_INDEX,'$type','parquet'))")
-    cp $FILENAME $FS_RESULTS_PATH/$FILENAME
+    cp --parents $FILENAME $FS_RESULTS_PATH
 done
     for type in "seed"
 do
     export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/final/', $COVID_SLOT_INDEX,'$type','csv'))")
-    cp $FILENAME $FS_RESULTS_PATH/$FILENAME
+    cp --parents $FILENAME $FS_RESULTS_PATH
 done
 echo "***************** DONE COPYING RESULTS TO RESULT DIRECTORY *****************"
 
