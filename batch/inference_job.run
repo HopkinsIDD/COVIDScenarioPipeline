@@ -23,6 +23,9 @@ conda activate covidSP
 #eval "$(conda shell.bash hook)"
 which python
 which Rscript
+
+# my instruction asks to install aws cli in ~/aws-cli/bin, so adding this to the path
+export PATH=~/aws-cli/bin:$PATH
 echo "***************** DONE LOADING ENVIRONMENT *****************"
 
 

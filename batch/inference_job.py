@@ -627,15 +627,15 @@ class BatchJobHandler(object):
                 print("post-processing command to be run >>>>>>>> ")
                 print(postprod_command)
                 print(" <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ")
-                sr = subprocess.Popen(shlex.split(postprod_command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                (stdout, stderr) = sr.communicate()
-                if sr.returncode != 0:
-                    print(f"sbatch command failed with returncode {sr.returncode}")
-                    print("sbatch command failed with stdout and stderr:")
-                    print("stdout: ", stdout)
-                    print("stderr: ", stderr)
-                    raise Exception("sbatch command failed")
-                postprod_job_id = stdout.decode().split(' ')[-1][:-1]
+                #sr = subprocess.Popen(shlex.split(postprod_command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                #(stdout, stderr) = sr.communicate()
+                #if sr.returncode != 0:
+                #    print(f"sbatch command failed with returncode {sr.returncode}")
+                #    print("sbatch command failed with stdout and stderr:")
+                #    print("stdout: ", stdout)
+                #    print("stderr: ", stderr)
+                #    raise Exception("sbatch command failed")
+                #postprod_job_id = stdout.decode().split(' ')[-1][:-1]
                 print(f">>> SUCCESS SCHEDULING POST-PROCESSING JOB. Slurm job id is {postprod_job_id}")
             
             # On aws: create all other jobs + the copy job. slurm script is only one block and copies itself at the end.
