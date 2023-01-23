@@ -99,7 +99,7 @@ echo "Rscript $COVID_PATH/R/scripts/filter_MC.R --config $COVID_CONFIG_PATH   # 
                                                --is-resume $COVID_IS_RESUME # Is this run a resume
                                                --is-interactive FALSE # Is this run an interactive run" > $LOG_FILE 2>&1 &
 
-Rscript $COVID_PATH/R/scripts/filter_MC.R -p $COVID_PATH > $LOG_FILE 2>&1
+Rscript $COVID_PATH/R/scripts/filter_MC.R -p $COVID_PATH --this_slot $COVID_SLOT_INDEX --config $COVID_CONFIG_PAT --run_id $COVID_RUN_INDEX --scenarios $COVID_SCENARIOS --deathrates $COVID_DEATHRATES --jobs 1 --simulations_per_slot $COVID_SIMULATIONS_PER_SLOT --this_block 1 -stoch_traj_flag $COVID_STOCHASTIC --ground_truth_start $COVID_GT_START --ground_truth_end $COVID_GT_END --pipepath $COVID_PATH --is-resume $COVID_IS_RESUME --is-interactive FALSE > $LOG_FILE 2>&1
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then
         echo "Error code returned from full_filter.R: $dvc_ret"

@@ -636,7 +636,7 @@ class BatchJobHandler(object):
                 #    print("stderr: ", stderr)
                 #    raise Exception("sbatch command failed")
                 #postprod_job_id = stdout.decode().split(' ')[-1][:-1]
-                print(f">>> SUCCESS SCHEDULING POST-PROCESSING JOB. Slurm job id is {postprod_job_id}")
+                #print(f">>> SUCCESS SCHEDULING POST-PROCESSING JOB. Slurm job id is {postprod_job_id}")
             
             # On aws: create all other jobs + the copy job. slurm script is only one block and copies itself at the end.
             if self.batch_system == "aws":
