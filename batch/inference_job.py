@@ -432,9 +432,9 @@ class BatchJobHandler(object):
             # need these to be uploaded so they can be executed.
             this_file_path = os.path.dirname(os.path.realpath(__file__))
             self.save_file(
-                source=os.path.join(this_file_path, "inference_runner.sh"), destination=f"{job_name}-runner.sh"
+                source=os.path.join(this_file_path, "AWS_inference_runner.sh"), destination=f"{job_name}-runner.sh"
             )
-            self.save_file(source=os.path.join(this_file_path, "inference_copy.sh"), destination=f"{job_name}-copy.sh")
+            self.save_file(source=os.path.join(this_file_path, "AWS_inference_copy.sh"), destination=f"{job_name}-copy.sh")
 
             tarfile_name = f"{job_name}.tar.gz"
             self.tar_working_dir(tarfile_name=tarfile_name)
@@ -606,7 +606,7 @@ class BatchJobHandler(object):
                 #    f"--job-name={cur_job_name}",
                 #    f"{os.path.dirname(os.path.realpath(__file__))}/inference_job.run",
                 #]
-                command = f"sbatch {export_str} --array=1-{self.num_jobs} --mem={self.memory}M --time={time_limit} --job-name={cur_job_name} {os.path.dirname(os.path.realpath(__file__))}/inference_job.run"
+                command = f"sbatch {export_str} --array=1-{self.num_jobs} --mem={self.memory}M --time={time_limit} --job-name={cur_job_name} {os.path.dirname(os.path.realpath(__file__))}/SLURM_inference_job.run"
 
                 print("slurm command to be run >>>>>>>> ")
                 print(command)
@@ -623,7 +623,7 @@ class BatchJobHandler(object):
                 slurm_job_id = stdout.decode().split(' ')[-1][:-1]
                 print(f">>> SUCCESS SCHEDULING JOB. Slurm job id is {slurm_job_id}")
                 
-                postprod_command = f"""sbatch {export_str} --dependency=afterany:{slurm_job_id} --mem={64000}M --time={120} --job-name=post-{cur_job_name} {os.path.dirname(os.path.realpath(__file__))}/postprocess_inference.run"""
+                postprod_command = f"""sbatch {export_str} --dependency=afterany:{slurm_job_id} --mem={64000}M --time={120} --job-name=post-{cur_job_name} {os.path.dirname(os.path.realpath(__file__))}/SLURM_postprocess_inference.run"""
                 print("post-processing command to be run >>>>>>>> ")
                 print(postprod_command)
                 print(" <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ")
