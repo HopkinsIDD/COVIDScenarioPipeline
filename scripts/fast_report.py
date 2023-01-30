@@ -16,7 +16,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
-from .utils import config
+from gempyor.utils import config
 
 years = mdates.YearLocator()  # every year
 months = mdates.MonthLocator()  # every month
@@ -93,7 +93,7 @@ def generate_pdf(max_files, filename, config_file):
         dates.append(str(sim.index[-1]))
         print("Failed to load config, using only endate")
 
-    varplot = ["incidI", "hosp_curr", "icu_curr", "incidH", "incidICU", "incidD"]
+    varplot = ["incidI", "incidH", "incidC", "incidD"]
 
     fig, axes = plt.subplots(len(varplot), len(all_hosp_sim), figsize=(23, 20), sharex=True)
     for vi, var in enumerate(varplot):

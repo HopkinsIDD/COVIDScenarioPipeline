@@ -13,3 +13,6 @@ curl \
   -H "Tags: warning,snail" \
   -d "TODO say how many failure and stuff" \
   ntfy.sh/flepimop_alerts
+
+# get the slack credentials
+source slack_credentials.sh # populate $SLACK_TOKEN
