@@ -186,19 +186,21 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
         resultST[run_name] = []
         file_list = llik_filenames[run_name][:max_files]
         for filename in file_list:
-            df_raw = pq.read_table(filename).to_pandas()               
-            df_raw['slot'] = int(filename.split('/')[-1].split('.')[0])
-            df_raw['sim'] = int(filename.split('/')[-1].split('.')[1])
-            try: 
-                int(filename.split('/')[-1].split('.')[2])   # weird some files are duplicated TODO
-            except:
-                df_raw['ID'] = run_name
-                df_raw = df_raw.drop("filename", axis=1)
-                #df_csv = df_csv.groupby(['slot','sim', 'ID', 'geoid']).sum().reset_index()
-                #df_csv = df_csv[['ll','sim', 'slot', 'ID','geoid']]
-                resultST[run_name].append(df_raw)
-            else:
-                pass
+            if int(filename.split('/')[-1].split('.')[1]) % 5 == 0:
+                df_raw = pq.read_table(filename).to_pandas()               
+                df_raw['slot'] = int(filename.split('/')[-1].split('.')[0])
+                df_raw['sim'] = int(filename.split('/')[-1].split('.')[1])
+                try: 
+                    int(filename.split('/')[-1].split('.')[2])   # weird some files are duplicated TODO
+                except:
+                    
+                    df_raw['ID'] = run_name
+                    df_raw = df_raw.drop("filename", axis=1)
+                    #df_csv = df_csv.groupby(['slot','sim', 'ID', 'geoid']).sum().reset_index()
+                    #df_csv = df_csv[['ll','sim', 'slot', 'ID','geoid']]
+                    resultST[run_name].append(df_raw)
+                else:
+                    pass
             
     full_df = pd.concat(resultST[run_name])
     full_df
@@ -259,13 +261,12 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
     flist = []
     for f in Path(str(".")).rglob(f'./pplot*.pdf'):
         flist.append(str(f))
-        
-
+    
     slack_multiple_files(
         token=slack_token,
         message=f"FlepiMoP run `{run_id}` (job `{job_name}`) has successfully completed 🎉🤖. \n \nPlease find below a little analysis of the llik files, and I'll try to be more helpful in the future.",
         fileList=flist,
-        channel=channelid_chadi,
+        channel=channelid_cspproduction,
     )
 
 if __name__ == "__main__":
