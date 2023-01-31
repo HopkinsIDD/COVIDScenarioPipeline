@@ -698,7 +698,6 @@ class BatchJobHandler(object):
 
                 run_id_restart = self.run_id
 
-
                 # Joseph: I feel like inference_copy does not do anything, a
                 # there is no folder in s3 that is called final_output...
                 copy_job = batch_client.submit_job(

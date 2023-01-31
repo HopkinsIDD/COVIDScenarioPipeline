@@ -85,10 +85,10 @@ def rk4_integration(
                     proportion_info[proportion_sum_stops_col][proportion_index],
                 ):
                     relevant_number_in_comp += states_current[transition_sum_compartments[proportion_sum_index]]
-                
+
                 # exponents should not be a proportion, since we don't sum them over sum compartments
                 relevant_exponent = parameters[proportion_info[proportion_exponent_col][proportion_index]][today]
-                
+
                 # chadi: i believe what this mean that the first proportion is always the
                 # source compartment. That's why there is nothing with n_spatial node here.
                 # but (TODO) we should enforce that ?
@@ -135,12 +135,11 @@ def rk4_integration(
                             today
                         ][visiting_compartment]
                         total_rate[spatial_node] *= rate_keep_compartment + rate_change_compartment.sum()
-            
 
             # compute the number of individual transitioning from source to destination from the total rate
             # number_move has shape (nspatial_nodes)
             if method == "rk4":
-                number_move = source_number * total_rate  
+                number_move = source_number * total_rate
             elif method == "legacy":
                 compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
                 if stochastic_p:
