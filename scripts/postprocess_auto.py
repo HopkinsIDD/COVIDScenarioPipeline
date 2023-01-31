@@ -16,7 +16,7 @@ import matplotlib.dates as mdates
 import matplotlib.cbook as cbook
 from matplotlib.backends.backend_pdf import PdfPages
 
-channelid_csp_production = "C011YTUBJ7R"
+channelid_cspproduction = "C011YTUBJ7R"
 channelid_chadi = "UFV770AE8" # to debug 
 
 class RunInfo():
@@ -265,7 +265,7 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
         token=slack_token,
         message=f"🤖 Run `{run_id}` on job `{job_name}` has successfully completed",
         fileList=flist,
-        channel=channelid_chadi,
+        channel=channelid_cspproduction,
     )
 
 if __name__ == "__main__":

@@ -85,8 +85,9 @@ def rk4_integration(
                     proportion_info[proportion_sum_stops_col][proportion_index],
                 ):
                     relevant_number_in_comp += states_current[transition_sum_compartments[proportion_sum_index]]
-                    # exponents should not be a proportion, since we don't sum them over sum compartments
-                    relevant_exponent = parameters[proportion_info[proportion_exponent_col][proportion_index]][today]
+                
+                # exponents should not be a proportion, since we don't sum them over sum compartments
+                relevant_exponent = parameters[proportion_info[proportion_exponent_col][proportion_index]][today]
                 
                 # chadi: i believe what this mean that the first proportion is always the
                 # source compartment. That's why there is nothing with n_spatial node here.
@@ -97,7 +98,7 @@ def rk4_integration(
                         transitions[transition_proportion_start_col][transition_index] + 1
                     ) == transitions[transition_proportion_stop_col][transition_index]
                     first_proportion = False
-                    source_number = relevant_number_in_comp  # does this mean we need the first to be "source" ???
+                    source_number = relevant_number_in_comp  # does this mean we need the first to be "source" ??? yes !
                     if source_number.max() > 0:
                         total_rate[source_number > 0] *= (
                             source_number[source_number > 0] ** relevant_exponent[source_number > 0]

@@ -100,7 +100,7 @@ from gempyor import file_paths
     "--fs-folder",
     "fs_folder",
     type=str,
-    default="/data/struelo1/flepimop-runs",  # TODO:  check that it exist
+    default="/data/struelo1/flepimop-runs",
     show_default=True,
     help="The file system folder to use for keeping the job outputs",
 )
@@ -563,10 +563,10 @@ class BatchJobHandler(object):
                 cur_env_vars.append({"name": "COVID_IS_RESUME", "value": f"TRUE"})
             else:
                 cur_env_vars.append({"name": "COVID_IS_RESUME", "value": f"FALSE"})
-            cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block0"})
 
             # First job:
             if self.batch_system == "aws":
+                cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}_block0"})
                 runner_script_path = f"s3://{self.s3_bucket}/{job_name}-runner.sh"
                 s3_cp_run_script = f"aws s3 cp {runner_script_path} $PWD/run-covid-pipeline"  # line to copy the runner script in wd as ./run-covid-pipeline
                 command = [
@@ -590,6 +590,7 @@ class BatchJobHandler(object):
                     retryStrategy={"attempts": 3},
                 )
             elif self.batch_system == "slurm":
+                cur_env_vars.append({"name": "JOB_NAME", "value": f"{cur_job_name}"})
                 for envar in cur_env_vars:  # set env vars as enviroment variables
                     os.environ[envar["name"]] = envar["value"]
                     print(f"""{envar["name"]} = {envar["value"]}""")
