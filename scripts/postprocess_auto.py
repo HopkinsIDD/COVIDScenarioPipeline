@@ -17,7 +17,7 @@ import matplotlib.cbook as cbook
 from matplotlib.backends.backend_pdf import PdfPages
 
 channelid_cspproduction = "C011YTUBJ7R"
-channelid_chadi = "UFV770AE8" # to debug 
+channelid_chadi = "UFV770AE8" # to debug
 
 class RunInfo():
     def __init__(self, run_id, config_path=None, folder_path=None):
@@ -265,7 +265,7 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
         token=slack_token,
         message=f"FlepiMoP run `{run_id}` (job `{job_name}`) has successfully completed 🎉🤖. \n \nPlease find below a little analysis of the llik files, and I'll try to be more helpful in the future.",
         fileList=flist,
-        channel=channelid_cspproduction,
+        channel=channelid_chadi,
     )
 
 if __name__ == "__main__":
