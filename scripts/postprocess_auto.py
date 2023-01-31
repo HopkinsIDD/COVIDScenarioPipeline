@@ -174,7 +174,7 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
 
 
     llik_filenames = get_all_filenames("llik", all_runs, intermediates_only=True)
-    llik_filenames[run_id]
+    print(llik_filenames[run_id])
 
 
     # In[7]:
@@ -186,7 +186,9 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
         resultST[run_name] = []
         file_list = llik_filenames[run_name][:max_files]
         for filename in file_list:
+            print(filename)
             if int(filename.split('/')[-1].split('.')[1]) % 5 == 0:
+                print("ok")
                 df_raw = pq.read_table(filename).to_pandas()               
                 df_raw['slot'] = int(filename.split('/')[-1].split('.')[0])
                 df_raw['sim'] = int(filename.split('/')[-1].split('.')[1])
