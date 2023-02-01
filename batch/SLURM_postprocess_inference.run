@@ -29,5 +29,8 @@ curl \
 # get the slack credentials
 source /data/struelo1/flepimop-code/slack_credentials.sh # populate $SLACK_TOKEN
 
-python $COVID_PATH/scripts/postprocess_auto.py -c $COVID_CONFIG_PATH --run-id $COVID_RUN_INDEX --job-name $JOB_NAME --fs-results-path $FS_RESULTS_PATH --slack-token $SLACK_TOKEN
+rm -r pplot
+mkdir pplot
+
+source $COVID_PATH/batch/postprocessing-scripts.sh
 

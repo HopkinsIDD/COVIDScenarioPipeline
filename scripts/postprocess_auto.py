@@ -282,12 +282,12 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
                 axes[idp, ift].set_xlabel("sims")
             # ax.ticklabel_format(style='sci', scilimits=(-1,2), axis='y')
     fig.tight_layout()
-    plt.savefig(f"pplot_llik_{run_id}_{job_name}.pdf")
+    plt.savefig(f"pplot/llik_{run_id}_{job_name}.pdf")
 
     # In[9]:
 
     flist = []
-    for f in Path(str(".")).rglob(f"./pplot*.pdf"):
+    for f in Path(str(".")).rglob(f"./pplot/*"):
         flist.append(str(f))
 
 
