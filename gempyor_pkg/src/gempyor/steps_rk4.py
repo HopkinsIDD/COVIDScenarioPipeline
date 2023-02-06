@@ -50,10 +50,10 @@ def rk4_integration(
     states_current = np.copy(initial_conditions)
     states_next = states_current.copy()
 
-    percent_who_move = np.zeros((nspatial_nodes))
+    proportion_who_move = np.zeros((nspatial_nodes))
     percent_day_away = 0.5
     for spatial_node in range(nspatial_nodes):
-        percent_who_move[spatial_node] = min(
+        proportion_who_move[spatial_node] = min(
             mobility_data[mobility_data_indices[spatial_node] : mobility_data_indices[spatial_node + 1]].sum()
             / population[spatial_node],
             1,
@@ -108,7 +108,7 @@ def rk4_integration(
                         total_rate *= parameters[transitions[transition_rate_col][transition_index]][today]
                 else:
                     for spatial_node in range(nspatial_nodes):
-                        proportion_keep_compartment = 1 - percent_day_away * percent_who_move[spatial_node]
+                        proportion_keep_compartment = 1 - percent_day_away * proportion_who_move[spatial_node]
                         proportion_change_compartment = (
                             percent_day_away
                             * mobility_data[
