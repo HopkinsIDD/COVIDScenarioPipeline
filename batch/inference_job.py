@@ -136,7 +136,7 @@ from gempyor import file_paths
     "--memory",
     "memory",
     type=click.IntRange(min=1000, max=24000),
-    default=8000,
+    default=12000,
     show_default=True,
     help="The amount of RAM in megabytes needed per CPU running simulations",
 )
