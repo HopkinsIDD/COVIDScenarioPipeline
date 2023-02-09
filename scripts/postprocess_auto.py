@@ -300,7 +300,7 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
     #    channel=channelid_chadi,
     # )
 
-    channel=channelid_debug
+    channel=channelid_cspproduction
 
     slack_multiple_files_v2(
         slack_token=slack_token,
