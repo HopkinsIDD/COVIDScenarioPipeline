@@ -1,3 +1,9 @@
+# set-up the repository
+local({r <- getOption("repos")
+       r["CRAN"] <- "http://cran.r-project.org"
+       options(repos=r)
+})
+
 # Installs the custom-made packages in this repository
 
 library(devtools)
