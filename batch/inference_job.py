@@ -14,6 +14,21 @@ import yaml
 from gempyor import file_paths
 
 
+def user_confirmation(question="Continue?", default=False):
+    if default:
+        prompt = "[Y/n]"
+    else:
+        prompt = "[y/N]"
+    while True:
+        answer = input(f"{question} {prompt} ")
+        if not answer:
+            return default
+        if answer.lower() in ("y", "yes"):
+            return True
+        if answer.lower() in ("n", "no"):
+            return False
+
+
 @click.command()
 @click.option("--aws", "batch_system", flag_value="aws", default=True)
 @click.option("--slurm", "batch_system", flag_value="slurm")
@@ -264,8 +279,35 @@ def launch_batch(
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
 
-    if restart_from_run_id is None:
-        restart_from_run_id = run_id
+    if "s3://" in restart_from_location:
+        import boto3
+
+        s3 = boto3.resource("s3")
+        bucket = s3.Bucket("idd-inference-runs")
+        prefix = restart_from_location.split("/")[3] + "/model_output/"
+        all_files = list(bucket.objects.filter(Prefix=prefix))
+        all_files = [f.key for f in all_files]
+        if restart_from_run_id is None:
+            print("WARNING: no --restart_from_run_id specified, autodetecting... please wait querying S3 👀🔎...")
+            restart_from_run_id = all_files[0].split("/")[6]
+
+            if user_confirmation(question=f"Auto-detected run_id {restart_from_run_id}. Correct ?", default=True):
+                print(f"great, continuing with run_id {restart_from_run_id}...")
+            else:
+                raise ValueError(f"Abording, please specify --restart_from_run_id manually.")
+
+        final_llik = [f for f in all_files if ("llik" in f) and ("final" in f)]
+
+        if len(final_llik) != num_jobs:
+            print(
+                f"WARNING: number of good slots in resume_location: ({len(final_llik)}) does not match number of jobs ({num_jobs})."
+            )
+            if (num_jobs - len(final_llik)) > 50:
+                user_confirmation(question=f"Difference > 50. Should we continue ?")
+    else:
+        raise Exception(
+            "No auto-detection of run_id from local folder, please specify --restart_from_run_id (or fixme)"
+        )
 
     handler = BatchJobHandler(
         batch_system,

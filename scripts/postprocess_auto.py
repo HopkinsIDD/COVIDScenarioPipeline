@@ -290,8 +290,7 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
     for f in Path(str(".")).rglob(f"./pplot/*"):
         flist.append(str(f))
 
-
-    channel = 
+    channel = channelid_cspproduction
 
     # slack_multiple_files(
     #    slack_token=slack_token,
@@ -300,13 +299,11 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
     #    channel=channelid_chadi,
     # )
 
-    channel=channelid_cspproduction
-
     slack_multiple_files_v2(
         slack_token=slack_token,
         message=f"FlepiMoP run `{run_id}` (job `{job_name}`) has successfully completed 🎉🤖. \n \nPlease find below a little analysis of the llik files, and I'll try to be more helpful in the future.",
         fileList=flist,
-        channel=channelid_chadi,
+        channel=channel,
     )
 
 
