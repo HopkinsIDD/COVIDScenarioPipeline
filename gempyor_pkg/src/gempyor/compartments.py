@@ -174,7 +174,7 @@ class Compartments:
 
     def parse_transitions(self, seir_config, fake_config=False):
         rc = reduce(
-            lambda a, b: a.append(self.parse_single_transition(seir_config, b, fake_config)),
+            lambda a, b: pd.concat([a, self.parse_single_transition(seir_config, b, fake_config)]),
             seir_config["transitions"],
             pd.DataFrame(),
         )
@@ -358,7 +358,7 @@ class Compartments:
         tmp_array = np.zeros(problem_dimension)
         it = np.nditer(tmp_array, flags=["multi_index"])
         rc = reduce(
-            lambda a, b: a.append(b),
+            lambda a, b: pd.concat([a, b]),
             [
                 pd.DataFrame(
                     {
