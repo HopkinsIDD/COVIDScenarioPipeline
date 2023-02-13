@@ -551,7 +551,7 @@ class BatchJobHandler(object):
             fs_results_path = os.path.join(self.fs_folder, job_name)
             os.makedirs(f"{fs_results_path}", exist_ok=True)
         else:
-            fs_results_path = None  # needs to be defined for the env_var
+            fs_results_path = ""  # needs to be defined for the env_var
 
         self.build_job_metadata(job_name)
 
