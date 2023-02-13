@@ -23,7 +23,7 @@ def steps_SEIR(
     seeding_data,
     seeding_amounts,
 ):
-
+    assert type(s.mobility) == scipy.sparse.csr.csr_matrix
     mobility_data = s.mobility.data
     mobility_data = mobility_data.astype("float64")
     assert type(s.compartments.compartments.shape[0]) == int
@@ -54,13 +54,13 @@ def steps_SEIR(
         #     assert item.size == np.array([], dtype=np.int64)
         assert item.dtype == np.int64
 
-    assert len(mobility_data) > 0
+    if len(mobility_data) > 0:
+        assert type(mobility_data[0]) == np.float64
+        assert len(mobility_data) == len(s.mobility.indices)
+        assert type(s.mobility.indices[0]) == np.int32
+        assert len(s.mobility.indptr) == s.nnodes + 1
+        assert type(s.mobility.indptr[0]) == np.int32
 
-    assert type(mobility_data[0]) == np.float64
-    assert len(mobility_data) == len(s.mobility.indices)
-    assert type(s.mobility.indices[0]) == np.int32
-    assert len(s.mobility.indptr) == s.nnodes + 1
-    assert type(s.mobility.indptr[0]) == np.int32
     assert len(s.popnodes) == s.nnodes
     assert type(s.popnodes[0]) == np.int64
 
