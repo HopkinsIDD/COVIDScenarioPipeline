@@ -279,7 +279,7 @@ def launch_batch(
     else:
         print(f"WARNING: no filtering section found in {config_file}!")
 
-    if "s3://" in restart_from_location:
+    if "s3://" in str(restart_from_location):        # ugly hack: str because it might be None
         import boto3
 
         s3 = boto3.resource("s3")
@@ -305,9 +305,10 @@ def launch_batch(
             if (num_jobs - len(final_llik)) > 50:
                 user_confirmation(question=f"Difference > 50. Should we continue ?")
     else:
-        raise Exception(
-            "No auto-detection of run_id from local folder, please specify --restart_from_run_id (or fixme)"
-        )
+        if restart_from_run_id is None and restart_from_location is not None:
+            raise Exception(
+                "No auto-detection of run_id from local folder, please specify --restart_from_run_id (or fixme)"
+            )
 
     handler = BatchJobHandler(
         batch_system,
@@ -506,13 +507,15 @@ class BatchJobHandler(object):
                 or q == "renv.cache"
                 or q == "sample_data"
                 or q == "build"
+                or q == "renv"               # joseph: I added this to fix a bug, hopefully it doesn't break anything
                 or q.startswith(".")
             ):
-                tar.add(os.path.join("COVIDScenarioPipeline", q))
+                tar.add(os.path.join(self.csp_path, q), arcname=os.path.join("COVIDScenarioPipeline", q))
             elif q == "sample_data":
-                for r in os.listdir("COVIDScenarioPipeline/sample_data"):
+                for r in os.listdir(os.path.join(self.csp_path, "sample_data")):
                     if r != "united-states-commutes":
-                        tar.add(os.path.join("COVIDScenarioPipeline", "sample_data", r))
+                        tar.add(os.path.join(self.csp_path, "sample_data", r), arcname=os.path.join("COVIDScenarioPipeline", "sample_data", r))
+                        #tar.add(os.path.join("COVIDScenarioPipeline", "sample_data", r))
         for p in os.listdir(self.data_path):
             if not (p.startswith(".") or p.endswith("tar.gz") or p in self.outputs or p == "COVIDScenarioPipeline"):
                 tar.add(
@@ -543,8 +546,10 @@ class BatchJobHandler(object):
 
     def launch(self, job_name, config_file, scenarios, p_death_names):
         s3_results_path = f"s3://{self.s3_bucket}/{job_name}"
-        fs_results_path = os.path.join(self.fs_folder, job_name)
-        os.makedirs(f"{fs_results_path}", exist_ok=True)
+
+        if self.batch_system == "slurm":
+            fs_results_path = os.path.join(self.fs_folder, job_name)
+            os.makedirs(f"{fs_results_path}", exist_ok=True)
 
         self.build_job_metadata(job_name)
 
