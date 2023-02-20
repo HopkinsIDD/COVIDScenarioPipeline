@@ -301,8 +301,8 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
 
     slack_multiple_files_v2(
         slack_token=slack_token,
-        message=f"FlepiMoP run `{run_id}` (job `{job_name}`) has successfully completed 🎉🤖. \n \nPlease find below a little analysis of the llik files, and I'll try to be more helpful in the future.",
-        file_list=file_list
+        message=f"""FlepiMoP run `{run_id}` (job `{job_name}`) has successfully completed 🎉🤖. \n \nPlease find below a little analysis of the llik files, and I'll try to be more helpful in the future.""",
+        file_list=file_list,
         channel=channel,
     )
 
