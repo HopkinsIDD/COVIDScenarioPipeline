@@ -54,7 +54,7 @@ def get_all_filenames(file_type, all_runs, finals_only=False, intermediates_only
     return files
 
 
-def slack_multiple_files_deprecated(slack_token, message, fileList, channel):
+def slack_multiple_files_deprecated(slack_token, message, file_list, channel):
     import logging
     from slack_sdk import WebClient
 
@@ -62,13 +62,13 @@ def slack_multiple_files_deprecated(slack_token, message, fileList, channel):
     logging.basicConfig(level=logging.DEBUG)
 
     logging.basicConfig(level=logging.DEBUG)
-    for file in fileList:
+    for file in file_list:
         upload = client.files_upload(file=file, filename=file)
         message = message + "<" + upload["file"]["permalink"] + "| >"
     outP = client.chat_postMessage(channel=channel, text=message)
 
 
-def slack_multiple_files_v2(slack_token, message, fileList, channel):
+def slack_multiple_files_v2(slack_token, message, file_list, channel):
     # file_uploads=[
     #    {
     #        "file": "pplot_llik_FCH_R3_highVE_pesImm_2022_Jan22_USA-20230130T163847_inference_med.pdf",
@@ -86,7 +86,7 @@ def slack_multiple_files_v2(slack_token, message, fileList, channel):
     client = WebClient(slack_token)
     logging.basicConfig(level=logging.DEBUG)
 
-    file_uploads = [{"file": f, "title": f.split["."][0]} for f in file_List]
+    file_uploads = [{"file": f, "title": f.split(".")[0]} for f in file_list]
     response = client.files_upload_v2(
         file_uploads=file_uploads,
         channel=channel,
@@ -286,9 +286,9 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
 
     # In[9]:
 
-    flist = []
+    file_list = []
     for f in Path(str(".")).rglob(f"./pplot/*"):
-        flist.append(str(f))
+        file_list.append(str(f))
 
     channel = channelid_cspproduction
 
@@ -302,7 +302,7 @@ def generate_pdf(config_path, run_id, job_name, fs_results_path, slack_token, ma
     slack_multiple_files_v2(
         slack_token=slack_token,
         message=f"FlepiMoP run `{run_id}` (job `{job_name}`) has successfully completed 🎉🤖. \n \nPlease find below a little analysis of the llik files, and I'll try to be more helpful in the future.",
-        fileList=flist,
+        file_list=file_list
         channel=channel,
     )
 
