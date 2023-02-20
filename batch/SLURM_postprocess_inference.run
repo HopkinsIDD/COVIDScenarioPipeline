@@ -19,6 +19,9 @@ conda activate covidSP
 which python
 which Rscript
 
+# move all the slurm logs into the right folder:
+mv slurm-$SLURM_ARRAY_JOB_ID_${SLURM_ARRAY_TASK_ID}.out $FS_RESULTS_PATH/slurm-$SLURM_ARRAY_JOB_ID_${SLURM_ARRAY_TASK_ID}.out
+
 curl \
   -H "Title: $COVID_RUN_INDEX Done ✅" \
   -H "Priority: urgent" \

@@ -161,6 +161,7 @@ def user_confirmation(question="Continue?", default=False):
     "restart_from_location",
     type=str,
     default=None,
+    envvar="RESUME_LOCATION",
     help="The location (folder or an S3 bucket) to use as the initial to the first block of the current run",
 )
 @click.option(
