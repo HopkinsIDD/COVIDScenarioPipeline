@@ -1360,9 +1360,14 @@ validation_list$interventions$settings[["::"]]$value<-function(value,full_config
 }
 
 validation_list$interventions$settings[["::"]]$pertubation<-function(value,full_config,index){
+  print("SSSSSSSSSSSSs")
+  print(index[[1]])
+  stop()
   if(full_config$interventions$settings[[index[1]]]$template =='Stacked'){
+    print("LLLLLLLLLLLLLLLLLLLLLL")
     return(TRUE)
   }
+  print("JJJJJJJJJJJJJJJJJJJJJ")
   return(check_config(config=value,checks = distribution_validation_list))
 }
 
