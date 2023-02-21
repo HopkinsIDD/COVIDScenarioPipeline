@@ -9,7 +9,6 @@ from . import NPI, setup, file_paths, steps_rk4
 from .utils import config, Timer, aws_disk_diagnosis, read_df
 import pyarrow as pa
 import logging
-from .dev import steps as steps_experimental
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ def steps_SEIR(
     seeding_data,
     seeding_amounts,
 ):
-
+    assert type(s.mobility) == scipy.sparse.csr.csr_matrix
     mobility_data = s.mobility.data
     mobility_data = mobility_data.astype("float64")
     assert type(s.compartments.compartments.shape[0]) == int
@@ -55,13 +54,13 @@ def steps_SEIR(
         #     assert item.size == np.array([], dtype=np.int64)
         assert item.dtype == np.int64
 
-    assert len(mobility_data) > 0
+    if len(mobility_data) > 0:
+        assert type(mobility_data[0]) == np.float64
+        assert len(mobility_data) == len(s.mobility.indices)
+        assert type(s.mobility.indices[0]) == np.int32
+        assert len(s.mobility.indptr) == s.nnodes + 1
+        assert type(s.mobility.indptr[0]) == np.int32
 
-    assert type(mobility_data[0]) == np.float64
-    assert len(mobility_data) == len(s.mobility.indices)
-    assert type(s.mobility.indices[0]) == np.int32
-    assert len(s.mobility.indptr) == s.nnodes + 1
-    assert type(s.mobility.indptr[0]) == np.int32
     assert len(s.popnodes) == s.nnodes
     assert type(s.popnodes[0]) == np.int64
 
@@ -98,6 +97,8 @@ def steps_SEIR(
             )
         seir_sim = steps_rk4.rk4_integration(**fnct_args)
     else:
+        from .dev import steps as steps_experimental
+
         logging.critical("Experimental !!! These methods are not ready for production ! ")
         if s.integration_method in [
             "scipy.solve_ivp",

@@ -50,10 +50,10 @@ def rk4_integration(
     states_current = np.copy(initial_conditions)
     states_next = states_current.copy()
 
-    percent_who_move = np.zeros((nspatial_nodes))
+    proportion_who_move = np.zeros((nspatial_nodes))
     percent_day_away = 0.5
     for spatial_node in range(nspatial_nodes):
-        percent_who_move[spatial_node] = min(
+        proportion_who_move[spatial_node] = min(
             mobility_data[mobility_data_indices[spatial_node] : mobility_data_indices[spatial_node + 1]].sum()
             / population[spatial_node],
             1,
@@ -71,10 +71,13 @@ def rk4_integration(
         for transition_index in range(ntransitions):
             total_rate = np.ones((nspatial_nodes))
             first_proportion = True
+
+            # Each transition may have several proportional_to factors
             for proportion_index in range(
                 transitions[transition_proportion_start_col][transition_index],
                 transitions[transition_proportion_stop_col][transition_index],
             ):
+                # Compute the number of individuals in the compartments for this proportions
                 relevant_number_in_comp = np.zeros((nspatial_nodes))
                 relevant_exponent = np.ones((nspatial_nodes))
                 for proportion_sum_index in range(
@@ -82,14 +85,20 @@ def rk4_integration(
                     proportion_info[proportion_sum_stops_col][proportion_index],
                 ):
                     relevant_number_in_comp += states_current[transition_sum_compartments[proportion_sum_index]]
-                    # exponents should not be a proportion, since we don't sum them over sum compartments
-                    relevant_exponent = parameters[proportion_info[proportion_exponent_col][proportion_index]][today]
-                if first_proportion:  # TODO: ask why there is nothing with n_spatial node here.
+
+                # exponents should not be a proportion, since we don't sum them over sum compartments
+                relevant_exponent = parameters[proportion_info[proportion_exponent_col][proportion_index]][today]
+
+                # chadi: i believe what this mean that the first proportion is always the
+                # source compartment. That's why there is nothing with n_spatial node here.
+                # but (TODO) we should enforce that ?
+                if first_proportion:
+
                     only_one_proportion = (
                         transitions[transition_proportion_start_col][transition_index] + 1
                     ) == transitions[transition_proportion_stop_col][transition_index]
                     first_proportion = False
-                    source_number = relevant_number_in_comp
+                    source_number = relevant_number_in_comp  # does this mean we need the first to be "source" ??? yes !
                     if source_number.max() > 0:
                         total_rate[source_number > 0] *= (
                             source_number[source_number > 0] ** relevant_exponent[source_number > 0]
@@ -99,7 +108,7 @@ def rk4_integration(
                         total_rate *= parameters[transitions[transition_rate_col][transition_index]][today]
                 else:
                     for spatial_node in range(nspatial_nodes):
-                        proportion_keep_compartment = 1 - percent_day_away * percent_who_move[spatial_node]
+                        proportion_keep_compartment = 1 - percent_day_away * proportion_who_move[spatial_node]
                         proportion_change_compartment = (
                             percent_day_away
                             * mobility_data[
@@ -118,8 +127,7 @@ def rk4_integration(
                             mobility_data_indices[spatial_node] : mobility_data_indices[spatial_node + 1]
                         ]
 
-                        rate_change_compartment = proportion_change_compartment
-                        rate_change_compartment *= (
+                        rate_change_compartment = proportion_change_compartment * (
                             relevant_number_in_comp[visiting_compartment] ** relevant_exponent[visiting_compartment]
                         )
                         rate_change_compartment /= population[visiting_compartment]
@@ -128,8 +136,10 @@ def rk4_integration(
                         ][visiting_compartment]
                         total_rate[spatial_node] *= rate_keep_compartment + rate_change_compartment.sum()
 
+            # compute the number of individual transitioning from source to destination from the total rate
+            # number_move has shape (nspatial_nodes)
             if method == "rk4":
-                number_move = source_number * total_rate  # * compound_adjusted_rate
+                number_move = source_number * total_rate
             elif method == "legacy":
                 compound_adjusted_rate = 1.0 - np.exp(-dt * total_rate)
                 if stochastic_p:

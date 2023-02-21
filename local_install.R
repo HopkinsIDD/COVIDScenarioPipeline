@@ -1,8 +1,14 @@
+# set-up the repository
+local({r <- getOption("repos")
+       r["CRAN"] <- "http://cran.r-project.org"
+       options(repos=r)
+})
+
 # Installs the custom-made packages in this repository
 
 library(devtools)
 
-install.packages(c("covidcast","data.table","vroom","dplyr"), force=TRUE)
+install.packages(c("covidcast","data.table","vroom","dplyr","RSocrata"), force=TRUE)
 # devtools::install_github("hrbrmstr/cdcfluview")
 
 # To run if operating in the container

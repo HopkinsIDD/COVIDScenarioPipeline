@@ -15,7 +15,7 @@ if [ $failure_count -gt 100 ]; then
 	echo "Failing run because total number of previous child job failures is $failure_count"
 	exit 1
 fi
-
+echo "***************** LOADING ENVIRONMENT *****************"
 # setup the python environment
 HOME=/home/app
 PYENV_ROOT=$HOME/.pyenv
@@ -34,10 +34,10 @@ aws configure set default.s3.multipart_chunksize 8MB
 # install the local R packages
 aws s3 cp --quiet $S3_MODEL_DATA_PATH model_data.tar.gz
 mkdir model_data
-tar -xvzf model_data.tar.gz -C model_data
+tar -xzf model_data.tar.gz -C model_data # chadi: removed v(erbose) option here as it floods the log with data we have anyway from the s3 bucket
 cd model_data
 
-# check for presence of S3_LAST_JOB_OUTPUT and download the
+# check for presence of LAST_JOB_OUTPUT and download the
 # output from the corresponding last job here
 export COVID_SLOT_INDEX=$(python -c "print($AWS_BATCH_JOB_ARRAY_INDEX + 1)")
 
@@ -55,8 +55,7 @@ error_handler() {
 	fi
 }
 
-# Pick up stuff that changed
-# TODO(jwills): maybe move this to like a prep script?
+# Note $COVID_PATH because here we're using the tar file of the pipeline, untarred in pwd.
 Rscript COVIDScenarioPipeline/local_install.R
 local_install_ret=$?
 
@@ -71,24 +70,25 @@ python_install_ret=$?
 if [ $python_install_ret -ne 0 ]; then
 	error_handler "Error code returned from running `pip install -e gempyor_pkg`: $python_install_ret"
 fi
+echo "***************** DONE LOADING ENVIRONMENT *****************"
 
+echo "***************** FETCHING RESUME FILES *****************"
+### In case of resume, download the right files from s3
 ## Remove trailing slashes
-export S3_LAST_JOB_OUTPUT=$(echo $S3_LAST_JOB_OUTPUT | sed 's/\/$//')
-DVC_OUTPUTS_ARRAY=($DVC_OUTPUTS)
-if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
+export LAST_JOB_OUTPUT=$(echo $LAST_JOB_OUTPUT | sed 's/\/$//')
+if [ -n "$LAST_JOB_OUTPUT" ]; then  # -n Checks if the length of a string is nonzero --> if LAST_JOB_OUTPUT is not empty, the we download the output from the last job
 	if [ $COVID_BLOCK_INDEX -eq 1 ]; then
 		export RESUME_RUN_INDEX=$COVID_OLD_RUN_INDEX
-		echo "$RESUME_DISCARD_SEEDING"
-		if [ $RESUME_DISCARD_SEEDING == TRUE ]; then
+		echo "RESUME_DISCARD_SEEDING is set to $RESUME_DISCARD_SEEDING"
+		if [ $RESUME_DISCARD_SEEDING == "true" ]; then
 			export PARQUET_TYPES="spar snpi hpar hnpi"
 		else
 			export PARQUET_TYPES="seed spar snpi hpar hnpi"
 		fi
-	else
+	else                                 # if we are not in the first block, we need to resume from the last job, with seeding an all.
 		export RESUME_RUN_INDEX=$COVID_RUN_INDEX
 		export PARQUET_TYPES="seed spar snpi seir hpar hnpi hosp llik"
 	fi
-
 	for filetype in $PARQUET_TYPES
 	do
 		if [ $filetype == "seed" ]; then
@@ -104,11 +104,11 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 			else
 				export IN_FILENAME=$OUT_FILENAME
 			fi
-			aws s3 cp --quiet $S3_LAST_JOB_OUTPUT/$IN_FILENAME $OUT_FILENAME
+			aws s3 cp --quiet $LAST_JOB_OUTPUT/$IN_FILENAME $OUT_FILENAME
 			if [ -f $OUT_FILENAME ]; then
 				echo "Copy successful for file of type $filetype ($IN_FILENAME -> $OUT_FILENAME)"
 			else
-				echo "Could not Copy file of type $filetype ($IN_FILENAME -> $OUT_FILENAME)"
+				echo "Could not copy file of type $filetype ($IN_FILENAME -> $OUT_FILENAME)"
 				if [ $liktype -eq "global" ]; then
 					exit 2
 				fi
@@ -117,6 +117,7 @@ if [ -n "$S3_LAST_JOB_OUTPUT" ]; then
 	done
 	ls -ltr model_output
 fi
+echo "***************** DONE FETCHING RESUME FILES *****************"
 
 echo "State of directory before we start"
 echo "==="
@@ -125,15 +126,17 @@ echo "---"
 find data
 echo "==="
 
+echo "***************** RUNNING FILTER_MC.R *****************"
 # NOTE(jwills): hard coding this for now
 Rscript COVIDScenarioPipeline/R/scripts/filter_MC.R -p COVIDScenarioPipeline
-
 dvc_ret=$?
 if [ $dvc_ret -ne 0 ]; then
         error_handler "Error code returned from full_filter.R: $dvc_ret"
 fi
+echo "***************** DONE RUNNING FILTER_MC.R *****************"
 
-	for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
+echo "***************** UPLOADING RESULT TO S3 *****************"
+for type in "seir" "hosp" "llik" "spar" "snpi" "hnpi" "hpar"
 do
 	export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/chimeric/intermediate/%09d.'% $COVID_SLOT_INDEX,$COVID_BLOCK_INDEX,'$type','parquet'))")
 	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
@@ -163,6 +166,7 @@ do
 	export FILENAME=$(python -c "from gempyor import file_paths; print(file_paths.create_file_name('$COVID_RUN_INDEX','$COVID_PREFIX/$COVID_RUN_INDEX/global/final/', $COVID_SLOT_INDEX,'$type','csv'))")
 	aws s3 cp --quiet $FILENAME $S3_RESULTS_PATH/$FILENAME
 done
+echo "***************** DONE UPLOADING RESULT TO S3 *****************"
 
-echo "Done"
+echo "DONE EVERYTHING."
 exit 0

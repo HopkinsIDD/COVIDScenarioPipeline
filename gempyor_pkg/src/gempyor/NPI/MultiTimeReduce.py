@@ -191,7 +191,7 @@ class MultiTimeReduce(NPIBase):
                 self.parameters.at[geoid, "start_date"] = start_dates
                 self.parameters.at[geoid, "end_date"] = end_dates
 
-        self.parameters = self.parameters.loc[self.affected_geoids]
+        self.parameters = self.parameters.loc[list(self.affected_geoids)]
         # self.parameters = self.parameters[self.parameters.index.isin(self.affected_geoids) ]
         # self.parameters = self.parameters[self.affected_geoids]
 

@@ -257,67 +257,69 @@ class SpatialSetup:
         if len(self.nodenames) != len(set(self.nodenames)):
             raise ValueError(f"There are duplicate nodenames in geodata.")
 
-        mobility_file = pathlib.Path(mobility_file)
-        if mobility_file.suffix == ".txt":
-            print("Mobility files as matrices are not recommended. Please switch soon to long form csv files.")
-            self.mobility = scipy.sparse.csr_matrix(
-                np.loadtxt(mobility_file), dtype=int
-            )  # K x K matrix of people moving
-            # Validate mobility data
-            if self.mobility.shape != (self.nnodes, self.nnodes):
+        if mobility_file is not None:
+            mobility_file = pathlib.Path(mobility_file)
+            if mobility_file.suffix == ".txt":
+                print("Mobility files as matrices are not recommended. Please switch soon to long form csv files.")
+                self.mobility = scipy.sparse.csr_matrix(
+                    np.loadtxt(mobility_file), dtype=int
+                )  # K x K matrix of people moving
+                # Validate mobility data
+                if self.mobility.shape != (self.nnodes, self.nnodes):
+                    raise ValueError(
+                        f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}"
+                    )
+
+            elif mobility_file.suffix == ".csv":
+                mobility_data = pd.read_csv(mobility_file, converters={"ori": str, "dest": str})
+                nn_dict = {v: k for k, v in enumerate(self.nodenames)}
+                mobility_data["ori_idx"] = mobility_data["ori"].apply(nn_dict.__getitem__)
+                mobility_data["dest_idx"] = mobility_data["dest"].apply(nn_dict.__getitem__)
+                if any(mobility_data["ori_idx"] == mobility_data["dest_idx"]):
+                    raise ValueError(
+                        f"Mobility fluxes with same origin and destination in long form matrix. This is not supported"
+                    )
+
+                self.mobility = scipy.sparse.coo_matrix(
+                    (mobility_data.amount, (mobility_data.ori_idx, mobility_data.dest_idx)),
+                    shape=(self.nnodes, self.nnodes),
+                    dtype=int,
+                ).tocsr()
+
+            elif mobility_file.suffix == ".npz":
+                self.mobility = scipy.sparse.load_npz(mobility_file).astype(int)
+                # Validate mobility data
+                if self.mobility.shape != (self.nnodes, self.nnodes):
+                    raise ValueError(
+                        f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}"
+                    )
+            else:
                 raise ValueError(
-                    f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}"
+                    f"Mobility data must either be a .csv file in longform (recommended) or a .txt matrix file. Got {mobility_file}"
                 )
 
-        elif mobility_file.suffix == ".csv":
-            mobility_data = pd.read_csv(mobility_file, converters={"ori": str, "dest": str})
-            nn_dict = {v: k for k, v in enumerate(self.nodenames)}
-            mobility_data["ori_idx"] = mobility_data["ori"].apply(nn_dict.__getitem__)
-            mobility_data["dest_idx"] = mobility_data["dest"].apply(nn_dict.__getitem__)
-            if any(mobility_data["ori_idx"] == mobility_data["dest_idx"]):
+            # Make sure mobility values <= the population of src node
+            tmp = (self.mobility.T - self.popnodes).T
+            tmp[tmp < 0] = 0
+            if tmp.any():
+                rows, cols, values = scipy.sparse.find(tmp)
+                errmsg = ""
+                for r, c, v in zip(rows, cols, values):
+                    errmsg += f"\n({r}, {c}) = {self.mobility[r, c]} > population of '{self.nodenames[r]}' = {self.popnodes[r]}"
                 raise ValueError(
-                    f"Mobility fluxes with same origin and destination in long form matrix. This is not supported"
+                    f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}"
                 )
 
-            self.mobility = scipy.sparse.coo_matrix(
-                (mobility_data.amount, (mobility_data.ori_idx, mobility_data.dest_idx)),
-                shape=(self.nnodes, self.nnodes),
-                dtype=int,
-            ).tocsr()
-
-        elif mobility_file.suffix == ".npz":
-            self.mobility = scipy.sparse.load_npz(mobility_file).astype(int)
-            # Validate mobility data
-            if self.mobility.shape != (self.nnodes, self.nnodes):
+            tmp = self.popnodes - np.squeeze(np.asarray(self.mobility.sum(axis=1)))
+            tmp[tmp > 0] = 0
+            if tmp.any():
+                (row,) = np.where(tmp)
+                errmsg = ""
+                for r in row:
+                    errmsg += f"\n sum accross row {r} exceed population of node '{self.nodenames[r]}' ({self.popnodes[r]}), by {-tmp[r]}"
                 raise ValueError(
-                    f"mobility data must have dimensions of length of geodata ({self.nnodes}, {self.nnodes}). Actual: {self.mobility.shape}"
+                    f"The following rows in the mobility data exceed the source node populations in geodata:{errmsg}"
                 )
         else:
-            raise ValueError(
-                f"Mobility data must either be a .csv file in longform (recommended) or a .txt matrix file. Got {mobility_file}"
-            )
-
-        # Make sure mobility values <= the population of src node
-        tmp = (self.mobility.T - self.popnodes).T
-        tmp[tmp < 0] = 0
-        if tmp.any():
-            rows, cols, values = scipy.sparse.find(tmp)
-            errmsg = ""
-            for r, c, v in zip(rows, cols, values):
-                errmsg += (
-                    f"\n({r}, {c}) = {self.mobility[r, c]} > population of '{self.nodenames[r]}' = {self.popnodes[r]}"
-                )
-            raise ValueError(
-                f"The following entries in the mobility data exceed the source node populations in geodata:{errmsg}"
-            )
-
-        tmp = self.popnodes - np.squeeze(np.asarray(self.mobility.sum(axis=1)))
-        tmp[tmp > 0] = 0
-        if tmp.any():
-            (row,) = np.where(tmp)
-            errmsg = ""
-            for r in row:
-                errmsg += f"\n sum accross row {r} exceed population of node '{self.nodenames[r]}' ({self.popnodes[r]}), by {-tmp[r]}"
-            raise ValueError(
-                f"The following rows in the mobility data exceed the source node populations in geodata:{errmsg}"
-            )
+            logging.critical("No mobility matrix specified -- assuming no one moves")
+            self.mobility = scipy.sparse.csr_matrix(np.zeros((self.nnodes, self.nnodes)), dtype=int)

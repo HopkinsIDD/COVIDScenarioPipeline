@@ -230,7 +230,7 @@ def read_parameters_from_config(s: setup.Setup):
                             logging.debug(f"Using 'param_from_file' for relative probability in outcome {class_name}")
                             # Sort it in case the relative probablity file is mispecified
                             rel_probability.geoid = rel_probability.geoid.astype("category")
-                            rel_probability.geoid.cat.set_categories(s.spatset.nodenames, inplace=True)
+                            rel_probability.geoid = rel_probability.geoid.cat.set_categories(s.spatset.nodenames)
                             rel_probability = rel_probability.sort_values(["geoid"])
                             parameters[class_name]["rel_probability"] = rel_probability["value"].to_numpy()
                         else:
@@ -493,7 +493,7 @@ def get_filtered_incidI(diffI, dates, places, filters):
     elif list(filters.keys()) == ["prevalence"]:
         vtype = "prevalence"
 
-    diffI = diffI[diffI["mc_value_type"] == vtype]
+    diffI = diffI[diffI["mc_value_type"] == vtype].copy()
     diffI.drop(["mc_value_type"], inplace=True, axis=1)
     filters = filters[vtype]
 
