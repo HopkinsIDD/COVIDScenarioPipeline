@@ -208,6 +208,7 @@ if (smh_or_fch == "fch" & pathogen == "covid19"){
       filter(type != "point-mean" & !(is.na(quantile) & type == "quantile")) %>%
       mutate(quantile = round(quantile, 3)) %>%
       filter(target %in% targets) %>%
+      select(forecast_date=model_projection_date) %>% 
       select(-scenario_id, -scenario_name, -forecast_date, -age_group) %>%
       rename(forecast_date = model_projection_date) %>%
       filter(quantile %in% round(c(0.01, 0.025, seq(0.05, 0.95, by = 0.05), 0.975, 0.99),3) | is.na(quantile))
