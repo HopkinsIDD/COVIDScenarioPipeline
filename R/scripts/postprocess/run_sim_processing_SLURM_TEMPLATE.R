@@ -434,7 +434,8 @@ while(run_process <= 1){
   if(pathogen == 'flu'){
     readr::write_csv(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date+1, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), ".csv")))
     arrow::write_parquet(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date+1, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), ".parquet")))
-  }else if(pathogen == 'covid19'){
+  }
+  if(pathogen == 'covid19'){
     readr::write_csv(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), ".csv")))
     arrow::write_parquet(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date,projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), ".parquet")))
   }
@@ -564,5 +565,10 @@ submit_csv <- file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or
 diag_plots <- paste0(round_directory, "/", fch_date, "_", pathogen, "_", smh_or_fch, "_R", round_num, "_", scenarios, "_", ymd(today()), ".pdf")
 
 file.copy(from = c(full_fit_plot, submit_csv, diag_plots),
-          to = file.path(data_path, "pplot",c(full_fit_plot, submit_csv, diag_plots)), 
+          to = file.path(data_path, "pplot",c(paste0(toupper(smh_or_fch), "_all_R",round_num,"_", projection_date, 
+                                                     ifelse(full_fit_, "_FULL",""),
+                                                     ifelse(is.na(subname), "", subname)),
+                                              paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date, projection_date)),
+                                                     "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".csv"),
+                                              paste0(fch_date, "_", pathogen, "_", smh_or_fch, "_R", round_num, "_", scenarios, "_", ymd(today()), ".pdf"))), 
           overwrite = TRUE)
