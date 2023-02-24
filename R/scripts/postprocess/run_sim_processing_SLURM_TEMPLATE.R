@@ -536,7 +536,7 @@ print('Processing Complete')
 
 
 if(run_diagnostics){
-  
+  getwd()
   # Run diagnostics script
   source(paste0(source_loc, "/R/scripts/postprocess/processing_diagnostics_SLURM.R"))
   
