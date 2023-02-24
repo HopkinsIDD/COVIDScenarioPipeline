@@ -339,7 +339,7 @@ while(run_process <= 1){
   print(i)
   scenario_num <- i
   print(scenarios_all[scenario_num])
-  scenario_dir <- paste0(round_directory, "/", scenarios_all[i], "/")
+  # scenario_dir <- paste0(round_directory, "/", scenarios_all[i], "/")
   
   if(smh_or_fch=='fch'){
     scenario_names[i] <- "model_output"
