@@ -1,7 +1,7 @@
 
 # START: your postprocessing scripts goes here.
 
-
+Rscript $COVID_PATH/R/scripts/postprocess/run_sim_processing_SLURM_TEMPLATE.R -c $COVID_CONFIG_PATH -d $DATA_PATH -r $PROCESS -p $FS_RESULTS_PATH -F $FULL_FIT -i $PATHOGEN -g $PULL_GT -f $COVID_PATH
 
 # END: your postprocessing scripts goes here.
 
