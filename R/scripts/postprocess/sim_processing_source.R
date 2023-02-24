@@ -33,7 +33,8 @@ combine_and_format_sims <- function(outcome_vars = "incid",
     
     res_geoid_all <- arrow::open_dataset(sprintf("%shosp",scenario_dir), 
                                          partitioning = c("location", "scenario", "death_rate", "config", "lik_type", "is_final")) %>%
-        select(time, geoid, death_rate, starts_with(outcome_vars)) %>%
+      filter(lik_type=='global') %>%   
+      select(time, geoid, death_rate, starts_with(outcome_vars)) %>%
         filter(time>=forecast_date & time<=end_date) %>%
         collect() %>%
         filter(stringr::str_detect(death_rate, death_filter)) %>%
