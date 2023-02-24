@@ -15,7 +15,7 @@ option_list = list(
   optparse::make_option(c("-u","--run_id"), action="store", type='character', help="Unique identifier for this run", default = Sys.getenv("COVID_RUN_INDEX",covidcommon::run_id())),
   optparse::make_option(c("-d", "--data_path"), action="store", default=Sys.getenv("DATA_PATH", Sys.getenv("DATA_PATH")), type='character', help="path to data repo"),
   optparse::make_option(c("-r","--run_processing"), action="store", default=Sys.getenv("PROCESS",FALSE), type='logical', help = "Process the run if true"),
-  optparse::make_option(c("-p","--results_path"), action="store", type='character', help="Path for model output", default = Sys.getenv("FS_RESULTS_PATH", Sys.getenv("FS_RESULTS_PATH"))),
+  optparse::make_option(c("-p","--results_path"), action="store", type='character', help="Path for model output", default = Sys.getenv("JOB_FOLDER", Sys.getenv("JOB_FOLDER"))),
   optparse::make_option(c("-F","--full_fit"), action="store", default=Sys.getenv("FULL_FIT",FALSE), type='logical', help = "Process full fit"),
   optparse::make_option(c("-i", "--pathogen"), action="store", default=Sys.getenv("PATHOGEN", "flu"), type='character', help="Which pathogen is being run"),
   optparse::make_option(c("-g","--pull_gt"), action="store", default=Sys.getenv("PULL_GT",FALSE), type='logical', help = "Pull ground truth"),
@@ -157,7 +157,7 @@ scenarios <- scenarios[scenario_num]
 
 geodata_file_path = file.path(config$spatial_setup$base_path, config$spatial_setup$geodata)
 
-
+print(pathogen)
 
 # SUBMISSION & PROCESSING SPECIFICS ----------------------------------------------------
 ## -- "outcomes_" are for processing. we want more than we submit for diagnostics.
@@ -431,8 +431,13 @@ while(run_process <= 1){
   
   
   # SAVE IT
-  readr::write_csv(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date+1, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), ".csv")))
-  arrow::write_parquet(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date+1, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), ".parquet")))
+  if(pathogen == 'flu'){
+    readr::write_csv(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date+1, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), ".csv")))
+    arrow::write_parquet(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date+1, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), ".parquet")))
+  }else if(pathogen == 'covid19'){
+    readr::write_csv(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), ".csv")))
+    arrow::write_parquet(data_submission, file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date,projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), ".parquet")))
+  }
   arrow::write_parquet(data_comb, file.path(round_directory, paste0(projection_date, "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), "_all.parquet")))
   
   print(paste0("Final data saved in:  [  ", file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date, projection_date)), "-JHU_IDD-CovidSP", ifelse(full_fit_,"_FULL",""), ".csv")), "  ]"))
@@ -559,5 +564,5 @@ submit_csv <- file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or
 diag_plots <- paste0(round_directory, "/", fch_date, "_", pathogen, "_", smh_or_fch, "_R", round_num, "_", scenarios, "_", ymd(today()), ".pdf")
 
 file.copy(from = c(full_fit_plot, submit_csv, diag_plots),
-          to = file.path(data_path, "pplot"), 
+          to = file.path(data_path, "pplot",c(full_fit_plot, submit_csv, diag_plots)), 
           overwrite = TRUE)
