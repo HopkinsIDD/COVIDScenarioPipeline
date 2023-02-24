@@ -40,7 +40,8 @@ import_s3_outcome <- function(scn_dir, outcome, global_opt, final_opt){
                     "/",
                     final_opt)
   subdir_list <- list.files(subdir_)
-  
+print(dir_)
+print(subdir_)
   out_ <- NULL
   total <- length(subdir_list)
   # pb <- txtProgressBar(min=0, max=total, style = 3)
@@ -73,7 +74,7 @@ import_s3_outcome <- function(scn_dir, outcome, global_opt, final_opt){
 # IMPORT OUTCOMES ---------------------------------------------------------
 
 scenario_dir <- file.path(scenario_dir,"model_output")
-
+print(scenario_dir)
 hnpi <- import_s3_outcome(scenario_dir, "hnpi", "global", "final") %>%
   full_join(geodata_states, by = "geoid")
 hpar <- import_s3_outcome(scenario_dir, "hpar", "global", "final") %>%
