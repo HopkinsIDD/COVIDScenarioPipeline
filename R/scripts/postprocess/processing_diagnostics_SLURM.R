@@ -43,7 +43,7 @@ import_s3_outcome <- function(scn_dir, outcome, global_opt, final_opt){
   
   out_ <- NULL
   total <- length(subdir_list)
-  pb <- txtProgressBar(min=0, max=total, style = 3)
+  # pb <- txtProgressBar(min=0, max=total, style = 3)
   
   print(paste0("Importing ", outcome, " files (n = ", total, "):"))
   
@@ -64,9 +64,9 @@ import_s3_outcome <- function(scn_dir, outcome, global_opt, final_opt){
     out_ <- rbind(out_, dat)
     
     # Increase the amount the progress bar is filled by setting the value to i.
-    setTxtProgressBar(pb, value = i)
+    # setTxtProgressBar(pb, value = i)
   }
-  close(pb)
+  # close(pb)
   return(out_)
 }
 

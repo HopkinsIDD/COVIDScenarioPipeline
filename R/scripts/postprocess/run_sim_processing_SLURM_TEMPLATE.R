@@ -208,7 +208,6 @@ if (smh_or_fch == "fch" & pathogen == "covid19"){
       filter(type != "point-mean" & !(is.na(quantile) & type == "quantile")) %>%
       mutate(quantile = round(quantile, 3)) %>%
       filter(target %in% targets) %>%
-      # select(forecast_date=model_projection_date, scenario_id = NA, scenario_name = NA) %>% 
       # select(-scenario_id, -scenario_name, -forecast_date, -age_group) %>%
       select(-any_of(c('scenario_id', 'scenario_name', 'forecast_date', 'age_group')))%>%
       rename(forecast_date = model_projection_date) %>%
@@ -537,7 +536,6 @@ print('Processing Complete')
 
 
 if(run_diagnostics){
-  
   
   # Run diagnostics script
   source(paste0(source_loc, "/R/scripts/postprocess/processing_diagnostics_SLURM.R"))
