@@ -1,9 +1,9 @@
 
 # START: your postprocessing scripts goes here.
 
-export JOB_FOLDER=/data/struelo1/flepimop-runs/$JOB_NAME
-export JOB_CLEAN=${JOB_FOLDER%_inference_med/}
-Rscript $COVID_PATH/R/scripts/postprocess/run_sim_processing_SLURM_TEMPLATE.R -c $COVID_CONFIG_PATH -p $JOB_CLEAN
+export JOB_F1=/data/struelo1/flepimop-runs/$JOB_NAME
+export JOB_FOLDER=${JOB_F1%_inference_med/}
+Rscript $COVID_PATH/R/scripts/postprocess/run_sim_processing_SLURM_TEMPLATE.R -c $COVID_CONFIG_PATH -p $JOB_FOLDER
 
 # END: your postprocessing scripts goes here.
 
