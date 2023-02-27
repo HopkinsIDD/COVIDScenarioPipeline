@@ -74,6 +74,8 @@ gc()
 pull_gt <- opt$pull_gt
 full_fit <- opt$full_fit
 
+opt2 <- opt
+
 run_process <- ifelse(full_fit, 0, 1)
 ## for full_fit = TRUE, run full fit, then run full_fit = FALSE as well
 while(run_process <= 1){
@@ -329,8 +331,6 @@ while(run_process <= 1){
   
   gc()
   
-  opt2 <- opt
-
 
 
 # RUN PROCESSING ----------------------------------------------------------
