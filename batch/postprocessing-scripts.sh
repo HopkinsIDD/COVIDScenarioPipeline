@@ -4,6 +4,7 @@
 export JOB_F1=/data/struelo1/flepimop-runs/$JOB_NAME
 export JOB_FOLDER=${JOB_F1%_inference_med}
 export FULL_FIT=TRUE
+export DIAGNOSTICS=TRUE
 Rscript $COVID_PATH/R/scripts/postprocess/run_sim_processing_SLURM_TEMPLATE.R -c $COVID_CONFIG_PATH -p $FS_RESULTS_PATH
 
 export FULL_FIT=FALSE
