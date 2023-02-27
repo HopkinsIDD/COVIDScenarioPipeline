@@ -324,7 +324,7 @@ readr::write_csv(gt_data, file.path(round_directory, "gt_data_clean.csv"))
 
 gc()
 
-
+opt2 <- opt
 
 
 
@@ -334,6 +334,7 @@ run_process <- ifelse(full_fit, 0, 1)
 while(run_process <= 1){
   
   full_fit_ <- ifelse(run_process == 0, TRUE, FALSE)
+  opt <- opt2
   
   i=1
   print(i)
@@ -556,11 +557,11 @@ print('Diagnostics Complete')
 
 # full fit plot 
 full_fit_plot <- file.path(round_directory, paste0(toupper(smh_or_fch), "_all_R",round_num,"_", projection_date, 
-                                    ifelse(full_fit_, "_FULL",""),
-                                    ifelse(is.na(subname), "", subname)))
+                                                   ifelse(full_fit_, "_FULL",""),
+                                                   ifelse(is.na(subname), "", subname)))
 # FCH csv
 submit_csv <- file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date, projection_date)),
-                                  "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".csv"))
+                                                "-JHU_IDD-CovidSP", ifelse(full_fit,"_FULL",""), ".csv"))
 # diagnostic
 diag_plots <- paste0(round_directory, "/", fch_date, "_", pathogen, "_", smh_or_fch, "_R", round_num, "_", scenarios, "_", ymd(today()), ".pdf")
 
