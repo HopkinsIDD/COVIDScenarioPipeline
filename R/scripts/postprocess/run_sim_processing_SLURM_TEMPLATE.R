@@ -545,19 +545,27 @@ print('Diagnostics Complete')
 
 # Move files to pplot -------------------------------
 
-# full fit plot 
-files_ <- file.path(round_directory, paste0(toupper(smh_or_fch), "_all_R",round_num,"_", projection_date, 
-                                                   ifelse(full_fit, "_FULL",""),
-                                                   ifelse(is.na(subname), "", subname)))
-# FCH csv
-if(!full_fit){
-  files_ <- c(files_,file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date, projection_date)),
-                                                  "-JHU_IDD-CovidSP.csv")))
+if(!full_fit){# FCH csv
+  if(pathogen == "flu"){
+    files_ <- file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date + 1, projection_date)), 
+                                                "-JHU_IDD-CovidSP.csv"))
+  }
+  if(pathogen == "covid19"){
+    files_ <- file.path(round_directory, paste0(lubridate::as_date(ifelse(smh_or_fch=='fch', projection_date, projection_date)),
+                                                "-JHU_IDD-CovidSP.csv"))
+  }
+  
+}else{# full fit plot 
+  files_ <- file.path(round_directory, paste0(toupper(smh_or_fch), "_all_R",round_num,"_", projection_date, 
+                                              ifelse(full_fit, "_FULL",""),
+                                              ifelse(is.na(subname), "", subname), '.pdf'))
 }
 
-# diagnostic
-files_ <- c(files_,paste0(round_directory, "/", fch_date, "_", pathogen, "_", smh_or_fch, "_R", round_num, "_", scenarios, "_", ymd(today()), ".pdf"))
+if(run_diagnostics){# diagnostic
+  files_ <- c(files_,paste0(round_directory, "/", fch_date, "_", pathogen, "_", smh_or_fch, "_R", round_num, "_", scenarios, "_", ymd(today()), ".pdf"))
+}
+
 
 file.copy(from = files_,
-          to = file.path(data_path, "pplot",files_), 
+          to = file.path(data_path, "pplot",basename(files_)), 
           overwrite = TRUE)
