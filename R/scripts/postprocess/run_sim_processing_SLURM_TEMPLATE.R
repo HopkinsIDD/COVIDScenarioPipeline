@@ -19,6 +19,7 @@ option_list = list(
   optparse::make_option(c("-F","--full_fit"), action="store", default=Sys.getenv("FULL_FIT",FALSE), type='logical', help = "Process full fit"),
   optparse::make_option(c("-i", "--pathogen"), action="store", default=Sys.getenv("PATHOGEN", "flu"), type='character', help="Which pathogen is being run"),
   optparse::make_option(c("-g","--pull_gt"), action="store", default=Sys.getenv("PULL_GT",FALSE), type='logical', help = "Pull ground truth"),
+  optparse::make_option(c("-n","--run_diagnostics"), action="store", default=Sys.getenv("DIAGNOSTICS",TRUE), type='logical', help = "Run diagnostics"),
   optparse::make_option(c("-f", "--flepimop_repo"), action="store", default=Sys.getenv("COVID_PATH", Sys.getenv("COVID_PATH")), type='character', help="path to the flepimop repo")
 )
 
@@ -150,7 +151,7 @@ while(run_process <= 1){
   keep_variant_compartments <- FALSE 
   keep_vacc_compartments <- FALSE
   likelihood_sims <- FALSE
-  run_diagnostics <- TRUE
+  run_diagnostics <- opt$run_diagnostics
   
   
   
@@ -515,6 +516,7 @@ while(run_process <= 1){
   }
   
   run_process = run_process + 1
+  rm(data_comb, data_submission)
 }
 
 
