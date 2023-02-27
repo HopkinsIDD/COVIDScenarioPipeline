@@ -500,7 +500,7 @@ if(plot_projections){
   
   # PDF NAME
   stplot_fname <- file.path(round_directory, paste0(toupper(smh_or_fch), "_all_R",round_num,"_", projection_date, 
-                                                    ifelse(full_fit_, "_FULL",""),
+                                                    ifelse(full_fit, "_FULL",""),
                                                     ifelse(is.na(subname), "", subname)))
   
   # Run plotting script
