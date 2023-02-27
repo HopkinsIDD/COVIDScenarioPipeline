@@ -16,7 +16,7 @@ import matplotlib.dates as mdates
 import matplotlib.cbook as cbook
 from matplotlib.backends.backend_pdf import PdfPages
 
-channelid_cspproduction = "D03U2RMD5FW"
+channelid_cspproduction = "D03E1DAQJSZW"
 channelid_chadi = "UFV770AE8"  # to debug
 channelid_debug = "C04MAQWLEAW"
 
