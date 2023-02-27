@@ -70,6 +70,10 @@ config <- covidcommon::load_config(opt$config)
 gc()
 
 
+# ~ Main Run Options -----------------------------------------------------------
+pull_gt <- opt$pull_gt
+full_fit <- opt$full_fit
+
 run_process <- ifelse(full_fit, 0, 1)
 ## for full_fit = TRUE, run full fit, then run full_fit = FALSE as well
 while(run_process <= 1){
@@ -84,11 +88,6 @@ while(run_process <= 1){
   use_local_repo <- TRUE 
   github_url <- "https://raw.githubusercontent.com/HopkinsIDD/COVIDScenarioPipeline/main"
   csp_local_dir <- opt$flepimop_repo
-  
-  
-  # ~ Main Run Options -----------------------------------------------------------
-  pull_gt <- opt$pull_gt
-  full_fit <- opt$full_fit
   
   # ~ Round -----------------------------------------------------------------
   config_name <- opt$config
