@@ -78,7 +78,9 @@ opt2 <- opt
 
 run_process <- ifelse(full_fit, 0, 1)
 ## for full_fit = TRUE, run full fit, then run full_fit = FALSE as well
+
 while(run_process <= 1){
+  config <- covidcommon::load_config(opt$config)
   
   full_fit_ <- ifelse(run_process == 0, TRUE, FALSE)
   opt <- opt2
