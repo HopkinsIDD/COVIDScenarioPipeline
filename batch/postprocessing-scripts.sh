@@ -1,6 +1,8 @@
 
 # START: your postprocessing scripts goes here.
 
+
+export PATHOGEN=$(python -c "exec(\"import os \nprint(os.getcwd().split('/')[-1].split('_')[0].lower())\")")
 export FULL_FIT=TRUE
 export DIAGNOSTICS=TRUE
 Rscript $COVID_PATH/R/scripts/postprocess/run_sim_processing_SLURM.R -c $COVID_CONFIG_PATH -p $FS_RESULTS_PATH
