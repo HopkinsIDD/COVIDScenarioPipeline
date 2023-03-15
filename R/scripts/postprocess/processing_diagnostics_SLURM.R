@@ -33,6 +33,9 @@ import_s3_outcome <- function(scn_dir, outcome, global_opt, final_opt){
 
   out_ <- NULL
   total <- length(subdir_list)
+    pb <- txtProgressBar(min=0, max=total, style = 3)
+  
+  print(paste0("Importing ", outcome, " files (n = ", total, "):"))
 
   for (i in 1:length(subdir_list)) {
     if(any(grepl("parquet", subdir_list))){
@@ -53,7 +56,11 @@ import_s3_outcome <- function(scn_dir, outcome, global_opt, final_opt){
       dat$block <- as.numeric(str_sub(subdir_list[i], start = 11, end = 19))
     }
     out_ <- rbind(out_, dat)
+    
+    # Increase the amount the progress bar is filled by setting the value to i.
+    setTxtProgressBar(pb, value = i)
   }
+  close(pb)
   return(out_)
 }
 
@@ -96,6 +103,9 @@ if(all(!is.na(hnpi$npi_name))){
     pivot_longer(cols = all_of(names_hnpi)) %>%
     filter(value > 0.0001)
 }
+
+bind_hosp_llik <- full_join(x = hosp, y = llik) %>%
+  pivot_longer(incidI:incidD, names_to = "outcome", values_to = "value")
 
 bind_hpar_llik <- full_join(x = hpar, y = llik) %>%
   filter(quantity == "probability") %>%
