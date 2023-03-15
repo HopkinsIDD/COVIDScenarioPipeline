@@ -67,7 +67,7 @@ scenario_dir <- file.path(scenario_dir, "model_output")
 
 hnpi <- import_s3_outcome(scenario_dir, "hnpi", "global", "final") %>%
   full_join(geodata_states, by = "geoid")
-hosp <- import_s3_outcome(work_dir, "hosp", "global", "final") %>%
+hosp <- import_s3_outcome(scenario_dir, "hosp", "global", "final") %>%
   full_join(geodata_states, by = "geoid")
 hpar <- import_s3_outcome(scenario_dir, "hpar", "global", "final") %>%
   full_join(geodata_states, by = "geoid")
