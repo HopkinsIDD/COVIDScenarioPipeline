@@ -95,9 +95,7 @@ def generate_pdf(max_files, filename, config_file):
 
     varplot = ["incidI", "hosp_curr", "icu_curr", "incidH", "incidICU", "incidD"]
 
-    fig, axes = plt.subplots(
-        len(varplot), len(all_hosp_sim), figsize=(23, 20), sharex=True
-    )
+    fig, axes = plt.subplots(len(varplot), len(all_hosp_sim), figsize=(23, 20), sharex=True)
     for vi, var in enumerate(varplot):
         for scn, key in enumerate(list(all_hosp_sim.keys())):
             if len(all_hosp_sim) > 1:

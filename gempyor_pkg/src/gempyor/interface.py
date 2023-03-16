@@ -116,9 +116,7 @@ class InferenceSimulator:
             f"""  gempyor >> prefix: {in_prefix};"""  # ti: {s.ti}; tf: {s.tf};
         )
 
-        self.already_built = (
-            False  # whether we have already build the costly object we just build once.
-        )
+        self.already_built = False  # whether we have already build the costly object we just build once.
 
     def update_prefix(self, new_prefix, new_out_prefix=None):
         self.s.in_prefix = new_prefix
@@ -134,15 +132,11 @@ class InferenceSimulator:
         else:
             self.s.out_run_id = new_out_run_id
 
-    def one_simulation_legacy(
-        self, sim_id2write: int, load_ID: bool = False, sim_id2load: int = None
-    ):
+    def one_simulation_legacy(self, sim_id2write: int, load_ID: bool = False, sim_id2load: int = None):
         sim_id2write = int(sim_id2write)
         if load_ID:
             sim_id2load = int(sim_id2load)
-        with Timer(
-            f">>> GEMPYOR onesim {'(loading file)' if load_ID else '(from config)'}"
-        ):
+        with Timer(f">>> GEMPYOR onesim {'(loading file)' if load_ID else '(from config)'}"):
             with Timer("onerun_SEIR"):
                 seir.onerun_SEIR(
                     sim_id2write=sim_id2write,
@@ -173,21 +167,15 @@ class InferenceSimulator:
         if load_ID:
             sim_id2load = int(sim_id2load)
 
-        with Timer(
-            f">>> GEMPYOR onesim {'(loading file)' if load_ID else '(from config)'}"
-        ):
+        with Timer(f">>> GEMPYOR onesim {'(loading file)' if load_ID else '(from config)'}"):
             if not self.already_built:
                 self.outcomes_parameters = outcomes.read_parameters_from_config(self.s)
 
             npi_outcomes = None
             if parallel:
                 with Timer("//things"):
-                    with ProcessPoolExecutor(
-                        max_workers=max(mp.cpu_count(), 3)
-                    ) as executor:
-                        ret_seir = executor.submit(
-                            seir.build_npi_SEIR, self.s, load_ID, sim_id2load, config
-                        )
+                    with ProcessPoolExecutor(max_workers=max(mp.cpu_count(), 3)) as executor:
+                        ret_seir = executor.submit(seir.build_npi_SEIR, self.s, load_ID, sim_id2load, config)
                         if self.s.npi_config_outcomes:
                             ret_outcomes = executor.submit(
                                 outcomes.build_npi_Outcomes,
@@ -197,9 +185,7 @@ class InferenceSimulator:
                                 config,
                             )
                         if not self.already_built:
-                            ret_comparments = executor.submit(
-                                self.s.compartments.get_transition_array
-                            )
+                            ret_comparments = executor.submit(self.s.compartments.get_transition_array)
 
                 # print("expections:", ret_seir.exception(), ret_outcomes.exception(), ret_comparments.exception())
 
@@ -223,9 +209,7 @@ class InferenceSimulator:
                         self.proportion_info,
                     ) = self.s.compartments.get_transition_array()
                     self.already_built = True
-                npi_seir = seir.build_npi_SEIR(
-                    s=self.s, load_ID=load_ID, sim_id2load=sim_id2load, config=config
-                )
+                npi_seir = seir.build_npi_SEIR(s=self.s, load_ID=load_ID, sim_id2load=sim_id2load, config=config)
                 if self.s.npi_config_outcomes:
                     npi_outcomes = outcomes.build_npi_Outcomes(
                         s=self.s,
@@ -238,9 +222,7 @@ class InferenceSimulator:
             ### Run every time:
             with Timer("SEIR.parameters"):
                 # Draw or load parameters
-                p_draw = self.get_seir_parameters(
-                    load_ID=load_ID, sim_id2load=sim_id2load
-                )
+                p_draw = self.get_seir_parameters(load_ID=load_ID, sim_id2load=sim_id2load)
 
                 # reduce them
                 parameters = self.s.parameters.parameters_reduce(p_draw, npi_seir)
@@ -252,22 +234,14 @@ class InferenceSimulator:
                 self.debug_p_draw = p_draw
                 self.debug_parameters = parameters
                 self.debug_parsed_parameters = parsed_parameters
-            
+
             with Timer("onerun_SEIR.seeding"):
                 if load_ID:
-                    initial_conditions = self.s.seedingAndIC.load_ic(
-                        sim_id2load, setup=self.s
-                    )
-                    seeding_data, seeding_amounts = self.s.seedingAndIC.load_seeding(
-                        sim_id2load, setup=self.s
-                    )
+                    initial_conditions = self.s.seedingAndIC.load_ic(sim_id2load, setup=self.s)
+                    seeding_data, seeding_amounts = self.s.seedingAndIC.load_seeding(sim_id2load, setup=self.s)
                 else:
-                    initial_conditions = self.s.seedingAndIC.draw_ic(
-                        sim_id2write, setup=self.s
-                    )
-                    seeding_data, seeding_amounts = self.s.seedingAndIC.draw_seeding(
-                        sim_id2write, setup=self.s
-                    )
+                    initial_conditions = self.s.seedingAndIC.draw_ic(sim_id2write, setup=self.s)
+                    seeding_data, seeding_amounts = self.s.seedingAndIC.draw_seeding(sim_id2write, setup=self.s)
                 self.debug_seeding_date = seeding_data
                 self.debug_seeding_amounts = seeding_amounts
 
@@ -286,9 +260,7 @@ class InferenceSimulator:
 
             with Timer("SEIR.postprocess"):
                 if self.s.write_csv or self.s.write_parquet:
-                    out_df = seir.postprocess_and_write(
-                        sim_id2write, self.s, states, p_draw, npi_seir, seeding_data
-                    )
+                    out_df = seir.postprocess_and_write(sim_id2write, self.s, states, p_draw, npi_seir, seeding_data)
                     self.debug_out_df = out_df
 
             loaded_values = None
@@ -318,18 +290,14 @@ class InferenceSimulator:
                 )
         return 0
 
-    def plot_transition_graph(
-        self, output_file="transition_graph", source_filters=[], destination_filters=[]
-    ):
+    def plot_transition_graph(self, output_file="transition_graph", source_filters=[], destination_filters=[]):
         self.s.compartments.plot(
             output_file=output_file,
             source_filters=source_filters,
             destination_filters=destination_filters,
         )
 
-    def get_outcome_npi(
-        self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None
-    ):
+    def get_outcome_npi(self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None):
         npi_outcomes = None
         if self.s.npi_config_outcomes:
             npi_outcomes = outcomes.build_npi_Outcomes(
@@ -342,9 +310,7 @@ class InferenceSimulator:
             )
         return npi_outcomes
 
-    def get_seir_npi(
-        self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None
-    ):
+    def get_seir_npi(self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None):
         npi_seir = seir.build_npi_SEIR(
             s=self.s,
             load_ID=load_ID,
@@ -355,9 +321,7 @@ class InferenceSimulator:
         )
         return npi_seir
 
-    def get_seir_parameters(
-        self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None
-    ):
+    def get_seir_parameters(self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None):
         param_df = None
         if bypass_DF is not None:
             param_df = bypass_DF
@@ -373,14 +337,10 @@ class InferenceSimulator:
                 nnodes=self.s.nnodes,
             )
         else:
-            p_draw = self.s.parameters.parameters_quick_draw(
-                n_days=self.s.n_days, nnodes=self.s.nnodes
-            )
+            p_draw = self.s.parameters.parameters_quick_draw(n_days=self.s.n_days, nnodes=self.s.nnodes)
         return p_draw
 
-    def get_seir_parametersDF(
-        self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None
-    ):
+    def get_seir_parametersDF(self, load_ID=False, sim_id2load=None, bypass_DF=None, bypass_FN=None):
         p_draw = self.get_seir_parameters(
             load_ID=load_ID,
             sim_id2load=sim_id2load,
@@ -435,9 +395,7 @@ def paramred_parallel(run_spec, snpi_fn):
         scenario="inference",  # NPIs scenario to use
         deathrate="med",  # Outcome scenario to use
         stoch_traj_flag=False,
-        spatial_path_prefix=run_spec[
-            "geodata"
-        ],  # prefix where to find the folder indicated in spatial_setup$
+        spatial_path_prefix=run_spec["geodata"],  # prefix where to find the folder indicated in spatial_setup$
     )
 
     snpi = pq.read_table(snpi_fn).to_pandas()
@@ -448,9 +406,7 @@ def paramred_parallel(run_spec, snpi_fn):
     params_draw_arr = gempyor_simulator.get_seir_parameters(
         bypass_FN=snpi_fn.replace("snpi", "spar")
     )  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
-    param_reduc_from = gempyor_simulator.get_seir_parameter_reduced(
-        npi_seir=npi_seir, p_draw=params_draw_arr
-    )
+    param_reduc_from = gempyor_simulator.get_seir_parameter_reduced(npi_seir=npi_seir, p_draw=params_draw_arr)
 
     return param_reduc_from
 
@@ -465,9 +421,7 @@ def paramred_parallel_config(run_spec, dummy):
         scenario="inference",  # NPIs scenario to use
         deathrate="med",  # Outcome scenario to use
         stoch_traj_flag=False,
-        spatial_path_prefix=run_spec[
-            "geodata"
-        ],  # prefix where to find the folder indicated in spatial_setup$
+        spatial_path_prefix=run_spec["geodata"],  # prefix where to find the folder indicated in spatial_setup$
     )
 
     npi_seir = gempyor_simulator.get_seir_npi()
@@ -475,8 +429,6 @@ def paramred_parallel_config(run_spec, dummy):
     params_draw_arr = (
         gempyor_simulator.get_seir_parameters()
     )  # could also accept (load_ID=True, sim_id2load=XXX) or (bypass_DF=<some_spar_df>) or (bypass_FN=<some_spar_filename>)
-    param_reduc_from = gempyor_simulator.get_seir_parameter_reduced(
-        npi_seir=npi_seir, p_draw=params_draw_arr
-    )
+    param_reduc_from = gempyor_simulator.get_seir_parameter_reduced(npi_seir=npi_seir, p_draw=params_draw_arr)
 
     return param_reduc_from

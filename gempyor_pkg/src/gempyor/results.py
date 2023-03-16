@@ -46,9 +46,7 @@ class Results:
             )
         fig.autofmt_xdate()
         if not self.s.interactive:
-            plt.savefig(
-                f"{self.figdir}{self.s.setup_name}_{comp}_per_node{self.timestamp}.pdf"
-            )
+            plt.savefig(f"{self.figdir}{self.s.setup_name}_{comp}_per_node{self.timestamp}.pdf")
 
         q50 = pd.DataFrame(
             index=pd.date_range(self.ti, self.tf, freq=self.freq),
@@ -73,9 +71,7 @@ class Results:
         ax.fill_between(q50.index, q05.sum(axis=1), q95.sum(axis=1), alpha=0.3)
         fig.autofmt_xdate()
         if not self.s.interactive:
-            plt.savefig(
-                f"{self.figdir}{self.s.setup_name}_{comp}_all_nodes{self.timestamp}.pdf"
-            )
+            plt.savefig(f"{self.figdir}{self.s.setup_name}_{comp}_all_nodes{self.timestamp}.pdf")
 
     def build_comp_data(self):
         """Very long"""
@@ -196,9 +192,7 @@ class Results:
         fig.autofmt_xdate()
 
         if not self.s.interactive:
-            plt.savefig(
-                f"{self.figdir}{self.s.setup_name}_{comp}_selected{self.timestamp}.pdf"
-            )
+            plt.savefig(f"{self.figdir}{self.s.setup_name}_{comp}_selected{self.timestamp}.pdf")
 
         return fig, axes
 
@@ -225,9 +219,7 @@ class Results:
         ax.legend()
         fig.autofmt_xdate()
         if not self.s.interactive:
-            plt.savefig(
-                f"{self.figdir}{self.s.setup_name}_allcomp_selected{self.timestamp}.pdf"
-            )
+            plt.savefig(f"{self.figdir}{self.s.setup_name}_allcomp_selected{self.timestamp}.pdf")
         return fig, axes
 
     def plot_comp_mult(self, comp, nodes):
@@ -242,9 +234,7 @@ class Results:
         for i, nd in enumerate(nodes):
             ax = axes.flat[i]
             ax.set_title(self.s.spatset.data["geoid"][nd])
-            ax.plot(
-                self.comp_data[nd][comp].quantile(0.5, axis=1), c=self.colors[i % 4]
-            )
+            ax.plot(self.comp_data[nd][comp].quantile(0.5, axis=1), c=self.colors[i % 4])
             ax.fill_between(
                 self.comp_data[nd][comp].index,
                 self.comp_data[nd][comp].quantile(0.05, axis=1),
@@ -255,7 +245,5 @@ class Results:
             fig.autofmt_xdate()
 
         if not self.s.interactive:
-            plt.savefig(
-                f"{self.figdir}{self.s.setup_name}_{comp}2_selected{self.timestamp}.pdf"
-            )
+            plt.savefig(f"{self.figdir}{self.s.setup_name}_{comp}2_selected{self.timestamp}.pdf")
         return fig, axes

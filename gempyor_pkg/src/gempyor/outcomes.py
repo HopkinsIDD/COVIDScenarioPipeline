@@ -21,9 +21,7 @@ def run_parallel_outcomes(s, *, sim_id2write, nsim=1, n_jobs=1):
     sim_id2writes = np.arange(sim_id2write, sim_id2write + s.nsim)
 
     loaded_values = None
-    if (n_jobs == 1) or (
-        s.nsim == 1
-    ):  # run single process for debugging/profiling purposes
+    if (n_jobs == 1) or (s.nsim == 1):  # run single process for debugging/profiling purposes
         for sim_offset in np.arange(nsim):
             onerun_delayframe_outcomes(
                 sim_id2write=sim_id2writes[sim_offset],
@@ -98,9 +96,7 @@ def onerun_delayframe_outcomes(
 
     npi_outcomes = None
     if s.npi_config_outcomes:
-        npi_outcomes = build_npi_Outcomes(
-            s=s, load_ID=load_ID, sim_id2load=sim_id2load, config=config
-        )
+        npi_outcomes = build_npi_Outcomes(s=s, load_ID=load_ID, sim_id2load=sim_id2load, config=config)
 
     loaded_values = None
     if load_ID:
@@ -117,9 +113,7 @@ def onerun_delayframe_outcomes(
         )
 
     with Timer("onerun_delayframe_outcomes.postprocess"):
-        postprocess_and_write(
-            sim_id=sim_id2write, s=s, outcomes=outcomes, hpar=hpar, npi=npi_outcomes
-        )
+        postprocess_and_write(sim_id=sim_id2write, s=s, outcomes=outcomes, hpar=hpar, npi=npi_outcomes)
 
 
 def read_parameters_from_config(s: setup.Setup):
@@ -133,9 +127,7 @@ def read_parameters_from_config(s: setup.Setup):
             branching_file = s.outcomes_config["param_place_file"].as_str()
             branching_data = pa.parquet.read_table(branching_file).to_pandas()
             if "relative_probability" not in list(branching_data["quantity"]):
-                raise ValueError(
-                    f"No 'relative_probability' quantity in {branching_file}, therefor making it useless"
-                )
+                raise ValueError(f"No 'relative_probability' quantity in {branching_file}, therefor making it useless")
 
             print(
                 "Loaded geoids in loaded relative probablity file:",
@@ -143,9 +135,7 @@ def read_parameters_from_config(s: setup.Setup):
                 "",
                 end="",
             )
-            branching_data = branching_data[
-                branching_data["geoid"].isin(s.spatset.nodenames)
-            ]
+            branching_data = branching_data[branching_data["geoid"].isin(s.spatset.nodenames)]
             print(
                 "Intersect with seir simulation: ",
                 len(branching_data.geoid.unique()),
@@ -176,30 +166,18 @@ def read_parameters_from_config(s: setup.Setup):
                             parameters[class_name]["source"] = src_name
                     else:
                         if subclasses != [""]:
-                            raise ValueError(
-                                "Subclasses not compatible with outcomes from compartments "
-                            )
-                        elif ("incidence" in src_name.keys()) or (
-                            "prevalence" in src_name.keys()
-                        ):
+                            raise ValueError("Subclasses not compatible with outcomes from compartments ")
+                        elif ("incidence" in src_name.keys()) or ("prevalence" in src_name.keys()):
                             parameters[class_name]["source"] = dict(src_name)
                         else:
                             raise ValueError(
                                 f"unsure how to read outcome {class_name}: not a str, nor an incidence or prevalence: {src_name}"
                             )
 
-                    parameters[class_name]["probability"] = outcomes_config[new_comp][
-                        "probability"
-                    ]["value"]
-                    if outcomes_config[new_comp]["probability"][
-                        "intervention_param_name"
-                    ].exists():
+                    parameters[class_name]["probability"] = outcomes_config[new_comp]["probability"]["value"]
+                    if outcomes_config[new_comp]["probability"]["intervention_param_name"].exists():
                         parameters[class_name]["probability::npi_param_name"] = (
-                            outcomes_config[new_comp]["probability"][
-                                "intervention_param_name"
-                            ]
-                            .as_str()
-                            .lower()
+                            outcomes_config[new_comp]["probability"]["intervention_param_name"].as_str().lower()
                         )
                         logging.debug(
                             f"probability of outcome {new_comp} is affected by intervention "
@@ -207,22 +185,12 @@ def read_parameters_from_config(s: setup.Setup):
                             f"instead of {new_comp}::probability"
                         )
                     else:
-                        parameters[class_name][
-                            "probability::npi_param_name"
-                        ] = f"{new_comp}::probability".lower()
+                        parameters[class_name]["probability::npi_param_name"] = f"{new_comp}::probability".lower()
 
-                    parameters[class_name]["delay"] = outcomes_config[new_comp][
-                        "delay"
-                    ]["value"]
-                    if outcomes_config[new_comp]["delay"][
-                        "intervention_param_name"
-                    ].exists():
+                    parameters[class_name]["delay"] = outcomes_config[new_comp]["delay"]["value"]
+                    if outcomes_config[new_comp]["delay"]["intervention_param_name"].exists():
                         parameters[class_name]["delay::npi_param_name"] = (
-                            outcomes_config[new_comp]["delay"][
-                                "intervention_param_name"
-                            ]
-                            .as_str()
-                            .lower()
+                            outcomes_config[new_comp]["delay"]["intervention_param_name"].as_str().lower()
                         )
                         logging.debug(
                             f"delay of outcome {new_comp} is affected by intervention "
@@ -230,23 +198,13 @@ def read_parameters_from_config(s: setup.Setup):
                             f"instead of {new_comp}::delay"
                         )
                     else:
-                        parameters[class_name][
-                            "delay::npi_param_name"
-                        ] = f"{new_comp}::delay".lower()
+                        parameters[class_name]["delay::npi_param_name"] = f"{new_comp}::delay".lower()
 
                     if outcomes_config[new_comp]["duration"].exists():
-                        parameters[class_name]["duration"] = outcomes_config[new_comp][
-                            "duration"
-                        ]["value"]
-                        if outcomes_config[new_comp]["duration"][
-                            "intervention_param_name"
-                        ].exists():
+                        parameters[class_name]["duration"] = outcomes_config[new_comp]["duration"]["value"]
+                        if outcomes_config[new_comp]["duration"]["intervention_param_name"].exists():
                             parameters[class_name]["duration::npi_param_name"] = (
-                                outcomes_config[new_comp]["duration"][
-                                    "intervention_param_name"
-                                ]
-                                .as_str()
-                                .lower()
+                                outcomes_config[new_comp]["duration"]["intervention_param_name"].as_str().lower()
                             )
                             logging.debug(
                                 f"duration of outcome {new_comp} is affected by intervention "
@@ -254,19 +212,14 @@ def read_parameters_from_config(s: setup.Setup):
                                 f"instead of {new_comp}::duration"
                             )
                         else:
-                            parameters[class_name][
-                                "duration::npi_param_name"
-                            ] = f"{new_comp}::duration".lower()
+                            parameters[class_name]["duration::npi_param_name"] = f"{new_comp}::duration".lower()
 
                         if outcomes_config[new_comp]["duration"]["name"].exists():
                             parameters[class_name]["duration_name"] = (
-                                outcomes_config[new_comp]["duration"]["name"].as_str()
-                                + subclass
+                                outcomes_config[new_comp]["duration"]["name"].as_str() + subclass
                             )
                         else:
-                            parameters[class_name]["duration_name"] = (
-                                new_comp + "_curr" + subclass
-                            )
+                            parameters[class_name]["duration_name"] = new_comp + "_curr" + subclass
 
                     if s.outcomes_config["param_from_file"].get():
                         rel_probability = branching_data[
@@ -274,20 +227,12 @@ def read_parameters_from_config(s: setup.Setup):
                             & (branching_data["quantity"] == "relative_probability")
                         ].copy(deep=True)
                         if len(rel_probability) > 0:
-                            logging.debug(
-                                f"Using 'param_from_file' for relative probability in outcome {class_name}"
-                            )
+                            logging.debug(f"Using 'param_from_file' for relative probability in outcome {class_name}")
                             # Sort it in case the relative probablity file is mispecified
-                            rel_probability.geoid = rel_probability.geoid.astype(
-                                "category"
-                            )
-                            rel_probability.geoid.cat.set_categories(
-                                s.spatset.nodenames, inplace=True
-                            )
+                            rel_probability.geoid = rel_probability.geoid.astype("category")
+                            rel_probability.geoid.cat.set_categories(s.spatset.nodenames, inplace=True)
                             rel_probability = rel_probability.sort_values(["geoid"])
-                            parameters[class_name]["rel_probability"] = rel_probability[
-                                "value"
-                            ].to_numpy()
+                            parameters[class_name]["rel_probability"] = rel_probability["value"].to_numpy()
                         else:
                             logging.debug(
                                 f"*NOT* Using 'param_from_file' for relative probability in outcome  {class_name}"
@@ -300,13 +245,9 @@ def read_parameters_from_config(s: setup.Setup):
                     if outcomes_config[new_comp]["duration"].exists():
                         duration_name = new_comp + "_curr"
                         if outcomes_config[new_comp]["duration"]["name"].exists():
-                            duration_name = outcomes_config[new_comp]["duration"][
-                                "name"
-                            ].as_str()
+                            duration_name = outcomes_config[new_comp]["duration"]["name"].as_str()
                         parameters[duration_name] = {}
-                        parameters[duration_name]["sum"] = [
-                            duration_name + c for c in subclasses
-                        ]
+                        parameters[duration_name]["sum"] = [duration_name + c for c in subclasses]
 
             elif outcomes_config[new_comp]["sum"].exists():
                 parameters[new_comp] = {}
@@ -357,9 +298,7 @@ def read_seir_sim(s, sim_id):
     return seir_df
 
 
-def compute_all_multioutcomes(
-    *, s, sim_id2write, parameters, loaded_values=None, npi=None
-):
+def compute_all_multioutcomes(*, s, sim_id2write, parameters, loaded_values=None, npi=None):
     """Compute delay frame based on temporally varying input. We load the seir sim corresponding to sim_id to write"""
     hpar = pd.DataFrame(columns=["geoid", "quantity", "outcome", "value"])
     all_data = {}
@@ -390,52 +329,36 @@ def compute_all_multioutcomes(
                 all_data["incidI"] = source_array
                 outcomes = pd.merge(
                     outcomes,
-                    dataframe_from_array(
-                        source_array, s.spatset.nodenames, dates, "incidI"
-                    ),
+                    dataframe_from_array(source_array, s.spatset.nodenames, dates, "incidI"),
                 )
             elif isinstance(source_name, dict):
-                source_array = get_filtered_incidI(
-                    seir_sim, dates, s.spatset.nodenames, source_name
-                )
+                source_array = get_filtered_incidI(seir_sim, dates, s.spatset.nodenames, source_name)
                 # we don't keep source in this cases
             else:  # already defined outcomes
                 source_array = all_data[source_name]
 
-            if (loaded_values is not None) and (
-                new_comp in loaded_values["outcome"].values
-            ):
+            if (loaded_values is not None) and (new_comp in loaded_values["outcome"].values):
                 ## This may be unnecessary
                 probabilities = loaded_values[
-                    (loaded_values["quantity"] == "probability")
-                    & (loaded_values["outcome"] == new_comp)
+                    (loaded_values["quantity"] == "probability") & (loaded_values["outcome"] == new_comp)
                 ]["value"].to_numpy()
-                delays = loaded_values[
-                    (loaded_values["quantity"] == "delay")
-                    & (loaded_values["outcome"] == new_comp)
-                ]["value"].to_numpy()
+                delays = loaded_values[(loaded_values["quantity"] == "delay") & (loaded_values["outcome"] == new_comp)][
+                    "value"
+                ].to_numpy()
             else:
-                probabilities = parameters[new_comp][
-                    "probability"
-                ].as_random_distribution()(
+                probabilities = parameters[new_comp]["probability"].as_random_distribution()(
                     size=len(s.spatset.nodenames)
                 )  # one draw per geoid
                 if "rel_probability" in parameters[new_comp]:
-                    probabilities = (
-                        probabilities * parameters[new_comp]["rel_probability"]
-                    )
+                    probabilities = probabilities * parameters[new_comp]["rel_probability"]
 
                 delays = parameters[new_comp]["delay"].as_random_distribution()(
                     size=len(s.spatset.nodenames)
                 )  # one draw per geoid
             probabilities[probabilities > 1] = 1
             probabilities[probabilities < 0] = 0
-            probabilities = np.repeat(
-                probabilities[:, np.newaxis], len(dates), axis=1
-            ).T  # duplicate in time
-            delays = np.repeat(
-                delays[:, np.newaxis], len(dates), axis=1
-            ).T  # duplicate in time
+            probabilities = np.repeat(probabilities[:, np.newaxis], len(dates), axis=1).T  # duplicate in time
+            delays = np.repeat(delays[:, np.newaxis], len(dates), axis=1).T  # duplicate in time
             delays = np.round(delays).astype(int)
             # write hpar before NPI
             hpar = pd.concat(
@@ -446,8 +369,7 @@ def compute_all_multioutcomes(
                             "geoid": s.spatset.nodenames,
                             "quantity": ["probability"] * len(s.spatset.nodenames),
                             "outcome": [new_comp] * len(s.spatset.nodenames),
-                            "value": probabilities[0]
-                            * np.ones(len(s.spatset.nodenames)),
+                            "value": probabilities[0] * np.ones(len(s.spatset.nodenames)),
                         }
                     ),
                     pd.DataFrame.from_dict(
@@ -464,60 +386,41 @@ def compute_all_multioutcomes(
             if npi is not None:
                 delays = NPI.reduce_parameter(
                     parameter=delays,
-                    modification=npi.getReduction(
-                        parameters[new_comp]["delay::npi_param_name"].lower()
-                    ),
+                    modification=npi.getReduction(parameters[new_comp]["delay::npi_param_name"].lower()),
                 )
                 delays = np.round(delays).astype(int)
                 probabilities = NPI.reduce_parameter(
                     parameter=probabilities,
-                    modification=npi.getReduction(
-                        parameters[new_comp]["probability::npi_param_name"].lower()
-                    ),
+                    modification=npi.getReduction(parameters[new_comp]["probability::npi_param_name"].lower()),
                 )
 
             # Create new compartment incidence:
             all_data[new_comp] = np.empty_like(source_array)
             # Draw with from source compartment
             if s.stoch_traj_flag:
-                all_data[new_comp] = np.random.binomial(
-                    source_array.astype(np.int32), probabilities
-                )
+                all_data[new_comp] = np.random.binomial(source_array.astype(np.int32), probabilities)
             else:
-                all_data[new_comp] = source_array * (
-                    probabilities * np.ones_like(source_array)
-                )
+                all_data[new_comp] = source_array * (probabilities * np.ones_like(source_array))
 
             # Shift to account for the delay
             ## stoch_delay_flag is whether to use stochastic delays or not
             stoch_delay_flag = False
-            all_data[new_comp] = multishift(
-                all_data[new_comp], delays, stoch_delay_flag=stoch_delay_flag
-            )
+            all_data[new_comp] = multishift(all_data[new_comp], delays, stoch_delay_flag=stoch_delay_flag)
             # Produce a dataframe an merge it
-            df_p = dataframe_from_array(
-                all_data[new_comp], s.spatset.nodenames, dates, new_comp
-            )
+            df_p = dataframe_from_array(all_data[new_comp], s.spatset.nodenames, dates, new_comp)
             outcomes = pd.merge(outcomes, df_p)
 
             # Make duration
             if "duration" in parameters[new_comp]:
-                if (loaded_values is not None) and (
-                    new_comp in loaded_values["outcome"].values
-                ):
+                if (loaded_values is not None) and (new_comp in loaded_values["outcome"].values):
                     durations = loaded_values[
-                        (loaded_values["quantity"] == "duration")
-                        & (loaded_values["outcome"] == new_comp)
+                        (loaded_values["quantity"] == "duration") & (loaded_values["outcome"] == new_comp)
                     ]["value"].to_numpy()
                 else:
-                    durations = parameters[new_comp][
-                        "duration"
-                    ].as_random_distribution()(
+                    durations = parameters[new_comp]["duration"].as_random_distribution()(
                         size=len(s.spatset.nodenames)
                     )  # one draw per geoid
-                durations = np.repeat(
-                    durations[:, np.newaxis], len(dates), axis=1
-                ).T  # duplicate in time
+                durations = np.repeat(durations[:, np.newaxis], len(dates), axis=1).T  # duplicate in time
                 durations = np.round(durations).astype(int)
 
                 hpar = pd.concat(
@@ -528,8 +431,7 @@ def compute_all_multioutcomes(
                                 "geoid": s.spatset.nodenames,
                                 "quantity": ["duration"] * len(s.spatset.nodenames),
                                 "outcome": [new_comp] * len(s.spatset.nodenames),
-                                "value": durations[0]
-                                * np.ones(len(s.spatset.nodenames)),
+                                "value": durations[0] * np.ones(len(s.spatset.nodenames)),
                             }
                         ),
                     ],
@@ -546,9 +448,7 @@ def compute_all_multioutcomes(
                     # print(f"{new_comp}-duration".lower(), npi.getReduction(f"{new_comp}-duration".lower()))
                     durations = NPI.reduce_parameter(
                         parameter=durations,
-                        modification=npi.getReduction(
-                            parameters[new_comp]["duration::npi_param_name"].lower()
-                        ),
+                        modification=npi.getReduction(parameters[new_comp]["duration::npi_param_name"].lower()),
                     )  # npi.getReduction(f"{new_comp}::duration".lower()))
                     durations = np.round(durations).astype(int)
                     # plt.imshow(durations)
@@ -557,9 +457,7 @@ def compute_all_multioutcomes(
                     # plt.savefig('Daft'+new_comp + '-' + source)
                     # plt.close()
 
-                all_data[parameters[new_comp]["duration_name"]] = np.cumsum(
-                    all_data[new_comp], axis=0
-                ) - multishift(
+                all_data[parameters[new_comp]["duration_name"]] = np.cumsum(all_data[new_comp], axis=0) - multishift(
                     np.cumsum(all_data[new_comp], axis=0),
                     durations,
                     stoch_delay_flag=stoch_delay_flag,
@@ -582,9 +480,7 @@ def compute_all_multioutcomes(
             for cmp in parameters[new_comp]["sum"]:
                 sum_outcome += all_data[cmp]
             all_data[new_comp] = sum_outcome
-            df_p = dataframe_from_array(
-                sum_outcome, s.spatset.nodenames, dates, new_comp
-            )
+            df_p = dataframe_from_array(sum_outcome, s.spatset.nodenames, dates, new_comp)
             outcomes = pd.merge(outcomes, df_p)
 
     return outcomes, hpar
@@ -681,9 +577,7 @@ def multishift(arr, shifts, stoch_delay_flag=True):
         #        for k,case in enumerate(cases):
         #            results[i+k][j] = cases[k]
     else:
-        for i in range(
-            arr.shape[0]
-        ):  # numba nopython does not allow iterating over 2D array
+        for i in range(arr.shape[0]):  # numba nopython does not allow iterating over 2D array
             for j in range(arr.shape[1]):
                 if i + shifts[i, j] < arr.shape[0]:
                     result[i + shifts[i, j], j] += arr[i, j]

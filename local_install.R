@@ -3,7 +3,8 @@
 library(devtools)
 
 install.packages(c("covidcast","data.table","vroom","dplyr"), force=TRUE)
-  
+# devtools::install_github("hrbrmstr/cdcfluview")
+
 # To run if operating in the container
 initial.options <- commandArgs(trailingOnly = FALSE)
 file.arg.name <- "--file="

@@ -244,9 +244,7 @@ def simulate(
         )
 
         if config["outcomes"]["method"].get() == "delayframe":
-            outcomes.run_parallel_outcomes(
-                sim_id2write=index, s=s, nsim=nsim, n_jobs=jobs
-            )
+            outcomes.run_parallel_outcomes(sim_id2write=index, s=s, nsim=nsim, n_jobs=jobs)
         else:
             raise ValueError(f"Only method 'delayframe' is supported at the moment.")
 

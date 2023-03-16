@@ -9,9 +9,7 @@ bucket = "idd-inference-runs"  # 'idd-inference-runs'
 
 s3 = boto3.client("s3")
 paginator = s3.get_paginator("list_objects_v2")
-pages = paginator.paginate(
-    Bucket=bucket, Prefix="", Delimiter="/"
-)  # needs paginator cause more than 1000 files
+pages = paginator.paginate(Bucket=bucket, Prefix="", Delimiter="/")  # needs paginator cause more than 1000 files
 
 to_prun = []
 # folders:
