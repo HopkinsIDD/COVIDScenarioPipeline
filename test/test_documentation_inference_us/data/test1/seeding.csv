@@ -1,0 +1,5 @@
+"place","date","amount","source_infection_stage","destination_infection_stage","source_vaccination_stage","destination_vaccination_stage","no_perturb"
+"15001",2020-04-01,0,"S","E","unvaccinated","unvaccinated",FALSE
+"15003",2020-04-01,0,"S","E","unvaccinated","unvaccinated",FALSE
+"15007",2020-04-01,0,"S","E","unvaccinated","unvaccinated",FALSE
+"15009",2020-04-01,0,"S","E","unvaccinated","unvaccinated",FALSE
