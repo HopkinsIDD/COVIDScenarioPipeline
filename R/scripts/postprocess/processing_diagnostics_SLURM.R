@@ -231,10 +231,10 @@ for(i in 1:length(USPS)){
     mutate(llik_bin = case_when(slot %in% head(state_llik_rank, 5)$slot ~ "top",
                                 slot %in% tail(state_llik_rank, 5)$slot ~ "bottom"))
   
-  filter_gt_data <- gt_data %>%
+  filter_gt_data <- gt_data_cov %>%
     filter(USPS == state) %>%
-    select(USPS, geoid, time, incidC, incidH, incidD) %>%
-    pivot_longer(incidC:incidD, names_to = "outcome", values_to = "value") %>%
+    select(USPS, geoid, time, dplyr::contains("incid") & !dplyr::contains("_")) %>%
+    pivot_longer(dplyr::contains('incid'), names_to = "outcome", values_to = "value") %>%
     rename(date = time)
   
   hosp_llik_plot[[i]] <- ggplot() +
