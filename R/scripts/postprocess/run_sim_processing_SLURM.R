@@ -307,9 +307,9 @@ data_path <- opt$data_path
 
 Sys.setenv(CONFIG_PATH = opt$config)
 Sys.setenv(COVID_PATH = source_loc)
-if (pathogen == "flu"){
+if (pathogen == "flu" & pull_gt){
   source(paste0(source_loc, "/R/scripts/build_flu_data.R"))
-} else if (pathogen == "covid19"){
+} else if (pathogen == "covid19" & pull_gt){
   source(paste0(source_loc, "/R/scripts/build_covid_data.R"))
 }
 
