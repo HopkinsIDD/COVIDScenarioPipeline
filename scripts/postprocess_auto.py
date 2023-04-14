@@ -19,7 +19,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 channelid_cspproduction = "C011YTUBJ7R"
 channelid_chadi = "UFV770AE8"  # to debug
 channelid_debug = "C04MAQWLEAW"
-
+channelid_sloo = "D04M6P7N7SP"
 
 class RunInfo:
     def __init__(self, run_id, config_path=None, folder_path=None):
