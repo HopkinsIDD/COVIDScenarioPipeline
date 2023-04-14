@@ -106,7 +106,7 @@ if(pathogen == 'flu'){
   scenarios <- c("highVE_optImm", "highVE_pesImm", "lowVE_optImm", "lowVE_pesImm") # include all, it will subset later based on what you put in `scenario_num`
   fch_scenario_num = 2
 }else if(pathogen == 'covid19'){
-  scenarios <- c("highBoo_modVar", "highBoo_highVar", "lowBoo_modVar", "lowBoo_highVar") # include all, it will subset later based on what you put in `scenario_num`
+  scenarios <- c("highBoo_modVar", "highBoo_highVar", "optWan_noVar", "lowBoo_highVar") # include all, it will subset later based on what you put in `scenario_num`
   fch_scenario_num = 3
 }
 
