@@ -44,6 +44,9 @@ class Reduce(NPIBase):
         else:
             self.__createFromConfig(npi_config)
 
+
+        print("l48", self.name, self.parameters)
+
         # if parameters are exceeding global start/end dates, index of parameter df will be out of range so check first
         if self.parameters["start_date"].min() < self.start_date or self.parameters["end_date"].max() > self.end_date:
             raise ValueError(f"""{self.name} : at least one period start or end date is not between global dates""")

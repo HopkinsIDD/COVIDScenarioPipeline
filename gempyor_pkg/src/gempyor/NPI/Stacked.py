@@ -14,6 +14,7 @@ debug_print = False
 REDUCTION_METADATA_CAP = int(os.getenv("COVID_MAX_STACK_SIZE", 50000))
 
 
+
 class Stacked(NPIBase):
     def __init__(
         self,
@@ -44,6 +45,7 @@ class Stacked(NPIBase):
         for scenario in npi_config["scenarios"].get():
             # if it's a string, look up the scenario name's config
             if isinstance(scenario, str):
+                print("stacked", scenario)
                 settings = settings_map.get(scenario)
                 if settings is None:
                     raise RuntimeError(f"couldn't find scenario in config file [got: {scenario}]")
